@@ -280,82 +280,59 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       if (_changeType == IDEAL_STATE) {
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
         subscribeForChanges(changeContext, _path, true, true);
-        List<IdealState> idealStates = Collections.emptyList();
-        if (_preFetchEnabled) {
-          idealStates = _accessor.getChildValues(_propertyKey);
-        }
-
+        List<IdealState> idealStates = preFetch(_propertyKey);
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
 
       } else if (_changeType == ChangeType.INSTANCE_CONFIG) {
         subscribeForChanges(changeContext, _path, true, true);
         if (_listener instanceof ConfigChangeListener) {
           ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
-          List<InstanceConfig> configs = Collections.emptyList();
-          if (_preFetchEnabled) {
-            configs = _accessor.getChildValues(_propertyKey);
-          }
+          List<InstanceConfig> configs = preFetch(_propertyKey);
           configChangeListener.onConfigChange(configs, changeContext);
         } else if (_listener instanceof InstanceConfigChangeListener) {
           InstanceConfigChangeListener listener = (InstanceConfigChangeListener) _listener;
-          List<InstanceConfig> configs = Collections.emptyList();
-          if (_preFetchEnabled) {
-            configs = _accessor.getChildValues(_propertyKey);
-          }
+          List<InstanceConfig> configs = preFetch(_propertyKey);
           listener.onInstanceConfigChange(configs, changeContext);
         }
+
       } else if (_changeType == CONFIG) {
         subscribeForChanges(changeContext, _path, true, true);
         ScopedConfigChangeListener listener = (ScopedConfigChangeListener) _listener;
-        List<HelixProperty> configs = Collections.emptyList();
-        if (_preFetchEnabled) {
-          configs = _accessor.getChildValues(_propertyKey);
-        }
+        List<HelixProperty> configs = preFetch(_propertyKey);
         listener.onConfigChange(configs, changeContext);
+
       } else if (_changeType == LIVE_INSTANCE) {
         LiveInstanceChangeListener liveInstanceChangeListener = (LiveInstanceChangeListener) _listener;
         subscribeForChanges(changeContext, _path, true, true);
-        List<LiveInstance> liveInstances = Collections.emptyList();
-        if (_preFetchEnabled) {
-          liveInstances = _accessor.getChildValues(_propertyKey);
-        }
+        List<LiveInstance> liveInstances = preFetch(_propertyKey);
         liveInstanceChangeListener.onLiveInstanceChange(liveInstances, changeContext);
+
       } else if (_changeType == CURRENT_STATE) {
         CurrentStateChangeListener currentStateChangeListener = (CurrentStateChangeListener) _listener;
         subscribeForChanges(changeContext, _path, true, true);
         String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
-
-        List<CurrentState> currentStates = Collections.emptyList();
-        if (_preFetchEnabled) {
-          currentStates = _accessor.getChildValues(_propertyKey);
-        }
+        List<CurrentState> currentStates = preFetch(_propertyKey);
         currentStateChangeListener.onStateChange(instanceName, currentStates, changeContext);
+
       } else if (_changeType == MESSAGE) {
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, _path, true, false);
         String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
-        List<Message> messages = Collections.emptyList();
-        if (_preFetchEnabled) {
-          messages = _accessor.getChildValues(_propertyKey);
-        }
+        List<Message> messages = preFetch(_propertyKey);
         messageListener.onMessage(instanceName, messages, changeContext);
+
       } else if (_changeType == MESSAGES_CONTROLLER) {
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, _path, true, false);
-        List<Message> messages = Collections.emptyList();
-        if (_preFetchEnabled) {
-          messages = _accessor.getChildValues(_propertyKey);
-        }
+        List<Message> messages = preFetch(_propertyKey);
         messageListener.onMessage(_manager.getInstanceName(), messages, changeContext);
 
       } else if (_changeType == EXTERNAL_VIEW) {
         ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
         subscribeForChanges(changeContext, _path, true, true);
-        List<ExternalView> externalViewList = Collections.emptyList();
-        if (_preFetchEnabled) {
-          externalViewList = _accessor.getChildValues(_propertyKey);
-        }
+        List<ExternalView> externalViewList = preFetch(_propertyKey);
         externalViewListener.onExternalViewChange(externalViewList, changeContext);
+
       } else if (_changeType == ChangeType.CONTROLLER) {
         ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
         subscribeForChanges(changeContext, _path, true, false);
@@ -372,6 +349,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       if (_monitor != null) {
         _monitor.increaseCallbackCounters(_changeType, end - start);
       }
+    }
+  }
+
+  private <T extends HelixProperty> List<T> preFetch(PropertyKey key) {
+    if (_preFetchEnabled) {
+      return _accessor.getChildValues(key);
+    } else {
+      return Collections.emptyList();
     }
   }
 

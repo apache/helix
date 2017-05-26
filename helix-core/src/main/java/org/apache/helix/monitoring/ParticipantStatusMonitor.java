@@ -100,7 +100,7 @@ public class ParticipantStatusMonitor {
         synchronized (this) {
           if (!_monitorMap.containsKey(cxt)) {
             StateTransitionStatMonitor bean =
-                new StateTransitionStatMonitor(cxt, TimeUnit.MILLISECONDS);
+                new StateTransitionStatMonitor(cxt);
             _monitorMap.put(cxt, bean);
             String beanName = cxt.toString();
             register(bean, getObjectName(beanName));

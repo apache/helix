@@ -2,18 +2,18 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { RouterTestingModule } from '@angular/router/testing';
 
-import { ResourceDetailComponent } from './resource-detail.component';
+import { PartitionListComponent } from './partition-list.component';
 
-describe('ResourceDetailComponent', () => {
-  let component: ResourceDetailComponent;
-  let fixture: ComponentFixture<ResourceDetailComponent>;
+describe('PartitionListComponent', () => {
+  let component: PartitionListComponent;
+  let fixture: ComponentFixture<PartitionListComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
         RouterTestingModule
       ],
-      declarations: [ ResourceDetailComponent ],
+      declarations: [ PartitionListComponent ],
       schemas: [
         /* avoid importing modules */
         NO_ERRORS_SCHEMA
@@ -23,12 +23,12 @@ describe('ResourceDetailComponent', () => {
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(ResourceDetailComponent);
+    fixture = TestBed.createComponent(PartitionListComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

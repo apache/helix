@@ -2,6 +2,7 @@ import { ModuleWithProviders } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { AppComponent } from './app.component';
+import { JsonViewerComponent } from './shared/json-viewer/json-viewer.component';
 import { ClusterResolver } from './cluster/shared/cluster.resolver';
 import { ClusterDetailComponent } from './cluster/cluster-detail/cluster-detail.component';
 import { ConfigDetailComponent } from './configuration/config-detail/config-detail.component';
@@ -9,6 +10,7 @@ import { InstanceListComponent } from './instance/instance-list/instance-list.co
 import { ResourceResolver } from './resource/shared/resource.resolver';
 import { ResourceListComponent } from './resource/resource-list/resource-list.component';
 import { ResourceDetailComponent } from './resource/resource-detail/resource-detail.component';
+import { PartitionListComponent } from './resource/partition-list/partition-list.component';
 import { ControllerDetailComponent } from './controller/controller-detail/controller-detail.component';
 import { HistoryListComponent } from './history/history-list/history-list.component';
 import { InstanceDetailComponent } from './instance/instance-detail/instance-detail.component';
@@ -38,7 +40,10 @@ const HELIX_ROUTES: Routes = [
       },
       {
         path: 'configs',
-        component: ConfigDetailComponent
+        component: ConfigDetailComponent,
+        data: {
+          forCluster: true
+        }
       },
       {
         path: 'instances',
@@ -70,7 +75,39 @@ const HELIX_ROUTES: Routes = [
     component: ResourceDetailComponent,
     resolve: {
       resource: ResourceResolver
-    }
+    },
+    children: [
+      {
+        path: '',
+        redirectTo: 'partitions',
+        pathMatch: 'full'
+      },
+      {
+        path: 'partitions',
+        component: PartitionListComponent
+      },
+      {
+        path: 'externalView',
+        component: JsonViewerComponent,
+        data: {
+          path: 'resource.externalView'
+        }
+      },
+      {
+        path: 'idealState',
+        component: JsonViewerComponent,
+        data: {
+          path: 'resource.idealState'
+        }
+      },
+      {
+        path: 'configs',
+        component: ConfigDetailComponent,
+        data: {
+          forResource: true
+        }
+      }
+    ]
   },
   {
     path: 'clusters/:cluster_name/instances/:instance_name',
@@ -90,7 +127,10 @@ const HELIX_ROUTES: Routes = [
       },
       {
         path: 'configs',
-        component: ConfigDetailComponent
+        component: ConfigDetailComponent,
+        data: {
+          forInstance: true
+        }
       },
       {
         path: 'history',

@@ -49,10 +49,9 @@ export class ResourceListComponent implements OnInit {
             () => this.isLoading = false
           );
       } else {
-        this.clusterName = this.route.parent.snapshot.params.name;
-
         this.route.parent.data.subscribe(data => {
           this.isLoading = true;
+          this.clusterName = data.cluster.name;
 
           this.service
             .getAll(data.cluster.name)

@@ -12,4 +12,8 @@ export class ConfigurationService extends HelixService {
   public getInstanceConfig(clusterName: string, instanceName: string) {
     return this.request(`/clusters/${ clusterName }/instances/${ instanceName }/configs`);
   }
+
+  public getResourceConfig(clusterName: string, resourceName: string) {
+    return this.request(`/clusters/${ clusterName }/resources/${ resourceName }/configs`);
+  }
 }

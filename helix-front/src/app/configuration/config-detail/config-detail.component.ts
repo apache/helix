@@ -64,7 +64,7 @@ export class ConfigDetailComponent implements OnInit {
   ngOnInit() {
     if (this.route.parent) {
       // TODO vxu: convert this logic to config.resolver
-      if (this.route.parent.snapshot.params.instance_name) {
+      if (this.route.snapshot.data.forInstance) {
         this.isLoading = true;
 
         this.serivce
@@ -74,7 +74,20 @@ export class ConfigDetailComponent implements OnInit {
           )
           .subscribe(
             config => this.parseConfigs(config),
-            error => {},
+            error => this.handleError(error),
+            () => this.isLoading = false
+          );
+      } else if (this.route.snapshot.data.forResource) {
+        this.isLoading = true;
+
+        this.serivce
+          .getResourceConfig(
+            this.route.parent.snapshot.params.cluster_name,
+            this.route.parent.snapshot.params.resource_name
+          )
+          .subscribe(
+            config => this.parseConfigs(config),
+            error => this.handleError(error),
             () => this.isLoading = false
           );
       } else {
@@ -86,7 +99,7 @@ export class ConfigDetailComponent implements OnInit {
               .getClusterConfig(data.cluster.name)
               .subscribe(
                 config => this.parseConfigs(config),
-                error => {},
+                error => this.handleError(error),
                 () => this.isLoading = false
               );
           });
@@ -134,6 +147,11 @@ export class ConfigDetailComponent implements OnInit {
         });
       });
     }
+  }
+
+  protected handleError(error) {
+    // the API says if there's no config just return 404 ! sucks!
+    this.isLoading = false;
   }
 
   // Converting simpleFields to format like rows

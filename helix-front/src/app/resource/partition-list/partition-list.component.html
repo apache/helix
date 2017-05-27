@@ -1,0 +1,64 @@
+<section>
+  <ngx-datatable
+    *ngIf="canAnalyse()"
+    #partitionsTable
+    class="material"
+    [headerHeight]="rowHeight"
+    rowHeight="auto"
+    columnMode="force"
+    [footerHeight]="rowHeight"
+    [rows]="partitions"
+    [sorts]="sorts"
+    selectionType="single"
+    (select)="onSelect($event)">
+    <ngx-datatable-column
+     [width]="50"
+     [resizeable]="false"
+     [sortable]="false"
+     [draggable]="false"
+     [canAutoResize]="false">
+     <ng-template let-row="row" ngx-datatable-cell-template>
+       <md-icon>{{ row.$$expanded ? 'expand_more' : 'chevron_right' }}</md-icon>
+     </ng-template>
+    </ngx-datatable-column>
+    <ngx-datatable-column
+      name="Status"
+      prop="isReady"
+      [width]="85"
+      [resizeable]="false"
+      [draggable]="false"
+      [canAutoResize]="false">
+      <ng-template let-value="value" ngx-datatable-cell-template>
+        <md-icon [ngClass]="value ? 'status-ready' : 'status-not-ready'">lens</md-icon>
+      </ng-template>
+    </ngx-datatable-column>
+    <ngx-datatable-column name="Name"></ngx-datatable-column>
+    <ngx-datatable-column
+      *ngFor="let replica of partitions[0].replicas; let i = index"
+      name="Replica #{{ i + 1 }}"
+      prop="replicas.{{ i }}"
+      [width]="110"
+      [resizeable]="false"
+      [canAutoResize]="false">
+      <ng-template let-value="value" ngx-datatable-cell-template>
+        <section [mdTooltip]="value.instanceName">
+          <section *ngIf="value.externalView && value.externalView == value.idealState">
+            <div>{{ value.externalView }}</div>
+          </section>
+          <section *ngIf="!value.externalView || value.externalView != value.idealState">
+            <div class="status-not-ready">{{ value.externalView }}</div>
+          </section>
+        </section>
+      </ng-template>
+    </ngx-datatable-column>
+    <ngx-datatable-row-detail rowHeight="auto">
+      <ng-template let-row="row" ngx-datatable-row-detail-template>
+        <hi-partition-detail [clusterName]="resource.cluster" [partition]="row"></hi-partition-detail>
+      </ng-template>
+    </ngx-datatable-row-detail>
+  </ngx-datatable>
+  <div *ngIf="!canAnalyse()" class="message">
+    <div>Sorry, we do not support this kind of partition information yet. Detailed debugging information:</div>
+    <hi-json-viewer [obj]="resource"></hi-json-viewer>
+  </div>
+</section>

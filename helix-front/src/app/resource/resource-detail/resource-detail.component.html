@@ -1,3 +1,25 @@
-<p>
-  resource-detail works!
-</p>
+<section>
+  <md-toolbar class="mat-elevation-z1">
+    <hi-detail-header [cluster]="resource?.cluster" [resource]="resource?.name"></hi-detail-header>
+    <md-toolbar-row class="information">
+      <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
+      <hi-key-value-pairs [obj]="resource">
+        <hi-key-value-pair name="Ideal State Mode" prop="idealStateMode"></hi-key-value-pair>
+        <hi-key-value-pair name="Rebalance Mode" prop="rebalanceMode"></hi-key-value-pair>
+        <hi-key-value-pair name="State Model" prop="stateModel"></hi-key-value-pair>
+        <hi-key-value-pair name="Ideal Partitions" prop="partitionCount"></hi-key-value-pair>
+        <hi-key-value-pair name="Replication Factor" prop="replicaCount"></hi-key-value-pair>
+      </hi-key-value-pairs>
+    </md-toolbar-row>
+  </md-toolbar>
+  <nav md-tab-nav-bar>
+    <a md-tab-link
+      *ngFor="let tabLink of tabLinks"
+      [routerLink]="tabLink.link"
+      routerLinkActive #rla="routerLinkActive"
+      [active]="rla.isActive">
+      {{ tabLink.label }}
+    </a>
+  </nav>
+  <router-outlet></router-outlet>
+</section>

@@ -1,0 +1,5 @@
+@import '~@angular/material/theming';
+
+.status-not-ready {
+  color: mat-color(mat-palette($mat-orange), darker);
+}

@@ -45,10 +45,12 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.log4j.Logger;
 
@@ -67,13 +69,6 @@ public class ClusterAccessor extends AbstractResource {
     messages,
     stateModelDefinitions,
     clusters
-  }
-
-  public enum ClusterCommands {
-    activate,
-    expand,
-    enable,
-    disable
   }
 
   @GET
@@ -160,22 +155,18 @@ public class ClusterAccessor extends AbstractResource {
   @POST
   @Path("{clusterId}")
   public Response updateCluster(@PathParam("clusterId") String clusterId,
-      @QueryParam("command") String command, @QueryParam("superCluster") String superCluster) {
-    if (command == null) {
-      return badRequest("command is needed!");
+      @QueryParam("command") String commandStr, @QueryParam("superCluster") String superCluster) {
+    Command command;
+    try {
+      command = getCommand(commandStr);
+    } catch (HelixException ex) {
+      return badRequest(ex.getMessage());
     }
 
-    ClusterCommands commandType;
-    try {
-      commandType = ClusterCommands.valueOf(command);
-    } catch (IllegalArgumentException ex) {
-      return badRequest("Unknown command " + command);
-    }
-    
     ClusterSetup clusterSetup = getClusterSetup();
     HelixAdmin helixAdmin = getHelixAdmin();
 
-    switch (commandType) {
+    switch (command) {
     case activate:
       if (superCluster == null) {
         return badRequest("Super Cluster name is missing!");
@@ -216,7 +207,7 @@ public class ClusterAccessor extends AbstractResource {
       break;
 
     default:
-      return badRequest("Unknown command " + commandType);
+      return badRequest("Unsupported command " + command);
     }
 
     return OK();
@@ -249,24 +240,52 @@ public class ClusterAccessor extends AbstractResource {
 
   @POST
   @Path("{clusterId}/configs")
-  public Response updateClusterConfig(@PathParam("clusterId") String clusterId, String content) {
+  public Response updateClusterConfig(
+      @PathParam("clusterId") String clusterId, @QueryParam("command") String commandStr,
+      String content) {
+    Command command;
+    try {
+      command = getCommand(commandStr);
+    } catch (HelixException ex) {
+      return badRequest(ex.getMessage());
+    }
+
     ZNRecord record;
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
       _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
-      return badRequest("Input is not a vaild ZNRecord!");
+      return badRequest("Input is not a valid ZNRecord!");
     }
+
+    if (!record.getId().equals(clusterId)) {
+      return badRequest("ID does not match the cluster name in input!");
+    }
+
     ClusterConfig config = new ClusterConfig(record);
     ConfigAccessor configAccessor = getConfigAccessor();
     try {
-      configAccessor.updateClusterConfig(clusterId, config);
+      switch (command) {
+      case update:
+        configAccessor.updateClusterConfig(clusterId, config);
+        break;
+      case delete: {
+        HelixConfigScope clusterScope =
+            new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
+                .forCluster(clusterId).build();
+        configAccessor.remove(clusterScope, config.getRecord());
+        }
+        break;
+
+      default:
+        return badRequest("Unsupported command " + commandStr);
+      }
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
       _logger.error(
-          "Failed to update cluster config, cluster " + clusterId + " new config: " + content
-              + ", Exception: " + ex);
+          "Failed to " + command + " cluster config, cluster " + clusterId + " new config: "
+              + content + ", Exception: " + ex);
       return serverError(ex.getMessage());
     }
     return OK();
@@ -328,7 +347,8 @@ public class ClusterAccessor extends AbstractResource {
   @Path("{clusterId}/controller/messages/{messageId}")
   public Response getClusterControllerMessages(@PathParam("clusterId") String clusterId, @PathParam("messageId") String messageId) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    Message message = dataAccessor.getProperty(dataAccessor.keyBuilder().controllerMessage(messageId));
+    Message message = dataAccessor.getProperty(
+        dataAccessor.keyBuilder().controllerMessage(messageId));
     return JSONRepresentation(message.getRecord());
   }
 

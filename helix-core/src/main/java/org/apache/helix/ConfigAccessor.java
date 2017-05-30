@@ -266,7 +266,6 @@ public class ConfigAccessor {
       }
     }
     ZKUtil.createOrMerge(zkClient, splits[0], update, true, true);
-    return;
   }
 
   /**
@@ -318,7 +317,6 @@ public class ConfigAccessor {
     }
 
     ZKUtil.createOrMerge(zkClient, zkPath, update, true, true);
-    return;
   }
 
   /**
@@ -371,7 +369,6 @@ public class ConfigAccessor {
     }
 
     ZKUtil.subtract(zkClient, splits[0], update);
-    return;
   }
 
   /**
@@ -419,7 +416,28 @@ public class ConfigAccessor {
     }
 
     ZKUtil.subtract(zkClient, zkPath, update);
-    return;
+  }
+
+  /**
+   * Remove multiple configs
+   *
+   * @param scope          scope specification of the entity set to query (e.g. cluster, resource,
+   *                       participant, etc.)
+   * @param recordToRemove the ZNRecord that holds the entries that needs to be removed
+   */
+  public void remove(HelixConfigScope scope, ZNRecord recordToRemove) {
+    if (scope == null || scope.getType() == null || !scope.isFullKey()) {
+      LOG.error("fail to remove. invalid scope: " + scope);
+      return;
+    }
+
+    String clusterName = scope.getClusterName();
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+      throw new HelixException("fail to remove. cluster " + clusterName + " is not setup yet");
+    }
+
+    String zkPath = scope.getZkPath();
+    ZKUtil.subtract(zkClient, zkPath, recordToRemove);
   }
 
   /**

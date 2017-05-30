@@ -31,6 +31,7 @@ import javax.ws.rs.core.Response;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -54,6 +55,15 @@ public class AbstractResource {
     history,
     count,
     error
+  }
+
+  public enum Command {
+    activate,
+    expand,
+    enable,
+    disable,
+    update,
+    delete
   }
 
   @Context
@@ -183,5 +193,17 @@ public class AbstractResource {
 
   protected static ZNRecord toZNRecord(String data) throws IOException {
     return OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
+  }
+
+  protected Command getCommand(String commandStr) throws HelixException {
+    if (commandStr == null) {
+      throw new HelixException("Unknown command " + commandStr);
+    }
+    try {
+      Command command = Command.valueOf(commandStr);
+      return command;
+    } catch (IllegalArgumentException ex) {
+      throw new HelixException("Unknown command " + commandStr);
+    }
   }
 }

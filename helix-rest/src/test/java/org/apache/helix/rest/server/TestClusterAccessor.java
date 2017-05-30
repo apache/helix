@@ -33,12 +33,14 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.rest.server.resources.AbstractResource.Command;
 import org.apache.helix.rest.server.resources.ClusterAccessor;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 
 public class TestClusterAccessor extends AbstractTestClass {
   ObjectMapper _mapper = new ObjectMapper();
@@ -83,7 +85,7 @@ public class TestClusterAccessor extends AbstractTestClass {
       put("newkey2", "newvalue2");
     }});
 
-    updateClusterConfigFromRest(cluster, configDelta);
+    updateClusterConfigFromRest(cluster, configDelta, Command.update);
 
     ClusterConfig newConfig = getClusterConfigFromRest(cluster);
     oldConfig.getRecord().update(configDelta.getRecord());
@@ -120,12 +122,52 @@ public class TestClusterAccessor extends AbstractTestClass {
     record.setMapField(key, map);
 
     ClusterConfig prevConfig = getClusterConfigFromRest(cluster);
-    updateClusterConfigFromRest(cluster, config);
+    updateClusterConfigFromRest(cluster, config, Command.update);
     ClusterConfig newConfig = getClusterConfigFromRest(cluster);
 
     prevConfig.getRecord().update(config.getRecord());
     Assert.assertEquals(newConfig, prevConfig,
         "cluster config from response: " + newConfig + " vs cluster config actually: " + prevConfig);
+  }
+
+  @Test (dependsOnMethods = {"testUpdateConfigFields"})
+  public void testDeleteConfigFields()
+      throws IOException {
+    String cluster = _clusters.iterator().next();
+    ClusterConfig config = getClusterConfigFromRest(cluster);
+
+    ZNRecord record = config.getRecord();
+
+    String simpleKey = record.getSimpleFields().keySet().iterator().next();
+    String value = record.getSimpleField(simpleKey);
+    record.getSimpleFields().clear();
+    record.setSimpleField(simpleKey, value);
+
+    String listKey = record.getListFields().keySet().iterator().next();
+    List<String> list = record.getListField(listKey);
+    record.getListFields().clear();
+    record.setListField(listKey, list);
+
+    String mapKey = record.getMapFields().keySet().iterator().next();
+    Map<String, String> map = record.getMapField(mapKey);
+    record.getMapFields().clear();
+    record.setMapField(mapKey, map);
+
+    ClusterConfig prevConfig = getClusterConfigFromRest(cluster);
+    updateClusterConfigFromRest(cluster, config, Command.delete);
+    ClusterConfig newConfig = getClusterConfigFromRest(cluster);
+
+    Assert.assertFalse(newConfig.getRecord().getSimpleFields().containsKey(simpleKey),
+        "Failed to delete key " + simpleKey + " from cluster config");
+    Assert.assertFalse(newConfig.getRecord().getListFields().containsKey(listKey),
+        "Failed to delete key " + listKey + " from cluster config");
+    Assert.assertFalse(newConfig.getRecord().getSimpleFields().containsKey(mapKey),
+        "Failed to delete key " + mapKey + " from cluster config");
+
+    prevConfig.getRecord().subtract(config.getRecord());
+    Assert.assertEquals(newConfig, prevConfig,
+        "cluster config from response: " + newConfig + " vs cluster config actually: "
+            + prevConfig);
   }
 
   @Test
@@ -165,7 +207,6 @@ public class TestClusterAccessor extends AbstractTestClass {
     // verify the cluster is paused.
     Assert.assertTrue(_baseAccessor.exists(keyBuilder.pause().getPath(), 0));
 
-
     // enable a cluster.
     response = target("clusters/" + cluster).queryParam("command", "enable").request()
         .post(Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE));
@@ -201,11 +242,13 @@ public class TestClusterAccessor extends AbstractTestClass {
     return clusterConfigRest;
   }
 
-  private void updateClusterConfigFromRest(String cluster, ClusterConfig newConfig)
-      throws IOException {
-    Entity entity =
-        Entity.entity(_mapper.writeValueAsString(newConfig.getRecord()), MediaType.APPLICATION_JSON_TYPE);
-    Response response = target("clusters/" + cluster + "/configs").request().post(entity);
+  private void updateClusterConfigFromRest(String cluster, ClusterConfig newConfig,
+      Command command) throws IOException {
+    Entity entity = Entity
+        .entity(_mapper.writeValueAsString(newConfig.getRecord()), MediaType.APPLICATION_JSON_TYPE);
+    Response response =
+        target("clusters/" + cluster + "/configs").queryParam("command", command).request()
+            .post(entity);
     Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
   }
 

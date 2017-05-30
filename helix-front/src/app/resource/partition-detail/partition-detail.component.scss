@@ -1,5 +1,12 @@
 @import '~@angular/material/theming';
 
-.status-not-ready {
-  color: mat-color(mat-palette($mat-orange), darker);
+hi-partition-detail {
+
+  .status-not-ready {
+    color: mat-color(mat-palette($mat-orange), darker);
+  }
+
+  .datatable-body-cell {
+    line-height: 40px !important;
+  }
 }

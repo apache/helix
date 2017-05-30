@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { MaterialModule } from '@angular/material';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
+import { ClipboardModule } from 'ngx-clipboard';
 
 import { HistoryListComponent } from './history-list/history-list.component';
 
@@ -12,7 +13,8 @@ import { HistoryListComponent } from './history-list/history-list.component';
     CommonModule,
     RouterModule,
     MaterialModule,
-    NgxDatatableModule
+    NgxDatatableModule,
+    ClipboardModule
   ],
   declarations: [HistoryListComponent]
 })

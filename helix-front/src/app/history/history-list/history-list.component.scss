@@ -3,6 +3,12 @@
 // Import custom theme
 @import 'src/theme.scss';
 
-.current {
-  color: mat-color($hi-primary);
+hi-history-list {
+  .current {
+    color: mat-color($hi-primary);
+  }
+
+  .datatable-body-cell {
+    line-height: 40px !important;
+  }
 }

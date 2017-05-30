@@ -18,7 +18,7 @@
     prop="instanceName">
     <ng-template let-value="value" ngx-datatable-cell-template>
       {{ value }}
-      <a md-button
+      <a md-icon-button
         color="accent"
         target="_blank"
         [routerLink]="['/clusters', clusterName, 'instances', value]">

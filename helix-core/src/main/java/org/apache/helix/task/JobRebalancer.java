@@ -37,7 +37,9 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -53,9 +55,9 @@ import com.google.common.collect.Sets;
  */
 public class JobRebalancer extends TaskRebalancer {
   private static final Logger LOG = Logger.getLogger(JobRebalancer.class);
-  private static TaskAssignmentCalculator fixTaskAssignmentCal =
+  private static TaskAssignmentCalculator _fixTaskAssignmentCal =
       new FixedTargetTaskAssignmentCalculator();
-  private static TaskAssignmentCalculator genericTaskAssignmentCal =
+  private static TaskAssignmentCalculator _genericTaskAssignmentCal =
       new GenericTaskAssignmentCalculator();
 
   private static final String PREV_RA_NODE = "PreviousResourceAssignment";
@@ -424,12 +426,26 @@ public class JobRebalancer extends TaskRebalancer {
             .contains(instance)) {
           continue;
         }
+        // 1. throttled by job configuration
         // Contains the set of task partitions currently assigned to the instance.
         Set<Integer> pSet = entry.getValue();
-        int numToAssign = jobCfg.getNumConcurrentTasksPerInstance() - pSet.size();
+        int jobCfgLimitation = jobCfg.getNumConcurrentTasksPerInstance() - pSet.size();
+        // 2. throttled by participant capacity
+        int participantCapacity = cache.getInstanceConfigMap().get(instance).getMaxConcurrentTask();
+        if (participantCapacity == InstanceConfig.MAX_CONCURRENT_TASK_NOT_SET) {
+          participantCapacity = cache.getClusterConfig().getMaxConcurrentTaskPerInstance();
+        }
+        int participantLimitation = participantCapacity - cache.getParticipantActiveTaskCount(instance);
+        // New tasks to be assigned
+        int numToAssign = Math.min(jobCfgLimitation, participantLimitation);
+        LOG.debug(String.format(
+            "Throttle tasks to be assigned to instance %s using limitation: Job Concurrent Task(%d), "
+                + "Participant Max Task(%d). Remaining capacity %d.", instance, jobCfgLimitation, participantCapacity,
+            numToAssign));
         if (numToAssign > 0) {
+          Set<Integer> throttledSet = new HashSet<Integer>();
           List<Integer> nextPartitions =
-              getNextPartitions(tgtPartitionAssignments.get(instance), excludeSet, numToAssign);
+              getNextPartitions(tgtPartitionAssignments.get(instance), excludeSet, throttledSet, numToAssign);
           for (Integer pId : nextPartitions) {
             String pName = pName(jobResource, pId);
             paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.RUNNING.name()));
@@ -439,6 +455,10 @@ public class JobRebalancer extends TaskRebalancer {
             jobCtx.setPartitionStartTime(pId, System.currentTimeMillis());
             LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
                 TaskPartitionState.RUNNING, instance));
+          }
+          cache.setParticipantActiveTaskCount(instance, cache.getParticipantActiveTaskCount(instance) + nextPartitions.size());
+          if (!throttledSet.isEmpty()) {
+            LOG.debug(throttledSet.size() + "tasks are ready but throttled when assigned to participant.");
           }
         }
       }
@@ -579,18 +599,17 @@ public class JobRebalancer extends TaskRebalancer {
   }
 
   private static List<Integer> getNextPartitions(SortedSet<Integer> candidatePartitions,
-      Set<Integer> excluded, int n) {
+      Set<Integer> excluded, Set<Integer> throttled, int n) {
     List<Integer> result = new ArrayList<Integer>();
     for (Integer pId : candidatePartitions) {
-      if (result.size() >= n) {
-        break;
-      }
-
       if (!excluded.contains(pId)) {
-        result.add(pId);
+        if (result.size() < n) {
+          result.add(pId);
+        } else {
+          throttled.add(pId);
+        }
       }
     }
-
     return result;
   }
 
@@ -664,9 +683,9 @@ public class JobRebalancer extends TaskRebalancer {
   private TaskAssignmentCalculator getAssignmentCalulator(JobConfig jobConfig) {
     Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
     if (taskConfigMap != null && !taskConfigMap.isEmpty()) {
-      return genericTaskAssignmentCal;
+      return _genericTaskAssignmentCal;
     } else {
-      return fixTaskAssignmentCal;
+      return _fixTaskAssignmentCal;
     }
   }
 

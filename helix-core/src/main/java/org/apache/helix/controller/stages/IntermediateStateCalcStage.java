@@ -240,7 +240,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       StateTransitionThrottleController throttleController, Set<Partition> partitionsNeedRecovery,
       Set<Partition> partitionsNeedLoadbalance) {
     String resourceName = resource.getResourceName();
-    logger.info("Processing resource:" + resourceName);
 
     // check and charge pending transitions
     for (Partition partition : resource.getPartitions()) {
@@ -308,7 +307,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           intermediatePartitionStateMap, RebalanceType.RECOVERY_BALANCE);
     }
 
-    logger.info(String
+    logger.debug(String
         .format("needRecovery: %d, recoverybalanceThrottled: %d", partitionsNeedRecovery.size(),
             partitionRecoveryBalanceThrottled.size()));
     return partitionRecoveryBalanceThrottled.size();

@@ -72,6 +72,10 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
     if (resourceConfig != null) {
       userDefinedPreferenceList = resourceConfig.getPreferenceLists();
+      if (!userDefinedPreferenceList.isEmpty()) {
+        LOG.info("Using user defined preference list for partitions: " + userDefinedPreferenceList
+            .keySet());
+      }
     }
 
     Set<String> liveEnabledNodes;
@@ -100,7 +104,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
           clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
           clusterData.getInstanceConfigMap(), delay, clusterConfig);
 
-      Set<String> offlineOrDisabledInstances = new HashSet<String>(activeNodes);
+      Set<String> offlineOrDisabledInstances = new HashSet<>(activeNodes);
       offlineOrDisabledInstances.removeAll(liveEnabledNodes);
       setRebalanceScheduler(currentIdealState, offlineOrDisabledInstances,
           clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
@@ -169,7 +173,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       LOG.debug("currentMapping: " + currentMapping);
       LOG.debug("stateCountMap: " + stateCountMap);
       LOG.debug("liveEnabledNodes: " + liveEnabledNodes);
-      LOG.debug("ActiveNodes: " + activeNodes);
+      LOG.debug("activeNodes: " + activeNodes);
       LOG.debug("allNodes: " + allNodes);
       LOG.debug("maxPartition: " + maxPartition);
       LOG.debug("newIdealMapping: " + newIdealMapping);
@@ -305,11 +309,11 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       return newIdealMapping;
     }
     ZNRecord finalMapping = new ZNRecord(idealState.getResourceName());
-    for (String partition : idealState.getPartitionSet()) {
+    for (String partition : newIdealMapping.getListFields().keySet()) {
       List<String> idealList = newIdealMapping.getListField(partition);
       List<String> activeList = newActiveMapping.getListField(partition);
 
-      List<String> liveList = new ArrayList<String>();
+      List<String> liveList = new ArrayList<>();
       int activeReplica = 0;
       for (String ins : activeList) {
         if (liveInstances.contains(ins)) {
@@ -385,6 +389,12 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Best possible mapping for resource  " + resource.getResourceName() + ": "
+          + partitionMapping);
+    }
+
     return partitionMapping;
   }
 

@@ -73,8 +73,8 @@ public class ZkIntegrationTestBase {
 
     _gZkClient = new ZkClient(ZK_ADDR);
     _gZkClient.setZkSerializer(new ZNRecordSerializer());
-    _gSetupTool = new ClusterSetup(ZK_ADDR);
-    _baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    _gSetupTool = new ClusterSetup(_gZkClient);
+    _baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
   }
 
   @AfterSuite

@@ -52,8 +52,10 @@ public class ClusterConfig extends HelixProperty {
     STATE_TRANSITION_CANCELLATION_ENABLED,
     MISS_TOP_STATE_DURATION_THRESHOLD,
     RESOURCE_PRIORITY_FIELD,
-    REBALANCE_TIMER_PERIOD
+    REBALANCE_TIMER_PERIOD,
+    MAX_CONCURRENT_TASK_PER_INSTANCE
   }
+  private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
 
   /**
    * Instantiate for a specific cluster
@@ -368,6 +370,21 @@ public class ClusterConfig extends HelixProperty {
    */
   public StateTransitionTimeoutConfig getStateTransitionTimeoutConfig() {
     return StateTransitionTimeoutConfig.fromRecord(_record);
+  }
+
+  /**
+   * Get maximum allowed running task count on all instances in this cluster.
+   * Instance level configuration will override cluster configuration.
+   * @return the maximum task count
+   */
+  public int getMaxConcurrentTaskPerInstance() {
+    return _record.getIntField(ClusterConfigProperty.MAX_CONCURRENT_TASK_PER_INSTANCE.name(),
+        DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE);
+  }
+
+  public void setMaxConcurrentTaskPerInstance(int maxConcurrentTaskPerInstance) {
+    _record.setIntField(ClusterConfigProperty.MAX_CONCURRENT_TASK_PER_INSTANCE.name(),
+        maxConcurrentTaskPerInstance);
   }
 
   @Override

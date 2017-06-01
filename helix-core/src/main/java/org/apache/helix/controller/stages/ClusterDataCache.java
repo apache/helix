@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +43,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.TaskPartitionState;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -75,6 +78,8 @@ public class ClusterDataCache {
 
   // maintain a cache of participant messages across pipeline runs
   Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
+
+  Map<String, Integer> _participantActiveTaskCount = new HashMap<String, Integer>();
 
   boolean _init = true;
 
@@ -592,6 +597,40 @@ public class ClusterDataCache {
 
   public Map<String, Map<String, Long>> getMissingTopStateMap() {
     return _missingTopStateMap;
+  }
+
+  public Integer getParticipantActiveTaskCount(String instance) {
+    return _participantActiveTaskCount.get(instance);
+  }
+
+  public void setParticipantActiveTaskCount(String instance, int taskCount) {
+    _participantActiveTaskCount.put(instance, taskCount);
+  }
+
+  /**
+   * Reset RUNNING/INIT tasks count in JobRebalancer
+   */
+  public void resetActiveTaskCount(CurrentStateOutput currentStateOutput) {
+    // init participant map
+    for (String liveInstance : getLiveInstances().keySet()) {
+      _participantActiveTaskCount.put(liveInstance, 0);
+    }
+    // Active task == init and running tasks
+    fillActiveTaskCount(currentStateOutput.getPartitionCountWithPendingState(TaskConstants.STATE_MODEL_NAME,
+        TaskPartitionState.INIT.name()), _participantActiveTaskCount);
+    fillActiveTaskCount(currentStateOutput.getPartitionCountWithPendingState(TaskConstants.STATE_MODEL_NAME,
+        TaskPartitionState.RUNNING.name()), _participantActiveTaskCount);
+    fillActiveTaskCount(currentStateOutput.getPartitionCountWithCurrentState(TaskConstants.STATE_MODEL_NAME,
+        TaskPartitionState.INIT.name()), _participantActiveTaskCount);
+    fillActiveTaskCount(currentStateOutput.getPartitionCountWithCurrentState(TaskConstants.STATE_MODEL_NAME,
+        TaskPartitionState.RUNNING.name()), _participantActiveTaskCount);
+  }
+
+  private void fillActiveTaskCount(Map<String, Integer> additionPartitionMap,
+      Map<String, Integer> partitionMap) {
+    for (String participant : additionPartitionMap.keySet()) {
+      partitionMap.put(participant, partitionMap.get(participant) + additionPartitionMap.get(participant));
+    }
   }
 
   /**

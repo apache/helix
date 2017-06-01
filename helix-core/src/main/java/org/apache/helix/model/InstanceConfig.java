@@ -49,9 +49,11 @@ public class InstanceConfig extends HelixProperty {
     TAG_LIST,
     INSTANCE_WEIGHT,
     DOMAIN,
-    DELAY_REBALANCE_ENABLED
+    DELAY_REBALANCE_ENABLED,
+    MAX_CONCURRENT_TASK
   }
   public static final int WEIGHT_NOT_SET = -1;
+  public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
 
   private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
 
@@ -333,7 +335,7 @@ public class InstanceConfig extends HelixProperty {
 
   /**
    * Get a map that mapping resource name to disabled partitions
-   * @return A map of resource name mapping to disabled partitions. If no 
+   * @return A map of resource name mapping to disabled partitions. If no
    *         resource/partitions disabled, return an empty map.
    */
   public Map<String, List<String>> getDisabledPartitionsMap() {
@@ -441,6 +443,18 @@ public class InstanceConfig extends HelixProperty {
   public void setDelayRebalanceEnabled(boolean enabled) {
     _record.setBooleanField(ResourceConfig.ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(),
         enabled);
+  }
+
+  /**
+   * Get maximum allowed running task count on this instance
+   * @return the maximum task count
+   */
+  public int getMaxConcurrentTask() {
+    return _record.getIntField(InstanceConfigProperty.MAX_CONCURRENT_TASK.name(), MAX_CONCURRENT_TASK_NOT_SET);
+  }
+
+  public void setMaxConcurrentTask(int maxConcurrentTask) {
+    _record.setIntField(InstanceConfigProperty.MAX_CONCURRENT_TASK.name(), maxConcurrentTask);
   }
 
   @Override

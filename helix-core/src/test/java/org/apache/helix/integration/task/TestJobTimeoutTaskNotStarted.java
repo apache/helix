@@ -81,6 +81,7 @@ public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
     ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.stateTransitionCancelEnabled(true);
+    clusterConfig.setMaxConcurrentTaskPerInstance(_numParitions);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     HelixClusterVerifier clusterVerifier =

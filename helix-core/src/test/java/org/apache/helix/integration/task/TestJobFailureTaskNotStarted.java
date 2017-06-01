@@ -126,6 +126,9 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
 
     final String FAIL_JOB_NAME = "failJob";
 
+    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    final int numTask = configAccessor.getClusterConfig(CLUSTER_NAME).getMaxConcurrentTaskPerInstance();
+
     // Tasks targeting the unbalanced DB, the instance is setup to stuck on INIT->RUNNING, so it takes all threads
     // on that instance.
     JobConfig.Builder blockJobBuilder = new JobConfig.Builder()
@@ -133,14 +136,14 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
         .setTargetResource(UNBALANCED_DB_NAME)
         .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
         .setCommand(MockTask.TASK_COMMAND)
-        .setNumConcurrentTasksPerInstance(50);
+        .setNumConcurrentTasksPerInstance(numTask);
 
     Workflow.Builder blockWorkflowBuilder = new Workflow.Builder(BLOCK_WORKFLOW_NAME)
         .addJob("blockJob", blockJobBuilder);
     _driver.start(blockWorkflowBuilder.build());
 
     Assert.assertTrue(TaskTestUtil.pollForAllTasksBlock(_manager.getHelixDataAccessor(),
-        _blockedParticipant.getInstanceName(), 50, 10000));
+        _blockedParticipant.getInstanceName(), numTask, 10000));
 
     // Now, all HelixTask threads are stuck at INIT->RUNNING for task state transition(user task can't be submitted)
     // New tasks assigned to the instance won't start INIT->RUNNING transition at all.

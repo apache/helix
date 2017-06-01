@@ -23,14 +23,19 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.HealthStat;
@@ -38,28 +43,32 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.apache.log4j.Logger;
+import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
 @Path("/clusters/{clusterId}/instances")
-@Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class InstanceAccessor extends AbstractResource {
+  private final static Logger _logger = Logger.getLogger(InstanceAccessor.class);
+
   public enum InstanceProperties {
     instances,
     online,
     disabled,
     config,
-    configs,
     liveInstance,
+    resource,
     resources,
+    partitions,
     errors,
     new_messages,
     read_messages,
     total_message_count,
     read_message_count,
-    healthreports
+    healthreports,
+    instanceTags
   }
 
   @GET
@@ -125,6 +134,111 @@ public class InstanceAccessor extends AbstractResource {
     }
 
     return JSONRepresentation(instanceMap);
+  }
+
+  @PUT
+  @Path("{instanceName}")
+  public Response addInstance(@PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName, String content) {
+    HelixAdmin admin = getHelixAdmin();
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      return badRequest("Input is not a vaild ZNRecord!");
+    }
+
+    try {
+      admin.addInstance(clusterId, new InstanceConfig(record));
+    } catch (Exception e) {
+      _logger.error("Error in adding an instance: " + instanceName, e);
+      return serverError(e.getMessage());
+    }
+
+    return OK();
+  }
+
+  @POST
+  @Path("{instanceName}")
+  public Response updateInstance(@PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName, @QueryParam("command") String command,
+      String content) {
+    Command cmd;
+    try {
+      cmd = Command.valueOf(command);
+    } catch (Exception e) {
+      return badRequest("Invalid command : " + command);
+    }
+
+    HelixAdmin admin = getHelixAdmin();
+    try {
+      JsonNode node = null;
+      if (content.length() != 0) {
+        node = OBJECT_MAPPER.readTree(content);
+      }
+
+      switch (cmd) {
+      case enable:
+        admin.enableInstance(clusterId, instanceName, true);
+        break;
+      case disable:
+        admin.enableInstance(clusterId, instanceName, false);
+        break;
+      case reset:
+        if (!validInstance(node, instanceName)) {
+          return badRequest("Instance names are not match!");
+        }
+        admin.resetPartition(clusterId, instanceName,
+            node.get(InstanceProperties.resource.name()).toString(), (List<String>) OBJECT_MAPPER
+                .readValue(node.get(InstanceProperties.partitions.name()).toString(),
+                    OBJECT_MAPPER.getTypeFactory()
+                        .constructCollectionType(List.class, String.class)));
+        break;
+      case addInstanceTag:
+        if (!validInstance(node, instanceName)) {
+          return badRequest("Instance names are not match!");
+        }
+        for (String tag : (List<String>) OBJECT_MAPPER
+            .readValue(node.get(InstanceProperties.instanceTags.name()).toString(),
+                OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))) {
+          admin.addInstanceTag(clusterId, instanceName, tag);
+        }
+        break;
+      case removeInstanceTag:
+        if (!validInstance(node, instanceName)) {
+          return badRequest("Instance names are not match!");
+        }
+        for (String tag : (List<String>) OBJECT_MAPPER
+            .readValue(node.get(InstanceProperties.instanceTags.name()).toString(),
+                OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))) {
+          admin.removeInstanceTag(clusterId, instanceName, tag);
+        }
+        break;
+      default:
+        _logger.error("Unsupported command :" + command);
+        return badRequest("Unsupported command :" + command);
+      }
+    } catch (Exception e) {
+      _logger.error("Failed in updating instance : " + instanceName, e);
+      return badRequest(e.getMessage());
+    }
+    return OK();
+  }
+
+  @DELETE
+  @Path("{instanceName}")
+  public Response deleteInstance(@PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName) {
+    HelixAdmin admin = getHelixAdmin();
+    try {
+      InstanceConfig instanceConfig = admin.getInstanceConfig(clusterId, instanceName);
+      admin.dropInstance(clusterId, instanceConfig);
+    } catch (HelixException e) {
+      return badRequest(e.getMessage());
+    }
+
+    return OK();
   }
 
   @GET
@@ -341,5 +455,9 @@ public class InstanceAccessor extends AbstractResource {
     }
 
     return notFound();
+  }
+
+  private boolean validInstance(JsonNode node, String instanceName) {
+    return instanceName.equals(node.get(Properties.id.name()).getValueAsText());
   }
 }

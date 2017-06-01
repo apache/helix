@@ -43,7 +43,6 @@ import org.codehaus.jackson.node.ObjectNode;
 import org.codehaus.jackson.node.TextNode;
 
 @Path("/clusters/{clusterId}/workflows")
-@Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class WorkflowAccessor extends AbstractResource {
   private static Logger _logger = Logger.getLogger(WorkflowAccessor.class.getName());
 

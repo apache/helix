@@ -27,7 +27,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.ws.rs.ProcessingException;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Application;
+import javax.ws.rs.core.Response;
 
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.BaseDataAccessor;
@@ -248,5 +251,47 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
   protected static ZNRecord toZNRecord(String data) throws IOException {
     return OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
+  }
+
+  protected String get(String uri, int expectedReturnStatus, boolean expectBodyReturned) {
+    final Response response = target(uri).request().get();
+    Assert.assertEquals(response.getStatus(), expectedReturnStatus);
+    Assert.assertEquals(response.getMediaType().getType(), "application");
+
+    String body = response.readEntity(String.class);
+    if (expectBodyReturned) {
+      Assert.assertNotNull(body);
+    }
+
+    return body;
+  }
+
+  protected void put(String uri, Map<String, String> queryParams, Entity entity,
+      int expectedReturnStatus) {
+    WebTarget webTarget = target(uri);
+    if (queryParams != null) {
+      for (Map.Entry<String, String> entry : queryParams.entrySet()) {
+        webTarget = webTarget.queryParam(entry.getKey(), entry.getValue());
+      }
+    }
+    Response response = webTarget.request().put(entity);
+    Assert.assertEquals(response.getStatus(), expectedReturnStatus);
+  }
+
+  protected void post(String uri, Map<String, String> queryParams, Entity entity,
+      int expectedReturnStatus) {
+    WebTarget webTarget = target(uri);
+    if (queryParams != null) {
+      for (Map.Entry<String, String> entry : queryParams.entrySet()) {
+        webTarget = webTarget.queryParam(entry.getKey(), entry.getValue());
+      }
+    }
+    Response response = webTarget.request().post(entity);
+    Assert.assertEquals(response.getStatus(), expectedReturnStatus);
+  }
+
+  protected void delete(String uri, int expectedReturnStatus) {
+    final Response response = target(uri).request().delete();
+    Assert.assertEquals(response.getStatus(), expectedReturnStatus);
   }
 }

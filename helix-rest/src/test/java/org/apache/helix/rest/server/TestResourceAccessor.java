@@ -25,6 +25,7 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.helix.TestHelper;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
@@ -34,18 +35,18 @@ import org.codehaus.jackson.JsonNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 public class TestResourceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
   private final static String RESOURCE_NAME = CLUSTER_NAME + "_db_0";
 
   @Test
   public void testGetResources() throws IOException {
-    final Response response = target("clusters/" + CLUSTER_NAME + "/resources").request().get();
-    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-    Assert.assertEquals(response.getMediaType().getType(), "application");
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
 
-    String body = response.readEntity(String.class);
-    Assert.assertNotNull(body);
+    String body =
+        get("clusters/" + CLUSTER_NAME + "/resources", Response.Status.OK.getStatusCode(), true);
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String idealStates =
@@ -61,12 +62,10 @@ public class TestResourceAccessor extends AbstractTestClass {
 
   @Test(dependsOnMethods = "testGetResources")
   public void testGetResource() throws IOException {
-    final Response response =
-        target("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME).request().get();
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME,
+        Response.Status.OK.getStatusCode(), true);
 
-    // Get total resource
-    String body = response.readEntity(String.class);
-    Assert.assertNotNull(body);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String idealStateStr =
         node.get(ResourceAccessor.ResourceProperties.idealState.name()).toString();
@@ -78,6 +77,7 @@ public class TestResourceAccessor extends AbstractTestClass {
 
   @Test(dependsOnMethods = "testGetResource")
   public void testAddResources() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String newResourceName = "newResource";
     IdealState idealState = new IdealState(newResourceName);
     idealState.getRecord().getSimpleFields().putAll(
@@ -87,9 +87,8 @@ public class TestResourceAccessor extends AbstractTestClass {
     // Add resource by IdealState
     Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(idealState.getRecord()),
         MediaType.APPLICATION_JSON_TYPE);
-    Response response =
-        target("clusters/" + CLUSTER_NAME + "/resources/" + newResourceName).request().put(entity);
-    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+    put("clusters/" + CLUSTER_NAME + "/resources/" + newResourceName, null, entity,
+        Response.Status.OK.getStatusCode());
 
     Assert.assertEquals(idealState, _gSetupTool.getClusterManagementTool()
         .getResourceIdealState(CLUSTER_NAME, newResourceName));
@@ -97,26 +96,23 @@ public class TestResourceAccessor extends AbstractTestClass {
     // Add resource by query param
     entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
 
-    Response responseWithoutIdealState =
-        target("clusters/" + CLUSTER_NAME + "/resources/" + newResourceName + "0")
-            .queryParam("numPartitions", "4").queryParam("stateModelRef", "OnlineOffline")
-            .queryParam("rebalancerMode", "FULL_AUTO").request().put(entity);
+    put("clusters/" + CLUSTER_NAME + "/resources/" + newResourceName + "0", ImmutableMap
+            .of("numPartitions", "4", "stateModelRef", "OnlineOffline", "rebalancerMode", "FULL_AUTO"),
+        entity, Response.Status.OK.getStatusCode());
 
     IdealState queryIdealState = new FullAutoModeISBuilder(newResourceName + 0).setNumPartitions(4)
         .setStateModel("OnlineOffline").setRebalancerMode(IdealState.RebalanceMode.FULL_AUTO)
         .setRebalanceStrategy("DEFAULT").build();
-    Assert.assertEquals(responseWithoutIdealState.getStatus(), Response.Status.OK.getStatusCode());
     Assert.assertEquals(queryIdealState, _gSetupTool.getClusterManagementTool()
         .getResourceIdealState(CLUSTER_NAME, newResourceName + "0"));
   }
 
   @Test(dependsOnMethods = "testAddResources")
   public void testResourceConfig() throws IOException {
-    final Response response =
-        target("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/configs").request()
-            .get();
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
 
-    String body = response.readEntity(String.class);
+    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/configs",
+        Response.Status.OK.getStatusCode(), true);
     ResourceConfig resourceConfig = new ResourceConfig(toZNRecord(body));
     Assert.assertEquals(resourceConfig,
         _configAccessor.getResourceConfig(CLUSTER_NAME, RESOURCE_NAME));
@@ -124,11 +120,10 @@ public class TestResourceAccessor extends AbstractTestClass {
 
   @Test(dependsOnMethods = "testAddResources")
   public void testIdealState() throws IOException {
-    final Response response =
-        target("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/idealState").request()
-            .get();
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
 
-    String body = response.readEntity(String.class);
+    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/idealState",
+        Response.Status.OK.getStatusCode(), true);
     IdealState idealState = new IdealState(toZNRecord(body));
     Assert.assertEquals(idealState,
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, RESOURCE_NAME));
@@ -136,11 +131,10 @@ public class TestResourceAccessor extends AbstractTestClass {
 
   @Test(dependsOnMethods = "testAddResources")
   public void testExternalView() throws IOException {
-    final Response response =
-        target("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/externalView")
-            .request().get();
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
 
-    String body = response.readEntity(String.class);
+    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/externalView",
+        Response.Status.OK.getStatusCode(), true);
     ExternalView externalView = new ExternalView(toZNRecord(body));
     Assert.assertEquals(externalView, _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, RESOURCE_NAME));

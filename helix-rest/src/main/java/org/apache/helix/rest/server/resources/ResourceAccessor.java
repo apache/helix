@@ -50,7 +50,6 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
 @Path("/clusters/{clusterId}/resources")
-@Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class ResourceAccessor extends AbstractResource {
   private final static Logger _logger = Logger.getLogger(ResourceAccessor.class);
   public enum ResourceProperties {
@@ -165,7 +164,13 @@ public class ResourceAccessor extends AbstractResource {
       @DefaultValue("-1") @QueryParam("replicas") int replicas,
       @DefaultValue("") @QueryParam("keyPrefix") String keyPrefix,
       @DefaultValue("") @QueryParam("group") String group){
-    Command cmd = Command.valueOf(command);
+    Command cmd;
+    try {
+      cmd = Command.valueOf(command);
+    } catch (Exception e) {
+      return badRequest("Invalid command : " + command);
+    }
+
     HelixAdmin admin = getHelixAdmin();
     try {
       switch (cmd) {
@@ -188,6 +193,7 @@ public class ResourceAccessor extends AbstractResource {
       }
     } catch (Exception e) {
       _logger.error("Failed in updating resource : " + resourceName, e);
+      return badRequest(e.getMessage());
     }
     return OK();
   }

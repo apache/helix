@@ -29,7 +29,9 @@ import java.util.Set;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
@@ -41,6 +43,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableMap;
 
 public class TestClusterAccessor extends AbstractTestClass {
   ObjectMapper _mapper = new ObjectMapper();
@@ -55,12 +58,8 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test
   public void testGetClusters() throws IOException {
-    final Response response = target("clusters").request().get();
-    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-    Assert.assertEquals(response.getMediaType().getType(), "application");
-
-    String body = response.readEntity(String.class);
-    Assert.assertNotNull(body);
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String body = get("clusters", Response.Status.OK.getStatusCode(), true);
 
     JsonNode node = _mapper.readTree(body);
     String clustersStr = node.get(ClusterAccessor.ClusterProperties.clusters.name()).toString();
@@ -74,6 +73,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test
   public void testAddConfigFields() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     ClusterConfig oldConfig = getClusterConfigFromRest(cluster);
 
@@ -95,6 +95,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test
   public void testUpdateConfigFields() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(cluster);
 
@@ -133,6 +134,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   @Test (dependsOnMethods = {"testUpdateConfigFields"})
   public void testDeleteConfigFields()
       throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(cluster);
 
@@ -172,24 +174,22 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test
   public void testCreateDeleteCluster() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // create an existing cluster should fail.
     String cluster = _clusters.iterator().next();
-    Response response = target("clusters/" + cluster).request()
-        .put(Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE));
-    Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+    put("clusters/" + cluster, null, Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.CREATED.getStatusCode());
 
     // create a new cluster
     cluster = "NewCluster";
-    response = target("clusters/" + cluster).request()
-        .put(Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE));
-    Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+    put("clusters/" + cluster, null, Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.CREATED.getStatusCode());
 
     // verify the cluster has been created.
     Assert.assertTrue(ZKUtil.isClusterSetup(cluster, _gZkClient));
 
     // delete the cluster
-    response = target("clusters/" + cluster).request().delete();
-    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+    delete("clusters/" + cluster, Response.Status.OK.getStatusCode());
 
     // verify the cluster has been deleted.
     Assert.assertFalse(_baseAccessor.exists("/" + cluster, 0));
@@ -197,20 +197,21 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test
   public void testEnableDisableCluster() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // disable a cluster.
     String cluster = _clusters.iterator().next();
-    Response response = target("clusters/" + cluster).queryParam("command", "disable").request()
-        .post(Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE));
-    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+    post("clusters/" + cluster, ImmutableMap.of("command", "disable"),
+        Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
 
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(cluster);
     // verify the cluster is paused.
     Assert.assertTrue(_baseAccessor.exists(keyBuilder.pause().getPath(), 0));
 
     // enable a cluster.
-    response = target("clusters/" + cluster).queryParam("command", "enable").request()
-        .post(Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE));
-    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+    post("clusters/" + cluster, ImmutableMap.of("command", "enable"),
+        Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
 
     // verify the cluster is paused.
     Assert.assertFalse(_baseAccessor.exists(keyBuilder.pause().getPath(), 0));
@@ -218,6 +219,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test
   public void testGetClusterConfig() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
     Response response = target("clusters/fakeCluster/configs").request().get();
     Assert.assertEquals(response.getStatus(), Response.Status.NOT_FOUND.getStatusCode());
     String cluster = _clusters.iterator().next();
@@ -225,13 +227,8 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {
-    Response response = target("clusters/" + cluster + "/configs").request().get();
-    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-    Assert.assertEquals(response.getMediaType().getType(), "application");
-    Assert.assertEquals(response.getMediaType().getSubtype(), "json");
+    String body = get("clusters/" + cluster + "/configs", Response.Status.OK.getStatusCode(), true);
 
-    String body = response.readEntity(String.class);
-    Assert.assertNotNull(body);
     ZNRecord record = new ObjectMapper().reader(ZNRecord.class).readValue(body);
     ClusterConfig clusterConfigRest = new ClusterConfig(record);
     ClusterConfig clusterConfigZk = _configAccessor.getClusterConfig(cluster);
@@ -246,10 +243,8 @@ public class TestClusterAccessor extends AbstractTestClass {
       Command command) throws IOException {
     Entity entity = Entity
         .entity(_mapper.writeValueAsString(newConfig.getRecord()), MediaType.APPLICATION_JSON_TYPE);
-    Response response =
-        target("clusters/" + cluster + "/configs").queryParam("command", command).request()
-            .post(entity);
-    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+    post("clusters/" + cluster + "/configs", ImmutableMap.of("command", command.name()), entity,
+        Response.Status.OK.getStatusCode());
   }
 
   private ClusterConfig createClusterConfig(String cluster) {

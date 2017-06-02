@@ -174,25 +174,28 @@ public class JobRebalancer extends TaskRebalancer {
     return newAssignment;
   }
 
-  private Set<String> getInstancesAssignedToOtherJobs(String currentJobName,
+  private Set<String> getExcludedInstances(String currentJobName,
       WorkflowConfig workflowCfg) {
     Set<String> ret = new HashSet<String>();
-    for (String jobName : workflowCfg.getJobDag().getAllNodes()) {
-      if (jobName.equals(currentJobName)) {
-        continue;
-      }
-      JobContext jobContext = TaskUtil.getJobContext(_manager, jobName);
-      if (jobContext == null) {
-        continue;
-      }
-      for (int pId : jobContext.getPartitionSet()) {
-        TaskPartitionState partitionState = jobContext.getPartitionState(pId);
-        if (partitionState == TaskPartitionState.INIT || partitionState == TaskPartitionState.RUNNING) {
-          ret.add(jobContext.getAssignedParticipant(pId));
+
+    if (!workflowCfg.isAllowOverlapJobAssignment()) {
+      // exclude all instances that has been assigned other jobs' tasks
+      for (String jobName : workflowCfg.getJobDag().getAllNodes()) {
+        if (jobName.equals(currentJobName)) {
+          continue;
+        }
+        JobContext jobContext = TaskUtil.getJobContext(_manager, jobName);
+        if (jobContext == null) {
+          continue;
+        }
+        for (int pId : jobContext.getPartitionSet()) {
+          TaskPartitionState partitionState = jobContext.getPartitionState(pId);
+          if (partitionState == TaskPartitionState.INIT || partitionState == TaskPartitionState.RUNNING) {
+            ret.add(jobContext.getAssignedParticipant(pId));
+          }
         }
       }
     }
-
     return ret;
   }
 
@@ -238,7 +241,7 @@ public class JobRebalancer extends TaskRebalancer {
     // Keeps a mapping of (partition) -> (instance, state)
     Map<Integer, PartitionAssignment> paMap = new TreeMap<Integer, PartitionAssignment>();
 
-    Set<String> excludedInstances = getInstancesAssignedToOtherJobs(jobResource, workflowConfig);
+    Set<String> excludedInstances = getExcludedInstances(jobResource, workflowConfig);
 
     // Process all the current assignments of tasks.
     TaskAssignmentCalculator taskAssignmentCal = getAssignmentCalulator(jobCfg);

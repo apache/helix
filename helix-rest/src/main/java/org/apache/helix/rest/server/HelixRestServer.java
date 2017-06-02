@@ -21,6 +21,7 @@ package org.apache.helix.rest.server;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
+import org.apache.helix.rest.server.filters.CORSFilter;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -42,8 +43,11 @@ public class HelixRestServer extends ResourceConfig {
     _urlPrefix = urlPrefix;
 
     packages("org.apache.helix.rest.server.resources");
+
     _serverContext = new ServerContext(zkAddr);
     property(ContextPropertyKeys.SERVER_CONTEXT.name(), _serverContext);
+
+    register(new CORSFilter());
 
     Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
       @Override public void run() {

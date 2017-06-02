@@ -144,6 +144,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     if (workflowCtx == null) {
       workflowCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
       workflowCtx.setStartTime(System.currentTimeMillis());
+      workflowCtx.setName(workflowResource);
       LOG.info("Workflow context for " + resourceName + " created!");
     }
 
@@ -190,6 +191,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     if (jobCtx == null) {
       jobCtx = new JobContext(new ZNRecord(TaskUtil.TASK_CONTEXT_KW));
       jobCtx.setStartTime(System.currentTimeMillis());
+      jobCtx.setName(resourceName);
     }
 
     // Check for expired jobs for non-terminable workflows

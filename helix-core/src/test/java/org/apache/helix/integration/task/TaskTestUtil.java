@@ -249,6 +249,7 @@ public class TaskTestUtil {
       TaskState workflowState, Long startTime, TaskState... jobStates) {
     WorkflowContext workflowContext =
         new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
+    workflowContext.setName(workflowResource);
     workflowContext.setStartTime(startTime == null ? System.currentTimeMillis() : startTime);
     int jobId = 0;
     for (TaskState jobstate : jobStates) {

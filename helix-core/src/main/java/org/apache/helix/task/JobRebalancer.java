@@ -125,6 +125,7 @@ public class JobRebalancer extends TaskRebalancer {
     if (jobCtx == null) {
       jobCtx = new JobContext(new ZNRecord(TaskUtil.TASK_CONTEXT_KW));
       jobCtx.setStartTime(System.currentTimeMillis());
+      jobCtx.setName(jobName);
       workflowCtx.setJobState(jobName, TaskState.IN_PROGRESS);
     }
 

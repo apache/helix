@@ -45,7 +45,8 @@ public class WorkflowContext extends HelixProperty {
     LAST_SCHEDULED_WORKFLOW,
     SCHEDULED_WORKFLOWS,
     LAST_PURGE_TIME,
-    StartTime // TODO this should be named JOB_SCHEDULED_START_TIME, it's not the actual start time of the job
+    StartTime, // TODO this should be named JOB_SCHEDULED_START_TIME, it's not the actual start time of the job
+    NAME
     }
 
   public static final int UNSTARTED = -1;
@@ -223,5 +224,13 @@ public class WorkflowContext extends HelixProperty {
 
   public List<String> getScheduledWorkflows() {
     return _record.getListField(WorkflowContextProperties.SCHEDULED_WORKFLOWS.name());
+  }
+
+  public void setName(String name) {
+    _record.setSimpleField(WorkflowContextProperties.NAME.name(), name);
+  }
+
+  public String getName() {
+    return _record.getSimpleField(WorkflowContextProperties.NAME.name());
   }
 }

@@ -33,6 +33,6 @@ public interface ConfigChangeListener {
    * @param configs
    * @param changeContext
    */
-  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext);
+  void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext);
 
 }

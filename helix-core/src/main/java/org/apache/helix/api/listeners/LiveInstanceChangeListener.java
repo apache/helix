@@ -33,7 +33,7 @@ public interface LiveInstanceChangeListener {
    * @param liveInstances
    * @param changeContext
    */
-  public void onLiveInstanceChange(List<LiveInstance> liveInstances,
+  void onLiveInstanceChange(List<LiveInstance> liveInstances,
       NotificationContext changeContext);
 
 }

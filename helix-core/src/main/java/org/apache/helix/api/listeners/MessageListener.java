@@ -34,7 +34,7 @@ public interface MessageListener {
    * @param messages
    * @param changeContext
    */
-  public void onMessage(String instanceName, List<Message> messages,
+  void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext);
 
 }

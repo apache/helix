@@ -32,5 +32,5 @@ public interface ScopedConfigChangeListener {
    * @param configs
    * @param context
    */
-  public void onConfigChange(List<HelixProperty> configs, NotificationContext context);
+  void onConfigChange(List<HelixProperty> configs, NotificationContext context);
 }

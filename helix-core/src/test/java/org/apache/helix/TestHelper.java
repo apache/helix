@@ -286,6 +286,16 @@ public class TestHelper {
     zkClient.close();
   }
 
+  public static void dropCluster(String clusterName, ZkClient zkClient) throws Exception {
+    if (!zkClient.exists("/" + clusterName)) {
+      LOG.warn("Cluster does not exist:" + clusterName + ". Deleting it");
+      zkClient.deleteRecursive("/" + clusterName);
+    }
+
+    ClusterSetup setupTool = new ClusterSetup(zkClient);
+    setupTool.deleteCluster(clusterName);
+  }
+
   /**
    * @param stateMap
    *          : "ResourceName/partitionKey" -> setOf(instances)

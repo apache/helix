@@ -29,5 +29,5 @@ public interface ControllerChangeListener {
    * Invoked when controller changes
    * @param changeContext description of the event and state
    */
-  public void onControllerChange(NotificationContext changeContext);
+  void onControllerChange(NotificationContext changeContext);
 }

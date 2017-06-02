@@ -21,7 +21,9 @@ package org.apache.helix.participant;
 
 import java.util.UUID;
 
+import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
+import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
@@ -89,6 +91,20 @@ public class MockZKHelixManager implements HelixManager {
 
   @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addResourceConfigChangeListener(ResourceConfigChangeListener listener)
+      throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addClusterfigChangeListener(ClusterConfigChangeListener listener)
+      throws Exception {
     // TODO Auto-generated method stub
 
   }

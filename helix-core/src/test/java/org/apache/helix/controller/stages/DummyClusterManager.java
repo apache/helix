@@ -19,8 +19,11 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.List;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
@@ -28,6 +31,7 @@ import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.HelixAdmin;
@@ -217,6 +221,20 @@ public class DummyClusterManager implements HelixManager {
 
   @Override
   public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener)
+      throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addResourceConfigChangeListener(ResourceConfigChangeListener listener)
+      throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addClusterfigChangeListener(ClusterConfigChangeListener listener)
       throws Exception {
     // TODO Auto-generated method stub
 

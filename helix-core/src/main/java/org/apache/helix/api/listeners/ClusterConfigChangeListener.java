@@ -19,19 +19,18 @@ package org.apache.helix.api.listeners;
  * under the License.
  */
 
-import java.util.List;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.ClusterConfig;
 
 /**
- * Interface to implement to listen for changes to instance configurations.
+ * Interface to implement to listen for changes to cluster configurations.
  */
-public interface InstanceConfigChangeListener {
+public interface ClusterConfigChangeListener {
   /**
-   * Invoked when participant config changes
-   * @param instanceConfigs
+   * Invoked when cluster config changes
+   * @param clusterConfig
    * @param context
    */
-  void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
+  void onClusterConfigChange(ClusterConfig clusterConfig,
       NotificationContext context);
 }

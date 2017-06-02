@@ -159,7 +159,8 @@ public class TestClusterVerifier extends ZkUnitTestBase {
     Assert.assertTrue(strictMatchVerifier.verify(10000));
   }
 
-  @Test public void testResourceSubset() throws InterruptedException {
+  @Test
+  public void testResourceSubset() throws InterruptedException {
     String testDB = "resource-testDB";
     _setupTool.addResourceToCluster(_clusterName, testDB, 1,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.SEMI_AUTO.toString());

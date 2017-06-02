@@ -21,9 +21,12 @@ package org.apache.helix;
 
 import java.util.List;
 
+import org.apache.helix.api.listeners.ClusterConfigChangeListener;
+import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
@@ -67,7 +70,7 @@ import org.apache.helix.api.listeners.ControllerChangeListener;
  */
 public interface HelixManager {
   @Deprecated
-  public static final String ALLOW_PARTICIPANT_AUTO_JOIN =
+  String ALLOW_PARTICIPANT_AUTO_JOIN =
       ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN;
 
   /**
@@ -120,6 +123,18 @@ public interface HelixManager {
    * @param listener
    */
   void addInstanceConfigChangeListener(InstanceConfigChangeListener listener) throws Exception;
+
+  /**
+   * @see ResourceConfigChangeListener#onResourceConfigChange(List, NotificationContext)
+   * @param listener
+   */
+  void addResourceConfigChangeListener(ResourceConfigChangeListener listener) throws Exception;
+
+  /**
+   * @see ClusterConfigChangeListener#onClusterConfigChange(ClusterConfig, NotificationContext)
+   * @param listener
+   */
+  void addClusterfigChangeListener(ClusterConfigChangeListener listener) throws Exception;
 
   /**
    * @see ScopedConfigChangeListener#onConfigChange(List, NotificationContext)

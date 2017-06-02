@@ -29,6 +29,8 @@ public interface HelixConstants {
     IDEAL_STATE,
     CONFIG,
     INSTANCE_CONFIG,
+    RESOURCE_CONFIG,
+    CLUSTER_CONFIG,
     LIVE_INSTANCE,
     CURRENT_STATE,
     MESSAGE,

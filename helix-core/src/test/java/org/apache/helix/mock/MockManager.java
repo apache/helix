@@ -20,6 +20,7 @@ package org.apache.helix.mock;
  */
 
 import java.util.UUID;
+import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
@@ -27,6 +28,7 @@ import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.ClusterMessagingService;
@@ -109,6 +111,18 @@ public class MockManager implements HelixManager {
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addResourceConfigChangeListener(ResourceConfigChangeListener listener)
+      throws Exception {
+
+  }
+
+  @Override
+  public void addClusterfigChangeListener(ClusterConfigChangeListener listener)
+      throws Exception {
 
   }
 

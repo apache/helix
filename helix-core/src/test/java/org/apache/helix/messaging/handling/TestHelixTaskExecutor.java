@@ -27,6 +27,8 @@ import java.util.concurrent.ExecutorService;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.api.listeners.ClusterConfigChangeListener;
+import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.mock.MockManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
@@ -39,6 +41,7 @@ import com.google.common.collect.ImmutableList;
 
 public class TestHelixTaskExecutor {
   public static class MockClusterManager extends MockManager {
+
     @Override
     public String getSessionId() {
       return "123";

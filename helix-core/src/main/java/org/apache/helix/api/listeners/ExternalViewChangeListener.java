@@ -33,7 +33,7 @@ public interface ExternalViewChangeListener {
    * @param externalViewList a list of ExternalViews
    * @param changeContext the change event and state
    */
-  public void onExternalViewChange(List<ExternalView> externalViewList,
+  void onExternalViewChange(List<ExternalView> externalViewList,
       NotificationContext changeContext);
 
 }

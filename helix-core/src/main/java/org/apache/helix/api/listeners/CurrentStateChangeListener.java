@@ -34,7 +34,7 @@ public interface CurrentStateChangeListener {
    * @param statesInfo a list of the current states
    * @param changeContext the change event and state
    */
-  public void onStateChange(String instanceName, List<CurrentState> statesInfo,
+  void onStateChange(String instanceName, List<CurrentState> statesInfo,
       NotificationContext changeContext);
 
 }

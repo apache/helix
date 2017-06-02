@@ -21,17 +21,17 @@ package org.apache.helix.api.listeners;
 
 import java.util.List;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.ResourceConfig;
 
 /**
- * Interface to implement to listen for changes to instance configurations.
+ * Interface to implement to listen for changes to resource configurations.
  */
-public interface InstanceConfigChangeListener {
+public interface ResourceConfigChangeListener {
   /**
-   * Invoked when participant config changes
-   * @param instanceConfigs
+   * Invoked when resource config changes
+   * @param resourceConfigs
    * @param context
    */
-  void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
+  void onResourceConfigChange(List<ResourceConfig> resourceConfigs,
       NotificationContext context);
 }

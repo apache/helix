@@ -37,7 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.Lists;
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -62,6 +61,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -125,7 +125,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     LOG.debug("Computer Best Partition for resource: " + resourceName);
 
     // Fetch job configuration
-    JobConfig jobCfg = TaskUtil.getJobConfig(_manager, resourceName);
+    JobConfig jobCfg = (JobConfig) clusterData.getResourceConfig(resourceName);
     if (jobCfg == null) {
       LOG.debug("Job configuration is NULL for " + resourceName);
       return emptyAssignment(resourceName, currStateOutput);
@@ -133,12 +133,12 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     String workflowResource = jobCfg.getWorkflow();
 
     // Fetch workflow configuration and context
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowConfig(_manager, workflowResource);
+    WorkflowConfig workflowCfg = clusterData.getWorkflowConfig(workflowResource);
     if (workflowCfg == null) {
       LOG.debug("Workflow configuration is NULL for " + resourceName);
       return emptyAssignment(resourceName, currStateOutput);
     }
-    WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_manager, workflowResource);
+    WorkflowContext workflowCtx = clusterData.getWorkflowContext(workflowResource);
 
     // Initialize workflow context if needed
     if (workflowCtx == null) {
@@ -187,7 +187,8 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     }
 
     // Fetch any existing context information from the property store.
-    JobContext jobCtx = TaskUtil.getJobContext(_manager, resourceName);
+
+    JobContext jobCtx = clusterData.getJobContext(resourceName);
     if (jobCtx == null) {
       jobCtx = new JobContext(new ZNRecord(TaskUtil.TASK_CONTEXT_KW));
       jobCtx.setStartTime(System.currentTimeMillis());
@@ -245,9 +246,11 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
       accessor.setProperty(propertyKey, taskIs);
     }
 
-    // Update rebalancer context, previous ideal state.
-    TaskUtil.setJobContext(_manager, resourceName, jobCtx);
-    TaskUtil.setWorkflowContext(_manager, workflowResource, workflowCtx);
+    // Update Workflow and Job context in data cache and ZK.
+    clusterData.updateJobContext(resourceName, jobCtx, _manager.getHelixDataAccessor());
+    clusterData
+        .updateWorkflowContext(workflowResource, workflowCtx, _manager.getHelixDataAccessor());
+
     setPrevResourceAssignment(_manager, resourceName, newAssignment);
 
     LOG.debug("Job " + resourceName + " new assignment " + Arrays
@@ -285,7 +288,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
   }
 
   private Set<String> getInstancesAssignedToOtherJobs(String currentJobName,
-      WorkflowConfig workflowCfg) {
+      WorkflowConfig workflowCfg, ClusterDataCache cache) {
 
     Set<String> ret = new HashSet<String>();
 
@@ -294,7 +297,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
         continue;
       }
 
-      JobContext jobContext = TaskUtil.getJobContext(_manager, jobName);
+      JobContext jobContext = cache.getJobContext(jobName);
       if (jobContext == null) {
         continue;
       }
@@ -339,7 +342,8 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     // Keeps a mapping of (partition) -> (instance, state)
     Map<Integer, PartitionAssignment> paMap = new TreeMap<Integer, PartitionAssignment>();
 
-    Set<String> excludedInstances = getInstancesAssignedToOtherJobs(jobResource, workflowConfig);
+    Set<String> excludedInstances =
+        getInstancesAssignedToOtherJobs(jobResource, workflowConfig, cache);
 
     // Process all the current assignments of tasks.
     Set<Integer> allPartitions =
@@ -602,7 +606,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
         // Skip scheduling this workflow again if the previous run (if any) is still active
         String lastScheduled = workflowCtx.getLastScheduledSingleWorkflow();
         if (lastScheduled != null) {
-          WorkflowContext lastWorkflowCtx = TaskUtil.getWorkflowContext(_manager, lastScheduled);
+          WorkflowContext lastWorkflowCtx = cache.getWorkflowContext(lastScheduled);
           if (lastWorkflowCtx != null
               && lastWorkflowCtx.getFinishTime() == WorkflowContext.UNFINISHED) {
             LOG.info("Skip scheduling since last schedule has not completed yet " + lastScheduled);
@@ -634,7 +638,8 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
           }
           // Persist workflow start regardless of success to avoid retrying and failing
           workflowCtx.setLastScheduledSingleWorkflow(newWorkflowName);
-          TaskUtil.setWorkflowContext(_manager, workflowResource, workflowCtx);
+          cache.updateWorkflowContext(workflowResource, workflowCtx,
+              _manager.getHelixDataAccessor());
         }
 
         // Change the time to trigger the pipeline to that of the next run

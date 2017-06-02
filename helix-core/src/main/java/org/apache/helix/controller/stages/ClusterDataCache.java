@@ -20,7 +20,6 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,9 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.PropertyType;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -43,10 +45,15 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskPartitionState;
+import org.apache.helix.task.WorkflowConfig;
+import org.apache.helix.task.WorkflowContext;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -58,6 +65,7 @@ import com.google.common.collect.Sets;
 public class ClusterDataCache {
 
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
+  private static final String NAME = "NAME";
 
   ClusterConfig _clusterConfig;
   Map<String, LiveInstance> _liveInstanceMap;
@@ -69,12 +77,15 @@ public class ClusterDataCache {
   Map<String, InstanceConfig> _instanceConfigCacheMap;
   Map<String, Long> _instanceOfflineTimeMap;
   Map<String, ResourceConfig> _resourceConfigMap;
+  Map<String, JobConfig> _jobConfigMap = new HashMap<>();
+  Map<String, WorkflowConfig> _workflowConfigMap = new HashMap<>();
   Map<String, ResourceConfig> _resourceConfigCacheMap;
   Map<String, ClusterConstraints> _constraintMap;
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   Map<String, Map<String, Message>> _messageMap;
   Map<String, Map<String, String>> _idealStateRuleMap;
   Map<String, Map<String, Long>> _missingTopStateMap = new HashMap<>();
+  Map<String, ZNRecord> _contextMap = new HashMap<>();
 
   // maintain a cache of participant messages across pipeline runs
   Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
@@ -117,9 +128,12 @@ public class ClusterDataCache {
     _liveInstanceMap = Maps.newHashMap(_liveInstanceCacheMap);
     _instanceConfigMap = Maps.newHashMap(_instanceConfigCacheMap);
 
+    // TODO: Need an optimize for reading context only if the refresh is needed.
+    refreshContexts(accessor);
+
     // TODO: We should listen on resource config change instead of fetching every time
     //       And add back resourceConfigCacheMap
-    _resourceConfigMap = accessor.getChildValuesMap(keyBuilder.resourceConfigs());
+    refreshResourceConfigs(accessor);
 
     _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
     _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
@@ -496,7 +510,7 @@ public class ClusterDataCache {
   }
 
   /**
-   * Returns the instance config map
+   * Returns the resource config map
    *
    * @return
    */
@@ -505,13 +519,48 @@ public class ClusterDataCache {
   }
 
   /**
-   * Returns the instance config map
+   * Returns the resource config
    *
    * @return
    */
   public ResourceConfig getResourceConfig(String resource) {
     return _resourceConfigMap.get(resource);
   }
+
+  /**
+   * Returns job config map
+   * @return
+   */
+  public Map<String, JobConfig> getJobConfigMap() {
+    return _jobConfigMap;
+  }
+
+  /**
+   * Returns job config
+   * @param resource
+   * @return
+   */
+  public JobConfig getJobConfig(String resource) {
+    return _jobConfigMap.get(resource);
+  }
+
+  /**
+   * Returns workflow config map
+   * @return
+   */
+  public Map<String, WorkflowConfig> getWorkflowConfigMap() {
+    return _workflowConfigMap;
+  }
+
+  /**
+   * Returns workflow config
+   * @param resource
+   * @return
+   */
+  public WorkflowConfig getWorkflowConfig(String resource) {
+    return _workflowConfigMap.get(resource);
+  }
+
 
   public synchronized void setInstanceConfigs(List<InstanceConfig> instanceConfigs) {
     Map<String, InstanceConfig> instanceConfigMap = Maps.newHashMap();
@@ -634,6 +683,64 @@ public class ClusterDataCache {
   }
 
   /**
+   * Return the JobContext by resource name
+   * @param resourceName
+   * @return
+   */
+  public JobContext getJobContext(String resourceName) {
+    if (_contextMap.containsKey(resourceName)) {
+      return new JobContext(_contextMap.get(resourceName));
+    }
+    return null;
+  }
+
+  /**
+   * Return the WorkflowContext by resource name
+   * @param resourceName
+   * @return
+   */
+  public WorkflowContext getWorkflowContext(String resourceName) {
+    if (_contextMap.containsKey(resourceName)) {
+      return new WorkflowContext(_contextMap.get(resourceName));
+    }
+    return null;
+  }
+
+  /**
+   * Update context of the Job
+   */
+  public void updateJobContext(String resourceName, JobContext jobContext,
+      HelixDataAccessor accessor) {
+    updateContext(resourceName, jobContext.getRecord(), accessor);
+  }
+
+  /**
+   * Update context of the Workflow
+   */
+  public void updateWorkflowContext(String resourceName, WorkflowContext workflowContext,
+      HelixDataAccessor accessor) {
+    updateContext(resourceName, workflowContext.getRecord(), accessor);
+  }
+
+  /**
+   * Update context of the Workflow or Job
+   */
+  private void updateContext(String resourceName, ZNRecord record, HelixDataAccessor accessor) {
+    String path = String.format("/%s/%s%s/%s/%s", _clusterName, PropertyType.PROPERTYSTORE.name(),
+        TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, TaskConstants.CONTEXT_NODE);
+    accessor.getBaseDataAccessor().set(path, record, AccessOption.PERSISTENT);
+    _contextMap.put(resourceName, record);
+  }
+
+  /**
+   * Return map of WorkflowContexts or JobContexts
+   * @return
+   */
+  public Map<String, ZNRecord> getContexts() {
+    return _contextMap;
+  }
+
+  /**
    * Indicate that a full read should be done on the next refresh
    */
   public synchronized void requireFullRefresh() {
@@ -654,5 +761,44 @@ public class ClusterDataCache {
     sb.append("messageMap:" + _messageMap).append("\n");
 
     return sb.toString();
+  }
+
+  private void refreshContexts(HelixDataAccessor accessor) {
+    _contextMap.clear();
+    if (_clusterName == null) {
+      return;
+    }
+    String path = String.format("/%s/%s%s", _clusterName, PropertyType.PROPERTYSTORE.name(),
+        TaskConstants.REBALANCER_CONTEXT_ROOT);
+    List<String> contextPaths = new ArrayList<>();
+    List<String> childNames = accessor.getBaseDataAccessor().getChildNames(path, 0);
+    if (childNames == null) {
+      return;
+    }
+    for (String context : childNames) {
+      contextPaths.add(Joiner.on("/").join(path, context, TaskConstants.CONTEXT_NODE));
+    }
+
+    List<ZNRecord> contexts = accessor.getBaseDataAccessor().get(contextPaths, null, 0);
+    for (ZNRecord context : contexts) {
+      if (context != null && context.getSimpleField(NAME) != null) {
+        _contextMap.put(context.getSimpleField(NAME), context);
+      }
+    }
+  }
+
+  private void refreshResourceConfigs(HelixDataAccessor accessor) {
+    _workflowConfigMap.clear();
+    _jobConfigMap.clear();
+    _resourceConfigMap = accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs());
+    for (Map.Entry<String, ResourceConfig> entry : _resourceConfigMap.entrySet()) {
+      if (entry.getValue().getRecord().getSimpleFields()
+          .containsKey(WorkflowConfig.WorkflowConfigProperty.Dag.name())) {
+        _workflowConfigMap.put(entry.getKey(), new WorkflowConfig(entry.getValue()));
+      } else if (entry.getValue().getRecord().getSimpleFields()
+          .containsKey(WorkflowConfig.WorkflowConfigProperty.WorkflowID.name())) {
+        _jobConfigMap.put(entry.getKey(), new JobConfig(entry.getValue()));
+      }
+    }
   }
 }

@@ -24,6 +24,7 @@ import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.integration.task.WorkflowGenerator;
+import org.apache.helix.model.ClusterConfig;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -53,7 +54,7 @@ public class TestScheduleDelayJobs extends TaskSynchronizedTestBase {
         .buildWorkflowContext(workflowName, TaskState.IN_PROGRESS, null, TaskState.COMPLETED,
             TaskState.NOT_STARTED);
     _driver.start(builder.build());
-    _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor());
+    _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
     long currentTime = System.currentTimeMillis();
     TaskUtil.setWorkflowContext(_manager, workflowName, workflowContext);
     TaskTestUtil.calculateBestPossibleState(_cache, _manager);
@@ -78,7 +79,7 @@ public class TestScheduleDelayJobs extends TaskSynchronizedTestBase {
         .buildWorkflowContext(workflowName, TaskState.IN_PROGRESS, null, TaskState.COMPLETED,
             TaskState.COMPLETED, TaskState.NOT_STARTED);
     _driver.start(builder.build());
-    _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor());
+    _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
     TaskUtil.setWorkflowContext(_manager, workflowName, workflowContext);
     TaskTestUtil.calculateBestPossibleState(_cache, _manager);
     Assert.assertTrue(_testRebalancer.getRebalanceTime(workflowName) == currentTime);

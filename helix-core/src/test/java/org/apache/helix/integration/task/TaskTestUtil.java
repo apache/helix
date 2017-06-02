@@ -40,6 +40,7 @@ import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
+import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.model.Message;
 import org.apache.helix.task.JobContext;
@@ -272,8 +273,9 @@ public class TaskTestUtil {
     return jobContext;
   }
 
-  public static ClusterDataCache buildClusterDataCache(HelixDataAccessor accessor) {
-    ClusterDataCache cache = new ClusterDataCache();
+  public static ClusterDataCache buildClusterDataCache(HelixDataAccessor accessor,
+      String clusterName) {
+    ClusterDataCache cache = new ClusterDataCache(clusterName);
     cache.refresh(accessor);
     return cache;
   }
@@ -293,6 +295,7 @@ public class TaskTestUtil {
     event.addAttribute("helixmanager", manager);
 
     List<Stage> stages = new ArrayList<Stage>();
+    stages.add(new ReadClusterDataStage());
     stages.add(new ResourceComputationStage());
     stages.add(new CurrentStateComputationStage());
     stages.add(new BestPossibleStateCalcStage());

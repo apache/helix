@@ -38,7 +38,6 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
@@ -70,7 +69,7 @@ public class JobRebalancer extends TaskRebalancer {
     LOG.debug("Computer Best Partition for job: " + jobName);
 
     // Fetch job configuration
-    JobConfig jobCfg = TaskUtil.getJobConfig(_manager, jobName);
+    JobConfig jobCfg = clusterData.getJobConfig(jobName);
     if (jobCfg == null) {
       LOG.error("Job configuration is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -78,13 +77,13 @@ public class JobRebalancer extends TaskRebalancer {
     String workflowResource = jobCfg.getWorkflow();
 
     // Fetch workflow configuration and context
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowConfig(_manager, workflowResource);
+    WorkflowConfig workflowCfg = clusterData.getWorkflowConfig(workflowResource);
     if (workflowCfg == null) {
       LOG.error("Workflow configuration is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
-    WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_manager, workflowResource);
+    WorkflowContext workflowCtx = clusterData.getWorkflowContext(workflowResource);
     if (workflowCtx == null) {
       LOG.error("Workflow context is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -117,13 +116,14 @@ public class JobRebalancer extends TaskRebalancer {
     }
 
     if (!isJobStarted(jobName, workflowCtx) && !isJobReadyToSchedule(jobName, workflowCfg,
-        workflowCtx, getInCompleteJobCount(workflowCfg, workflowCtx))) {
+        workflowCtx, getInCompleteJobCount(workflowCfg, workflowCtx),
+        clusterData.getJobConfigMap())) {
       LOG.info("Job is not ready to run " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
     // Fetch any existing context information from the property store.
-    JobContext jobCtx = TaskUtil.getJobContext(_manager, jobName);
+    JobContext jobCtx = clusterData.getJobContext(jobName);
     if (jobCtx == null) {
       jobCtx = new JobContext(new ZNRecord(TaskUtil.TASK_CONTEXT_KW));
       jobCtx.setStartTime(System.currentTimeMillis());
@@ -166,9 +166,11 @@ public class JobRebalancer extends TaskRebalancer {
       accessor.setProperty(propertyKey, taskIs);
     }
 
-    // Update rebalancer context, previous ideal state.
-    TaskUtil.setJobContext(_manager, jobName, jobCtx);
-    TaskUtil.setWorkflowContext(_manager, workflowResource, workflowCtx);
+    // Update Workflow and Job context in data cache and ZK.
+    clusterData.updateJobContext(jobName, jobCtx, _manager.getHelixDataAccessor());
+    clusterData
+        .updateWorkflowContext(workflowResource, workflowCtx, _manager.getHelixDataAccessor());
+
     setPrevResourceAssignment(jobName, newAssignment);
 
     LOG.debug("Job " + jobName + " new assignment " + Arrays
@@ -177,7 +179,7 @@ public class JobRebalancer extends TaskRebalancer {
   }
 
   private Set<String> getExcludedInstances(String currentJobName,
-      WorkflowConfig workflowCfg) {
+      WorkflowConfig workflowCfg, ClusterDataCache cache) {
     Set<String> ret = new HashSet<String>();
 
     if (!workflowCfg.isAllowOverlapJobAssignment()) {
@@ -186,7 +188,7 @@ public class JobRebalancer extends TaskRebalancer {
         if (jobName.equals(currentJobName)) {
           continue;
         }
-        JobContext jobContext = TaskUtil.getJobContext(_manager, jobName);
+        JobContext jobContext = cache.getJobContext(jobName);
         if (jobContext == null) {
           continue;
         }
@@ -243,7 +245,7 @@ public class JobRebalancer extends TaskRebalancer {
     // Keeps a mapping of (partition) -> (instance, state)
     Map<Integer, PartitionAssignment> paMap = new TreeMap<Integer, PartitionAssignment>();
 
-    Set<String> excludedInstances = getExcludedInstances(jobResource, workflowConfig);
+    Set<String> excludedInstances = getExcludedInstances(jobResource, workflowConfig, cache);
 
     // Process all the current assignments of tasks.
     TaskAssignmentCalculator taskAssignmentCal = getAssignmentCalulator(jobCfg);
@@ -255,7 +257,7 @@ public class JobRebalancer extends TaskRebalancer {
       String failureMsg = "Empty task partition mapping for job " + jobResource + ", marked the job as FAILED!";
       LOG.info(failureMsg);
       jobCtx.setInfo(failureMsg);
-      failJob(jobResource, workflowCtx, jobCtx, workflowConfig, jobCfg);
+      failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap());
       markAllPartitionsError(jobCtx, TaskPartitionState.ERROR, false);
       return new ResourceAssignment(jobResource);
     }
@@ -399,7 +401,7 @@ public class JobRebalancer extends TaskRebalancer {
 
     if (jobState == TaskState.IN_PROGRESS && skippedPartitions.size() > jobCfg.getFailureThreshold()) {
       if (isJobFinished(jobCtx, jobResource, currStateOutput)) {
-        failJob(jobResource, workflowCtx, jobCtx, workflowConfig, jobCfg);
+        failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap());
         return buildEmptyAssignment(jobResource, currStateOutput);
       }
       workflowCtx.setJobState(jobResource, TaskState.FAILING);
@@ -422,12 +424,13 @@ public class JobRebalancer extends TaskRebalancer {
     }
 
     if (jobState == TaskState.FAILING && isJobFinished(jobCtx, jobResource, currStateOutput)) {
-      failJob(jobResource, workflowCtx, jobCtx, workflowConfig, jobCfg);
+      failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap());
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
 
     if (isJobComplete(jobCtx, allPartitions, jobCfg)) {
-      markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx);
+      markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx,
+          cache.getJobConfigMap());
       _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.COMPLETED);
       _rebalanceScheduler.removeScheduledRebalance(jobResource);
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
@@ -608,22 +611,24 @@ public class JobRebalancer extends TaskRebalancer {
   }
 
   private void failJob(String jobName, WorkflowContext workflowContext, JobContext jobContext,
-      WorkflowConfig workflowConfig, JobConfig jobConfig) {
-    markJobFailed(jobName, jobContext, workflowConfig, workflowContext);
+      WorkflowConfig workflowConfig, Map<String, JobConfig> jobConfigMap) {
+    markJobFailed(jobName, jobContext, workflowConfig, workflowContext, jobConfigMap);
     // Mark all INIT task to TASK_ABORTED
     for (int pId : jobContext.getPartitionSet()) {
       if (jobContext.getPartitionState(pId) == TaskPartitionState.INIT) {
         jobContext.setPartitionState(pId, TaskPartitionState.TASK_ABORTED);
       }
     }
-    _clusterStatusMonitor.updateJobCounters(jobConfig, TaskState.FAILED);
+    _clusterStatusMonitor
+        .updateJobCounters(jobConfigMap.get(jobName), TaskState.FAILED);
     _rebalanceScheduler.removeScheduledRebalance(jobName);
     TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
   }
 
   private boolean isJobTimeout(JobContext jobContext, JobConfig jobConfig) {
     long jobTimeoutTime = computeJobTimeoutTime(jobContext, jobConfig);
-    return jobTimeoutTime != jobConfig.DEFAULT_TIMEOUT_NEVER && jobTimeoutTime <= System.currentTimeMillis();
+    return jobTimeoutTime != jobConfig.DEFAULT_TIMEOUT_NEVER && jobTimeoutTime <= System
+        .currentTimeMillis();
   }
 
   private boolean isJobFinished(JobContext jobContext, String jobResource,
@@ -651,15 +656,15 @@ public class JobRebalancer extends TaskRebalancer {
         : jobContext.getStartTime() + jobConfig.getTimeout();
   }
 
-  private void markJobComplete(String jobName, JobContext jobContext,
-      WorkflowConfig workflowConfig, WorkflowContext workflowContext) {
+  private void markJobComplete(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
+      WorkflowContext workflowContext, Map<String, JobConfig> jobConfigMap) {
     long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.COMPLETED);
     jobContext.setFinishTime(currentTime);
-    if (isWorkflowFinished(workflowContext, workflowConfig)) {
+    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap)) {
       workflowContext.setFinishTime(currentTime);
     }
-    scheduleJobCleanUp(jobName, workflowConfig, currentTime);
+    scheduleJobCleanUp(jobConfigMap.get(jobName), workflowConfig, currentTime);
   }
 
   private void scheduleForNextTask(String job, JobContext jobCtx, long now) {

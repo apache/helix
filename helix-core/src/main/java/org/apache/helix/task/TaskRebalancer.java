@@ -67,7 +67,8 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
    * @return returns true if the workflow either completed (all tasks are {@link TaskState#COMPLETED})
    * or failed (any task is {@link TaskState#FAILED}, false otherwise.
    */
-  protected boolean isWorkflowFinished(WorkflowContext ctx, WorkflowConfig cfg) {
+  protected boolean isWorkflowFinished(WorkflowContext ctx, WorkflowConfig cfg,
+      Map<String, JobConfig> jobConfigMap) {
     boolean incomplete = false;
     int failedJobs = 0;
     for (String job : cfg.getJobDag().getAllNodes()) {
@@ -81,7 +82,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
             if (ctx.getJobState(jobToFail) == TaskState.IN_PROGRESS) {
               ctx.setJobState(jobToFail, TaskState.ABORTED);
               _clusterStatusMonitor
-                  .updateJobCounters(TaskUtil.getJobConfig(_manager, jobToFail), TaskState.ABORTED);
+                  .updateJobCounters(jobConfigMap.get(jobToFail), TaskState.ABORTED);
             }
           }
           return true;
@@ -143,7 +144,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
    * @return
    */
   protected boolean isJobReadyToSchedule(String job, WorkflowConfig workflowCfg,
-      WorkflowContext workflowCtx, int incompleteAllCount) {
+      WorkflowContext workflowCtx, int incompleteAllCount, Map<String, JobConfig> jobConfigMap) {
     int notStartedCount = 0;
     int failedOrTimeoutCount = 0;
     int incompleteParentCount = 0;
@@ -168,9 +169,9 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
 
     // If there is parent job failed, schedule the job only when ignore dependent
     // job failure enabled
-    JobConfig jobConfig = TaskUtil.getJobConfig(_manager, job);
+    JobConfig jobConfig = jobConfigMap.get(job);
     if (failedOrTimeoutCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
-      markJobFailed(job, null, workflowCfg, workflowCtx);
+      markJobFailed(job, null, workflowCfg, workflowCtx, jobConfigMap);
       LOG.debug(
           String.format("Job %s is not ready to start, failedCount(s)=%d.", job, failedOrTimeoutCount));
       return false;
@@ -221,21 +222,20 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   }
 
   protected void markJobFailed(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
-      WorkflowContext workflowContext) {
+      WorkflowContext workflowContext, Map<String, JobConfig> jobConfigMap) {
     long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.FAILED);
     if (jobContext != null) {
       jobContext.setFinishTime(currentTime);
     }
-    if (isWorkflowFinished(workflowContext, workflowConfig)) {
+    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap)) {
       workflowContext.setFinishTime(currentTime);
     }
-    scheduleJobCleanUp(jobName, workflowConfig, currentTime);
+    scheduleJobCleanUp(jobConfigMap.get(jobName), workflowConfig, currentTime);
   }
 
-  protected void scheduleJobCleanUp(String jobName, WorkflowConfig workflowConfig,
+  protected void scheduleJobCleanUp(JobConfig jobConfig, WorkflowConfig workflowConfig,
       long currentTime) {
-    JobConfig jobConfig = TaskUtil.getJobConfig(_manager, jobName);
     long currentScheduledTime =
         _rebalanceScheduler.getRebalanceTime(workflowConfig.getWorkflowId()) == -1
             ? Long.MAX_VALUE

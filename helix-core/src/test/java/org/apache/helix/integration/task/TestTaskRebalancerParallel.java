@@ -24,14 +24,19 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.helix.TestHelper;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
+import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.WorkflowConfig;
+import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestTaskRebalancerParallel extends TaskTestBase {
+  final int PARALLEL_COUNT = 2;
+  final int TASK_COUNT = 30;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -39,13 +44,12 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     super.beforeClass();
   }
 
-  @Test public void test() throws Exception {
-    final int PARALLEL_COUNT = 2;
-
+  @Test public void testWhenDisallowOverlapJobAssignment() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder();
     cfgBuilder.setParallelJobs(PARALLEL_COUNT);
+    cfgBuilder.setAllowOverlapJobAssignment(false);
 
     JobQueue.Builder queueBuild =
         new JobQueue.Builder(queueName).setWorkflowConfig(cfgBuilder.build());
@@ -66,5 +70,50 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     _driver.resume(queueName);
     Thread.sleep(2000);
     Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));
+  }
+
+  @Test (dependsOnMethods = {"testWhenDisallowOverlapJobAssignment"})
+  public void testWhenAllowOverlapJobAssignment() throws Exception {
+    // Disable all participants except one to enforce all assignment to be on one host
+    for (int i = 1; i < _numNodes; i++) {
+      _participants[i].syncStop();
+    }
+    ClusterLiveNodesVerifier verifier = new ClusterLiveNodesVerifier(_gZkClient, CLUSTER_NAME,
+        Collections.singletonList(_participants[0].getInstanceName()));
+    Assert.assertTrue(verifier.verify());
+
+    String queueName = TestHelper.getTestMethodName();
+
+    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder();
+    cfgBuilder.setParallelJobs(PARALLEL_COUNT);
+    cfgBuilder.setAllowOverlapJobAssignment(true);
+
+    JobQueue.Builder queueBuild = new JobQueue.Builder(queueName).setWorkflowConfig(cfgBuilder.build());
+    JobQueue queue = queueBuild.build();
+    _driver.createQueue(queue);
+
+    // Create jobs that can be assigned to any instances
+    List<JobConfig.Builder> jobConfigBuilders = new ArrayList<JobConfig.Builder>();
+    for (int i = 0; i < PARALLEL_COUNT; i++) {
+      List<TaskConfig> taskConfigs = new ArrayList<TaskConfig>();
+      for (int j = 0; j < TASK_COUNT; j++) {
+        taskConfigs.add(
+            new TaskConfig.Builder().setTaskId("task_" + j).setCommand(MockTask.TASK_COMMAND)
+                .build());
+      }
+      jobConfigBuilders.add(new JobConfig.Builder().addTaskConfigs(taskConfigs));
+    }
+
+    _driver.stop(queueName);
+    for (int i = 0; i < jobConfigBuilders.size(); ++i) {
+      _driver.enqueueJob(queueName, "job_" + (i + 1), jobConfigBuilders.get(i));
+    }
+    _driver.resume(queueName);
+    Thread.sleep(2000);
+    Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));
+
+    for (int i = 1; i < _numNodes; i++) {
+      _participants[i].syncStart();
+    }
   }
 }

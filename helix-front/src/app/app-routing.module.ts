@@ -22,6 +22,11 @@ const HELIX_ROUTES: Routes = [
     pathMatch: 'full'
   },
   {
+    path: 'embed',
+    redirectTo: '/clusters?embed=true',
+    pathMatch: 'full'
+  },
+  {
     path: 'clusters',
     // TODO vxu: in future hook this route with an introduction or welcome page
     component: ClusterDetailComponent

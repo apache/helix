@@ -1,5 +1,5 @@
 <section class="app" fxLayout="column" fxFill>
-  <md-toolbar class="header mat-elevation-z7" color="primary">
+  <md-toolbar *ngIf="headerEnabled" class="header mat-elevation-z7" color="primary">
     <button md-icon-button
       *ngIf="isNarrowView"
       (click)="sidenav.open()">

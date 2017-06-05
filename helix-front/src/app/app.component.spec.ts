@@ -2,6 +2,7 @@ import { TestBed, async } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { MaterialModule } from '@angular/material';
 import { FlexLayoutModule } from '@angular/flex-layout';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { AppComponent } from './app.component';
 
@@ -10,7 +11,8 @@ describe('AppComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         MaterialModule,
-        FlexLayoutModule
+        FlexLayoutModule,
+        RouterTestingModule
       ],
       declarations: [
         AppComponent

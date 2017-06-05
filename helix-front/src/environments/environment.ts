@@ -5,5 +5,5 @@
 
 export const environment = {
   production: false,
-  helixAPI: 'http://vxu-ld1.linkedin.biz:8422/helix'
+  helixAPI: 'http://vxu-ld1.linkedin.biz:8100/admin/v2'
 };

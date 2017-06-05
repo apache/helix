@@ -105,7 +105,6 @@ public class HelixTask implements MessageTask {
               + " type: " + _message.getMsgType();
       logger.error(errorMessage, e);
       _statusUpdateUtil.logError(_message, HelixTask.class, e, errorMessage, accessor);
-      _executor.getParticipantMonitor().reportProcessedMessage(_message, ParticipantMessageMonitor.ProcessedMessageState.FAILED);
     }
 
     // cancel timeout task
@@ -140,24 +139,25 @@ public class HelixTask implements MessageTask {
               return taskResult;
             }
           }
+          _executor.getParticipantMonitor().reportProcessedMessage(
+              _message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         } else if (taskResult.isCancelled()) {
-          // Cancellation success, report message complete
           type = null;
           _statusUpdateUtil
               .logInfo(_message, _handler.getClass(), "Cancellation completed successfully",
                   accessor);
-          _executor.getParticipantMonitor().reportProcessedMessage(_message,
-              ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
-        } else // logging for errors
-        {
+          _executor.getParticipantMonitor().reportProcessedMessage(
+              _message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+        } else {// logging for errors
           code = ErrorCode.ERROR;
           String errorMsg =
               "Message execution failed. msgId: " + getTaskId() + ", errorMsg: "
                   + taskResult.getMessage();
           logger.error(errorMsg);
           _statusUpdateUtil.logError(_message, _handler.getClass(), errorMsg, accessor);
+          _executor.getParticipantMonitor().reportProcessedMessage(
+              _message, ParticipantMessageMonitor.ProcessedMessageState.FAILED);
         }
-        _executor.getParticipantMonitor().reportProcessedMessage(_message, ParticipantMessageMonitor.ProcessedMessageState.FAILED);
       }
 
       if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
@@ -176,7 +176,6 @@ public class HelixTask implements MessageTask {
           "Exception after executing a message, msgId: " + _message.getMsgId() + e;
       logger.error(errorMessage, e);
       _statusUpdateUtil.logError(_message, HelixTask.class, errorMessage, accessor);
-      _executor.getParticipantMonitor().reportProcessedMessage(_message, ParticipantMessageMonitor.ProcessedMessageState.FAILED);
     } finally {
       long end = System.currentTimeMillis();
       logger.info("msg: " + _message.getMsgId() + " handling task completed, results:"

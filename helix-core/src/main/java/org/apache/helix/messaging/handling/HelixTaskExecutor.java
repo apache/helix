@@ -33,10 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import javax.management.JMException;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixConstants;
@@ -60,7 +57,6 @@ import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.monitoring.ParticipantStatusMonitor;
-import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
@@ -655,7 +651,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     // Update message count
     _messageQueueMonitor.setMessageQueueBacklog(messages.size());
-    _monitor.reportReceivedMessages(messages);
 
     // sort message by creation timestamp, so message created earlier is processed first
     Collections.sort(messages, Message.CREATE_TIME_COMPARATOR);
@@ -684,7 +679,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         LOG.info("Dropping NO-OP message. mid: " + message.getId() + ", from: "
             + message.getMsgSrc());
         accessor.removeProperty(message.getKey(keyBuilder, instanceName));
-        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
 
@@ -708,6 +702,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             syncSessionToController(manager);
           }
         }
+        _monitor.reportReceivedMessages(1);
         _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
@@ -719,6 +714,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
         _controller.onLiveInstanceChange(liveInstances, changeContext);
         accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        _monitor.reportReceivedMessages(1);
         _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
         continue;
       }
@@ -732,59 +728,66 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         if (LOG.isTraceEnabled()) {
           LOG.trace("Message already read. msgId: " + message.getMsgId());
         }
-        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
+
+      _monitor.reportReceivedMessages(1);
 
       // State Transition Cancellation
       // Three Types of Cancellation: 1. Message arrived with previous state transition
       //                              2. Message handled but task not started
       //                              3. Message handled and task already started
       if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
-        String messageTarget =
+        String targetMessageName =
             getMessageTarget(message.getResourceName(), message.getPartitionName());
         // State transition message and cancel message are in same batch
-        if (stateTransitionHandlers.containsKey(messageTarget)) {
-          if (!isCancelingSameStateTransition(
-              stateTransitionHandlers.get(messageTarget).getMessage(), message)) {
+        if (stateTransitionHandlers.containsKey(targetMessageName)) {
+          Message targetMessage = stateTransitionHandlers.get(targetMessageName).getMessage();
+          if (!isCancelingSameStateTransition(targetMessage, message)) {
             removeMessageFromZk(accessor, message, instanceName);
+            _monitor.reportProcessedMessage(message,
+                ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
             continue;
           }
 
-          markReadMessage(message, changeContext, accessor);
-          readMsgs.add(message);
+          removeMessageFromZk(accessor, message, instanceName);
           _monitor.reportProcessedMessage(message,
               ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
-          removeMessageFromZk(accessor, message, instanceName);
-          removeMessageFromZk(accessor, stateTransitionHandlers.get(messageTarget).getMessage(),
-              instanceName);
-          stateTransitionHandlers.remove(messageTarget);
+
+          removeMessageFromZk(accessor, targetMessage, instanceName);
+          _monitor.reportProcessedMessage(targetMessage,
+              ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+          stateTransitionHandlers.remove(targetMessageName);
           continue;
         } else {
-          if (_messageTaskMap.containsKey(messageTarget)) {
+          if (_messageTaskMap.containsKey(targetMessageName)) {
             // Lock the task object to avoid race condition between cancel and start tasks.
             // Cancel the from future without interrupt ->  Cancel the task future without
             // interruptting the state transition that is already started.  If the state transition
             // is already started, we should call cancel in the state model.
-            String taskId = _messageTaskMap.get(messageTarget);
+            String taskId = _messageTaskMap.get(targetMessageName);
             HelixTask task = (HelixTask) _taskMap.get(taskId).getTask();
             Future<HelixTaskResult> future = _taskMap.get(taskId).getFuture();
 
             if (!isCancelingSameStateTransition(task.getMessage(), message)) {
               removeMessageFromZk(accessor, message, instanceName);
+              _monitor.reportProcessedMessage(message,
+                  ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
               continue;
             }
 
             if (task.cancel()) {
               Message stateTransitionMessage = task.getMessage();
               future.cancel(false);
-              _messageTaskMap.remove(messageTarget);
+              _messageTaskMap.remove(targetMessageName);
               _taskMap.remove(taskId);
-              _monitor.reportProcessedMessage(message,
-                  ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
               removeMessageFromZk(accessor, message, instanceName);
               removeMessageFromZk(accessor, stateTransitionMessage,
                   instanceName);
+              _monitor.reportProcessedMessage(message,
+                  ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
+              _monitor.reportProcessedMessage(stateTransitionMessage,
+                  ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
               continue;
             }
           }
@@ -795,7 +798,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       try {
         MessageHandler createHandler = createMessageHandler(message, changeContext);
         if (createHandler == null) {
-          _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
           continue;
         }
         if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name()) || message.getMsgType()

@@ -20,19 +20,14 @@ package org.apache.helix.monitoring;
  */
 
 import java.lang.management.ManagementFactory;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
@@ -64,14 +59,15 @@ public class ParticipantStatusMonitor {
     }
   }
 
-  public void reportReceivedMessages(List<Message> messages) {
+  public synchronized void reportReceivedMessages(int count) {
     if (_messageMonitor != null) {  // is participant
-      _messageMonitor.incrementReceivedMessages(messages.size());
-      _messageMonitor.incrementPendingMessages(messages.size());
+      _messageMonitor.incrementReceivedMessages(count);
+      _messageMonitor.incrementPendingMessages(count);
     }
   }
 
-  public void reportProcessedMessage(Message message, ParticipantMessageMonitor.ProcessedMessageState processedMessageState) {
+  public synchronized void reportProcessedMessage(Message message,
+      ParticipantMessageMonitor.ProcessedMessageState processedMessageState) {
     if (_messageMonitor != null) {  // is participant
       switch (processedMessageState) {
         case DISCARDED:

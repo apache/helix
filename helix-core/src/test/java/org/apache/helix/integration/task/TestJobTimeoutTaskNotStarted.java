@@ -21,17 +21,13 @@ package org.apache.helix.integration.task;
 
 import com.google.common.collect.Sets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.statemodel.MockTaskStateModelFactory;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.MasterSlaveSMD;
-import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;

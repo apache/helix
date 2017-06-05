@@ -79,7 +79,7 @@ public class ParticipantMessageMonitor implements ParticipantMessageMonitorMBean
 
   @Override
   public String getSensorName() {
-    return PARTICIPANT_STATUS_KEY + "." + "_participantName";
+    return PARTICIPANT_STATUS_KEY + "." + _participantName;
   }
 
 }

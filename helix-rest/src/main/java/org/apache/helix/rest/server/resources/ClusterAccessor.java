@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -32,9 +31,7 @@ import javax.ws.rs.DefaultValue;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
@@ -125,7 +122,7 @@ public class ClusterAccessor extends AbstractResource {
       clusterSetup.addCluster(clusterId, recreateIfExists);
     } catch (Exception ex) {
       _logger.error("Failed to create cluster " + clusterId + ", exception: " + ex);
-      return serverError(ex.getMessage());
+      return serverError(ex);
     }
 
     return created();
@@ -144,7 +141,7 @@ public class ClusterAccessor extends AbstractResource {
       return badRequest(ex.getMessage());
     } catch (Exception ex) {
       _logger.error("Failed to delete cluster " + clusterId + ", exception: " + ex);
-      return serverError(ex.getMessage());
+      return serverError(ex);
     }
 
     return OK();
@@ -173,7 +170,7 @@ public class ClusterAccessor extends AbstractResource {
         clusterSetup.activateCluster(clusterId, superCluster, true);
       } catch (Exception ex) {
         _logger.error("Failed to add cluster " + clusterId + " to super cluster " + superCluster);
-        return serverError(ex.getMessage());
+        return serverError(ex);
       }
       break;
 
@@ -182,7 +179,7 @@ public class ClusterAccessor extends AbstractResource {
         clusterSetup.expandCluster(clusterId);
       } catch (Exception ex) {
         _logger.error("Failed to expand cluster " + clusterId);
-        return serverError(ex.getMessage());
+        return serverError(ex);
       }
       break;
 
@@ -191,7 +188,7 @@ public class ClusterAccessor extends AbstractResource {
         helixAdmin.enableCluster(clusterId, true);
       } catch (Exception ex) {
         _logger.error("Failed to enable cluster " + clusterId);
-        return serverError(ex.getMessage());
+        return serverError(ex);
       }
       break;
 
@@ -200,7 +197,7 @@ public class ClusterAccessor extends AbstractResource {
         helixAdmin.enableCluster(clusterId, false);
       } catch (Exception ex) {
         _logger.error("Failed to disable cluster " + clusterId);
-        return serverError(ex.getMessage());
+        return serverError(ex);
       }
       break;
 
@@ -225,10 +222,7 @@ public class ClusterAccessor extends AbstractResource {
           + ", cluster not found, Exception: " + ex);
     } catch (Exception ex) {
       _logger.error("Failed to get cluster config for cluster " + clusterId + " Exception: " + ex);
-      String errorMsg = String
-          .format("Failed to get cluster config for cluster %s, Exception: %s", clusterId,
-              ex.getMessage());
-      return serverError(errorMsg);
+      return serverError(ex);
     }
     if (config == null) {
       return notFound();
@@ -284,7 +278,7 @@ public class ClusterAccessor extends AbstractResource {
       _logger.error(
           "Failed to " + command + " cluster config, cluster " + clusterId + " new config: "
               + content + ", Exception: " + ex);
-      return serverError(ex.getMessage());
+      return serverError(ex);
     }
     return OK();
   }

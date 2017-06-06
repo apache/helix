@@ -19,9 +19,14 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.List;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
+import org.apache.helix.rest.server.auditlog.AuditLogger;
+import org.apache.helix.rest.server.filters.AuditLogFilter;
 import org.apache.helix.rest.server.filters.CORSFilter;
+import org.apache.helix.rest.server.resources.AbstractResource;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -38,22 +43,27 @@ public class HelixRestServer extends ResourceConfig {
   private Server _server;
   private ServerContext _serverContext;
 
-  public HelixRestServer(String zkAddr, int port, String urlPrefix) {
+  public HelixRestServer(String zkAddr, int port, String urlPrefix, List<AuditLogger> auditLoggers) {
     _port = port;
     _urlPrefix = urlPrefix;
 
-    packages("org.apache.helix.rest.server.resources");
+    packages(AbstractResource.class.getPackage().getName());
 
     _serverContext = new ServerContext(zkAddr);
     property(ContextPropertyKeys.SERVER_CONTEXT.name(), _serverContext);
 
     register(new CORSFilter());
+    register(new AuditLogFilter(auditLoggers));
 
     Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
       @Override public void run() {
         shutdown();
       }
     }));
+  }
+
+  public HelixRestServer(String zkAddr, int port, String urlPrefix) {
+    this(zkAddr, port, urlPrefix, Collections.<AuditLogger>emptyList());
   }
 
   public void start() throws HelixException, InterruptedException {

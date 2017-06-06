@@ -21,17 +21,18 @@ package org.apache.helix.rest.server;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Response;
-
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -43,12 +44,14 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
+import org.apache.helix.rest.server.auditlog.AuditLog;
+import org.apache.helix.rest.server.auditlog.AuditLogger;
+import org.apache.helix.rest.server.filters.AuditLogFilter;
+import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.DeploymentContext;
 import org.glassfish.jersey.test.JerseyTestNg;
@@ -77,12 +80,32 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static Map<String, Set<String>> _liveInstancesMap = new HashMap<>();
   protected static Map<String, Set<String>> _resourcesMap = new HashMap<>();
 
+  protected MockAuditLogger _auditLogger = new MockAuditLogger();
+
+  protected class MockAuditLogger implements AuditLogger {
+    List<AuditLog> _auditLogList = new ArrayList<>();
+
+    @Override
+    public void write(AuditLog auditLog) {
+      _auditLogList.add(auditLog);
+    }
+
+    public void clearupLogs() {
+      _auditLogList.clear();
+    }
+
+    public List<AuditLog> getAuditLogs() {
+      return _auditLogList;
+    }
+  }
+
   @Override
   protected Application configure() {
     ResourceConfig resourceConfig = new ResourceConfig();
-    resourceConfig.packages("org.apache.helix.rest.server.resources");
+    resourceConfig.packages(AbstractResource.class.getPackage().getName());
     ServerContext serverContext = new ServerContext(ZK_ADDR);
     resourceConfig.property(ContextPropertyKeys.SERVER_CONTEXT.name(), serverContext);
+    resourceConfig.register(new AuditLogFilter(Arrays.<AuditLogger>asList(new MockAuditLogger())));
 
     return resourceConfig;
   }
@@ -93,7 +116,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       @Override
       public TestContainer create(final URI baseUri, DeploymentContext deploymentContext) {
         return new TestContainer() {
-          private HttpServer server;
+          private HelixRestServer _helixRestServer;
 
           @Override
           public ClientConfig getClientConfig() {
@@ -108,16 +131,17 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
           @Override
           public void start() {
             try {
-              ResourceConfig resourceConfig = (ResourceConfig) configure();
-              this.server = GrizzlyHttpServerFactory.createHttpServer(baseUri, resourceConfig);
-            } catch (ProcessingException e) {
-              throw new TestContainerException(e);
+              _helixRestServer = new HelixRestServer(ZK_ADDR, baseUri.getPort(), baseUri.getPath(),
+                  Arrays.<AuditLogger>asList(_auditLogger));
+              _helixRestServer.start();
+            } catch (Exception ex) {
+              throw new TestContainerException(ex);
             }
           }
 
           @Override
           public void stop() {
-            this.server.shutdownNow();
+            _helixRestServer.shutdown();
           }
         };
       }

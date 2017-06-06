@@ -192,6 +192,10 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
     }
   }
 
+  public boolean isClosed() {
+    return (_connection == null || !_connection.getZookeeperState().isAlive());
+  }
+
   public Stat getStat(final String path) {
     long startT = System.nanoTime();
 
@@ -319,8 +323,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
       checkDataSizeLimit(data);
       retryUntilConnected(new Callable<Object>() {
 
-        @Override
-        public Object call() throws Exception {
+        @Override public Object call() throws Exception {
           _connection.writeData(path, data, expectedVersion);
           return null;
         }
@@ -417,7 +420,8 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
     retryUntilConnected(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
-        ((ZkConnection) _connection).getZookeeper().create(path, data, Ids.OPEN_ACL_UNSAFE, // Arrays.asList(DEFAULT_ACL),
+        ((ZkConnection) _connection).getZookeeper().create(path, data, Ids.OPEN_ACL_UNSAFE,
+            // Arrays.asList(DEFAULT_ACL),
             mode, cb, null);
         return null;
       }

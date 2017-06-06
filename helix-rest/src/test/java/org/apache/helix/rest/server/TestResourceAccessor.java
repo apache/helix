@@ -19,12 +19,12 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Set;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -34,8 +34,6 @@ import org.apache.helix.rest.server.resources.ResourceAccessor;
 import org.codehaus.jackson.JsonNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.ImmutableMap;
 
 public class TestResourceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";

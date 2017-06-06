@@ -19,6 +19,7 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import java.util.Arrays;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -28,6 +29,8 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixException;
+import org.apache.helix.rest.server.auditlog.AuditLogger;
+import org.apache.helix.rest.server.auditlog.auditloggers.FileBasedAuditLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,7 +100,8 @@ public class HelixRestMain {
       zkAddr = String.valueOf(cmd.getOptionValue(ZKSERVERADDRESS));
     }
 
-    final HelixRestServer restServer = new HelixRestServer(zkAddr, port, URI_PREFIX);
+    final HelixRestServer restServer = new HelixRestServer(zkAddr, port, URI_PREFIX,
+        Arrays.<AuditLogger>asList(new FileBasedAuditLogger()));
 
     try {
       restServer.start();

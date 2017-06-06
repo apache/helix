@@ -20,8 +20,18 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.InstanceType;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.task.TaskDriver;
+import org.apache.helix.tools.ClusterSetup;
 
 public class ServerContext {
   private String _zkAddr;
@@ -33,12 +43,32 @@ public class ServerContext {
 
   public ZkClient getZkClient() {
     if (_zkClient == null) {
-      _zkClient =
-          new ZkClient(_zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
-              ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+      _zkClient = new ZkClient(_zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
+          ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
     }
 
     return _zkClient;
+  }
+
+  public HelixAdmin getHelixAdmin() {
+    return new ZKHelixAdmin(getZkClient());
+  }
+
+  public ClusterSetup getClusterSetup() {
+    return new ClusterSetup(getZkClient());
+  }
+
+  public TaskDriver getTaskDriver(String clusterName) {
+    return new TaskDriver(getZkClient(), clusterName);
+  }
+
+  public ConfigAccessor getConfigAccessor() {
+    return new ConfigAccessor(getZkClient());
+  }
+
+  public HelixDataAccessor getDataAccssor(String clusterName) {
+    ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(getZkClient());
+    return new ZKHelixDataAccessor(clusterName, InstanceType.ADMINISTRATOR, baseDataAccessor);
   }
 
   public void close() {

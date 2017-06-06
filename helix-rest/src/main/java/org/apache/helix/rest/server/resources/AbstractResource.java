@@ -23,25 +23,22 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.InstanceType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
+import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.log4j.Logger;
@@ -75,68 +72,63 @@ public class AbstractResource {
   }
 
   @Context
-  private Application _application;
+  protected Application _application;
 
-  private static ZkClient _zkClient;
-  private static HelixAdmin _helixAdmin;
-  private static Map<String, TaskDriver> _taskDriverMap = new HashMap<>();
-  private static ConfigAccessor _configAccessor;
-  private static ClusterSetup _clusterSetup;
+  @Context
+  protected HttpServletRequest _servletRequest;
+  protected AuditLog.Builder _auditLogBuilder;
 
-  protected ZkClient getZkClient() {
-    if (_zkClient == null) {
-      ServerContext serverContext = (ServerContext) _application.getProperties()
+  public ZkClient getZkClient() {
+    ServerContext serverContext = (ServerContext) _application.getProperties()
           .get(ContextPropertyKeys.SERVER_CONTEXT.name());
-      _zkClient = serverContext.getZkClient();
-    }
-    return _zkClient;
+    return serverContext.getZkClient();
   }
 
-  protected HelixAdmin getHelixAdmin () {
-    ZkClient zkClient = getZkClient();
-    if (_helixAdmin == null) {
-      _helixAdmin = new ZKHelixAdmin(zkClient);
-    }
-    return _helixAdmin;
+  public HelixAdmin getHelixAdmin() {
+    ServerContext serverContext = (ServerContext) _application.getProperties()
+        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
+    return serverContext.getHelixAdmin();
   }
 
-  protected ClusterSetup getClusterSetup() {
-    ZkClient zkClient = getZkClient();
-    if (_clusterSetup == null) {
-      _clusterSetup = new ClusterSetup(zkClient);
-    }
-
-    return _clusterSetup;
+  public ClusterSetup getClusterSetup() {
+    ServerContext serverContext = (ServerContext) _application.getProperties()
+        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
+    return serverContext.getClusterSetup();
   }
 
-  protected TaskDriver getTaskDriver(String clusterName) {
-    ZkClient zkClient = getZkClient();
-    if (!_taskDriverMap.containsKey(clusterName)) {
-      _taskDriverMap.put(clusterName, new TaskDriver(zkClient, clusterName));
-    }
-    return _taskDriverMap.get(clusterName);
+  public TaskDriver getTaskDriver(String clusterName) {
+    ServerContext serverContext = (ServerContext) _application.getProperties()
+        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
+    return serverContext.getTaskDriver(clusterName);
   }
 
-  protected ConfigAccessor getConfigAccessor () {
-    ZkClient zkClient = getZkClient();
-    if (_configAccessor == null) {
-      _configAccessor = new ConfigAccessor(zkClient);
-    }
-    return _configAccessor;
+  public ConfigAccessor getConfigAccessor() {
+    ServerContext serverContext = (ServerContext) _application.getProperties()
+        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
+    return serverContext.getConfigAccessor();
   }
 
-  protected HelixDataAccessor getDataAccssor(String clusterName) {
-    ZkClient zkClient = getZkClient();
-    ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
-    return new ZKHelixDataAccessor(clusterName, InstanceType.ADMINISTRATOR, baseDataAccessor);
+  public HelixDataAccessor getDataAccssor(String clusterName) {
+    ServerContext serverContext = (ServerContext) _application.getProperties()
+        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
+    return serverContext.getDataAccssor(clusterName);
+  }
+
+  protected void addExceptionToAuditLog(Exception ex) {
+    if (_auditLogBuilder == null) {
+      _auditLogBuilder =
+          (AuditLog.Builder) _servletRequest.getAttribute(AuditLog.ATTRIBUTE_NAME);
+    }
+    _auditLogBuilder.addException(ex);
   }
 
   protected Response serverError() {
     return Response.serverError().build();
   }
 
-  protected Response serverError(String errorMsg) {
-    return Response.serverError().entity(errorMsgToJson(errorMsg)).build();
+  protected Response serverError(Exception ex) {
+    addExceptionToAuditLog(ex);
+    return Response.serverError().entity(errorMsgToJson(ex.getMessage())).build();
   }
 
   protected Response notFound() {

@@ -151,9 +151,9 @@ public class InstanceAccessor extends AbstractResource {
 
     try {
       admin.addInstance(clusterId, new InstanceConfig(record));
-    } catch (Exception e) {
-      _logger.error("Error in adding an instance: " + instanceName, e);
-      return serverError(e.getMessage());
+    } catch (Exception ex) {
+      _logger.error("Error in adding an instance: " + instanceName, ex);
+      return serverError(ex);
     }
 
     return OK();
@@ -296,8 +296,8 @@ public class InstanceAccessor extends AbstractResource {
 
     // Only get resource list from current session id
     String currentSessionId = sessionIds.get(0);
-    CurrentState resourceCurrentState = accessor.getProperty(
-        accessor.keyBuilder().currentState(instanceName, currentSessionId, resourceName));
+    CurrentState resourceCurrentState = accessor
+        .getProperty(accessor.keyBuilder().currentState(instanceName, currentSessionId, resourceName));
     if (resourceCurrentState != null) {
       return JSONRepresentation(resourceCurrentState.getRecord());
     }

@@ -30,11 +30,8 @@ import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
@@ -151,7 +148,7 @@ public class ResourceAccessor extends AbstractResource {
       }
     } catch (Exception e) {
       _logger.error("Error in adding a resource: " + resourceName, e);
-      return serverError(e.getMessage());
+      return serverError(e);
     }
 
     return OK();
@@ -246,7 +243,7 @@ public class ResourceAccessor extends AbstractResource {
       _logger.error(
           "Failed to update cluster config, cluster " + clusterId + " new config: " + content
               + ", Exception: " + ex);
-      return serverError(ex.getMessage());
+      return serverError(ex);
     }
     return OK();
   }

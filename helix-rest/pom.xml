@@ -47,6 +47,11 @@ under the License.
       <artifactId>helix-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.helix</groupId>
+      <artifactId>helix-front</artifactId>
+      <version>0.6.8-SNAPSHOT</version>
+    </dependency>
+    <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-server</artifactId>
       <version>9.1.0.RC0</version>

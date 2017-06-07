@@ -110,11 +110,12 @@ under the License.
         <role>Committer</role>
       </roles>
       <timezone>-8</timezone>
-    </developer>                                     
+    </developer>
   </developers>
   <modules>
     <module>helix-core</module>
     <module>helix-admin-webapp</module>
+    <module>helix-front</module>
     <module>helix-rest</module>
     <module>helix-agent</module>
     <module>recipes</module>

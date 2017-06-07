@@ -7,7 +7,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build --base-href . --env=prod",
+    "build": "ng build --base-href /admin/v2/ui/ --env=prod",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e"

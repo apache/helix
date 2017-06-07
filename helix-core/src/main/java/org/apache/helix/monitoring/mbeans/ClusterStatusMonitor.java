@@ -266,30 +266,42 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   /**
-   * Update message count per instance
+   * Update message count per instance and per resource
    * @param messages a list of messages
    */
-  public void increaseMessagePerInstance(List<Message> messages) {
-    Map<String, Long> messageCount = new HashMap<String, Long>();
+  public void increaseMessageReceived(List<Message> messages) {
+    Map<String, Long> messageCountPerInstance = new HashMap<String, Long>();
+    Map<String, Long> messageCountPerResource = new HashMap<String, Long>();
 
     // Aggregate messages
     for (Message message : messages) {
       String instanceName = message.getAttribute(Message.Attributes.TGT_NAME);
+      String resourceName = message.getAttribute(Message.Attributes.RESOURCE_NAME);
 
-      // Ignore the messages do not have target name
-      if (instanceName == null) {
-        continue;
+      if (instanceName != null) {
+        if (!messageCountPerInstance.containsKey(instanceName)) {
+          messageCountPerInstance.put(instanceName, 0L);
+        }
+        messageCountPerInstance.put(instanceName, messageCountPerInstance.get(instanceName) + 1L);
       }
-      if (!messageCount.containsKey(instanceName)) {
-        messageCount.put(instanceName, 0L);
+
+      if (resourceName != null) {
+        if (!messageCountPerResource.containsKey(resourceName)) {
+          messageCountPerResource.put(resourceName, 0L);
+        }
+        messageCountPerResource.put(resourceName, messageCountPerResource.get(resourceName) + 1L);
       }
-      messageCount.put(instanceName, messageCount.get(instanceName) + 1L);
     }
 
-    // Update message count per instance
-    for (String instance : messageCount.keySet()) {
+    // Update message count per instance and per resource
+    for (String instance : messageCountPerInstance.keySet()) {
       if (_instanceMbeanMap.containsKey(instance)) {
-        _instanceMbeanMap.get(instance).updateMessageCount(messageCount.get(instance));
+        _instanceMbeanMap.get(instance).increaseMessageCount(messageCountPerInstance.get(instance));
+      }
+    }
+    for (String resource : messageCountPerResource.keySet()) {
+      if (_resourceMbeanMap.containsKey(resource)) {
+        _resourceMbeanMap.get(resource).increaseMessageCount(messageCountPerResource.get(resource));
       }
     }
   }

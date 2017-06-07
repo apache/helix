@@ -142,10 +142,10 @@ public class InstanceMonitor implements InstanceMonitorMBean {
   }
 
   /**
-   * Update message received for this instance
+   * Increase message received for this instance
    * @param messageReceived received message numbers
    */
-  public synchronized void updateMessageCount(long messageReceived) {
+  public synchronized void increaseMessageCount(long messageReceived) {
     _totalMessageReceived += messageReceived;
   }
 

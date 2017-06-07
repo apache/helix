@@ -57,6 +57,8 @@ public class ResourceMonitor implements ResourceMonitorMBean {
   private String _resourceName;
   private String _clusterName;
 
+  private long _totalMessageReceived;
+
   public enum MonitorState {
     TOP_STATE
   }
@@ -68,6 +70,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
     _successTopStateHandoffCounter = 0L;
     _failedTopStateHandoffCounter = 0L;
     _lastResetTime = System.currentTimeMillis();
+    _totalMessageReceived = 0L;
   }
 
   @Override
@@ -108,6 +111,15 @@ public class ResourceMonitor implements ResourceMonitorMBean {
   @Override
   public long getFailedTopStateHandoffCounter() {
     return _failedTopStateHandoffCounter;
+  }
+
+  @Override
+  public long getTotalMessageReceived() {
+    return _totalMessageReceived;
+  }
+
+  public synchronized void increaseMessageCount(long messageReceived) {
+    _totalMessageReceived += messageReceived;
   }
 
   @Override

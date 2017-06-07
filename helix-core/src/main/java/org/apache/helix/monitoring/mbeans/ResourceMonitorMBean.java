@@ -66,4 +66,9 @@ public interface ResourceMonitorMBean extends SensorNameProvider {
    * Get maximum single partition successful handoff
    */
   public long getMaxSinglePartitionTopStateHandoffDurationGauge();
+
+  /**
+   * Get total message received for this resource
+   * */
+  public long getTotalMessageReceived();
 }

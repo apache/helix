@@ -127,7 +127,8 @@ under the License.
         </includes>
       </resource>
       <resource>
-        <directory>src/main/webapp</directory>
+        <targetPath>ui</targetPath>
+        <directory>../helix-front/dist</directory>
       </resource>
     </resources>
     <plugins>

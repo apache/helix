@@ -152,6 +152,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       return;
     }
 
+    int inCompleteAllJobCount = getInCompleteJobCount(workflowCfg, workflowCtx);
     int scheduledJobs = 0;
     long timeToSchedule = Long.MAX_VALUE;
     for (String job : workflowCfg.getJobDag().getAllNodes()) {
@@ -168,7 +169,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       }
 
       // check ancestor job status
-      if (isJobReadyToSchedule(job, workflowCfg, workflowCtx)) {
+      if (isJobReadyToSchedule(job, workflowCfg, workflowCtx, inCompleteAllJobCount)) {
         JobConfig jobConfig = TaskUtil.getJobConfig(_manager, job);
 
         // Since the start time is calculated base on the time of completion of parent jobs for this

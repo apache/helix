@@ -117,7 +117,7 @@ public class JobRebalancer extends TaskRebalancer {
     }
 
     if (!isJobStarted(jobName, workflowCtx) && !isJobReadyToSchedule(jobName, workflowCfg,
-        workflowCtx)) {
+        workflowCtx, getInCompleteJobCount(workflowCfg, workflowCtx))) {
       LOG.info("Job is not ready to run " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }

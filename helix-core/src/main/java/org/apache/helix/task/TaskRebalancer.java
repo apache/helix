@@ -143,7 +143,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
    * @return
    */
   protected boolean isJobReadyToSchedule(String job, WorkflowConfig workflowCfg,
-      WorkflowContext workflowCtx) {
+      WorkflowContext workflowCtx, int incompleteAllCount) {
     int notStartedCount = 0;
     int failedOrTimeoutCount = 0;
     int incompleteParentCount = 0;
@@ -178,7 +178,6 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
 
     if (workflowCfg.isJobQueue()) {
       // If job comes from a JobQueue, it should apply the parallel job logics
-      int incompleteAllCount = getInCompleteJobCount(workflowCfg, workflowCtx);
       if (incompleteAllCount >= workflowCfg.getParallelJobs()) {
         LOG.debug(String.format("Job %s is not ready to schedule, inCompleteJobs(s)=%d.", job,
             incompleteAllCount));

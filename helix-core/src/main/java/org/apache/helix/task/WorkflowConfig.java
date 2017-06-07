@@ -79,6 +79,7 @@ public class  WorkflowConfig extends ResourceConfig {
   public static final boolean DEFAULT_MONITOR_DISABLE = true;
   public static final boolean DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT = false;
   protected static final long DEFAULT_JOB_PURGE_INTERVAL = 30 * 60 * 1000; //default 30 minutes
+  private JobDag _jobDag;
 
 
   public WorkflowConfig(HelixProperty property) {
@@ -151,8 +152,11 @@ public class  WorkflowConfig extends ResourceConfig {
   }
 
   public JobDag getJobDag() {
-    return simpleConfigContains(WorkflowConfigProperty.Dag.name()) ? JobDag
-        .fromJson(getSimpleConfig(WorkflowConfigProperty.Dag.name())) : DEFAULT_JOB_DAG;
+    if (_jobDag == null) {
+      _jobDag = simpleConfigContains(WorkflowConfigProperty.Dag.name()) ? JobDag
+          .fromJson(getSimpleConfig(WorkflowConfigProperty.Dag.name())) : DEFAULT_JOB_DAG;
+    }
+    return _jobDag;
   }
 
   protected void setJobDag(JobDag jobDag) {

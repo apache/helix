@@ -5,5 +5,9 @@
 
 export const environment = {
   production: false,
-  helixAPI: 'http://vxu-ld1.linkedin.biz:8100/admin/v2'
+  helixAPI: 'http://localhost:8100/admin/v2',
+  piwik: {
+    url: '//vxu-ld1.linkedin.biz/piwik/',
+    id: '3'
+  }
 };

@@ -5,6 +5,8 @@ import { HttpModule } from '@angular/http';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { MaterialModule } from '@angular/material';
 
+import { Angulartics2Module, Angulartics2Piwik } from 'angulartics2';
+
 import { AppRoutingModule } from './app-routing.module';
 import { CoreModule } from './core/core.module';
 import { SharedModule } from './shared/shared.module';
@@ -25,6 +27,7 @@ import { AppComponent } from './app.component';
     FormsModule,
     HttpModule,
     AppRoutingModule,
+    Angulartics2Module.forRoot([ Angulartics2Piwik ]),
     CoreModule,
     SharedModule,
     FlexLayoutModule,

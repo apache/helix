@@ -4,6 +4,8 @@ import { MaterialModule } from '@angular/material';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { RouterTestingModule } from '@angular/router/testing';
 
+import { Angulartics2, Angulartics2Piwik } from 'angulartics2';
+
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
@@ -20,6 +22,11 @@ describe('AppComponent', () => {
       schemas: [
         /* avoid importing modules */
         NO_ERRORS_SCHEMA
+      ],
+      // TODO vxu: I don't want to add the following two but ...
+      providers: [
+        Angulartics2,
+        Angulartics2Piwik
       ]
     }).compileComponents();
   }));

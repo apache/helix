@@ -3,6 +3,8 @@ import { ActivatedRoute } from '@angular/router';
 import { MdDialog } from '@angular/material';
 import { MediaChange, ObservableMedia } from '@angular/flex-layout';
 
+import { Angulartics2Piwik } from 'angulartics2';
+
 import { environment } from '../environments/environment';
 import { InputDialogComponent } from './shared/dialog/input-dialog/input-dialog.component';
 
@@ -20,11 +22,11 @@ export class AppComponent implements OnInit {
   constructor(
     public dialog: MdDialog,
     protected media: ObservableMedia,
-    protected route: ActivatedRoute
+    protected route: ActivatedRoute,
+    protected angulartics: Angulartics2Piwik
   ) {}
 
   ngOnInit() {
-
     this.route.queryParams.subscribe(params => {
       if (params['embed'] == 'true') {
         this.headerEnabled = this.footerEnabled = false;

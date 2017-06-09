@@ -63,22 +63,15 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   private ZkClientMonitor _monitor;
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
+      PathBasedZkSerializer zkSerializer, String monitorTag, long operationRetryTimeout) {
+    super(connection, connectionTimeout, new ByteArraySerializer(), operationRetryTimeout);
+    init(zkSerializer, monitorTag);
+  }
+
+  public ZkClient(IZkConnection connection, int connectionTimeout,
       PathBasedZkSerializer zkSerializer, String monitorTag) {
     super(connection, connectionTimeout, new ByteArraySerializer());
-    _zkSerializer = zkSerializer;
-    if (LOG.isTraceEnabled()) {
-      StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-      LOG.trace("created a zkclient. callstack: " + Arrays.asList(calls));
-    }
-    try {
-      if (monitorTag == null) {
-        _monitor = new ZkClientMonitor();
-      } else {
-        _monitor = new ZkClientMonitor(monitorTag);
-      }
-    } catch (JMException e) {
-      LOG.error("Error in creating ZkClientMonitor", e);
-    }
+    init(zkSerializer, monitorTag);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
@@ -129,6 +122,23 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   public ZkClient(String zkServers, String monitorTag) {
     this(new ZkConnection(zkServers), Integer.MAX_VALUE,
         new BasicZkSerializer(new SerializableSerializer()), monitorTag);
+  }
+
+  protected void init(PathBasedZkSerializer zkSerializer, String monitorTag) {
+    _zkSerializer = zkSerializer;
+    if (LOG.isTraceEnabled()) {
+      StackTraceElement[] calls = Thread.currentThread().getStackTrace();
+      LOG.trace("created a zkclient. callstack: " + Arrays.asList(calls));
+    }
+    try {
+      if (monitorTag == null) {
+        _monitor = new ZkClientMonitor();
+      } else {
+        _monitor = new ZkClientMonitor(monitorTag);
+      }
+    } catch (JMException e) {
+      LOG.error("Error in creating ZkClientMonitor", e);
+    }
   }
 
   @Override

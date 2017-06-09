@@ -8,6 +8,7 @@ import { InputDialogComponent } from './dialog/input-dialog/input-dialog.compone
 import { DetailHeaderComponent } from './detail-header/detail-header.component';
 import { KeyValuePairDirective, KeyValuePairsComponent } from './key-value-pairs/key-value-pairs.component';
 import { JsonViewerComponent } from './json-viewer/json-viewer.component';
+import { AlertDialogComponent } from './dialog/alert-dialog/alert-dialog.component';
 
 @NgModule({
   imports: [
@@ -18,13 +19,15 @@ import { JsonViewerComponent } from './json-viewer/json-viewer.component';
   ],
   declarations: [
     InputDialogComponent,
+    AlertDialogComponent,
     DetailHeaderComponent,
     KeyValuePairDirective,
     KeyValuePairsComponent,
     JsonViewerComponent
   ],
   entryComponents: [
-    InputDialogComponent
+    InputDialogComponent,
+    AlertDialogComponent
   ],
   exports: [
     DetailHeaderComponent,

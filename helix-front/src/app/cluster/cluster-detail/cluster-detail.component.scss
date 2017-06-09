@@ -1,13 +1,13 @@
 #loading {
   .overlay, md-spinner {
     position: fixed;
-    left: 0px;
-    right: 0px;
+    left: 0;
+    right: 0;
   }
 
   .overlay {
-    bottom: 0px;
-    top: 0px;
+    bottom: 0;
+    top: 0;
     background-color: #262626;
     opacity: 0.3;
     transition: all linear 300ms;

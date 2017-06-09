@@ -1,10 +1,10 @@
 <section class="cluster-list">
-  <section *ngIf="isLoading && !errorMessage" fxLayout="row" fxLayoutAlign="center center">
+  <section *ngIf="isLoading" fxLayout="row" fxLayoutAlign="center center">
     <md-spinner>
       Loading all clusters ...
     </md-spinner>
   </section>
-  <md-nav-list *ngIf="!isLoading">
+  <md-nav-list *ngIf="!isLoading && !errorMessage">
     <h3 md-subheader>Clusters</h3>
     <a *ngFor="let cluster of clusters"
       md-list-item
@@ -14,7 +14,7 @@
       <h4 md-line>{{ cluster.name }}</h4>
     </a>
   </md-nav-list>
-  <section *ngIf="errorMessage">
+  <section class="error-message" *ngIf="errorMessage">
     {{ errorMessage }}
   </section>
 </section>

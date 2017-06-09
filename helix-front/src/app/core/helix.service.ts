@@ -26,8 +26,8 @@ export class HelixService {
   }
 
   protected errorHandler(error: any) {
-    let message = error.message || 'The furthest distance in the world\nIs not between life and death\nBut when the page shows in front of you\nYet you don\'t know that it can\'t talk to the backend\n -Vivo';
-    console.error(message);
+    let message = error.message || 'Cannot reach Helix restful service.';
+    console.error(error);
     return Observable.throw(message);
   }
 }

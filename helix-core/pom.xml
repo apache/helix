@@ -43,7 +43,7 @@ under the License.
       org.apache.zookeeper.server.persistence*;resolution:=optional,
       org.apache.zookeeper.server.util*;resolution:=optional,
       org.apache.zookeeper.txn*;resolution:=optional,
-      org.apache.zookeeper*;version="[3.3,4)",
+      org.apache.zookeeper*;version="[3.4,4)",
       org.codehaus.jackson*;version="[1.8,2)",
       *
     </osgi.import>
@@ -80,7 +80,7 @@ under the License.
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
-      <version>3.3.4</version>
+      <version>3.4.9</version>
       <exclusions>
         <exclusion>
           <groupId>junit</groupId>

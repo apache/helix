@@ -58,11 +58,13 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   public ZkClient(IZkConnection connection, int connectionTimeout,
       PathBasedZkSerializer zkSerializer) {
     super(connection, connectionTimeout, new ByteArraySerializer());
-    _zkSerializer = zkSerializer;
-    if (LOG.isTraceEnabled()) {
-      StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-      LOG.trace("created a zkclient. callstack: " + Arrays.asList(calls));
-    }
+    init(zkSerializer);
+  }
+
+  public ZkClient(IZkConnection connection, int connectionTimeout,
+      PathBasedZkSerializer zkSerializer, long operationRetryTimeout) {
+    super(connection, connectionTimeout, new ByteArraySerializer(), operationRetryTimeout);
+    init(zkSerializer);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout, ZkSerializer zkSerializer) {
@@ -98,6 +100,14 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
 
   public ZkClient(String zkServers) {
     this(new ZkConnection(zkServers), Integer.MAX_VALUE, new SerializableSerializer());
+  }
+
+  protected void init(PathBasedZkSerializer zkSerializer) {
+    _zkSerializer = zkSerializer;
+    if (LOG.isTraceEnabled()) {
+      StackTraceElement[] calls = Thread.currentThread().getStackTrace();
+      LOG.trace("created a zkclient. callstack: " + Arrays.asList(calls));
+    }
   }
 
   @Override

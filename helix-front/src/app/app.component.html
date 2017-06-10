@@ -8,6 +8,7 @@
     <h2>Helix</h2>
     <a md-button *ngIf="false" (click)="openDialog()">Test</a>
   </md-toolbar>
+  <md-progress-bar [mode]="isLoading ? 'indeterminate' : 'determinate'" [value]="100"></md-progress-bar>
   <md-sidenav-container fxFlex>
     <md-sidenav
       #sidenav

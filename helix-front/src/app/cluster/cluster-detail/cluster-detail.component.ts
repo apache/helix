@@ -1,12 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import {
-  Router,
-  ActivatedRoute,
-  NavigationStart,
-  NavigationEnd,
-  NavigationCancel,
-  NavigationError
-} from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 
 import { Cluster } from '../shared/cluster.model';
 
@@ -24,27 +17,8 @@ export class ClusterDetailComponent implements OnInit {
   ];
 
   cluster: Cluster;
-  errorMessage: string;
-  isLoading: boolean;
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router
-  ) {
-    router.events.subscribe(event => {
-      if (event instanceof NavigationStart) {
-        this.isLoading = true;
-      }
-      if (event instanceof NavigationEnd) {
-        this.isLoading = false;
-      }
-      if (event instanceof NavigationError) {
-        this.isLoading = false;
-      }
-      if (event instanceof NavigationCancel) {
-        this.isLoading = false;
-      }
-    });
+  constructor(private route: ActivatedRoute) {
   }
 
   ngOnInit() {

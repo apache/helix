@@ -1,10 +1,4 @@
 <section class="cluster-detail">
-  <section *ngIf="isLoading && !errorMessage" id="loading">
-    <section class="overlay"></section>
-    <md-spinner>
-      Loading cluster detail information ...
-    </md-spinner>
-  </section>
   <section *ngIf="cluster">
     <md-toolbar class="mat-elevation-z1">
       <hi-detail-header [cluster]="cluster.name"></hi-detail-header>
@@ -36,8 +30,5 @@
       </a>
     </nav>
     <router-outlet></router-outlet>
-  </section>
-  <section *ngIf="errorMessage">
-    {{ errorMessage }}
   </section>
 </section>

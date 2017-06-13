@@ -33,6 +33,7 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
+import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
@@ -41,6 +42,7 @@ import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.log4j.Logger;
 
 @Provider
+@PreMatching
 public class AuditLogFilter implements ContainerRequestFilter, ContainerResponseFilter {
   private static Logger _logger = Logger.getLogger(AuditLogFilter.class.getName());
 
@@ -73,16 +75,23 @@ public class AuditLogFilter implements ContainerRequestFilter, ContainerResponse
   @Override
   public void filter(ContainerRequestContext request, ContainerResponseContext response)
       throws IOException {
-    AuditLog.Builder auditLogBuilder =
-        (AuditLog.Builder) request.getProperty(AuditLog.ATTRIBUTE_NAME);
-    auditLogBuilder.completeTime(new Date()).responseCode(response.getStatus())
-        .responseEntity((String) response.getEntity());
-
-    AuditLog auditLog = auditLogBuilder.build();
-    if (_auditLoggers != null) {
-      for (AuditLogger logger : _auditLoggers) {
-        logger.write(auditLog);
+    AuditLog.Builder auditLogBuilder;
+    try {
+      auditLogBuilder = (AuditLog.Builder) request.getProperty(AuditLog.ATTRIBUTE_NAME);
+      auditLogBuilder.completeTime(new Date()).responseCode(response.getStatus());
+      Object entity = response.getEntity();
+      if(entity != null && entity instanceof String) {
+        auditLogBuilder.responseEntity((String) response.getEntity());
       }
+
+      AuditLog auditLog = auditLogBuilder.build();
+      if (_auditLoggers != null) {
+        for (AuditLogger logger : _auditLoggers) {
+          logger.write(auditLog);
+        }
+      }
+    } catch (Exception ex) {
+      _logger.error("Failed to add audit log " + ex);
     }
   }
 

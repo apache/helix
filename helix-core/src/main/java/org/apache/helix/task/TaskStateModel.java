@@ -39,6 +39,8 @@ public class TaskStateModel extends StateModel {
   private final Map<String, TaskFactory> _taskFactoryRegistry;
   private ScheduledFuture timeout_task;
   private TaskRunner _taskRunner;
+  private final ScheduledExecutorService _timeoutTaskExecutor =
+      Executors.newSingleThreadScheduledExecutor();
 
   public TaskStateModel(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
       ScheduledExecutorService taskExecutor) {
@@ -318,7 +320,7 @@ public class TaskStateModel extends StateModel {
 
     // Set up a timer to cancel the task when its time out expires.
 
-    timeout_task = _taskExecutor.schedule(new TimerTask() {
+    timeout_task = _timeoutTaskExecutor.schedule(new TimerTask() {
       @Override
       public void run() {
         if (_taskRunner != null) {

@@ -26,7 +26,7 @@ import javax.management.JMException;
 import javax.management.ObjectName;
 
 public class ZkClientMonitor implements ZkClientMonitorMBean {
-  public static final String DOMAIN = "ZkClient";
+  public static final String DOMAIN = "HelixZkClient";
   public static final String TAG = "Tag";
   public static final String DEFAULT_TAG = "default";
 

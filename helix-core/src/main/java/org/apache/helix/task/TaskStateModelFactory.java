@@ -60,8 +60,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     _taskExecutor = taskExecutor;
     if (_taskExecutor instanceof ThreadPoolExecutor) {
       try {
-        _monitor = new ThreadPoolExecutorMonitor(TaskStateModelFactory.class.getSimpleName(),
-            TaskConstants.STATE_MODEL_NAME, (ThreadPoolExecutor) _taskExecutor);
+        _monitor = new ThreadPoolExecutorMonitor(TaskConstants.STATE_MODEL_NAME,
+            (ThreadPoolExecutor) _taskExecutor);
       } catch (JMException e) {
         LOG.warn("Error in creating ThreadPoolExecutorMonitor for TaskStateModelFactory.");
       }

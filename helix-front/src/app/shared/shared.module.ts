@@ -9,6 +9,7 @@ import { DetailHeaderComponent } from './detail-header/detail-header.component';
 import { KeyValuePairDirective, KeyValuePairsComponent } from './key-value-pairs/key-value-pairs.component';
 import { JsonViewerComponent } from './json-viewer/json-viewer.component';
 import { AlertDialogComponent } from './dialog/alert-dialog/alert-dialog.component';
+import { StateLabelComponent } from './state-label/state-label.component';
 
 @NgModule({
   imports: [
@@ -23,7 +24,8 @@ import { AlertDialogComponent } from './dialog/alert-dialog/alert-dialog.compone
     DetailHeaderComponent,
     KeyValuePairDirective,
     KeyValuePairsComponent,
-    JsonViewerComponent
+    JsonViewerComponent,
+    StateLabelComponent
   ],
   entryComponents: [
     InputDialogComponent,
@@ -33,7 +35,8 @@ import { AlertDialogComponent } from './dialog/alert-dialog/alert-dialog.compone
     DetailHeaderComponent,
     KeyValuePairDirective,
     KeyValuePairsComponent,
-    JsonViewerComponent
+    JsonViewerComponent,
+    StateLabelComponent
   ]
 })
 export class SharedModule { }

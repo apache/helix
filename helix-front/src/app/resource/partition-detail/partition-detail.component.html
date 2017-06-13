@@ -30,14 +30,18 @@
     name="External View"
     [width]="120"
     [resizeable]="false"
-    [canAutoResize]="false"
-    [cellClass]="getStateClass">
+    [canAutoResize]="false">
+    <ng-template let-row="row" ngx-datatable-cell-template>
+      <hi-state-label [state]="row.externalView" [isReady]="row.externalView && row.externalView == row.idealState"></hi-state-label>
+    </ng-template>
   </ngx-datatable-column>
   <ngx-datatable-column
     name="Ideal State"
     [width]="120"
     [resizeable]="false"
-    [canAutoResize]="false"
-    [cellClass]="getStateClass">
+    [canAutoResize]="false">
+    <ng-template let-row="row" ngx-datatable-cell-template>
+      <hi-state-label [state]="row.idealState" [isReady]="row.externalView && row.externalView == row.idealState"></hi-state-label>
+    </ng-template>
   </ngx-datatable-column>
 </ngx-datatable>

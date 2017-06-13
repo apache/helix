@@ -42,12 +42,7 @@
       [canAutoResize]="false">
       <ng-template let-value="value" ngx-datatable-cell-template>
         <section [mdTooltip]="value.instanceName">
-          <section *ngIf="value.externalView && value.externalView == value.idealState">
-            <div>{{ value.externalView }}</div>
-          </section>
-          <section *ngIf="!value.externalView || value.externalView != value.idealState">
-            <div class="status-not-ready">{{ value.externalView }}</div>
-          </section>
+          <hi-state-label [state]="value.externalView" [isReady]="value.externalView && value.externalView == value.idealState"></hi-state-label>
         </section>
       </ng-template>
     </ngx-datatable-column>

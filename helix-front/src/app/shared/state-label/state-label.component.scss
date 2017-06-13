@@ -1,0 +1,16 @@
+@import '~@angular/material/theming';
+
+.state-label-ready,
+.state-label-not-ready {
+  font-size: 12px;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.state-label-ready {
+  border: 1px solid mat-color(mat-palette($mat-green), darker);
+}
+
+.state-label-not-ready {
+  border: 1px solid mat-color(mat-palette($mat-orange), darker);
+}

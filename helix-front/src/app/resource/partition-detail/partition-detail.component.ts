@@ -20,10 +20,4 @@ export class PartitionDetailComponent implements OnInit {
   ngOnInit() {
   }
 
-  getStateClass({ row }) {
-    return {
-      'status-not-ready': !row.externalView || row.externalView != row.idealState
-    };
-  }
-
 }

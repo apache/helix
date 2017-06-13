@@ -2,6 +2,12 @@
   z-index: 7;
 }
 
+.mat-progress-bar {
+  position: fixed;
+  top: 64px;
+  z-index: 5;
+}
+
 md-sidenav {
   width: 25vw;
   min-width: 200px;

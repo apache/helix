@@ -133,8 +133,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   }
 
   public GenericHelixController(String clusterName) {
-    this(createDefaultRegistry());
-    _clusterName = clusterName;
+    this(createDefaultRegistry(), clusterName);
   }
 
   class RebalanceTask extends TimerTask {
@@ -246,11 +245,16 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   }
 
   public GenericHelixController(PipelineRegistry registry) {
+    this(registry, null);
+  }
+
+  private GenericHelixController(PipelineRegistry registry, String clusterName) {
     _paused = false;
     _registry = registry;
     _lastSeenInstances = new AtomicReference<>();
     _lastSeenSessions = new AtomicReference<>();
-    _cache = new ClusterDataCache(_clusterName);
+    _clusterName = clusterName;
+    _cache = new ClusterDataCache(clusterName);
     _eventQueue = new ClusterEventBlockingQueue();
     _eventThread = new ClusterEventProcessor();
     _eventThread.setDaemon(true);

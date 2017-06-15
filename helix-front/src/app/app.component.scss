@@ -6,6 +6,10 @@
   position: fixed;
   top: 64px;
   z-index: 5;
+
+  &.no-header {
+    top: 0;
+  }
 }
 
 md-sidenav {

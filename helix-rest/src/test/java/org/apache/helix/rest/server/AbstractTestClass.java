@@ -33,13 +33,17 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Response;
+
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
@@ -48,6 +52,13 @@ import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.filters.AuditLogFilter;
 import org.apache.helix.rest.server.resources.AbstractResource;
+import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobContext;
+import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.TaskPartitionState;
+import org.apache.helix.task.TaskState;
+import org.apache.helix.task.Workflow;
+import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -64,6 +75,8 @@ import org.testng.annotations.BeforeSuite;
 
 public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static final String ZK_ADDR = "localhost:2123";
+  protected static final String WORKFLOW_PREFIX = "Workflow_";
+  protected static final String JOB_PREFIX = "Job_";
   protected static int NUM_PARTITIONS = 10;
   protected static int NUM_REPLICA = 3;
   protected static ZkServer _zkServer;
@@ -79,6 +92,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static Map<String, Set<String>> _instancesMap = new HashMap<>();
   protected static Map<String, Set<String>> _liveInstancesMap = new HashMap<>();
   protected static Map<String, Set<String>> _resourcesMap = new HashMap<>();
+  protected static Map<String, Map<String, Workflow>> _workflowMap = new HashMap<>();
 
   protected MockAuditLogger _auditLogger = new MockAuditLogger();
 
@@ -196,6 +210,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       Set<String> instances = createInstances(cluster, 10);
       Set<String> liveInstances = startInstances(cluster, instances, 6);
       createResourceConfigs(cluster, 8);
+      _workflowMap.put(cluster, createWorkflows(cluster, 3));
       Set<String> resources = createResources(cluster, 8);
       _instancesMap.put(cluster, instances);
       _liveInstancesMap.put(cluster, liveInstances);
@@ -271,6 +286,45 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     }
 
     return clusters;
+  }
+
+  protected Map<String, Workflow> createWorkflows(String cluster, int numWorkflows) {
+    Map<String, Workflow> workflows = new HashMap<>();
+    for (int i = 0; i < numWorkflows; i++) {
+      Workflow.Builder workflow = new Workflow.Builder(WORKFLOW_PREFIX + i);
+      int j = 0;
+      for (JobConfig.Builder job : createJobs(cluster, WORKFLOW_PREFIX + i, 3)) {
+        workflow.addJob(JOB_PREFIX + j++, job);
+      }
+      workflows.put(WORKFLOW_PREFIX + i, workflow.build());
+      WorkflowContext workflowContext = TaskTestUtil
+          .buildWorkflowContext(WORKFLOW_PREFIX + i, TaskState.IN_PROGRESS,
+              System.currentTimeMillis(), TaskState.COMPLETED, TaskState.COMPLETED,
+              TaskState.IN_PROGRESS);
+      _baseAccessor.set(String.format("/%s/%s%s/%s/%s", cluster, PropertyType.PROPERTYSTORE.name(),
+          TaskConstants.REBALANCER_CONTEXT_ROOT, WORKFLOW_PREFIX + i, TaskConstants.CONTEXT_NODE),
+          workflowContext.getRecord(), AccessOption.PERSISTENT);
+      _configAccessor.setResourceConfig(cluster, WORKFLOW_PREFIX + i, workflow.getWorkflowConfig());
+    }
+    return workflows;
+  }
+
+  protected Set<JobConfig.Builder> createJobs(String cluster, String workflowName, int numJobs) {
+    Set<JobConfig.Builder> jobCfgs = new HashSet<>();
+    for (int i = 0; i < numJobs; i++) {
+      JobConfig.Builder job =
+          new JobConfig.Builder().setCommand("DummyCommand").setTargetResource("RESOURCE")
+              .setWorkflow(workflowName);
+      jobCfgs.add(job);
+      JobContext jobContext = TaskTestUtil
+          .buildJobContext(System.currentTimeMillis(), System.currentTimeMillis() + 1,
+              TaskPartitionState.COMPLETED);
+      _baseAccessor.set(String.format("/%s/%s%s/%s/%s", cluster, PropertyType.PROPERTYSTORE.name(),
+          TaskConstants.REBALANCER_CONTEXT_ROOT, workflowName + "_" + JOB_PREFIX + i,
+          TaskConstants.CONTEXT_NODE), jobContext.getRecord(), AccessOption.PERSISTENT);
+      _configAccessor.setResourceConfig(cluster, workflowName + "_" + JOB_PREFIX + i, job.build());
+    }
+    return jobCfgs;
   }
 
   protected static ZNRecord toZNRecord(String data) throws IOException {

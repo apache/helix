@@ -12,6 +12,9 @@
   &.multi-selection,
   &.multi-click-selection {
     .datatable-body-row {
+      // use hand cursor for selectable rows
+      cursor: pointer;
+
       &.active,
       &.active .datatable-row-group {
         background-color: #0077B5 !important;

@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -58,6 +59,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import static org.apache.helix.HelixConstants.*;
+
 /**
  * Reads the data from the cluster using data accessor. This output ClusterData which
  * provides useful methods to search/lookup properties
@@ -67,32 +70,31 @@ public class ClusterDataCache {
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
   private static final String NAME = "NAME";
 
-  ClusterConfig _clusterConfig;
-  Map<String, LiveInstance> _liveInstanceMap;
-  Map<String, LiveInstance> _liveInstanceCacheMap;
-  Map<String, IdealState> _idealStateMap;
-  Map<String, IdealState> _idealStateCacheMap;
-  Map<String, StateModelDefinition> _stateModelDefMap;
-  Map<String, InstanceConfig> _instanceConfigMap;
-  Map<String, InstanceConfig> _instanceConfigCacheMap;
-  Map<String, Long> _instanceOfflineTimeMap;
-  Map<String, ResourceConfig> _resourceConfigMap;
-  Map<String, JobConfig> _jobConfigMap = new HashMap<>();
-  Map<String, WorkflowConfig> _workflowConfigMap = new HashMap<>();
-  Map<String, ResourceConfig> _resourceConfigCacheMap;
-  Map<String, ClusterConstraints> _constraintMap;
-  Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
-  Map<String, Map<String, Message>> _messageMap;
-  Map<String, Map<String, String>> _idealStateRuleMap;
-  Map<String, Map<String, Long>> _missingTopStateMap = new HashMap<>();
-  Map<String, ZNRecord> _contextMap = new HashMap<>();
+  private Map<ChangeType, Boolean> _propertyChangedMap;
+  private ClusterConfig _clusterConfig;
+  private Map<String, LiveInstance> _liveInstanceMap;
+  private Map<String, LiveInstance> _liveInstanceCacheMap;
+  private Map<String, IdealState> _idealStateMap;
+  private Map<String, IdealState> _idealStateCacheMap;
+  private Map<String, StateModelDefinition> _stateModelDefMap;
+  private Map<String, InstanceConfig> _instanceConfigMap;
+  private Map<String, InstanceConfig> _instanceConfigCacheMap;
+  private Map<String, Long> _instanceOfflineTimeMap;
+  private Map<String, ResourceConfig> _resourceConfigMap;
+  private Map<String, ResourceConfig> _resourceConfigCacheMap;
+  private Map<String, ClusterConstraints> _constraintMap;
+  private Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
+  private Map<String, Map<String, Message>> _messageMap;
+  private Map<String, Map<String, String>> _idealStateRuleMap;
+  private Map<String, Map<String, Long>> _missingTopStateMap = new HashMap<>();
+  private Map<String, JobConfig> _jobConfigMap = new HashMap<>();
+  private Map<String, WorkflowConfig> _workflowConfigMap = new HashMap<>();
+  private Map<String, ZNRecord> _contextMap = new HashMap<>();
 
   // maintain a cache of participant messages across pipeline runs
   Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
 
-  Map<String, Integer> _participantActiveTaskCount = new HashMap<String, Integer>();
-
-  boolean _init = true;
+  Map<String, Integer> _participantActiveTaskCount = new HashMap<>();
 
   boolean _updateInstanceOfflineTime = true;
 
@@ -101,9 +103,15 @@ public class ClusterDataCache {
   private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
 
 
-  public ClusterDataCache () {};
+  public ClusterDataCache () {
+    _propertyChangedMap = new ConcurrentHashMap<>();
+    for(ChangeType type : ChangeType.values()) {
+      _propertyChangedMap.put(type, Boolean.valueOf(true));
+    }
+  }
 
   public ClusterDataCache (String clusterName) {
+    this();
     _clusterName = clusterName;
   }
 
@@ -119,14 +127,29 @@ public class ClusterDataCache {
 
     Builder keyBuilder = accessor.keyBuilder();
 
-    if (_init) {
+    if (_propertyChangedMap.get(ChangeType.IDEAL_STATE)) {
+      _propertyChangedMap.put(ChangeType.IDEAL_STATE, Boolean.valueOf(false));
       _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
+    }
+
+    if (_propertyChangedMap.get(ChangeType.LIVE_INSTANCE)) {
+      _propertyChangedMap.put(ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
+      _updateInstanceOfflineTime = true;
+    }
+
+    if (_propertyChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
+      _propertyChangedMap.put(ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
     }
+
     _idealStateMap = Maps.newHashMap(_idealStateCacheMap);
     _liveInstanceMap = Maps.newHashMap(_liveInstanceCacheMap);
     _instanceConfigMap = Maps.newHashMap(_instanceConfigCacheMap);
+
+    if (_updateInstanceOfflineTime) {
+      updateOfflineInstanceHistory(accessor);
+    }
 
     // TODO: Need an optimize for reading context only if the refresh is needed.
     refreshContexts(accessor);
@@ -137,10 +160,6 @@ public class ClusterDataCache {
 
     _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
     _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
-
-    if (_init || _updateInstanceOfflineTime) {
-      updateOfflineInstanceHistory(accessor);
-    }
 
     if (LOG.isTraceEnabled()) {
       for (LiveInstance instance : _liveInstanceMap.values()) {
@@ -199,7 +218,7 @@ public class ClusterDataCache {
 
     List<PropertyKey> currentStateKeys = Lists.newLinkedList();
     Map<String, Map<String, Map<String, CurrentState>>> allCurStateMap =
-        new HashMap<String, Map<String, Map<String, CurrentState>>>();
+        new HashMap<>();
     for (String instanceName : _liveInstanceMap.keySet()) {
       LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
       String sessionId = liveInstance.getSessionId();
@@ -271,7 +290,6 @@ public class ClusterDataCache {
       LOG.debug("Paths read: " + numPaths);
     }
 
-    _init = false;
     return true;
   }
 
@@ -297,9 +315,9 @@ public class ClusterDataCache {
   }
 
   private void updateOfflineInstanceHistory(HelixDataAccessor accessor) {
-    List<String> offlineNodes = new ArrayList<String>(_instanceConfigMap.keySet());
+    List<String> offlineNodes = new ArrayList<>(_instanceConfigMap.keySet());
     offlineNodes.removeAll(_liveInstanceMap.keySet());
-    _instanceOfflineTimeMap = new HashMap<String, Long>();
+    _instanceOfflineTimeMap = new HashMap<>();
 
     for (String instance : offlineNodes) {
       Builder keyBuilder = accessor.keyBuilder();
@@ -362,7 +380,7 @@ public class ClusterDataCache {
    * @return A new set contains live instance name and that are marked enabled
    */
   public Set<String> getEnabledLiveInstances() {
-    Set<String> enabledLiveInstances = new HashSet<String>(getLiveInstances().keySet());
+    Set<String> enabledLiveInstances = new HashSet<>(getLiveInstances().keySet());
     enabledLiveInstances.removeAll(getDisabledInstances());
 
     return enabledLiveInstances;
@@ -374,7 +392,7 @@ public class ClusterDataCache {
    * @return
    */
   public Set<String> getEnabledInstances() {
-    Set<String> enabledNodes = new HashSet<String>(getInstanceConfigMap().keySet());
+    Set<String> enabledNodes = new HashSet<>(getInstanceConfigMap().keySet());
     enabledNodes.removeAll(getDisabledInstances());
 
     return enabledNodes;
@@ -388,7 +406,7 @@ public class ClusterDataCache {
    * tag.
    */
   public Set<String> getEnabledLiveInstancesWithTag(String instanceTag) {
-    Set<String> enabledLiveInstancesWithTag = new HashSet<String>(getLiveInstances().keySet());
+    Set<String> enabledLiveInstancesWithTag = new HashSet<>(getLiveInstances().keySet());
     Set<String> instancesWithTag = getInstancesWithTag(instanceTag);
     enabledLiveInstancesWithTag.retainAll(instancesWithTag);
     enabledLiveInstancesWithTag.removeAll(getDisabledInstances());
@@ -402,7 +420,7 @@ public class ClusterDataCache {
    * @param instanceTag The instance group tag.
    */
   public Set<String> getInstancesWithTag(String instanceTag) {
-    Set<String> taggedInstances = new HashSet<String>();
+    Set<String> taggedInstances = new HashSet<>();
     for (String instance : _instanceConfigMap.keySet()) {
       InstanceConfig instanceConfig = _instanceConfigMap.get(instance);
       if (instanceConfig != null && instanceConfig.containsTag(instanceTag)) {
@@ -520,6 +538,14 @@ public class ClusterDataCache {
 
   /**
    * Returns the resource config
+   * Notify the cache that some part of the cluster data has been changed.
+   */
+  public void updateDataChange(ChangeType changeType) {
+    _propertyChangedMap.put(changeType, Boolean.valueOf(true));
+  }
+
+  /**
+   * Returns the instance config map
    *
    * @return
    */
@@ -594,7 +620,7 @@ public class ClusterDataCache {
    * @return
    */
   public Set<String> getDisabledInstances() {
-    Set<String> disabledInstancesSet = new HashSet<String>();
+    Set<String> disabledInstancesSet = new HashSet<>();
     for (String instance : _instanceConfigMap.keySet()) {
       InstanceConfig config = _instanceConfigMap.get(instance);
       if (!config.getInstanceEnabled()) {
@@ -744,7 +770,9 @@ public class ClusterDataCache {
    * Indicate that a full read should be done on the next refresh
    */
   public synchronized void requireFullRefresh() {
-    _init = true;
+    for(ChangeType type : ChangeType.values()) {
+      _propertyChangedMap.put(type, Boolean.valueOf(true));
+    }
   }
 
   /**

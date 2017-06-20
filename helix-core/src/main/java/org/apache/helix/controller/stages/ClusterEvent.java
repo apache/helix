@@ -31,7 +31,7 @@ public class ClusterEvent {
 
   public ClusterEvent(String name) {
     _eventName = name;
-    _eventAttributeMap = new HashMap<String, Object>();
+    _eventAttributeMap = new HashMap<>();
   }
 
   public void addAttribute(String attrName, Object attrValue) {

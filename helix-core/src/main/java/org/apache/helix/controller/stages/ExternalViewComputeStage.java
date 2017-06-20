@@ -106,7 +106,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       }
       // Update cluster status monitor mbean
       ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
-      IdealState idealState = cache._idealStateMap.get(resourceName);
+      IdealState idealState = cache.getIdealState(resourceName);
       ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
       if (idealState != null && (resourceConfig == null || !resourceConfig
           .isMonitoringDisabled())) {
@@ -115,7 +115,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
           StateModelDefinition stateModelDef =
               cache.getStateModelDef(idealState.getStateModelDefRef());
           clusterStatusMonitor
-              .setResourceStatus(view, cache._idealStateMap.get(view.getResourceName()),
+              .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
                   stateModelDef);
         }
       } else {
@@ -155,7 +155,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     for(Iterator<ExternalView> it = newExtViews.iterator(); it.hasNext(); ) {
       ExternalView view = it.next();
       String resourceName = view.getResourceName();
-      IdealState idealState = cache._idealStateMap.get(resourceName);
+      IdealState idealState = cache.getIdealState(resourceName);
       if (idealState != null && idealState.isExternalViewDisabled()) {
         it.remove();
         // remove the external view if the external view exists

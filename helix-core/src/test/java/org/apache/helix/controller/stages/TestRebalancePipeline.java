@@ -268,7 +268,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     runPipeline(event, dataRefresh);
     cache = event.getAttribute("ClusterDataCache");
-    cache._clusterConfig = new ClusterConfig(clusterName);
+    cache.setClusterConfig(new ClusterConfig(clusterName));
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
@@ -452,7 +452,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
   private void refreshClusterConfig(ClusterEvent event, String clusterName) {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    cache._clusterConfig = new ClusterConfig(clusterName);
+    cache.setClusterConfig(new ClusterConfig(clusterName));
     event.addAttribute("ClusterDataCache", cache);
   }
 }

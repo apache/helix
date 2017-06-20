@@ -33,6 +33,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.IdealStateChangeListener;
@@ -43,6 +44,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
@@ -71,6 +73,8 @@ import org.apache.helix.model.PauseSignal;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.TaskDriver;
 import org.apache.log4j.Logger;
+
+import static org.apache.helix.HelixConstants.*;
 
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as possible to Ideal State.
@@ -337,37 +341,42 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
         + manager.getClusterName() + ", took " + (endTime - startTime) + " ms");
   }
 
-  // TODO since we read data in pipeline, we can get rid of reading from zookeeper in
-  // callback
+
   @Override
+  @PreFetch(enabled = false)
   public void onStateChange(String instanceName, List<CurrentState> statesInfo,
       NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onStateChange()");
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
+    } else {
+      _cache.updateDataChange(ChangeType.CURRENT_STATE);
     }
     ClusterEvent event = new ClusterEvent("currentStateChange");
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("instanceName", instanceName);
     event.addAttribute("changeContext", changeContext);
-    event.addAttribute("eventData", statesInfo);
+
     _eventQueue.put(event);
     logger.info("END: GenericClusterController.onStateChange()");
   }
 
   @Override
+  @PreFetch(enabled = false)
   public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onMessage() for cluster " + _clusterName);
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
+    } else {
+      _cache.updateDataChange(ChangeType.MESSAGE);
     }
 
     ClusterEvent event = new ClusterEvent("messageChange");
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("instanceName", instanceName);
     event.addAttribute("changeContext", changeContext);
-    event.addAttribute("eventData", messages);
+
     _eventQueue.put(event);
 
     if (_clusterStatusMonitor != null && messages != null) {
@@ -442,21 +451,20 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   }
 
   @Override
+  @PreFetch(enabled = false)
   public void onIdealStateChange(List<IdealState> idealStates, NotificationContext changeContext) {
     logger.info(
         "START: Generic GenericClusterController.onIdealStateChange() for cluster " + _clusterName);
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
+    } else {
+      _cache.updateDataChange(ChangeType.IDEAL_STATE);
     }
 
-    if (idealStates == null) {
-      idealStates = Collections.emptyList();
-    }
-    _cache.setIdealStates(idealStates);
     ClusterEvent event = new ClusterEvent("idealStateChange");
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("changeContext", changeContext);
-    event.addAttribute("eventData", idealStates);
+
     _eventQueue.put(event);
 
     if (changeContext.getType() != Type.FINALIZE) {
@@ -467,26 +475,25 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   }
 
   @Override
+  @PreFetch(enabled = false)
   public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onConfigChange() for cluster " + _clusterName);
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
+    } else {
+      _cache.updateDataChange(ChangeType.INSTANCE_CONFIG);
     }
-
-    if (configs == null) {
-      configs = Collections.emptyList();
-    }
-    _cache.setInstanceConfigs(configs);
 
     ClusterEvent event = new ClusterEvent("configChange");
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("helixmanager", changeContext.getManager());
-    event.addAttribute("eventData", configs);
+
     _eventQueue.put(event);
     logger.info("END: GenericClusterController.onConfigChange() for cluster " + _clusterName);
   }
 
   @Override
+  @PreFetch(enabled = false)
   public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
       NotificationContext changeContext) {
     logger.info(

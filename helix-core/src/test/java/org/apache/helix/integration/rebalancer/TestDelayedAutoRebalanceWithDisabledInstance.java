@@ -48,6 +48,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
    * @throws Exception
    */
   @Test
+  @Override
   public void testDelayedPartitionMovement() throws Exception {
     Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
 
@@ -68,6 +69,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
   }
 
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
+  @Override
   public void testDelayedPartitionMovementWithClusterConfigedDelay() throws Exception {
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
 
@@ -97,6 +99,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
    * @throws Exception
    */
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
+  @Override
   public void testMinimalActiveReplicaMaintain() throws Exception {
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
@@ -170,6 +173,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
    * The partititon should be moved to other nodes after the delay time
    */
   @Test (dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
+  @Override
   public void testPartitionMovementAfterDelayTime() throws Exception {
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
@@ -200,6 +204,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
   }
 
   @Test (dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
+  @Override
   public void testDisableDelayRebalanceInResource() throws Exception {
     Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
 
@@ -245,6 +250,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
   }
 
   @Test (dependsOnMethods = {"testDisableDelayRebalanceInResource"})
+  @Override
   public void testDisableDelayRebalanceInCluster() throws Exception {
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
 
@@ -279,6 +285,11 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     }
 
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
+  }
+
+  @Test (dependsOnMethods = {"testDisableDelayRebalanceInCluster"})
+  public void testDisableDelayRebalanceInInstance() throws Exception {
+    super.testDisableDelayRebalanceInInstance();
   }
 
   @BeforeMethod

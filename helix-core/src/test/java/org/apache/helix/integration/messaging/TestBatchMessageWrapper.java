@@ -36,6 +36,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -106,16 +108,11 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
       participants[i].syncStart();
 
       // wait for each participant to complete state transitions, so we have deterministic results
-      boolean result = false;
-      do {
-        Thread.sleep(100);
-        result =
-            ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
-      } while (result == false);
-
-      Assert.assertTrue(result, "participant: " + instanceName
-          + " fails to complete all transitions");
+      HelixClusterVerifier _clusterVerifier =
+          new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+      Thread.sleep(100);
+      Assert.assertTrue(_clusterVerifier.verify(),
+          "participant: " + instanceName + " fails to complete all transitions");
     }
 
     // check batch-msg-wrapper counts

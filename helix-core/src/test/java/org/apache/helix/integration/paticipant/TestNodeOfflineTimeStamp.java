@@ -28,7 +28,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestNodeOfflineTimeStamp extends ZkStandAloneCMTestBase {
-  final String className = getShortClassName();
 
   @Test
   public void testNodeShutdown() throws Exception {

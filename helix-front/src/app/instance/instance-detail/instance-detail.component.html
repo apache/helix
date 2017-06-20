@@ -4,7 +4,7 @@
     <md-toolbar-row class="information">
       <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
       <md-spinner *ngIf="isLoading"></md-spinner>
-      <hi-key-value-pairs *ngIf="!isLoading && instance.liveInstance" [obj]="instance">
+      <hi-key-value-pairs *ngIf="!isLoading && instance.liveInstance != null" [obj]="instance">
         <hi-key-value-pair name="Instance" prop="liveInstance"></hi-key-value-pair>
         <hi-key-value-pair name="Session ID" prop="sessionId"></hi-key-value-pair>
         <hi-key-value-pair name="Helix Version" prop="helixVersion"></hi-key-value-pair>

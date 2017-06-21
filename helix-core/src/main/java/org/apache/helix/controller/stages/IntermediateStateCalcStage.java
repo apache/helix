@@ -30,11 +30,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -68,10 +71,16 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           + ". Requires CURRENT_STATE|BEST_POSSIBLE_STATE|RESOURCES|DataCache");
     }
 
-    IntermediateStateOutput immediateStateOutput =
+    IntermediateStateOutput intermediateStateOutput =
         compute(event, resourceMap, currentStateOutput, bestPossibleStateOutput);
+    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), intermediateStateOutput);
 
-    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), immediateStateOutput);
+    // Check whether any instance in the cluster could be assigned more partitions than allowed, if yes, pause the rebalancer.
+    int maxPartitionPerInstance = cache.getClusterConfig().getMaxPartitionsPerInstance();
+    if (maxPartitionPerInstance > 0) {
+      validateMaxPartitionsPerInstance(event, cache, intermediateStateOutput,
+          maxPartitionPerInstance);
+    }
 
     long endTime = System.currentTimeMillis();
     logger.info(
@@ -147,6 +156,55 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       output.setState(resourceName, intermediatePartitionStateMap);
     }
     return output;
+  }
+
+  private void validateMaxPartitionsPerInstance(ClusterEvent event, ClusterDataCache cache,
+      IntermediateStateOutput intermediateStateOutput, int maxPartitionPerInstance) {
+    Map<String, PartitionStateMap> resourceStatesMap =
+        intermediateStateOutput.getResourceStatesMap();
+    Map<String, Integer> instancePartitionCounts = new HashMap<>();
+
+    for (String resource : resourceStatesMap.keySet()) {
+      IdealState idealState = cache.getIdealState(resource);
+      if (idealState != null && idealState.getStateModelDefRef()
+          .equals(BuiltInStateModelDefinitions.Task.name())) {
+        // ignore task here. Task has its own throttling logic
+        continue;
+      }
+
+      PartitionStateMap partitionStateMap = resourceStatesMap.get(resource);
+      Map<Partition, Map<String, String>> stateMaps = partitionStateMap.getStateMap();
+      for (Partition p : stateMaps.keySet()) {
+        Map<String, String> stateMap = stateMaps.get(p);
+        for (String instance : stateMap.keySet()) {
+          //ignore replica to be dropped.
+          String state = stateMap.get(instance);
+          if (state.equals(HelixDefinedState.DROPPED.name())) {
+            continue;
+          }
+
+          if (!instancePartitionCounts.containsKey(instance)) {
+            instancePartitionCounts.put(instance, 0);
+          }
+          int partitionCount = instancePartitionCounts.get(instance);
+          partitionCount++;
+          if (partitionCount > maxPartitionPerInstance) {
+            HelixManager manager = event.getAttribute("helixmanager");
+            String errMsg = String.format(
+                "Partition count to be assigned to instance %s is greater than %d. Stop rebalance and pause the cluster %s",
+                instance, maxPartitionPerInstance, cache.getClusterName());
+            if (manager != null) {
+              manager.getClusterManagmentTool()
+                  .enableCluster(manager.getClusterName(), false, errMsg);
+            } else {
+              logger.error("Failed to pause cluster, HelixManager is not set!");
+            }
+            throw new HelixException(errMsg);
+          }
+          instancePartitionCounts.put(instance, partitionCount);
+        }
+      }
+    }
   }
 
   private PartitionStateMap computeIntermediatePartitionState(ClusterDataCache cache,

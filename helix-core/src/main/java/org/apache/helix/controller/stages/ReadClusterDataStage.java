@@ -60,8 +60,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
     _cache.refresh(dataAccessor);
 
     // Update the cluster status gauges
-    ClusterStatusMonitor clusterStatusMonitor =
-        (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
     if (clusterStatusMonitor != null) {
       Set<String> instanceSet = Sets.newHashSet();
       Set<String> liveInstanceSet = Sets.newHashSet();

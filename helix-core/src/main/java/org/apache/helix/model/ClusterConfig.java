@@ -53,7 +53,8 @@ public class ClusterConfig extends HelixProperty {
     MISS_TOP_STATE_DURATION_THRESHOLD,
     RESOURCE_PRIORITY_FIELD,
     REBALANCE_TIMER_PERIOD,
-    MAX_CONCURRENT_TASK_PER_INSTANCE
+    MAX_CONCURRENT_TASK_PER_INSTANCE,
+    MAX_PARTITIONS_PER_INSTANCE
   }
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
 
@@ -236,6 +237,25 @@ public class ClusterConfig extends HelixProperty {
       _record.setBooleanField(ClusterConfigProperty.STATE_TRANSITION_CANCELLATION_ENABLED.name(),
           enable);
     }
+  }
+
+  /**
+   * Set the maximum number of partitions that an instance can serve in this cluster.
+   *
+   * @param maxPartitionsPerInstance the maximum number of partitions supported
+   */
+  public void setMaxPartitionsPerInstance(int maxPartitionsPerInstance) {
+    _record.setIntField(ClusterConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name(),
+        maxPartitionsPerInstance);
+  }
+
+  /**
+   * Get the maximum number of partitions an instance can serve in this cluster.
+   *
+   * @return the partition capacity of an instance for this resource, or Integer.MAX_VALUE
+   */
+  public int getMaxPartitionsPerInstance() {
+    return _record.getIntField(ClusterConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name(), -1);
   }
 
   /**

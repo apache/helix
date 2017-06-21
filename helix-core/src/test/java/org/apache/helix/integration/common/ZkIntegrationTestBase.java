@@ -20,7 +20,6 @@ package org.apache.helix.integration.common;
  */
 
 import java.util.logging.Level;
-
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;

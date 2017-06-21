@@ -74,8 +74,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
         batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveInstanceMap,
             manager.getProperties());
     sendMessages(dataAccessor, outputMessages);
-    ClusterStatusMonitor clusterStatusMonitor =
-        (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
     clusterStatusMonitor.increaseMessageReceived(outputMessages);
 
     long cacheStart = System.currentTimeMillis();

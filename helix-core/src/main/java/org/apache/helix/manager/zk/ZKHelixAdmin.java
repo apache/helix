@@ -220,11 +220,10 @@ public class ZKHelixAdmin implements HelixAdmin {
           + ", ideal-state does not exist");
     }
     baseAccessor.update(path, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
+      @Override public ZNRecord update(ZNRecord currentData) {
         if (currentData == null) {
-          throw new HelixException("Cluster: " + clusterName + ", resource: " + resourceName
-              + ", ideal-state is null");
+          throw new HelixException(
+              "Cluster: " + clusterName + ", resource: " + resourceName + ", ideal-state is null");
         }
         IdealState idealState = new IdealState(currentData);
         idealState.enable(enabled);
@@ -285,8 +284,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     // update participantConfig
     // could not use ZNRecordUpdater since it doesn't do listField merge/subtract
     baseAccessor.update(path, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
+      @Override public ZNRecord update(ZNRecord currentData) {
         if (currentData == null) {
           throw new HelixException("Cluster: " + clusterName + ", instance: " + instanceName
               + ", participant config is null");
@@ -304,6 +302,17 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public void enableCluster(String clusterName, boolean enabled) {
+    enableCluster(clusterName, enabled, null);
+  }
+
+  /**
+   * @param clusterName
+   * @param enabled
+   * @param reason      set additional string description on why the cluster is disabled when
+   *                    <code>enabled</code> is false.
+   */
+  @Override
+  public void enableCluster(String clusterName, boolean enabled, String reason) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
@@ -311,7 +320,11 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (enabled) {
       accessor.removeProperty(keyBuilder.pause());
     } else {
-      accessor.createPause(new PauseSignal("pause"));
+      PauseSignal pauseSignal = new PauseSignal("pause");
+      if (reason != null) {
+        pauseSignal.setReason(reason);
+      }
+      accessor.createPause(pauseSignal);
     }
   }
 

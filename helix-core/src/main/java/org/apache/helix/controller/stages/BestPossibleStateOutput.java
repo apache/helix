@@ -57,7 +57,8 @@ public class BestPossibleStateOutput extends ResourcesStateMap {
    * @return
    */
   // TODO: remove this.
-  @Deprecated public Map<String, Map<Partition, Map<String, String>>> getStateMap() {
+  @Deprecated
+  public Map<String, Map<Partition, Map<String, String>>> getStateMap() {
     Map<String, Map<Partition, Map<String, String>>> stateMap =
         new HashMap<String, Map<Partition, Map<String, String>>>();
     for (Map.Entry<String, PartitionStateMap> e : _resourceStateMap.entrySet()) {
@@ -89,7 +90,7 @@ public class BestPossibleStateOutput extends ResourcesStateMap {
 
   public void setPreferenceList(String resource, String partition, List<String> list) {
     if (_preferenceLists == null) {
-      _preferenceLists = new HashMap<String, Map<String, List<String>>>();
+      _preferenceLists = new HashMap<>();
     }
     if (!_preferenceLists.containsKey(resource)) {
       _preferenceLists.put(resource, new HashMap<String, List<String>>());
@@ -100,7 +101,7 @@ public class BestPossibleStateOutput extends ResourcesStateMap {
   public void setPreferenceLists(String resource,
       Map<String, List<String>> resourcePreferenceLists) {
     if (_preferenceLists == null) {
-      _preferenceLists = new HashMap<String, Map<String, List<String>>>();
+      _preferenceLists = new HashMap<>();
     }
     _preferenceLists.put(resource, resourcePreferenceLists);
   }

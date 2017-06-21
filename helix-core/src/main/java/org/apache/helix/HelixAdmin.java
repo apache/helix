@@ -242,6 +242,14 @@ public interface HelixAdmin {
   void enableCluster(String clusterName, boolean enabled);
 
   /**
+   * @param clusterName
+   * @param enabled
+   * @param reason      set additional string description on why the cluster is disabled when
+   *                    <code>enabled</code> is false.
+   */
+  void enableCluster(String clusterName, boolean enabled, String reason);
+
+  /**
    * Reset a list of partitions in error state for an instance
    * The partitions are assume to be in error state and reset will bring them from error
    * to initial state. An error to initial state transition is required for reset.

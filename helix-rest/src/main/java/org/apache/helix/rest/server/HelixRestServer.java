@@ -27,9 +27,11 @@ import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.filters.AuditLogFilter;
 import org.apache.helix.rest.server.filters.CORSFilter;
 import org.apache.helix.rest.server.resources.AbstractResource;
-import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.http.HttpVersion;
+import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
@@ -46,6 +48,7 @@ public class HelixRestServer extends ResourceConfig {
   public HelixRestServer(String zkAddr, int port, String urlPrefix, List<AuditLogger> auditLoggers) {
     _port = port;
     _urlPrefix = urlPrefix;
+    _server = new Server(_port);
 
     packages(AbstractResource.class.getPackage().getName());
 
@@ -67,7 +70,6 @@ public class HelixRestServer extends ResourceConfig {
   }
 
   public void start() throws HelixException, InterruptedException {
-    _server = new Server(_port);
     ServletHolder servlet = new ServletHolder(new ServletContainer(this));
     ServletContextHandler contextHandler = new ServletContextHandler(_server, _urlPrefix);
     contextHandler.addServlet(servlet, "/*");
@@ -104,5 +106,25 @@ public class HelixRestServer extends ResourceConfig {
     ServerContext serverContext =
         (ServerContext) getProperty(ContextPropertyKeys.SERVER_CONTEXT.name());
     serverContext.close();
+  }
+
+  public void setupSslServer(int port, SslContextFactory sslContextFactory) {
+    if (_server != null && port > 0) {
+      try {
+        HttpConfiguration https = new HttpConfiguration();
+        https.addCustomizer(new SecureRequestCustomizer());
+        ServerConnector sslConnector = new ServerConnector(
+            _server,
+            new SslConnectionFactory(sslContextFactory, HttpVersion.HTTP_1_1.asString()),
+            new HttpConnectionFactory(https));
+        sslConnector.setPort(port);
+
+        _server.addConnector(sslConnector);
+
+        LOG.info("Helix SSL rest server is ready to start.");
+      } catch (Exception ex) {
+        LOG.error("Failed to setup Helix SSL rest server, " + ex);
+      }
+    }
   }
 }

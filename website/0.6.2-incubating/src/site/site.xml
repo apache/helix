@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<project name="Apache Helix">
+  <bannerLeft>
+    <src>../images/helix-logo.jpg</src>
+    <href>http://helix.apache.org/</href>
+  </bannerLeft>
+  <bannerRight>
+    <src>../images/feather_small.gif</src>
+    <href>http://www.apache.org/</href>
+  </bannerRight>
+  <version position="none"/>
+
+  <publishDate position="right"/>
+
+  <skin>
+    <groupId>lt.velykis.maven.skins</groupId>
+    <artifactId>reflow-maven-skin</artifactId>
+    <version>1.0.0</version>
+  </skin>
+
+  <body>
+
+    <head>
+      <script type="text/javascript">
+
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-3211522-12']);
+        _gaq.push(['_trackPageview']);
+
+        (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+        })();
+
+      </script>
+
+    </head>
+
+    <breadcrumbs position="left">
+      <item name="Apache Helix" href="http://helix.apache.org/"/>
+      <item name="Release 0.6.2-incubating" href="http://helix.apache.org/0.6.2-incubating-docs/"/>
+    </breadcrumbs>
+
+    <links>
+      <item name="Helix 0.6.2-incubating" href="./index.html"/>
+    </links>
+
+    <menu name="Get Helix">
+      <item name="Download" href="./download.html"/>
+      <item name="Building" href="./Building.html"/>
+      <item name="Release Notes" href="./releasenotes/release-0.6.2-incubating.html"/>
+    </menu>
+
+    <menu name="Hands-On">
+      <item name="Quick Start" href="./Quickstart.html"/>
+      <item name="Tutorial" href="./Tutorial.html"/>
+      <item name="Javadocs" href="http://helix.apache.org/javadocs/0.6.2-incubating"/>
+    </menu>
+
+    <menu name="Recipes">
+      <item name="Distributed lock manager" href="./recipes/lock_manager.html"/>
+      <item name="Rabbit MQ consumer group" href="./recipes/rabbitmq_consumer_group.html"/>
+      <item name="Rsync replicated file store" href="./recipes/rsync_replicated_file_store.html"/>
+      <item name="Service discovery" href="./recipes/service_discovery.html"/>
+      <item name="Distributed task DAG execution" href="./recipes/task_dag_execution.html"/>
+    </menu>
+<!--
+    <menu ref="reports" inherit="bottom"/>
+    <menu ref="modules" inherit="bottom"/>
+
+
+    <menu name="ASF">
+      <item name="How Apache Works" href="http://www.apache.org/foundation/how-it-works.html"/>
+      <item name="Foundation" href="http://www.apache.org/foundation/"/>
+      <item name="Sponsoring Apache" href="http://www.apache.org/foundation/sponsorship.html"/>
+      <item name="Thanks" href="http://www.apache.org/foundation/thanks.html"/>
+    </menu>
+-->
+    <footer>
+      <div class="row span16"><div>Apache Helix, Apache, the Apache feather logo, and the Apache Helix project logos are trademarks of The Apache Software Foundation.
+        All other marks mentioned may be trademarks or registered trademarks of their respective owners.</div>
+        <a href="${project.url}/privacy-policy.html">Privacy Policy</a>
+      </div>
+    </footer>
+
+
+  </body>
+
+  <custom>
+    <reflowSkin>
+      <theme>default</theme>
+      <highlightJs>false</highlightJs>
+      <brand>
+        <name>Apache Helix</name>
+        <href>http://helix.apache.org</href>
+      </brand>
+      <slogan>A cluster management framework for partitioned and replicated distributed resources</slogan>
+      <bottomNav>
+        <column>Get Helix</column>
+        <column>Hands-On</column>
+        <column>Recipes</column>
+      </bottomNav>
+      <pages>
+        <index>
+          <sections>
+            <columns>3</columns>
+          </sections>
+        </index>
+      </pages>
+    </reflowSkin>
+    <!--fluidoSkin>
+      <topBarEnabled>true</topBarEnabled>
+      <sideBarEnabled>true</sideBarEnabled>
+      <googleSearch></googleSearch>
+      <twitter>
+        <user>ApacheHelix</user>
+        <showUser>true</showUser>
+        <showFollowers>false</showFollowers>
+      </twitter>
+    </fluidoSkin-->
+  </custom>
+
+</project>

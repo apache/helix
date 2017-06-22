@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+-->
+#set( $releaseName = "0.7.0-incubating" )
+#set( $releaseDate = "11/22/2013" )
+<document xmlns="http://maven.apache.org/XDOC/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+
+  <properties>
+    <title>Apache Helix Downloads</title>
+    <author email="dev@helix.apache.org">Apache Helix Documentation Team</author>
+  </properties>
+
+  <body>
+    <div class="toc_container">
+      <macro name="toc">
+        <param name="class" value="toc"/>
+      </macro>
+    </div>
+
+    <section name="Introduction">
+      <p>Apache Helix artifacts are distributed in source and binary form under the terms of the
+        <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.
+        See the included <tt>LICENSE</tt> and <tt>NOTICE</tt> files included in each artifact for additional license
+        information.
+      </p>
+      <p>Use the links below to download a source distribution of Apache Helix.
+      It is good practice to <a href="#Verifying_Releases">verify the integrity</a> of the distribution files.</p>
+    </section>
+
+    <section name="Release">
+      <p>Release date: ${releaseDate} </p>
+      <p><a href="releasenotes/release-${releaseName}.html">${releaseName} Release notes</a></p>
+      <subsection name="${releaseName} Sources">
+        <table>
+          <thead>
+            <tr>
+              <th>Artifact</th>
+              <th>Signatures</th>
+              <th>Hashes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/src/helix-${releaseName}-src.zip">helix-${releaseName}-src.zip</a>
+              </td>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/src/helix-${releaseName}-src.zip.asc">asc</a>
+              </td>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/src/helix-${releaseName}-src.zip.md5">md5</a>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/src/helix-${releaseName}-src.zip.sha1">sha1</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </subsection>
+      <subsection name="${releaseName} Binaries">
+        <table>
+          <thead>
+            <tr>
+              <th>Artifact</th>
+              <th>Signatures</th>
+              <th>Hashes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar">helix-core-${releaseName}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar.asc">asc</a>
+              </td>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar">helix-admin-webapp-${releaseName}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar.asc">asc</a>
+              </td>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar">helix-agent-${releaseName}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar.asc">asc</a>
+              </td>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-examples-${releaseName}-pkg.tar">helix-examples-${releaseName}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-examples-${releaseName}-pkg.tar.asc">asc</a>
+              </td>
+              <td>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-examples-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-examples-${releaseName}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </subsection>
+    </section>
+
+<!--    <section name="Older Releases">
+    </section>-->
+
+    <section name="Verifying Releases">
+      <p>It is essential that you verify the integrity of the downloaded file using the PGP signature (<tt>.asc</tt> file) or a hash (<tt>.md5</tt> or <tt>.sha1</tt> file). Please read <a href="http://www.apache.org/info/verification.html">Verifying Apache Software Foundation Releases</a> for more information on why you should verify our releases.</p>
+      <p>The PGP signature can be verified using <a href="http://www.pgpi.org/">PGP</a> or <a href="http://www.gnupg.org/">GPG</a>. First download the <a href="http://archive.apache.org/dist/incubator/helix/KEYS">KEYS</a> as well as the <tt>*.asc</tt> signature files for the relevant distribution. Make sure you get these files from the main distribution site, rather than from a mirror. Then verify the signatures using one of the following sets of commands:
+
+        <source>% pgpk -a KEYS
+% pgpv downloaded_file.asc</source>
+
+      or<br/>
+
+        <source>% pgp -ka KEYS
+% pgp downloaded_file.asc</source>
+
+      or<br/>
+
+        <source>% gpg --import KEYS
+% gpg --verify downloaded_file.asc</source>
+       </p>
+    <p>Alternatively, you can verify the MD5 signature on the files. A Unix/Linux program called
+      <code>md5</code> or
+      <code>md5sum</code> is included in most distributions.  It is also available as part of
+      <a href="http://www.gnu.org/software/textutils/textutils.html">GNU Textutils</a>.
+      Windows users can get binary md5 programs from these (and likely other) places:
+      <ul>
+        <li>
+          <a href="http://www.md5summer.org/">http://www.md5summer.org/</a>
+        </li>
+        <li>
+          <a href="http://www.fourmilab.ch/md5/">http://www.fourmilab.ch/md5/</a>
+        </li>
+        <li>
+          <a href="http://www.pc-tools.net/win32/md5sums/">http://www.pc-tools.net/win32/md5sums/</a>
+        </li>
+      </ul>
+    </p>
+    </section>
+  </body>
+</document>

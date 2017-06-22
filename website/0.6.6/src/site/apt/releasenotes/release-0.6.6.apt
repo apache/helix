@@ -1,0 +1,280 @@
+ -----
+ Release Notes for Apache Helix 0.6.6
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 0.6.6
+
+  The Apache Helix team would like to announce the release of Apache Helix 0.6.6.
+
+  This is the ninth release under the Apache umbrella, and the fifth as a top-level project.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. Helix provides the following features:
+
+  * Automatic assignment of resource/partition to nodes
+
+  * Node failure detection and recovery
+
+  * Dynamic addition of Resources
+
+  * Dynamic addition of nodes to the cluster
+
+  * Pluggable distributed state machine to manage the state of a resource via state transitions
+
+  * Automatic load balancing and throttling of transitions
+
+  []
+
+
+* What is new in Helix 0.6.6
+
+** Task Framework Features and Improvements
+
+*** Performance/Stability Improvements. 
+    
+    We have made several major changes on existing task framework to improve its performance and stability, two of the major improvements are:
+
+    * Dramatically reduced the number of IdealState and ExternalView. In the new release, the IdealState of a job will be generated only when it is scheduled to run, and will be removed immediately once the job is completed. In addition, ExternalView for a job is not persisted by default since Job's external view neither useful nor interested by any clients. This change has dramatically reduced the amounts of znodes and traffic to our Zookeeper servers.
+
+    * Unstable scheduling of recurrent jobs. We have seen that the scheduling of recurrent queues and jobs were not stable in old releases.  We have reworked on the timer management in Helix task framework to make it more reliable during many error cases in the new release. 
+
+*** Features
+
+    A major set of new features has also been introduced into the task framework, some of them:
+
+    * Generic Job Support. Besides the Targeted Resource Job, which requires a target resource (database) be associated with a job, now Helix also supports to create a Generic Job, which a job can be created without being associated with any existing resource. 
+
+    * Persistence and Sharing of Contents across Tasks and Jobs.  This new task API allows user's task to persist simple key-value pairs during run-time.  This key-value pairs are visible and shared across other tasks within one job, or across jobs within the same workflow, depends on the scope of the key-value pair. 
+
+    * Conditional Task Retry.  Previously, if a task is failed (timeout-ed, task returned FAILED, or throws any exceptions), the task will be always retried until it reaches the specified max retry count.  However, there are many scenarios in which if certain errors happen, retrying the task will not help. In new release,  Helix provides client a new option to tell Helix whether it should retry or abort the task upon a failure.
+
+    * Running Jobs on Specific Instance Group. Now, when you create a job, you have an option to specify an instance (node) group that you would like this job to be scheduled and run on. Helix will guarantee to not run the job on any nodes that do not belong to the instance group.
+
+    * Persist Task Error Message in Helix. In this release, Helix provides a channel to persist a simple failure messages from each task and provides a set of API for clients to retrieve these messages programmatically. 
+
+
+** Topology-aware (Rack-aware) Auto Rebalancer
+
+    The topology-aware placement strategy provides common strategies for dynamic allocation of partitions within failure zones for these systems administered by Helix. In this release, Helix has shipped two new topology-aware placement strategies along with its full-auto rebalancer.  The new placement strategies allow users to specify a flexible representation of a cluster topology and fault zones. Helix will perform replica placement in a topology-aware way such that the replicas for a partition will not reside in the same failure zone, which essentially avoids service disruption upon the loss of a single fault zone.
+
+** Client Side Thread-pool
+
+    The new release has improved the way how Helix manages its client side threadpools, which includes:
+
+    * Support of client's customized threadpool for state-transition message handling. In old releases, Helix uses a fix-sized thread pool to handle all state transitions in each instance.  The new feature allows client to specify a thread pool, which gives clients more flexibility over thread pool type (fixed or dynamic) and size.
+
+    * Fix thread leaking problem in TaskStateModel. We found a thread-leaking issue because a new thread was always initiated to run client's task.  We have fixed this issue by using shared thread pool for all users' tasks.
+
+
+** New APIs for Monitoring and Operating Job Workflows and Queues
+
+    For Helix client to better retrieve and monitor workflow and job status, a set of methods are added into TaskDriver, which include:
+
+    * PollForJobState and PollForWorkflowState for client to synchronously waiting on a status change.
+    * Retrieving job and workflow configurations and contexts.
+    * Listing all workflows from a cluster.
+    * New Builder class for Workflow, Queue, Job and TaskConfig
+
+** Zookeeper Re-connect Failures after ZK Server Bounce
+
+    We have seen many time that Helix controller fails to reconnect to Zookeeper after one or more of ZK servers experiences long GC or restart. The problem was actually caused by a ZooKeeper bug (ZOOKEEPER-706).  We have bumped our ZK dependency to the fixed version. Please refer to the detailed discussion on this jira.
+
+** Partitions Not Moving Away from Disabled Instances in FULL_AUTO Mode. 
+
+    We saw the problem that when an instance is disabled, Helix still tries to put partitions on the instance.  This issue has been fixed in this new release.
+
+** New Set of Monitoring Metrics for Workflows and Jobs 
+
+    As more and more features are added in Task Framework, monitoring workflows and jobs takes a vital part of stabilizing Helix for long run.  A new set of metrics has been added to better monitor all workflows and jobs. More information on what metrics are exposed for your workflows and jobs, please refer here.
+
+
+
+
+
+* Detailed Changes
+
+** Bug
+
+    * [HELIX-543] Avoid moving partitions unnecessarily when auto-rebalancing.
+
+    * Check Workflow is JobQueue before doing parallel jobs logics.
+    
+    * [HELIX-631] AutoRebalanceStrategy does not work correctly all the time.
+    
+    * Fix NPE when first time call WorkflowRebalancer.
+    
+    * Fix Workflow and Job metrics Counters.
+    
+    * [HELIX-633] AutoRebalancer should ignore disabled instance and all partitions on disabled instances should be dropped in 
+    FULL_AUTO rebalance mode.
+    
+    * Fix task assignment in instance group tag check.
+    
+    * Fix missing workflowtype assign in builder.
+    
+    * TaskUtil.getWorkflowCfg throws NPE if workflow doesn't exist.
+    
+    * Fix the statemodelFactories in Example Process.
+    
+    * [HELIX-618]  Job hung if the target resource does not exist anymore at the time when it is scheduled.
+    
+    * [Helix-624] Fix NPE in TestMessageService.TestMultiMessageCriteria.
+    
+    * [HELIX-615] Naming problem of scheduled jobs from recurrent queue.
+    
+    * [HELIX-613] Fix thread leaking problems in TaskStateModel by sharing one thread pool among all tasks and timeout tasks from TaskStateModels created from the same TaskStateModelFactory.
+    
+    * [Helix-612] Bump up the version of zkClient and zookeeper to avoid NPE.
+    
+    * [HELIX-600] Task scheduler fails to schedule a recurring workflow if the startTime is set to a future timestamp.
+    
+    * [HELIX-592] addCluster should respect overwriteExisitng when adding stateModel Definations.
+    
+    * [HELIX-589] Delete job API throws NPE if the job does not exist in last scheduled workflow.
+    
+    * [HELIX-587] Fix NPE in ClusterStateVerifier.
+    
+    * [HELIX-584] SimpleDateFormat should not be used as singleton due to its race conditions.
+    
+    * [HELIX-578] NPE while deleting a job from a recurrent job queue.
+
+
+** Improvement
+
+    * Add AbortedJobCount in JobMonior.
+
+    * Job Config and logic refactoring with 1)Support identical task initialization with job command and number of tasks, 2)Remove unused MaxForcedReassignmentPerTask field and 3)Refactor logics of failure.
+    
+    * [HELIX-635] GenericTaskAssignmentCalculator rebalance with consistent hashing. 1) Implement consistent hashing mapping calculation, 2) Remove reassign logics and applied in consistent hashing.
+    
+    * Refactor TaskAssignmentCalculator API.
+    
+    * Monitors for Task framework. 1) Add workflow and job monitor MBeans and implementations, and 2) Add tests for MBean existing checking.
+    
+    * Check whether instance is disable when assigning tasks to instances in TaskRebalancer.
+    
+    * Add Partition task start time.
+    
+    * Add WorkflowType and JobType in WorkflowConfig and JobConfig.
+    
+    * Added method to TaskDriver to get all workflows from a cluster. Added methods to convert HelixProperty to WorkflowConfig and JobConfig.
+    
+    * More cleanup on workflow and workflowConfig builders.
+    
+    * Add Builder class for TaskConfig, and add unit test for testing generic jobs.
+    
+    * Add static methods into TaskDriver for getting configuration/context for jobs and workflows.
+    
+    * Refactor Workflow and Jobqueue builders to make the builder API more clean.
+    
+    * Add methods in TaskDriver for getting Workflow/Job configuration and context. External users should call these methods instead of TaskUtil.
+    
+    * [HELIX-623] Do not expose internal configuration field name. Client should use JobConfig.Builder to create jobConfig.
+    
+    * [HELIX-617] Job IdealState is generated even the job is not running and not removed when it is completed.
+    
+    * [HELIX-616] Change JobQueue to be subclass of Workflow instead of WorkflowConfig.
+    
+    * [HELIX-614] Fix the bug when job expiry time is shorter than job schedule interval in recurring job queue.
+    
+    * [Helix-606] Add an option in IdealState to allow a resource to disable showing external view.
+
+
+** New Feature
+
+    * [HELIX-636] Add Java API and REST API for clean up JobQueue.
+    
+    * Add ABORT state in TaskState and set tasks IN_PROGRESS to ABORT when workflow fails.
+    
+    * [HELIX-568] Add new topology aware (rack-aware) rebalance strategy based on CRUSH algorithm. Design doc is available at: https://cwiki.apache.org/confluence/display/HELIX/Helix+Topology-aware+Rebalance+Strategy.
+    
+    * [HELIX-634] Refactor AutoRebalancer to allow configuable placement strategy.
+    
+    * Support user defined content store per workflow/job/task layer, 1) Add feature to support workflow/job/task layer key value user defined content store, and 2) Add test case for workflow/job/task layer key-value pair store and verify.
+    
+    * Allow an instance group tag to be configured for a job, so all tasks of the job can only be running on the instances containing the tag. 1) Add instance group tag for jobs, and 2) Add a test for job assignment when the only instance can be assigned instance is disabled.
+    
+    * Add pollForJobState and pollForWorkflowState function in TaskDriver.
+    
+    * Populate Error message from running client's task and persist it into JobContext for better error reporting.
+    
+    * Add a new task state (TASK_ABORTED) to TaskResult. This allows client to abort a task and let Helix not retry it even Task RetryCount is bigger than 1.
+    
+    * Add new job option to allow contining a job even its direct dependent job fails.
+    
+    * Support changes of workflow configuration.
+    
+    * [HELIX-622] Add new resource configuration option to allow resource to disable emmiting monitoring bean.
+    
+    * [HELIX-599] Support creating/maintaining/routing resources with same names in different instance groups.
+    
+    * [HELIX-601] Allow workflow to schedule dependency jobs in parallel.
+    
+    * [HELIX-591] Provide getResourcesWithTag in HelixAdmin to retrieve all resources with a group tag.
+    
+    * [HELIX-583] support deleting recurring job queue.
+
+
+** Task
+
+    * Upgrade maven release plugin version.
+    
+    * Update Apache POM version.
+    
+    * Make sure all dependant service using zookeeper 3.4.9 version.
+    
+    * Bump Zookeeper client version to 3.4.9 to catch the fix of session reestablish failure due to large set of watches.
+
+
+** Test
+
+    * Add integration test for running task with unregistered command.
+    
+    * Refactor redundant code TestTaskRebalancerRetryLimit.
+    
+    * Add test to test task retry with and without delay.
+    
+    * Add unit tests to retrieve all workflows and job info from a cluster.
+    
+    * Add unit test to retrieve workflow and job configurations.
+    
+    * Add job dependency workflow test.
+    
+    * Refactor tests with TaskTestBase and remove duplicated code.
+    
+    * Add TaskTestBase and refactor 2 tests.
+    
+    * Fix task framework unit test failure.
+    
+    * Refactor TaskUtil class to move as many as methods out of the class, and make other methods in it as internal API as possible. Expose necessary APIs in TaskDriver instead.
+    
+    * More fixes and cleanup on task unit tests.
+    
+    * Fix task framework unit tests.
+    
+    * Clean up unit tests for task framework.
+
+[]
+
+Cheers,
+--
+The Apache Helix Team

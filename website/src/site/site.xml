@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<project name="Apache Helix">
+  <bannerLeft>
+    <src>images/helix-logo.jpg</src>
+    <href>http://helix.apache.org/</href>
+  </bannerLeft>
+  <bannerRight>
+    <src>images/feather_small.gif</src>
+    <href>http://www.apache.org/</href>
+  </bannerRight>
+
+  <publishDate position="none"/>
+  <version position="none"/>
+
+  <skin>
+    <groupId>lt.velykis.maven.skins</groupId>
+    <artifactId>reflow-maven-skin</artifactId>
+    <version>1.0.0</version>
+  </skin>
+
+  <body>
+
+    <head>
+      <script type="text/javascript">
+
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-3211522-12']);
+        _gaq.push(['_trackPageview']);
+
+        (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+        })();
+
+      </script>
+
+    </head>
+
+    <breadcrumbs position="left">
+      <item name="Apache Helix" href="http://helix.apache.org/"/>
+    </breadcrumbs>
+
+    <menu name="Learn">
+      <item name="Core Concepts" href="./Concepts.html"/>
+      <item name="Architecture" href="./Architecture.html"/>
+      <item name="Publications" href="./Publications.html"/>
+      <item name="Client Libraries" href="./ClientLibraries.html"/>
+    </menu>
+
+    <menu name="Documentation">
+      <item name="0.6.8 (stable)" href="./0.6.8-docs/index.html"/>
+      <item name="0.7.1 (beta)" href="./0.7.1-docs/index.html"/>
+      <item name="0.6.7" href="./0.6.7-docs/index.html"/>
+      <item name="0.6.6" href="./0.6.6-docs/index.html"/>
+      <item name="0.6.5" href="./0.6.5-docs/index.html"/>
+      <item name="0.6.4" href="./0.6.4-docs/index.html"/>
+      <item name="0.6.3" href="./0.6.3-docs/index.html"/>
+      <item name="0.7.0-incubating (alpha)" href="./0.7.0-incubating-docs/index.html"/>
+      <item name="0.6.2-incubating" href="./0.6.2-incubating-docs/index.html"/>
+      <item name="0.6.1-incubating" href="./0.6.1-incubating-docs/index.html"/>
+      <item name="trunk" href="./trunk-docs/index.html"/>
+    </menu>
+
+    <menu name="Helix 0.6.8">
+      <item name="Documentation" href="./0.6.8-docs/index.html"/>
+      <item name="Quick Start" href="./0.6.8-docs/Quickstart.html"/>
+      <item name="Tutorial" href="./0.6.8-docs/Tutorial.html"/>
+      <item name="Download" href="./0.6.8-docs/download.html"/>
+    </menu>
+
+    <menu name="Helix 0.7.1 (beta)">
+      <item name="Documentation" href="./0.7.1-docs/index.html"/>
+      <item name="Quick Start" href="./0.7.1-docs/Quickstart.html"/>
+      <item name="Tutorial" href="./0.7.1-docs/Tutorial.html"/>
+      <item name="Download" href="./0.7.1-docs/download.html"/>
+    </menu>
+
+    <menu name="Get Involved">
+      <item name="IRC" href="./IRC.html"/>
+      <item name="Mailing Lists" href="mail-lists.html"/>
+      <item name="Issues" href="issue-tracking.html"/>
+      <item name="Team" href="team-list.html"/>
+      <item name="Sources" href="sources.html"/>
+      <item name="Continuous Integration" href="integration.html"/>
+      <item name="Building Guide" href="/involved/building.html"/>
+      <item name="Release Guide" href="/releasing.html"/>
+      <item name="Improve this Website" href="/involved/contribdocs.html"/>
+    </menu>
+<!--
+    <menu ref="reports" inherit="bottom"/>
+    <menu ref="modules" inherit="bottom"/>
+
+-->
+    <menu name="ASF">
+      <item name="ASF Home" href="http://www.apache.org/"/>
+      <item name="License" href="http://www.apache.org/licenses/"/>
+      <item name="Sponsorship" href="http://www.apache.org/foundation/sponsorship.html"/>
+      <item name="Thanks" href="http://www.apache.org/foundation/thanks.html"/>
+      <item name="Security" href="http://www.apache.org/security/"/>
+    </menu>
+    <footer>
+      <div class="row span16"><div>Apache Helix, Apache, the Apache feather logo, and the Apache Helix project logos are trademarks of The Apache Software Foundation.
+        All other marks mentioned may be trademarks or registered trademarks of their respective owners.</div>
+        <a href="${project.url}/privacy-policy.html">Privacy Policy</a>
+      </div>
+    </footer>
+
+
+  </body>
+
+  <custom>
+    <!--fluidoSkin>
+      <topBarEnabled>true</topBarEnabled>
+      <googleSearch></googleSearch>
+      <twitter>
+        <user>ApacheHelix</user>
+        <showUser>true</showUser>
+        <showFollowers>false</showFollowers>
+      </twitter>
+      <sideBarEnabled>true</sideBarEnabled>
+    </fluidoSkin-->
+    <reflowSkin>
+      <theme>bootswatch-cerulean</theme>
+      <highlightJs>false</highlightJs>
+      <brand>
+        <name>Apache Helix</name>
+        <href>http://helix.apache.org</href>
+      </brand>
+      <slogan>A cluster management framework for partitioned and replicated distributed resources</slogan>
+      <bottomNav>
+        <column>Learn</column>
+        <column>Documentation|Helix 0.6.8|Helix 0.7.1 (beta)</column>
+        <column>Get Involved</column>
+        <column>ASF</column>
+      </bottomNav>
+      <pages>
+        <index>
+          <sections>
+            <body />
+            <sidebar />
+          </sections>
+        </index>
+      </pages>
+    </reflowSkin>
+  </custom>
+
+</project>

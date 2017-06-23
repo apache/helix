@@ -338,6 +338,27 @@ jobCfg.setInstanceGroupTag("INSTANCEGROUPTAG");
 | _setIgnoreDependentJobFailure(boolean ignoreDependentJobFailure)_ | Set whether ignore the job failure of parent job of this job |
 | _setJobType(String jobType)_ | Set the job type of this job |
 
+### Global Task Execution Throttling
+Besides the job option NumConcurrentTasksPerInstance, Helix also support global task execution throttling. This throttling is applied on the total number of running tasks on each participant.
+
+```
+InstanceConfig instanceConfig = HelixAdmin.getInstanceConfig(CLUSTER_NAME, PARTICIPANT);
+instanceConfig.setMaxConcurrentTask(perInstanceTaskLimitation);
+HelixAdmin.setInstanceConfig(CLUSTER_NAME, PARTICIPANT, instanceConfig);
+```
+
+Or, user can set MAX_CONCURRENT_TASK_PER_INSTANCE in ClusterConfig. The configuration will be applied to all instances in that cluster automatically.
+
+```
+Map<String, String> properties = new HashMap<String, String>();
+properties.put(ClusterConfig.ClusterConfigProperty.MAX_CONCURRENT_TASK_PER_INSTANCE.name(),
+        new Integer(perNodeTaskLimitation).toString());
+HelixAdmin.setConfig(clusterConfigScope, properties);
+```
+
+If user does not setup the global task throttling explicitly, each participant will have a default limitation based on the default task execution threadpool size.
+The tasks are throttled based on the jobs' start time. Helix controller will assign older jobs' tasks first.
+
 ### Monitor the status of your job
 As we introduced the excellent util TaskDriver in Workflow Section, we have extra more functionality that provided to user. The user can synchronized wait Job or Workflow until it reaches certain STATES. The function Helix have API pollForJobState and pollForWorkflowState. For pollForJobState, it accepts arguments:
 * Workflow name, required

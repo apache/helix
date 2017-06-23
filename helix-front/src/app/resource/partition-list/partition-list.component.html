@@ -34,16 +34,14 @@
     </ngx-datatable-column>
     <ngx-datatable-column name="Name"></ngx-datatable-column>
     <ngx-datatable-column
-      *ngFor="let replica of partitions[0].replicas; let i = index"
-      name="Replica #{{ i + 1 }}"
-      prop="replicas.{{ i }}"
-      [width]="110"
+      name="Replicas"
+      [width]="100 * partitions[0].replicas.length"
       [resizeable]="false"
       [canAutoResize]="false">
       <ng-template let-value="value" ngx-datatable-cell-template>
-        <section [mdTooltip]="value.instanceName">
-          <hi-state-label [state]="value.externalView" [isReady]="value.externalView && value.externalView == value.idealState"></hi-state-label>
-        </section>
+        <span *ngFor="let replica of value" [mdTooltip]="replica.instanceName">
+          <hi-state-label [state]="replica.externalView" [isReady]="replica.externalView && replica.externalView == replica.idealState"></hi-state-label>
+        </span>
       </ng-template>
     </ngx-datatable-column>
     <ngx-datatable-row-detail rowHeight="auto">

@@ -46,6 +46,8 @@ export class Resource {
     this.cluster = cluster;
     this.name = name;
 
+    externalView = externalView || {};
+
     // ignore config for now since config component will fetch itself
 
     this.idealStateMode = idealState.simpleFields.IDEAL_STATE_MODE;
@@ -86,6 +88,9 @@ export class Resource {
           });
         }
       }
+
+      // sort replicas by states
+      partition.replicas = _.sortBy(partition.replicas, 'externalView');
 
       this.partitions.push(partition);
     }

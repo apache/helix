@@ -61,7 +61,9 @@ public class  WorkflowConfig extends ResourceConfig {
     capacity,
     WorkflowType,
     JobTypes,
-    IsJobQueue
+    IsJobQueue,
+    /* Allow multiple jobs in this workflow to be assigned to a same instance or not */
+    AllowOverlapJobAssignment
   }
 
   /* Default values */
@@ -74,6 +76,7 @@ public class  WorkflowConfig extends ResourceConfig {
   public static final boolean DEFAULT_TERMINABLE = true;
   public static final boolean DEFAULT_JOB_QUEUE = false;
   public static final boolean DEFAULT_MONITOR_DISABLE = true;
+  public static final boolean DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT = false;
 
   public WorkflowConfig(HelixProperty property) {
     super(property.getRecord());
@@ -82,7 +85,7 @@ public class  WorkflowConfig extends ResourceConfig {
   public WorkflowConfig(WorkflowConfig cfg, String workflowId) {
     this(workflowId, cfg.getJobDag(), cfg.getParallelJobs(), cfg.getTargetState(), cfg.getExpiry(),
         cfg.getFailureThreshold(), cfg.isTerminable(), cfg.getScheduleConfig(), cfg.getCapacity(),
-        cfg.getWorkflowType(), cfg.isJobQueue(), cfg.getJobTypes());
+        cfg.getWorkflowType(), cfg.isJobQueue(), cfg.getJobTypes(), cfg.isAllowOverlapJobAssignment());
   }
 
   /* Member variables */
@@ -91,7 +94,7 @@ public class  WorkflowConfig extends ResourceConfig {
   protected WorkflowConfig(String workflowId, JobDag jobDag, int parallelJobs,
       TargetState targetState, long expiry, int failureThreshold, boolean terminable,
       ScheduleConfig scheduleConfig, int capacity, String workflowType, boolean isJobQueue,
-      Map<String, String> jobTypes) {
+      Map<String, String> jobTypes, boolean allowOverlapJobAssignment) {
     super(workflowId);
 
     putSimpleConfig(WorkflowConfigProperty.WorkflowID.name(), workflowId);
@@ -105,8 +108,8 @@ public class  WorkflowConfig extends ResourceConfig {
     putSimpleConfig(WorkflowConfigProperty.TargetState.name(), targetState.name());
     putSimpleConfig(WorkflowConfigProperty.Terminable.name(), String.valueOf(terminable));
     putSimpleConfig(WorkflowConfigProperty.IsJobQueue.name(), String.valueOf(isJobQueue));
-    putSimpleConfig(WorkflowConfigProperty.FailureThreshold.name(),
-        String.valueOf(failureThreshold));
+    putSimpleConfig(WorkflowConfigProperty.FailureThreshold.name(), String.valueOf(failureThreshold));
+    putSimpleConfig(WorkflowConfigProperty.AllowOverlapJobAssignment.name(), String.valueOf(allowOverlapJobAssignment));
 
     if (capacity > 0) {
       putSimpleConfig(WorkflowConfigProperty.capacity.name(), String.valueOf(capacity));
@@ -210,6 +213,11 @@ public class  WorkflowConfig extends ResourceConfig {
         WorkflowConfigProperty.JobTypes.name()) : null;
   }
 
+  public boolean isAllowOverlapJobAssignment() {
+    return _record.getBooleanField(WorkflowConfigProperty.AllowOverlapJobAssignment.name(),
+        DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT);
+  }
+
   public static SimpleDateFormat getDefaultDateFormat() {
     SimpleDateFormat defaultDateFormat = new SimpleDateFormat(
         "MM-dd-yyyy HH:mm:ss");
@@ -295,13 +303,14 @@ public class  WorkflowConfig extends ResourceConfig {
     private String _workflowType;
     private boolean _isJobQueue = DEFAULT_JOB_QUEUE;
     private Map<String, String> _jobTypes;
+    private boolean _allowOverlapJobAssignment = DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT;
 
     public WorkflowConfig build() {
       validate();
 
       return new WorkflowConfig(_workflowId, _taskDag, _parallelJobs, _targetState, _expiry,
           _failureThreshold, _isTerminable, _scheduleConfig, _capacity, _workflowType, _isJobQueue,
-          _jobTypes);
+          _jobTypes, _allowOverlapJobAssignment);
     }
 
     public Builder() {}
@@ -319,6 +328,7 @@ public class  WorkflowConfig extends ResourceConfig {
       _workflowType = workflowConfig.getWorkflowType();
       _isJobQueue = workflowConfig.isJobQueue();
       _jobTypes = workflowConfig.getJobTypes();
+      _allowOverlapJobAssignment = workflowConfig.isAllowOverlapJobAssignment();
     }
 
     public Builder setWorkflowId(String v) {
@@ -391,6 +401,11 @@ public class  WorkflowConfig extends ResourceConfig {
       return this;
     }
 
+    public Builder setAllowOverlapJobAssignment(boolean allowOverlapJobAssignment) {
+      _allowOverlapJobAssignment = allowOverlapJobAssignment;
+      return this;
+    }
+
     public static Builder fromMap(Map<String, String> cfg) {
       Builder builder = new Builder();
       builder.setConfigMap(cfg);
@@ -450,6 +465,12 @@ public class  WorkflowConfig extends ResourceConfig {
       if (cfg.containsKey(WorkflowConfigProperty.IsJobQueue.name())) {
         setJobQueue(Boolean.parseBoolean(cfg.get(WorkflowConfigProperty.IsJobQueue.name())));
       }
+
+      if (cfg.containsKey(WorkflowConfigProperty.AllowOverlapJobAssignment.name())) {
+        setAllowOverlapJobAssignment(
+            Boolean.parseBoolean(cfg.get(WorkflowConfigProperty.AllowOverlapJobAssignment.name())));
+      }
+
       return this;
     }
 

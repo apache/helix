@@ -47,9 +47,11 @@ public class InstanceConfig extends HelixProperty {
     HELIX_DISABLED_PARTITION,
     TAG_LIST,
     INSTANCE_WEIGHT,
-    DOMAIN
+    DOMAIN,
+    MAX_CONCURRENT_TASK
   }
   public static final int WEIGHT_NOT_SET = -1;
+  public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
 
   private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
 
@@ -406,6 +408,18 @@ public class InstanceConfig extends HelixProperty {
       _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(),
           oldDisabledPartitions);
     }
+  }
+
+  /**
+   * Get maximum allowed running task count on this instance
+   * @return the maximum task count
+   */
+  public int getMaxConcurrentTask() {
+    return _record.getIntField(InstanceConfigProperty.MAX_CONCURRENT_TASK.toString(), MAX_CONCURRENT_TASK_NOT_SET);
+  }
+
+  public void setMaxConcurrentTask(int maxConcurrentTask) {
+    _record.setIntField(InstanceConfigProperty.MAX_CONCURRENT_TASK.toString(), maxConcurrentTask);
   }
 
   @Override

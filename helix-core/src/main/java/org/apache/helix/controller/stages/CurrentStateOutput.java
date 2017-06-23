@@ -260,13 +260,60 @@ public class CurrentStateOutput {
     return partitionSet;
   }
 
+  /**
+   * Get the partitions count for each participant with the pending state and given resource state model
+   * @param resourceStateModel specified resource state model to look up
+   * @param state specified pending resource state to look up
+   * @return set of participants to partitions mapping
+   */
+  public Map<String, Integer> getPartitionCountWithPendingState(String resourceStateModel, String state) {
+    return getPartitionCountWithState(resourceStateModel, state, (Map) _pendingStateMap);
+  }
+
+  /**
+   * Get the partitions count for each participant in the current state and with given resource state model
+   * @param resourceStateModel specified resource state model to look up
+   * @param state specified current resource state to look up
+   * @return set of participants to partitions mapping
+   */
+  public Map<String, Integer> getPartitionCountWithCurrentState(String resourceStateModel, String state) {
+    return getPartitionCountWithState(resourceStateModel, state, (Map) _currentStateMap);
+  }
+
+  private Map<String, Integer> getPartitionCountWithState(String resourceStateModel, String state,
+      Map<String, Map<Partition, Map<String, Object>>> stateMap) {
+    Map<String, Integer> currentPartitionCount = new HashMap<String, Integer>();
+    for (String resource : stateMap.keySet()) {
+      String stateModel = _resourceStateModelMap.get(resource);
+      if ((stateModel != null && stateModel.equals(resourceStateModel)) || (stateModel == null
+          && resourceStateModel == null)) {
+        for (Partition partition : stateMap.get(resource).keySet()) {
+          Map<String, Object> partitionMessage = stateMap.get(resource).get(partition);
+          for (Map.Entry<String, Object> participantMap : partitionMessage.entrySet()) {
+            String participant = participantMap.getKey();
+            if (!currentPartitionCount.containsKey(participant)) {
+              currentPartitionCount.put(participant, 0);
+            }
+            String currState = participantMap.getValue().toString();
+            if (participantMap.getValue() instanceof Message) {
+              currState = ((Message) participantMap.getValue()).getToState();
+            }
+            if ((currState != null && currState.equals(state)) || (currState == null && state == null)) {
+              currentPartitionCount.put(participant, currentPartitionCount.get(participant) + 1);
+            }
+          }
+        }
+      }
+    }
+    return currentPartitionCount;
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("current state= ").append(_currentStateMap);
     sb.append(", pending state= ").append(_pendingStateMap);
     return sb.toString();
-
   }
 
 }

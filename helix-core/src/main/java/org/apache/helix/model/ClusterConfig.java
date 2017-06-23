@@ -36,8 +36,10 @@ public class ClusterConfig extends HelixProperty {
     FAULT_ZONE_TYPE, // the type in which isolation should be applied on when Helix places the replicas from same partition.
     DELAY_REBALANCE_DISABLED,  // enabled the delayed rebalaning in case node goes offline.
     DELAY_REBALANCE_TIME,     // delayed time in ms that the delay time Helix should hold until rebalancing.
-    BATCH_STATE_TRANSITION_MAX_THREADS
+    BATCH_STATE_TRANSITION_MAX_THREADS,
+    MAX_CONCURRENT_TASK_PER_INSTANCE
   }
+  private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
 
   /**
    * Instantiate for a specific cluster
@@ -116,6 +118,16 @@ public class ClusterConfig extends HelixProperty {
    */
   public int getBatchStateTransitionMaxThreads() {
     return _record.getIntField(ClusterConfigProperty.BATCH_STATE_TRANSITION_MAX_THREADS.name(), -1);
+  }
+
+  /**
+   * Get maximum allowed running task count on all instances in this cluster.
+   * Instance level configuration will override cluster configuration.
+   * @return the maximum task count
+   */
+  public int getMaxConcurrentTaskPerInstance() {
+    return _record.getIntField(ClusterConfigProperty.MAX_CONCURRENT_TASK_PER_INSTANCE.name(),
+        DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE);
   }
 
   @Override

@@ -86,7 +86,7 @@ public class TaskTestUtil {
   }
 
   // 1. Different jobs in a same work flow is in RUNNING at the same time
-  // 2. No two jobs in the same work flow is in RUNNING at the same instance
+  // 2. When disallow overlap assignment, no two jobs in the same work flow is in RUNNING at the same instance
   public static boolean pollForWorkflowParallelState(TaskDriver driver, String workflowName)
       throws InterruptedException {
 
@@ -127,26 +127,27 @@ public class TaskTestUtil {
         }
       }
 
-      Set<String> instances = new HashSet<String>();
-      for (JobContext jobContext : jobContextList) {
-        for (int partition : jobContext.getPartitionSet()) {
-          String instance = jobContext.getAssignedParticipant(partition);
-          TaskPartitionState taskPartitionState = jobContext.getPartitionState(partition);
+      if (!workflowConfig.isAllowOverlapJobAssignment()) {
+        Set<String> instances = new HashSet<String>();
+        for (JobContext jobContext : jobContextList) {
+          for (int partition : jobContext.getPartitionSet()) {
+            String instance = jobContext.getAssignedParticipant(partition);
+            TaskPartitionState taskPartitionState = jobContext.getPartitionState(partition);
 
-          if (instance == null) {
-            continue;
-          }
-          if (taskPartitionState != TaskPartitionState.INIT &&
-              taskPartitionState != TaskPartitionState.RUNNING) {
-            continue;
-          }
-          if (instances.contains(instance)) {
-            return false;
-          }
+            if (instance == null) {
+              continue;
+            }
+            if (taskPartitionState != TaskPartitionState.INIT && taskPartitionState != TaskPartitionState.RUNNING) {
+              continue;
+            }
+            if (instances.contains(instance)) {
+              return false;
+            }
 
-          TaskPartitionState state = jobContext.getPartitionState(partition);
-          if (state != TaskPartitionState.COMPLETED) {
-            instances.add(instance);
+            TaskPartitionState state = jobContext.getPartitionState(partition);
+            if (state != TaskPartitionState.COMPLETED) {
+              instances.add(instance);
+            }
           }
         }
       }

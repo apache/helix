@@ -19,6 +19,10 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.util.Arrays;
+import java.util.List;
+
+
 /**
  * CONTROLLER: cluster managing component is a controller
  * PARTICIPANT: participate in the cluster state changes
@@ -28,9 +32,21 @@ package org.apache.helix;
  * used in cluster controller of distributed mode {@HelixControllerMain}
  */
 public enum InstanceType {
-  CONTROLLER,
-  PARTICIPANT,
-  SPECTATOR,
-  CONTROLLER_PARTICIPANT,
-  ADMINISTRATOR
+  CONTROLLER(new String[]{"ClusterStatus", "HelixZkClient", "HelixManagerCallback"}),
+  PARTICIPANT(new String[]{"ClusterStatus", "HelixZkClient", "HelixManagerCallback",
+      "HelixThreadPoolExecutor"}),
+  CONTROLLER_PARTICIPANT(new String[]{"ClusterStatus", "HelixZkClient", "HelixManagerCallback",
+      "HelixThreadPoolExecutor"}),
+  SPECTATOR(new String[]{"ClusterStatus", "HelixZkClient"}),
+  ADMINISTRATOR(new String[]{});
+
+  private final String[] _monitorDomains;
+
+  InstanceType(String[] monitorDomains) {
+    _monitorDomains = monitorDomains;
+  }
+
+  public List<String> getActiveMBeanDomains() {
+    return Arrays.asList(_monitorDomains);
+  }
 }

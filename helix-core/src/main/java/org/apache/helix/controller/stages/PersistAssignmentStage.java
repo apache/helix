@@ -135,6 +135,7 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     LOG.info(
         "END PersistAssignmentStage.process() for cluster " + cache.getClusterName() + " took " + (
             endTime - startTime) + " ms");
+    updateStageMonitorCounters(endTime - startTime);
   }
 
   /**

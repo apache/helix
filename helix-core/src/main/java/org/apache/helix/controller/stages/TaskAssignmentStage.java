@@ -86,6 +86,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     logger.info(
         "END TaskAssignmentStage.process() for cluster " + cache.getClusterName() + ". took: " + (
             endTime - startTime) + " ms");
+    updateStageMonitorCounters(endTime - startTime);
   }
 
   List<Message> batchMessage(Builder keyBuilder, List<Message> messages,

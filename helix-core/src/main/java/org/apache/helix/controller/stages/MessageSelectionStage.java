@@ -75,6 +75,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    long startTime = System.currentTimeMillis();
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     CurrentStateOutput currentStateOutput =
@@ -108,6 +109,11 @@ public class MessageSelectionStage extends AbstractBaseStage {
       }
     }
     event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), output);
+
+    long endTime = System.currentTimeMillis();
+    LOG.info("END MessageSelectionStage.process() for cluster " + cache.getClusterName()
+        + ". took: " + (endTime - startTime) + " ms");
+    updateStageMonitorCounters(endTime - startTime);
   }
 
   private void increaseStateCnt(Map<String, Bounds> stateConstraints, String state,

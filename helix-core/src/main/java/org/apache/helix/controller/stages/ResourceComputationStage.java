@@ -139,6 +139,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
     long endTime = System.currentTimeMillis();
     LOG.info("END ResourceComputationStage.process() for cluster " + cache.getClusterName()
         + ". took: " + (endTime - startTime) + " ms");
+    updateStageMonitorCounters(endTime - startTime);
   }
 
   private void addResource(String resource, Map<String, Resource> resourceMap) {

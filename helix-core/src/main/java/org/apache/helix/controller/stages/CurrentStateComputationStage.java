@@ -148,6 +148,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     long endTime = System.currentTimeMillis();
     LOG.info("END CurrentStateComputationStage.process() for cluster " + cache.getClusterName()
         + ". took: " + (endTime - startTime) + " ms");
+    updateStageMonitorCounters(endTime - startTime);
   }
 
   private void setMessageState(CurrentStateOutput currentStateOutput, String resourceName,

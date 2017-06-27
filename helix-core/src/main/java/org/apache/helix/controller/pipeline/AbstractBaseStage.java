@@ -19,15 +19,23 @@ package org.apache.helix.controller.pipeline;
  * under the License.
  */
 
-import java.util.Map;
-
+import javax.management.JMException;
 import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.monitoring.mbeans.HelixStageLatencyMonitor;
+import org.apache.helix.monitoring.mbeans.ControllerStageMonitor;
+import org.apache.log4j.Logger;
 
 public class AbstractBaseStage implements Stage {
+  private static Logger LOG = Logger.getLogger(AbstractBaseStage.class);
+
+  protected ControllerStageMonitor _monitor;
+
   @Override
   public void init(StageContext context) {
-
+    try {
+      _monitor = new ControllerStageMonitor(getStageName());
+    } catch (JMException e) {
+      LOG.error("Error in creating ControllerStageMonitor for stage: " + getStageName(), e);
+    }
   }
 
   @Override
@@ -54,18 +62,13 @@ public class AbstractBaseStage implements Stage {
   @Override
   public String getStageName() {
     // default stage name will be the class name
-    String className = this.getClass().getName();
+    String className = this.getClass().getSimpleName();
     return className;
   }
 
-  public void addLatencyToMonitor(ClusterEvent event, long latency) {
-    Map<String, HelixStageLatencyMonitor> stgLatencyMonitorMap =
-        event.getAttribute("HelixStageLatencyMonitorMap");
-    if (stgLatencyMonitorMap != null) {
-      if (stgLatencyMonitorMap.containsKey(getStageName())) {
-        HelixStageLatencyMonitor stgLatencyMonitor = stgLatencyMonitorMap.get(getStageName());
-        stgLatencyMonitor.addStgLatency(latency);
-      }
+  public void updateStageMonitorCounters(long latency) {
+    if (_monitor != null) {
+      _monitor.increaseProcessingCounter(latency);
     }
   }
 }

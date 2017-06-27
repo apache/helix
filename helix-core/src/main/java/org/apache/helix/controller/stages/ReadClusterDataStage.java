@@ -95,5 +95,6 @@ public class ReadClusterDataStage extends AbstractBaseStage {
 
     long endTime = System.currentTimeMillis();
     logger.info("END ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");
+    updateStageMonitorCounters(endTime - startTime);
   }
 }

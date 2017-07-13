@@ -1,0 +1,23 @@
+@import '~@angular/material/theming';
+@import 'src/theme.scss';
+
+.node-viewer {
+  padding: 10px;
+}
+
+.primary {
+  color: mat-color($hi-primary);
+}
+
+md-input-container {
+  width: 300px;
+  padding: 10px 0 0 5px;
+}
+
+md-card {
+  margin-bottom: 10px;
+}
+
+ngx-datatable {
+  word-break: break-all;
+}

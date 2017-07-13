@@ -20,7 +20,7 @@
     "@angular/flex-layout": "^2.0.0-beta.8",
     "@angular/forms": "^4.2.2",
     "@angular/http": "^4.2.2",
-    "@angular/material": "^2.0.0-beta.6",
+    "@angular/material": "2.0.0-beta.6",
     "@angular/platform-browser": "^4.2.2",
     "@angular/platform-browser-dynamic": "^4.2.2",
     "@angular/router": "^4.2.2",
@@ -35,7 +35,7 @@
     "zone.js": "^0.8.4"
   },
   "devDependencies": {
-    "@angular/cli": "^1.1.2",
+    "@angular/cli": "^1.2.0",
     "@angular/compiler-cli": "^4.2.2",
     "@types/hammerjs": "^2.0.34",
     "@types/jasmine": "2.5.38",
@@ -54,6 +54,6 @@
     "protractor": "~5.1.0",
     "ts-node": "~2.0.0",
     "tslint": "~4.5.0",
-    "typescript": "~2.2.0"
+    "typescript": "~2.4.0"
   }
 }

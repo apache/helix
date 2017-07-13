@@ -18,7 +18,7 @@ webpackEmptyContext.id = "../../../../../src async recursive";
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_router__ = __webpack_require__("../../../router/@angular/router.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shared_json_viewer_json_viewer_component__ = __webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shared_node_viewer_node_viewer_component__ = __webpack_require__("../../../../../src/app/shared/node-viewer/node-viewer.component.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__cluster_shared_cluster_resolver__ = __webpack_require__("../../../../../src/app/cluster/shared/cluster.resolver.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__cluster_cluster_detail_cluster_detail_component__ = __webpack_require__("../../../../../src/app/cluster/cluster-detail/cluster-detail.component.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__configuration_config_detail_config_detail_component__ = __webpack_require__("../../../../../src/app/configuration/config-detail/config-detail.component.ts");
@@ -122,14 +122,14 @@ var HELIX_ROUTES = [
             },
             {
                 path: 'externalView',
-                component: __WEBPACK_IMPORTED_MODULE_1__shared_json_viewer_json_viewer_component__["a" /* JsonViewerComponent */],
+                component: __WEBPACK_IMPORTED_MODULE_1__shared_node_viewer_node_viewer_component__["a" /* NodeViewerComponent */],
                 data: {
                     path: 'resource.externalView'
                 }
             },
             {
                 path: 'idealState',
-                component: __WEBPACK_IMPORTED_MODULE_1__shared_json_viewer_json_viewer_component__["a" /* JsonViewerComponent */],
+                component: __WEBPACK_IMPORTED_MODULE_1__shared_node_viewer_node_viewer_component__["a" /* NodeViewerComponent */],
                 data: {
                     path: 'resource.idealState'
                 }
@@ -276,18 +276,18 @@ var AppComponent = (function () {
             console.log(result);
         });
     };
+    AppComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-root',
+            template: __webpack_require__("../../../../../src/app/app.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/app.component.scss")]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MdDialog */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MdDialog */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_3__angular_flex_layout__["b" /* ObservableMedia */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_3__angular_flex_layout__["b" /* ObservableMedia */]) === "function" && _b || Object, typeof (_c = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _c || Object, typeof (_d = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */]) === "function" && _d || Object, typeof (_e = typeof __WEBPACK_IMPORTED_MODULE_4_angulartics2__["b" /* Angulartics2Piwik */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_4_angulartics2__["b" /* Angulartics2Piwik */]) === "function" && _e || Object])
+    ], AppComponent);
     return AppComponent;
+    var _a, _b, _c, _d, _e;
 }());
-AppComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-root',
-        template: __webpack_require__("../../../../../src/app/app.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/app.component.scss")]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MdDialog */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MdDialog */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_3__angular_flex_layout__["b" /* ObservableMedia */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_3__angular_flex_layout__["b" /* ObservableMedia */]) === "function" && _b || Object, typeof (_c = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _c || Object, typeof (_d = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */]) === "function" && _d || Object, typeof (_e = typeof __WEBPACK_IMPORTED_MODULE_4_angulartics2__["b" /* Angulartics2Piwik */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_4_angulartics2__["b" /* Angulartics2Piwik */]) === "function" && _e || Object])
-], AppComponent);
 
-var _a, _b, _c, _d, _e;
 //# sourceMappingURL=app.component.js.map
 
 /***/ }),
@@ -340,34 +340,34 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var AppModule = (function () {
     function AppModule() {
     }
+    AppModule = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["NgModule"])({
+            declarations: [
+                __WEBPACK_IMPORTED_MODULE_16__app_component__["a" /* AppComponent */]
+            ],
+            imports: [
+                __WEBPACK_IMPORTED_MODULE_0__angular_platform_browser__["BrowserModule"],
+                __WEBPACK_IMPORTED_MODULE_2__angular_forms__["a" /* FormsModule */],
+                __WEBPACK_IMPORTED_MODULE_3__angular_http__["a" /* HttpModule */],
+                __WEBPACK_IMPORTED_MODULE_7__app_routing_module__["a" /* AppRoutingModule */],
+                __WEBPACK_IMPORTED_MODULE_6_angulartics2__["a" /* Angulartics2Module */].forRoot([__WEBPACK_IMPORTED_MODULE_6_angulartics2__["b" /* Angulartics2Piwik */]]),
+                __WEBPACK_IMPORTED_MODULE_8__core_core_module__["a" /* CoreModule */],
+                __WEBPACK_IMPORTED_MODULE_9__shared_shared_module__["a" /* SharedModule */],
+                __WEBPACK_IMPORTED_MODULE_4__angular_flex_layout__["a" /* FlexLayoutModule */],
+                __WEBPACK_IMPORTED_MODULE_5__angular_material__["a" /* MaterialModule */],
+                __WEBPACK_IMPORTED_MODULE_10__cluster_cluster_module__["a" /* ClusterModule */],
+                __WEBPACK_IMPORTED_MODULE_11__configuration_configuration_module__["a" /* ConfigurationModule */],
+                __WEBPACK_IMPORTED_MODULE_12__instance_instance_module__["a" /* InstanceModule */],
+                __WEBPACK_IMPORTED_MODULE_13__resource_resource_module__["a" /* ResourceModule */],
+                __WEBPACK_IMPORTED_MODULE_14__controller_controller_module__["a" /* ControllerModule */],
+                __WEBPACK_IMPORTED_MODULE_15__history_history_module__["a" /* HistoryModule */]
+            ],
+            providers: [],
+            bootstrap: [__WEBPACK_IMPORTED_MODULE_16__app_component__["a" /* AppComponent */]]
+        })
+    ], AppModule);
     return AppModule;
 }());
-AppModule = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["NgModule"])({
-        declarations: [
-            __WEBPACK_IMPORTED_MODULE_16__app_component__["a" /* AppComponent */]
-        ],
-        imports: [
-            __WEBPACK_IMPORTED_MODULE_0__angular_platform_browser__["BrowserModule"],
-            __WEBPACK_IMPORTED_MODULE_2__angular_forms__["a" /* FormsModule */],
-            __WEBPACK_IMPORTED_MODULE_3__angular_http__["a" /* HttpModule */],
-            __WEBPACK_IMPORTED_MODULE_7__app_routing_module__["a" /* AppRoutingModule */],
-            __WEBPACK_IMPORTED_MODULE_6_angulartics2__["a" /* Angulartics2Module */].forRoot([__WEBPACK_IMPORTED_MODULE_6_angulartics2__["b" /* Angulartics2Piwik */]]),
-            __WEBPACK_IMPORTED_MODULE_8__core_core_module__["a" /* CoreModule */],
-            __WEBPACK_IMPORTED_MODULE_9__shared_shared_module__["a" /* SharedModule */],
-            __WEBPACK_IMPORTED_MODULE_4__angular_flex_layout__["a" /* FlexLayoutModule */],
-            __WEBPACK_IMPORTED_MODULE_5__angular_material__["a" /* MaterialModule */],
-            __WEBPACK_IMPORTED_MODULE_10__cluster_cluster_module__["a" /* ClusterModule */],
-            __WEBPACK_IMPORTED_MODULE_11__configuration_configuration_module__["a" /* ConfigurationModule */],
-            __WEBPACK_IMPORTED_MODULE_12__instance_instance_module__["a" /* InstanceModule */],
-            __WEBPACK_IMPORTED_MODULE_13__resource_resource_module__["a" /* ResourceModule */],
-            __WEBPACK_IMPORTED_MODULE_14__controller_controller_module__["a" /* ControllerModule */],
-            __WEBPACK_IMPORTED_MODULE_15__history_history_module__["a" /* HistoryModule */]
-        ],
-        providers: [],
-        bootstrap: [__WEBPACK_IMPORTED_MODULE_16__app_component__["a" /* AppComponent */]]
-    })
-], AppModule);
 
 //# sourceMappingURL=app.module.js.map
 
@@ -429,18 +429,18 @@ var ClusterDetailComponent = (function () {
         var _this = this;
         this.route.data.subscribe(function (data) { return _this.cluster = data.cluster; });
     };
+    ClusterDetailComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-cluster-detail',
+            template: __webpack_require__("../../../../../src/app/cluster/cluster-detail/cluster-detail.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/cluster/cluster-detail/cluster-detail.component.scss")]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
+    ], ClusterDetailComponent);
     return ClusterDetailComponent;
+    var _a;
 }());
-ClusterDetailComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-cluster-detail',
-        template: __webpack_require__("../../../../../src/app/cluster/cluster-detail/cluster-detail.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/cluster/cluster-detail/cluster-detail.component.scss")]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
-], ClusterDetailComponent);
 
-var _a;
 //# sourceMappingURL=cluster-detail.component.js.map
 
 /***/ }),
@@ -519,19 +519,19 @@ var ClusterListComponent = (function () {
             }
         });
     };
+    ClusterListComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-cluster-list',
+            template: __webpack_require__("../../../../../src/app/cluster/cluster-list/cluster-list.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/cluster/cluster-list/cluster-list.component.scss")],
+            providers: [__WEBPACK_IMPORTED_MODULE_2__shared_cluster_service__["a" /* ClusterService */]]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_2__shared_cluster_service__["a" /* ClusterService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_cluster_service__["a" /* ClusterService */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_material__["b" /* MdDialog */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_material__["b" /* MdDialog */]) === "function" && _b || Object])
+    ], ClusterListComponent);
     return ClusterListComponent;
+    var _a, _b;
 }());
-ClusterListComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-cluster-list',
-        template: __webpack_require__("../../../../../src/app/cluster/cluster-list/cluster-list.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/cluster/cluster-list/cluster-list.component.scss")],
-        providers: [__WEBPACK_IMPORTED_MODULE_2__shared_cluster_service__["a" /* ClusterService */]]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_2__shared_cluster_service__["a" /* ClusterService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_cluster_service__["a" /* ClusterService */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_material__["b" /* MdDialog */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_material__["b" /* MdDialog */]) === "function" && _b || Object])
-], ClusterListComponent);
 
-var _a, _b;
 //# sourceMappingURL=cluster-list.component.js.map
 
 /***/ }),
@@ -577,33 +577,33 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var ClusterModule = (function () {
     function ClusterModule() {
     }
+    ClusterModule = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
+            imports: [
+                __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
+                __WEBPACK_IMPORTED_MODULE_2__angular_http__["a" /* HttpModule */],
+                __WEBPACK_IMPORTED_MODULE_3__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_4__angular_material__["a" /* MaterialModule */],
+                __WEBPACK_IMPORTED_MODULE_5__angular_platform_browser_animations__["a" /* BrowserAnimationsModule */],
+                __WEBPACK_IMPORTED_MODULE_7__angular_flex_layout__["a" /* FlexLayoutModule */],
+                __WEBPACK_IMPORTED_MODULE_8__shared_shared_module__["a" /* SharedModule */]
+            ],
+            declarations: [
+                __WEBPACK_IMPORTED_MODULE_11__cluster_list_cluster_list_component__["a" /* ClusterListComponent */],
+                __WEBPACK_IMPORTED_MODULE_12__cluster_detail_cluster_detail_component__["a" /* ClusterDetailComponent */]
+            ],
+            providers: [
+                __WEBPACK_IMPORTED_MODULE_9__shared_cluster_service__["a" /* ClusterService */],
+                __WEBPACK_IMPORTED_MODULE_10__shared_cluster_resolver__["a" /* ClusterResolver */]
+            ],
+            exports: [
+                __WEBPACK_IMPORTED_MODULE_11__cluster_list_cluster_list_component__["a" /* ClusterListComponent */],
+                __WEBPACK_IMPORTED_MODULE_12__cluster_detail_cluster_detail_component__["a" /* ClusterDetailComponent */]
+            ]
+        })
+    ], ClusterModule);
     return ClusterModule;
 }());
-ClusterModule = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
-        imports: [
-            __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-            __WEBPACK_IMPORTED_MODULE_2__angular_http__["a" /* HttpModule */],
-            __WEBPACK_IMPORTED_MODULE_3__angular_router__["a" /* RouterModule */],
-            __WEBPACK_IMPORTED_MODULE_4__angular_material__["a" /* MaterialModule */],
-            __WEBPACK_IMPORTED_MODULE_5__angular_platform_browser_animations__["a" /* BrowserAnimationsModule */],
-            __WEBPACK_IMPORTED_MODULE_7__angular_flex_layout__["a" /* FlexLayoutModule */],
-            __WEBPACK_IMPORTED_MODULE_8__shared_shared_module__["a" /* SharedModule */]
-        ],
-        declarations: [
-            __WEBPACK_IMPORTED_MODULE_11__cluster_list_cluster_list_component__["a" /* ClusterListComponent */],
-            __WEBPACK_IMPORTED_MODULE_12__cluster_detail_cluster_detail_component__["a" /* ClusterDetailComponent */]
-        ],
-        providers: [
-            __WEBPACK_IMPORTED_MODULE_9__shared_cluster_service__["a" /* ClusterService */],
-            __WEBPACK_IMPORTED_MODULE_10__shared_cluster_resolver__["a" /* ClusterResolver */]
-        ],
-        exports: [
-            __WEBPACK_IMPORTED_MODULE_11__cluster_list_cluster_list_component__["a" /* ClusterListComponent */],
-            __WEBPACK_IMPORTED_MODULE_12__cluster_detail_cluster_detail_component__["a" /* ClusterDetailComponent */]
-        ]
-    })
-], ClusterModule);
 
 //# sourceMappingURL=cluster.module.js.map
 
@@ -661,14 +661,14 @@ var ClusterResolver = (function () {
     ClusterResolver.prototype.resolve = function (route) {
         return this.clusterService.get(route.paramMap.get('name'));
     };
+    ClusterResolver = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])(),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__cluster_service__["a" /* ClusterService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__cluster_service__["a" /* ClusterService */]) === "function" && _a || Object])
+    ], ClusterResolver);
     return ClusterResolver;
+    var _a;
 }());
-ClusterResolver = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])(),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__cluster_service__["a" /* ClusterService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__cluster_service__["a" /* ClusterService */]) === "function" && _a || Object])
-], ClusterResolver);
 
-var _a;
 //# sourceMappingURL=cluster.resolver.js.map
 
 /***/ }),
@@ -722,11 +722,11 @@ var ClusterService = (function (_super) {
             return new __WEBPACK_IMPORTED_MODULE_1__cluster_model__["a" /* Cluster */](data);
         });
     };
+    ClusterService = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
+    ], ClusterService);
     return ClusterService;
 }(__WEBPACK_IMPORTED_MODULE_2__core_helix_service__["a" /* HelixService */]));
-ClusterService = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
-], ClusterService);
 
 //# sourceMappingURL=cluster.service.js.map
 
@@ -735,7 +735,7 @@ ClusterService = __decorate([
 /***/ "../../../../../src/app/configuration/config-detail/config-detail.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<section>\n  <section fxLayout=\"row\" fxLayoutAlign=\"center center\">\n    <md-icon>search</md-icon>\n    <md-input-container>\n      <input mdInput\n        placeholder=\"Type to filter the configurations...\"\n        (keyup)=\"updateFilter($event)\"/>\n    </md-input-container>\n  </section>\n  <md-card>\n    <md-card-header>\n      <md-card-title>\n        Simple Fields\n        <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n      </md-card-title>\n    </md-card-header>\n    <md-card-content>\n      <ngx-datatable\n        #simpleTable\n        class=\"material\"\n        [headerHeight]=\"rowHeight\"\n        rowHeight=\"auto\"\n        [footerHeight]=\"rowHeight\"\n        columnMode=\"force\"\n        [rows]=\"simpleConfigs\"\n        [sorts]=\"sorts\"\n        [limit]=\"20\"\n        [loadingIndicator]=\"isLoading\">\n        <ngx-datatable-column name=\"Name\" [cellClass]=\"getNameCellClass\"></ngx-datatable-column>\n        <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n      </ngx-datatable>\n    </md-card-content>\n  </md-card>\n  <md-card>\n    <md-card-header>\n      <md-card-title>\n        List Fields\n        <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n      </md-card-title>\n    </md-card-header>\n    <md-card-content>\n      <ngx-datatable\n        #listTable\n        class=\"material\"\n        [headerHeight]=\"rowHeight\"\n        rowHeight=\"auto\"\n        [footerHeight]=\"rowHeight\"\n        columnMode=\"force\"\n        [rows]=\"listConfigs\"\n        [sorts]=\"sorts\"\n        [limit]=\"10\"\n        [loadingIndicator]=\"isLoading\">\n        <ngx-datatable-column name=\"Name\" [width]=\"80\"></ngx-datatable-column>\n        <ngx-datatable-column name=\"Value\" [width]=\"400\">\n          <ng-template let-value=\"value\" ngx-datatable-cell-template>\n            <ngx-datatable\n              class=\"material\"\n              [headerHeight]=\"rowHeight\"\n              rowHeight=\"auto\"\n              columnMode=\"force\"\n              [rows]=\"value\">\n              <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n            </ngx-datatable>\n          </ng-template>\n        </ngx-datatable-column>\n      </ngx-datatable>\n    </md-card-content>\n  </md-card>\n  <md-card>\n    <md-card-header>\n      <md-card-title>\n        Map Fields\n        <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n      </md-card-title>\n    </md-card-header>\n    <md-card-content>\n      <ngx-datatable\n        #mapTable\n        class=\"material\"\n        [headerHeight]=\"rowHeight\"\n        rowHeight=\"auto\"\n        [footerHeight]=\"rowHeight\"\n        columnMode=\"force\"\n        [rows]=\"mapConfigs\"\n        [sorts]=\"sorts\"\n        [limit]=\"10\"\n        [loadingIndicator]=\"isLoading\">\n        <ngx-datatable-column name=\"Name\" [width]=\"80\"></ngx-datatable-column>\n        <ngx-datatable-column name=\"Value\" [width]=\"500\">\n          <ng-template let-value=\"value\" ngx-datatable-cell-template>\n            <ngx-datatable\n              class=\"material\"\n              [headerHeight]=\"rowHeight\"\n              rowHeight=\"auto\"\n              columnMode=\"force\"\n              [rows]=\"value\"\n              [sorts]=\"sorts\">\n              <ngx-datatable-column name=\"Name\"></ngx-datatable-column>\n              <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n            </ngx-datatable>\n          </ng-template>\n        </ngx-datatable-column>\n      </ngx-datatable>\n    </md-card-content>\n  </md-card>\n</section>\n"
+module.exports = "<section>\n\n  <!-- TODO vxu: implement loading -->\n\n  <hi-node-viewer [obj]=\"obj\"></hi-node-viewer>\n</section>\n"
 
 /***/ }),
 
@@ -764,8 +764,6 @@ module.exports = module.exports.toString();
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_router__ = __webpack_require__("../../../router/@angular/router.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__ = __webpack_require__("../../../../../src/app/configuration/shared/configuration.service.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_lodash__ = __webpack_require__("../../../../lodash/lodash.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_lodash___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3_lodash__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ConfigDetailComponent; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -779,56 +777,13 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 
 
 
-
 var ConfigDetailComponent = (function () {
     function ConfigDetailComponent(route, serivce) {
         this.route = route;
         this.serivce = serivce;
         this.isLoading = true;
-        this.rowHeight = 40;
-        this.sorts = [
-            { prop: 'name', dir: 'asc' }
-        ];
-        this.keyword = '';
+        this.obj = {};
     }
-    Object.defineProperty(ConfigDetailComponent.prototype, "simpleConfigs", {
-        get: function () {
-            var _this = this;
-            return __WEBPACK_IMPORTED_MODULE_3_lodash__["filter"](this._simpleConfigs, function (config) {
-                return config.name.toLowerCase().indexOf(_this.keyword) >= 0
-                    || config.value.toLowerCase().indexOf(_this.keyword) >= 0;
-            });
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(ConfigDetailComponent.prototype, "listConfigs", {
-        get: function () {
-            var _this = this;
-            return __WEBPACK_IMPORTED_MODULE_3_lodash__["filter"](this._listConfigs, function (config) {
-                return config.name.toLowerCase().indexOf(_this.keyword) >= 0
-                    || __WEBPACK_IMPORTED_MODULE_3_lodash__["some"](config.value, function (subconfig) {
-                        return subconfig.value.toLowerCase().indexOf(_this.keyword) >= 0;
-                    });
-            });
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(ConfigDetailComponent.prototype, "mapConfigs", {
-        get: function () {
-            var _this = this;
-            return __WEBPACK_IMPORTED_MODULE_3_lodash__["filter"](this._mapConfigs, function (config) {
-                return config.name.toLowerCase().indexOf(_this.keyword) >= 0
-                    || __WEBPACK_IMPORTED_MODULE_3_lodash__["some"](config.value, function (subconfig) {
-                        return subconfig.name.toLowerCase().indexOf(_this.keyword) >= 0
-                            || subconfig.value.toLowerCase().indexOf(_this.keyword) >= 0;
-                    });
-            });
-        },
-        enumerable: true,
-        configurable: true
-    });
     ConfigDetailComponent.prototype.ngOnInit = function () {
         var _this = this;
         if (this.route.parent) {
@@ -837,13 +792,13 @@ var ConfigDetailComponent = (function () {
                 this.isLoading = true;
                 this.serivce
                     .getInstanceConfig(this.route.parent.snapshot.params.cluster_name, this.route.parent.snapshot.params.instance_name)
-                    .subscribe(function (config) { return _this.parseConfigs(config); }, function (error) { return _this.handleError(error); }, function () { return _this.isLoading = false; });
+                    .subscribe(function (config) { return _this.obj = config; }, function (error) { return _this.handleError(error); }, function () { return _this.isLoading = false; });
             }
             else if (this.route.snapshot.data.forResource) {
                 this.isLoading = true;
                 this.serivce
                     .getResourceConfig(this.route.parent.snapshot.params.cluster_name, this.route.parent.snapshot.params.resource_name)
-                    .subscribe(function (config) { return _this.parseConfigs(config); }, function (error) { return _this.handleError(error); }, function () { return _this.isLoading = false; });
+                    .subscribe(function (config) { return _this.obj = config; }, function (error) { return _this.handleError(error); }, function () { return _this.isLoading = false; });
             }
             else {
                 this.route.parent.data
@@ -851,92 +806,28 @@ var ConfigDetailComponent = (function () {
                     _this.isLoading = true;
                     _this.serivce
                         .getClusterConfig(data.cluster.name)
-                        .subscribe(function (config) { return _this.parseConfigs(config); }, function (error) { return _this.handleError(error); }, function () { return _this.isLoading = false; });
+                        .subscribe(function (config) { return _this.obj = config; }, function (error) { return _this.handleError(error); }, function () { return _this.isLoading = false; });
                 });
             }
-        }
-    };
-    ConfigDetailComponent.prototype.updateFilter = function (event) {
-        this.keyword = event.target.value.toLowerCase().trim();
-        // Whenever the filter changes, always go back to the first page
-        this.simpleTable.offset = 0;
-        this.listTable.offset = 0;
-        this.mapTable.offset = 0;
-    };
-    ConfigDetailComponent.prototype.getNameCellClass = function (_a) {
-        var value = _a.value;
-        return {
-            // highlight HELIX own configs
-            'primary': value.toUpperCase() == value
-        };
-    };
-    ConfigDetailComponent.prototype.parseConfigs = function (value) {
-        var _this = this;
-        if (value) {
-            this._simpleConfigs = this.keyValueToArray(value['simpleFields']);
-            this._listConfigs = [];
-            __WEBPACK_IMPORTED_MODULE_3_lodash__["forOwn"](value['listFields'], function (v, k) {
-                _this._listConfigs.push({
-                    name: k,
-                    value: __WEBPACK_IMPORTED_MODULE_3_lodash__["map"](v, function (item) {
-                        return {
-                            value: item
-                        };
-                    })
-                });
-            });
-            this._mapConfigs = [];
-            __WEBPACK_IMPORTED_MODULE_3_lodash__["forOwn"](value['mapFields'], function (v, k) {
-                _this._mapConfigs.push({
-                    name: k,
-                    value: _this.keyValueToArray(v)
-                });
-            });
         }
     };
     ConfigDetailComponent.prototype.handleError = function (error) {
         // the API says if there's no config just return 404 ! sucks!
         this.isLoading = false;
     };
-    // Converting simpleFields to format like rows
-    ConfigDetailComponent.prototype.keyValueToArray = function (obj) {
-        var result = [];
-        for (var k in obj) {
-            result.push({
-                name: k,
-                value: obj[k]
-            });
-        }
-        return result;
-    };
+    ConfigDetailComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-config-detail',
+            template: __webpack_require__("../../../../../src/app/configuration/config-detail/config-detail.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/configuration/config-detail/config-detail.component.scss")],
+            providers: [__WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */]]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */]) === "function" && _b || Object])
+    ], ConfigDetailComponent);
     return ConfigDetailComponent;
+    var _a, _b;
 }());
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('simpleTable'),
-    __metadata("design:type", Object)
-], ConfigDetailComponent.prototype, "simpleTable", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('listTable'),
-    __metadata("design:type", Object)
-], ConfigDetailComponent.prototype, "listTable", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('mapTable'),
-    __metadata("design:type", Object)
-], ConfigDetailComponent.prototype, "mapTable", void 0);
-ConfigDetailComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-config-detail',
-        template: __webpack_require__("../../../../../src/app/configuration/config-detail/config-detail.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/configuration/config-detail/config-detail.component.scss")],
-        providers: [__WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */]],
-        // Since we are importing external styles in this component
-        // we will not use Shadow DOM at all to make sure the styles apply
-        encapsulation: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewEncapsulation"].None
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */]) === "function" && _b || Object])
-], ConfigDetailComponent);
 
-var _a, _b;
 //# sourceMappingURL=config-detail.component.js.map
 
 /***/ }),
@@ -947,11 +838,8 @@ var _a, _b;
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_material__ = __webpack_require__("../../../material/@angular/material.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_flex_layout__ = __webpack_require__("../../../flex-layout/index.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__ = __webpack_require__("../../../../@swimlane/ngx-datatable/release/index.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__config_detail_config_detail_component__ = __webpack_require__("../../../../../src/app/configuration/config-detail/config-detail.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shared_shared_module__ = __webpack_require__("../../../../../src/app/shared/shared.module.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__config_detail_config_detail_component__ = __webpack_require__("../../../../../src/app/configuration/config-detail/config-detail.component.ts");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ConfigurationModule; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -963,29 +851,25 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 
 
 
-
-
 var ConfigurationModule = (function () {
     function ConfigurationModule() {
     }
+    ConfigurationModule = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
+            imports: [
+                __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
+                __WEBPACK_IMPORTED_MODULE_2__shared_shared_module__["a" /* SharedModule */]
+            ],
+            declarations: [
+                __WEBPACK_IMPORTED_MODULE_3__config_detail_config_detail_component__["a" /* ConfigDetailComponent */]
+            ],
+            exports: [
+                __WEBPACK_IMPORTED_MODULE_3__config_detail_config_detail_component__["a" /* ConfigDetailComponent */]
+            ]
+        })
+    ], ConfigurationModule);
     return ConfigurationModule;
 }());
-ConfigurationModule = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
-        imports: [
-            __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-            __WEBPACK_IMPORTED_MODULE_2__angular_material__["a" /* MaterialModule */],
-            __WEBPACK_IMPORTED_MODULE_3__angular_flex_layout__["a" /* FlexLayoutModule */],
-            __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__["NgxDatatableModule"]
-        ],
-        declarations: [
-            __WEBPACK_IMPORTED_MODULE_5__config_detail_config_detail_component__["a" /* ConfigDetailComponent */]
-        ],
-        exports: [
-            __WEBPACK_IMPORTED_MODULE_5__config_detail_config_detail_component__["a" /* ConfigDetailComponent */]
-        ]
-    })
-], ConfigurationModule);
 
 //# sourceMappingURL=configuration.module.js.map
 
@@ -1030,11 +914,11 @@ var ConfigurationService = (function (_super) {
     ConfigurationService.prototype.getResourceConfig = function (clusterName, resourceName) {
         return this.request("/clusters/" + clusterName + "/resources/" + resourceName + "/configs");
     };
+    ConfigurationService = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
+    ], ConfigurationService);
     return ConfigurationService;
 }(__WEBPACK_IMPORTED_MODULE_1__core_helix_service__["a" /* HelixService */]));
-ConfigurationService = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
-], ConfigurationService);
 
 //# sourceMappingURL=configuration.service.js.map
 
@@ -1098,19 +982,19 @@ var ControllerDetailComponent = (function () {
             .get(this.clusterName)
             .subscribe(function (controller) { return _this.controller = controller; }, function (error) { }, function () { return _this.isLoading = false; });
     };
+    ControllerDetailComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-controller-detail',
+            template: __webpack_require__("../../../../../src/app/controller/controller-detail/controller-detail.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/controller/controller-detail/controller-detail.component.scss")],
+            providers: [__WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */]]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */]) === "function" && _b || Object])
+    ], ControllerDetailComponent);
     return ControllerDetailComponent;
+    var _a, _b;
 }());
-ControllerDetailComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-controller-detail',
-        template: __webpack_require__("../../../../../src/app/controller/controller-detail/controller-detail.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/controller/controller-detail/controller-detail.component.scss")],
-        providers: [__WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */]]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */]) === "function" && _b || Object])
-], ControllerDetailComponent);
 
-var _a, _b;
 //# sourceMappingURL=controller-detail.component.js.map
 
 /***/ }),
@@ -1141,19 +1025,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var ControllerModule = (function () {
     function ControllerModule() {
     }
+    ControllerModule = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
+            imports: [
+                __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
+                __WEBPACK_IMPORTED_MODULE_3__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_material__["a" /* MaterialModule */],
+                __WEBPACK_IMPORTED_MODULE_4__shared_shared_module__["a" /* SharedModule */]
+            ],
+            declarations: [__WEBPACK_IMPORTED_MODULE_5__controller_detail_controller_detail_component__["a" /* ControllerDetailComponent */]]
+        })
+    ], ControllerModule);
     return ControllerModule;
 }());
-ControllerModule = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
-        imports: [
-            __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-            __WEBPACK_IMPORTED_MODULE_3__angular_router__["a" /* RouterModule */],
-            __WEBPACK_IMPORTED_MODULE_2__angular_material__["a" /* MaterialModule */],
-            __WEBPACK_IMPORTED_MODULE_4__shared_shared_module__["a" /* SharedModule */]
-        ],
-        declarations: [__WEBPACK_IMPORTED_MODULE_5__controller_detail_controller_detail_component__["a" /* ControllerDetailComponent */]]
-    })
-], ControllerModule);
 
 //# sourceMappingURL=controller.module.js.map
 
@@ -1218,11 +1102,11 @@ var ControllerService = (function (_super) {
             return new __WEBPACK_IMPORTED_MODULE_2__controller_model__["a" /* Controller */](data.controller, clusterName, data.LIVE_INSTANCE, data.SESSION_ID, data.HELIX_VERSION);
         });
     };
+    ControllerService = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
+    ], ControllerService);
     return ControllerService;
 }(__WEBPACK_IMPORTED_MODULE_1__core_helix_service__["a" /* HelixService */]));
-ControllerService = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
-], ControllerService);
 
 //# sourceMappingURL=controller.service.js.map
 
@@ -1246,16 +1130,16 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var CoreModule = (function () {
     function CoreModule() {
     }
+    CoreModule = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
+            imports: [
+                __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"]
+            ],
+            declarations: []
+        })
+    ], CoreModule);
     return CoreModule;
 }());
-CoreModule = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
-        imports: [
-            __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"]
-        ],
-        declarations: []
-    })
-], CoreModule);
 
 //# sourceMappingURL=core.module.js.map
 
@@ -1304,15 +1188,31 @@ var HelixService = (function () {
         console.error(error);
         return __WEBPACK_IMPORTED_MODULE_2_rxjs_Rx__["Observable"].throw(message);
     };
+    HelixService = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])(),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_http__["c" /* Http */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_http__["c" /* Http */]) === "function" && _a || Object])
+    ], HelixService);
     return HelixService;
+    var _a;
 }());
-HelixService = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])(),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_http__["c" /* Http */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_http__["c" /* Http */]) === "function" && _a || Object])
-], HelixService);
 
-var _a;
 //# sourceMappingURL=helix.service.js.map
+
+/***/ }),
+
+/***/ "../../../../../src/app/core/settings.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Settings; });
+var Settings = (function () {
+    function Settings() {
+    }
+    Settings.tableRowHeight = 40;
+    return Settings;
+}());
+
+//# sourceMappingURL=settings.js.map
 
 /***/ }),
 
@@ -1400,21 +1300,21 @@ var HistoryListComponent = (function () {
             'current': value == this.rows[this.rows.length - 1].session
         };
     };
+    HistoryListComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-history-list',
+            template: __webpack_require__("../../../../../src/app/history/history-list/history-list.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/history/history-list/history-list.component.scss")],
+            providers: [__WEBPACK_IMPORTED_MODULE_3__shared_history_service__["a" /* HistoryService */]],
+            // FIXME: have to turn off shadow dom or .current-controller won't work
+            encapsulation: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewEncapsulation"].None
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_3__shared_history_service__["a" /* HistoryService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_3__shared_history_service__["a" /* HistoryService */]) === "function" && _b || Object])
+    ], HistoryListComponent);
     return HistoryListComponent;
+    var _a, _b;
 }());
-HistoryListComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-history-list',
-        template: __webpack_require__("../../../../../src/app/history/history-list/history-list.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/history/history-list/history-list.component.scss")],
-        providers: [__WEBPACK_IMPORTED_MODULE_3__shared_history_service__["a" /* HistoryService */]],
-        // FIXME: have to turn off shadow dom or .current-controller won't work
-        encapsulation: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewEncapsulation"].None
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_3__shared_history_service__["a" /* HistoryService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_3__shared_history_service__["a" /* HistoryService */]) === "function" && _b || Object])
-], HistoryListComponent);
 
-var _a, _b;
 //# sourceMappingURL=history-list.component.js.map
 
 /***/ }),
@@ -1448,20 +1348,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var HistoryModule = (function () {
     function HistoryModule() {
     }
+    HistoryModule = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
+            imports: [
+                __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
+                __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
+                __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__["NgxDatatableModule"],
+                __WEBPACK_IMPORTED_MODULE_5_ngx_clipboard__["a" /* ClipboardModule */]
+            ],
+            declarations: [__WEBPACK_IMPORTED_MODULE_6__history_list_history_list_component__["a" /* HistoryListComponent */]]
+        })
+    ], HistoryModule);
     return HistoryModule;
 }());
-HistoryModule = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
-        imports: [
-            __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-            __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
-            __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
-            __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__["NgxDatatableModule"],
-            __WEBPACK_IMPORTED_MODULE_5_ngx_clipboard__["a" /* ClipboardModule */]
-        ],
-        declarations: [__WEBPACK_IMPORTED_MODULE_6__history_list_history_list_component__["a" /* HistoryListComponent */]]
-    })
-], HistoryModule);
 
 //# sourceMappingURL=history.module.js.map
 
@@ -1560,11 +1460,11 @@ var HistoryService = (function (_super) {
         }
         return histories;
     };
+    HistoryService = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
+    ], HistoryService);
     return HistoryService;
 }(__WEBPACK_IMPORTED_MODULE_2__core_helix_service__["a" /* HelixService */]));
-HistoryService = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
-], HistoryService);
 
 //# sourceMappingURL=history.service.js.map
 
@@ -1633,19 +1533,19 @@ var InstanceDetailComponent = (function () {
             .get(this.clusterName, this.route.snapshot.params['instance_name'])
             .subscribe(function (instance) { return _this.instance = instance; }, function (error) { }, function () { return _this.isLoading = false; });
     };
+    InstanceDetailComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-instance-detail',
+            template: __webpack_require__("../../../../../src/app/instance/instance-detail/instance-detail.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/instance/instance-detail/instance-detail.component.scss")],
+            providers: [__WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */]]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */]) === "function" && _b || Object])
+    ], InstanceDetailComponent);
     return InstanceDetailComponent;
+    var _a, _b;
 }());
-InstanceDetailComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-instance-detail',
-        template: __webpack_require__("../../../../../src/app/instance/instance-detail/instance-detail.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/instance/instance-detail/instance-detail.component.scss")],
-        providers: [__WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */]]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */]) === "function" && _b || Object])
-], InstanceDetailComponent);
 
-var _a, _b;
 //# sourceMappingURL=instance-detail.component.js.map
 
 /***/ }),
@@ -1714,18 +1614,18 @@ var InstanceListComponent = (function () {
         var row = selected[0];
         this.router.navigate(['/clusters', row.clusterName, 'instances', row.name]);
     };
+    InstanceListComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-instance-list',
+            template: __webpack_require__("../../../../../src/app/instance/instance-list/instance-list.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/instance/instance-list/instance-list.component.scss")]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */]) === "function" && _b || Object])
+    ], InstanceListComponent);
     return InstanceListComponent;
+    var _a, _b;
 }());
-InstanceListComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-instance-list',
-        template: __webpack_require__("../../../../../src/app/instance/instance-list/instance-list.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/instance/instance-list/instance-list.component.scss")]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */]) === "function" && _b || Object])
-], InstanceListComponent);
 
-var _a, _b;
 //# sourceMappingURL=instance-list.component.js.map
 
 /***/ }),
@@ -1761,20 +1661,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var InstanceModule = (function () {
     function InstanceModule() {
     }
+    InstanceModule = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
+            imports: [
+                __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
+                __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
+                __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__["NgxDatatableModule"],
+                __WEBPACK_IMPORTED_MODULE_5__shared_shared_module__["a" /* SharedModule */]
+            ],
+            declarations: [__WEBPACK_IMPORTED_MODULE_6__instance_list_instance_list_component__["a" /* InstanceListComponent */], __WEBPACK_IMPORTED_MODULE_7__instance_detail_instance_detail_component__["a" /* InstanceDetailComponent */]]
+        })
+    ], InstanceModule);
     return InstanceModule;
 }());
-InstanceModule = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
-        imports: [
-            __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-            __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
-            __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
-            __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__["NgxDatatableModule"],
-            __WEBPACK_IMPORTED_MODULE_5__shared_shared_module__["a" /* SharedModule */]
-        ],
-        declarations: [__WEBPACK_IMPORTED_MODULE_6__instance_list_instance_list_component__["a" /* InstanceListComponent */], __WEBPACK_IMPORTED_MODULE_7__instance_detail_instance_detail_component__["a" /* InstanceDetailComponent */]]
-    })
-], InstanceModule);
 
 //# sourceMappingURL=instance.module.js.map
 
@@ -1840,11 +1740,11 @@ var InstanceService = (function (_super) {
             return liveInstance && liveInstance.simpleFields ? new __WEBPACK_IMPORTED_MODULE_1__instance_model__["a" /* Instance */](data.id, clusterName, liveInstance.simpleFields.LIVE_INSTANCE, liveInstance.simpleFields.SESSION_ID, liveInstance.simpleFields.HELIX_VERSION) : new __WEBPACK_IMPORTED_MODULE_1__instance_model__["a" /* Instance */](data.id, clusterName, false);
         });
     };
+    InstanceService = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
+    ], InstanceService);
     return InstanceService;
 }(__WEBPACK_IMPORTED_MODULE_2__core_helix_service__["a" /* HelixService */]));
-InstanceService = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
-], InstanceService);
 
 //# sourceMappingURL=instance.service.js.map
 
@@ -1899,27 +1799,27 @@ var PartitionDetailComponent = (function () {
     }
     PartitionDetailComponent.prototype.ngOnInit = function () {
     };
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", String)
+    ], PartitionDetailComponent.prototype, "clusterName", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__shared_resource_model__["a" /* Partition */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__shared_resource_model__["a" /* Partition */]) === "function" && _a || Object)
+    ], PartitionDetailComponent.prototype, "partition", void 0);
+    PartitionDetailComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-partition-detail',
+            template: __webpack_require__("../../../../../src/app/resource/partition-detail/partition-detail.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/resource/partition-detail/partition-detail.component.scss")],
+            encapsulation: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewEncapsulation"].None
+        }),
+        __metadata("design:paramtypes", [])
+    ], PartitionDetailComponent);
     return PartitionDetailComponent;
+    var _a;
 }());
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", String)
-], PartitionDetailComponent.prototype, "clusterName", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__shared_resource_model__["a" /* Partition */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__shared_resource_model__["a" /* Partition */]) === "function" && _a || Object)
-], PartitionDetailComponent.prototype, "partition", void 0);
-PartitionDetailComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-partition-detail',
-        template: __webpack_require__("../../../../../src/app/resource/partition-detail/partition-detail.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/resource/partition-detail/partition-detail.component.scss")],
-        encapsulation: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewEncapsulation"].None
-    }),
-    __metadata("design:paramtypes", [])
-], PartitionDetailComponent);
 
-var _a;
 //# sourceMappingURL=partition-detail.component.js.map
 
 /***/ }),
@@ -1993,22 +1893,22 @@ var PartitionListComponent = (function () {
         var row = selected[0];
         this.table.rowDetail.toggleExpandRow(row);
     };
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('partitionsTable'),
+        __metadata("design:type", Object)
+    ], PartitionListComponent.prototype, "table", void 0);
+    PartitionListComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-partition-list',
+            template: __webpack_require__("../../../../../src/app/resource/partition-list/partition-list.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/resource/partition-list/partition-list.component.scss")]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
+    ], PartitionListComponent);
     return PartitionListComponent;
+    var _a;
 }());
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('partitionsTable'),
-    __metadata("design:type", Object)
-], PartitionListComponent.prototype, "table", void 0);
-PartitionListComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-partition-list',
-        template: __webpack_require__("../../../../../src/app/resource/partition-list/partition-list.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/resource/partition-list/partition-list.component.scss")]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
-], PartitionListComponent);
 
-var _a;
 //# sourceMappingURL=partition-list.component.js.map
 
 /***/ }),
@@ -2069,30 +1969,30 @@ var ResourceDetailForInstanceComponent = (function () {
         var _this = this;
         this.service.getOnInstance(this.clusterName, this.instanceName, this.resourceName).subscribe(function (resource) { return _this.resourceOnInstance = resource; }, function (error) { return console.log(error); }, function () { return _this.isLoading = false; });
     };
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object)
+    ], ResourceDetailForInstanceComponent.prototype, "clusterName", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object)
+    ], ResourceDetailForInstanceComponent.prototype, "instanceName", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object)
+    ], ResourceDetailForInstanceComponent.prototype, "resourceName", void 0);
+    ResourceDetailForInstanceComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-resource-detail-for-instance',
+            template: __webpack_require__("../../../../../src/app/resource/resource-detail-for-instance/resource-detail-for-instance.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/resource/resource-detail-for-instance/resource-detail-for-instance.component.scss")]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__shared_resource_service__["a" /* ResourceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__shared_resource_service__["a" /* ResourceService */]) === "function" && _a || Object])
+    ], ResourceDetailForInstanceComponent);
     return ResourceDetailForInstanceComponent;
+    var _a;
 }());
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", Object)
-], ResourceDetailForInstanceComponent.prototype, "clusterName", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", Object)
-], ResourceDetailForInstanceComponent.prototype, "instanceName", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", Object)
-], ResourceDetailForInstanceComponent.prototype, "resourceName", void 0);
-ResourceDetailForInstanceComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-resource-detail-for-instance',
-        template: __webpack_require__("../../../../../src/app/resource/resource-detail-for-instance/resource-detail-for-instance.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/resource/resource-detail-for-instance/resource-detail-for-instance.component.scss")]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__shared_resource_service__["a" /* ResourceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__shared_resource_service__["a" /* ResourceService */]) === "function" && _a || Object])
-], ResourceDetailForInstanceComponent);
 
-var _a;
 //# sourceMappingURL=resource-detail-for-instance.component.js.map
 
 /***/ }),
@@ -2153,18 +2053,18 @@ var ResourceDetailComponent = (function () {
     ResourceDetailComponent.prototype.ngOnInit = function () {
         this.resource = this.route.snapshot.data.resource;
     };
+    ResourceDetailComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-resource-detail',
+            template: __webpack_require__("../../../../../src/app/resource/resource-detail/resource-detail.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/resource/resource-detail/resource-detail.component.scss")]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
+    ], ResourceDetailComponent);
     return ResourceDetailComponent;
+    var _a;
 }());
-ResourceDetailComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-resource-detail',
-        template: __webpack_require__("../../../../../src/app/resource/resource-detail/resource-detail.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/resource/resource-detail/resource-detail.component.scss")]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
-], ResourceDetailComponent);
 
-var _a;
 //# sourceMappingURL=resource-detail.component.js.map
 
 /***/ }),
@@ -2260,23 +2160,23 @@ var ResourceListComponent = (function () {
             this.router.navigate(['/clusters', this.clusterName, 'resources', row.name]);
         }
     };
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('resourcesTable'),
+        __metadata("design:type", Object)
+    ], ResourceListComponent.prototype, "table", void 0);
+    ResourceListComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-resource-list',
+            template: __webpack_require__("../../../../../src/app/resource/resource-list/resource-list.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/resource/resource-list/resource-list.component.scss")],
+            providers: [__WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */]]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _b || Object, typeof (_c = typeof __WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */]) === "function" && _c || Object])
+    ], ResourceListComponent);
     return ResourceListComponent;
+    var _a, _b, _c;
 }());
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('resourcesTable'),
-    __metadata("design:type", Object)
-], ResourceListComponent.prototype, "table", void 0);
-ResourceListComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-resource-list',
-        template: __webpack_require__("../../../../../src/app/resource/resource-list/resource-list.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/resource/resource-list/resource-list.component.scss")],
-        providers: [__WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */]]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _b || Object, typeof (_c = typeof __WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */]) === "function" && _c || Object])
-], ResourceListComponent);
 
-var _a, _b, _c;
 //# sourceMappingURL=resource-list.component.js.map
 
 /***/ }),
@@ -2322,24 +2222,24 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var ResourceModule = (function () {
     function ResourceModule() {
     }
+    ResourceModule = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
+            imports: [
+                __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
+                __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
+                __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__["NgxDatatableModule"],
+                __WEBPACK_IMPORTED_MODULE_5__shared_shared_module__["a" /* SharedModule */]
+            ],
+            providers: [
+                __WEBPACK_IMPORTED_MODULE_6__shared_resource_service__["a" /* ResourceService */],
+                __WEBPACK_IMPORTED_MODULE_7__shared_resource_resolver__["a" /* ResourceResolver */]
+            ],
+            declarations: [__WEBPACK_IMPORTED_MODULE_8__resource_list_resource_list_component__["a" /* ResourceListComponent */], __WEBPACK_IMPORTED_MODULE_9__resource_detail_resource_detail_component__["a" /* ResourceDetailComponent */], __WEBPACK_IMPORTED_MODULE_10__resource_detail_for_instance_resource_detail_for_instance_component__["a" /* ResourceDetailForInstanceComponent */], __WEBPACK_IMPORTED_MODULE_11__partition_list_partition_list_component__["a" /* PartitionListComponent */], __WEBPACK_IMPORTED_MODULE_12__partition_detail_partition_detail_component__["a" /* PartitionDetailComponent */]]
+        })
+    ], ResourceModule);
     return ResourceModule;
 }());
-ResourceModule = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
-        imports: [
-            __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-            __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
-            __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
-            __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__["NgxDatatableModule"],
-            __WEBPACK_IMPORTED_MODULE_5__shared_shared_module__["a" /* SharedModule */]
-        ],
-        providers: [
-            __WEBPACK_IMPORTED_MODULE_6__shared_resource_service__["a" /* ResourceService */],
-            __WEBPACK_IMPORTED_MODULE_7__shared_resource_resolver__["a" /* ResourceResolver */]
-        ],
-        declarations: [__WEBPACK_IMPORTED_MODULE_8__resource_list_resource_list_component__["a" /* ResourceListComponent */], __WEBPACK_IMPORTED_MODULE_9__resource_detail_resource_detail_component__["a" /* ResourceDetailComponent */], __WEBPACK_IMPORTED_MODULE_10__resource_detail_for_instance_resource_detail_for_instance_component__["a" /* ResourceDetailForInstanceComponent */], __WEBPACK_IMPORTED_MODULE_11__partition_list_partition_list_component__["a" /* PartitionListComponent */], __WEBPACK_IMPORTED_MODULE_12__partition_detail_partition_detail_component__["a" /* PartitionDetailComponent */]]
-    })
-], ResourceModule);
 
 //# sourceMappingURL=resource.module.js.map
 
@@ -2453,14 +2353,14 @@ var ResourceResolver = (function () {
     ResourceResolver.prototype.resolve = function (route) {
         return this.service.get(route.paramMap.get('cluster_name'), route.paramMap.get('resource_name'));
     };
+    ResourceResolver = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])(),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__resource_service__["a" /* ResourceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__resource_service__["a" /* ResourceService */]) === "function" && _a || Object])
+    ], ResourceResolver);
     return ResourceResolver;
+    var _a;
 }());
-ResourceResolver = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])(),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__resource_service__["a" /* ResourceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__resource_service__["a" /* ResourceService */]) === "function" && _a || Object])
-], ResourceResolver);
 
-var _a;
 //# sourceMappingURL=resource.resolver.js.map
 
 /***/ }),
@@ -2561,11 +2461,11 @@ var ResourceService = (function (_super) {
             return ret;
         });
     };
+    ResourceService = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
+    ], ResourceService);
     return ResourceService;
 }(__WEBPACK_IMPORTED_MODULE_2__core_helix_service__["a" /* HelixService */]));
-ResourceService = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
-], ResourceService);
 
 //# sourceMappingURL=resource.service.js.map
 
@@ -2630,32 +2530,32 @@ var DetailHeaderComponent = (function () {
         }
         return 'cluster';
     };
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object)
+    ], DetailHeaderComponent.prototype, "cluster", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object)
+    ], DetailHeaderComponent.prototype, "resource", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object)
+    ], DetailHeaderComponent.prototype, "instance", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object)
+    ], DetailHeaderComponent.prototype, "controller", void 0);
+    DetailHeaderComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-detail-header',
+            template: __webpack_require__("../../../../../src/app/shared/detail-header/detail-header.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/shared/detail-header/detail-header.component.scss")]
+        }),
+        __metadata("design:paramtypes", [])
+    ], DetailHeaderComponent);
     return DetailHeaderComponent;
 }());
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", Object)
-], DetailHeaderComponent.prototype, "cluster", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", Object)
-], DetailHeaderComponent.prototype, "resource", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", Object)
-], DetailHeaderComponent.prototype, "instance", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", Object)
-], DetailHeaderComponent.prototype, "controller", void 0);
-DetailHeaderComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-detail-header',
-        template: __webpack_require__("../../../../../src/app/shared/detail-header/detail-header.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/shared/detail-header/detail-header.component.scss")]
-    }),
-    __metadata("design:paramtypes", [])
-], DetailHeaderComponent);
 
 //# sourceMappingURL=detail-header.component.js.map
 
@@ -2715,17 +2615,17 @@ var AlertDialogComponent = (function () {
         this.title = (this.data && this.data.title) || 'Alert';
         this.message = (this.data && this.data.message) || 'Something happened.';
     };
+    AlertDialogComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-alert-dialog',
+            template: __webpack_require__("../../../../../src/app/shared/dialog/alert-dialog/alert-dialog.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/shared/dialog/alert-dialog/alert-dialog.component.scss")]
+        }),
+        __param(0, __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Inject"])(__WEBPACK_IMPORTED_MODULE_1__angular_material__["c" /* MD_DIALOG_DATA */])),
+        __metadata("design:paramtypes", [Object])
+    ], AlertDialogComponent);
     return AlertDialogComponent;
 }());
-AlertDialogComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-alert-dialog',
-        template: __webpack_require__("../../../../../src/app/shared/dialog/alert-dialog/alert-dialog.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/shared/dialog/alert-dialog/alert-dialog.component.scss")]
-    }),
-    __param(0, __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Inject"])(__WEBPACK_IMPORTED_MODULE_1__angular_material__["c" /* MD_DIALOG_DATA */])),
-    __metadata("design:paramtypes", [Object])
-], AlertDialogComponent);
 
 //# sourceMappingURL=alert-dialog.component.js.map
 
@@ -2780,18 +2680,18 @@ var InputDialogComponent = (function () {
     }
     InputDialogComponent.prototype.ngOnInit = function () {
     };
+    InputDialogComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-input-dialog',
+            template: __webpack_require__("../../../../../src/app/shared/dialog/input-dialog/input-dialog.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/shared/dialog/input-dialog/input-dialog.component.scss")]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_material__["d" /* MdDialogRef */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_material__["d" /* MdDialogRef */]) === "function" && _a || Object])
+    ], InputDialogComponent);
     return InputDialogComponent;
+    var _a;
 }());
-InputDialogComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-input-dialog',
-        template: __webpack_require__("../../../../../src/app/shared/dialog/input-dialog/input-dialog.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/shared/dialog/input-dialog/input-dialog.component.scss")]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_material__["d" /* MdDialogRef */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_material__["d" /* MdDialogRef */]) === "function" && _a || Object])
-], InputDialogComponent);
 
-var _a;
 //# sourceMappingURL=input-dialog.component.js.map
 
 /***/ }),
@@ -2858,22 +2758,22 @@ var JsonViewerComponent = (function () {
             }
         }
     };
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object)
+    ], JsonViewerComponent.prototype, "obj", void 0);
+    JsonViewerComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-json-viewer',
+            template: __webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.scss")]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
+    ], JsonViewerComponent);
     return JsonViewerComponent;
+    var _a;
 }());
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", Object)
-], JsonViewerComponent.prototype, "obj", void 0);
-JsonViewerComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-json-viewer',
-        template: __webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.scss")]
-    }),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
-], JsonViewerComponent);
 
-var _a;
 //# sourceMappingURL=json-viewer.component.js.map
 
 /***/ }),
@@ -2924,43 +2824,271 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var KeyValuePairDirective = (function () {
     function KeyValuePairDirective() {
     }
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", String)
+    ], KeyValuePairDirective.prototype, "name", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", String)
+    ], KeyValuePairDirective.prototype, "prop", void 0);
+    KeyValuePairDirective = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Directive"])({ selector: 'hi-key-value-pair' })
+    ], KeyValuePairDirective);
     return KeyValuePairDirective;
 }());
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", String)
-], KeyValuePairDirective.prototype, "name", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", String)
-], KeyValuePairDirective.prototype, "prop", void 0);
-KeyValuePairDirective = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Directive"])({ selector: 'hi-key-value-pair' })
-], KeyValuePairDirective);
 
 var KeyValuePairsComponent = (function () {
     function KeyValuePairsComponent() {
     }
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ContentChildren"])(KeyValuePairDirective),
+        __metadata("design:type", typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_0__angular_core__["QueryList"] !== "undefined" && __WEBPACK_IMPORTED_MODULE_0__angular_core__["QueryList"]) === "function" && _a || Object)
+    ], KeyValuePairsComponent.prototype, "pairs", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object)
+    ], KeyValuePairsComponent.prototype, "obj", void 0);
+    KeyValuePairsComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-key-value-pairs',
+            template: __webpack_require__("../../../../../src/app/shared/key-value-pairs/key-value-pairs.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/shared/key-value-pairs/key-value-pairs.component.scss")],
+        })
+    ], KeyValuePairsComponent);
     return KeyValuePairsComponent;
+    var _a;
 }());
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ContentChildren"])(KeyValuePairDirective),
-    __metadata("design:type", typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_0__angular_core__["QueryList"] !== "undefined" && __WEBPACK_IMPORTED_MODULE_0__angular_core__["QueryList"]) === "function" && _a || Object)
-], KeyValuePairsComponent.prototype, "pairs", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", Object)
-], KeyValuePairsComponent.prototype, "obj", void 0);
-KeyValuePairsComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-key-value-pairs',
-        template: __webpack_require__("../../../../../src/app/shared/key-value-pairs/key-value-pairs.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/shared/key-value-pairs/key-value-pairs.component.scss")],
-    })
-], KeyValuePairsComponent);
 
-var _a;
 //# sourceMappingURL=key-value-pairs.component.js.map
+
+/***/ }),
+
+/***/ "../../../../../src/app/shared/models/node.model.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_lodash__ = __webpack_require__("../../../../lodash/lodash.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_lodash___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_lodash__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Node; });
+
+// This is a typical Helix Node definition
+var Node = (function () {
+    function Node(obj) {
+        var _this = this;
+        if (obj != null) {
+            this.id = obj.id;
+            this.simpleFields = this.keyValueToArray(obj.simpleFields);
+            this.listFields = [];
+            __WEBPACK_IMPORTED_MODULE_0_lodash__["forOwn"](obj['listFields'], function (v, k) {
+                _this.listFields.push({
+                    name: k,
+                    value: __WEBPACK_IMPORTED_MODULE_0_lodash__["map"](v, function (item) {
+                        return {
+                            value: item
+                        };
+                    })
+                });
+            });
+            this.mapFields = [];
+            __WEBPACK_IMPORTED_MODULE_0_lodash__["forOwn"](obj['mapFields'], function (v, k) {
+                _this.mapFields.push({
+                    name: k,
+                    value: _this.keyValueToArray(v)
+                });
+            });
+        }
+    }
+    // Converting raw simpleFields to SimpleFieldObject[]
+    Node.prototype.keyValueToArray = function (obj) {
+        var result = [];
+        for (var k in obj) {
+            if (obj.hasOwnProperty(k)) {
+                result.push({
+                    name: k,
+                    value: obj[k]
+                });
+            }
+        }
+        return result;
+    };
+    return Node;
+}());
+
+//# sourceMappingURL=node.model.js.map
+
+/***/ }),
+
+/***/ "../../../../../src/app/shared/node-viewer/node-viewer.component.html":
+/***/ (function(module, exports) {
+
+module.exports = "<section class=\"node-viewer\" fxLayout=\"column\" fxLayoutAlign=\"center center\" fxLayoutGap=\"10px\">\n  <md-button-toggle-group #group=\"mdButtonToggleGroup\" value=\"table\">\n    <md-button-toggle value=\"table\">\n      Table View\n    </md-button-toggle>\n    <md-button-toggle value=\"json\">\n      JSON View\n    </md-button-toggle>\n  </md-button-toggle-group>\n  <section class=\"viewer\" [ngSwitch]=\"group.value\" fxFlexFill>\n    <hi-json-viewer *ngSwitchCase=\"'json'\" [obj]=\"obj\"></hi-json-viewer>\n    <section *ngSwitchCase=\"'table'\">\n\n      <!-- TODO vxu: use md-simple-table when it's available -->\n\n      <section fxLayout=\"row\" fxLayoutAlign=\"center center\">\n        <md-icon>search</md-icon>\n        <md-input-container>\n          <input mdInput\n            placeholder=\"Type to filter the fields...\"\n            (keyup)=\"updateFilter($event)\"/>\n        </md-input-container>\n      </section>\n      <md-card>\n        <md-card-header>\n          <md-card-title>\n            Simple Fields\n            <span *ngIf=\"simpleConfigs.length == 0\">is empty.</span>\n            <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n          </md-card-title>\n        </md-card-header>\n        <md-card-content>\n          <ngx-datatable\n            *ngIf=\"simpleConfigs.length\"\n            #simpleTable\n            class=\"material\"\n            [headerHeight]=\"rowHeight\"\n            rowHeight=\"auto\"\n            [footerHeight]=\"rowHeight\"\n            columnMode=\"force\"\n            [rows]=\"simpleConfigs\"\n            [sorts]=\"sorts\"\n            [limit]=\"20\">\n            <ngx-datatable-column name=\"Name\" [cellClass]=\"getNameCellClass\"></ngx-datatable-column>\n            <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n          </ngx-datatable>\n        </md-card-content>\n      </md-card>\n      <md-card>\n        <md-card-header>\n          <md-card-title>\n            List Fields\n            <span *ngIf=\"listConfigs.length == 0\">is empty.</span>\n            <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n          </md-card-title>\n        </md-card-header>\n        <md-card-content>\n          <ngx-datatable\n            *ngIf=\"listConfigs.length\"\n            #listTable\n            class=\"material\"\n            [headerHeight]=\"rowHeight\"\n            rowHeight=\"auto\"\n            [footerHeight]=\"rowHeight\"\n            columnMode=\"force\"\n            [rows]=\"listConfigs\"\n            [sorts]=\"sorts\"\n            [limit]=\"10\">\n            <ngx-datatable-column name=\"Name\" [width]=\"80\" [cellClass]=\"getNameCellClass\"></ngx-datatable-column>\n            <ngx-datatable-column name=\"Value\" [width]=\"400\">\n              <ng-template let-value=\"value\" ngx-datatable-cell-template>\n                <ngx-datatable\n                  class=\"material\"\n                  [headerHeight]=\"rowHeight\"\n                  rowHeight=\"auto\"\n                  columnMode=\"force\"\n                  [rows]=\"value\">\n                  <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n                </ngx-datatable>\n              </ng-template>\n            </ngx-datatable-column>\n          </ngx-datatable>\n        </md-card-content>\n      </md-card>\n      <md-card>\n        <md-card-header>\n          <md-card-title>\n            Map Fields\n            <span *ngIf=\"mapConfigs.length == 0\">is empty.</span>\n            <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n          </md-card-title>\n        </md-card-header>\n        <md-card-content>\n          <ngx-datatable\n            *ngIf=\"mapConfigs.length\"\n            #mapTable\n            class=\"material\"\n            [headerHeight]=\"rowHeight\"\n            rowHeight=\"auto\"\n            [footerHeight]=\"rowHeight\"\n            columnMode=\"force\"\n            [rows]=\"mapConfigs\"\n            [sorts]=\"sorts\"\n            [limit]=\"10\">\n            <ngx-datatable-column name=\"Name\" [width]=\"80\" [cellClass]=\"getNameCellClass\"></ngx-datatable-column>\n            <ngx-datatable-column name=\"Value\" [width]=\"500\">\n              <ng-template let-value=\"value\" ngx-datatable-cell-template>\n                <ngx-datatable\n                  class=\"material\"\n                  [headerHeight]=\"rowHeight\"\n                  rowHeight=\"auto\"\n                  columnMode=\"force\"\n                  [rows]=\"value\"\n                  [sorts]=\"sorts\">\n                  <ngx-datatable-column name=\"Name\"></ngx-datatable-column>\n                  <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n                </ngx-datatable>\n              </ng-template>\n            </ngx-datatable-column>\n          </ngx-datatable>\n        </md-card-content>\n      </md-card>\n    </section>\n  </section>\n</section>\n"
+
+/***/ }),
+
+/***/ "../../../../../src/app/shared/node-viewer/node-viewer.component.scss":
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, "/**\n * Applies styles for users in high contrast mode. Note that this only applies\n * to Microsoft browsers. Chrome can be included by checking for the `html[hc]`\n * attribute, however Chrome handles high contrast differently.\n */\n/* Theme for the ripple elements.*/\n/** The mixins below are shared between md-menu and md-select */\n/**\n * This mixin adds the correct panel transform styles based\n * on the direction that the menu panel opens.\n */\n/* stylelint-disable material/no-prefixes */\n/* stylelint-enable */\n/**\n * This mixin contains shared option styles between the select and\n * autocomplete components.\n */\n/**\n * Applies styles for users in high contrast mode. Note that this only applies\n * to Microsoft browsers. Chrome can be included by checking for the `html[hc]`\n * attribute, however Chrome handles high contrast differently.\n */\n/* Theme for the ripple elements.*/\n/** The mixins below are shared between md-menu and md-select */\n/**\n * This mixin adds the correct panel transform styles based\n * on the direction that the menu panel opens.\n */\n/* stylelint-disable material/no-prefixes */\n/* stylelint-enable */\n/**\n * This mixin contains shared option styles between the select and\n * autocomplete components.\n */\n.mat-elevation-z0 {\n  box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 0.2), 0px 0px 0px 0px rgba(0, 0, 0, 0.14), 0px 0px 0px 0px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z1 {\n  box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z2 {\n  box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z3 {\n  box-shadow: 0px 3px 3px -2px rgba(0, 0, 0, 0.2), 0px 3px 4px 0px rgba(0, 0, 0, 0.14), 0px 1px 8px 0px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z4 {\n  box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z5 {\n  box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2), 0px 5px 8px 0px rgba(0, 0, 0, 0.14), 0px 1px 14px 0px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z6 {\n  box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2), 0px 6px 10px 0px rgba(0, 0, 0, 0.14), 0px 1px 18px 0px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z7 {\n  box-shadow: 0px 4px 5px -2px rgba(0, 0, 0, 0.2), 0px 7px 10px 1px rgba(0, 0, 0, 0.14), 0px 2px 16px 1px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z8 {\n  box-shadow: 0px 5px 5px -3px rgba(0, 0, 0, 0.2), 0px 8px 10px 1px rgba(0, 0, 0, 0.14), 0px 3px 14px 2px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z9 {\n  box-shadow: 0px 5px 6px -3px rgba(0, 0, 0, 0.2), 0px 9px 12px 1px rgba(0, 0, 0, 0.14), 0px 3px 16px 2px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z10 {\n  box-shadow: 0px 6px 6px -3px rgba(0, 0, 0, 0.2), 0px 10px 14px 1px rgba(0, 0, 0, 0.14), 0px 4px 18px 3px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z11 {\n  box-shadow: 0px 6px 7px -4px rgba(0, 0, 0, 0.2), 0px 11px 15px 1px rgba(0, 0, 0, 0.14), 0px 4px 20px 3px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z12 {\n  box-shadow: 0px 7px 8px -4px rgba(0, 0, 0, 0.2), 0px 12px 17px 2px rgba(0, 0, 0, 0.14), 0px 5px 22px 4px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z13 {\n  box-shadow: 0px 7px 8px -4px rgba(0, 0, 0, 0.2), 0px 13px 19px 2px rgba(0, 0, 0, 0.14), 0px 5px 24px 4px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z14 {\n  box-shadow: 0px 7px 9px -4px rgba(0, 0, 0, 0.2), 0px 14px 21px 2px rgba(0, 0, 0, 0.14), 0px 5px 26px 4px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z15 {\n  box-shadow: 0px 8px 9px -5px rgba(0, 0, 0, 0.2), 0px 15px 22px 2px rgba(0, 0, 0, 0.14), 0px 6px 28px 5px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z16 {\n  box-shadow: 0px 8px 10px -5px rgba(0, 0, 0, 0.2), 0px 16px 24px 2px rgba(0, 0, 0, 0.14), 0px 6px 30px 5px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z17 {\n  box-shadow: 0px 8px 11px -5px rgba(0, 0, 0, 0.2), 0px 17px 26px 2px rgba(0, 0, 0, 0.14), 0px 6px 32px 5px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z18 {\n  box-shadow: 0px 9px 11px -5px rgba(0, 0, 0, 0.2), 0px 18px 28px 2px rgba(0, 0, 0, 0.14), 0px 7px 34px 6px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z19 {\n  box-shadow: 0px 9px 12px -6px rgba(0, 0, 0, 0.2), 0px 19px 29px 2px rgba(0, 0, 0, 0.14), 0px 7px 36px 6px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z20 {\n  box-shadow: 0px 10px 13px -6px rgba(0, 0, 0, 0.2), 0px 20px 31px 3px rgba(0, 0, 0, 0.14), 0px 8px 38px 7px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z21 {\n  box-shadow: 0px 10px 13px -6px rgba(0, 0, 0, 0.2), 0px 21px 33px 3px rgba(0, 0, 0, 0.14), 0px 8px 40px 7px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z22 {\n  box-shadow: 0px 10px 14px -6px rgba(0, 0, 0, 0.2), 0px 22px 35px 3px rgba(0, 0, 0, 0.14), 0px 8px 42px 7px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z23 {\n  box-shadow: 0px 11px 14px -7px rgba(0, 0, 0, 0.2), 0px 23px 36px 3px rgba(0, 0, 0, 0.14), 0px 9px 44px 8px rgba(0, 0, 0, 0.12); }\n\n.mat-elevation-z24 {\n  box-shadow: 0px 11px 15px -7px rgba(0, 0, 0, 0.2), 0px 24px 38px 3px rgba(0, 0, 0, 0.14), 0px 9px 46px 8px rgba(0, 0, 0, 0.12); }\n\n.mat-ripple {\n  overflow: hidden; }\n\n.mat-ripple.mat-ripple-unbounded {\n  overflow: visible; }\n\n.mat-ripple-element {\n  position: absolute;\n  border-radius: 50%;\n  pointer-events: none;\n  transition: opacity, -webkit-transform 0ms cubic-bezier(0, 0, 0.2, 1);\n  transition: opacity, transform 0ms cubic-bezier(0, 0, 0.2, 1);\n  transition: opacity, transform 0ms cubic-bezier(0, 0, 0.2, 1), -webkit-transform 0ms cubic-bezier(0, 0, 0.2, 1);\n  -webkit-transform: scale(0);\n          transform: scale(0); }\n\n.mat-option {\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  display: block;\n  line-height: 48px;\n  height: 48px;\n  padding: 0 16px;\n  font-size: 16px;\n  font-family: Roboto, \"Helvetica Neue\", sans-serif;\n  text-align: left;\n  text-decoration: none;\n  position: relative;\n  cursor: pointer;\n  outline: none; }\n  .mat-option[disabled] {\n    cursor: default; }\n  [dir='rtl'] .mat-option {\n    text-align: right; }\n  .mat-option .mat-icon {\n    margin-right: 16px; }\n    [dir='rtl'] .mat-option .mat-icon {\n      margin-left: 16px;\n      margin-right: 0; }\n  .mat-option[aria-disabled='true'] {\n    -webkit-user-select: none;\n    -moz-user-select: none;\n    -ms-user-select: none;\n    user-select: none;\n    cursor: default; }\n\n.mat-option-ripple {\n  position: absolute;\n  top: 0;\n  left: 0;\n  bottom: 0;\n  right: 0;\n  pointer-events: none; }\n  @media screen and (-ms-high-contrast: active) {\n    .mat-option-ripple {\n      opacity: 0.5; } }\n\n.mat-option-pseudo-checkbox {\n  margin-right: 8px; }\n  [dir='rtl'] .mat-option-pseudo-checkbox {\n    margin-left: 8px;\n    margin-right: 0; }\n\n.cdk-visually-hidden {\n  border: 0;\n  clip: rect(0 0 0 0);\n  height: 1px;\n  margin: -1px;\n  overflow: hidden;\n  padding: 0;\n  position: absolute;\n  text-transform: none;\n  width: 1px; }\n\n.cdk-overlay-container, .cdk-global-overlay-wrapper {\n  pointer-events: none;\n  top: 0;\n  left: 0;\n  height: 100%;\n  width: 100%; }\n\n.cdk-overlay-container {\n  position: fixed;\n  z-index: 1000; }\n\n.cdk-global-overlay-wrapper {\n  display: -webkit-box;\n  display: -ms-flexbox;\n  display: flex;\n  position: absolute;\n  z-index: 1000; }\n\n.cdk-overlay-pane {\n  position: absolute;\n  pointer-events: auto;\n  box-sizing: border-box;\n  z-index: 1000; }\n\n.cdk-overlay-backdrop {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  z-index: 1000;\n  pointer-events: auto;\n  transition: opacity 400ms cubic-bezier(0.25, 0.8, 0.25, 1);\n  opacity: 0; }\n  .cdk-overlay-backdrop.cdk-overlay-backdrop-showing {\n    opacity: 0.48; }\n\n.cdk-overlay-dark-backdrop {\n  background: rgba(0, 0, 0, 0.6); }\n\n.cdk-overlay-transparent-backdrop {\n  background: none; }\n\n.cdk-global-scrollblock {\n  position: fixed;\n  width: 100%;\n  overflow-y: scroll; }\n\n.mat-ripple-element {\n  background-color: rgba(0, 0, 0, 0.1); }\n\n.mat-option {\n  color: rgba(0, 0, 0, 0.87); }\n  .mat-option:hover:not(.mat-option-disabled), .mat-option:focus:not(.mat-option-disabled) {\n    background: rgba(0, 0, 0, 0.04); }\n  .mat-option.mat-selected.mat-primary, .mat-primary .mat-option.mat-selected {\n    color: #0077b5; }\n  .mat-option.mat-selected.mat-accent, .mat-accent .mat-option.mat-selected {\n    color: #ff4081; }\n  .mat-option.mat-selected.mat-warn, .mat-warn .mat-option.mat-selected {\n    color: #f44336; }\n  .mat-option.mat-selected:not(.mat-option-multiple) {\n    background: rgba(0, 0, 0, 0.04); }\n  .mat-option.mat-active {\n    background: rgba(0, 0, 0, 0.04);\n    color: rgba(0, 0, 0, 0.87); }\n  .mat-option.mat-option-disabled {\n    color: rgba(0, 0, 0, 0.38); }\n\n.mat-pseudo-checkbox {\n  color: rgba(0, 0, 0, 0.54); }\n  .mat-pseudo-checkbox::after {\n    color: #fafafa; }\n\n.mat-pseudo-checkbox-checked.mat-primary,\n.mat-pseudo-checkbox-indeterminate.mat-primary,\n.mat-primary .mat-pseudo-checkbox-checked,\n.mat-primary .mat-pseudo-checkbox-indeterminate {\n  background: #0077b5; }\n\n.mat-pseudo-checkbox-checked.mat-accent,\n.mat-pseudo-checkbox-indeterminate.mat-accent,\n.mat-accent .mat-pseudo-checkbox-checked,\n.mat-accent .mat-pseudo-checkbox-indeterminate {\n  background: #ff4081; }\n\n.mat-pseudo-checkbox-checked.mat-warn,\n.mat-pseudo-checkbox-indeterminate.mat-warn,\n.mat-warn .mat-pseudo-checkbox-checked,\n.mat-warn .mat-pseudo-checkbox-indeterminate {\n  background: #f44336; }\n\n.mat-pseudo-checkbox-checked.mat-pseudo-checkbox-disabled, .mat-pseudo-checkbox-indeterminate.mat-pseudo-checkbox-disabled {\n  background: #b0b0b0; }\n\n.mat-app-background {\n  background-color: #fafafa; }\n\n.mat-theme-loaded-marker {\n  display: none; }\n\n.mat-autocomplete-panel {\n  background: white;\n  color: rgba(0, 0, 0, 0.87); }\n  .mat-autocomplete-panel .mat-option.mat-selected:not(.mat-active) {\n    background: white;\n    color: rgba(0, 0, 0, 0.87); }\n\n.mat-button, .mat-icon-button {\n  background: transparent; }\n  .mat-button.mat-primary .mat-button-focus-overlay, .mat-icon-button.mat-primary .mat-button-focus-overlay {\n    background-color: rgba(0, 119, 181, 0.12); }\n  .mat-button.mat-accent .mat-button-focus-overlay, .mat-icon-button.mat-accent .mat-button-focus-overlay {\n    background-color: rgba(255, 64, 129, 0.12); }\n  .mat-button.mat-warn .mat-button-focus-overlay, .mat-icon-button.mat-warn .mat-button-focus-overlay {\n    background-color: rgba(244, 67, 54, 0.12); }\n  .mat-button[disabled] .mat-button-focus-overlay, .mat-icon-button[disabled] .mat-button-focus-overlay {\n    background-color: transparent; }\n  .mat-button.mat-primary, .mat-icon-button.mat-primary {\n    color: #0077b5; }\n  .mat-button.mat-accent, .mat-icon-button.mat-accent {\n    color: #ff4081; }\n  .mat-button.mat-warn, .mat-icon-button.mat-warn {\n    color: #f44336; }\n  .mat-button.mat-primary[disabled], .mat-button.mat-accent[disabled], .mat-button.mat-warn[disabled], .mat-button[disabled][disabled], .mat-icon-button.mat-primary[disabled], .mat-icon-button.mat-accent[disabled], .mat-icon-button.mat-warn[disabled], .mat-icon-button[disabled][disabled] {\n    color: rgba(0, 0, 0, 0.38); }\n\n.mat-raised-button, .mat-fab, .mat-mini-fab {\n  color: rgba(0, 0, 0, 0.87);\n  background-color: white; }\n  .mat-raised-button.mat-primary, .mat-fab.mat-primary, .mat-mini-fab.mat-primary {\n    color: rgba(255, 255, 255, 0.87); }\n  .mat-raised-button.mat-accent, .mat-fab.mat-accent, .mat-mini-fab.mat-accent {\n    color: white; }\n  .mat-raised-button.mat-warn, .mat-fab.mat-warn, .mat-mini-fab.mat-warn {\n    color: white; }\n  .mat-raised-button.mat-primary[disabled], .mat-raised-button.mat-accent[disabled], .mat-raised-button.mat-warn[disabled], .mat-raised-button[disabled][disabled], .mat-fab.mat-primary[disabled], .mat-fab.mat-accent[disabled], .mat-fab.mat-warn[disabled], .mat-fab[disabled][disabled], .mat-mini-fab.mat-primary[disabled], .mat-mini-fab.mat-accent[disabled], .mat-mini-fab.mat-warn[disabled], .mat-mini-fab[disabled][disabled] {\n    color: rgba(0, 0, 0, 0.38); }\n  .mat-raised-button.mat-primary, .mat-fab.mat-primary, .mat-mini-fab.mat-primary {\n    background-color: #0077b5; }\n  .mat-raised-button.mat-accent, .mat-fab.mat-accent, .mat-mini-fab.mat-accent {\n    background-color: #ff4081; }\n  .mat-raised-button.mat-warn, .mat-fab.mat-warn, .mat-mini-fab.mat-warn {\n    background-color: #f44336; }\n  .mat-raised-button.mat-primary[disabled], .mat-raised-button.mat-accent[disabled], .mat-raised-button.mat-warn[disabled], .mat-raised-button[disabled][disabled], .mat-fab.mat-primary[disabled], .mat-fab.mat-accent[disabled], .mat-fab.mat-warn[disabled], .mat-fab[disabled][disabled], .mat-mini-fab.mat-primary[disabled], .mat-mini-fab.mat-accent[disabled], .mat-mini-fab.mat-warn[disabled], .mat-mini-fab[disabled][disabled] {\n    background-color: rgba(0, 0, 0, 0.12); }\n  .mat-raised-button.mat-primary .mat-ripple-element, .mat-fab.mat-primary .mat-ripple-element, .mat-mini-fab.mat-primary .mat-ripple-element {\n    background-color: rgba(255, 255, 255, 0.2); }\n  .mat-raised-button.mat-accent .mat-ripple-element, .mat-fab.mat-accent .mat-ripple-element, .mat-mini-fab.mat-accent .mat-ripple-element {\n    background-color: rgba(255, 255, 255, 0.2); }\n  .mat-raised-button.mat-warn .mat-ripple-element, .mat-fab.mat-warn .mat-ripple-element, .mat-mini-fab.mat-warn .mat-ripple-element {\n    background-color: rgba(255, 255, 255, 0.2); }\n\n.mat-button.mat-primary .mat-ripple-element {\n  background-color: rgba(0, 119, 181, 0.1); }\n\n.mat-button.mat-accent .mat-ripple-element {\n  background-color: rgba(255, 64, 129, 0.1); }\n\n.mat-button.mat-warn .mat-ripple-element {\n  background-color: rgba(244, 67, 54, 0.1); }\n\n.mat-icon-button.mat-primary .mat-ripple-element {\n  background-color: rgba(0, 119, 181, 0.2); }\n\n.mat-icon-button.mat-accent .mat-ripple-element {\n  background-color: rgba(255, 64, 129, 0.2); }\n\n.mat-icon-button.mat-warn .mat-ripple-element {\n  background-color: rgba(244, 67, 54, 0.2); }\n\n.mat-fab, .mat-mini-fab {\n  background-color: #ff4081;\n  color: white; }\n  .mat-fab .mat-ripple-element, .mat-mini-fab .mat-ripple-element {\n    background-color: rgba(255, 255, 255, 0.2); }\n\n.mat-button-toggle {\n  color: rgba(0, 0, 0, 0.38); }\n  .mat-button-toggle.cdk-focused .mat-button-toggle-focus-overlay {\n    background-color: rgba(0, 0, 0, 0.06); }\n\n.mat-button-toggle-checked {\n  background-color: #e0e0e0;\n  color: black; }\n\n.mat-button-toggle-disabled {\n  background-color: #eeeeee;\n  color: rgba(0, 0, 0, 0.38); }\n  .mat-button-toggle-disabled.mat-button-toggle-checked {\n    background-color: #bdbdbd; }\n\n.mat-card {\n  background: white;\n  color: rgba(0, 0, 0, 0.87); }\n\n.mat-card-subtitle {\n  color: rgba(0, 0, 0, 0.54); }\n\n.mat-checkbox-frame {\n  border-color: rgba(0, 0, 0, 0.54); }\n\n.mat-checkbox-checkmark {\n  fill: #fafafa; }\n\n.mat-checkbox-checkmark-path {\n  stroke: #fafafa !important; }\n\n.mat-checkbox-mixedmark {\n  background-color: #fafafa; }\n\n.mat-checkbox-indeterminate.mat-primary .mat-checkbox-background, .mat-checkbox-checked.mat-primary .mat-checkbox-background {\n  background-color: #0077b5; }\n\n.mat-checkbox-indeterminate.mat-accent .mat-checkbox-background, .mat-checkbox-checked.mat-accent .mat-checkbox-background {\n  background-color: #ff4081; }\n\n.mat-checkbox-indeterminate.mat-warn .mat-checkbox-background, .mat-checkbox-checked.mat-warn .mat-checkbox-background {\n  background-color: #f44336; }\n\n.mat-checkbox-disabled.mat-checkbox-checked .mat-checkbox-background, .mat-checkbox-disabled.mat-checkbox-indeterminate .mat-checkbox-background {\n  background-color: #b0b0b0; }\n\n.mat-checkbox-disabled:not(.mat-checkbox-checked) .mat-checkbox-frame {\n  border-color: #b0b0b0; }\n\n.mat-checkbox-disabled .mat-checkbox-label {\n  color: #b0b0b0; }\n\n.mat-checkbox:not(.mat-checkbox-disabled).mat-primary .mat-checkbox-ripple .mat-ripple-element {\n  background-color: rgba(0, 119, 181, 0.26); }\n\n.mat-checkbox:not(.mat-checkbox-disabled).mat-accent .mat-checkbox-ripple .mat-ripple-element {\n  background-color: rgba(255, 64, 129, 0.26); }\n\n.mat-checkbox:not(.mat-checkbox-disabled).mat-warn .mat-checkbox-ripple .mat-ripple-element {\n  background-color: rgba(244, 67, 54, 0.26); }\n\n.mat-chip:not(.mat-basic-chip) {\n  background-color: #e0e0e0;\n  color: rgba(0, 0, 0, 0.87); }\n\n.mat-chip.mat-chip-selected:not(.mat-basic-chip) {\n  background-color: #808080;\n  color: rgba(255, 255, 255, 0.87); }\n  .mat-chip.mat-chip-selected:not(.mat-basic-chip).mat-primary {\n    background-color: #0077b5;\n    color: rgba(255, 255, 255, 0.87); }\n  .mat-chip.mat-chip-selected:not(.mat-basic-chip).mat-accent {\n    background-color: #ff4081;\n    color: white; }\n  .mat-chip.mat-chip-selected:not(.mat-basic-chip).mat-warn {\n    background-color: #f44336;\n    color: white; }\n\n.mat-datepicker-content {\n  background-color: white; }\n\n.mat-calendar-arrow {\n  border-top-color: rgba(0, 0, 0, 0.54); }\n\n.mat-calendar-next-button,\n.mat-calendar-previous-button {\n  color: rgba(0, 0, 0, 0.54); }\n\n.mat-calendar-table-header {\n  color: rgba(0, 0, 0, 0.38); }\n\n.mat-calendar-table-header-divider::after {\n  background: rgba(0, 0, 0, 0.12); }\n\n.mat-calendar-body-label {\n  color: rgba(0, 0, 0, 0.54); }\n\n.mat-calendar-body-cell-content {\n  color: rgba(0, 0, 0, 0.87);\n  border-color: transparent; }\n  .mat-calendar-body-disabled > .mat-calendar-body-cell-content:not(.mat-calendar-body-selected) {\n    color: rgba(0, 0, 0, 0.38); }\n\n:not(.mat-calendar-body-disabled):hover > .mat-calendar-body-cell-content:not(.mat-calendar-body-selected),\n.cdk-keyboard-focused .mat-calendar-body-active > .mat-calendar-body-cell-content:not(.mat-calendar-body-selected) {\n  background-color: rgba(0, 0, 0, 0.04); }\n\n.mat-calendar-body-selected {\n  background-color: #0077b5;\n  color: rgba(255, 255, 255, 0.87); }\n\n.mat-calendar-body-disabled > .mat-calendar-body-selected {\n  background-color: rgba(0, 119, 181, 0.4); }\n\n.mat-calendar-body-today:not(.mat-calendar-body-selected) {\n  border-color: rgba(0, 0, 0, 0.38); }\n\n.mat-calendar-body-today.mat-calendar-body-selected {\n  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.87); }\n\n.mat-calendar-body-disabled > .mat-calendar-body-today:not(.mat-calendar-body-selected) {\n  border-color: rgba(0, 0, 0, 0.18); }\n\n.mat-dialog-container {\n  background: white; }\n\n.mat-icon.mat-primary {\n  color: #0077b5; }\n\n.mat-icon.mat-accent {\n  color: #ff4081; }\n\n.mat-icon.mat-warn {\n  color: #f44336; }\n\n.mat-input-placeholder {\n  color: rgba(0, 0, 0, 0.38); }\n\n.mat-focused .mat-input-placeholder {\n  color: #0077b5; }\n  .mat-focused .mat-input-placeholder.mat-accent {\n    color: #ff4081; }\n  .mat-focused .mat-input-placeholder.mat-warn {\n    color: #f44336; }\n\n.mat-input-element:disabled {\n  color: rgba(0, 0, 0, 0.38); }\n\ninput.mat-input-element:-webkit-autofill + .mat-input-placeholder .mat-placeholder-required,\n.mat-focused .mat-input-placeholder.mat-float .mat-placeholder-required {\n  color: #ff4081; }\n\n.mat-input-underline {\n  border-color: rgba(0, 0, 0, 0.12); }\n  .mat-input-underline .mat-input-ripple {\n    background-color: #0077b5; }\n    .mat-input-underline .mat-input-ripple.mat-accent {\n      background-color: #ff4081; }\n    .mat-input-underline .mat-input-ripple.mat-warn {\n      background-color: #f44336; }\n\n.mat-input-invalid .mat-input-placeholder,\n.mat-input-invalid .mat-placeholder-required {\n  color: #f44336; }\n\n.mat-input-invalid .mat-input-ripple {\n  background-color: #f44336; }\n\n.mat-input-error {\n  color: #f44336; }\n\n.mat-list .mat-list-item, .mat-nav-list .mat-list-item {\n  color: rgba(0, 0, 0, 0.87); }\n\n.mat-list .mat-subheader, .mat-nav-list .mat-subheader {\n  color: rgba(0, 0, 0, 0.54); }\n\n.mat-divider {\n  border-top-color: rgba(0, 0, 0, 0.12); }\n\n.mat-nav-list .mat-list-item {\n  outline: none; }\n  .mat-nav-list .mat-list-item:hover, .mat-nav-list .mat-list-item.mat-list-item-focus {\n    background: rgba(0, 0, 0, 0.04); }\n\n.mat-menu-content {\n  background: white; }\n\n.mat-menu-item {\n  background: transparent;\n  color: rgba(0, 0, 0, 0.87); }\n  .mat-menu-item[disabled] {\n    color: rgba(0, 0, 0, 0.38); }\n  .mat-menu-item .mat-icon {\n    color: rgba(0, 0, 0, 0.54);\n    vertical-align: middle; }\n  .mat-menu-item:hover:not([disabled]), .mat-menu-item:focus:not([disabled]) {\n    background: rgba(0, 0, 0, 0.04); }\n\n.mat-progress-bar-background {\n  background-image: url(\"data:image/svg+xml;charset=UTF-8,%3Csvg%20version%3D%271.1%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20xmlns%3Axlink%3D%27http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%27%20x%3D%270px%27%20y%3D%270px%27%20enable-background%3D%27new%200%200%205%202%27%20xml%3Aspace%3D%27preserve%27%20viewBox%3D%270%200%205%202%27%20preserveAspectRatio%3D%27none%20slice%27%3E%3Ccircle%20cx%3D%271%27%20cy%3D%271%27%20r%3D%271%27%20fill%3D%27%23b3d6e9%27%2F%3E%3C%2Fsvg%3E\"); }\n\n.mat-progress-bar-buffer {\n  background-color: #b3d6e9; }\n\n.mat-progress-bar-fill::after {\n  background-color: #0077b5; }\n\n.mat-progress-bar.mat-accent .mat-progress-bar-background {\n  background-image: url(\"data:image/svg+xml;charset=UTF-8,%3Csvg%20version%3D%271.1%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20xmlns%3Axlink%3D%27http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%27%20x%3D%270px%27%20y%3D%270px%27%20enable-background%3D%27new%200%200%205%202%27%20xml%3Aspace%3D%27preserve%27%20viewBox%3D%270%200%205%202%27%20preserveAspectRatio%3D%27none%20slice%27%3E%3Ccircle%20cx%3D%271%27%20cy%3D%271%27%20r%3D%271%27%20fill%3D%27%23ff80ab%27%2F%3E%3C%2Fsvg%3E\"); }\n\n.mat-progress-bar.mat-accent .mat-progress-bar-buffer {\n  background-color: #ff80ab; }\n\n.mat-progress-bar.mat-accent .mat-progress-bar-fill::after {\n  background-color: #ff4081; }\n\n.mat-progress-bar.mat-warn .mat-progress-bar-background {\n  background-image: url(\"data:image/svg+xml;charset=UTF-8,%3Csvg%20version%3D%271.1%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20xmlns%3Axlink%3D%27http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%27%20x%3D%270px%27%20y%3D%270px%27%20enable-background%3D%27new%200%200%205%202%27%20xml%3Aspace%3D%27preserve%27%20viewBox%3D%270%200%205%202%27%20preserveAspectRatio%3D%27none%20slice%27%3E%3Ccircle%20cx%3D%271%27%20cy%3D%271%27%20r%3D%271%27%20fill%3D%27%23ffcdd2%27%2F%3E%3C%2Fsvg%3E\"); }\n\n.mat-progress-bar.mat-warn .mat-progress-bar-buffer {\n  background-color: #ffcdd2; }\n\n.mat-progress-bar.mat-warn .mat-progress-bar-fill::after {\n  background-color: #f44336; }\n\n.mat-progress-spinner path, .mat-spinner path {\n  stroke: #0077b5; }\n\n.mat-progress-spinner.mat-accent path, .mat-spinner.mat-accent path {\n  stroke: #ff4081; }\n\n.mat-progress-spinner.mat-warn path, .mat-spinner.mat-warn path {\n  stroke: #f44336; }\n\n.mat-radio-outer-circle {\n  border-color: rgba(0, 0, 0, 0.54); }\n\n.mat-radio-checked .mat-radio-outer-circle {\n  border-color: #ff4081; }\n\n.mat-radio-disabled .mat-radio-outer-circle {\n  border-color: rgba(0, 0, 0, 0.38); }\n\n.mat-radio-inner-circle {\n  background-color: #ff4081; }\n\n.mat-radio-ripple .mat-ripple-element {\n  background-color: rgba(255, 64, 129, 0.26); }\n\n.mat-radio-disabled .mat-radio-ripple .mat-ripple-element, .mat-radio-disabled .mat-radio-inner-circle {\n  background-color: rgba(0, 0, 0, 0.38); }\n\n.mat-radio-disabled .mat-radio-label-content {\n  color: rgba(0, 0, 0, 0.38); }\n\n.mat-select-trigger,\n.mat-select-arrow {\n  color: rgba(0, 0, 0, 0.38); }\n\n.mat-select-underline {\n  background-color: rgba(0, 0, 0, 0.12); }\n\n.mat-select-disabled .mat-select-value,\n.mat-select-arrow,\n.mat-select-trigger {\n  color: rgba(0, 0, 0, 0.38); }\n\n.mat-select-content, .mat-select-panel-done-animating {\n  background: white; }\n\n.mat-select-value {\n  color: rgba(0, 0, 0, 0.87); }\n\n.mat-select:focus:not(.mat-select-disabled).mat-primary .mat-select-trigger, .mat-select:focus:not(.mat-select-disabled).mat-primary .mat-select-arrow {\n  color: #0077b5; }\n\n.mat-select:focus:not(.mat-select-disabled).mat-primary .mat-select-underline {\n  background-color: #0077b5; }\n\n.mat-select:focus:not(.mat-select-disabled).mat-accent .mat-select-trigger, .mat-select:focus:not(.mat-select-disabled).mat-accent .mat-select-arrow {\n  color: #ff4081; }\n\n.mat-select:focus:not(.mat-select-disabled).mat-accent .mat-select-underline {\n  background-color: #ff4081; }\n\n.mat-select:focus:not(.mat-select-disabled).mat-warn .mat-select-trigger, .mat-select:focus:not(.mat-select-disabled).mat-warn .mat-select-arrow,\n.mat-select:not(:focus).ng-invalid.ng-touched:not(.mat-select-disabled) .mat-select-trigger,\n.mat-select:not(:focus).ng-invalid.ng-touched:not(.mat-select-disabled) .mat-select-arrow {\n  color: #f44336; }\n\n.mat-select:focus:not(.mat-select-disabled).mat-warn .mat-select-underline,\n.mat-select:not(:focus).ng-invalid.ng-touched:not(.mat-select-disabled) .mat-select-underline {\n  background-color: #f44336; }\n\n.mat-sidenav-container {\n  background-color: #fafafa;\n  color: rgba(0, 0, 0, 0.87); }\n\n.mat-sidenav {\n  background-color: white;\n  color: rgba(0, 0, 0, 0.87); }\n  .mat-sidenav.mat-sidenav-push {\n    background-color: white; }\n\n.mat-sidenav-backdrop.mat-sidenav-shown {\n  background-color: rgba(0, 0, 0, 0.6); }\n\n.mat-slide-toggle.mat-checked:not(.mat-disabled) .mat-slide-toggle-thumb {\n  background-color: #e91e63; }\n\n.mat-slide-toggle.mat-checked:not(.mat-disabled) .mat-slide-toggle-bar {\n  background-color: rgba(233, 30, 99, 0.5); }\n\n.mat-slide-toggle:not(.mat-checked) .mat-ripple-element {\n  background-color: rgba(0, 0, 0, 0.06); }\n\n.mat-slide-toggle .mat-ripple-element {\n  background-color: rgba(233, 30, 99, 0.12); }\n\n.mat-slide-toggle.mat-primary.mat-checked:not(.mat-disabled) .mat-slide-toggle-thumb {\n  background-color: #0077b5; }\n\n.mat-slide-toggle.mat-primary.mat-checked:not(.mat-disabled) .mat-slide-toggle-bar {\n  background-color: rgba(0, 119, 181, 0.5); }\n\n.mat-slide-toggle.mat-primary:not(.mat-checked) .mat-ripple-element {\n  background-color: rgba(0, 0, 0, 0.06); }\n\n.mat-slide-toggle.mat-primary .mat-ripple-element {\n  background-color: rgba(0, 119, 181, 0.12); }\n\n.mat-slide-toggle.mat-warn.mat-checked:not(.mat-disabled) .mat-slide-toggle-thumb {\n  background-color: #f44336; }\n\n.mat-slide-toggle.mat-warn.mat-checked:not(.mat-disabled) .mat-slide-toggle-bar {\n  background-color: rgba(244, 67, 54, 0.5); }\n\n.mat-slide-toggle.mat-warn:not(.mat-checked) .mat-ripple-element {\n  background-color: rgba(0, 0, 0, 0.06); }\n\n.mat-slide-toggle.mat-warn .mat-ripple-element {\n  background-color: rgba(244, 67, 54, 0.12); }\n\n.mat-disabled .mat-slide-toggle-thumb {\n  background-color: #bdbdbd; }\n\n.mat-disabled .mat-slide-toggle-bar {\n  background-color: rgba(0, 0, 0, 0.1); }\n\n.mat-slide-toggle-thumb {\n  background-color: #fafafa; }\n\n.mat-slide-toggle-bar {\n  background-color: rgba(0, 0, 0, 0.38); }\n\n.mat-slider-track-background {\n  background-color: rgba(0, 0, 0, 0.26); }\n\n.mat-primary .mat-slider-track-fill,\n.mat-primary .mat-slider-thumb,\n.mat-primary .mat-slider-thumb-label {\n  background-color: #0077b5; }\n\n.mat-primary .mat-slider-thumb-label-text {\n  color: rgba(255, 255, 255, 0.87); }\n\n.mat-accent .mat-slider-track-fill,\n.mat-accent .mat-slider-thumb,\n.mat-accent .mat-slider-thumb-label {\n  background-color: #ff4081; }\n\n.mat-accent .mat-slider-thumb-label-text {\n  color: white; }\n\n.mat-warn .mat-slider-track-fill,\n.mat-warn .mat-slider-thumb,\n.mat-warn .mat-slider-thumb-label {\n  background-color: #f44336; }\n\n.mat-warn .mat-slider-thumb-label-text {\n  color: white; }\n\n.mat-slider-focus-ring {\n  background-color: rgba(255, 64, 129, 0.2); }\n\n.mat-slider:hover .mat-slider-track-background,\n.cdk-focused .mat-slider-track-background {\n  background-color: rgba(0, 0, 0, 0.38); }\n\n.mat-slider-disabled .mat-slider-track-background,\n.mat-slider-disabled .mat-slider-track-fill,\n.mat-slider-disabled .mat-slider-thumb {\n  background-color: rgba(0, 0, 0, 0.26); }\n\n.mat-slider-disabled:hover .mat-slider-track-background {\n  background-color: rgba(0, 0, 0, 0.26); }\n\n.mat-slider-min-value .mat-slider-focus-ring {\n  background-color: rgba(0, 0, 0, 0.12); }\n\n.mat-slider-min-value.mat-slider-thumb-label-showing .mat-slider-thumb,\n.mat-slider-min-value.mat-slider-thumb-label-showing .mat-slider-thumb-label {\n  background-color: black; }\n\n.mat-slider-min-value.mat-slider-thumb-label-showing.cdk-focused .mat-slider-thumb,\n.mat-slider-min-value.mat-slider-thumb-label-showing.cdk-focused .mat-slider-thumb-label {\n  background-color: rgba(0, 0, 0, 0.26); }\n\n.mat-slider-min-value:not(.mat-slider-thumb-label-showing) .mat-slider-thumb {\n  border-color: rgba(0, 0, 0, 0.26);\n  background-color: transparent; }\n\n.mat-slider-min-value:not(.mat-slider-thumb-label-showing):hover .mat-slider-thumb, .mat-slider-min-value:not(.mat-slider-thumb-label-showing).cdk-focused .mat-slider-thumb {\n  border-color: rgba(0, 0, 0, 0.38); }\n\n.mat-slider-min-value:not(.mat-slider-thumb-label-showing):hover.mat-slider-disabled .mat-slider-thumb, .mat-slider-min-value:not(.mat-slider-thumb-label-showing).cdk-focused.mat-slider-disabled .mat-slider-thumb {\n  border-color: rgba(0, 0, 0, 0.26); }\n\n.mat-slider-has-ticks .mat-slider-wrapper::after {\n  border-color: rgba(0, 0, 0, 0.7); }\n\n.mat-slider-horizontal .mat-slider-ticks {\n  background-image: repeating-linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7) 2px, transparent 0, transparent);\n  background-image: -moz-repeating-linear-gradient(0.0001deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7) 2px, transparent 0, transparent); }\n\n.mat-slider-vertical .mat-slider-ticks {\n  background-image: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7) 2px, transparent 0, transparent); }\n\n.mat-tab-nav-bar,\n.mat-tab-header {\n  border-bottom: 1px solid rgba(0, 0, 0, 0.12); }\n\n.mat-tab-group-inverted-header .mat-tab-nav-bar,\n.mat-tab-group-inverted-header .mat-tab-header {\n  border-top: 1px solid rgba(0, 0, 0, 0.12);\n  border-bottom: none; }\n\n.mat-tab-label:focus {\n  background-color: rgba(179, 214, 233, 0.3); }\n\n.mat-ink-bar {\n  background-color: #0077b5; }\n\n.mat-tab-label, .mat-tab-link {\n  color: rgba(0, 0, 0, 0.87); }\n  .mat-tab-label.mat-tab-disabled, .mat-tab-link.mat-tab-disabled {\n    color: rgba(0, 0, 0, 0.38); }\n\n.mat-toolbar {\n  background: whitesmoke;\n  color: rgba(0, 0, 0, 0.87); }\n  .mat-toolbar.mat-primary {\n    background: #0077b5;\n    color: rgba(255, 255, 255, 0.87); }\n  .mat-toolbar.mat-accent {\n    background: #ff4081;\n    color: white; }\n  .mat-toolbar.mat-warn {\n    background: #f44336;\n    color: white; }\n\n.mat-tooltip {\n  background: rgba(97, 97, 97, 0.9); }\n\n.mat-toolbar {\n  background-color: #fff; }\n  .mat-toolbar .mat-icon.secondary {\n    vertical-align: bottom; }\n  .mat-toolbar .mat-toolbar-row.information {\n    height: 24px;\n    margin-bottom: 24px; }\n\n.node-viewer {\n  padding: 10px; }\n\n.primary {\n  color: #0077b5; }\n\nmd-input-container {\n  width: 300px;\n  padding: 10px 0 0 5px; }\n\nmd-card {\n  margin-bottom: 10px; }\n\nngx-datatable {\n  word-break: break-all; }\n", ""]);
+
+// exports
+
+
+/*** EXPORTS FROM exports-loader ***/
+module.exports = module.exports.toString();
+
+/***/ }),
+
+/***/ "../../../../../src/app/shared/node-viewer/node-viewer.component.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_router__ = __webpack_require__("../../../router/@angular/router.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_lodash__ = __webpack_require__("../../../../lodash/lodash.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_lodash___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_lodash__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__models_node_model__ = __webpack_require__("../../../../../src/app/shared/models/node.model.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__core_settings__ = __webpack_require__("../../../../../src/app/core/settings.ts");
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return NodeViewerComponent; });
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+
+
+
+
+var NodeViewerComponent = (function () {
+    function NodeViewerComponent(route) {
+        this.route = route;
+        this.rowHeight = __WEBPACK_IMPORTED_MODULE_4__core_settings__["a" /* Settings */].tableRowHeight;
+        this.sorts = [
+            { prop: 'name', dir: 'asc' }
+        ];
+        this.keyword = '';
+    }
+    Object.defineProperty(NodeViewerComponent.prototype, "obj", {
+        get: function () {
+            return this._obj;
+        },
+        // MODE 1: use directly in components
+        set: function (value) {
+            if (value != null) {
+                this._obj = value;
+                this.node = new __WEBPACK_IMPORTED_MODULE_3__models_node_model__["a" /* Node */](value);
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(NodeViewerComponent.prototype, "simpleConfigs", {
+        get: function () {
+            var _this = this;
+            return this.node ? __WEBPACK_IMPORTED_MODULE_2_lodash__["filter"](this.node.simpleFields, function (config) {
+                return config.name.toLowerCase().indexOf(_this.keyword) >= 0
+                    || config.value.toLowerCase().indexOf(_this.keyword) >= 0;
+            }) : [];
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(NodeViewerComponent.prototype, "listConfigs", {
+        get: function () {
+            var _this = this;
+            return this.node ? __WEBPACK_IMPORTED_MODULE_2_lodash__["filter"](this.node.listFields, function (config) {
+                return config.name.toLowerCase().indexOf(_this.keyword) >= 0
+                    || __WEBPACK_IMPORTED_MODULE_2_lodash__["some"](config.value, function (subconfig) {
+                        return subconfig.value.toLowerCase().indexOf(_this.keyword) >= 0;
+                    });
+            }) : [];
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(NodeViewerComponent.prototype, "mapConfigs", {
+        get: function () {
+            var _this = this;
+            return this.node ? __WEBPACK_IMPORTED_MODULE_2_lodash__["filter"](this.node.mapFields, function (config) {
+                return config.name.toLowerCase().indexOf(_this.keyword) >= 0
+                    || __WEBPACK_IMPORTED_MODULE_2_lodash__["some"](config.value, function (subconfig) {
+                        return subconfig.name.toLowerCase().indexOf(_this.keyword) >= 0
+                            || subconfig.value.toLowerCase().indexOf(_this.keyword) >= 0;
+                    });
+            }) : [];
+        },
+        enumerable: true,
+        configurable: true
+    });
+    NodeViewerComponent.prototype.ngOnInit = function () {
+        // MODE 2: use in router
+        if (this.route.snapshot.data.path) {
+            var path = this.route.snapshot.data.path;
+            // try parent data first
+            this.obj = __WEBPACK_IMPORTED_MODULE_2_lodash__["get"](this.route.parent, "snapshot.data." + path);
+            if (this.obj == null) {
+                // try self data then
+                this.obj = __WEBPACK_IMPORTED_MODULE_2_lodash__["get"](this.route.snapshot.data, path);
+            }
+        }
+    };
+    NodeViewerComponent.prototype.updateFilter = function (event) {
+        this.keyword = event.target.value.toLowerCase().trim();
+        // Whenever the filter changes, always go back to the first page
+        this.simpleTable.offset = 0;
+        this.listTable.offset = 0;
+        this.mapTable.offset = 0;
+    };
+    NodeViewerComponent.prototype.getNameCellClass = function (_a) {
+        var value = _a.value;
+        return {
+            // highlight HELIX own configs
+            'primary': __WEBPACK_IMPORTED_MODULE_2_lodash__["snakeCase"](value).toUpperCase() === value
+        };
+    };
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('simpleTable'),
+        __metadata("design:type", Object)
+    ], NodeViewerComponent.prototype, "simpleTable", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('listTable'),
+        __metadata("design:type", Object)
+    ], NodeViewerComponent.prototype, "listTable", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('mapTable'),
+        __metadata("design:type", Object)
+    ], NodeViewerComponent.prototype, "mapTable", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object),
+        __metadata("design:paramtypes", [Object])
+    ], NodeViewerComponent.prototype, "obj", null);
+    NodeViewerComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-node-viewer',
+            template: __webpack_require__("../../../../../src/app/shared/node-viewer/node-viewer.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/shared/node-viewer/node-viewer.component.scss")],
+            // Since we are importing external styles in this component
+            // we will not use Shadow DOM at all to make sure the styles apply
+            encapsulation: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewEncapsulation"].None
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
+    ], NodeViewerComponent);
+    return NodeViewerComponent;
+    var _a;
+}());
+
+//# sourceMappingURL=node-viewer.component.js.map
 
 /***/ }),
 
@@ -2973,12 +3101,15 @@ var _a;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_router__ = __webpack_require__("../../../router/@angular/router.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_material__ = __webpack_require__("../../../material/@angular/material.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__angular_flex_layout__ = __webpack_require__("../../../flex-layout/index.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__dialog_input_dialog_input_dialog_component__ = __webpack_require__("../../../../../src/app/shared/dialog/input-dialog/input-dialog.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__detail_header_detail_header_component__ = __webpack_require__("../../../../../src/app/shared/detail-header/detail-header.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__key_value_pairs_key_value_pairs_component__ = __webpack_require__("../../../../../src/app/shared/key-value-pairs/key-value-pairs.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__json_viewer_json_viewer_component__ = __webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__dialog_alert_dialog_alert_dialog_component__ = __webpack_require__("../../../../../src/app/shared/dialog/alert-dialog/alert-dialog.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__state_label_state_label_component__ = __webpack_require__("../../../../../src/app/shared/state-label/state-label.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__swimlane_ngx_datatable__ = __webpack_require__("../../../../@swimlane/ngx-datatable/release/index.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__swimlane_ngx_datatable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_5__swimlane_ngx_datatable__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__dialog_input_dialog_input_dialog_component__ = __webpack_require__("../../../../../src/app/shared/dialog/input-dialog/input-dialog.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__detail_header_detail_header_component__ = __webpack_require__("../../../../../src/app/shared/detail-header/detail-header.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__key_value_pairs_key_value_pairs_component__ = __webpack_require__("../../../../../src/app/shared/key-value-pairs/key-value-pairs.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__json_viewer_json_viewer_component__ = __webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__dialog_alert_dialog_alert_dialog_component__ = __webpack_require__("../../../../../src/app/shared/dialog/alert-dialog/alert-dialog.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__state_label_state_label_component__ = __webpack_require__("../../../../../src/app/shared/state-label/state-label.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__node_viewer_node_viewer_component__ = __webpack_require__("../../../../../src/app/shared/node-viewer/node-viewer.component.ts");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return SharedModule; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -2997,41 +3128,46 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 
 
 
+
+
 var SharedModule = (function () {
     function SharedModule() {
     }
+    SharedModule = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
+            imports: [
+                __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
+                __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
+                __WEBPACK_IMPORTED_MODULE_4__angular_flex_layout__["a" /* FlexLayoutModule */],
+                __WEBPACK_IMPORTED_MODULE_5__swimlane_ngx_datatable__["NgxDatatableModule"]
+            ],
+            declarations: [
+                __WEBPACK_IMPORTED_MODULE_6__dialog_input_dialog_input_dialog_component__["a" /* InputDialogComponent */],
+                __WEBPACK_IMPORTED_MODULE_10__dialog_alert_dialog_alert_dialog_component__["a" /* AlertDialogComponent */],
+                __WEBPACK_IMPORTED_MODULE_7__detail_header_detail_header_component__["a" /* DetailHeaderComponent */],
+                __WEBPACK_IMPORTED_MODULE_8__key_value_pairs_key_value_pairs_component__["a" /* KeyValuePairDirective */],
+                __WEBPACK_IMPORTED_MODULE_8__key_value_pairs_key_value_pairs_component__["b" /* KeyValuePairsComponent */],
+                __WEBPACK_IMPORTED_MODULE_9__json_viewer_json_viewer_component__["a" /* JsonViewerComponent */],
+                __WEBPACK_IMPORTED_MODULE_11__state_label_state_label_component__["a" /* StateLabelComponent */],
+                __WEBPACK_IMPORTED_MODULE_12__node_viewer_node_viewer_component__["a" /* NodeViewerComponent */]
+            ],
+            entryComponents: [
+                __WEBPACK_IMPORTED_MODULE_6__dialog_input_dialog_input_dialog_component__["a" /* InputDialogComponent */],
+                __WEBPACK_IMPORTED_MODULE_10__dialog_alert_dialog_alert_dialog_component__["a" /* AlertDialogComponent */]
+            ],
+            exports: [
+                __WEBPACK_IMPORTED_MODULE_7__detail_header_detail_header_component__["a" /* DetailHeaderComponent */],
+                __WEBPACK_IMPORTED_MODULE_8__key_value_pairs_key_value_pairs_component__["a" /* KeyValuePairDirective */],
+                __WEBPACK_IMPORTED_MODULE_8__key_value_pairs_key_value_pairs_component__["b" /* KeyValuePairsComponent */],
+                __WEBPACK_IMPORTED_MODULE_9__json_viewer_json_viewer_component__["a" /* JsonViewerComponent */],
+                __WEBPACK_IMPORTED_MODULE_11__state_label_state_label_component__["a" /* StateLabelComponent */],
+                __WEBPACK_IMPORTED_MODULE_12__node_viewer_node_viewer_component__["a" /* NodeViewerComponent */]
+            ]
+        })
+    ], SharedModule);
     return SharedModule;
 }());
-SharedModule = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
-        imports: [
-            __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-            __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
-            __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
-            __WEBPACK_IMPORTED_MODULE_4__angular_flex_layout__["a" /* FlexLayoutModule */]
-        ],
-        declarations: [
-            __WEBPACK_IMPORTED_MODULE_5__dialog_input_dialog_input_dialog_component__["a" /* InputDialogComponent */],
-            __WEBPACK_IMPORTED_MODULE_9__dialog_alert_dialog_alert_dialog_component__["a" /* AlertDialogComponent */],
-            __WEBPACK_IMPORTED_MODULE_6__detail_header_detail_header_component__["a" /* DetailHeaderComponent */],
-            __WEBPACK_IMPORTED_MODULE_7__key_value_pairs_key_value_pairs_component__["a" /* KeyValuePairDirective */],
-            __WEBPACK_IMPORTED_MODULE_7__key_value_pairs_key_value_pairs_component__["b" /* KeyValuePairsComponent */],
-            __WEBPACK_IMPORTED_MODULE_8__json_viewer_json_viewer_component__["a" /* JsonViewerComponent */],
-            __WEBPACK_IMPORTED_MODULE_10__state_label_state_label_component__["a" /* StateLabelComponent */]
-        ],
-        entryComponents: [
-            __WEBPACK_IMPORTED_MODULE_5__dialog_input_dialog_input_dialog_component__["a" /* InputDialogComponent */],
-            __WEBPACK_IMPORTED_MODULE_9__dialog_alert_dialog_alert_dialog_component__["a" /* AlertDialogComponent */]
-        ],
-        exports: [
-            __WEBPACK_IMPORTED_MODULE_6__detail_header_detail_header_component__["a" /* DetailHeaderComponent */],
-            __WEBPACK_IMPORTED_MODULE_7__key_value_pairs_key_value_pairs_component__["a" /* KeyValuePairDirective */],
-            __WEBPACK_IMPORTED_MODULE_7__key_value_pairs_key_value_pairs_component__["b" /* KeyValuePairsComponent */],
-            __WEBPACK_IMPORTED_MODULE_8__json_viewer_json_viewer_component__["a" /* JsonViewerComponent */],
-            __WEBPACK_IMPORTED_MODULE_10__state_label_state_label_component__["a" /* StateLabelComponent */]
-        ]
-    })
-], SharedModule);
 
 //# sourceMappingURL=shared.module.js.map
 
@@ -3083,24 +3219,24 @@ var StateLabelComponent = (function () {
     }
     StateLabelComponent.prototype.ngOnInit = function () {
     };
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", String)
+    ], StateLabelComponent.prototype, "state", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Boolean)
+    ], StateLabelComponent.prototype, "isReady", void 0);
+    StateLabelComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-state-label',
+            template: __webpack_require__("../../../../../src/app/shared/state-label/state-label.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/shared/state-label/state-label.component.scss")]
+        }),
+        __metadata("design:paramtypes", [])
+    ], StateLabelComponent);
     return StateLabelComponent;
 }());
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", String)
-], StateLabelComponent.prototype, "state", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
-    __metadata("design:type", Boolean)
-], StateLabelComponent.prototype, "isReady", void 0);
-StateLabelComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-        selector: 'hi-state-label',
-        template: __webpack_require__("../../../../../src/app/shared/state-label/state-label.component.html"),
-        styles: [__webpack_require__("../../../../../src/app/shared/state-label/state-label.component.scss")]
-    }),
-    __metadata("design:paramtypes", [])
-], StateLabelComponent);
 
 //# sourceMappingURL=state-label.component.js.map
 

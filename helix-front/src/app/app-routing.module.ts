@@ -2,7 +2,7 @@ import { ModuleWithProviders } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { AppComponent } from './app.component';
-import { JsonViewerComponent } from './shared/json-viewer/json-viewer.component';
+import { NodeViewerComponent } from './shared/node-viewer/node-viewer.component';
 import { ClusterResolver } from './cluster/shared/cluster.resolver';
 import { ClusterDetailComponent } from './cluster/cluster-detail/cluster-detail.component';
 import { ConfigDetailComponent } from './configuration/config-detail/config-detail.component';
@@ -93,14 +93,14 @@ const HELIX_ROUTES: Routes = [
       },
       {
         path: 'externalView',
-        component: JsonViewerComponent,
+        component: NodeViewerComponent,
         data: {
           path: 'resource.externalView'
         }
       },
       {
         path: 'idealState',
-        component: JsonViewerComponent,
+        component: NodeViewerComponent,
         data: {
           path: 'resource.idealState'
         }

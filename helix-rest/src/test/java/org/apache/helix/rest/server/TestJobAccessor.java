@@ -50,7 +50,7 @@ public class TestJobAccessor extends AbstractTestClass {
             .getAllNodes());
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetJobs")
   public void testGetJob() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
@@ -66,7 +66,7 @@ public class TestJobAccessor extends AbstractTestClass {
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetJob")
   public void testGetJobConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
@@ -78,7 +78,7 @@ public class TestJobAccessor extends AbstractTestClass {
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetJobConfig")
   public void testGetJobContext() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 

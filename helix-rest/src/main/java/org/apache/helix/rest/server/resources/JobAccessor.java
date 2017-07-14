@@ -19,6 +19,7 @@ package org.apache.helix.rest.server.resources;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,7 @@ import javax.ws.rs.core.Response;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
+import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
@@ -45,7 +47,8 @@ public class JobAccessor extends AbstractResource {
   public enum JobProperties {
     Jobs,
     JobConfig,
-    JobContext
+    JobContext,
+    TASK_COMMAND
   }
 
   @GET
@@ -120,5 +123,34 @@ public class JobAccessor extends AbstractResource {
       return JSONRepresentation(jobContext.getRecord());
     }
     return notFound();
+  }
+
+  protected static JobConfig.Builder getJobConfig(Map<String, String> cfgMap) {
+    return new JobConfig.Builder().fromMap(cfgMap);
+  }
+
+  protected static JobConfig.Builder getJobConfig(ZNRecord record) {
+    JobConfig.Builder jobConfig = new JobConfig.Builder().fromMap(record.getSimpleFields());
+    jobConfig.addTaskConfigMap(getTaskConfigMap(record.getMapFields()));
+
+    return jobConfig;
+  }
+
+  private static Map<String, TaskConfig> getTaskConfigMap(Map<String, Map<String, String>> taskConfigs) {
+    Map<String, TaskConfig> taskConfigsMap = new HashMap<>();
+    if (taskConfigs == null || taskConfigs.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    for (Map<String, String> taskConfigMap : taskConfigs.values()) {
+      if (!taskConfigMap.containsKey(JobProperties.TASK_COMMAND.name())) {
+        continue;
+      }
+
+      TaskConfig taskConfig = new TaskConfig(taskConfigMap.get(JobProperties.TASK_COMMAND.name()), taskConfigMap);
+      taskConfigsMap.put(taskConfig.getId(), taskConfig);
+    }
+
+    return taskConfigsMap;
   }
 }

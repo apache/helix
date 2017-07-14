@@ -77,7 +77,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.OK.getStatusCode(), body);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetClusters")
   public void testAddConfigFields() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
@@ -99,7 +99,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         "cluster config from response: " + newConfig + " vs cluster config actually: " + oldConfig);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testAddConfigFields")
   public void testUpdateConfigFields() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
@@ -137,7 +137,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         "cluster config from response: " + newConfig + " vs cluster config actually: " + prevConfig);
   }
 
-  @Test (dependsOnMethods = {"testUpdateConfigFields"})
+  @Test (dependsOnMethods = "testUpdateConfigFields")
   public void testDeleteConfigFields()
       throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
@@ -178,7 +178,7 @@ public class TestClusterAccessor extends AbstractTestClass {
             + prevConfig);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testDeleteConfigFields")
   public void testCreateDeleteCluster() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // create an existing cluster should fail.
@@ -203,7 +203,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(_auditLogger.getAuditLogs().size(), 3);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testCreateDeleteCluster")
   public void testEnableDisableCluster() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // disable a cluster.
@@ -227,7 +227,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(_auditLogger.getAuditLogs().size(), 2);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testEnableDisableCluster")
   public void testGetClusterConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     Response response = target("clusters/fakeCluster/configs").request().get();

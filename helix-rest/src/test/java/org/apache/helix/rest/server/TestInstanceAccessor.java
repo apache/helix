@@ -41,7 +41,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
   private final static String INSTANCE_NAME = CLUSTER_NAME + "localhost_12918";
 
-  @Test(dependsOnMethods = "testDeleteInstance")
+  @Test
   public void testGetInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body =
@@ -74,7 +74,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME));
   }
 
-  @Test
+  @Test(dependsOnMethods = "updateInstance")
   public void testAddInstance() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     InstanceConfig instanceConfig = new InstanceConfig(INSTANCE_NAME + "TEST");

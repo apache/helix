@@ -55,6 +55,7 @@ import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.Workflow;
@@ -371,5 +372,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected void delete(String uri, int expectedReturnStatus) {
     final Response response = target(uri).request().delete();
     Assert.assertEquals(response.getStatus(), expectedReturnStatus);
+  }
+
+  protected TaskDriver getTaskDriver(String clusterName) {
+    return new TaskDriver(_gZkClient, clusterName);
   }
 }

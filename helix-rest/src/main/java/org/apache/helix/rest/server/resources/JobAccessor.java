@@ -19,21 +19,25 @@ package org.apache.helix.rest.server.resources;
  * under the License.
  */
 
+
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskDriver;
-import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.node.ArrayNode;
@@ -84,7 +88,7 @@ public class JobAccessor extends AbstractResource {
     if (jobConfig != null) {
       jobMap.put(JobProperties.JobConfig.name(), jobConfig.getRecord());
     } else {
-      return notFound();
+      return badRequest(String.format("Job config for %s does not exists", jobName));
     }
 
     JobContext jobContext =
@@ -98,6 +102,43 @@ public class JobAccessor extends AbstractResource {
     return JSONRepresentation(jobMap);
   }
 
+  @PUT
+  @Path("{jobName}")
+  public Response addJob(@PathParam("clusterId") String clusterId,
+      @PathParam("workflowName") String workflowName, @PathParam("jobName") String jobName,
+      String content) {
+    ZNRecord record;
+    TaskDriver driver = getTaskDriver(clusterId);
+
+    try {
+      record = toZNRecord(content);
+      JobConfig.Builder jobConfig = JobAccessor.getJobConfig(record);
+      driver.enqueueJob(workflowName, jobName, jobConfig);
+    } catch (HelixException e) {
+      return badRequest(
+          String.format("Failed to enqueue job %s for reason : %s", jobName, e.getMessage()));
+    } catch (IOException e) {
+      return badRequest(String.format("Invalid input for Job Config of Job : %s", jobName));
+    }
+
+    return OK();
+  }
+
+  @DELETE
+  @Path("{jobName}")
+  public Response deleteJob(@PathParam("clusterId") String clusterId,
+      @PathParam("workflowName") String workflowName, @PathParam("jobName") String jobName) {
+    TaskDriver driver = getTaskDriver(clusterId);
+
+    try {
+      driver.deleteJob(workflowName, jobName);
+    } catch (Exception e) {
+      return badRequest(e.getMessage());
+    }
+
+    return OK();
+  }
+
   @GET
   @Path("{jobName}/configs")
   public Response getJobConfig(@PathParam("clusterId") String clusterId,
@@ -108,7 +149,7 @@ public class JobAccessor extends AbstractResource {
     if (jobConfig != null) {
       return JSONRepresentation(jobConfig.getRecord());
     }
-    return notFound();
+    return badRequest("Job config for " + jobName + " does not exists");
   }
 
   @GET
@@ -122,7 +163,7 @@ public class JobAccessor extends AbstractResource {
     if (jobContext != null) {
       return JSONRepresentation(jobContext.getRecord());
     }
-    return notFound();
+    return badRequest("Job context for " + jobName + " does not exists");
   }
 
   protected static JobConfig.Builder getJobConfig(Map<String, String> cfgMap) {
@@ -136,7 +177,8 @@ public class JobAccessor extends AbstractResource {
     return jobConfig;
   }
 
-  private static Map<String, TaskConfig> getTaskConfigMap(Map<String, Map<String, String>> taskConfigs) {
+  private static Map<String, TaskConfig> getTaskConfigMap(
+      Map<String, Map<String, String>> taskConfigs) {
     Map<String, TaskConfig> taskConfigsMap = new HashMap<>();
     if (taskConfigs == null || taskConfigs.isEmpty()) {
       return Collections.emptyMap();
@@ -147,7 +189,8 @@ public class JobAccessor extends AbstractResource {
         continue;
       }
 
-      TaskConfig taskConfig = new TaskConfig(taskConfigMap.get(JobProperties.TASK_COMMAND.name()), taskConfigMap);
+      TaskConfig taskConfig =
+          new TaskConfig(taskConfigMap.get(JobProperties.TASK_COMMAND.name()), taskConfigMap);
       taskConfigsMap.put(taskConfig.getId(), taskConfig);
     }
 

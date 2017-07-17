@@ -4,6 +4,7 @@ import { HttpModule } from '@angular/http';
 import { RouterTestingModule } from '@angular/router/testing';
 
 import { ResourceListComponent } from './resource-list.component';
+import { ResourceService } from '../shared/resource.service';
 
 describe('ResourceListComponent', () => {
   let component: ResourceListComponent;
@@ -16,6 +17,7 @@ describe('ResourceListComponent', () => {
         RouterTestingModule
       ],
       declarations: [ ResourceListComponent ],
+      providers: [ ResourceService ],
       schemas: [
         /* avoid importing modules */
         NO_ERRORS_SCHEMA

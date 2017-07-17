@@ -52,6 +52,6 @@
   </ngx-datatable>
   <div *ngIf="!canAnalyse()" class="message">
     <div>Sorry, we do not support this kind of partition information yet. Detailed debugging information:</div>
-    <hi-json-viewer [obj]="resource"></hi-json-viewer>
+    <ngx-json-viewer [json]="resource"></ngx-json-viewer>
   </div>
 </section>

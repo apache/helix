@@ -3,12 +3,15 @@ import { Router, ActivatedRoute } from '@angular/router';
 
 import { Resource } from '../shared/resource.model';
 import { ResourceService } from '../shared/resource.service';
+import { WorkflowService } from '../../workflow/shared/workflow.service';
+import { Observable } from 'rxjs/Rx';
+import * as _ from 'lodash';
 
 @Component({
   selector: 'hi-resource-list',
   templateUrl: './resource-list.component.html',
   styleUrls: ['./resource-list.component.scss'],
-  providers: [ResourceService]
+  providers: [WorkflowService]
 })
 export class ResourceListComponent implements OnInit {
 
@@ -29,7 +32,8 @@ export class ResourceListComponent implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private service: ResourceService
+    private service: ResourceService,
+    private workflowService: WorkflowService
   ) { }
 
   ngOnInit() {
@@ -52,21 +56,49 @@ export class ResourceListComponent implements OnInit {
         this.route.parent.data.subscribe(data => {
           this.isLoading = true;
           this.clusterName = data.cluster.name;
-
-          this.service
-            .getAll(data.cluster.name)
-            .subscribe(
-              resources => this.resources = resources,
-              error => {},
-              () => this.isLoading = false
-            );
+          this.fetchResources();
         });
       }
     }
   }
 
+  // since resource list contains also workflows and jobs
+  // need to subtract them from original resource list
+  // to obtain all jobs list, need to go through every workflow
+  // and perform get request for each
+  protected fetchResources() {
+    let jobs = [];
+
+    this.workflowService
+      .getAll(this.clusterName)
+      .concatMap(workflows => Observable.from(workflows))
+      .mergeMap(workflow => {
+        const name = workflow as string;
+        jobs.push(name);
+        return this.workflowService.get(this.clusterName, name);
+      })
+      .map(workflow => workflow.jobs)
+      .subscribe(
+        list => {
+          jobs = jobs.concat(list);
+        },
+        error => console.log(error),
+        () => {
+          this.service
+            .getAll(this.clusterName)
+            .subscribe(
+              result => {
+                this.resources = _.differenceWith(result, jobs, (resource: Resource, name) => resource.name === name);
+              },
+              error => console.log(error),
+              () => this.isLoading = false
+            );
+        }
+      );
+  }
+
   onSelect({ selected }) {
-    let row = selected[0];
+    const row = selected[0];
 
     if (this.isForInstance) {
       this.table.rowDetail.toggleExpandRow(row);

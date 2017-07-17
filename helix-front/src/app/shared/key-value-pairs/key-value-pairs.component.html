@@ -1,7 +1,7 @@
 <section class="groups" fxLayout="row">
   <section class="column" *ngFor="let pair of pairs">
     <div class="name">{{ pair.name }}</div>
-    <div class="value" *ngIf="obj != null && obj[pair.prop] != null">{{ obj[pair.prop] }}</div>
-    <div class="value" *ngIf="obj == null || obj[pair.prop] == null">N/A</div>
+    <div class="value" *ngIf="obj != null && getProp(obj, pair.prop) != null">{{ getProp(obj, pair.prop) }}</div>
+    <div class="value" *ngIf="obj == null || getProp(obj, pair.prop) == null">N/A</div>
   </section>
 </section>

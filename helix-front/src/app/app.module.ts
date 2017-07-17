@@ -17,6 +17,7 @@ import { ResourceModule } from './resource/resource.module';
 import { ControllerModule } from './controller/controller.module';
 import { HistoryModule } from './history/history.module';
 import { AppComponent } from './app.component';
+import { WorkflowModule } from './workflow/workflow.module';
 
 @NgModule({
   declarations: [
@@ -37,7 +38,8 @@ import { AppComponent } from './app.component';
     InstanceModule,
     ResourceModule,
     ControllerModule,
-    HistoryModule
+    HistoryModule,
+    WorkflowModule
   ],
   providers: [],
   bootstrap: [AppComponent]

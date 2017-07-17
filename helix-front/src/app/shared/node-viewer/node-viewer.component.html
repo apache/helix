@@ -8,7 +8,7 @@
     </md-button-toggle>
   </md-button-toggle-group>
   <section class="viewer" [ngSwitch]="group.value" fxFlexFill>
-    <hi-json-viewer *ngSwitchCase="'json'" [obj]="obj"></hi-json-viewer>
+    <ngx-json-viewer *ngSwitchCase="'json'" [json]="obj"></ngx-json-viewer>
     <section *ngSwitchCase="'table'">
 
       <!-- TODO vxu: use md-simple-table when it's available -->

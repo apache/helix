@@ -11,11 +11,12 @@ export class DetailHeaderComponent {
   @Input() resource;
   @Input() instance;
   @Input() controller;
+  @Input() workflow;
 
   constructor() { }
 
   isSecondary() {
-    return this.controller || this.instance || this.resource;
+    return this.controller || this.instance || this.resource || this.workflow;
   }
 
   getTag() {
@@ -27,6 +28,9 @@ export class DetailHeaderComponent {
     }
     if (this.resource) {
       return 'resource';
+    }
+    if (this.workflow) {
+      return 'workflow';
     }
     return 'cluster';
   }

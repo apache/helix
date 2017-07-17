@@ -4,7 +4,14 @@
   <span *ngIf="controller">{{ controller }}</span>
   <span *ngIf="instance">{{ instance }}</span>
   <span *ngIf="resource">{{ resource }}</span>
+  <span *ngIf="workflow">{{ workflow }}</span>
   <span class="tag">
     <span [ngClass]="getTag()">{{ getTag() }}</span>
+    <!-- for testing purpose only
+    <span class="cluster">Cluster</span>
+    <span class="resource">Resource</span>
+    <span class="instance">Instance</span>
+    <span class="controller">Controller</span>
+    <span class="workflow">Workflow</span> -->
   </span>
 </h4>

@@ -34,11 +34,11 @@ export class PartitionListComponent implements OnInit {
   canAnalyse() {
     return this.partitions// && false
       && this.partitions.length
-      && this.resource.replicaCount == this.partitions[0].replicas.length;
+      && this.resource.replicaCount === this.partitions[0].replicas.length;
   }
 
   onSelect({ selected }) {
-    let row = selected[0];
+    const row = selected[0];
 
     this.table.rowDetail.toggleExpandRow(row);
   }

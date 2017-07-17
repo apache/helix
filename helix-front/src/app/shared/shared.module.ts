@@ -5,6 +5,7 @@ import { MaterialModule } from '@angular/material';
 import { FlexLayoutModule } from '@angular/flex-layout';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
+import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
 import { InputDialogComponent } from './dialog/input-dialog/input-dialog.component';
 import { DetailHeaderComponent } from './detail-header/detail-header.component';
@@ -20,7 +21,8 @@ import { NodeViewerComponent } from './node-viewer/node-viewer.component';
     RouterModule,
     MaterialModule,
     FlexLayoutModule,
-    NgxDatatableModule
+    NgxDatatableModule,
+    NgxJsonViewerModule
   ],
   declarations: [
     InputDialogComponent,
@@ -37,6 +39,10 @@ import { NodeViewerComponent } from './node-viewer/node-viewer.component';
     AlertDialogComponent
   ],
   exports: [
+    RouterModule,
+    MaterialModule,
+    FlexLayoutModule,
+    NgxJsonViewerModule,
     DetailHeaderComponent,
     KeyValuePairDirective,
     KeyValuePairsComponent,

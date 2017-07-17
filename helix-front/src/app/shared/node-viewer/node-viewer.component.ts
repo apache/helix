@@ -91,9 +91,15 @@ export class NodeViewerComponent implements OnInit {
     this.keyword = event.target.value.toLowerCase().trim();
 
     // Whenever the filter changes, always go back to the first page
-    this.simpleTable.offset = 0;
-    this.listTable.offset = 0;
-    this.mapTable.offset = 0;
+    if (this.simpleTable) {
+      this.simpleTable.offset = 0;
+    }
+    if (this.listTable) {
+      this.listTable.offset = 0;
+    }
+    if (this.mapTable) {
+      this.mapTable.offset = 0;
+    }
   }
 
   getNameCellClass({ value }): any {

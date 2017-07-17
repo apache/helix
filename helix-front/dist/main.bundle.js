@@ -30,7 +30,11 @@ webpackEmptyContext.id = "../../../../../src async recursive";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__controller_controller_detail_controller_detail_component__ = __webpack_require__("../../../../../src/app/controller/controller-detail/controller-detail.component.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__history_history_list_history_list_component__ = __webpack_require__("../../../../../src/app/history/history-list/history-list.component.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__instance_instance_detail_instance_detail_component__ = __webpack_require__("../../../../../src/app/instance/instance-detail/instance-detail.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_13__workflow_workflow_list_workflow_list_component__ = __webpack_require__("../../../../../src/app/workflow/workflow-list/workflow-list.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_14__workflow_workflow_detail_workflow_detail_component__ = __webpack_require__("../../../../../src/app/workflow/workflow-detail/workflow-detail.component.ts");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AppRoutingModule; });
+
+
 
 
 
@@ -86,6 +90,10 @@ var HELIX_ROUTES = [
             {
                 path: 'resources',
                 component: __WEBPACK_IMPORTED_MODULE_7__resource_resource_list_resource_list_component__["a" /* ResourceListComponent */]
+            },
+            {
+                path: 'workflows',
+                component: __WEBPACK_IMPORTED_MODULE_13__workflow_workflow_list_workflow_list_component__["a" /* WorkflowListComponent */]
             }
         ]
     },
@@ -144,6 +152,10 @@ var HELIX_ROUTES = [
         ]
     },
     {
+        path: 'clusters/:cluster_name/workflows/:workflow_name',
+        component: __WEBPACK_IMPORTED_MODULE_14__workflow_workflow_detail_workflow_detail_component__["a" /* WorkflowDetailComponent */]
+    },
+    {
         path: 'clusters/:cluster_name/instances/:instance_name',
         component: __WEBPACK_IMPORTED_MODULE_12__instance_instance_detail_instance_detail_component__["a" /* InstanceDetailComponent */],
         children: [
@@ -173,7 +185,7 @@ var HELIX_ROUTES = [
         ]
     }
 ];
-var AppRoutingModule = __WEBPACK_IMPORTED_MODULE_0__angular_router__["a" /* RouterModule */].forRoot(HELIX_ROUTES);
+var AppRoutingModule = __WEBPACK_IMPORTED_MODULE_0__angular_router__["c" /* RouterModule */].forRoot(HELIX_ROUTES);
 //# sourceMappingURL=app-routing.module.js.map
 
 /***/ }),
@@ -282,7 +294,7 @@ var AppComponent = (function () {
             template: __webpack_require__("../../../../../src/app/app.component.html"),
             styles: [__webpack_require__("../../../../../src/app/app.component.scss")]
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MdDialog */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MdDialog */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_3__angular_flex_layout__["b" /* ObservableMedia */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_3__angular_flex_layout__["b" /* ObservableMedia */]) === "function" && _b || Object, typeof (_c = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _c || Object, typeof (_d = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */]) === "function" && _d || Object, typeof (_e = typeof __WEBPACK_IMPORTED_MODULE_4_angulartics2__["b" /* Angulartics2Piwik */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_4_angulartics2__["b" /* Angulartics2Piwik */]) === "function" && _e || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MdDialog */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__angular_material__["b" /* MdDialog */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_3__angular_flex_layout__["b" /* ObservableMedia */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_3__angular_flex_layout__["b" /* ObservableMedia */]) === "function" && _b || Object, typeof (_c = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _c || Object, typeof (_d = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* Router */]) === "function" && _d || Object, typeof (_e = typeof __WEBPACK_IMPORTED_MODULE_4_angulartics2__["b" /* Angulartics2Piwik */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_4_angulartics2__["b" /* Angulartics2Piwik */]) === "function" && _e || Object])
     ], AppComponent);
     return AppComponent;
     var _a, _b, _c, _d, _e;
@@ -313,6 +325,7 @@ var AppComponent = (function () {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_14__controller_controller_module__ = __webpack_require__("../../../../../src/app/controller/controller.module.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_15__history_history_module__ = __webpack_require__("../../../../../src/app/history/history.module.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_16__app_component__ = __webpack_require__("../../../../../src/app/app.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_17__workflow_workflow_module__ = __webpack_require__("../../../../../src/app/workflow/workflow.module.ts");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AppModule; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -320,6 +333,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+
 
 
 
@@ -360,7 +374,8 @@ var AppModule = (function () {
                 __WEBPACK_IMPORTED_MODULE_12__instance_instance_module__["a" /* InstanceModule */],
                 __WEBPACK_IMPORTED_MODULE_13__resource_resource_module__["a" /* ResourceModule */],
                 __WEBPACK_IMPORTED_MODULE_14__controller_controller_module__["a" /* ControllerModule */],
-                __WEBPACK_IMPORTED_MODULE_15__history_history_module__["a" /* HistoryModule */]
+                __WEBPACK_IMPORTED_MODULE_15__history_history_module__["a" /* HistoryModule */],
+                __WEBPACK_IMPORTED_MODULE_17__workflow_workflow_module__["a" /* WorkflowModule */]
             ],
             providers: [],
             bootstrap: [__WEBPACK_IMPORTED_MODULE_16__app_component__["a" /* AppComponent */]]
@@ -421,6 +436,7 @@ var ClusterDetailComponent = (function () {
         this.route = route;
         this.tabLinks = [
             { label: 'Resources', link: 'resources' },
+            { label: 'Workflows', link: 'workflows' },
             { label: 'Instances', link: 'instances' },
             { label: 'Configuration', link: 'configs' }
         ];
@@ -435,7 +451,7 @@ var ClusterDetailComponent = (function () {
             template: __webpack_require__("../../../../../src/app/cluster/cluster-detail/cluster-detail.component.html"),
             styles: [__webpack_require__("../../../../../src/app/cluster/cluster-detail/cluster-detail.component.scss")]
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object])
     ], ClusterDetailComponent);
     return ClusterDetailComponent;
     var _a;
@@ -582,7 +598,7 @@ var ClusterModule = (function () {
             imports: [
                 __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
                 __WEBPACK_IMPORTED_MODULE_2__angular_http__["a" /* HttpModule */],
-                __WEBPACK_IMPORTED_MODULE_3__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_3__angular_router__["c" /* RouterModule */],
                 __WEBPACK_IMPORTED_MODULE_4__angular_material__["a" /* MaterialModule */],
                 __WEBPACK_IMPORTED_MODULE_5__angular_platform_browser_animations__["a" /* BrowserAnimationsModule */],
                 __WEBPACK_IMPORTED_MODULE_7__angular_flex_layout__["a" /* FlexLayoutModule */],
@@ -822,7 +838,7 @@ var ConfigDetailComponent = (function () {
             styles: [__webpack_require__("../../../../../src/app/configuration/config-detail/config-detail.component.scss")],
             providers: [__WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */]]
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */]) === "function" && _b || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_configuration_service__["a" /* ConfigurationService */]) === "function" && _b || Object])
     ], ConfigDetailComponent);
     return ConfigDetailComponent;
     var _a, _b;
@@ -989,7 +1005,7 @@ var ControllerDetailComponent = (function () {
             styles: [__webpack_require__("../../../../../src/app/controller/controller-detail/controller-detail.component.scss")],
             providers: [__WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */]]
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */]) === "function" && _b || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_controller_service__["a" /* ControllerService */]) === "function" && _b || Object])
     ], ControllerDetailComponent);
     return ControllerDetailComponent;
     var _a, _b;
@@ -1029,7 +1045,7 @@ var ControllerModule = (function () {
         __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
             imports: [
                 __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-                __WEBPACK_IMPORTED_MODULE_3__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_3__angular_router__["c" /* RouterModule */],
                 __WEBPACK_IMPORTED_MODULE_2__angular_material__["a" /* MaterialModule */],
                 __WEBPACK_IMPORTED_MODULE_4__shared_shared_module__["a" /* SharedModule */]
             ],
@@ -1309,7 +1325,7 @@ var HistoryListComponent = (function () {
             // FIXME: have to turn off shadow dom or .current-controller won't work
             encapsulation: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewEncapsulation"].None
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_3__shared_history_service__["a" /* HistoryService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_3__shared_history_service__["a" /* HistoryService */]) === "function" && _b || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_3__shared_history_service__["a" /* HistoryService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_3__shared_history_service__["a" /* HistoryService */]) === "function" && _b || Object])
     ], HistoryListComponent);
     return HistoryListComponent;
     var _a, _b;
@@ -1352,7 +1368,7 @@ var HistoryModule = (function () {
         __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
             imports: [
                 __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-                __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_router__["c" /* RouterModule */],
                 __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
                 __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__["NgxDatatableModule"],
                 __WEBPACK_IMPORTED_MODULE_5_ngx_clipboard__["a" /* ClipboardModule */]
@@ -1540,7 +1556,7 @@ var InstanceDetailComponent = (function () {
             styles: [__webpack_require__("../../../../../src/app/instance/instance-detail/instance-detail.component.scss")],
             providers: [__WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */]]
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */]) === "function" && _b || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_instance_service__["a" /* InstanceService */]) === "function" && _b || Object])
     ], InstanceDetailComponent);
     return InstanceDetailComponent;
     var _a, _b;
@@ -1620,7 +1636,7 @@ var InstanceListComponent = (function () {
             template: __webpack_require__("../../../../../src/app/instance/instance-list/instance-list.component.html"),
             styles: [__webpack_require__("../../../../../src/app/instance/instance-list/instance-list.component.scss")]
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */]) === "function" && _b || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* Router */]) === "function" && _b || Object])
     ], InstanceListComponent);
     return InstanceListComponent;
     var _a, _b;
@@ -1665,7 +1681,7 @@ var InstanceModule = (function () {
         __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
             imports: [
                 __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-                __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_router__["c" /* RouterModule */],
                 __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
                 __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__["NgxDatatableModule"],
                 __WEBPACK_IMPORTED_MODULE_5__shared_shared_module__["a" /* SharedModule */]
@@ -1827,7 +1843,7 @@ var PartitionDetailComponent = (function () {
 /***/ "../../../../../src/app/resource/partition-list/partition-list.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<section>\n  <ngx-datatable\n    *ngIf=\"canAnalyse()\"\n    #partitionsTable\n    class=\"material\"\n    [headerHeight]=\"rowHeight\"\n    rowHeight=\"auto\"\n    columnMode=\"force\"\n    [footerHeight]=\"rowHeight\"\n    [rows]=\"partitions\"\n    [sorts]=\"sorts\"\n    selectionType=\"single\"\n    (select)=\"onSelect($event)\">\n    <ngx-datatable-column\n     [width]=\"50\"\n     [resizeable]=\"false\"\n     [sortable]=\"false\"\n     [draggable]=\"false\"\n     [canAutoResize]=\"false\">\n     <ng-template let-row=\"row\" ngx-datatable-cell-template>\n       <md-icon>{{ row.$$expanded ? 'expand_more' : 'chevron_right' }}</md-icon>\n     </ng-template>\n    </ngx-datatable-column>\n    <ngx-datatable-column\n      name=\"Status\"\n      prop=\"isReady\"\n      [width]=\"85\"\n      [resizeable]=\"false\"\n      [draggable]=\"false\"\n      [canAutoResize]=\"false\">\n      <ng-template let-value=\"value\" ngx-datatable-cell-template>\n        <md-icon [ngClass]=\"value ? 'status-ready' : 'status-not-ready'\">lens</md-icon>\n      </ng-template>\n    </ngx-datatable-column>\n    <ngx-datatable-column name=\"Name\"></ngx-datatable-column>\n    <ngx-datatable-column\n      name=\"Replicas\"\n      [width]=\"100 * partitions[0].replicas.length\"\n      [resizeable]=\"false\"\n      [canAutoResize]=\"false\">\n      <ng-template let-value=\"value\" ngx-datatable-cell-template>\n        <span *ngFor=\"let replica of value\" [mdTooltip]=\"replica.instanceName\">\n          <hi-state-label [state]=\"replica.externalView\" [isReady]=\"replica.externalView && replica.externalView == replica.idealState\"></hi-state-label>\n        </span>\n      </ng-template>\n    </ngx-datatable-column>\n    <ngx-datatable-row-detail rowHeight=\"auto\">\n      <ng-template let-row=\"row\" ngx-datatable-row-detail-template>\n        <hi-partition-detail [clusterName]=\"resource.cluster\" [partition]=\"row\"></hi-partition-detail>\n      </ng-template>\n    </ngx-datatable-row-detail>\n  </ngx-datatable>\n  <div *ngIf=\"!canAnalyse()\" class=\"message\">\n    <div>Sorry, we do not support this kind of partition information yet. Detailed debugging information:</div>\n    <hi-json-viewer [obj]=\"resource\"></hi-json-viewer>\n  </div>\n</section>\n"
+module.exports = "<section>\n  <ngx-datatable\n    *ngIf=\"canAnalyse()\"\n    #partitionsTable\n    class=\"material\"\n    [headerHeight]=\"rowHeight\"\n    rowHeight=\"auto\"\n    columnMode=\"force\"\n    [footerHeight]=\"rowHeight\"\n    [rows]=\"partitions\"\n    [sorts]=\"sorts\"\n    selectionType=\"single\"\n    (select)=\"onSelect($event)\">\n    <ngx-datatable-column\n     [width]=\"50\"\n     [resizeable]=\"false\"\n     [sortable]=\"false\"\n     [draggable]=\"false\"\n     [canAutoResize]=\"false\">\n     <ng-template let-row=\"row\" ngx-datatable-cell-template>\n       <md-icon>{{ row.$$expanded ? 'expand_more' : 'chevron_right' }}</md-icon>\n     </ng-template>\n    </ngx-datatable-column>\n    <ngx-datatable-column\n      name=\"Status\"\n      prop=\"isReady\"\n      [width]=\"85\"\n      [resizeable]=\"false\"\n      [draggable]=\"false\"\n      [canAutoResize]=\"false\">\n      <ng-template let-value=\"value\" ngx-datatable-cell-template>\n        <md-icon [ngClass]=\"value ? 'status-ready' : 'status-not-ready'\">lens</md-icon>\n      </ng-template>\n    </ngx-datatable-column>\n    <ngx-datatable-column name=\"Name\"></ngx-datatable-column>\n    <ngx-datatable-column\n      name=\"Replicas\"\n      [width]=\"100 * partitions[0].replicas.length\"\n      [resizeable]=\"false\"\n      [canAutoResize]=\"false\">\n      <ng-template let-value=\"value\" ngx-datatable-cell-template>\n        <span *ngFor=\"let replica of value\" [mdTooltip]=\"replica.instanceName\">\n          <hi-state-label [state]=\"replica.externalView\" [isReady]=\"replica.externalView && replica.externalView == replica.idealState\"></hi-state-label>\n        </span>\n      </ng-template>\n    </ngx-datatable-column>\n    <ngx-datatable-row-detail rowHeight=\"auto\">\n      <ng-template let-row=\"row\" ngx-datatable-row-detail-template>\n        <hi-partition-detail [clusterName]=\"resource.cluster\" [partition]=\"row\"></hi-partition-detail>\n      </ng-template>\n    </ngx-datatable-row-detail>\n  </ngx-datatable>\n  <div *ngIf=\"!canAnalyse()\" class=\"message\">\n    <div>Sorry, we do not support this kind of partition information yet. Detailed debugging information:</div>\n    <ngx-json-viewer [json]=\"resource\"></ngx-json-viewer>\n  </div>\n</section>\n"
 
 /***/ }),
 
@@ -1886,7 +1902,7 @@ var PartitionListComponent = (function () {
     PartitionListComponent.prototype.canAnalyse = function () {
         return this.partitions // && false
             && this.partitions.length
-            && this.resource.replicaCount == this.partitions[0].replicas.length;
+            && this.resource.replicaCount === this.partitions[0].replicas.length;
     };
     PartitionListComponent.prototype.onSelect = function (_a) {
         var selected = _a.selected;
@@ -1903,7 +1919,7 @@ var PartitionListComponent = (function () {
             template: __webpack_require__("../../../../../src/app/resource/partition-list/partition-list.component.html"),
             styles: [__webpack_require__("../../../../../src/app/resource/partition-list/partition-list.component.scss")]
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object])
     ], PartitionListComponent);
     return PartitionListComponent;
     var _a;
@@ -2059,7 +2075,7 @@ var ResourceDetailComponent = (function () {
             template: __webpack_require__("../../../../../src/app/resource/resource-detail/resource-detail.component.html"),
             styles: [__webpack_require__("../../../../../src/app/resource/resource-detail/resource-detail.component.scss")]
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object])
     ], ResourceDetailComponent);
     return ResourceDetailComponent;
     var _a;
@@ -2101,6 +2117,11 @@ module.exports = module.exports.toString();
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_router__ = __webpack_require__("../../../router/@angular/router.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shared_resource_service__ = __webpack_require__("../../../../../src/app/resource/shared/resource.service.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__workflow_shared_workflow_service__ = __webpack_require__("../../../../../src/app/workflow/shared/workflow.service.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_Rx__ = __webpack_require__("../../../../rxjs/Rx.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_rxjs_Rx___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4_rxjs_Rx__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5_lodash__ = __webpack_require__("../../../../lodash/lodash.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5_lodash___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_5_lodash__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ResourceListComponent; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -2114,11 +2135,15 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 
 
 
+
+
+
 var ResourceListComponent = (function () {
-    function ResourceListComponent(router, route, service) {
+    function ResourceListComponent(router, route, service, workflowService) {
         this.router = router;
         this.route = route;
         this.service = service;
+        this.workflowService = workflowService;
         this.isForInstance = false;
         this.rowHeight = 40;
         this.isLoading = true;
@@ -2143,12 +2168,36 @@ var ResourceListComponent = (function () {
                 this.route.parent.data.subscribe(function (data) {
                     _this.isLoading = true;
                     _this.clusterName = data.cluster.name;
-                    _this.service
-                        .getAll(data.cluster.name)
-                        .subscribe(function (resources) { return _this.resources = resources; }, function (error) { }, function () { return _this.isLoading = false; });
+                    _this.fetchResources();
                 });
             }
         }
+    };
+    // since resource list contains also workflows and jobs
+    // need to subtract them from original resource list
+    // to obtain all jobs list, need to go through every workflow
+    // and perform get request for each
+    ResourceListComponent.prototype.fetchResources = function () {
+        var _this = this;
+        var jobs = [];
+        this.workflowService
+            .getAll(this.clusterName)
+            .concatMap(function (workflows) { return __WEBPACK_IMPORTED_MODULE_4_rxjs_Rx__["Observable"].from(workflows); })
+            .mergeMap(function (workflow) {
+            var name = workflow;
+            jobs.push(name);
+            return _this.workflowService.get(_this.clusterName, name);
+        })
+            .map(function (workflow) { return workflow.jobs; })
+            .subscribe(function (list) {
+            jobs = jobs.concat(list);
+        }, function (error) { return console.log(error); }, function () {
+            _this.service
+                .getAll(_this.clusterName)
+                .subscribe(function (result) {
+                _this.resources = __WEBPACK_IMPORTED_MODULE_5_lodash__["differenceWith"](result, jobs, function (resource, name) { return resource.name === name; });
+            }, function (error) { return console.log(error); }, function () { return _this.isLoading = false; });
+        });
     };
     ResourceListComponent.prototype.onSelect = function (_a) {
         var selected = _a.selected;
@@ -2169,12 +2218,12 @@ var ResourceListComponent = (function () {
             selector: 'hi-resource-list',
             template: __webpack_require__("../../../../../src/app/resource/resource-list/resource-list.component.html"),
             styles: [__webpack_require__("../../../../../src/app/resource/resource-list/resource-list.component.scss")],
-            providers: [__WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */]]
+            providers: [__WEBPACK_IMPORTED_MODULE_3__workflow_shared_workflow_service__["a" /* WorkflowService */]]
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["c" /* Router */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _b || Object, typeof (_c = typeof __WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */]) === "function" && _c || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* Router */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _b || Object, typeof (_c = typeof __WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_resource_service__["a" /* ResourceService */]) === "function" && _c || Object, typeof (_d = typeof __WEBPACK_IMPORTED_MODULE_3__workflow_shared_workflow_service__["a" /* WorkflowService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_3__workflow_shared_workflow_service__["a" /* WorkflowService */]) === "function" && _d || Object])
     ], ResourceListComponent);
     return ResourceListComponent;
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
 }());
 
 //# sourceMappingURL=resource-list.component.js.map
@@ -2191,14 +2240,15 @@ var ResourceListComponent = (function () {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_material__ = __webpack_require__("../../../material/@angular/material.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__ = __webpack_require__("../../../../@swimlane/ngx-datatable/release/index.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__shared_shared_module__ = __webpack_require__("../../../../../src/app/shared/shared.module.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__shared_resource_service__ = __webpack_require__("../../../../../src/app/resource/shared/resource.service.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__shared_resource_resolver__ = __webpack_require__("../../../../../src/app/resource/shared/resource.resolver.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__resource_list_resource_list_component__ = __webpack_require__("../../../../../src/app/resource/resource-list/resource-list.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__resource_detail_resource_detail_component__ = __webpack_require__("../../../../../src/app/resource/resource-detail/resource-detail.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__resource_detail_for_instance_resource_detail_for_instance_component__ = __webpack_require__("../../../../../src/app/resource/resource-detail-for-instance/resource-detail-for-instance.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__partition_list_partition_list_component__ = __webpack_require__("../../../../../src/app/resource/partition-list/partition-list.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__partition_detail_partition_detail_component__ = __webpack_require__("../../../../../src/app/resource/partition-detail/partition-detail.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5_ngx_json_viewer__ = __webpack_require__("../../../../ngx-json-viewer/index.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__shared_shared_module__ = __webpack_require__("../../../../../src/app/shared/shared.module.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__shared_resource_service__ = __webpack_require__("../../../../../src/app/resource/shared/resource.service.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__shared_resource_resolver__ = __webpack_require__("../../../../../src/app/resource/shared/resource.resolver.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__resource_list_resource_list_component__ = __webpack_require__("../../../../../src/app/resource/resource-list/resource-list.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__resource_detail_resource_detail_component__ = __webpack_require__("../../../../../src/app/resource/resource-detail/resource-detail.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__resource_detail_for_instance_resource_detail_for_instance_component__ = __webpack_require__("../../../../../src/app/resource/resource-detail-for-instance/resource-detail-for-instance.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__partition_list_partition_list_component__ = __webpack_require__("../../../../../src/app/resource/partition-list/partition-list.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_13__partition_detail_partition_detail_component__ = __webpack_require__("../../../../../src/app/resource/partition-detail/partition-detail.component.ts");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ResourceModule; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -2219,6 +2269,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 
 
 
+
 var ResourceModule = (function () {
     function ResourceModule() {
     }
@@ -2226,16 +2277,23 @@ var ResourceModule = (function () {
         __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
             imports: [
                 __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-                __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_router__["c" /* RouterModule */],
                 __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
                 __WEBPACK_IMPORTED_MODULE_4__swimlane_ngx_datatable__["NgxDatatableModule"],
-                __WEBPACK_IMPORTED_MODULE_5__shared_shared_module__["a" /* SharedModule */]
+                __WEBPACK_IMPORTED_MODULE_5_ngx_json_viewer__["a" /* NgxJsonViewerModule */],
+                __WEBPACK_IMPORTED_MODULE_6__shared_shared_module__["a" /* SharedModule */]
             ],
             providers: [
-                __WEBPACK_IMPORTED_MODULE_6__shared_resource_service__["a" /* ResourceService */],
-                __WEBPACK_IMPORTED_MODULE_7__shared_resource_resolver__["a" /* ResourceResolver */]
+                __WEBPACK_IMPORTED_MODULE_7__shared_resource_service__["a" /* ResourceService */],
+                __WEBPACK_IMPORTED_MODULE_8__shared_resource_resolver__["a" /* ResourceResolver */]
             ],
-            declarations: [__WEBPACK_IMPORTED_MODULE_8__resource_list_resource_list_component__["a" /* ResourceListComponent */], __WEBPACK_IMPORTED_MODULE_9__resource_detail_resource_detail_component__["a" /* ResourceDetailComponent */], __WEBPACK_IMPORTED_MODULE_10__resource_detail_for_instance_resource_detail_for_instance_component__["a" /* ResourceDetailForInstanceComponent */], __WEBPACK_IMPORTED_MODULE_11__partition_list_partition_list_component__["a" /* PartitionListComponent */], __WEBPACK_IMPORTED_MODULE_12__partition_detail_partition_detail_component__["a" /* PartitionDetailComponent */]]
+            declarations: [
+                __WEBPACK_IMPORTED_MODULE_9__resource_list_resource_list_component__["a" /* ResourceListComponent */],
+                __WEBPACK_IMPORTED_MODULE_10__resource_detail_resource_detail_component__["a" /* ResourceDetailComponent */],
+                __WEBPACK_IMPORTED_MODULE_11__resource_detail_for_instance_resource_detail_for_instance_component__["a" /* ResourceDetailForInstanceComponent */],
+                __WEBPACK_IMPORTED_MODULE_12__partition_list_partition_list_component__["a" /* PartitionListComponent */],
+                __WEBPACK_IMPORTED_MODULE_13__partition_detail_partition_detail_component__["a" /* PartitionDetailComponent */]
+            ]
         })
     ], ResourceModule);
     return ResourceModule;
@@ -2474,7 +2532,7 @@ var ResourceService = (function (_super) {
 /***/ "../../../../../src/app/shared/detail-header/detail-header.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<h4>\n  <span [ngClass]=\"{'secondary': isSecondary()}\">{{ cluster }}</span>\n  <md-icon *ngIf=\"isSecondary()\" class=\"secondary\">navigate_next</md-icon>\n  <span *ngIf=\"controller\">{{ controller }}</span>\n  <span *ngIf=\"instance\">{{ instance }}</span>\n  <span *ngIf=\"resource\">{{ resource }}</span>\n  <span class=\"tag\">\n    <span [ngClass]=\"getTag()\">{{ getTag() }}</span>\n  </span>\n</h4>\n"
+module.exports = "<h4>\n  <span [ngClass]=\"{'secondary': isSecondary()}\">{{ cluster }}</span>\n  <md-icon *ngIf=\"isSecondary()\" class=\"secondary\">navigate_next</md-icon>\n  <span *ngIf=\"controller\">{{ controller }}</span>\n  <span *ngIf=\"instance\">{{ instance }}</span>\n  <span *ngIf=\"resource\">{{ resource }}</span>\n  <span *ngIf=\"workflow\">{{ workflow }}</span>\n  <span class=\"tag\">\n    <span [ngClass]=\"getTag()\">{{ getTag() }}</span>\n    <!-- for testing purpose only\n    <span class=\"cluster\">Cluster</span>\n    <span class=\"resource\">Resource</span>\n    <span class=\"instance\">Instance</span>\n    <span class=\"controller\">Controller</span>\n    <span class=\"workflow\">Workflow</span> -->\n  </span>\n</h4>\n"
 
 /***/ }),
 
@@ -2486,7 +2544,7 @@ exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-b
 
 
 // module
-exports.push([module.i, "/**\n * Applies styles for users in high contrast mode. Note that this only applies\n * to Microsoft browsers. Chrome can be included by checking for the `html[hc]`\n * attribute, however Chrome handles high contrast differently.\n */\n/* Theme for the ripple elements.*/\n/** The mixins below are shared between md-menu and md-select */\n/**\n * This mixin adds the correct panel transform styles based\n * on the direction that the menu panel opens.\n */\n/* stylelint-disable material/no-prefixes */\n/* stylelint-enable */\n/**\n * This mixin contains shared option styles between the select and\n * autocomplete components.\n */\n.secondary {\n  color: rgba(0, 0, 0, 0.54); }\n\n.tag {\n  padding-left: 10px; }\n  .tag span {\n    display: inline-block;\n    color: #fff;\n    font-size: 12px;\n    text-transform: uppercase;\n    font-weight: normal;\n    border-radius: 24px;\n    padding: 4px 8px;\n    vertical-align: text-bottom; }\n  .tag .cluster {\n    background-color: #3f51b5; }\n  .tag .controller {\n    background-color: #9c27b0; }\n  .tag .resource {\n    background-color: #009688; }\n  .tag .instance {\n    background-color: #2196f3; }\n", ""]);
+exports.push([module.i, "/**\n * Applies styles for users in high contrast mode. Note that this only applies\n * to Microsoft browsers. Chrome can be included by checking for the `html[hc]`\n * attribute, however Chrome handles high contrast differently.\n */\n/* Theme for the ripple elements.*/\n/** The mixins below are shared between md-menu and md-select */\n/**\n * This mixin adds the correct panel transform styles based\n * on the direction that the menu panel opens.\n */\n/* stylelint-disable material/no-prefixes */\n/* stylelint-enable */\n/**\n * This mixin contains shared option styles between the select and\n * autocomplete components.\n */\n.secondary {\n  color: rgba(0, 0, 0, 0.54); }\n\n.tag {\n  padding-left: 10px; }\n  .tag span {\n    display: inline-block;\n    color: #fff;\n    font-size: 12px;\n    text-transform: uppercase;\n    font-weight: normal;\n    border-radius: 24px;\n    padding: 4px 8px;\n    vertical-align: text-bottom; }\n  .tag .cluster {\n    background-color: #3f51b5; }\n  .tag .controller {\n    background-color: #9c27b0; }\n  .tag .resource {\n    background-color: #009688; }\n  .tag .instance {\n    background-color: #2196f3; }\n  .tag .workflow {\n    background-color: #ff5722; }\n", ""]);
 
 // exports
 
@@ -2516,7 +2574,7 @@ var DetailHeaderComponent = (function () {
     function DetailHeaderComponent() {
     }
     DetailHeaderComponent.prototype.isSecondary = function () {
-        return this.controller || this.instance || this.resource;
+        return this.controller || this.instance || this.resource || this.workflow;
     };
     DetailHeaderComponent.prototype.getTag = function () {
         if (this.controller) {
@@ -2527,6 +2585,9 @@ var DetailHeaderComponent = (function () {
         }
         if (this.resource) {
             return 'resource';
+        }
+        if (this.workflow) {
+            return 'workflow';
         }
         return 'cluster';
     };
@@ -2546,6 +2607,10 @@ var DetailHeaderComponent = (function () {
         __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
         __metadata("design:type", Object)
     ], DetailHeaderComponent.prototype, "controller", void 0);
+    __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", Object)
+    ], DetailHeaderComponent.prototype, "workflow", void 0);
     DetailHeaderComponent = __decorate([
         __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
             selector: 'hi-detail-header',
@@ -2768,7 +2833,7 @@ var JsonViewerComponent = (function () {
             template: __webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.html"),
             styles: [__webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.scss")]
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object])
     ], JsonViewerComponent);
     return JsonViewerComponent;
     var _a;
@@ -2781,7 +2846,7 @@ var JsonViewerComponent = (function () {
 /***/ "../../../../../src/app/shared/key-value-pairs/key-value-pairs.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<section class=\"groups\" fxLayout=\"row\">\n  <section class=\"column\" *ngFor=\"let pair of pairs\">\n    <div class=\"name\">{{ pair.name }}</div>\n    <div class=\"value\" *ngIf=\"obj != null && obj[pair.prop] != null\">{{ obj[pair.prop] }}</div>\n    <div class=\"value\" *ngIf=\"obj == null || obj[pair.prop] == null\">N/A</div>\n  </section>\n</section>\n"
+module.exports = "<section class=\"groups\" fxLayout=\"row\">\n  <section class=\"column\" *ngFor=\"let pair of pairs\">\n    <div class=\"name\">{{ pair.name }}</div>\n    <div class=\"value\" *ngIf=\"obj != null && getProp(obj, pair.prop) != null\">{{ getProp(obj, pair.prop) }}</div>\n    <div class=\"value\" *ngIf=\"obj == null || getProp(obj, pair.prop) == null\">N/A</div>\n  </section>\n</section>\n"
 
 /***/ }),
 
@@ -2808,6 +2873,8 @@ module.exports = module.exports.toString();
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_lodash__ = __webpack_require__("../../../../lodash/lodash.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_lodash___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_lodash__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return KeyValuePairDirective; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return KeyValuePairsComponent; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
@@ -2819,6 +2886,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+
 
 // good doc: https://angular.io/docs/ts/latest/api/core/index/ContentChildren-decorator.html
 var KeyValuePairDirective = (function () {
@@ -2840,6 +2908,7 @@ var KeyValuePairDirective = (function () {
 
 var KeyValuePairsComponent = (function () {
     function KeyValuePairsComponent() {
+        this.getProp = __WEBPACK_IMPORTED_MODULE_1_lodash__["get"];
     }
     __decorate([
         __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ContentChildren"])(KeyValuePairDirective),
@@ -2922,7 +2991,7 @@ var Node = (function () {
 /***/ "../../../../../src/app/shared/node-viewer/node-viewer.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<section class=\"node-viewer\" fxLayout=\"column\" fxLayoutAlign=\"center center\" fxLayoutGap=\"10px\">\n  <md-button-toggle-group #group=\"mdButtonToggleGroup\" value=\"table\">\n    <md-button-toggle value=\"table\">\n      Table View\n    </md-button-toggle>\n    <md-button-toggle value=\"json\">\n      JSON View\n    </md-button-toggle>\n  </md-button-toggle-group>\n  <section class=\"viewer\" [ngSwitch]=\"group.value\" fxFlexFill>\n    <hi-json-viewer *ngSwitchCase=\"'json'\" [obj]=\"obj\"></hi-json-viewer>\n    <section *ngSwitchCase=\"'table'\">\n\n      <!-- TODO vxu: use md-simple-table when it's available -->\n\n      <section fxLayout=\"row\" fxLayoutAlign=\"center center\">\n        <md-icon>search</md-icon>\n        <md-input-container>\n          <input mdInput\n            placeholder=\"Type to filter the fields...\"\n            (keyup)=\"updateFilter($event)\"/>\n        </md-input-container>\n      </section>\n      <md-card>\n        <md-card-header>\n          <md-card-title>\n            Simple Fields\n            <span *ngIf=\"simpleConfigs.length == 0\">is empty.</span>\n            <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n          </md-card-title>\n        </md-card-header>\n        <md-card-content>\n          <ngx-datatable\n            *ngIf=\"simpleConfigs.length\"\n            #simpleTable\n            class=\"material\"\n            [headerHeight]=\"rowHeight\"\n            rowHeight=\"auto\"\n            [footerHeight]=\"rowHeight\"\n            columnMode=\"force\"\n            [rows]=\"simpleConfigs\"\n            [sorts]=\"sorts\"\n            [limit]=\"20\">\n            <ngx-datatable-column name=\"Name\" [cellClass]=\"getNameCellClass\"></ngx-datatable-column>\n            <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n          </ngx-datatable>\n        </md-card-content>\n      </md-card>\n      <md-card>\n        <md-card-header>\n          <md-card-title>\n            List Fields\n            <span *ngIf=\"listConfigs.length == 0\">is empty.</span>\n            <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n          </md-card-title>\n        </md-card-header>\n        <md-card-content>\n          <ngx-datatable\n            *ngIf=\"listConfigs.length\"\n            #listTable\n            class=\"material\"\n            [headerHeight]=\"rowHeight\"\n            rowHeight=\"auto\"\n            [footerHeight]=\"rowHeight\"\n            columnMode=\"force\"\n            [rows]=\"listConfigs\"\n            [sorts]=\"sorts\"\n            [limit]=\"10\">\n            <ngx-datatable-column name=\"Name\" [width]=\"80\" [cellClass]=\"getNameCellClass\"></ngx-datatable-column>\n            <ngx-datatable-column name=\"Value\" [width]=\"400\">\n              <ng-template let-value=\"value\" ngx-datatable-cell-template>\n                <ngx-datatable\n                  class=\"material\"\n                  [headerHeight]=\"rowHeight\"\n                  rowHeight=\"auto\"\n                  columnMode=\"force\"\n                  [rows]=\"value\">\n                  <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n                </ngx-datatable>\n              </ng-template>\n            </ngx-datatable-column>\n          </ngx-datatable>\n        </md-card-content>\n      </md-card>\n      <md-card>\n        <md-card-header>\n          <md-card-title>\n            Map Fields\n            <span *ngIf=\"mapConfigs.length == 0\">is empty.</span>\n            <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n          </md-card-title>\n        </md-card-header>\n        <md-card-content>\n          <ngx-datatable\n            *ngIf=\"mapConfigs.length\"\n            #mapTable\n            class=\"material\"\n            [headerHeight]=\"rowHeight\"\n            rowHeight=\"auto\"\n            [footerHeight]=\"rowHeight\"\n            columnMode=\"force\"\n            [rows]=\"mapConfigs\"\n            [sorts]=\"sorts\"\n            [limit]=\"10\">\n            <ngx-datatable-column name=\"Name\" [width]=\"80\" [cellClass]=\"getNameCellClass\"></ngx-datatable-column>\n            <ngx-datatable-column name=\"Value\" [width]=\"500\">\n              <ng-template let-value=\"value\" ngx-datatable-cell-template>\n                <ngx-datatable\n                  class=\"material\"\n                  [headerHeight]=\"rowHeight\"\n                  rowHeight=\"auto\"\n                  columnMode=\"force\"\n                  [rows]=\"value\"\n                  [sorts]=\"sorts\">\n                  <ngx-datatable-column name=\"Name\"></ngx-datatable-column>\n                  <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n                </ngx-datatable>\n              </ng-template>\n            </ngx-datatable-column>\n          </ngx-datatable>\n        </md-card-content>\n      </md-card>\n    </section>\n  </section>\n</section>\n"
+module.exports = "<section class=\"node-viewer\" fxLayout=\"column\" fxLayoutAlign=\"center center\" fxLayoutGap=\"10px\">\n  <md-button-toggle-group #group=\"mdButtonToggleGroup\" value=\"table\">\n    <md-button-toggle value=\"table\">\n      Table View\n    </md-button-toggle>\n    <md-button-toggle value=\"json\">\n      JSON View\n    </md-button-toggle>\n  </md-button-toggle-group>\n  <section class=\"viewer\" [ngSwitch]=\"group.value\" fxFlexFill>\n    <ngx-json-viewer *ngSwitchCase=\"'json'\" [json]=\"obj\"></ngx-json-viewer>\n    <section *ngSwitchCase=\"'table'\">\n\n      <!-- TODO vxu: use md-simple-table when it's available -->\n\n      <section fxLayout=\"row\" fxLayoutAlign=\"center center\">\n        <md-icon>search</md-icon>\n        <md-input-container>\n          <input mdInput\n            placeholder=\"Type to filter the fields...\"\n            (keyup)=\"updateFilter($event)\"/>\n        </md-input-container>\n      </section>\n      <md-card>\n        <md-card-header>\n          <md-card-title>\n            Simple Fields\n            <span *ngIf=\"simpleConfigs.length == 0\">is empty.</span>\n            <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n          </md-card-title>\n        </md-card-header>\n        <md-card-content>\n          <ngx-datatable\n            *ngIf=\"simpleConfigs.length\"\n            #simpleTable\n            class=\"material\"\n            [headerHeight]=\"rowHeight\"\n            rowHeight=\"auto\"\n            [footerHeight]=\"rowHeight\"\n            columnMode=\"force\"\n            [rows]=\"simpleConfigs\"\n            [sorts]=\"sorts\"\n            [limit]=\"20\">\n            <ngx-datatable-column name=\"Name\" [cellClass]=\"getNameCellClass\"></ngx-datatable-column>\n            <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n          </ngx-datatable>\n        </md-card-content>\n      </md-card>\n      <md-card>\n        <md-card-header>\n          <md-card-title>\n            List Fields\n            <span *ngIf=\"listConfigs.length == 0\">is empty.</span>\n            <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n          </md-card-title>\n        </md-card-header>\n        <md-card-content>\n          <ngx-datatable\n            *ngIf=\"listConfigs.length\"\n            #listTable\n            class=\"material\"\n            [headerHeight]=\"rowHeight\"\n            rowHeight=\"auto\"\n            [footerHeight]=\"rowHeight\"\n            columnMode=\"force\"\n            [rows]=\"listConfigs\"\n            [sorts]=\"sorts\"\n            [limit]=\"10\">\n            <ngx-datatable-column name=\"Name\" [width]=\"80\" [cellClass]=\"getNameCellClass\"></ngx-datatable-column>\n            <ngx-datatable-column name=\"Value\" [width]=\"400\">\n              <ng-template let-value=\"value\" ngx-datatable-cell-template>\n                <ngx-datatable\n                  class=\"material\"\n                  [headerHeight]=\"rowHeight\"\n                  rowHeight=\"auto\"\n                  columnMode=\"force\"\n                  [rows]=\"value\">\n                  <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n                </ngx-datatable>\n              </ng-template>\n            </ngx-datatable-column>\n          </ngx-datatable>\n        </md-card-content>\n      </md-card>\n      <md-card>\n        <md-card-header>\n          <md-card-title>\n            Map Fields\n            <span *ngIf=\"mapConfigs.length == 0\">is empty.</span>\n            <span *ngIf=\"keyword\" class=\"primary\">(filtered)</span>\n          </md-card-title>\n        </md-card-header>\n        <md-card-content>\n          <ngx-datatable\n            *ngIf=\"mapConfigs.length\"\n            #mapTable\n            class=\"material\"\n            [headerHeight]=\"rowHeight\"\n            rowHeight=\"auto\"\n            [footerHeight]=\"rowHeight\"\n            columnMode=\"force\"\n            [rows]=\"mapConfigs\"\n            [sorts]=\"sorts\"\n            [limit]=\"10\">\n            <ngx-datatable-column name=\"Name\" [width]=\"80\" [cellClass]=\"getNameCellClass\"></ngx-datatable-column>\n            <ngx-datatable-column name=\"Value\" [width]=\"500\">\n              <ng-template let-value=\"value\" ngx-datatable-cell-template>\n                <ngx-datatable\n                  class=\"material\"\n                  [headerHeight]=\"rowHeight\"\n                  rowHeight=\"auto\"\n                  columnMode=\"force\"\n                  [rows]=\"value\"\n                  [sorts]=\"sorts\">\n                  <ngx-datatable-column name=\"Name\"></ngx-datatable-column>\n                  <ngx-datatable-column name=\"Value\"></ngx-datatable-column>\n                </ngx-datatable>\n              </ng-template>\n            </ngx-datatable-column>\n          </ngx-datatable>\n        </md-card-content>\n      </md-card>\n    </section>\n  </section>\n</section>\n"
 
 /***/ }),
 
@@ -3045,9 +3114,15 @@ var NodeViewerComponent = (function () {
     NodeViewerComponent.prototype.updateFilter = function (event) {
         this.keyword = event.target.value.toLowerCase().trim();
         // Whenever the filter changes, always go back to the first page
-        this.simpleTable.offset = 0;
-        this.listTable.offset = 0;
-        this.mapTable.offset = 0;
+        if (this.simpleTable) {
+            this.simpleTable.offset = 0;
+        }
+        if (this.listTable) {
+            this.listTable.offset = 0;
+        }
+        if (this.mapTable) {
+            this.mapTable.offset = 0;
+        }
     };
     NodeViewerComponent.prototype.getNameCellClass = function (_a) {
         var value = _a.value;
@@ -3082,7 +3157,7 @@ var NodeViewerComponent = (function () {
             // we will not use Shadow DOM at all to make sure the styles apply
             encapsulation: __WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewEncapsulation"].None
         }),
-        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object])
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object])
     ], NodeViewerComponent);
     return NodeViewerComponent;
     var _a;
@@ -3103,13 +3178,14 @@ var NodeViewerComponent = (function () {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__angular_flex_layout__ = __webpack_require__("../../../flex-layout/index.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__swimlane_ngx_datatable__ = __webpack_require__("../../../../@swimlane/ngx-datatable/release/index.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__swimlane_ngx_datatable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_5__swimlane_ngx_datatable__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__dialog_input_dialog_input_dialog_component__ = __webpack_require__("../../../../../src/app/shared/dialog/input-dialog/input-dialog.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__detail_header_detail_header_component__ = __webpack_require__("../../../../../src/app/shared/detail-header/detail-header.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__key_value_pairs_key_value_pairs_component__ = __webpack_require__("../../../../../src/app/shared/key-value-pairs/key-value-pairs.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__json_viewer_json_viewer_component__ = __webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__dialog_alert_dialog_alert_dialog_component__ = __webpack_require__("../../../../../src/app/shared/dialog/alert-dialog/alert-dialog.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__state_label_state_label_component__ = __webpack_require__("../../../../../src/app/shared/state-label/state-label.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__node_viewer_node_viewer_component__ = __webpack_require__("../../../../../src/app/shared/node-viewer/node-viewer.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6_ngx_json_viewer__ = __webpack_require__("../../../../ngx-json-viewer/index.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__dialog_input_dialog_input_dialog_component__ = __webpack_require__("../../../../../src/app/shared/dialog/input-dialog/input-dialog.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__detail_header_detail_header_component__ = __webpack_require__("../../../../../src/app/shared/detail-header/detail-header.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__key_value_pairs_key_value_pairs_component__ = __webpack_require__("../../../../../src/app/shared/key-value-pairs/key-value-pairs.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__json_viewer_json_viewer_component__ = __webpack_require__("../../../../../src/app/shared/json-viewer/json-viewer.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__dialog_alert_dialog_alert_dialog_component__ = __webpack_require__("../../../../../src/app/shared/dialog/alert-dialog/alert-dialog.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__state_label_state_label_component__ = __webpack_require__("../../../../../src/app/shared/state-label/state-label.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_13__node_viewer_node_viewer_component__ = __webpack_require__("../../../../../src/app/shared/node-viewer/node-viewer.component.ts");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return SharedModule; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3130,6 +3206,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 
 
 
+
 var SharedModule = (function () {
     function SharedModule() {
     }
@@ -3137,32 +3214,37 @@ var SharedModule = (function () {
         __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
             imports: [
                 __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
-                __WEBPACK_IMPORTED_MODULE_2__angular_router__["a" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_2__angular_router__["c" /* RouterModule */],
                 __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
                 __WEBPACK_IMPORTED_MODULE_4__angular_flex_layout__["a" /* FlexLayoutModule */],
-                __WEBPACK_IMPORTED_MODULE_5__swimlane_ngx_datatable__["NgxDatatableModule"]
+                __WEBPACK_IMPORTED_MODULE_5__swimlane_ngx_datatable__["NgxDatatableModule"],
+                __WEBPACK_IMPORTED_MODULE_6_ngx_json_viewer__["a" /* NgxJsonViewerModule */]
             ],
             declarations: [
-                __WEBPACK_IMPORTED_MODULE_6__dialog_input_dialog_input_dialog_component__["a" /* InputDialogComponent */],
-                __WEBPACK_IMPORTED_MODULE_10__dialog_alert_dialog_alert_dialog_component__["a" /* AlertDialogComponent */],
-                __WEBPACK_IMPORTED_MODULE_7__detail_header_detail_header_component__["a" /* DetailHeaderComponent */],
-                __WEBPACK_IMPORTED_MODULE_8__key_value_pairs_key_value_pairs_component__["a" /* KeyValuePairDirective */],
-                __WEBPACK_IMPORTED_MODULE_8__key_value_pairs_key_value_pairs_component__["b" /* KeyValuePairsComponent */],
-                __WEBPACK_IMPORTED_MODULE_9__json_viewer_json_viewer_component__["a" /* JsonViewerComponent */],
-                __WEBPACK_IMPORTED_MODULE_11__state_label_state_label_component__["a" /* StateLabelComponent */],
-                __WEBPACK_IMPORTED_MODULE_12__node_viewer_node_viewer_component__["a" /* NodeViewerComponent */]
+                __WEBPACK_IMPORTED_MODULE_7__dialog_input_dialog_input_dialog_component__["a" /* InputDialogComponent */],
+                __WEBPACK_IMPORTED_MODULE_11__dialog_alert_dialog_alert_dialog_component__["a" /* AlertDialogComponent */],
+                __WEBPACK_IMPORTED_MODULE_8__detail_header_detail_header_component__["a" /* DetailHeaderComponent */],
+                __WEBPACK_IMPORTED_MODULE_9__key_value_pairs_key_value_pairs_component__["a" /* KeyValuePairDirective */],
+                __WEBPACK_IMPORTED_MODULE_9__key_value_pairs_key_value_pairs_component__["b" /* KeyValuePairsComponent */],
+                __WEBPACK_IMPORTED_MODULE_10__json_viewer_json_viewer_component__["a" /* JsonViewerComponent */],
+                __WEBPACK_IMPORTED_MODULE_12__state_label_state_label_component__["a" /* StateLabelComponent */],
+                __WEBPACK_IMPORTED_MODULE_13__node_viewer_node_viewer_component__["a" /* NodeViewerComponent */]
             ],
             entryComponents: [
-                __WEBPACK_IMPORTED_MODULE_6__dialog_input_dialog_input_dialog_component__["a" /* InputDialogComponent */],
-                __WEBPACK_IMPORTED_MODULE_10__dialog_alert_dialog_alert_dialog_component__["a" /* AlertDialogComponent */]
+                __WEBPACK_IMPORTED_MODULE_7__dialog_input_dialog_input_dialog_component__["a" /* InputDialogComponent */],
+                __WEBPACK_IMPORTED_MODULE_11__dialog_alert_dialog_alert_dialog_component__["a" /* AlertDialogComponent */]
             ],
             exports: [
-                __WEBPACK_IMPORTED_MODULE_7__detail_header_detail_header_component__["a" /* DetailHeaderComponent */],
-                __WEBPACK_IMPORTED_MODULE_8__key_value_pairs_key_value_pairs_component__["a" /* KeyValuePairDirective */],
-                __WEBPACK_IMPORTED_MODULE_8__key_value_pairs_key_value_pairs_component__["b" /* KeyValuePairsComponent */],
-                __WEBPACK_IMPORTED_MODULE_9__json_viewer_json_viewer_component__["a" /* JsonViewerComponent */],
-                __WEBPACK_IMPORTED_MODULE_11__state_label_state_label_component__["a" /* StateLabelComponent */],
-                __WEBPACK_IMPORTED_MODULE_12__node_viewer_node_viewer_component__["a" /* NodeViewerComponent */]
+                __WEBPACK_IMPORTED_MODULE_2__angular_router__["c" /* RouterModule */],
+                __WEBPACK_IMPORTED_MODULE_3__angular_material__["a" /* MaterialModule */],
+                __WEBPACK_IMPORTED_MODULE_4__angular_flex_layout__["a" /* FlexLayoutModule */],
+                __WEBPACK_IMPORTED_MODULE_6_ngx_json_viewer__["a" /* NgxJsonViewerModule */],
+                __WEBPACK_IMPORTED_MODULE_8__detail_header_detail_header_component__["a" /* DetailHeaderComponent */],
+                __WEBPACK_IMPORTED_MODULE_9__key_value_pairs_key_value_pairs_component__["a" /* KeyValuePairDirective */],
+                __WEBPACK_IMPORTED_MODULE_9__key_value_pairs_key_value_pairs_component__["b" /* KeyValuePairsComponent */],
+                __WEBPACK_IMPORTED_MODULE_10__json_viewer_json_viewer_component__["a" /* JsonViewerComponent */],
+                __WEBPACK_IMPORTED_MODULE_12__state_label_state_label_component__["a" /* StateLabelComponent */],
+                __WEBPACK_IMPORTED_MODULE_13__node_viewer_node_viewer_component__["a" /* NodeViewerComponent */]
             ]
         })
     ], SharedModule);
@@ -3239,6 +3321,280 @@ var StateLabelComponent = (function () {
 }());
 
 //# sourceMappingURL=state-label.component.js.map
+
+/***/ }),
+
+/***/ "../../../../../src/app/workflow/shared/workflow.model.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Workflow; });
+var Workflow = (function () {
+    function Workflow(obj) {
+        this.name = obj.id;
+        this.config = obj.WorkflowConfig;
+        this.context = obj.WorkflowContext;
+        this.jobs = obj.Jobs;
+        this.parentJobs = obj.ParentJobs;
+    }
+    return Workflow;
+}());
+
+//# sourceMappingURL=workflow.model.js.map
+
+/***/ }),
+
+/***/ "../../../../../src/app/workflow/shared/workflow.service.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__workflow_model__ = __webpack_require__("../../../../../src/app/workflow/shared/workflow.model.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__core_helix_service__ = __webpack_require__("../../../../../src/app/core/helix.service.ts");
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return WorkflowService; });
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+
+
+var WorkflowService = (function (_super) {
+    __extends(WorkflowService, _super);
+    function WorkflowService() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    WorkflowService.prototype.getAll = function (clusterName) {
+        return this
+            .request("/clusters/" + clusterName + "/workflows")
+            .map(function (data) { return data.Workflows.sort(); });
+    };
+    WorkflowService.prototype.get = function (clusterName, workflowName) {
+        return this
+            .request("/clusters/" + clusterName + "/workflows/" + workflowName)
+            .map(function (data) { return new __WEBPACK_IMPORTED_MODULE_1__workflow_model__["a" /* Workflow */](data); });
+    };
+    WorkflowService = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])()
+    ], WorkflowService);
+    return WorkflowService;
+}(__WEBPACK_IMPORTED_MODULE_2__core_helix_service__["a" /* HelixService */]));
+
+//# sourceMappingURL=workflow.service.js.map
+
+/***/ }),
+
+/***/ "../../../../../src/app/workflow/workflow-detail/workflow-detail.component.html":
+/***/ (function(module, exports) {
+
+module.exports = "<md-toolbar class=\"mat-elevation-z1\">\n  <hi-detail-header [cluster]=\"clusterName\" [workflow]=\"workflow?.name\"></hi-detail-header>\n  <md-toolbar-row class=\"information\">\n    <a md-mini-fab routerLink=\"../\"><md-icon>arrow_back</md-icon></a>\n    <hi-key-value-pairs [obj]=\"workflow\">\n      <hi-key-value-pair name=\"Capacity\" prop=\"config.capacity\"></hi-key-value-pair>\n      <hi-key-value-pair name=\"Target State\" prop=\"config.TargetState\"></hi-key-value-pair>\n      <hi-key-value-pair name=\"Terminable\" prop=\"config.Terminable\"></hi-key-value-pair>\n      <hi-key-value-pair name=\"Parallel Jobs\" prop=\"config.ParallelJobs\"></hi-key-value-pair>\n      <hi-key-value-pair name=\"Failure Threshold\" prop=\"config.FailureThreshold\"></hi-key-value-pair>\n      <hi-key-value-pair name=\"Expiry\" prop=\"config.Expiry\"></hi-key-value-pair>\n    </hi-key-value-pairs>\n  </md-toolbar-row>\n</md-toolbar>\n<section fxLayout=\"column\" fxLayoutAlign=\"center center\">\n  <md-spinner *ngIf=\"isLoading\"></md-spinner>\n  <section class=\"content\" fxFlexFill>\n    <ngx-json-viewer [json]=\"workflow\"></ngx-json-viewer>\n  </section>\n</section>\n"
+
+/***/ }),
+
+/***/ "../../../../../src/app/workflow/workflow-detail/workflow-detail.component.scss":
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, ".content {\n  padding: 20px; }\n", ""]);
+
+// exports
+
+
+/*** EXPORTS FROM exports-loader ***/
+module.exports = module.exports.toString();
+
+/***/ }),
+
+/***/ "../../../../../src/app/workflow/workflow-detail/workflow-detail.component.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_router__ = __webpack_require__("../../../router/@angular/router.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shared_workflow_service__ = __webpack_require__("../../../../../src/app/workflow/shared/workflow.service.ts");
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return WorkflowDetailComponent; });
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+
+
+var WorkflowDetailComponent = (function () {
+    function WorkflowDetailComponent(route, service) {
+        this.route = route;
+        this.service = service;
+        this.isLoading = true;
+    }
+    WorkflowDetailComponent.prototype.ngOnInit = function () {
+        var _this = this;
+        this.clusterName = this.route.snapshot.params['cluster_name'];
+        this.service
+            .get(this.route.snapshot.params['cluster_name'], this.route.snapshot.params['workflow_name'])
+            .subscribe(function (workflow) { return _this.workflow = workflow; }, function (error) { return console.log(error); }, function () { return _this.isLoading = false; });
+    };
+    WorkflowDetailComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-workflow-detail',
+            template: __webpack_require__("../../../../../src/app/workflow/workflow-detail/workflow-detail.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/workflow/workflow-detail/workflow-detail.component.scss")]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__shared_workflow_service__["a" /* WorkflowService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_workflow_service__["a" /* WorkflowService */]) === "function" && _b || Object])
+    ], WorkflowDetailComponent);
+    return WorkflowDetailComponent;
+    var _a, _b;
+}());
+
+//# sourceMappingURL=workflow-detail.component.js.map
+
+/***/ }),
+
+/***/ "../../../../../src/app/workflow/workflow-list/workflow-list.component.html":
+/***/ (function(module, exports) {
+
+module.exports = "<section fxLayout=\"column\" fxLayoutAlign=\"center center\">\n  <md-spinner *ngIf=\"isLoading\"></md-spinner>\n  <section fxFlexFill>\n    <md-nav-list>\n      <a *ngFor=\"let name of workflows\"\n        md-list-item\n        [routerLink]=\"['/clusters', clusterName, 'workflows', name]\">\n        <div md-line>{{ name }}</div>\n      </a>\n    </md-nav-list>\n  </section>\n</section>\n\n"
+
+/***/ }),
+
+/***/ "../../../../../src/app/workflow/workflow-list/workflow-list.component.scss":
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, "", ""]);
+
+// exports
+
+
+/*** EXPORTS FROM exports-loader ***/
+module.exports = module.exports.toString();
+
+/***/ }),
+
+/***/ "../../../../../src/app/workflow/workflow-list/workflow-list.component.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_router__ = __webpack_require__("../../../router/@angular/router.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shared_workflow_service__ = __webpack_require__("../../../../../src/app/workflow/shared/workflow.service.ts");
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return WorkflowListComponent; });
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+
+
+var WorkflowListComponent = (function () {
+    function WorkflowListComponent(router, route, service) {
+        this.router = router;
+        this.route = route;
+        this.service = service;
+        this.isLoading = true;
+    }
+    WorkflowListComponent.prototype.ngOnInit = function () {
+        var _this = this;
+        if (this.route.parent) {
+            this.route.parent.data.subscribe(function (data) {
+                _this.isLoading = true;
+                _this.clusterName = data.cluster.name;
+                _this.service
+                    .getAll(_this.clusterName)
+                    .subscribe(function (workflows) { return _this.workflows = workflows; }, function (error) { return console.log(error); }, function () { return _this.isLoading = false; });
+            });
+        }
+    };
+    WorkflowListComponent = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'hi-workflow-list',
+            template: __webpack_require__("../../../../../src/app/workflow/workflow-list/workflow-list.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/workflow/workflow-list/workflow-list.component.scss")]
+        }),
+        __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* Router */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["a" /* ActivatedRoute */]) === "function" && _b || Object, typeof (_c = typeof __WEBPACK_IMPORTED_MODULE_2__shared_workflow_service__["a" /* WorkflowService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__shared_workflow_service__["a" /* WorkflowService */]) === "function" && _c || Object])
+    ], WorkflowListComponent);
+    return WorkflowListComponent;
+    var _a, _b, _c;
+}());
+
+//# sourceMappingURL=workflow-list.component.js.map
+
+/***/ }),
+
+/***/ "../../../../../src/app/workflow/workflow.module.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common__ = __webpack_require__("../../../common/@angular/common.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__workflow_list_workflow_list_component__ = __webpack_require__("../../../../../src/app/workflow/workflow-list/workflow-list.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__shared_workflow_service__ = __webpack_require__("../../../../../src/app/workflow/shared/workflow.service.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__shared_shared_module__ = __webpack_require__("../../../../../src/app/shared/shared.module.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__workflow_detail_workflow_detail_component__ = __webpack_require__("../../../../../src/app/workflow/workflow-detail/workflow-detail.component.ts");
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return WorkflowModule; });
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+
+
+
+
+
+var WorkflowModule = (function () {
+    function WorkflowModule() {
+    }
+    WorkflowModule = __decorate([
+        __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["NgModule"])({
+            imports: [
+                __WEBPACK_IMPORTED_MODULE_1__angular_common__["CommonModule"],
+                __WEBPACK_IMPORTED_MODULE_4__shared_shared_module__["a" /* SharedModule */]
+            ],
+            providers: [
+                __WEBPACK_IMPORTED_MODULE_3__shared_workflow_service__["a" /* WorkflowService */]
+            ],
+            declarations: [
+                __WEBPACK_IMPORTED_MODULE_2__workflow_list_workflow_list_component__["a" /* WorkflowListComponent */],
+                __WEBPACK_IMPORTED_MODULE_5__workflow_detail_workflow_detail_component__["a" /* WorkflowDetailComponent */]
+            ]
+        })
+    ], WorkflowModule);
+    return WorkflowModule;
+}());
+
+//# sourceMappingURL=workflow.module.js.map
 
 /***/ }),
 

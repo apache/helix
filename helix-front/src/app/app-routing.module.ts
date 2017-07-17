@@ -14,6 +14,8 @@ import { PartitionListComponent } from './resource/partition-list/partition-list
 import { ControllerDetailComponent } from './controller/controller-detail/controller-detail.component';
 import { HistoryListComponent } from './history/history-list/history-list.component';
 import { InstanceDetailComponent } from './instance/instance-detail/instance-detail.component';
+import { WorkflowListComponent } from './workflow/workflow-list/workflow-list.component';
+import { WorkflowDetailComponent } from './workflow/workflow-detail/workflow-detail.component';
 
 const HELIX_ROUTES: Routes = [
   {
@@ -57,6 +59,10 @@ const HELIX_ROUTES: Routes = [
       {
         path: 'resources',
         component: ResourceListComponent
+      },
+      {
+        path: 'workflows',
+        component: WorkflowListComponent
       }
     ]
   },
@@ -113,6 +119,10 @@ const HELIX_ROUTES: Routes = [
         }
       }
     ]
+  },
+  {
+    path: 'clusters/:cluster_name/workflows/:workflow_name',
+    component: WorkflowDetailComponent
   },
   {
     path: 'clusters/:cluster_name/instances/:instance_name',

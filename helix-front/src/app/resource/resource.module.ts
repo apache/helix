@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { MaterialModule } from '@angular/material';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
+import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
 import { SharedModule } from '../shared/shared.module';
 import { ResourceService } from './shared/resource.service';
@@ -20,12 +21,19 @@ import { PartitionDetailComponent } from './partition-detail/partition-detail.co
     RouterModule,
     MaterialModule,
     NgxDatatableModule,
+    NgxJsonViewerModule,
     SharedModule
   ],
   providers: [
     ResourceService,
     ResourceResolver
   ],
-  declarations: [ResourceListComponent, ResourceDetailComponent, ResourceDetailForInstanceComponent, PartitionListComponent, PartitionDetailComponent]
+  declarations: [
+    ResourceListComponent,
+    ResourceDetailComponent,
+    ResourceDetailForInstanceComponent,
+    PartitionListComponent,
+    PartitionDetailComponent
+  ]
 })
 export class ResourceModule { }

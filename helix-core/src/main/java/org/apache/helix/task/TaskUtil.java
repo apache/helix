@@ -742,6 +742,11 @@ public class TaskUtil {
     String contextPath =
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflow, TaskUtil.CONTEXT_NODE);
 
+    // If the queue is not started, there is no JobState need to be removed.
+    if (!propertyStore.exists(contextPath, 0)) {
+      return true;
+    }
+
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override public ZNRecord update(ZNRecord currentData) {
         if (currentData != null) {

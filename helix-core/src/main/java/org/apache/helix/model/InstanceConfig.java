@@ -388,7 +388,7 @@ public class InstanceConfig extends HelixProperty {
 
     Map<String, String> currentDisabled =
         _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
-    Set<String> disabledPartitions = new HashSet<String>();
+    Set<String> disabledPartitions = new HashSet<>();
 
     if (currentDisabled != null && currentDisabled.containsKey(resourceName)) {
       disabledPartitions.addAll(HelixUtil.deserializeByComma(currentDisabled.get(resourceName)));
@@ -403,14 +403,16 @@ public class InstanceConfig extends HelixProperty {
       disabledPartitions.add(partitionName);
     }
 
-    List<String> disabledPartitionList = new ArrayList<String>(disabledPartitions);
+    List<String> disabledPartitionList = new ArrayList<>(disabledPartitions);
     Collections.sort(disabledPartitionList);
     if (currentDisabled == null) {
-      currentDisabled = new HashMap<String, String>();
+      currentDisabled = new HashMap<>();
     }
 
     if (disabledPartitionList != null) {
       currentDisabled.put(resourceName, HelixUtil.serializeByComma(disabledPartitionList));
+    } else {
+      currentDisabled.remove(resourceName);
     }
 
     if (!currentDisabled.isEmpty()) {

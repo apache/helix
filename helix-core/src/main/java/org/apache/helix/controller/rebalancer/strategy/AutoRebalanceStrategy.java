@@ -276,9 +276,9 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
           for (int index = startIndex; index < startIndex + _liveNodesList.size(); index++) {
             Node receiver = _liveNodesList.get(index % _liveNodesList.size());
             if (receiver.canAdd(replica)) {
-              receiver.currentlyAssigned = receiver.currentlyAssigned + 1;
+              receiver.currentlyAssigned ++;
               receiver.nonPreferred.add(replica);
-              donor.currentlyAssigned = donor.currentlyAssigned - 1;
+              donor.currentlyAssigned --;
               it.remove();
               break;
             }
@@ -288,7 +288,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
           }
         }
         if (donor.capacity < donor.currentlyAssigned) {
-          logger.warn("Could not take partitions out of node:" + donor.id);
+          logger.debug("Could not take partitions out of node:" + donor.id);
         }
       }
     }

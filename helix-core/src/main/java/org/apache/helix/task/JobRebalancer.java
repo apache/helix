@@ -158,7 +158,7 @@ public class JobRebalancer extends TaskRebalancer {
 
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     PropertyKey propertyKey = accessor.keyBuilder().idealStates(jobName);
-    taskIs = accessor.getProperty(propertyKey);
+    taskIs = clusterData.getIdealState(jobName);
     if (!partitionsToDrop.isEmpty() && taskIs != null) {
       for (Integer pId : partitionsToDrop) {
         taskIs.getRecord().getMapFields().remove(pName(jobName, pId));

@@ -108,7 +108,7 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
     String resourceBeanName =
         String.format("%s,%s=%s", clusterBeanName, ClusterStatusMonitor.RESOURCE_DN_KEY,
             resourceName);
-    return new ObjectName(String.format("%s: %s", ClusterStatusMonitor.CLUSTER_STATUS_KEY,
+    return new ObjectName(String.format("%s: %s", MonitorDomainNames.ClusterStatus.name(),
         resourceBeanName));
   }
 

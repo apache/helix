@@ -30,7 +30,7 @@ public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBe
   public enum LATENCY_TYPE {
     TOTAL,
     EXECUTION
-  };
+  }
 
   private long _numDataPoints;
   private long _successCount;

@@ -18,11 +18,7 @@ package org.apache.helix.controller.pipeline;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import java.util.Map;
-
 import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.monitoring.mbeans.HelixStageLatencyMonitor;
 
 public class AbstractBaseStage implements Stage {
   @Override
@@ -54,18 +50,7 @@ public class AbstractBaseStage implements Stage {
   @Override
   public String getStageName() {
     // default stage name will be the class name
-    String className = this.getClass().getName();
+    String className = this.getClass().getSimpleName();
     return className;
-  }
-
-  public void addLatencyToMonitor(ClusterEvent event, long latency) {
-    Map<String, HelixStageLatencyMonitor> stgLatencyMonitorMap =
-        event.getAttribute("HelixStageLatencyMonitorMap");
-    if (stgLatencyMonitorMap != null) {
-      if (stgLatencyMonitorMap.containsKey(getStageName())) {
-        HelixStageLatencyMonitor stgLatencyMonitor = stgLatencyMonitorMap.get(getStageName());
-        stgLatencyMonitor.addStgLatency(latency);
-      }
-    }
   }
 }

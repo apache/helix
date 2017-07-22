@@ -20,7 +20,6 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.management.JMException;
@@ -29,7 +28,6 @@ import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.InstanceType;
 
 public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
-  public static final String DOMAIN = "HelixCallback";
   public static final String INSTANCE_TYPE = "InstanceType";
   public static final String CLUSTER = "Cluster";
 
@@ -52,8 +50,9 @@ public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
   }
 
   private void register(InstanceType type, String cluster) throws JMException {
-    _objectName = MBeanRegistrar.register(this, DOMAIN, INSTANCE_TYPE, type.name(), CLUSTER,
-        cluster);
+    _objectName = MBeanRegistrar
+        .register(this, MonitorDomainNames.HelixCallback.name(), INSTANCE_TYPE, type.name(),
+            CLUSTER, cluster);
   }
 
   /**
@@ -68,12 +67,13 @@ public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
     _callbackUnbatchedCounterMap.put(type, _callbackUnbatchedCounterMap.get(type) + 1);
   }
 
-  @Override public String getSensorName() {
+  @Override
+  public String getSensorName() {
     if (_objectName.getKeyProperty(MBeanRegistrar.DUPLICATE) == null) {
-      return String.format("%s.%s.%s", DOMAIN, _objectName.getKeyProperty(INSTANCE_TYPE),
+      return String.format("%s.%s.%s", MonitorDomainNames.HelixCallback.name(), _objectName.getKeyProperty(INSTANCE_TYPE),
           _objectName.getKeyProperty(CLUSTER));
     } else {
-      return String.format("%s.%s.%s.%s", DOMAIN, _objectName.getKeyProperty(INSTANCE_TYPE),
+      return String.format("%s.%s.%s.%s", MonitorDomainNames.HelixCallback.name(), _objectName.getKeyProperty(INSTANCE_TYPE),
           _objectName.getKeyProperty(CLUSTER),
           _objectName.getKeyProperty(MBeanRegistrar.DUPLICATE));
     }

@@ -6,7 +6,6 @@ import javax.management.ObjectName;
 import org.apache.helix.InstanceType;
 
 public class ThreadPoolExecutorMonitor implements ThreadPoolExecutorMonitorMBean {
-  public static final String DOMAIN = "HelixThreadPoolExecutor";
   public static final String TYPE = "Type";
 
   private ObjectName _objectName;
@@ -14,7 +13,8 @@ public class ThreadPoolExecutorMonitor implements ThreadPoolExecutorMonitorMBean
 
   public ThreadPoolExecutorMonitor(String type, ThreadPoolExecutor executor)
       throws JMException {
-    _objectName = MBeanRegistrar.register(this, DOMAIN, TYPE, type);
+    _objectName = MBeanRegistrar
+        .register(this, MonitorDomainNames.HelixThreadPoolExecutor.name(), TYPE, type);
     _executor = executor;
   }
 

@@ -19,14 +19,12 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.management.JMException;
 import javax.management.ObjectName;
 
 public class ZkClientMonitor implements ZkClientMonitorMBean {
-  public static final String DOMAIN = "HelixZkClient";
   public static final String TAG = "Tag";
   public static final String DEFAULT_TAG = "default";
 
@@ -86,7 +84,7 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   private void register(String tag) throws JMException {
-    _objectName = MBeanRegistrar.register(this, DOMAIN, TAG, tag);
+    _objectName = MBeanRegistrar.register(this, MonitorDomainNames.HelixZkClient.name(), TAG, tag);
   }
 
   /**
@@ -96,12 +94,14 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     MBeanRegistrar.unregister(_objectName);
   }
 
-  @Override public String getSensorName() {
+  @Override
+  public String getSensorName() {
     if (_objectName.getKeyProperty(MBeanRegistrar.DUPLICATE) == null) {
-      return String.format("%s.%s", DOMAIN, _objectName.getKeyProperty(TAG));
+      return String.format("%s.%s", MonitorDomainNames.HelixZkClient.name(),
+          _objectName.getKeyProperty(TAG));
     } else {
-      return String.format("%s.%s.%s", DOMAIN, _objectName.getKeyProperty(TAG),
-          _objectName.getKeyProperty(MBeanRegistrar.DUPLICATE));
+      return String.format("%s.%s.%s", MonitorDomainNames.HelixZkClient.name(),
+          _objectName.getKeyProperty(TAG), _objectName.getKeyProperty(MBeanRegistrar.DUPLICATE));
     }
   }
 
@@ -109,7 +109,8 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     _stateChangeEventCounter++;
   }
 
-  @Override public long getStateChangeEventCounter() {
+  @Override
+  public long getStateChangeEventCounter() {
     return _stateChangeEventCounter;
   }
 
@@ -117,7 +118,8 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     _dataChangeEventCounter++;
   }
 
-  @Override public long getDataChangeEventCounter() {
+  @Override
+  public long getDataChangeEventCounter() {
     return _dataChangeEventCounter;
   }
 

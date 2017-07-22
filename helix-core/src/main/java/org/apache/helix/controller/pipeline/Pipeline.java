@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 public class Pipeline {
@@ -44,9 +45,22 @@ public class Pipeline {
       return;
     }
     for (Stage stage : _stages) {
+      long startTime = System.currentTimeMillis();
+      logger.info("START " + stage.getStageName());
+
       stage.preProcess();
       stage.process(event);
       stage.postProcess();
+
+      long endTime = System.currentTimeMillis();
+      long duration = endTime - startTime;
+      logger.info(
+          String.format("END %s for cluster %s. took: %d ms ", stage.getStageName(), event.getClusterName(), duration));
+
+      ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+      if (clusterStatusMonitor != null) {
+        clusterStatusMonitor.updateClusterEventDuration(stage.getStageName(), duration);
+      }
     }
   }
 

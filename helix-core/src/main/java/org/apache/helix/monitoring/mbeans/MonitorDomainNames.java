@@ -19,10 +19,12 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-public interface HelixStageLatencyMonitorMBean {
-  public long getMaxStgLatency();
-
-  public long getMeanStgLatency();
-
-  public long get95StgLatency();
+/**
+ * This enum defines all of domain names used with various Helix monitor mbeans.
+ */
+public enum MonitorDomainNames {
+  ClusterStatus,
+  HelixZkClient,
+  HelixThreadPoolExecutor,
+  HelixCallback
 }

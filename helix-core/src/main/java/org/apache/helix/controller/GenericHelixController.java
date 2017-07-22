@@ -29,11 +29,9 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.IdealStateChangeListener;
@@ -70,6 +68,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.monitoring.mbeans.ClusterEventMonitor;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.TaskDriver;
 import org.apache.log4j.Logger;
@@ -161,7 +160,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.CALLBACK);
-      ClusterEvent event = new ClusterEvent("periodicalRebalance");
+      ClusterEvent event = new ClusterEvent(_clusterName,"periodicalRebalance");
       event.addAttribute("helixmanager", changeContext.getManager());
       event.addAttribute("changeContext", changeContext);
       List<ZNRecord> dummy = new ArrayList<ZNRecord>();
@@ -339,6 +338,22 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     long endTime = System.currentTimeMillis();
     logger.info("END: Invoking controller pipeline for event: " + event.getName() + " for cluster "
         + manager.getClusterName() + ", took " + (endTime - startTime) + " ms");
+
+    // report event process durations
+    if (_clusterStatusMonitor != null) {
+      NotificationContext notificationContext = event.getAttribute("changeContext");
+      long enqueueTime = event.getCreationTime();
+      long zkCallbackTime;
+      if (notificationContext != null) {
+        zkCallbackTime = notificationContext.getCreationTime();
+        _clusterStatusMonitor.updateClusterEventDuration(ClusterEventMonitor.PhaseName.Callback.name(),
+            enqueueTime - zkCallbackTime);
+      }
+      _clusterStatusMonitor.updateClusterEventDuration(ClusterEventMonitor.PhaseName.InQueue.name(),
+          startTime - enqueueTime);
+      _clusterStatusMonitor.updateClusterEventDuration(ClusterEventMonitor.PhaseName.TotalProcessed.name(),
+          endTime - startTime);
+    }
   }
 
 
@@ -352,7 +367,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     } else {
       _cache.updateDataChange(ChangeType.CURRENT_STATE);
     }
-    ClusterEvent event = new ClusterEvent("currentStateChange");
+    ClusterEvent event = new ClusterEvent(_clusterName,"currentStateChange");
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("instanceName", instanceName);
     event.addAttribute("changeContext", changeContext);
@@ -372,7 +387,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       _cache.updateDataChange(ChangeType.MESSAGE);
     }
 
-    ClusterEvent event = new ClusterEvent("messageChange");
+    ClusterEvent event = new ClusterEvent(_clusterName,"messageChange");
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("instanceName", instanceName);
     event.addAttribute("changeContext", changeContext);
@@ -412,7 +427,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       checkLiveInstancesObservation(liveInstances, changeContext);
     }
 
-    ClusterEvent event = new ClusterEvent("liveInstanceChange");
+    ClusterEvent event = new ClusterEvent(_clusterName,"liveInstanceChange");
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", liveInstances);
@@ -461,7 +476,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       _cache.updateDataChange(ChangeType.IDEAL_STATE);
     }
 
-    ClusterEvent event = new ClusterEvent("idealStateChange");
+    ClusterEvent event = new ClusterEvent(_clusterName,"idealStateChange");
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("changeContext", changeContext);
 
@@ -484,7 +499,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       _cache.updateDataChange(ChangeType.INSTANCE_CONFIG);
     }
 
-    ClusterEvent event = new ClusterEvent("configChange");
+    ClusterEvent event = new ClusterEvent(_clusterName,"configChange");
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("helixmanager", changeContext.getManager());
 
@@ -539,7 +554,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       if (_paused) {
         _paused = false;
         logger.info("controller is now resumed");
-        ClusterEvent event = new ClusterEvent("resume");
+        ClusterEvent event = new ClusterEvent(_clusterName,"resume");
         event.addAttribute("changeContext", changeContext);
         event.addAttribute("helixmanager", changeContext.getManager());
         event.addAttribute("eventData", pauseSignal);

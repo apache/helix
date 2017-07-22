@@ -28,10 +28,21 @@ public class ClusterEvent {
   private static final Logger logger = Logger.getLogger(ClusterEvent.class.getName());
   private final String _eventName;
   private final Map<String, Object> _eventAttributeMap;
+  private long _creationTime;
+  private String _clusterName;
 
-  public ClusterEvent(String name) {
-    _eventName = name;
+  @Deprecated
+  public ClusterEvent(String eventName) {
+    _eventName = eventName;
     _eventAttributeMap = new HashMap<>();
+    _creationTime = System.currentTimeMillis();
+  }
+
+  public ClusterEvent(String clusterName, String eventName) {
+    _clusterName = clusterName;
+    _eventName = eventName;
+    _eventAttributeMap = new HashMap<>();
+    _creationTime = System.currentTimeMillis();
   }
 
   public void addAttribute(String attrName, Object attrValue) {
@@ -45,6 +56,22 @@ public class ClusterEvent {
 
   public String getName() {
     return _eventName;
+  }
+
+  public long getCreationTime() {
+    return _creationTime;
+  }
+
+  public void setCreationTime(long creationTime) {
+    _creationTime = creationTime;
+  }
+
+  public String getClusterName() {
+    return _clusterName;
+  }
+
+  public void setClusterName(String clusterName) {
+    _clusterName = clusterName;
   }
 
   @SuppressWarnings("unchecked")

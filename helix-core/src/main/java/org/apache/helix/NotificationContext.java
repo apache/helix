@@ -41,6 +41,7 @@ public class NotificationContext {
   private Type _type;
   private String _pathChanged;
   private String _eventName;
+  private long _creationTime;
 
   /**
    * Get the name associated with the event
@@ -64,7 +65,8 @@ public class NotificationContext {
    */
   public NotificationContext(HelixManager manager) {
     _manager = manager;
-    _map = new HashMap<String, Object>();
+    _map = new HashMap<>();
+    _creationTime = System.currentTimeMillis();
   }
 
   /**
@@ -97,6 +99,14 @@ public class NotificationContext {
    */
   public void setManager(HelixManager manager) {
     this._manager = manager;
+  }
+
+  public long getCreationTime() {
+    return _creationTime;
+  }
+
+  public void setCreationTime(long creationTime) {
+    _creationTime = creationTime;
   }
 
   /**

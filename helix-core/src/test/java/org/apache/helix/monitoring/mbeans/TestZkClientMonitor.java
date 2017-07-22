@@ -34,11 +34,11 @@ public class TestZkClientMonitor {
   private MBeanServer _beanServer = ManagementFactory.getPlatformMBeanServer();
 
   private ObjectName buildObjectName(String tag) throws MalformedObjectNameException {
-    return MBeanRegistrar.buildObjectName(ZkClientMonitor.DOMAIN, ZkClientMonitor.TAG, tag);
+    return MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.TAG, tag);
   }
 
   private ObjectName buildObjectName(String tag, int num) throws MalformedObjectNameException {
-    return MBeanRegistrar.buildObjectName(num, ZkClientMonitor.DOMAIN, ZkClientMonitor.TAG, tag);
+    return MBeanRegistrar.buildObjectName(num, MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.TAG, tag);
   }
 
   @Test public void testMBeanRegisteration() throws JMException {

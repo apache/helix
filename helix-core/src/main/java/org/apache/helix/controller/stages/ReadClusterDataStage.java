@@ -62,6 +62,8 @@ public class ReadClusterDataStage extends AbstractBaseStage {
     // Update the cluster status gauges
     ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
     if (clusterStatusMonitor != null) {
+      logger.debug("Update cluster status monitors");
+
       Set<String> instanceSet = Sets.newHashSet();
       Set<String> liveInstanceSet = Sets.newHashSet();
       Set<String> disabledInstanceSet = Sets.newHashSet();
@@ -89,6 +91,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
       }
       clusterStatusMonitor.setClusterInstanceStatus(liveInstanceSet, instanceSet,
           disabledInstanceSet, disabledPartitions, oldDisabledPartitions, tags);
+      logger.debug("Complete cluster status monitors update.");
     }
 
     event.addAttribute("ClusterDataCache", _cache);

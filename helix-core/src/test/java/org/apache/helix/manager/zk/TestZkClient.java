@@ -35,6 +35,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -155,7 +156,7 @@ public class TestZkClient extends ZkUnitTestBase {
 
     MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
 
-    ObjectName name = MBeanRegistrar.buildObjectName(ZkClientMonitor.DOMAIN, ZkClientMonitor.TAG,
+    ObjectName name = MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.TAG,
         TEST_TAG);
     Assert.assertTrue(beanServer.isRegistered(name));
 

@@ -1,4 +1,4 @@
-package org.apache.helix.controller.pipeline;
+package org.apache.helix.monitoring.mbeans;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,44 +19,10 @@ package org.apache.helix.controller.pipeline;
  * under the License.
  */
 
-import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.monitoring.SensorNameProvider;
 
-/**
- * Logically independent unit in processing callbacks for cluster changes
- */
-public interface Stage {
-
-  /**
-   * Initialize a stage
-   * @param context
-   */
-  void init(StageContext context);
-
-  /**
-   * Called before process() on each callback
-   */
-  void preProcess();
-
-  /**
-   * Actual callback processing logic
-   * @param event
-   * @throws Exception
-   */
-  public void process(ClusterEvent event) throws Exception;
-
-  /**
-   * Called after process() on each callback
-   */
-  void postProcess();
-
-  /**
-   * Destruct a stage
-   */
-  void release();
-
-  /**
-   * Get the name of the stage
-   * @return
-   */
-  String getStageName();
+public interface ClusterEventMonitorMBean extends SensorNameProvider {
+  long getTotalDuration();
+  long getMaxDuration();
+  long getEventCount();
 }

@@ -5,7 +5,7 @@
 
 export const environment = {
   production: false,
-  helixAPI: 'http://localhost:8100/admin/v2',
+  helixAPI: '/api/helix',
   piwik: {
     url: '//vxu-ld1.linkedin.biz/piwik/',
     id: '3'

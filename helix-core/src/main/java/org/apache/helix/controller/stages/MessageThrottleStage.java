@@ -112,7 +112,6 @@ public class MessageThrottleStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    long startTime = System.currentTimeMillis();
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     MessageSelectionStageOutput msgSelectionOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
@@ -150,11 +149,6 @@ public class MessageThrottleStage extends AbstractBaseStage {
     }
 
     event.addAttribute(AttributeName.MESSAGES_THROTTLE.name(), output);
-
-    long endTime = System.currentTimeMillis();
-    LOG.info("END MessageThrottleStage.process() for cluster " + cache.getClusterName()
-        + ". took: " + (endTime - startTime) + " ms");
-    updateStageMonitorCounters(endTime - startTime);
   }
 
   private List<Message> throttle(Map<String, Integer> throttleMap, ClusterConstraints constraint,

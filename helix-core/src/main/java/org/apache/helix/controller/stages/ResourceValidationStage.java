@@ -33,7 +33,6 @@ public class ResourceValidationStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    long startTime = System.currentTimeMillis();
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     if (cache == null) {
       throw new StageException("Missing attributes in event:" + event + ". Requires DataCache");
@@ -74,10 +73,6 @@ public class ResourceValidationStage extends AbstractBaseStage {
         resourceMap.remove(resourceName);
       }
     }
-    long endTime = System.currentTimeMillis();
-    LOG.info("END ResourceValidationStage.process() for cluster " + cache.getClusterName()
-        + ". took: " + (endTime - startTime) + " ms");
-    updateStageMonitorCounters(endTime - startTime);
   }
 
   /**

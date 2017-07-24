@@ -86,7 +86,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     logger.info(
         "END ImmediateStateCalcStage.process() for cluster " + cache.getClusterName() + ". took: "
             + (endTime - startTime) + " ms");
-    updateStageMonitorCounters(endTime - startTime);
   }
 
   private IntermediateStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,

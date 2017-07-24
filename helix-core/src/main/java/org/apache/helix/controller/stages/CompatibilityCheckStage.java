@@ -36,7 +36,6 @@ public class CompatibilityCheckStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    long startTime = System.currentTimeMillis();
     HelixManager manager = event.getAttribute("helixmanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     if (manager == null || cache == null) {
@@ -60,11 +59,5 @@ public class CompatibilityCheckStage extends AbstractBaseStage {
         throw new StageException(errorMsg);
       }
     }
-
-    long endTime = System.currentTimeMillis();
-    LOG.info(
-        "END CompatibilityCheckStage.process() for cluster " + cache.getClusterName() + " took " + (
-            endTime - startTime) + " ms");
-    updateStageMonitorCounters(endTime - startTime);
   }
 }

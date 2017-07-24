@@ -51,7 +51,6 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    long startTime = System.currentTimeMillis();
     HelixManager manager = event.getAttribute("helixmanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
@@ -203,11 +202,6 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       } // end of for-each-partition
     }
     event.addAttribute(AttributeName.MESSAGES_ALL.name(), output);
-
-    long endTime = System.currentTimeMillis();
-    logger.info("END MessageGenerationPhase.process() for cluster " + cache.getClusterName()
-        + ". took: " + (endTime - startTime) + " ms");
-    updateStageMonitorCounters(endTime - startTime);
   }
 
   private Message createStateTransitionMessage(HelixManager manager, Resource resource, String partitionName,

@@ -86,7 +86,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     long endTime = System.currentTimeMillis();
     logger.info("END BestPossibleStateCalcStage.process() for cluster " + cache.getClusterName()
         + ". took: " + (endTime - startTime) + " ms");
-    updateStageMonitorCounters(endTime - startTime);
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,

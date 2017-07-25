@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Headers, Http, Response } from '@angular/http';
 import { Observable } from 'rxjs/Rx';
 
-import { environment } from '../../environments/environment';
+import { Settings } from './settings';
 
 @Injectable()
 export class HelixService {
@@ -12,7 +12,7 @@ export class HelixService {
   protected request(path: string): Observable<any> {
     return this.http
       .get(
-        `${environment.helixAPI}${path}`,
+        `${Settings.helixAPI}${path}`,
         { headers: this.getHeaders() }
       )
       .map(response => response.json())

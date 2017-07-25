@@ -1,4 +1,3 @@
 export const environment = {
-  production: true,
-  helixAPI: '/admin/v2'
+  production: true
 };

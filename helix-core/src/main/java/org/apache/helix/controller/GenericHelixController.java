@@ -73,7 +73,7 @@ import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.TaskDriver;
 import org.apache.log4j.Logger;
 
-import static org.apache.helix.HelixConstants.*;
+import static org.apache.helix.HelixConstants.ChangeType;
 
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as possible to Ideal State.
@@ -344,15 +344,29 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       NotificationContext notificationContext = event.getAttribute("changeContext");
       long enqueueTime = event.getCreationTime();
       long zkCallbackTime;
+      StringBuilder sb = new StringBuilder();
       if (notificationContext != null) {
         zkCallbackTime = notificationContext.getCreationTime();
-        _clusterStatusMonitor.updateClusterEventDuration(ClusterEventMonitor.PhaseName.Callback.name(),
-            enqueueTime - zkCallbackTime);
+        _clusterStatusMonitor
+            .updateClusterEventDuration(ClusterEventMonitor.PhaseName.Callback.name(),
+                enqueueTime - zkCallbackTime);
+        sb.append(String.format(
+            "Callback time for event: " + event.getName() + " took: " + (enqueueTime
+                - zkCallbackTime) + " ms\n"));
+
       }
       _clusterStatusMonitor.updateClusterEventDuration(ClusterEventMonitor.PhaseName.InQueue.name(),
           startTime - enqueueTime);
-      _clusterStatusMonitor.updateClusterEventDuration(ClusterEventMonitor.PhaseName.TotalProcessed.name(),
-          endTime - startTime);
+      _clusterStatusMonitor
+          .updateClusterEventDuration(ClusterEventMonitor.PhaseName.TotalProcessed.name(),
+              endTime - startTime);
+      sb.append(String.format(
+          "InQueue time for event: " + event.getName() + " took: " + (startTime - enqueueTime)
+              + " ms\n"));
+      sb.append(String.format(
+          "TotalProcessed time for event: " + event.getName() + " took: " + (endTime - startTime)
+              + " ms"));
+      logger.info(sb.toString());
     }
   }
 

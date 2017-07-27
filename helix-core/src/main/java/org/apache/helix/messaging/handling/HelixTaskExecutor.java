@@ -702,7 +702,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             syncSessionToController(manager);
           }
         }
-        _monitor.reportReceivedMessages(1);
+        _monitor.reportReceivedMessage(message);
         _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
@@ -714,7 +714,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
         _controller.onLiveInstanceChange(liveInstances, changeContext);
         accessor.removeProperty(message.getKey(keyBuilder, instanceName));
-        _monitor.reportReceivedMessages(1);
+        _monitor.reportReceivedMessage(message);
         _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
         continue;
       }
@@ -731,7 +731,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         continue;
       }
 
-      _monitor.reportReceivedMessages(1);
+      _monitor.reportReceivedMessage(message);
 
       // State Transition Cancellation
       // Three Types of Cancellation: 1. Message arrived with previous state transition

@@ -26,7 +26,7 @@ public class TestHelixCallbackMonitor {
 
   private ObjectName buildObjectName(InstanceType type, String cluster, int num)
       throws MalformedObjectNameException {
-    return MBeanRegistrar.buildObjectName(num, MonitorDomainNames.ClusterStatus.name(),
+    return MBeanRegistrar.buildObjectName(num, MonitorDomainNames.HelixCallback.name(),
         HelixCallbackMonitor.INSTANCE_TYPE, type.name(), HelixCallbackMonitor.CLUSTER,
         cluster);
   }

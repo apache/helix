@@ -30,6 +30,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.model.Message;
+import org.apache.helix.monitoring.mbeans.MessageLatencyMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.monitoring.mbeans.StateTransitionStatMonitor;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
@@ -42,6 +43,7 @@ public class ParticipantStatusMonitor {
 
   private MBeanServer _beanServer;
   private ParticipantMessageMonitor _messageMonitor;
+  private MessageLatencyMonitor _messageLatencyMonitor;
   private Map<String, ThreadPoolExecutorMonitor> _executorMonitors;
 
   public ParticipantStatusMonitor(boolean isParticipant, String instanceName) {
@@ -49,6 +51,7 @@ public class ParticipantStatusMonitor {
       _beanServer = ManagementFactory.getPlatformMBeanServer();
       if (isParticipant) {
         _messageMonitor = new ParticipantMessageMonitor(instanceName);
+        _messageLatencyMonitor = new MessageLatencyMonitor();
         _executorMonitors = new ConcurrentHashMap<>();
         register(_messageMonitor, getObjectName(_messageMonitor.getParticipantBeanName()));
       }
@@ -59,10 +62,11 @@ public class ParticipantStatusMonitor {
     }
   }
 
-  public synchronized void reportReceivedMessages(int count) {
+  public synchronized void reportReceivedMessage(Message message) {
     if (_messageMonitor != null) {  // is participant
-      _messageMonitor.incrementReceivedMessages(count);
-      _messageMonitor.incrementPendingMessages(count);
+      _messageMonitor.incrementReceivedMessages(1);
+      _messageMonitor.incrementPendingMessages(1);
+      _messageLatencyMonitor.updateLatency(message);
     }
   }
 

@@ -612,6 +612,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         _participantManager = null;
       }
 
+      _callbackMonitor.unregister();
       _helixPropertyStore = null;
 
       _zkclient.close();

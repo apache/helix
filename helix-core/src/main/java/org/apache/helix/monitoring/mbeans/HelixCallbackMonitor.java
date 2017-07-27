@@ -19,11 +19,11 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.management.JMException;
 import javax.management.ObjectName;
+
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.InstanceType;
 
@@ -69,14 +69,8 @@ public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
 
   @Override
   public String getSensorName() {
-    if (_objectName.getKeyProperty(MBeanRegistrar.DUPLICATE) == null) {
-      return String.format("%s.%s.%s", MonitorDomainNames.HelixCallback.name(), _objectName.getKeyProperty(INSTANCE_TYPE),
-          _objectName.getKeyProperty(CLUSTER));
-    } else {
-      return String.format("%s.%s.%s.%s", MonitorDomainNames.HelixCallback.name(), _objectName.getKeyProperty(INSTANCE_TYPE),
-          _objectName.getKeyProperty(CLUSTER),
-          _objectName.getKeyProperty(MBeanRegistrar.DUPLICATE));
-    }
+    return String.format("%s.%s.%s", MonitorDomainNames.HelixCallback.name(),
+        _objectName.getKeyProperty(INSTANCE_TYPE), _objectName.getKeyProperty(CLUSTER));
   }
 
   public void increaseCallbackCounters(ChangeType type, long time) {
@@ -86,78 +80,97 @@ public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
     _callbackLatencyCounterMap.put(type, _callbackLatencyCounterMap.get(type) + time);
   }
 
-  @Override public long getCallbackCounter() {
+  @Override
+  public long getCallbackCounter() {
     return _callbackCounter;
   }
 
-  @Override public long getCallbackUnbatchedCounter() {
+  @Override
+  public long getCallbackUnbatchedCounter() {
     return _callbackUnbatchedCounter;
   }
 
-  @Override public long getCallbackLatencyCounter() {
+  @Override
+  public long getCallbackLatencyCounter() {
     return _callbackLatencyCounter;
   }
 
-  @Override public long getIdealStateCallbackCounter() {
+  @Override
+  public long getIdealStateCallbackCounter() {
     return _callbackCounterMap.get(ChangeType.IDEAL_STATE);
   }
-  @Override public long getIdealStateCallbackLatencyCounter() {
+  @Override
+  public long getIdealStateCallbackLatencyCounter() {
     return _callbackLatencyCounterMap.get(ChangeType.IDEAL_STATE);
   }
 
-  @Override public long getIdealStateCallbackUnbatchedCounter() {
+  @Override
+  public long getIdealStateCallbackUnbatchedCounter() {
     return _callbackUnbatchedCounterMap.get(ChangeType.IDEAL_STATE);
   }
 
-  @Override public long getInstanceConfigCallbackCounter() {
+  @Override
+  public long getInstanceConfigCallbackCounter() {
     return _callbackCounterMap.get(ChangeType.INSTANCE_CONFIG);
   }
 
-  @Override public long getInstanceConfigCallbackLatencyCounter() {
+  @Override
+  public long getInstanceConfigCallbackLatencyCounter() {
     return _callbackLatencyCounterMap.get(ChangeType.INSTANCE_CONFIG);
   }
 
-  @Override public long getInstanceConfigCallbackUnbatchedCounter() {
+  @Override
+  public long getInstanceConfigCallbackUnbatchedCounter() {
     return _callbackUnbatchedCounterMap.get(ChangeType.INSTANCE_CONFIG);
   }
 
-  @Override public long getConfigCallbackCounter() {
+  @Override
+  public long getConfigCallbackCounter() {
     return _callbackCounterMap.get(ChangeType.CONFIG);
   }
 
-  @Override public long getConfigCallbackLatencyCounter() {
+  @Override
+  public long getConfigCallbackLatencyCounter() {
     return _callbackLatencyCounterMap.get(ChangeType.CONFIG);
   }
 
-  @Override public long getConfigCallbackUnbatchedCounter() {
+  @Override
+  public long getConfigCallbackUnbatchedCounter() {
     return _callbackUnbatchedCounterMap.get(ChangeType.CONFIG);
   }
 
-  @Override public long getLiveInstanceCallbackCounter() {
+  @Override
+  public long getLiveInstanceCallbackCounter() {
     return _callbackCounterMap.get(ChangeType.LIVE_INSTANCE);
   }
 
-  @Override public long getLiveInstanceCallbackLatencyCounter() {
+  @Override
+  public long getLiveInstanceCallbackLatencyCounter() {
     return _callbackLatencyCounterMap.get(ChangeType.LIVE_INSTANCE);
   }
 
-  @Override public long getLiveInstanceCallbackUnbatchedCounter() {
+  @Override
+  public long getLiveInstanceCallbackUnbatchedCounter() {
     return _callbackUnbatchedCounterMap.get(ChangeType.LIVE_INSTANCE);
   }
 
-  @Override public long getCurrentStateCallbackCounter() {
+  @Override
+  public long getCurrentStateCallbackCounter() {
     return _callbackCounterMap.get(ChangeType.CURRENT_STATE);
   }
 
-  @Override public long getCurrentStateCallbackLatencyCounter() {
+  @Override
+  public long getCurrentStateCallbackLatencyCounter() {
     return _callbackLatencyCounterMap.get(ChangeType.CURRENT_STATE);
   }
 
-  @Override public long getCurrentStateCallbackUnbatchedCounter() {
+  @Override
+  public long getCurrentStateCallbackUnbatchedCounter() {
     return _callbackUnbatchedCounterMap.get(ChangeType.CURRENT_STATE);
   }
 
-  @Override public long getMessageCallbackCounter() {
+  @Override
+  public long getMessageCallbackCounter() {
     return _callbackCounterMap.get(ChangeType.MESSAGE);
   }
 
@@ -165,43 +178,53 @@ public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
     return _callbackLatencyCounterMap.get(ChangeType.MESSAGE);
   }
 
-  @Override public long getMessageCallbackUnbatchedCounter() {
+  @Override
+  public long getMessageCallbackUnbatchedCounter() {
     return _callbackUnbatchedCounterMap.get(ChangeType.MESSAGE);
   }
 
-  @Override public long getMessagesControllerCallbackCounter() {
+  @Override
+  public long getMessagesControllerCallbackCounter() {
     return _callbackCounterMap.get(ChangeType.MESSAGES_CONTROLLER);
   }
 
-  @Override public long getMessagesControllerCallbackLatencyCounter() {
+  @Override
+  public long getMessagesControllerCallbackLatencyCounter() {
     return _callbackLatencyCounterMap.get(ChangeType.MESSAGES_CONTROLLER);
   }
 
-  @Override public long getMessagesControllerCallbackUnbatchedCounter() {
+  @Override
+  public long getMessagesControllerCallbackUnbatchedCounter() {
     return _callbackUnbatchedCounterMap.get(ChangeType.MESSAGES_CONTROLLER);
   }
 
-  @Override public long getExternalViewCallbackCounter() {
+  @Override
+  public long getExternalViewCallbackCounter() {
     return _callbackCounterMap.get(ChangeType.EXTERNAL_VIEW);
   }
 
-  @Override public long getExternalViewCallbackLatencyCounter() {
+  @Override
+  public long getExternalViewCallbackLatencyCounter() {
     return _callbackLatencyCounterMap.get(ChangeType.EXTERNAL_VIEW);
   }
 
-  @Override public long getExternalViewCallbackUnbatchedCounter() {
+  @Override
+  public long getExternalViewCallbackUnbatchedCounter() {
     return _callbackUnbatchedCounterMap.get(ChangeType.EXTERNAL_VIEW);
   }
 
-  @Override public long getControllerCallbackCounter() {
+  @Override
+  public long getControllerCallbackCounter() {
     return _callbackCounterMap.get(ChangeType.CONTROLLER);
   }
 
-  @Override public long getControllerCallbackLatencyCounter() {
+  @Override
+  public long getControllerCallbackLatencyCounter() {
     return _callbackLatencyCounterMap.get(ChangeType.CONTROLLER);
   }
 
-  @Override public long getControllerCallbackUnbatchedCounter() {
+  @Override
+  public long getControllerCallbackUnbatchedCounter() {
     return _callbackUnbatchedCounterMap.get(ChangeType.CONTROLLER);
   }
 }

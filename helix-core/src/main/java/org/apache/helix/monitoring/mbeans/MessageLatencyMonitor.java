@@ -20,8 +20,10 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import org.apache.helix.model.Message;
+import org.apache.log4j.Logger;
 
 public class MessageLatencyMonitor implements MessageLatencyMBean {
+  private static final Logger logger = Logger.getLogger(MessageLatencyMonitor.class.getName());
   private static long DEFAULT_RESET_TIME = 60 * 60 * 1000;
   private long _totalMessageLatency;
   private long _totalMessageCount;
@@ -37,6 +39,7 @@ public class MessageLatencyMonitor implements MessageLatencyMBean {
 
   public void updateLatency(Message message) {
     long latency = System.currentTimeMillis() - message.getCreateTimeStamp();
+    logger.info(String.format("The latency of message %s is %d ms", message.getMsgId(), latency));
     _totalMessageCount++;
     _totalMessageLatency += latency;
     if (_lastResetTime + DEFAULT_RESET_TIME <= System.currentTimeMillis()) {

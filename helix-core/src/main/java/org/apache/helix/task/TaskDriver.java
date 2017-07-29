@@ -329,13 +329,12 @@ public class TaskDriver {
     _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
 
     // Now atomically clear the results
-    path =
-        Joiner.on("/")
-            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, queueName, TaskUtil.CONTEXT_NODE);
+    path = Joiner.on("/")
+        .join(TaskConstants.REBALANCER_CONTEXT_ROOT, queueName, TaskUtil.CONTEXT_NODE);
     updater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        Map<String, String> states = currentData.getMapField(WorkflowContext.JOB_STATES);
+      @Override public ZNRecord update(ZNRecord currentData) {
+        Map<String, String> states =
+            currentData.getMapField(WorkflowContext.WorkflowContextProperties.JOB_STATES.name());
         if (states != null) {
           states.keySet().removeAll(toRemove);
         }
@@ -505,10 +504,10 @@ public class TaskDriver {
             .join(TaskConstants.REBALANCER_CONTEXT_ROOT, queueName, TaskUtil.CONTEXT_NODE);
 
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
+      @Override public ZNRecord update(ZNRecord currentData) {
         if (currentData != null) {
-          Map<String, String> states = currentData.getMapField(WorkflowContext.JOB_STATES);
+          Map<String, String> states =
+              currentData.getMapField(WorkflowContext.WorkflowContextProperties.JOB_STATES.name());
           if (states != null && states.containsKey(namespacedJobName)) {
             states.keySet().remove(namespacedJobName);
           }
@@ -738,7 +737,21 @@ public class TaskDriver {
    * @param workflow
    */
   public void delete(String workflow) {
+    // After set DELETE state, rebalancer may remove the workflow instantly.
+    // So record context before set DELETE state.
+    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, workflow);
+
     setWorkflowTargetState(workflow, TargetState.DELETE);
+
+    // Delete all finished scheduled workflows.
+    if (wCtx != null && wCtx.getScheduledWorkflows() != null) {
+      for (String scheduledWorkflow : wCtx.getScheduledWorkflows()) {
+        WorkflowContext scheduledWorkflowCtx = TaskUtil.getWorkflowContext(_propertyStore, scheduledWorkflow);
+        if (scheduledWorkflowCtx != null && scheduledWorkflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
+          setWorkflowTargetState(scheduledWorkflow, TargetState.DELETE);
+        }
+      }
+    }
   }
 
   /**
@@ -756,15 +769,17 @@ public class TaskDriver {
     }
   }
 
-  /** Helper function to change target state for a given workflow */
+  /**
+   * Helper function to change target state for a given workflow
+   */
   private void setSingleWorkflowTargetState(String workflowName, final TargetState state) {
     LOG.info("Set " + workflowName + " to target state " + state);
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
+      @Override public ZNRecord update(ZNRecord currentData) {
         if (currentData != null) {
           // Only update target state for non-completed workflows
-          String finishTime = currentData.getSimpleField(WorkflowContext.FINISH_TIME);
+          String finishTime = currentData
+              .getSimpleField(WorkflowContext.WorkflowContextProperties.FINISH_TIME.name());
           if (finishTime == null || finishTime.equals(WorkflowContext.UNFINISHED)) {
             currentData.setSimpleField(WorkflowConfig.WorkflowConfigProperty.TargetState.name(),
                 state.name());

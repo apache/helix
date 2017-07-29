@@ -50,19 +50,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
     JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName);
-    // Create and Enqueue jobs
-    List<String> currentJobNames = new ArrayList<String>();
-    for (int i = 0; i <= 1; i++) {
-      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
-
-      JobConfig.Builder jobConfig =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
-      String jobName = targetPartition.toLowerCase() + "Job" + i;
-      queueBuild.enqueueJob(jobName, jobConfig);
-      currentJobNames.add(jobName);
-    }
+    List<String> currentJobNames = createAndEnqueueJob(queueBuild, 2);
 
     _driver.start(queueBuild.build());
 
@@ -79,17 +67,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
 
     JobQueue.Builder queueBuilder = TaskTestUtil.buildRecurrentJobQueue(queueName, 5);
     currentJobNames.clear();
-    for (int i = 0; i <= 1; i++) {
-      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
-
-      JobConfig.Builder job =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
-      String jobName = targetPartition.toLowerCase() + "Job" + i;
-      queueBuilder.enqueueJob(jobName, job);
-      currentJobNames.add(jobName);
-    }
+    currentJobNames = createAndEnqueueJob(queueBuilder, 2);
 
     _driver.createQueue(queueBuilder.build());
 
@@ -115,20 +93,9 @@ public class TestRecurringJobQueue extends TaskTestBase {
     JobQueue.Builder queueBuilder = TaskTestUtil.buildRecurrentJobQueue(queueName, 5);
 
     // Create and Enqueue jobs
-    List<String> currentJobNames = new ArrayList<String>();
     Map<String, String> commandConfig = ImmutableMap.of(MockTask.TIMEOUT_CONFIG, String.valueOf(500));
     Thread.sleep(100);
-    for (int i = 0; i <= 4; i++) {
-      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
-
-      JobConfig.Builder job = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-          .setJobCommandConfigMap(commandConfig).setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-          .setTargetPartitionStates(Sets.newHashSet(targetPartition));
-      String jobName = targetPartition.toLowerCase() + "Job" + i;
-      LOG.info("Enqueuing job: " + jobName);
-      queueBuilder.enqueueJob(jobName, job);
-      currentJobNames.add(i, jobName);
-    }
+    List<String> currentJobNames = createAndEnqueueJob(queueBuilder, 5);
     _driver.createQueue(queueBuilder.build());
 
     WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
@@ -258,19 +225,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
     LOG.info("Starting job-queue: " + queueName);
     JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 600000,
         TargetState.STOP);
-    // Create and Enqueue jobs
-    List<String> currentJobNames = new ArrayList<String>();
-    for (int i = 0; i <= 1; i++) {
-      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
-
-      JobConfig.Builder jobConfig =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
-      String jobName = targetPartition.toLowerCase() + "Job" + i;
-      queueBuild.enqueueJob(jobName, jobConfig);
-      currentJobNames.add(jobName);
-    }
+    createAndEnqueueJob(queueBuild, 2);
 
     _driver.createQueue(queueBuild.build());
     WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queueName);
@@ -287,6 +242,69 @@ public class TestRecurringJobQueue extends TaskTestBase {
   }
 
   @Test
+  public void testDeletingRecurrentQueueWithHistory() throws Exception {
+    final String queueName = TestHelper.getTestMethodName();
+    int intervalSeconds = 3;
+
+    // Create a queue
+    LOG.info("Starting job-queue: " + queueName);
+    JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 60,
+        TargetState.STOP);
+    createAndEnqueueJob(queueBuild, 2);
+
+    _driver.createQueue(queueBuild.build());
+    WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queueName);
+    Assert.assertEquals(workflowConfig.getTargetState(), TargetState.STOP);
+
+    // reset interval to a smaller number so as to accelerate test
+    workflowConfig.putSimpleConfig(WorkflowConfig.WorkflowConfigProperty.RecurrenceInterval.name(),
+        "" + intervalSeconds);
+    _driver.updateWorkflow(queueName, workflowConfig);
+
+    _driver.resume(queueName);
+
+    WorkflowContext wCtx;
+    // wait until at least 2 workflows are scheduled based on template queue
+    do {
+      Thread.sleep(intervalSeconds);
+      wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+    } while (wCtx.getScheduledWorkflows().size() < 2);
+
+    // Stop recurring workflow
+    _driver.stop(queueName);
+
+    // Record all scheduled workflows
+    wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+    final List<String> scheduledWorkflows = new ArrayList<>(wCtx.getScheduledWorkflows());
+
+    // Delete recurrent workflow
+    _driver.delete(queueName);
+
+    // Wait until everything are cleaned up
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override public boolean verify() throws Exception {
+        WorkflowContext currentQueueCtx = _driver.getWorkflowContext(queueName);
+        if (currentQueueCtx == null) {
+          // Queue is removed. Check the recorded scheduledWorkflows.
+          for (String workflow : scheduledWorkflows) {
+            if (_driver.getWorkflowContext(workflow) != null) {
+              return false;
+            }
+          }
+          return true;
+        } else {
+          // Queue is not removed yet, there might be update on the queue.
+          // Update the workflow list.
+          scheduledWorkflows.clear();
+          scheduledWorkflows.addAll(currentQueueCtx.getScheduledWorkflows());
+        }
+        return false;
+      }
+    }, 5 * 1000);
+    Assert.assertTrue(result);
+  }
+
+  @Test
   public void testGetNoExistWorkflowConfig() {
     String randomName = "randomJob";
     WorkflowConfig workflowConfig = _driver.getWorkflowConfig(randomName);
@@ -297,7 +315,6 @@ public class TestRecurringJobQueue extends TaskTestBase {
     Assert.assertNull(workflowContext);
     JobContext jobContext = _driver.getJobContext(randomName);
     Assert.assertNull(jobContext);
-
   }
 
   private void verifyJobDeleted(String queueName, String jobName) throws Exception {
@@ -307,6 +324,23 @@ public class TestRecurringJobQueue extends TaskTestBase {
     Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(jobName)));
     Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(jobName)));
     TaskTestUtil.pollForEmptyJobState(_driver, queueName, jobName);
+  }
+
+  private List<String> createAndEnqueueJob(JobQueue.Builder queueBuild, int jobCount) {
+    List<String> currentJobNames = new ArrayList<String>();
+    for (int i = 0; i < jobCount; i++) {
+      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
+
+      JobConfig.Builder jobConfig =
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+      String jobName = targetPartition.toLowerCase() + "Job" + i;
+      queueBuild.enqueueJob(jobName, jobConfig);
+      currentJobNames.add(jobName);
+    }
+    Assert.assertEquals(currentJobNames.size(), jobCount);
+    return currentJobNames;
   }
 }
 

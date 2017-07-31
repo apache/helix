@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.apache.helix.AccessOption;
@@ -378,11 +379,12 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
   public void testZkClientMonitor() throws JMException {
     final String TEST_ROOT = "/test_root";
 
-    ZkHelixPropertyStore<ZNRecord> store = new ZkHelixPropertyStore<ZNRecord>(ZK_ADDR,
-        new SerializableSerializer(), TEST_ROOT);
-
-    ObjectName name = MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.TAG,
-        String.format("%s.%s", ZkHelixPropertyStore.MONITOR_TAG, TEST_ROOT));
+    ZkHelixPropertyStore<ZNRecord> store =
+        new ZkHelixPropertyStore<ZNRecord>(ZK_ADDR, new SerializableSerializer(), TEST_ROOT);
+    
+    ObjectName name = MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.TAG,
+            String.format("%s.%s", ZkHelixPropertyStore.MONITOR_TAG, TEST_ROOT));
     MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
     Assert.assertTrue(beanServer.isRegistered(name));
 

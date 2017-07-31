@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -213,8 +214,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param disabledPartitions a map of instance name to the set of partitions disabled on it
    * @param tags a map of instance name to the set of tags on it
    */
-  public void setClusterInstanceStatus(Set<String> liveInstanceSet, Set<String> instanceSet,
-      Set<String> disabledInstanceSet, Map<String, Map<String, List<String>>> disabledPartitions,
+  public synchronized void setClusterInstanceStatus(Set<String> liveInstanceSet,
+      Set<String> instanceSet, Set<String> disabledInstanceSet,
+      Map<String, Map<String, List<String>>> disabledPartitions,
       Map<String, List<String>> oldDisabledPartitions, Map<String, Set<String>> tags) {
     // Unregister beans for instances that are no longer configured
     Set<String> toUnregister = Sets.newHashSet(_instanceMbeanMap.keySet());
@@ -354,9 +356,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     // Convert to perInstanceResource beanName->partition->state
     Map<PerInstanceResourceMonitor.BeanName, Map<Partition, String>> beanMap =
         new HashMap<PerInstanceResourceMonitor.BeanName, Map<Partition, String>>();
-    for (String resource : bestPossibleStates.resourceSet()) {
+    Set<String> resourceSet = new HashSet<>(bestPossibleStates.resourceSet());
+    for (String resource : resourceSet) {
       Map<Partition, Map<String, String>> partitionStateMap =
-          bestPossibleStates.getResourceMap(resource);
+          new HashMap<>(bestPossibleStates.getResourceMap(resource));
       for (Partition partition : partitionStateMap.keySet()) {
         Map<String, String> instanceStateMap = partitionStateMap.get(partition);
         for (String instance : instanceStateMap.keySet()) {
@@ -370,41 +373,43 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         }
       }
     }
-    // Unregister beans for per-instance resources that no longer exist
-    Set<PerInstanceResourceMonitor.BeanName> toUnregister =
-        Sets.newHashSet(_perInstanceResourceMap.keySet());
-    toUnregister.removeAll(beanMap.keySet());
-    try {
-      unregisterPerInstanceResources(toUnregister);
-    } catch (MalformedObjectNameException e) {
-      LOG.error("Fail to unregister per-instance resource from MBean server: " + toUnregister, e);
-    }
-    // Register beans for per-instance resources that are newly configured
-    Set<PerInstanceResourceMonitor.BeanName> toRegister = Sets.newHashSet(beanMap.keySet());
-    toRegister.removeAll(_perInstanceResourceMap.keySet());
-    Set<PerInstanceResourceMonitor> monitorsToRegister = Sets.newHashSet();
-    for (PerInstanceResourceMonitor.BeanName beanName : toRegister) {
-      PerInstanceResourceMonitor bean =
-          new PerInstanceResourceMonitor(_clusterName, beanName.instanceName(),
-              beanName.resourceName());
-      String stateModelDefName = resourceMap.get(beanName.resourceName()).getStateModelDefRef();
-      InstanceConfig config = instanceConfigMap.get(beanName.instanceName());
-      bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()),
-          stateModelDefMap.get(stateModelDefName));
-      monitorsToRegister.add(bean);
-    }
-    try {
-      registerPerInstanceResources(monitorsToRegister);
-    } catch (MalformedObjectNameException e) {
-      LOG.error("Fail to register per-instance resource with MBean server: " + toRegister, e);
-    }
-    // Update existing beans
-    for (PerInstanceResourceMonitor.BeanName beanName : _perInstanceResourceMap.keySet()) {
-      PerInstanceResourceMonitor bean = _perInstanceResourceMap.get(beanName);
-      String stateModelDefName = resourceMap.get(beanName.resourceName()).getStateModelDefRef();
-      InstanceConfig config = instanceConfigMap.get(beanName.instanceName());
-      bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()),
-          stateModelDefMap.get(stateModelDefName));
+    synchronized (_perInstanceResourceMap) {
+      // Unregister beans for per-instance resources that no longer exist
+      Set<PerInstanceResourceMonitor.BeanName> toUnregister =
+          Sets.newHashSet(_perInstanceResourceMap.keySet());
+      toUnregister.removeAll(beanMap.keySet());
+      try {
+        unregisterPerInstanceResources(toUnregister);
+      } catch (MalformedObjectNameException e) {
+        LOG.error("Fail to unregister per-instance resource from MBean server: " + toUnregister, e);
+      }
+      // Register beans for per-instance resources that are newly configured
+      Set<PerInstanceResourceMonitor.BeanName> toRegister = Sets.newHashSet(beanMap.keySet());
+      toRegister.removeAll(_perInstanceResourceMap.keySet());
+      Set<PerInstanceResourceMonitor> monitorsToRegister = Sets.newHashSet();
+      for (PerInstanceResourceMonitor.BeanName beanName : toRegister) {
+        PerInstanceResourceMonitor bean =
+            new PerInstanceResourceMonitor(_clusterName, beanName.instanceName(),
+                beanName.resourceName());
+        String stateModelDefName = resourceMap.get(beanName.resourceName()).getStateModelDefRef();
+        InstanceConfig config = instanceConfigMap.get(beanName.instanceName());
+        bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()),
+            stateModelDefMap.get(stateModelDefName));
+        monitorsToRegister.add(bean);
+      }
+      try {
+        registerPerInstanceResources(monitorsToRegister);
+      } catch (MalformedObjectNameException e) {
+        LOG.error("Fail to register per-instance resource with MBean server: " + toRegister, e);
+      }
+      // Update existing beans
+      for (PerInstanceResourceMonitor.BeanName beanName : _perInstanceResourceMap.keySet()) {
+        PerInstanceResourceMonitor bean = _perInstanceResourceMap.get(beanName);
+        String stateModelDefName = resourceMap.get(beanName.resourceName()).getStateModelDefRef();
+        InstanceConfig config = instanceConfigMap.get(beanName.instanceName());
+        bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()),
+            stateModelDefMap.get(stateModelDefName));
+      }
     }
   }
 

@@ -21,13 +21,14 @@ package org.apache.helix.controller.stages;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -59,7 +60,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import static org.apache.helix.HelixConstants.*;
+import static org.apache.helix.HelixConstants.ChangeType;
 
 /**
  * Reads the data from the cluster using data accessor. This output ClusterData which
@@ -95,6 +96,8 @@ public class ClusterDataCache {
   Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
 
   Map<String, Integer> _participantActiveTaskCount = new HashMap<>();
+
+  private ExecutorService _asyncTasksThreadPool;
 
   boolean _updateInstanceOfflineTime = true;
 
@@ -145,7 +148,7 @@ public class ClusterDataCache {
 
     _idealStateMap = Maps.newHashMap(_idealStateCacheMap);
     _liveInstanceMap = Maps.newHashMap(_liveInstanceCacheMap);
-    _instanceConfigMap = Maps.newHashMap(_instanceConfigCacheMap);
+    _instanceConfigMap = new ConcurrentHashMap<>(_instanceConfigCacheMap);
 
     if (_updateInstanceOfflineTime) {
       updateOfflineInstanceHistory(accessor);
@@ -158,7 +161,9 @@ public class ClusterDataCache {
     //       And add back resourceConfigCacheMap
     refreshResourceConfigs(accessor);
 
-    _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
+    Map<String, StateModelDefinition> stateDefMap =
+        accessor.getChildValuesMap(keyBuilder.stateModelDefs());
+    _stateModelDefMap = new ConcurrentHashMap<>(stateDefMap);
     _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
 
     if (LOG.isTraceEnabled()) {
@@ -490,7 +495,9 @@ public class ClusterDataCache {
    * @return
    */
   public StateModelDefinition getStateModelDef(String stateModelDefRef) {
-
+    if (stateModelDefRef == null) {
+      return null;
+    }
     return _stateModelDefMap.get(stateModelDefRef);
   }
 
@@ -773,6 +780,22 @@ public class ClusterDataCache {
     for(ChangeType type : ChangeType.values()) {
       _propertyChangedMap.put(type, Boolean.valueOf(true));
     }
+  }
+
+  /**
+   * Get async update thread pool
+   * @return
+   */
+  public ExecutorService getAsyncTasksThreadPool() {
+    return _asyncTasksThreadPool;
+  }
+
+  /**
+   * Set async update thread pool
+   * @param asyncTasksThreadPool
+   */
+  public void setAsyncTasksThreadPool(ExecutorService asyncTasksThreadPool) {
+    _asyncTasksThreadPool = asyncTasksThreadPool;
   }
 
   /**

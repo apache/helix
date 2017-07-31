@@ -188,7 +188,7 @@ public class ClusterStateVerifier {
       try {
         PropertyKey.Builder keyBuilder = accessor.keyBuilder();
         // read cluster once and do verification
-        ClusterDataCache cache = new ClusterDataCache();
+        ClusterDataCache cache = new ClusterDataCache(clusterName);
         cache.refresh(accessor);
 
         Map<String, IdealState> idealStates = cache.getIdealStates();

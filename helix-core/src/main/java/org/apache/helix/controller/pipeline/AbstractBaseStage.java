@@ -18,6 +18,9 @@ package org.apache.helix.controller.pipeline;
  * specific language governing permissions and limitations
  * under the License.
  */
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+
 import org.apache.helix.controller.stages.ClusterEvent;
 
 public class AbstractBaseStage implements Stage {
@@ -52,5 +55,11 @@ public class AbstractBaseStage implements Stage {
     // default stage name will be the class name
     String className = this.getClass().getSimpleName();
     return className;
+  }
+
+  public static <T> void asyncExecute(ExecutorService service, Callable<T> task) {
+    if (service != null) {
+      service.submit(task);
+    }
   }
 }

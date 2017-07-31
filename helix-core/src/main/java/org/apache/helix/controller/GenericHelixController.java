@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
@@ -93,6 +95,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     ControllerChangeListener, InstanceConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
   private static final long EVENT_THREAD_JOIN_TIMEOUT = 1000;
+  private static final int ASYNC_TASKS_THREADPOOL_SIZE = 40;
   private final PipelineRegistry _registry;
 
   final AtomicReference<Map<String, LiveInstance>> _lastSeenInstances;
@@ -123,6 +126,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
    * A cache maintained across pipelines
    */
   private ClusterDataCache _cache;
+  private ExecutorService _asyncTasksThreadPool;
 
   private String _clusterName;
 
@@ -257,7 +261,9 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     _lastSeenInstances = new AtomicReference<>();
     _lastSeenSessions = new AtomicReference<>();
     _clusterName = clusterName;
+    _asyncTasksThreadPool = Executors.newFixedThreadPool(ASYNC_TASKS_THREADPOOL_SIZE);
     _cache = new ClusterDataCache(clusterName);
+    _cache.setAsyncTasksThreadPool(_asyncTasksThreadPool);
     _eventQueue = new ClusterEventBlockingQueue();
     _eventThread = new ClusterEventProcessor();
     _eventThread.setDaemon(true);
@@ -672,6 +678,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       _eventThread.interrupt();
       _eventThread.join(EVENT_THREAD_JOIN_TIMEOUT);
     }
+    _asyncTasksThreadPool.shutdown();
   }
 
   private class ClusterEventProcessor extends Thread {

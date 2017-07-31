@@ -22,6 +22,8 @@ package org.apache.helix.controller.stages;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.concurrent.Callable;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -32,9 +34,11 @@ import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobRebalancer;
@@ -58,7 +62,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
     if (currentStateOutput == null || resourceMap == null || cache == null) {
@@ -69,25 +73,31 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // Reset current INIT/RUNNING tasks on participants for throttling
     cache.resetActiveTaskCount(currentStateOutput);
 
-
     // Check whether the offline/disabled instance count in the cluster reaches the set limit,
     // if yes, pause the rebalancer.
     validateOfflineInstancesLimit(cache, (HelixManager) event.getAttribute("helixmanager"));
 
-    BestPossibleStateOutput bestPossibleStateOutput =
+    final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
-
-    try {
-      ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
-      if (clusterStatusMonitor != null) {
-        clusterStatusMonitor
-            .setPerInstanceResourceStatus(bestPossibleStateOutput, cache.getInstanceConfigMap(),
-                resourceMap, cache.getStateModelDefMap());
+    final ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+    final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
+    final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();
+    asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
+      @Override public Object call() {
+        try {
+          if (clusterStatusMonitor != null) {
+            clusterStatusMonitor
+                .setPerInstanceResourceStatus(bestPossibleStateOutput, instanceConfigMap,
+                    resourceMap, stateModelDefMap);
+          }
+        } catch (Exception e) {
+          logger.error("Could not update cluster status metrics!", e);
+        }
+        return null;
       }
-    } catch (Exception e) {
-      logger.error("Could not update cluster status metrics!", e);
-    }
+    });
+
 
     long endTime = System.currentTimeMillis();
     logger.info("END BestPossibleStateCalcStage.process() for cluster " + cache.getClusterName()

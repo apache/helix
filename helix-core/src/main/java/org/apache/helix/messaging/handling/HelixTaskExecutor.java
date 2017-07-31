@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixConstants;
@@ -562,11 +563,15 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       }
     }
 
+    StringBuilder sb = new StringBuilder();
     // Log all tasks that fail to terminate
     for (String taskId : _taskMap.keySet()) {
       MessageTaskInfo info = _taskMap.get(taskId);
-      LOG.warn("Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage());
+      sb.append(
+          "Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage() + "\n");
     }
+
+    LOG.info(sb.toString());
     _taskMap.clear();
 
     _messageTaskMap.clear();

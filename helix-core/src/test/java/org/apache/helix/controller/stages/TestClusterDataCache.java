@@ -39,6 +39,8 @@ public class TestClusterDataCache extends TaskTestBase {
     _driver.start(builder.build());
     Thread.sleep(4000);
     ClusterDataCache cache = new ClusterDataCache("CLUSTER_" + TestHelper.getTestClassName());
+    cache.setTaskCache(true);
+    cache.requireFullRefresh();
     cache.refresh(_manager.getHelixDataAccessor());
     Assert.assertEquals(cache.getJobConfigMap().size(), 1);
     Assert.assertEquals(cache.getWorkflowConfigMap().size(), 1);
@@ -53,6 +55,7 @@ public class TestClusterDataCache extends TaskTestBase {
 
     _driver.start(builder.build());
     Thread.sleep(4000);
+    cache.requireFullRefresh();
     cache.refresh(_manager.getHelixDataAccessor());
     Assert.assertEquals(cache.getJobConfigMap().size(), 3);
     Assert.assertEquals(cache.getWorkflowConfigMap().size(), 2);

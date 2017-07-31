@@ -23,6 +23,8 @@ public enum ClusterEventType {
   IdealStateChange,
   CurrentStateChange,
   ConfigChange,
+  ResourceConfigChange,
+  InstanceConfigChange,
   LiveInstanceChange,
   MessageChange,
   ExternalViewChange,

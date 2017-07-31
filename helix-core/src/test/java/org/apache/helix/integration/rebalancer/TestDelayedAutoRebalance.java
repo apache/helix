@@ -228,8 +228,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     Thread.sleep(1000);
 
     for (String db : _testDBs) {
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
-          CLUSTER_NAME, db);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       Map<String, List<String>> preferenceLists = is.getPreferenceLists();
       for (List<String> instances : preferenceLists.values()) {
         Assert.assertFalse(instances.contains(disabledInstanceName));

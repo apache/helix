@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyType;
@@ -59,6 +60,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.zookeeper.data.Stat;
 
 import static org.apache.helix.HelixConstants.ChangeType;
 
@@ -67,8 +69,7 @@ import static org.apache.helix.HelixConstants.ChangeType;
  * provides useful methods to search/lookup properties
  */
 public class ClusterDataCache {
-
-  private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
+  private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
   private static final String NAME = "NAME";
 
   private Map<ChangeType, Boolean> _propertyChangedMap;
@@ -93,9 +94,11 @@ public class ClusterDataCache {
   private Map<String, ZNRecord> _contextMap = new HashMap<>();
 
   // maintain a cache of participant messages across pipeline runs
-  Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
+  private Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
+  private Map<PropertyKey, CurrentState> _currentStateCache = Maps.newHashMap();
 
-  Map<String, Integer> _participantActiveTaskCount = new HashMap<>();
+
+  private Map<String, Integer> _participantActiveTaskCount = new HashMap<>();
 
   private ExecutorService _asyncTasksThreadPool;
 
@@ -103,9 +106,6 @@ public class ClusterDataCache {
   boolean _isTaskCache;
 
   private String _clusterName;
-
-  private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
-
 
   public ClusterDataCache () {
     _propertyChangedMap = new ConcurrentHashMap<>();
@@ -128,52 +128,97 @@ public class ClusterDataCache {
   public synchronized boolean refresh(HelixDataAccessor accessor) {
     LOG.info("START: ClusterDataCache.refresh()");
     long startTime = System.currentTimeMillis();
-
     Builder keyBuilder = accessor.keyBuilder();
 
     if (_propertyChangedMap.get(ChangeType.IDEAL_STATE)) {
-      _propertyChangedMap.put(ChangeType.IDEAL_STATE, Boolean.valueOf(false));
+      long start = System.currentTimeMillis();
       _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
+      _propertyChangedMap.put(ChangeType.IDEAL_STATE, Boolean.valueOf(false));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Reload IdealStates: " + _idealStateCacheMap.keySet() + ". Takes " + (
+            System.currentTimeMillis() - start) + " ms");
+      }
     }
 
     if (_propertyChangedMap.get(ChangeType.LIVE_INSTANCE)) {
-      _propertyChangedMap.put(ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
+      _propertyChangedMap.put(ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
       _updateInstanceOfflineTime = true;
+      LOG.debug("Reload LiveInstances: " + _liveInstanceCacheMap.keySet());
     }
 
     if (_propertyChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
-      _propertyChangedMap.put(ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+      _propertyChangedMap.put(ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
+      LOG.debug("Reload InstanceConfig: " + _instanceConfigCacheMap.keySet());
+    }
+
+    if (_propertyChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
+      _resourceConfigCacheMap = accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs());
+      _propertyChangedMap.put(ChangeType.RESOURCE_CONFIG, Boolean.valueOf(false));
+      LOG.debug("Reload ResourceConfigs: " + _resourceConfigCacheMap.size());
     }
 
     _idealStateMap = Maps.newHashMap(_idealStateCacheMap);
     _liveInstanceMap = Maps.newHashMap(_liveInstanceCacheMap);
     _instanceConfigMap = new ConcurrentHashMap<>(_instanceConfigCacheMap);
+    _resourceConfigMap = Maps.newHashMap(_resourceConfigCacheMap);
 
     if (_updateInstanceOfflineTime) {
       updateOfflineInstanceHistory(accessor);
     }
 
-    // TODO: Need an optimize for reading context only if the refresh is needed.
-    refreshContexts(accessor);
-
-    // TODO: We should listen on resource config change instead of fetching every time
-    //       And add back resourceConfigCacheMap
-    refreshResourceConfigs(accessor);
+    if (_isTaskCache) {
+      refreshJobContexts(accessor);
+      updateWorkflowJobConfigs();
+    }
 
     Map<String, StateModelDefinition> stateDefMap =
         accessor.getChildValuesMap(keyBuilder.stateModelDefs());
     _stateModelDefMap = new ConcurrentHashMap<>(stateDefMap);
     _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
 
-    if (LOG.isTraceEnabled()) {
-      for (LiveInstance instance : _liveInstanceMap.values()) {
-        LOG.trace("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
-      }
+    refreshMessages(accessor);
+    refreshCurrentStates(accessor);
+
+    _clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
+    if (_clusterConfig != null) {
+      _idealStateRuleMap = _clusterConfig.getIdealStateRules();
+    } else {
+      _idealStateRuleMap = Maps.newHashMap();
+      LOG.error("Cluster config is null!");
     }
 
-    Map<String, Map<String, Message>> msgMap = new HashMap<String, Map<String, Message>>();
+    long endTime = System.currentTimeMillis();
+    LOG.info(
+        "END: ClusterDataCache.refresh() for cluster " + getClusterName() + ", took " + (endTime
+            - startTime) + " ms");
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("# of StateModelDefinition read from zk: " + _stateModelDefMap.size());
+      LOG.debug("# of ConstraintMap read from zk: " + _constraintMap.size());
+      LOG.debug("LiveInstances: " + _liveInstanceMap.keySet());
+        for (LiveInstance instance : _liveInstanceMap.values()) {
+          LOG.debug("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
+        }
+      LOG.debug("ResourceConfigs: " + _resourceConfigMap.keySet());
+      LOG.debug("InstanceConfigs: " + _instanceConfigMap.keySet());
+      LOG.debug("ClusterConfigs: " + _clusterConfig);
+      LOG.debug("JobContexts: " + _contextMap.keySet());
+    }
+
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("Cache content: " + toString());
+    }
+
+    return true;
+  }
+
+  private void refreshMessages(HelixDataAccessor accessor) {
+    long start = System.currentTimeMillis();
+    Builder keyBuilder = accessor.keyBuilder();
+
+    Map<String, Map<String, Message>> msgMap = new HashMap<>();
     List<PropertyKey> newMessageKeys = Lists.newLinkedList();
     long purgeSum = 0;
     for (String instanceName : _liveInstanceMap.keySet()) {
@@ -220,11 +265,52 @@ public class ClusterDataCache {
       }
     }
     _messageMap = Collections.unmodifiableMap(msgMap);
-    LOG.debug("Purge took: " + purgeSum);
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Message purge took: " + purgeSum);
+      LOG.debug("# of Messages read from ZooKeeper " + newMessageKeys.size() + ". took " + (
+          System.currentTimeMillis() - start) + " ms.");
+    }
+  }
+
+  private void refreshCurrentStates(HelixDataAccessor accessor) {
+    refreshCurrentStatesCache(accessor);
+
+    Map<String, Map<String, Map<String, CurrentState>>> allCurStateMap = new HashMap<>();
+    for (PropertyKey key : _currentStateCache.keySet()) {
+      CurrentState currentState = _currentStateCache.get(key);
+      String[] params = key.getParams();
+      if (currentState != null && params.length >= 4) {
+        String instanceName = params[1];
+        String sessionId = params[2];
+        String stateName = params[3];
+        Map<String, Map<String, CurrentState>> instanceCurStateMap =
+            allCurStateMap.get(instanceName);
+        if (instanceCurStateMap == null) {
+          instanceCurStateMap = Maps.newHashMap();
+          allCurStateMap.put(instanceName, instanceCurStateMap);
+        }
+        Map<String, CurrentState> sessionCurStateMap = instanceCurStateMap.get(sessionId);
+        if (sessionCurStateMap == null) {
+          sessionCurStateMap = Maps.newHashMap();
+          instanceCurStateMap.put(sessionId, sessionCurStateMap);
+        }
+        sessionCurStateMap.put(stateName, currentState);
+      }
+    }
+
+    for (String instance : allCurStateMap.keySet()) {
+      allCurStateMap.put(instance, Collections.unmodifiableMap(allCurStateMap.get(instance)));
+    }
+    _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
+  }
+
+  // reload current states that has been changed from zk to local cache.
+  private void refreshCurrentStatesCache(HelixDataAccessor accessor) {
+    long start = System.currentTimeMillis();
+    Builder keyBuilder = accessor.keyBuilder();
 
     List<PropertyKey> currentStateKeys = Lists.newLinkedList();
-    Map<String, Map<String, Map<String, CurrentState>>> allCurStateMap =
-        new HashMap<>();
     for (String instanceName : _liveInstanceMap.keySet()) {
       LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
       String sessionId = liveInstance.getSessionId();
@@ -233,91 +319,54 @@ public class ClusterDataCache {
       for (String currentStateName : currentStateNames) {
         currentStateKeys.add(keyBuilder.currentState(instanceName, sessionId, currentStateName));
       }
+    }
 
-      // ensure an empty current state map for all live instances and sessions
-      Map<String, Map<String, CurrentState>> instanceCurStateMap = allCurStateMap.get(instanceName);
-      if (instanceCurStateMap == null) {
-        instanceCurStateMap = Maps.newHashMap();
-        allCurStateMap.put(instanceName, instanceCurStateMap);
-      }
-      Map<String, CurrentState> sessionCurStateMap = instanceCurStateMap.get(sessionId);
-      if (sessionCurStateMap == null) {
-        sessionCurStateMap = Maps.newHashMap();
-        instanceCurStateMap.put(sessionId, sessionCurStateMap);
+    // All new entries from zk not cached locally yet should be read from ZK.
+    List<PropertyKey> reloadKeys = Lists.newLinkedList(currentStateKeys);
+    reloadKeys.removeAll(_currentStateCache.keySet());
+
+    List<PropertyKey> cachedKeys = Lists.newLinkedList(_currentStateCache.keySet());
+    cachedKeys.retainAll(currentStateKeys);
+
+    List<HelixProperty.Stat> stats = accessor.getPropertyStats(cachedKeys);
+    Map<PropertyKey, CurrentState> currentStatesMap = Maps.newHashMap();
+    for (int i=0; i < cachedKeys.size(); i++) {
+      PropertyKey key = cachedKeys.get(i);
+      HelixProperty.Stat stat = stats.get(i);
+      if (stat != null) {
+        CurrentState property = _currentStateCache.get(key);
+        if (property != null && property.getBucketSize() == 0 && property.getStat().equals(stat)) {
+          currentStatesMap.put(key, property);
+        } else {
+          // need update from zk
+          reloadKeys.add(key);
+        }
+      } else {
+        LOG.debug("stat is null for key: " + key);
+        reloadKeys.add(key);
       }
     }
-    List<CurrentState> currentStates = accessor.getProperty(currentStateKeys);
-    Iterator<PropertyKey> csKeyIter = currentStateKeys.iterator();
+
+    List<CurrentState> currentStates = accessor.getProperty(reloadKeys);
+    Iterator<PropertyKey> csKeyIter = reloadKeys.iterator();
     for (CurrentState currentState : currentStates) {
       PropertyKey key = csKeyIter.next();
-      String[] params = key.getParams();
-      if (currentState != null && params.length >= 4) {
-        Map<String, Map<String, CurrentState>> instanceCurStateMap = allCurStateMap.get(params[1]);
-        Map<String, CurrentState> sessionCurStateMap = instanceCurStateMap.get(params[2]);
-        sessionCurStateMap.put(params[3], currentState);
+      if (currentState != null) {
+        currentStatesMap.put(key, currentState);
+      } else {
+        LOG.debug("CurrentState null for key: " + key);
       }
     }
 
-    for (String instance : allCurStateMap.keySet()) {
-      allCurStateMap.put(instance, Collections.unmodifiableMap(allCurStateMap.get(instance)));
-    }
-    _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
-
-    _idealStateRuleMap = Maps.newHashMap();
-    _clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
-    if (_clusterConfig != null) {
-      for (String simpleKey : _clusterConfig.getRecord().getSimpleFields().keySet()) {
-        if (simpleKey.startsWith(IDEAL_STATE_RULE_PREFIX)) {
-          String simpleValue = _clusterConfig.getRecord().getSimpleField(simpleKey);
-          String[] rules = simpleValue.split("(?<!\\\\),");
-          Map<String, String> singleRule = Maps.newHashMap();
-          for (String rule : rules) {
-            String[] keyValue = rule.split("(?<!\\\\)=");
-            if (keyValue.length >= 2) {
-              singleRule.put(keyValue[0], keyValue[1]);
-            }
-          }
-          _idealStateRuleMap.put(simpleKey, singleRule);
-        }
-      }
-    } else {
-      LOG.error("Cluster config is null!");
-    }
-
-    long endTime = System.currentTimeMillis();
-    LOG.info(
-        "END: ClusterDataCache.refresh() for cluster " + getClusterName() + ", took " + (endTime
-            - startTime) + " ms");
+    _currentStateCache = Collections.unmodifiableMap(currentStatesMap);
 
     if (LOG.isDebugEnabled()) {
-      int numPaths = _liveInstanceMap.size() + _idealStateMap.size() + _stateModelDefMap.size()
-          + _instanceConfigMap.size() + _resourceConfigMap.size() + _constraintMap.size()
-          + newMessageKeys.size() + currentStateKeys.size();
-      LOG.debug("Paths read: " + numPaths);
+      LOG.debug("# of CurrentState paths read from ZooKeeper " + reloadKeys.size());
+      LOG.debug(
+          "# of CurrentState paths skipped reading from ZK: " + (currentStateKeys.size() - reloadKeys.size()));
     }
-
-    return true;
-  }
-
-  public ClusterConfig getClusterConfig() {
-    return _clusterConfig;
-  }
-
-  public void setClusterConfig(ClusterConfig clusterConfig) {
-    _clusterConfig = clusterConfig;
-  }
-
-  public String getClusterName() {
-    return _clusterConfig != null ? _clusterConfig.getClusterName() : _clusterName;
-  }
-
-  /**
-   * Return the last offline time map for all offline instances.
-   *
-   * @return
-   */
-  public Map<String, Long> getInstanceOfflineTimeMap() {
-    return _instanceOfflineTimeMap;
+    LOG.info(
+        "Takes " + (System.currentTimeMillis() - start) + " ms to reload new current states!");
   }
 
   private void updateOfflineInstanceHistory(HelixDataAccessor accessor) {
@@ -342,6 +391,27 @@ public class ClusterDataCache {
       _instanceOfflineTimeMap.put(instance, history.getLastOfflineTime());
     }
     _updateInstanceOfflineTime = false;
+  }
+
+  public ClusterConfig getClusterConfig() {
+    return _clusterConfig;
+  }
+
+  public void setClusterConfig(ClusterConfig clusterConfig) {
+    _clusterConfig = clusterConfig;
+  }
+
+  public String getClusterName() {
+    return _clusterConfig != null ? _clusterConfig.getClusterName() : _clusterName;
+  }
+
+  /**
+   * Return the last offline time map for all offline instances.
+   *
+   * @return
+   */
+  public Map<String, Long> getInstanceOfflineTimeMap() {
+    return _instanceOfflineTimeMap;
   }
 
   /**
@@ -377,7 +447,7 @@ public class ClusterDataCache {
    * Return the set of all instances names.
    */
   public Set<String> getAllInstances() {
-    return new HashSet<String>(_instanceConfigMap.keySet());
+    return new HashSet<>(_instanceConfigMap.keySet());
   }
 
   /**
@@ -479,7 +549,7 @@ public class ClusterDataCache {
   public void cacheMessages(List<Message> messages) {
     for (Message message : messages) {
       String instanceName = message.getTgtName();
-      Map<String, Message> instMsgMap = null;
+      Map<String, Message> instMsgMap;
       if (_messageCache.containsKey(instanceName)) {
         instMsgMap = _messageCache.get(instanceName);
       } else {
@@ -545,11 +615,17 @@ public class ClusterDataCache {
   }
 
   /**
-   * Returns the resource config
    * Notify the cache that some part of the cluster data has been changed.
    */
-  public void updateDataChange(ChangeType changeType) {
+  public void notifyDataChange(ChangeType changeType) {
     _propertyChangedMap.put(changeType, Boolean.valueOf(true));
+  }
+
+  /**
+   * Notify the cache that some part of the cluster data has been changed.
+   */
+  public void notifyDataChange(ChangeType changeType, String pathChanged) {
+    notifyDataChange(changeType);
   }
 
   /**
@@ -826,12 +902,17 @@ public class ClusterDataCache {
     sb.append("stateModelDefMap:" + _stateModelDefMap).append("\n");
     sb.append("instanceConfigMap:" + _instanceConfigMap).append("\n");
     sb.append("resourceConfigMap:" + _resourceConfigMap).append("\n");
+    sb.append("jobContextMap:" + _contextMap).append("\n");
     sb.append("messageMap:" + _messageMap).append("\n");
+    sb.append("currentStateMap:" + _currentStateMap).append("\n");
+    sb.append("clusterConfig:" + _clusterConfig).append("\n");
 
     return sb.toString();
   }
 
-  private void refreshContexts(HelixDataAccessor accessor) {
+  private void refreshJobContexts(HelixDataAccessor accessor) {
+    // TODO: Need an optimize for reading context only if the refresh is needed.
+    long start = System.currentTimeMillis();
     _contextMap.clear();
     if (_clusterName == null) {
       return;
@@ -858,12 +939,16 @@ public class ClusterDataCache {
             String.format("Context for %s is null or miss the context NAME!", childNames.get((i))));
       }
     }
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("# of workflow/job context read from zk: " + _contextMap.size() + ". Take " + (
+          System.currentTimeMillis() - start) + " ms");
+    }
   }
 
-  private void refreshResourceConfigs(HelixDataAccessor accessor) {
+  private void updateWorkflowJobConfigs() {
     _workflowConfigMap.clear();
     _jobConfigMap.clear();
-    _resourceConfigMap = accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs());
     for (Map.Entry<String, ResourceConfig> entry : _resourceConfigMap.entrySet()) {
       if (entry.getValue().getRecord().getSimpleFields()
           .containsKey(WorkflowConfig.WorkflowConfigProperty.Dag.name())) {

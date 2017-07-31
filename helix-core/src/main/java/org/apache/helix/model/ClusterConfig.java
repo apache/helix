@@ -19,10 +19,13 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
+import java.util.Map;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
@@ -58,6 +61,7 @@ public class ClusterConfig extends HelixProperty {
     MAX_OFFLINE_INSTANCES_ALLOWED
   }
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
+  private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
 
   /**
    * Instantiate for a specific cluster
@@ -426,6 +430,31 @@ public class ClusterConfig extends HelixProperty {
   public void setMaxConcurrentTaskPerInstance(int maxConcurrentTaskPerInstance) {
     _record.setIntField(ClusterConfigProperty.MAX_CONCURRENT_TASK_PER_INSTANCE.name(),
         maxConcurrentTaskPerInstance);
+  }
+
+  /**
+   * Get IdealState rules defined in the cluster config.
+   *
+   * @return
+   */
+  public Map<String, Map<String, String>> getIdealStateRules() {
+    Map<String, Map<String, String>> idealStateRuleMap = new HashMap<>();
+
+      for (String simpleKey : getRecord().getSimpleFields().keySet()) {
+        if (simpleKey.startsWith(IDEAL_STATE_RULE_PREFIX)) {
+          String simpleValue = getRecord().getSimpleField(simpleKey);
+          String[] rules = simpleValue.split("(?<!\\\\),");
+          Map<String, String> singleRule = Maps.newHashMap();
+          for (String rule : rules) {
+            String[] keyValue = rule.split("(?<!\\\\)=");
+            if (keyValue.length >= 2) {
+              singleRule.put(keyValue[0], keyValue[1]);
+            }
+          }
+          idealStateRuleMap.put(simpleKey, singleRule);
+        }
+      }
+    return idealStateRuleMap;
   }
 
   @Override

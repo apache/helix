@@ -20,11 +20,11 @@ package org.apache.helix;
  */
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.I0Itec.zkclient.DataUpdater;
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.mock.MockBaseDataAccessor;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -46,8 +46,6 @@ public class MockAccessor implements HelixDataAccessor {
     _clusterName = clusterName;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
   }
-
-  Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
 
   @Override
   public boolean createStateModelDef(StateModelDefinition stateModelDef) {
@@ -130,6 +128,48 @@ public class MockAccessor implements HelixDataAccessor {
     // _clusterName, keys);
     _baseDataAccessor.remove(path, 0);
     return true;
+  }
+
+  @Override
+  public HelixProperty.Stat getPropertyStat(PropertyKey key) {
+    PropertyType type = key.getType();
+    String path = key.getPath();
+    try {
+      Stat stat = _baseDataAccessor.getStat(path, 0);
+      if (stat != null) {
+        return new HelixProperty.Stat(stat.getVersion(), stat.getCtime(), stat.getMtime());
+      }
+    } catch (ZkNoNodeException e) {
+
+    }
+
+    return null;
+  }
+
+  @Override
+  public List<HelixProperty.Stat> getPropertyStats(List<PropertyKey> keys) {
+    if (keys == null || keys.size() == 0) {
+      return Collections.emptyList();
+    }
+
+    List<HelixProperty.Stat> propertyStats = new ArrayList<>(keys.size());
+    List<String> paths = new ArrayList<>(keys.size());
+    for (PropertyKey key : keys) {
+      paths.add(key.getPath());
+    }
+    Stat[] zkStats = _baseDataAccessor.getStats(paths, 0);
+
+    for (int i = 0; i < keys.size(); i++) {
+      Stat zkStat = zkStats[i];
+      HelixProperty.Stat propertyStat = null;
+      if (zkStat != null) {
+        propertyStat =
+            new HelixProperty.Stat(zkStat.getVersion(), zkStat.getCtime(), zkStat.getMtime());
+      }
+      propertyStats.add(propertyStat);
+    }
+
+    return propertyStats;
   }
 
   @Override

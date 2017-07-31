@@ -132,7 +132,8 @@ public class HelixControllerMain {
   public static void addListenersToController(HelixManager manager,
       GenericHelixController controller) {
     try {
-      manager.addConfigChangeListener(controller);
+      manager.addInstanceConfigChangeListener(controller);
+      manager.addResourceConfigChangeListener(controller);
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);
       manager.addControllerListener(controller);

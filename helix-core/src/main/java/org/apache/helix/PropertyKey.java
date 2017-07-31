@@ -86,12 +86,40 @@ public class PropertyKey {
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    int result = _type.hashCode();
+    result = 31 * result + Arrays.hashCode(_params);
+    result = 31 * result + _typeClazz.hashCode();
+    result = 31 * result + (_configScope != null ? _configScope.hashCode() : 0);
+    return result;
   }
 
   @Override
   public String toString() {
     return getPath();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || !(o instanceof PropertyKey)) {
+      return false;
+    }
+
+    PropertyKey key = (PropertyKey) o;
+
+    if (_type != key._type) {
+      return false;
+    }
+    // Probably incorrect - comparing Object[] arrays with Arrays.equals
+    if (!Arrays.equals(_params, key._params)) {
+      return false;
+    }
+    if (!_typeClazz.equals(key._typeClazz)) {
+      return false;
+    }
+    return _configScope == key._configScope;
   }
 
   /**

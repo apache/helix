@@ -216,7 +216,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
       }
     }
     firstController.disconnect();
-    Thread.sleep(1000);
+    Thread.sleep(2000);
 
     // 1 cluster status monitor, 1 resource monitor, 5 instances
     // Unregister 1+4+1 per-instance resource mbean
@@ -231,7 +231,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     // 1 participant comes back
     // No change in instance/resource mbean
     // Register 1 per-instance resource mbean
-    Thread.sleep(1000);
+    Thread.sleep(2000);
     Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 32);
     Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 30);
 

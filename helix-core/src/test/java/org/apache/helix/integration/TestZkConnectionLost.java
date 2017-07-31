@@ -82,7 +82,7 @@ public class TestZkConnectionLost extends TaskTestBase {
     _driver.pollForWorkflowState(scheduledQueue, 10000, TaskState.COMPLETED);
   }
 
-  @Test(dependsOnMethods = { "testLostZkConnection" })
+  @Test(dependsOnMethods = { "testLostZkConnection" }, enabled = false)
   public void testLostZkConnectionNegative()
       throws Exception {
     System.setProperty("helixmanager.waitForConnectedTimeout", "10");
@@ -119,10 +119,10 @@ public class TestZkConnectionLost extends TaskTestBase {
         @Override public void run() {
           try {
             Thread.sleep(300);
-            System.err.println(System.currentTimeMillis() + ": Shutdown ZK server.");
+            System.out.println(System.currentTimeMillis() + ": Shutdown ZK server.");
             TestHelper.stopZkServer(_zkServerRef.get());
             Thread.sleep(300);
-            System.err.println("Restart ZK server");
+            System.out.println("Restart ZK server");
             _zkServerRef.set(TestHelper.startZkServer(ZK_ADDR, null, false));
           } catch (Exception e) {
             LOG.error(e.getMessage(), e);

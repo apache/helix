@@ -44,11 +44,93 @@ public class HelixProperty {
   protected final ZNRecord _record;
 
   /**
+   * Metadata of a HelixProperty
+   */
+  public static class Stat {
+    // the version field of zookeeper Stat
+    private int _version;
+    private long _creationTime;
+    private long _modifiedTime;
+
+    public Stat(int version, long creationTime, long modifiedTime) {
+      _version = version;
+      _creationTime = creationTime;
+      _modifiedTime = modifiedTime;
+    }
+
+    public Stat(Stat stat) {
+      _version = stat.getVersion();
+      _creationTime = stat.getCreationTime();
+      _modifiedTime = stat.getModifiedTime();
+    }
+
+    public Stat() {
+      _version = -1;
+      _creationTime = -1;
+      _modifiedTime = -1;
+    }
+
+    public int getVersion() {
+      return _version;
+    }
+
+    public void setVersion(int version) {
+      _version = version;
+    }
+
+    public long getCreationTime() {
+      return _creationTime;
+    }
+
+    public void setCreationTime(long creationTime) {
+      _creationTime = creationTime;
+    }
+
+    public long getModifiedTime() {
+      return _modifiedTime;
+    }
+
+    public void setModifiedTime(long modifiedTime) {
+      _modifiedTime = modifiedTime;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof Stat)) {
+        return false;
+      }
+
+      Stat stat = (Stat) o;
+
+      if (_version != stat._version) {
+        return false;
+      }
+      if (_creationTime != stat._creationTime) {
+        return false;
+      }
+      return _modifiedTime == stat._modifiedTime;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = _version;
+      result = 31 * result + (int) (_creationTime ^ (_creationTime >>> 32));
+      result = 31 * result + (int) (_modifiedTime ^ (_modifiedTime >>> 32));
+      return result;
+    }
+  }
+
+  private Stat _stat;
+
+  /**
    * Initialize the property with an identifier
    * @param id
    */
   public HelixProperty(String id) {
-    _record = new ZNRecord(id);
+    this(new ZNRecord(id), id);
   }
 
   /**
@@ -56,7 +138,7 @@ public class HelixProperty {
    * @param record
    */
   public HelixProperty(ZNRecord record) {
-    _record = new ZNRecord(record);
+    this(record, record.getId());
   }
 
   /**
@@ -66,6 +148,7 @@ public class HelixProperty {
    */
   public HelixProperty(ZNRecord record, String id) {
     _record = new ZNRecord(record, id);
+    _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime());
   }
 
   /**
@@ -226,6 +309,22 @@ public class HelixProperty {
     } catch (Exception e) {
       return false;
     }
+  }
+
+  /**
+   * Get the metadata (stat) of this record
+   * @return HelixProperty.Stat
+   */
+  public Stat getStat() {
+    return _stat;
+  }
+
+  /**
+   * Set the metadata (stat) for this record
+   * @param stat
+   */
+  public void setStat(Stat stat) {
+    _stat = new Stat(stat);
   }
 
   /**

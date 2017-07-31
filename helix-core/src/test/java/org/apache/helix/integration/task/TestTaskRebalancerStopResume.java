@@ -256,7 +256,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     LOG.info("Flusing job-queue: " + queueName);
     _driver.flushQueue(queueName);
 
-    TimeUnit.MILLISECONDS.sleep(200);
+    TimeUnit.MILLISECONDS.sleep(1000);
     // verify the cleanup
     for (int i = 0; i < currentJobNames.size(); i++) {
       String namedSpaceJobName = String.format("%s_%s", queueName, currentJobNames.get(i));
@@ -522,8 +522,8 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(jobName)));
-    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(jobName)));
+    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(jobName)), jobName + "'s idealstate has not been deleted!");
+    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(jobName)), jobName + "'s resourceConfig has not been deleted!");
     TaskTestUtil.pollForEmptyJobState(_driver, queueName, jobName);
   }
 

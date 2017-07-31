@@ -68,6 +68,7 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
+import sun.rmi.runtime.Log;
 
 import static org.apache.helix.HelixConstants.ChangeType.*;
 
@@ -519,11 +520,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleDataChange(String dataPath, Object data) {
+    logger.debug("Data change callback: paths changed: " + dataPath);
+
     try {
       updateNotificationTime(System.nanoTime());
       if (dataPath != null && dataPath.startsWith(_path)) {
         NotificationContext changeContext = new NotificationContext(_manager);
         changeContext.setType(NotificationContext.Type.CALLBACK);
+        changeContext.setPathChanged(dataPath);
         enqueueTask(changeContext);
       }
     } catch (Exception e) {
@@ -533,6 +537,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   @Override public void handleDataDeleted(String dataPath) {
+    logger.debug("Data change callback: path deleted: " + dataPath);
+    if (_changeType == IDEAL_STATE || _changeType == LIVE_INSTANCE) {
+      logger.info("Data deleted callback, deleted path: " + dataPath);
+    }
+
     try {
       updateNotificationTime(System.nanoTime());
       if (dataPath != null && dataPath.startsWith(_path)) {
@@ -546,9 +555,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             + ", listener: " + _listener);
         _zkClient.unsubscribeChildChanges(dataPath, this);
         // No need to invoke() since this event will handled by child-change on parent-node
-        // NotificationContext changeContext = new NotificationContext(_manager);
-        // changeContext.setType(NotificationContext.Type.CALLBACK);
-        // invoke(changeContext);
       }
     } catch (Exception e) {
       String msg = "exception in handling data-delete-change. path: " + dataPath + ", listener: "
@@ -559,6 +565,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleChildChange(String parentPath, List<String> currentChilds) {
+    logger.debug("Data change callback: child changed, path: " + parentPath + ", current childs: "
+        + currentChilds);
+
     try {
       updateNotificationTime(System.nanoTime());
       if (parentPath != null && parentPath.startsWith(_path)) {
@@ -569,6 +578,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         } else {
           NotificationContext changeContext = new NotificationContext(_manager);
           changeContext.setType(NotificationContext.Type.CALLBACK);
+          changeContext.setPathChanged(parentPath);
           enqueueTask(changeContext);
         }
       }

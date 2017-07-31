@@ -43,7 +43,7 @@ public class TestInstanceHistory extends ZkStandAloneCMTestBase {
     List<String> list = history.getRecord().getListField("HISTORY");
     Assert.assertEquals(list.size(), 1);
 
-    for (int i = 0; i <= 12; i++) {
+    for (int i = 0; i <= 22; i++) {
       _participants[0].disconnect();
       _participants[0].connect();
     }
@@ -51,7 +51,9 @@ public class TestInstanceHistory extends ZkStandAloneCMTestBase {
     history = manager.getHelixDataAccessor().getProperty(propertyKey);
     Assert.assertNotNull(history);
     list = history.getRecord().getListField("HISTORY");
-    Assert.assertEquals(list.size(), 10);
+    Assert.assertEquals(list.size(), 20);
+    list = history.getRecord().getListField("OFFLINE");
+    Assert.assertEquals(list.size(), 20);
     manager.disconnect();
   }
 }

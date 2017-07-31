@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -76,6 +77,11 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       Resource resource = resourceMap.get(resourceName);
 
       StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
+      if (stateModelDef == null) {
+        logger.error(
+            "State Model Definition null, skip generating messages for resource: " + resourceName);
+        continue;
+      }
 
       for (Partition partition : resource.getPartitions()) {
 

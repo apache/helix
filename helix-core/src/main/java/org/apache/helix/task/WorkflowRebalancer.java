@@ -173,6 +173,10 @@ public class WorkflowRebalancer extends TaskRebalancer {
       // check ancestor job status
       if (isJobReadyToSchedule(job, workflowCfg, workflowCtx, inCompleteAllJobCount, jobConfigMap)) {
         JobConfig jobConfig = jobConfigMap.get(job);
+        if (jobConfig == null) {
+          LOG.error(String.format("The job config is missing for job %s", job));
+          continue;
+        }
 
         // Since the start time is calculated base on the time of completion of parent jobs for this
         // job, the calculated start time should only be calculate once. Persist the calculated time

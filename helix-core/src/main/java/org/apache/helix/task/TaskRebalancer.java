@@ -170,6 +170,10 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // If there is parent job failed, schedule the job only when ignore dependent
     // job failure enabled
     JobConfig jobConfig = jobConfigMap.get(job);
+    if (jobConfig == null) {
+      LOG.error(String.format("The job config is missing for job %s", job));
+      return false;
+    }
     if (failedOrTimeoutCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
       markJobFailed(job, null, workflowCfg, workflowCtx, jobConfigMap);
       LOG.debug(

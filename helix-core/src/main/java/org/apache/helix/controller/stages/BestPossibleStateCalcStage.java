@@ -22,6 +22,7 @@ package org.apache.helix.controller.stages;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.PriorityQueue;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -68,6 +69,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // Reset current INIT/RUNNING tasks on participants for throttling
     cache.resetActiveTaskCount(currentStateOutput);
 
+
+    // Check whether the offline/disabled instance count in the cluster reaches the set limit,
+    // if yes, pause the rebalancer.
+    validateOfflineInstancesLimit(cache, (HelixManager) event.getAttribute("helixmanager"));
+
     BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
@@ -110,6 +116,26 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
 
     return output;
+  }
+
+  // Check whether the offline/disabled instance count in the cluster reaches the set limit,
+  // if yes, pause the rebalancer, and throw exception to terminate rebalance cycle.
+  private void validateOfflineInstancesLimit(ClusterDataCache cache, HelixManager manager) {
+    int maxOfflineInstancesAllowed = cache.getClusterConfig().getMaxOfflineInstancesAllowed();
+    if (maxOfflineInstancesAllowed > 0) {
+      int offlineCount = cache.getAllInstances().size() - cache.getEnabledLiveInstances().size();
+      if (offlineCount > maxOfflineInstancesAllowed) {
+        String errMsg = String.format(
+            "Offline Instances count %d greater than allowed count %d. Stop rebalance pipeline and pause the cluster %s",
+            offlineCount, maxOfflineInstancesAllowed, cache.getClusterName());
+        if (manager != null) {
+          manager.getClusterManagmentTool().enableCluster(manager.getClusterName(), false, errMsg);
+        } else {
+          logger.error("Failed to pause cluster, HelixManager is not set!");
+        }
+        throw new HelixException(errMsg);
+      }
+    }
   }
 
   private void computeResourceBestPossibleState(ClusterEvent event, ClusterDataCache cache,

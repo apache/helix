@@ -54,7 +54,8 @@ public class ClusterConfig extends HelixProperty {
     RESOURCE_PRIORITY_FIELD,
     REBALANCE_TIMER_PERIOD,
     MAX_CONCURRENT_TASK_PER_INSTANCE,
-    MAX_PARTITIONS_PER_INSTANCE
+    MAX_PARTITIONS_PER_INSTANCE,
+    MAX_OFFLINE_INSTANCES_ALLOWED
   }
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
 
@@ -256,6 +257,26 @@ public class ClusterConfig extends HelixProperty {
    */
   public int getMaxPartitionsPerInstance() {
     return _record.getIntField(ClusterConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name(), -1);
+  }
+
+  /**
+   * Set the max offline instances allowed for the cluster. If number of pff-line or disabled instances
+   *  in the cluster reach this limit, Helix will pause the cluster.
+   *
+   * @param maxOfflineInstancesAllowed
+   */
+  public void setMaxOfflineInstancesAllowed(int maxOfflineInstancesAllowed) {
+    _record.setIntField(ClusterConfigProperty.MAX_OFFLINE_INSTANCES_ALLOWED.name(),
+        maxOfflineInstancesAllowed);
+  }
+
+  /**
+   * Get the max offline instances allowed for the cluster.
+   *
+   * @return
+   */
+  public int getMaxOfflineInstancesAllowed() {
+    return _record.getIntField(ClusterConfigProperty.MAX_OFFLINE_INSTANCES_ALLOWED.name(), -1);
   }
 
   /**

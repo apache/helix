@@ -8,8 +8,7 @@ import { AlertDialogComponent } from '../../shared/dialog/alert-dialog/alert-dia
 @Component({
   selector: 'hi-cluster-list',
   templateUrl: './cluster-list.component.html',
-  styleUrls: ['./cluster-list.component.scss'],
-  providers: [ClusterService]
+  styleUrls: ['./cluster-list.component.scss']
 })
 export class ClusterListComponent implements OnInit {
 

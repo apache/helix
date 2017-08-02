@@ -9,17 +9,7 @@
     <a md-button *ngIf="false" (click)="openDialog()">Test</a>
   </md-toolbar>
   <md-progress-bar *ngIf="isLoading" mode="indeterminate" [ngClass]="{'no-header': !headerEnabled}"></md-progress-bar>
-  <md-sidenav-container fxFlex>
-    <md-sidenav
-      #sidenav
-      [mode]="isNarrowView ? 'over' : 'side'"
-      [opened]="!isNarrowView"
-      [disableClose]="!isNarrowView"
-      class="mat-elevation-z4">
-      <hi-cluster-list></hi-cluster-list>
-    </md-sidenav>
-    <router-outlet></router-outlet>
-  </md-sidenav-container>
+  <router-outlet></router-outlet>
   <section *ngIf="footerEnabled" class="footer mat-elevation-z7" fxLayout="row" fxLayoutAlign="center center">
     <span>&copy; 2017 Helix. All rights reserved.</span>
   </section>

@@ -18,6 +18,7 @@ import { ControllerModule } from './controller/controller.module';
 import { HistoryModule } from './history/history.module';
 import { AppComponent } from './app.component';
 import { WorkflowModule } from './workflow/workflow.module';
+import { ChooserModule } from './chooser/chooser.module';
 
 @NgModule({
   declarations: [
@@ -39,7 +40,8 @@ import { WorkflowModule } from './workflow/workflow.module';
     ResourceModule,
     ControllerModule,
     HistoryModule,
-    WorkflowModule
+    WorkflowModule,
+    ChooserModule
   ],
   providers: [],
   bootstrap: [AppComponent]

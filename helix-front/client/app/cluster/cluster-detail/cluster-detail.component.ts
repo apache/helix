@@ -24,6 +24,12 @@ export class ClusterDetailComponent implements OnInit {
 
   ngOnInit() {
     this.route.data.subscribe(data => this.cluster = data.cluster);
+
+    this.route.params
+      .map(p => p.name)
+      .subscribe(name => {
+        console.log(name);
+      });
   }
 
 }

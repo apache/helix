@@ -8,7 +8,7 @@
     <h3 md-subheader>Clusters</h3>
     <a *ngFor="let cluster of clusters"
       md-list-item
-      [routerLink]="['/clusters', cluster.name]"
+      [routerLink]="[cluster.name]"
       routerLinkActive="cluster-list-item-selected">
       <md-icon md-list-icon>blur_circular</md-icon>
       <h4 md-line>{{ cluster.name }}</h4>

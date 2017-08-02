@@ -4,10 +4,9 @@
     <md-nav-list>
       <a *ngFor="let name of workflows"
         md-list-item
-        [routerLink]="['/clusters', clusterName, 'workflows', name]">
+        [routerLink]="[name]">
         <div md-line>{{ name }}</div>
       </a>
     </md-nav-list>
   </section>
 </section>
-

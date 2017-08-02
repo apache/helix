@@ -103,7 +103,7 @@ export class ResourceListComponent implements OnInit {
     if (this.isForInstance) {
       this.table.rowDetail.toggleExpandRow(row);
     } else {
-      this.router.navigate(['/clusters', this.clusterName, 'resources', row.name]);
+      this.router.navigate([row.name], { relativeTo: this.route });
     }
   }
 

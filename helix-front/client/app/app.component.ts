@@ -8,7 +8,6 @@ import {
   NavigationError
 } from '@angular/router';
 import { MdDialog } from '@angular/material';
-import { MediaChange, ObservableMedia } from '@angular/flex-layout';
 
 import { Angulartics2Piwik } from 'angulartics2';
 
@@ -24,12 +23,10 @@ export class AppComponent implements OnInit {
 
   headerEnabled = true;
   footerEnabled = environment.production;
-  isNarrowView:boolean;
   isLoading = true;
 
   constructor(
     public dialog: MdDialog,
-    protected media: ObservableMedia,
     protected route: ActivatedRoute,
     protected router: Router,
     protected angulartics: Angulartics2Piwik
@@ -55,12 +52,6 @@ export class AppComponent implements OnInit {
       if (params['embed'] == 'true') {
         this.headerEnabled = this.footerEnabled = false;
       }
-    });
-
-    // auto adjust side nav only if not embed
-    this.isNarrowView = this.headerEnabled && (this.media.isActive('xs') || this.media.isActive('sm'));
-    this.media.subscribe((change: MediaChange) => {
-      this.isNarrowView = this.headerEnabled && (change.mqAlias === 'xs' || change.mqAlias === 'sm');
     });
   }
 

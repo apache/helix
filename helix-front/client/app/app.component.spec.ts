@@ -49,11 +49,4 @@ describe('AppComponent', () => {
     const compiled = fixture.debugElement.nativeElement;
     expect(compiled.querySelector('md-toolbar').textContent).toContain('Helix');
   }));
-
-  it('should contain cluster list', async(() => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    const compiled = fixture.debugElement.nativeElement;
-    expect(compiled.querySelector('hi-cluster-list')).toBeDefined();
-  }));
 });

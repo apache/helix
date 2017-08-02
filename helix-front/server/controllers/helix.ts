@@ -1,15 +1,40 @@
-import { Request, Response } from 'express';
+import { Request, Response, Router } from 'express';
 
 import * as request from 'request';
 
-export default class HelixCtrl {
+import { HELIX_ENDPOINTS } from '../config';
 
-  static readonly API_PREFIX = 'http://ltx1-app0693.stg.linkedin.com:12926/admin/v2';
+export class HelixCtrl {
+
   static readonly ROUTE_PREFIX = '/api/helix';
 
-  proxy = (req: Request, res: Response) => {
-    const url = HelixCtrl.API_PREFIX + req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, '');
-    request(url).pipe(res);
-  };
+  constructor(router: Router) {
+    router.route('/helix/list').get(this.list);
+    router.route('/helix/*').get(this.proxy);
+  }
 
+  protected proxy(req: Request, res: Response) {
+    const url = req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, '');
+    const helixKey = url.split('/')[1];
+
+    const segments = helixKey.split('.');
+    const group = segments[0];
+
+    segments.shift();
+    const name = segments.join('.');
+
+    const apiPrefix = HELIX_ENDPOINTS[group][name];
+    const realUrl = apiPrefix + url.replace(`/${ helixKey }`, '');
+
+    request(realUrl).pipe(res);
+
+    process.on('uncaughtException', function(err){
+      console.error('uncaughtException: ' + err.message);
+      console.error(err.stack);
+    });
+  }
+
+  protected list(req: Request, res: Response) {
+    res.json(HELIX_ENDPOINTS);
+  }
 }

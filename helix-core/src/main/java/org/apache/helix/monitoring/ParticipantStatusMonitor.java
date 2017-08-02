@@ -31,6 +31,7 @@ import javax.management.ObjectName;
 
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.MessageLatencyMonitor;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.monitoring.mbeans.StateTransitionStatMonitor;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
@@ -119,7 +120,7 @@ public class ParticipantStatusMonitor {
 
   private ObjectName getObjectName(String name) throws MalformedObjectNameException {
     LOG.info("Registering bean: " + name);
-    return new ObjectName("CLMParticipantReport:" + name);
+    return new ObjectName(String.format("%s: %s", MonitorDomainNames.CLMParticipantReport.name(), name));
   }
 
   private void register(Object bean, ObjectName name) {

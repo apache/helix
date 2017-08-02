@@ -29,49 +29,109 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getWriteCounter();
   long getReadBytesCounter();
   long getWriteBytesCounter();
+  long getTotalReadLatency();
+  long getTotalWriteLatency();
+  long getMaxReadLatency();
+  long getMaxWriteLatency();
+  long getReadFailureCounter();
+  long getWriteFailureCounter();
 
   long getIdealStatesReadCounter();
   long getIdealStatesWriteCounter();
   long getIdealStatesReadBytesCounter();
   long getIdealStatesWriteBytesCounter();
+  long getIdealStatesTotalReadLatency();
+  long getIdealStatesTotalWriteLatency();
+  long getIdealStatesMaxReadLatency();
+  long getIdealStatesMaxWriteLatency();
+  long getIdealStatesReadFailureCounter();
+  long getIdealStatesWriteFailureCounter();
 
   long getInstancesReadCounter();
   long getInstancesWriteCounter();
   long getInstancesReadBytesCounter();
   long getInstancesWriteBytesCounter();
+  long getInstancesTotalReadLatency();
+  long getInstancesTotalWriteLatency();
+  long getInstancesMaxReadLatency();
+  long getInstancesMaxWriteLatency();
+  long getInstancesReadFailureCounter();
+  long getInstancesWriteFailureCounter();
 
   long getConfigsReadCounter();
   long getConfigsWriteCounter();
   long getConfigsReadBytesCounter();
   long getConfigsWriteBytesCounter();
+  long getConfigsTotalReadLatency();
+  long getConfigsTotalWriteLatency();
+  long getConfigsMaxReadLatency();
+  long getConfigsMaxWriteLatency();
+  long getConfigsReadFailureCounter();
+  long getConfigsWriteFailureCounter();
 
   long getControllerReadCounter();
   long getControllerWriteCounter();
   long getControllerReadBytesCounter();
   long getControllerWriteBytesCounter();
+  long getControllerTotalReadLatency();
+  long getControllerTotalWriteLatency();
+  long getControllerMaxReadLatency();
+  long getControllerMaxWriteLatency();
+  long getControllerReadFailureCounter();
+  long getControllerWriteFailureCounter();
 
   long getExternalViewReadCounter();
   long getExternalViewWriteCounter();
   long getExternalViewReadBytesCounter();
   long getExternalViewWriteBytesCounter();
+  long getExternalViewTotalReadLatency();
+  long getExternalViewTotalWriteLatency();
+  long getExternalViewMaxReadLatency();
+  long getExternalViewMaxWriteLatency();
+  long getExternalViewReadFailureCounter();
+  long getExternalViewWriteFailureCounter();
 
   long getLiveInstancesReadCounter();
   long getLiveInstancesWriteCounter();
   long getLiveInstancesReadBytesCounter();
   long getLiveInstancesWriteBytesCounter();
+  long getLiveInstancesTotalReadLatency();
+  long getLiveInstancesTotalWriteLatency();
+  long getLiveInstancesMaxReadLatency();
+  long getLiveInstancesMaxWriteLatency();
+  long getLiveInstancesReadFailureCounter();
+  long getLiveInstancesWriteFailureCounter();
 
   long getPropertyStoreReadCounter();
   long getPropertyStoreWriteCounter();
   long getPropertyStoreReadBytesCounter();
   long getPropertyStoreWriteBytesCounter();
+  long getPropertyStoreTotalReadLatency();
+  long getPropertyStoreTotalWriteLatency();
+  long getPropertyStoreMaxReadLatency();
+  long getPropertyStoreMaxWriteLatency();
+  long getPropertyStoreReadFailureCounter();
+  long getPropertyStoreWriteFailureCounter();
 
   long getCurrentStatesReadCounter();
   long getCurrentStatesWriteCounter();
   long getCurrentStatesReadBytesCounter();
   long getCurrentStatesWriteBytesCounter();
+  long getCurrentStatesTotalReadLatency();
+  long getCurrentStatesTotalWriteLatency();
+  long getCurrentStatesMaxReadLatency();
+  long getCurrentStatesMaxWriteLatency();
+  long getCurrentStatesReadFailureCounter();
+  long getCurrentStatesWriteFailureCounter();
 
   long getMessagesReadCounter();
   long getMessagesWriteCounter();
   long getMessagesReadBytesCounter();
   long getMessagesWriteBytesCounter();
+  long getMessagesTotalReadLatency();
+  long getMessagesTotalWriteLatency();
+  long getMessagesMaxReadLatency();
+  long getMessagesMaxWriteLatency();
+  long getMessagesReadFailureCounter();
+  long getMessagesWriteFailureCounter();
 }

@@ -501,7 +501,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         ChainedPathZkSerializer.builder(new ZNRecordStreamingSerializer()).build();
 
     _zkclient = new ZkClient(_zkAddress, _sessionTimeout, _clientConnectionTimeout, zkSerializer,
-        _instanceType.name() + "." + _clusterName);
+        _instanceType.name(), _clusterName);
 
     _baseDataAccessor = createBaseDataAccessor();
 

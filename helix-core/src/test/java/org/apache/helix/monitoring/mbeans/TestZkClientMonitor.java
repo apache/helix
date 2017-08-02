@@ -20,8 +20,6 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import java.lang.management.ManagementFactory;
-import java.util.HashSet;
-import java.util.Set;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -34,11 +32,15 @@ public class TestZkClientMonitor {
   private MBeanServer _beanServer = ManagementFactory.getPlatformMBeanServer();
 
   private ObjectName buildObjectName(String tag) throws MalformedObjectNameException {
-    return MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.TAG, tag);
+    return MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            tag, ZkClientMonitor.MONITOR_KEY, ZkClientMonitor.DEFAULT_TAG);
   }
 
   private ObjectName buildObjectName(String tag, int num) throws MalformedObjectNameException {
-    return MBeanRegistrar.buildObjectName(num, MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.TAG, tag);
+    return MBeanRegistrar.buildObjectName(num, MonitorDomainNames.HelixZkClient.name(),
+        ZkClientMonitor.MONITOR_TYPE, tag, ZkClientMonitor.MONITOR_KEY,
+        ZkClientMonitor.DEFAULT_TAG);
   }
 
   @Test public void testMBeanRegisteration() throws JMException {
@@ -65,15 +67,29 @@ public class TestZkClientMonitor {
     long eventCount = (long) _beanServer.getAttribute(name, "DataChangeEventCounter");
     Assert.assertEquals(eventCount, 1);
 
-    monitor.increaseReadCounters("TEST/IDEALSTATES/myResource");
+    monitor.recordRead("TEST/IDEALSTATES/myResource", 0, System.currentTimeMillis() - 10);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "ReadCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "IdealStatesReadCounter"), 1);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalReadLatency") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxReadLatency") >= 10);
 
-    monitor.increaseWriteCounters("TEST/INSTANCES/node_1/CURRENTSTATES/session_1/Resource", 5);
+    monitor.recordRead("TEST/INSTANCES/testDB0", 0, System.currentTimeMillis() - 15);
+    Assert.assertEquals((long) _beanServer.getAttribute(name, "ReadCounter"), 2);
+    Assert.assertEquals((long) _beanServer.getAttribute(name, "InstancesReadCounter"), 1);
+    Assert.assertEquals((long) _beanServer.getAttribute(name, "IdealStatesReadCounter"), 1);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalReadLatency") >= 25);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxReadLatency") >= 15);
+
+    monitor.recordWrite("TEST/INSTANCES/node_1/CURRENTSTATES/session_1/Resource", 5,
+        System.currentTimeMillis() - 10);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "WriteCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "CurrentStatesWriteCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "CurrentStatesWriteBytesCounter"), 5);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "InstancesWriteCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "InstancesWriteBytesCounter"), 5);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalWriteLatency") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxWriteLatency") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "InstancesTotalWriteLatency") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "InstancesMaxWriteLatency") >= 10);
   }
 }

@@ -36,11 +36,11 @@ public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T> {
   public ZkHelixPropertyStore(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> zkCachePaths) {
     super(zkAddress, serializer, chrootPath, null, zkCachePaths,
-        String.format("%s.%s", MONITOR_TAG, chrootPath));
+        MONITOR_TAG, chrootPath);
   }
 
   public ZkHelixPropertyStore(String zkAddress, ZkSerializer serializer, String chrootPath) {
     super(zkAddress, serializer, chrootPath, null, null,
-        String.format("%s.%s", MONITOR_TAG, chrootPath));
+        MONITOR_TAG, chrootPath);
   }
 }

@@ -120,7 +120,7 @@ public class ParticipantStatusMonitor {
 
   private ObjectName getObjectName(String name) throws MalformedObjectNameException {
     LOG.info("Registering bean: " + name);
-    return new ObjectName(String.format("%s: %s", MonitorDomainNames.CLMParticipantReport.name(), name));
+    return new ObjectName(String.format("%s:%s", MonitorDomainNames.CLMParticipantReport.name(), name));
   }
 
   private void register(Object bean, ObjectName name) {

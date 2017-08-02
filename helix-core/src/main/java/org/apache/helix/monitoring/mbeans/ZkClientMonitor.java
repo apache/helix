@@ -25,7 +25,8 @@ import javax.management.JMException;
 import javax.management.ObjectName;
 
 public class ZkClientMonitor implements ZkClientMonitorMBean {
-  public static final String TAG = "Tag";
+  public static final String MONITOR_TYPE = "Type";
+  public static final String MONITOR_KEY = "Key";
   public static final String DEFAULT_TAG = "default";
 
   private ObjectName _objectName;
@@ -39,7 +40,8 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     LiveInstances(".*/LIVEINSTANCES/.*"),
     PropertyStore(".*/PROPERTYSTORE/.*"),
     CurrentStates(".*/CURRENTSTATES/.*"),
-    Messages(".*/MESSAGES/.*");
+    Messages(".*/MESSAGES/.*"),
+    Default(".*");
 
     private final String _matchString;
 
@@ -55,19 +57,25 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   private long _stateChangeEventCounter;
   private long _dataChangeEventCounter;
 
-  private long _readCounter;
-  private long _writeCounter;
-  private long _readBytesCounter;
-  private long _writeBytesCounter;
   private Map<PredefinedPath, Long> _readCounterMap = new ConcurrentHashMap<>();
   private Map<PredefinedPath, Long> _writeCounterMap = new ConcurrentHashMap<>();
   private Map<PredefinedPath, Long> _readBytesCounterMap = new ConcurrentHashMap<>();
-  private Map<PredefinedPath, Long> _writBytesCounterMap = new ConcurrentHashMap<>();
+  private Map<PredefinedPath, Long> _writeBytesCounterMap = new ConcurrentHashMap<>();
+  private Map<PredefinedPath, Long> _readFailureCounterMap = new ConcurrentHashMap<>();
+  private Map<PredefinedPath, Long> _writeFailureCounterMap = new ConcurrentHashMap<>();
 
-  public ZkClientMonitor(String tag) throws JMException {
-    tag = tag == null ? DEFAULT_TAG : tag;
+  private Map<PredefinedPath, Long> _readTotalLatencyMap = new ConcurrentHashMap<>();
+  private Map<PredefinedPath, Long> _writeTotalLatencyMap = new ConcurrentHashMap<>();
+  private Map<PredefinedPath, Long> _readMaxLatencyMap = new ConcurrentHashMap<>();
+  private Map<PredefinedPath, Long> _writeMaxLatencyMap = new ConcurrentHashMap<>();
+
+  public ZkClientMonitor(String monitorType) throws JMException {
+    this(monitorType, null);
+  }
+
+  public ZkClientMonitor(String monitorType, String monitorKey) throws JMException {
     initCounterMaps();
-    register(tag);
+    regitster(monitorType, monitorKey);
   }
 
   private void initCounterMaps() {
@@ -75,16 +83,26 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
       _readCounterMap.put(path, 0L);
       _writeCounterMap.put(path, 0L);
       _readBytesCounterMap.put(path, 0L);
-      _writBytesCounterMap.put(path, 0L);
+      _writeBytesCounterMap.put(path, 0L);
+      _readTotalLatencyMap.put(path, 0L);
+      _writeTotalLatencyMap.put(path, 0L);
+      _readMaxLatencyMap.put(path, 0L);
+      _writeMaxLatencyMap.put(path, 0L);
+      _readFailureCounterMap.put(path, 0L);
+      _writeFailureCounterMap.put(path, 0L);
     }
   }
 
-  public ZkClientMonitor() throws JMException {
-    this(DEFAULT_TAG);
-  }
-
-  private void register(String tag) throws JMException {
-    _objectName = MBeanRegistrar.register(this, MonitorDomainNames.HelixZkClient.name(), TAG, tag);
+  public void regitster(String monitorType, String monitorKey) throws JMException {
+    if (monitorType == null) {
+      monitorType = DEFAULT_TAG;
+    }
+    if (monitorKey == null) {
+      monitorKey = DEFAULT_TAG;
+    }
+    _objectName = MBeanRegistrar
+        .register(this, MonitorDomainNames.HelixZkClient.name(), MONITOR_TYPE, monitorType,
+            MONITOR_KEY, monitorKey);
   }
 
   /**
@@ -96,13 +114,12 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
 
   @Override
   public String getSensorName() {
-    if (_objectName.getKeyProperty(MBeanRegistrar.DUPLICATE) == null) {
-      return String.format("%s.%s", MonitorDomainNames.HelixZkClient.name(),
-          _objectName.getKeyProperty(TAG));
-    } else {
-      return String.format("%s.%s.%s", MonitorDomainNames.HelixZkClient.name(),
-          _objectName.getKeyProperty(TAG), _objectName.getKeyProperty(MBeanRegistrar.DUPLICATE));
+    String sensorName = String.format("%s.%s.%s", MonitorDomainNames.HelixZkClient.name(),
+        _objectName.getKeyProperty(MONITOR_TYPE), _objectName.getKeyProperty(MONITOR_KEY));
+    if (_objectName.getKeyProperty(MBeanRegistrar.DUPLICATE) != null) {
+      sensorName += "." + _objectName.getKeyProperty(MBeanRegistrar.DUPLICATE);
     }
+    return sensorName;
   }
 
   public void increaseStateChangeEventCounter() {
@@ -123,68 +140,92 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _dataChangeEventCounter;
   }
 
-  private void increaseCounters(String path, int bytes, boolean isRead) {
-    if (isRead) {
-      _readCounter++;
-      if (bytes > 0) {
-        _readBytesCounter += bytes;
-      }
-    } else {
-      _writeCounter++;
-      if (bytes > 0) {
-        _writeBytesCounter += bytes;
-      }
-    }
+  private void record(String path, int bytes, long latencyMilliSec, boolean isFailure,
+      boolean isRead) {
+    Map<PredefinedPath, Long> _counterMap = isRead ? _readCounterMap : _writeCounterMap;
+    Map<PredefinedPath, Long> _bytesCounterMap =
+        isRead ? _readBytesCounterMap : _writeBytesCounterMap;
+    Map<PredefinedPath, Long> _failureCounterMap =
+        isRead ? _readFailureCounterMap : _writeFailureCounterMap;
+    Map<PredefinedPath, Long> _totalLatencyMap =
+        isRead ? _readTotalLatencyMap : _writeTotalLatencyMap;
+    Map<PredefinedPath, Long> _maxLatencyMap = isRead ? _readMaxLatencyMap : _writeMaxLatencyMap;
 
     for (PredefinedPath predefinedPath : PredefinedPath.values()) {
       if (predefinedPath.match(path)) {
-        if (isRead) {
-          _readCounterMap.put(predefinedPath, _readCounterMap.get(predefinedPath) + 1);
-          if (bytes > 0) {
-            _readBytesCounterMap
-                .put(predefinedPath, _readBytesCounterMap.get(predefinedPath) + bytes);
-          }
+        if (isFailure) {
+          _failureCounterMap.put(predefinedPath, _failureCounterMap.get(predefinedPath) + 1);
         } else {
-          _writeCounterMap.put(predefinedPath, _writeCounterMap.get(predefinedPath) + 1);
+          _counterMap.put(predefinedPath, _counterMap.get(predefinedPath) + 1);
+          _totalLatencyMap
+              .put(predefinedPath, _totalLatencyMap.get(predefinedPath) + latencyMilliSec);
+          long maxLatency = _maxLatencyMap.get(predefinedPath);
+          if (latencyMilliSec > maxLatency) {
+            _maxLatencyMap.put(predefinedPath, latencyMilliSec);
+          }
           if (bytes > 0) {
-            _writBytesCounterMap
-                .put(predefinedPath, _writBytesCounterMap.get(predefinedPath) + bytes);
+            _bytesCounterMap
+                .put(predefinedPath, _bytesCounterMap.get(predefinedPath) + bytes);
           }
         }
       }
     }
   }
 
-  public void increaseReadCounters(String path) {
-    increaseReadCounters(path, -1);
+  public void recordReadFailure(String path) {
+    record(path, 0, 0, true, true);
   }
 
-  public void increaseReadCounters(String path, int bytes) {
-    increaseCounters(path, bytes, true);
+  public void recordRead(String path, int dataSize, long startTimeMilliSec) {
+    record(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, true);
   }
 
-  public void increaseWriteCounters(String path) {
-    increaseWriteCounters(path, -1);
+  public void recordWriteFailure(String path) {
+    record(path, 0, 0, true, false);
   }
 
-  public void increaseWriteCounters(String path, int bytes) {
-    increaseCounters(path, bytes, false);
+  public void recordWrite(String path, int dataSize, long startTimeMilliSec) {
+    record(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, false);
   }
 
   @Override public long getReadCounter() {
-    return _readCounter;
+    return _readCounterMap.get(PredefinedPath.Default);
   }
 
   @Override public long getReadBytesCounter() {
-    return _readBytesCounter;
+    return _readBytesCounterMap.get(PredefinedPath.Default);
   }
 
   @Override public long getWriteCounter() {
-    return _writeCounter;
+    return _writeCounterMap.get(PredefinedPath.Default);
   }
 
   @Override public long getWriteBytesCounter() {
-    return _writeBytesCounter;
+    return _writeBytesCounterMap.get(PredefinedPath.Default);
+  }
+
+  @Override public long getTotalReadLatency() {
+    return _readTotalLatencyMap.get(PredefinedPath.Default);
+  }
+
+  @Override public long getTotalWriteLatency() {
+    return _writeTotalLatencyMap.get(PredefinedPath.Default);
+  }
+
+  @Override public long getMaxReadLatency() {
+    return _readMaxLatencyMap.get(PredefinedPath.Default);
+  }
+
+  @Override public long getMaxWriteLatency() {
+    return _writeMaxLatencyMap.get(PredefinedPath.Default);
+  }
+
+  @Override public long getReadFailureCounter() {
+    return _readFailureCounterMap.get(PredefinedPath.Default);
+  }
+
+  @Override public long getWriteFailureCounter() {
+    return _writeFailureCounterMap.get(PredefinedPath.Default);
   }
 
   @Override public long getIdealStatesReadCounter() {
@@ -200,7 +241,31 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   @Override public long getIdealStatesWriteBytesCounter() {
-    return _writBytesCounterMap.get(PredefinedPath.IdealStates);
+    return _writeBytesCounterMap.get(PredefinedPath.IdealStates);
+  }
+
+  @Override public long getIdealStatesTotalReadLatency() {
+    return _readTotalLatencyMap.get(PredefinedPath.IdealStates);
+  }
+
+  @Override public long getIdealStatesTotalWriteLatency() {
+    return _writeTotalLatencyMap.get(PredefinedPath.IdealStates);
+  }
+
+  @Override public long getIdealStatesMaxReadLatency() {
+    return _readMaxLatencyMap.get(PredefinedPath.IdealStates);
+  }
+
+  @Override public long getIdealStatesMaxWriteLatency() {
+    return _writeMaxLatencyMap.get(PredefinedPath.IdealStates);
+  }
+
+  @Override public long getIdealStatesReadFailureCounter() {
+    return _readFailureCounterMap.get(PredefinedPath.IdealStates);
+  }
+
+  @Override public long getIdealStatesWriteFailureCounter() {
+    return _writeFailureCounterMap.get(PredefinedPath.IdealStates);
   }
 
   @Override public long getInstancesReadCounter() {
@@ -216,7 +281,31 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   @Override public long getInstancesWriteBytesCounter() {
-    return _writBytesCounterMap.get(PredefinedPath.Instances);
+    return _writeBytesCounterMap.get(PredefinedPath.Instances);
+  }
+
+  @Override public long getInstancesTotalReadLatency() {
+    return _readTotalLatencyMap.get(PredefinedPath.Instances);
+  }
+
+  @Override public long getInstancesTotalWriteLatency() {
+    return _writeTotalLatencyMap.get(PredefinedPath.Instances);
+  }
+
+  @Override public long getInstancesMaxReadLatency() {
+    return _readMaxLatencyMap.get(PredefinedPath.Instances);
+  }
+
+  @Override public long getInstancesMaxWriteLatency() {
+    return _writeMaxLatencyMap.get(PredefinedPath.Instances);
+  }
+
+  @Override public long getInstancesReadFailureCounter() {
+    return _readFailureCounterMap.get(PredefinedPath.Instances);
+  }
+
+  @Override public long getInstancesWriteFailureCounter() {
+    return _writeFailureCounterMap.get(PredefinedPath.Instances);
   }
 
   @Override public long getConfigsReadCounter() {
@@ -232,7 +321,31 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   @Override public long getConfigsWriteBytesCounter() {
-    return _writBytesCounterMap.get(PredefinedPath.Configs);
+    return _writeBytesCounterMap.get(PredefinedPath.Configs);
+  }
+
+  @Override public long getConfigsTotalReadLatency() {
+    return _readTotalLatencyMap.get(PredefinedPath.Configs);
+  }
+
+  @Override public long getConfigsTotalWriteLatency() {
+    return _writeTotalLatencyMap.get(PredefinedPath.Configs);
+  }
+
+  @Override public long getConfigsMaxReadLatency() {
+    return _readMaxLatencyMap.get(PredefinedPath.Configs);
+  }
+
+  @Override public long getConfigsMaxWriteLatency() {
+    return _writeMaxLatencyMap.get(PredefinedPath.Configs);
+  }
+
+  @Override public long getConfigsReadFailureCounter() {
+    return _readFailureCounterMap.get(PredefinedPath.Configs);
+  }
+
+  @Override public long getConfigsWriteFailureCounter() {
+    return _writeFailureCounterMap.get(PredefinedPath.Configs);
   }
 
   @Override public long getControllerReadCounter() {
@@ -248,7 +361,31 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   @Override public long getControllerWriteBytesCounter() {
-    return _writBytesCounterMap.get(PredefinedPath.Controller);
+    return _writeBytesCounterMap.get(PredefinedPath.Controller);
+  }
+
+  @Override public long getControllerTotalReadLatency() {
+    return _readTotalLatencyMap.get(PredefinedPath.Controller);
+  }
+
+  @Override public long getControllerTotalWriteLatency() {
+    return _writeTotalLatencyMap.get(PredefinedPath.Controller);
+  }
+
+  @Override public long getControllerMaxReadLatency() {
+    return _readMaxLatencyMap.get(PredefinedPath.Controller);
+  }
+
+  @Override public long getControllerMaxWriteLatency() {
+    return _writeMaxLatencyMap.get(PredefinedPath.Controller);
+  }
+
+  @Override public long getControllerReadFailureCounter() {
+    return _readFailureCounterMap.get(PredefinedPath.Controller);
+  }
+
+  @Override public long getControllerWriteFailureCounter() {
+    return _writeFailureCounterMap.get(PredefinedPath.Controller);
   }
 
   @Override public long getExternalViewReadCounter() {
@@ -264,7 +401,31 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   @Override public long getExternalViewWriteBytesCounter() {
-    return _writBytesCounterMap.get(PredefinedPath.ExternalView);
+    return _writeBytesCounterMap.get(PredefinedPath.ExternalView);
+  }
+
+  @Override public long getExternalViewTotalReadLatency() {
+    return _readTotalLatencyMap.get(PredefinedPath.ExternalView);
+  }
+
+  @Override public long getExternalViewTotalWriteLatency() {
+    return _writeTotalLatencyMap.get(PredefinedPath.ExternalView);
+  }
+
+  @Override public long getExternalViewMaxReadLatency() {
+    return _readMaxLatencyMap.get(PredefinedPath.ExternalView);
+  }
+
+  @Override public long getExternalViewMaxWriteLatency() {
+    return _writeMaxLatencyMap.get(PredefinedPath.ExternalView);
+  }
+
+  @Override public long getExternalViewReadFailureCounter() {
+    return _readFailureCounterMap.get(PredefinedPath.ExternalView);
+  }
+
+  @Override public long getExternalViewWriteFailureCounter() {
+    return _writeFailureCounterMap.get(PredefinedPath.ExternalView);
   }
 
   @Override public long getLiveInstancesReadCounter() {
@@ -280,7 +441,31 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   @Override public long getLiveInstancesWriteBytesCounter() {
-    return _writBytesCounterMap.get(PredefinedPath.LiveInstances);
+    return _writeBytesCounterMap.get(PredefinedPath.LiveInstances);
+  }
+
+  @Override public long getLiveInstancesTotalReadLatency() {
+    return _readTotalLatencyMap.get(PredefinedPath.LiveInstances);
+  }
+
+  @Override public long getLiveInstancesTotalWriteLatency() {
+    return _writeTotalLatencyMap.get(PredefinedPath.LiveInstances);
+  }
+
+  @Override public long getLiveInstancesMaxReadLatency() {
+    return _readMaxLatencyMap.get(PredefinedPath.LiveInstances);
+  }
+
+  @Override public long getLiveInstancesMaxWriteLatency() {
+    return _writeMaxLatencyMap.get(PredefinedPath.LiveInstances);
+  }
+
+  @Override public long getLiveInstancesReadFailureCounter() {
+    return _readFailureCounterMap.get(PredefinedPath.LiveInstances);
+  }
+
+  @Override public long getLiveInstancesWriteFailureCounter() {
+    return _writeFailureCounterMap.get(PredefinedPath.LiveInstances);
   }
 
   @Override public long getPropertyStoreReadCounter() {
@@ -296,7 +481,31 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   @Override public long getPropertyStoreWriteBytesCounter() {
-    return _writBytesCounterMap.get(PredefinedPath.PropertyStore);
+    return _writeBytesCounterMap.get(PredefinedPath.PropertyStore);
+  }
+
+  @Override public long getPropertyStoreTotalReadLatency() {
+    return _readTotalLatencyMap.get(PredefinedPath.PropertyStore);
+  }
+
+  @Override public long getPropertyStoreTotalWriteLatency() {
+    return _writeTotalLatencyMap.get(PredefinedPath.PropertyStore);
+  }
+
+  @Override public long getPropertyStoreMaxReadLatency() {
+    return _readMaxLatencyMap.get(PredefinedPath.PropertyStore);
+  }
+
+  @Override public long getPropertyStoreMaxWriteLatency() {
+    return _writeMaxLatencyMap.get(PredefinedPath.PropertyStore);
+  }
+
+  @Override public long getPropertyStoreReadFailureCounter() {
+    return _readFailureCounterMap.get(PredefinedPath.PropertyStore);
+  }
+
+  @Override public long getPropertyStoreWriteFailureCounter() {
+    return _writeFailureCounterMap.get(PredefinedPath.PropertyStore);
   }
 
   @Override public long getCurrentStatesReadCounter() {
@@ -312,7 +521,31 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   @Override public long getCurrentStatesWriteBytesCounter() {
-    return _writBytesCounterMap.get(PredefinedPath.CurrentStates);
+    return _writeBytesCounterMap.get(PredefinedPath.CurrentStates);
+  }
+
+  @Override public long getCurrentStatesTotalReadLatency() {
+    return _readTotalLatencyMap.get(PredefinedPath.CurrentStates);
+  }
+
+  @Override public long getCurrentStatesTotalWriteLatency() {
+    return _writeTotalLatencyMap.get(PredefinedPath.CurrentStates);
+  }
+
+  @Override public long getCurrentStatesMaxReadLatency() {
+    return _readMaxLatencyMap.get(PredefinedPath.CurrentStates);
+  }
+
+  @Override public long getCurrentStatesMaxWriteLatency() {
+    return _writeMaxLatencyMap.get(PredefinedPath.CurrentStates);
+  }
+
+  @Override public long getCurrentStatesReadFailureCounter() {
+    return _readFailureCounterMap.get(PredefinedPath.CurrentStates);
+  }
+
+  @Override public long getCurrentStatesWriteFailureCounter() {
+    return _writeFailureCounterMap.get(PredefinedPath.CurrentStates);
   }
 
   @Override public long getMessagesReadCounter() {
@@ -328,7 +561,31 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   @Override public long getMessagesWriteBytesCounter() {
-    return _writBytesCounterMap.get(PredefinedPath.Messages);
+    return _writeBytesCounterMap.get(PredefinedPath.Messages);
+  }
+
+  @Override public long getMessagesTotalReadLatency() {
+    return _readTotalLatencyMap.get(PredefinedPath.Messages);
+  }
+
+  @Override public long getMessagesTotalWriteLatency() {
+    return _writeTotalLatencyMap.get(PredefinedPath.Messages);
+  }
+
+  @Override public long getMessagesMaxReadLatency() {
+    return _readMaxLatencyMap.get(PredefinedPath.Messages);
+  }
+
+  @Override public long getMessagesMaxWriteLatency() {
+    return _writeMaxLatencyMap.get(PredefinedPath.Messages);
+  }
+
+  @Override public long getMessagesReadFailureCounter() {
+    return _readFailureCounterMap.get(PredefinedPath.Messages);
+  }
+
+  @Override public long getMessagesWriteFailureCounter() {
+    return _writeFailureCounterMap.get(PredefinedPath.Messages);
   }
 
 }

@@ -21,6 +21,7 @@ package org.apache.helix.manager.zk;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback.DataCallback;
 import org.apache.zookeeper.AsyncCallback.StatCallback;
@@ -46,6 +47,11 @@ public class ZkAsyncCallbacks {
       if (rc == 0) {
         _data = data;
         _stat = stat;
+        // update ctx with data size
+        if (_data != null && ctx != null && ctx instanceof ZkAsyncCallContext) {
+          ZkAsyncCallContext zkCtx = (ZkAsyncCallContext) ctx;
+          zkCtx._bytes = _data.length;
+        }
       }
       callback(rc, path, ctx);
     }
@@ -87,7 +93,6 @@ public class ZkAsyncCallbacks {
       }
       callback(rc, path, ctx);
     }
-
   }
 
   public static class CreateCallbackHandler extends DefaultCallback implements StringCallback {
@@ -112,7 +117,6 @@ public class ZkAsyncCallbacks {
     public void handle() {
       // TODO Auto-generated method stub
     }
-
   }
 
   /**
@@ -126,6 +130,16 @@ public class ZkAsyncCallbacks {
       if (rc != 0 && LOG.isDebugEnabled()) {
         LOG.debug(this + ", rc:" + Code.get(rc) + ", path: " + path);
       }
+
+      if (ctx != null && ctx instanceof ZkAsyncCallContext) {
+        ZkAsyncCallContext zkCtx = (ZkAsyncCallContext) ctx;
+        if (zkCtx._isRead) {
+          zkCtx._monitor.recordRead(path, zkCtx._bytes, zkCtx._startTimeMilliSec);
+        } else {
+          zkCtx._monitor.recordWrite(path, zkCtx._bytes, zkCtx._startTimeMilliSec);
+        }
+      }
+
       _rc = rc;
       handle();
 
@@ -153,6 +167,24 @@ public class ZkAsyncCallbacks {
     }
 
     abstract public void handle();
+  }
+
+  public static class ZkAsyncCallContext {
+    private long _startTimeMilliSec;
+    private int _bytes;
+    private ZkClientMonitor _monitor;
+    private boolean _isRead;
+
+    public ZkAsyncCallContext(final ZkClientMonitor monitor, long startTimeMilliSec, int bytes,
+        boolean isRead) {
+      if (monitor == null) {
+        throw new NullPointerException("ZkClientMonitor must not be null.");
+      }
+      _monitor = monitor;
+      _startTimeMilliSec = startTimeMilliSec;
+      _bytes = bytes;
+      _isRead = isRead;
+    }
   }
 
 }

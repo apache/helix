@@ -381,10 +381,10 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     ZkHelixPropertyStore<ZNRecord> store =
         new ZkHelixPropertyStore<ZNRecord>(ZK_ADDR, new SerializableSerializer(), TEST_ROOT);
-    
+
     ObjectName name = MBeanRegistrar
-        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.TAG,
-            String.format("%s.%s", ZkHelixPropertyStore.MONITOR_TAG, TEST_ROOT));
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            ZkHelixPropertyStore.MONITOR_TAG, ZkClientMonitor.MONITOR_KEY, TEST_ROOT);
     MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
     Assert.assertTrue(beanServer.isRegistered(name));
 

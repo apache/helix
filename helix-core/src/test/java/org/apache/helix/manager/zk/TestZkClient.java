@@ -29,9 +29,7 @@ import javax.management.ObjectName;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixException;
-import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
@@ -88,7 +86,7 @@ public class TestZkClient extends ZkUnitTestBase {
   }
 
   @Test()
-  void testSessioExpire() throws Exception {
+  void testSessionExpire() throws Exception {
     IZkStateListener listener = new IZkStateListener() {
 
       @Override
@@ -143,7 +141,7 @@ public class TestZkClient extends ZkUnitTestBase {
     final String TEST_NODE = "/test_zkclient_monitor";
     final String TEST_PATH = TEST_ROOT + TEST_NODE;
 
-    ZkClient zkClient = new ZkClient(ZK_ADDR, TEST_TAG);
+    ZkClient zkClient = new ZkClient(ZK_ADDR, TEST_TAG, null);
 
     final long TEST_DATA_SIZE = zkClient.serialize(TEST_DATA, TEST_PATH).length;
 
@@ -156,38 +154,64 @@ public class TestZkClient extends ZkUnitTestBase {
 
     MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
 
-    ObjectName name = MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.TAG,
-        TEST_TAG);
+    ObjectName name = MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            TEST_TAG, ZkClientMonitor.MONITOR_KEY, ZkClientMonitor.DEFAULT_TAG);
     Assert.assertTrue(beanServer.isRegistered(name));
 
     // Test exists
     Assert.assertEquals((long) beanServer.getAttribute(name, "ReadCounter"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalReadLatency"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "MaxReadLatency"), 0);
     zkClient.exists(TEST_ROOT);
     Assert.assertEquals((long) beanServer.getAttribute(name, "ReadCounter"), 1);
+    Assert.assertTrue((long) beanServer.getAttribute(name, "TotalReadLatency") >= 0);
+    Assert.assertTrue((long) beanServer.getAttribute(name, "MaxReadLatency") >= 0);
 
     // Test create
     Assert.assertEquals((long) beanServer.getAttribute(name, "WriteCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "WriteBytesCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesWriteCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesWriteBytesCounter"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalWriteLatency"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "MaxWriteLatency"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesTotalWriteLatency"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesMaxWriteLatency"), 0);
     zkClient.create(TEST_PATH, TEST_DATA, CreateMode.PERSISTENT);
     Assert.assertEquals((long) beanServer.getAttribute(name, "WriteCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "WriteBytesCounter"), TEST_DATA_SIZE);
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesWriteCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesWriteBytesCounter"),
         TEST_DATA_SIZE);
+    long origTotalWriteLatency = (long) beanServer.getAttribute(name, "TotalWriteLatency");
+    Assert.assertTrue(origTotalWriteLatency >= 0);
+    Assert.assertTrue((long) beanServer.getAttribute(name, "MaxWriteLatency") >= 0);
+    long origIdealStatesTotalWriteLatency =
+        (long) beanServer.getAttribute(name, "IdealStatesTotalWriteLatency");
+    Assert.assertTrue(origIdealStatesTotalWriteLatency >= 0);
+    Assert.assertTrue((long) beanServer.getAttribute(name, "IdealStatesMaxWriteLatency") >= 0);
 
     // Test read
     Assert.assertEquals((long) beanServer.getAttribute(name, "ReadCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "ReadBytesCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesReadCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesReadBytesCounter"), 0);
+    long origTotalReadLatency = (long) beanServer.getAttribute(name, "TotalReadLatency");
+    long origIdealStatesTotalReadLatency =
+        (long) beanServer.getAttribute(name, "IdealStatesTotalReadLatency");
+    Assert.assertEquals(origIdealStatesTotalReadLatency, 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesMaxReadLatency"), 0);
     zkClient.readData(TEST_PATH, new Stat());
     Assert.assertEquals((long) beanServer.getAttribute(name, "ReadCounter"), 2);
     Assert.assertEquals((long) beanServer.getAttribute(name, "ReadBytesCounter"), TEST_DATA_SIZE);
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesReadCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesReadBytesCounter"),
         TEST_DATA_SIZE);
+    Assert.assertTrue(
+        (long) beanServer.getAttribute(name, "TotalReadLatency") >= origTotalReadLatency);
+    Assert.assertTrue((long) beanServer.getAttribute(name, "IdealStatesTotalReadLatency")
+        >= origIdealStatesTotalReadLatency);
+    Assert.assertTrue((long) beanServer.getAttribute(name, "IdealStatesMaxReadLatency") >= 0);
     zkClient.getChildren(TEST_PATH);
     Assert.assertEquals((long) beanServer.getAttribute(name, "ReadCounter"), 3);
     Assert.assertEquals((long) beanServer.getAttribute(name, "ReadBytesCounter"), TEST_DATA_SIZE);
@@ -200,6 +224,13 @@ public class TestZkClient extends ZkUnitTestBase {
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesReadCounter"), 3);
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesReadBytesCounter"),
         TEST_DATA_SIZE);
+    zkClient.readDataAndStat(TEST_PATH, new Stat(), true);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "ReadCounter"), 5);
+
+    ZkAsyncCallbacks.ExistsCallbackHandler callbackHandler = new ZkAsyncCallbacks.ExistsCallbackHandler();
+    zkClient.asyncExists(TEST_PATH, callbackHandler);
+    callbackHandler.waitForSuccess();
+    Assert.assertEquals((long) beanServer.getAttribute(name, "ReadCounter"), 6);
 
     // Test write
     zkClient.writeData(TEST_PATH, TEST_DATA);
@@ -209,6 +240,10 @@ public class TestZkClient extends ZkUnitTestBase {
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesWriteCounter"), 2);
     Assert.assertEquals((long) beanServer.getAttribute(name, "IdealStatesWriteBytesCounter"),
         TEST_DATA_SIZE * 2);
+    Assert.assertTrue(
+        (long) beanServer.getAttribute(name, "TotalWriteLatency") >= origTotalWriteLatency);
+    Assert.assertTrue((long) beanServer.getAttribute(name, "IdealStatesTotalWriteLatency")
+        >= origIdealStatesTotalWriteLatency);
 
     // Test data change count
     final Lock lock = new ReentrantLock();

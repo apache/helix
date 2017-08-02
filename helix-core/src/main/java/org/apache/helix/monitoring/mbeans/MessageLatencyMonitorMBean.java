@@ -19,7 +19,9 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-public interface MessageLatencyMBean {
+import org.apache.helix.monitoring.SensorNameProvider;
+
+public interface MessageLatencyMonitorMBean extends SensorNameProvider{
 
   /**
    * Mesure the total message latency from ZK

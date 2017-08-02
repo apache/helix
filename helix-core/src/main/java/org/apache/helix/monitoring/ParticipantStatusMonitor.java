@@ -28,7 +28,7 @@ import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import org.apache.helix.messaging.handling.HelixTaskExecutor;
+
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.MessageLatencyMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
@@ -40,6 +40,8 @@ public class ParticipantStatusMonitor {
   private final ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap =
       new ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor>();
   private static final Logger LOG = Logger.getLogger(ParticipantStatusMonitor.class);
+  public static final String PARTICIPANT_KEY = "ParticipantName";
+  public static final String PARTICIPANT_STATUS_KEY = "ParticipantMessageStatus";
 
   private MBeanServer _beanServer;
   private ParticipantMessageMonitor _messageMonitor;
@@ -51,9 +53,10 @@ public class ParticipantStatusMonitor {
       _beanServer = ManagementFactory.getPlatformMBeanServer();
       if (isParticipant) {
         _messageMonitor = new ParticipantMessageMonitor(instanceName);
-        _messageLatencyMonitor = new MessageLatencyMonitor();
+        _messageLatencyMonitor = new MessageLatencyMonitor(instanceName);
         _executorMonitors = new ConcurrentHashMap<>();
         register(_messageMonitor, getObjectName(_messageMonitor.getParticipantBeanName()));
+        register(_messageLatencyMonitor, getObjectName(_messageLatencyMonitor.getBeanName()));
       }
     } catch (Exception e) {
       LOG.warn(e);

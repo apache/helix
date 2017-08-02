@@ -20,21 +20,30 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import org.apache.helix.model.Message;
+import org.apache.helix.monitoring.ParticipantStatusMonitor;
 import org.apache.log4j.Logger;
 
-public class MessageLatencyMonitor implements MessageLatencyMBean {
+public class MessageLatencyMonitor implements MessageLatencyMonitorMBean {
   private static final Logger logger = Logger.getLogger(MessageLatencyMonitor.class.getName());
+  public static String MONITOR_TYPE_KW = "MonitorType";
   private static long DEFAULT_RESET_TIME = 60 * 60 * 1000;
   private long _totalMessageLatency;
   private long _totalMessageCount;
   private long _maxSingleMessageLatency;
   private long _lastResetTime;
+  private String _participantName;
 
-  public MessageLatencyMonitor() {
+  public MessageLatencyMonitor(String participantName) {
     _totalMessageLatency = 0L;
     _totalMessageCount = 0L;
     _maxSingleMessageLatency = 0;
     _lastResetTime = System.currentTimeMillis();
+    _participantName = participantName;
+  }
+
+  public String getBeanName() {
+    return String.format("%s=%s,%s=%s", ParticipantStatusMonitor.PARTICIPANT_KEY, _participantName,
+        MONITOR_TYPE_KW, MessageLatencyMonitor.class.getSimpleName());
   }
 
   public void updateLatency(Message message) {
@@ -63,5 +72,12 @@ public class MessageLatencyMonitor implements MessageLatencyMBean {
   @Override
   public long getMaxSingleMessageLatency() {
     return _maxSingleMessageLatency;
+  }
+
+  @Override
+  public String getSensorName() {
+    return String
+        .format("%s.%s.%s.%s.", ParticipantStatusMonitor.PARTICIPANT_STATUS_KEY, _participantName,
+            MONITOR_TYPE_KW, MessageLatencyMonitor.class.getSimpleName());
   }
 }

@@ -158,8 +158,10 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       if (_cache.getLiveInstances() != null) {
         NotificationContext changeContext = new NotificationContext(_manager);
         changeContext.setType(NotificationContext.Type.CALLBACK);
-        checkLiveInstancesObservation(new ArrayList<>(_cache.getLiveInstances().values()),
-                changeContext);
+        synchronized (_manager) {
+          checkLiveInstancesObservation(new ArrayList<>(_cache.getLiveInstances().values()),
+              changeContext);
+        }
       }
 
       NotificationContext changeContext = new NotificationContext(_manager);
@@ -441,8 +443,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       checkLiveInstancesObservation(liveInstances, changeContext);
     } else if (changeContext.getType() == NotificationContext.Type.FINALIZE) {
       // on finalize, should remove all message/current-state listeners
-      logger.info("remove message/current-state listeners. lastSeenInstances: "
-          + _lastSeenInstances + ", lastSeenSessions: " + _lastSeenSessions);
+      logger.info("remove message/current-state listeners. lastSeenInstances: " + _lastSeenInstances
+          + ", lastSeenSessions: " + _lastSeenSessions);
       liveInstances = Collections.emptyList();
       checkLiveInstancesObservation(liveInstances, changeContext);
     }

@@ -430,6 +430,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
         isDeleted = true;
       } catch (ZkNoNodeException e) {
         isDeleted = false;
+        LOG.error("Failed to delete path " + path + ", znode does not exist!");
       }
       recordWrite(path, null, startT);
     } catch (Exception e) {

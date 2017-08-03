@@ -19,7 +19,6 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.List;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;

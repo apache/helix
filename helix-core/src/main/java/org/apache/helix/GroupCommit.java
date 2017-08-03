@@ -139,7 +139,9 @@ public class GroupCommit {
               success = accessor.set(mergedKey, merged, options);
             }
             if (!success) {
-              LOG.error("Fails to update " + mergedKey + " to ZK, retry it!");
+              LOG.error(
+                  "Fails to update " + mergedKey + " to ZK, retry it! remove: " + (removeIfEmpty
+                      && merged.getMapFields().isEmpty()));
             }
           }
         } finally {

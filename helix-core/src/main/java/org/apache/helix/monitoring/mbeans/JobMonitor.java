@@ -19,10 +19,7 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import org.apache.helix.task.JobRebalancer;
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.WorkflowConfig;
-import org.apache.helix.task.WorkflowContext;
 import org.apache.log4j.Logger;
 
 

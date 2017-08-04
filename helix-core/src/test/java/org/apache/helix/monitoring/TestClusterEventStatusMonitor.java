@@ -73,9 +73,9 @@ public class TestClusterEventStatusMonitor {
     Assert.assertEquals(mbeans.size(), 6);
 
     for (ObjectInstance mbean : mbeans) {
-      Long duration = (Long) _server.getAttribute(mbean.getObjectName(), "TotalDuration");
-      Long maxDuration = (Long) _server.getAttribute(mbean.getObjectName(), "MaxDuration");
-      Long eventCount = (Long) _server.getAttribute(mbean.getObjectName(), "EventCount");
+      Long duration = (Long) _server.getAttribute(mbean.getObjectName(), "TotalDurationCounter");
+      Long maxDuration = (Long) _server.getAttribute(mbean.getObjectName(), "MaxSingleDurationGauge");
+      Long eventCount = (Long) _server.getAttribute(mbean.getObjectName(), "EventCounter");
 
       Assert.assertEquals(duration, totalDuration);
       Assert.assertEquals(maxDuration, Long.valueOf(100 * count));

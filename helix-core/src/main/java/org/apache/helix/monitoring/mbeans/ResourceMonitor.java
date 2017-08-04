@@ -240,8 +240,10 @@ public class ResourceMonitor implements ResourceMonitorMBean {
       if (succeeded) {
         _successTopStateHandoffCounter++;
         _successfulTopStateHandoffDurationCounter += duration;
-        _maxSinglePartitionTopStateHandoffDuration =
-            Math.max(_maxSinglePartitionTopStateHandoffDuration, duration);
+        if (duration > _maxSinglePartitionTopStateHandoffDuration) {
+          _maxSinglePartitionTopStateHandoffDuration = duration;
+          _lastResetTime = System.currentTimeMillis();
+        }
       } else {
         _failedTopStateHandoffCounter++;
       }

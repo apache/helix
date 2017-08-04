@@ -22,7 +22,7 @@ package org.apache.helix.monitoring.mbeans;
 import org.apache.helix.monitoring.SensorNameProvider;
 
 public interface ClusterEventMonitorMBean extends SensorNameProvider {
-  long getTotalDuration();
-  long getMaxDuration();
-  long getEventCount();
+  long getTotalDurationCounter();
+  long getMaxSingleDurationGauge();
+  long getEventCounter();
 }

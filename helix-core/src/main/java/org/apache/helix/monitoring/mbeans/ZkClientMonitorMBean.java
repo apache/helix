@@ -29,10 +29,10 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getWriteCounter();
   long getReadBytesCounter();
   long getWriteBytesCounter();
-  long getTotalReadLatency();
-  long getTotalWriteLatency();
-  long getMaxReadLatency();
-  long getMaxWriteLatency();
+  long getTotalReadLatencyCounter();
+  long getTotalWriteLatencyCounter();
+  long getMaxSingleReadLatencyGauge();
+  long getMaxSingleWriteLatencyGauge();
   long getReadFailureCounter();
   long getWriteFailureCounter();
 
@@ -40,10 +40,10 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getIdealStatesWriteCounter();
   long getIdealStatesReadBytesCounter();
   long getIdealStatesWriteBytesCounter();
-  long getIdealStatesTotalReadLatency();
-  long getIdealStatesTotalWriteLatency();
-  long getIdealStatesMaxReadLatency();
-  long getIdealStatesMaxWriteLatency();
+  long getIdealStatesTotalReadLatencyCounter();
+  long getIdealStatesTotalWriteLatencyCounter();
+  long getIdealStatesMaxSingleReadLatencyGauge();
+  long getIdealStatesMaxSingleWriteLatencyGauge();
   long getIdealStatesReadFailureCounter();
   long getIdealStatesWriteFailureCounter();
 
@@ -51,10 +51,10 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getInstancesWriteCounter();
   long getInstancesReadBytesCounter();
   long getInstancesWriteBytesCounter();
-  long getInstancesTotalReadLatency();
-  long getInstancesTotalWriteLatency();
-  long getInstancesMaxReadLatency();
-  long getInstancesMaxWriteLatency();
+  long getInstancesTotalReadLatencyCounter();
+  long getInstancesTotalWriteLatencyCounter();
+  long getInstancesMaxSingleReadLatencyGauge();
+  long getInstancesMaxSingleWriteLatencyGauge();
   long getInstancesReadFailureCounter();
   long getInstancesWriteFailureCounter();
 
@@ -62,10 +62,10 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getConfigsWriteCounter();
   long getConfigsReadBytesCounter();
   long getConfigsWriteBytesCounter();
-  long getConfigsTotalReadLatency();
-  long getConfigsTotalWriteLatency();
-  long getConfigsMaxReadLatency();
-  long getConfigsMaxWriteLatency();
+  long getConfigsTotalReadLatencyCounter();
+  long getConfigsTotalWriteLatencyCounter();
+  long getConfigsMaxSingleReadLatencyGauge();
+  long getConfigsMaxSingleWriteLatencyGauge();
   long getConfigsReadFailureCounter();
   long getConfigsWriteFailureCounter();
 
@@ -73,10 +73,10 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getControllerWriteCounter();
   long getControllerReadBytesCounter();
   long getControllerWriteBytesCounter();
-  long getControllerTotalReadLatency();
-  long getControllerTotalWriteLatency();
-  long getControllerMaxReadLatency();
-  long getControllerMaxWriteLatency();
+  long getControllerTotalReadLatencyCounter();
+  long getControllerTotalWriteLatencyCounter();
+  long getControllerMaxSingleReadLatencyGauge();
+  long getControllerMaxSingleWriteLatencyGauge();
   long getControllerReadFailureCounter();
   long getControllerWriteFailureCounter();
 
@@ -84,10 +84,10 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getExternalViewWriteCounter();
   long getExternalViewReadBytesCounter();
   long getExternalViewWriteBytesCounter();
-  long getExternalViewTotalReadLatency();
-  long getExternalViewTotalWriteLatency();
-  long getExternalViewMaxReadLatency();
-  long getExternalViewMaxWriteLatency();
+  long getExternalViewTotalReadLatencyCounter();
+  long getExternalViewTotalWriteLatencyCounter();
+  long getExternalViewMaxSingleReadLatencyGauge();
+  long getExternalViewMaxSingleWriteLatencyGauge();
   long getExternalViewReadFailureCounter();
   long getExternalViewWriteFailureCounter();
 
@@ -95,10 +95,10 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getLiveInstancesWriteCounter();
   long getLiveInstancesReadBytesCounter();
   long getLiveInstancesWriteBytesCounter();
-  long getLiveInstancesTotalReadLatency();
-  long getLiveInstancesTotalWriteLatency();
-  long getLiveInstancesMaxReadLatency();
-  long getLiveInstancesMaxWriteLatency();
+  long getLiveInstancesTotalReadLatencyCounter();
+  long getLiveInstancesTotalWriteLatencyCounter();
+  long getLiveInstancesMaxSingleReadLatencyGauge();
+  long getLiveInstancesMaxSingleWriteLatencyGauge();
   long getLiveInstancesReadFailureCounter();
   long getLiveInstancesWriteFailureCounter();
 
@@ -106,10 +106,10 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getPropertyStoreWriteCounter();
   long getPropertyStoreReadBytesCounter();
   long getPropertyStoreWriteBytesCounter();
-  long getPropertyStoreTotalReadLatency();
-  long getPropertyStoreTotalWriteLatency();
-  long getPropertyStoreMaxReadLatency();
-  long getPropertyStoreMaxWriteLatency();
+  long getPropertyStoreTotalReadLatencyCounter();
+  long getPropertyStoreTotalWriteLatencyCounter();
+  long getPropertyStoreMaxSingleReadLatencyGauge();
+  long getPropertyStoreMaxSingleWriteLatencyGauge();
   long getPropertyStoreReadFailureCounter();
   long getPropertyStoreWriteFailureCounter();
 
@@ -117,10 +117,10 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getCurrentStatesWriteCounter();
   long getCurrentStatesReadBytesCounter();
   long getCurrentStatesWriteBytesCounter();
-  long getCurrentStatesTotalReadLatency();
-  long getCurrentStatesTotalWriteLatency();
-  long getCurrentStatesMaxReadLatency();
-  long getCurrentStatesMaxWriteLatency();
+  long getCurrentStatesTotalReadLatencyCounter();
+  long getCurrentStatesTotalWriteLatencyCounter();
+  long getCurrentStatesMaxSingleReadLatencyGauge();
+  long getCurrentStatesMaxSingleWriteLatencyGauge();
   long getCurrentStatesReadFailureCounter();
   long getCurrentStatesWriteFailureCounter();
 
@@ -128,10 +128,10 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getMessagesWriteCounter();
   long getMessagesReadBytesCounter();
   long getMessagesWriteBytesCounter();
-  long getMessagesTotalReadLatency();
-  long getMessagesTotalWriteLatency();
-  long getMessagesMaxReadLatency();
-  long getMessagesMaxWriteLatency();
+  long getMessagesTotalReadLatencyCounter();
+  long getMessagesTotalWriteLatencyCounter();
+  long getMessagesMaxSingleReadLatencyGauge();
+  long getMessagesMaxSingleWriteLatencyGauge();
   long getMessagesReadFailureCounter();
   long getMessagesWriteFailureCounter();
 }

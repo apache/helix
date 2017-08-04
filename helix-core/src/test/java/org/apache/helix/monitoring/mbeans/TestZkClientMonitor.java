@@ -70,15 +70,15 @@ public class TestZkClientMonitor {
     monitor.recordRead("TEST/IDEALSTATES/myResource", 0, System.currentTimeMillis() - 10);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "ReadCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "IdealStatesReadCounter"), 1);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalReadLatency") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxReadLatency") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalReadLatencyCounter") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxSingleReadLatencyGauge") >= 10);
 
     monitor.recordRead("TEST/INSTANCES/testDB0", 0, System.currentTimeMillis() - 15);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "ReadCounter"), 2);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "InstancesReadCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "IdealStatesReadCounter"), 1);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalReadLatency") >= 25);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxReadLatency") >= 15);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalReadLatencyCounter") >= 25);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxSingleReadLatencyGauge") >= 15);
 
     monitor.recordWrite("TEST/INSTANCES/node_1/CURRENTSTATES/session_1/Resource", 5,
         System.currentTimeMillis() - 10);
@@ -87,9 +87,9 @@ public class TestZkClientMonitor {
     Assert.assertEquals((long) _beanServer.getAttribute(name, "CurrentStatesWriteBytesCounter"), 5);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "InstancesWriteCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "InstancesWriteBytesCounter"), 5);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalWriteLatency") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxWriteLatency") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "InstancesTotalWriteLatency") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "InstancesMaxWriteLatency") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalWriteLatencyCounter") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxSingleWriteLatencyGauge") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "InstancesTotalWriteLatencyCounter") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(name, "InstancesMaxSingleWriteLatencyGauge") >= 10);
   }
 }

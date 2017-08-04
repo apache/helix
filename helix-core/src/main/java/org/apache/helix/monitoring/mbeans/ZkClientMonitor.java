@@ -25,6 +25,7 @@ import javax.management.JMException;
 import javax.management.ObjectName;
 
 public class ZkClientMonitor implements ZkClientMonitorMBean {
+  private static final long RESET_INTERVAL = 1000 * 60 * 10; // 1 hour
   public static final String MONITOR_TYPE = "Type";
   public static final String MONITOR_KEY = "Key";
   public static final String DEFAULT_TAG = "default";
@@ -53,6 +54,8 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
       return path.matches(this._matchString);
     }
   }
+
+  private long _lastResetTime = 0;
 
   private long _stateChangeEventCounter;
   private long _dataChangeEventCounter;
@@ -159,10 +162,13 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
           _counterMap.put(predefinedPath, _counterMap.get(predefinedPath) + 1);
           _totalLatencyMap
               .put(predefinedPath, _totalLatencyMap.get(predefinedPath) + latencyMilliSec);
-          long maxLatency = _maxLatencyMap.get(predefinedPath);
-          if (latencyMilliSec > maxLatency) {
+
+          if (_lastResetTime + RESET_INTERVAL <= System.currentTimeMillis() ||
+              latencyMilliSec > _maxLatencyMap.get(predefinedPath)) {
             _maxLatencyMap.put(predefinedPath, latencyMilliSec);
+            _lastResetTime = System.currentTimeMillis();
           }
+
           if (bytes > 0) {
             _bytesCounterMap
                 .put(predefinedPath, _bytesCounterMap.get(predefinedPath) + bytes);
@@ -204,19 +210,19 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _writeBytesCounterMap.get(PredefinedPath.Default);
   }
 
-  @Override public long getTotalReadLatency() {
+  @Override public long getTotalReadLatencyCounter() {
     return _readTotalLatencyMap.get(PredefinedPath.Default);
   }
 
-  @Override public long getTotalWriteLatency() {
+  @Override public long getTotalWriteLatencyCounter() {
     return _writeTotalLatencyMap.get(PredefinedPath.Default);
   }
 
-  @Override public long getMaxReadLatency() {
+  @Override public long getMaxSingleReadLatencyGauge() {
     return _readMaxLatencyMap.get(PredefinedPath.Default);
   }
 
-  @Override public long getMaxWriteLatency() {
+  @Override public long getMaxSingleWriteLatencyGauge() {
     return _writeMaxLatencyMap.get(PredefinedPath.Default);
   }
 
@@ -244,19 +250,19 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _writeBytesCounterMap.get(PredefinedPath.IdealStates);
   }
 
-  @Override public long getIdealStatesTotalReadLatency() {
+  @Override public long getIdealStatesTotalReadLatencyCounter() {
     return _readTotalLatencyMap.get(PredefinedPath.IdealStates);
   }
 
-  @Override public long getIdealStatesTotalWriteLatency() {
+  @Override public long getIdealStatesTotalWriteLatencyCounter() {
     return _writeTotalLatencyMap.get(PredefinedPath.IdealStates);
   }
 
-  @Override public long getIdealStatesMaxReadLatency() {
+  @Override public long getIdealStatesMaxSingleReadLatencyGauge() {
     return _readMaxLatencyMap.get(PredefinedPath.IdealStates);
   }
 
-  @Override public long getIdealStatesMaxWriteLatency() {
+  @Override public long getIdealStatesMaxSingleWriteLatencyGauge() {
     return _writeMaxLatencyMap.get(PredefinedPath.IdealStates);
   }
 
@@ -284,19 +290,19 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _writeBytesCounterMap.get(PredefinedPath.Instances);
   }
 
-  @Override public long getInstancesTotalReadLatency() {
+  @Override public long getInstancesTotalReadLatencyCounter() {
     return _readTotalLatencyMap.get(PredefinedPath.Instances);
   }
 
-  @Override public long getInstancesTotalWriteLatency() {
+  @Override public long getInstancesTotalWriteLatencyCounter() {
     return _writeTotalLatencyMap.get(PredefinedPath.Instances);
   }
 
-  @Override public long getInstancesMaxReadLatency() {
+  @Override public long getInstancesMaxSingleReadLatencyGauge() {
     return _readMaxLatencyMap.get(PredefinedPath.Instances);
   }
 
-  @Override public long getInstancesMaxWriteLatency() {
+  @Override public long getInstancesMaxSingleWriteLatencyGauge() {
     return _writeMaxLatencyMap.get(PredefinedPath.Instances);
   }
 
@@ -324,19 +330,19 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _writeBytesCounterMap.get(PredefinedPath.Configs);
   }
 
-  @Override public long getConfigsTotalReadLatency() {
+  @Override public long getConfigsTotalReadLatencyCounter() {
     return _readTotalLatencyMap.get(PredefinedPath.Configs);
   }
 
-  @Override public long getConfigsTotalWriteLatency() {
+  @Override public long getConfigsTotalWriteLatencyCounter() {
     return _writeTotalLatencyMap.get(PredefinedPath.Configs);
   }
 
-  @Override public long getConfigsMaxReadLatency() {
+  @Override public long getConfigsMaxSingleReadLatencyGauge() {
     return _readMaxLatencyMap.get(PredefinedPath.Configs);
   }
 
-  @Override public long getConfigsMaxWriteLatency() {
+  @Override public long getConfigsMaxSingleWriteLatencyGauge() {
     return _writeMaxLatencyMap.get(PredefinedPath.Configs);
   }
 
@@ -364,19 +370,19 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _writeBytesCounterMap.get(PredefinedPath.Controller);
   }
 
-  @Override public long getControllerTotalReadLatency() {
+  @Override public long getControllerTotalReadLatencyCounter() {
     return _readTotalLatencyMap.get(PredefinedPath.Controller);
   }
 
-  @Override public long getControllerTotalWriteLatency() {
+  @Override public long getControllerTotalWriteLatencyCounter() {
     return _writeTotalLatencyMap.get(PredefinedPath.Controller);
   }
 
-  @Override public long getControllerMaxReadLatency() {
+  @Override public long getControllerMaxSingleReadLatencyGauge() {
     return _readMaxLatencyMap.get(PredefinedPath.Controller);
   }
 
-  @Override public long getControllerMaxWriteLatency() {
+  @Override public long getControllerMaxSingleWriteLatencyGauge() {
     return _writeMaxLatencyMap.get(PredefinedPath.Controller);
   }
 
@@ -404,19 +410,19 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _writeBytesCounterMap.get(PredefinedPath.ExternalView);
   }
 
-  @Override public long getExternalViewTotalReadLatency() {
+  @Override public long getExternalViewTotalReadLatencyCounter() {
     return _readTotalLatencyMap.get(PredefinedPath.ExternalView);
   }
 
-  @Override public long getExternalViewTotalWriteLatency() {
+  @Override public long getExternalViewTotalWriteLatencyCounter() {
     return _writeTotalLatencyMap.get(PredefinedPath.ExternalView);
   }
 
-  @Override public long getExternalViewMaxReadLatency() {
+  @Override public long getExternalViewMaxSingleReadLatencyGauge() {
     return _readMaxLatencyMap.get(PredefinedPath.ExternalView);
   }
 
-  @Override public long getExternalViewMaxWriteLatency() {
+  @Override public long getExternalViewMaxSingleWriteLatencyGauge() {
     return _writeMaxLatencyMap.get(PredefinedPath.ExternalView);
   }
 
@@ -444,19 +450,19 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _writeBytesCounterMap.get(PredefinedPath.LiveInstances);
   }
 
-  @Override public long getLiveInstancesTotalReadLatency() {
+  @Override public long getLiveInstancesTotalReadLatencyCounter() {
     return _readTotalLatencyMap.get(PredefinedPath.LiveInstances);
   }
 
-  @Override public long getLiveInstancesTotalWriteLatency() {
+  @Override public long getLiveInstancesTotalWriteLatencyCounter() {
     return _writeTotalLatencyMap.get(PredefinedPath.LiveInstances);
   }
 
-  @Override public long getLiveInstancesMaxReadLatency() {
+  @Override public long getLiveInstancesMaxSingleReadLatencyGauge() {
     return _readMaxLatencyMap.get(PredefinedPath.LiveInstances);
   }
 
-  @Override public long getLiveInstancesMaxWriteLatency() {
+  @Override public long getLiveInstancesMaxSingleWriteLatencyGauge() {
     return _writeMaxLatencyMap.get(PredefinedPath.LiveInstances);
   }
 
@@ -484,19 +490,19 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _writeBytesCounterMap.get(PredefinedPath.PropertyStore);
   }
 
-  @Override public long getPropertyStoreTotalReadLatency() {
+  @Override public long getPropertyStoreTotalReadLatencyCounter() {
     return _readTotalLatencyMap.get(PredefinedPath.PropertyStore);
   }
 
-  @Override public long getPropertyStoreTotalWriteLatency() {
+  @Override public long getPropertyStoreTotalWriteLatencyCounter() {
     return _writeTotalLatencyMap.get(PredefinedPath.PropertyStore);
   }
 
-  @Override public long getPropertyStoreMaxReadLatency() {
+  @Override public long getPropertyStoreMaxSingleReadLatencyGauge() {
     return _readMaxLatencyMap.get(PredefinedPath.PropertyStore);
   }
 
-  @Override public long getPropertyStoreMaxWriteLatency() {
+  @Override public long getPropertyStoreMaxSingleWriteLatencyGauge() {
     return _writeMaxLatencyMap.get(PredefinedPath.PropertyStore);
   }
 
@@ -524,19 +530,19 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _writeBytesCounterMap.get(PredefinedPath.CurrentStates);
   }
 
-  @Override public long getCurrentStatesTotalReadLatency() {
+  @Override public long getCurrentStatesTotalReadLatencyCounter() {
     return _readTotalLatencyMap.get(PredefinedPath.CurrentStates);
   }
 
-  @Override public long getCurrentStatesTotalWriteLatency() {
+  @Override public long getCurrentStatesTotalWriteLatencyCounter() {
     return _writeTotalLatencyMap.get(PredefinedPath.CurrentStates);
   }
 
-  @Override public long getCurrentStatesMaxReadLatency() {
+  @Override public long getCurrentStatesMaxSingleReadLatencyGauge() {
     return _readMaxLatencyMap.get(PredefinedPath.CurrentStates);
   }
 
-  @Override public long getCurrentStatesMaxWriteLatency() {
+  @Override public long getCurrentStatesMaxSingleWriteLatencyGauge() {
     return _writeMaxLatencyMap.get(PredefinedPath.CurrentStates);
   }
 
@@ -564,19 +570,19 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return _writeBytesCounterMap.get(PredefinedPath.Messages);
   }
 
-  @Override public long getMessagesTotalReadLatency() {
+  @Override public long getMessagesTotalReadLatencyCounter() {
     return _readTotalLatencyMap.get(PredefinedPath.Messages);
   }
 
-  @Override public long getMessagesTotalWriteLatency() {
+  @Override public long getMessagesTotalWriteLatencyCounter() {
     return _writeTotalLatencyMap.get(PredefinedPath.Messages);
   }
 
-  @Override public long getMessagesMaxReadLatency() {
+  @Override public long getMessagesMaxSingleReadLatencyGauge() {
     return _readMaxLatencyMap.get(PredefinedPath.Messages);
   }
 
-  @Override public long getMessagesMaxWriteLatency() {
+  @Override public long getMessagesMaxSingleWriteLatencyGauge() {
     return _writeMaxLatencyMap.get(PredefinedPath.Messages);
   }
 

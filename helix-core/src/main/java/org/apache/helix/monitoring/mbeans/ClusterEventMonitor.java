@@ -47,17 +47,17 @@ public class ClusterEventMonitor implements ClusterEventMonitorMBean {
   }
 
   @Override
-  public long getTotalDuration() {
+  public long getTotalDurationCounter() {
     return _totalDuration;
   }
 
   @Override
-  public long getMaxDuration() {
+  public long getMaxSingleDurationGauge() {
     return _maxDuration;
   }
 
   @Override
-  public long getEventCount() {
+  public long getEventCounter() {
     return _count;
   }
 
@@ -65,11 +65,10 @@ public class ClusterEventMonitor implements ClusterEventMonitorMBean {
     _totalDuration += duration;
     _count++;
 
-    if (_lastResetTime + RESET_INTERVAL <= System.currentTimeMillis()) {
+    if (_lastResetTime + RESET_INTERVAL <= System.currentTimeMillis() ||
+        duration > _maxDuration) {
       _maxDuration = duration;
       _lastResetTime = System.currentTimeMillis();
-    } else {
-      _maxDuration = Math.max(_maxDuration, duration);
     }
   }
 

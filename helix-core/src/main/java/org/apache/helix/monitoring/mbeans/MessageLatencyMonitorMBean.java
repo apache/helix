@@ -27,17 +27,17 @@ public interface MessageLatencyMonitorMBean extends SensorNameProvider{
    * Mesure the total message latency from ZK
    * @return
    */
-  public long getTotalMessageLatency();
+  public long getTotalMessageLatencyCounter();
 
   /**
    * The total count of received NEW message
    * @return
    */
-  public long getTotalMessageCount();
+  public long getTotalMessageCounter();
 
   /**
    * The maximal message latency for single message. It will be cleared in one hour
    * @return
    */
-  public long getMaxSingleMessageLatency();
+  public long getMaxSingleMessageLatencyGauge();
 }

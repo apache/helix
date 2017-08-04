@@ -51,26 +51,27 @@ public class MessageLatencyMonitor implements MessageLatencyMonitorMBean {
     logger.info(String.format("The latency of message %s is %d ms", message.getMsgId(), latency));
     _totalMessageCount++;
     _totalMessageLatency += latency;
-    if (_lastResetTime + DEFAULT_RESET_TIME <= System.currentTimeMillis()) {
-      _maxSingleMessageLatency = 0L;
+
+    if (_lastResetTime + DEFAULT_RESET_TIME <= System.currentTimeMillis() ||
+        latency > _maxSingleMessageLatency) {
+      _maxSingleMessageLatency = latency;
       _lastResetTime = System.currentTimeMillis();
     }
-    _maxSingleMessageLatency = Math.max(_maxSingleMessageLatency, latency);
   }
 
 
   @Override
-  public long getTotalMessageLatency() {
+  public long getTotalMessageLatencyCounter() {
     return _totalMessageLatency;
   }
 
   @Override
-  public long getTotalMessageCount() {
+  public long getTotalMessageCounter() {
     return _totalMessageCount;
   }
 
   @Override
-  public long getMaxSingleMessageLatency() {
+  public long getMaxSingleMessageLatencyGauge() {
     return _maxSingleMessageLatency;
   }
 

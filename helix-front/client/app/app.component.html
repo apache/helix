@@ -5,11 +5,13 @@
       (click)="sidenav.open()">
       <md-icon>menu</md-icon>
     </button>
-    <h2>Helix</h2>
+    <h2 routerLink="/">Helix</h2>
     <a md-button *ngIf="false" (click)="openDialog()">Test</a>
   </md-toolbar>
   <md-progress-bar *ngIf="isLoading" mode="indeterminate" [ngClass]="{'no-header': !headerEnabled}"></md-progress-bar>
-  <router-outlet></router-outlet>
+  <section class="main-container" [ngClass]="{'no-header': !headerEnabled}">
+    <router-outlet></router-outlet>
+  </section>
   <section *ngIf="footerEnabled" class="footer mat-elevation-z7" fxLayout="row" fxLayoutAlign="center center">
     <span>&copy; 2017 Helix. All rights reserved.</span>
   </section>

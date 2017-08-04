@@ -22,7 +22,7 @@ import { InputDialogComponent } from './shared/dialog/input-dialog/input-dialog.
 export class AppComponent implements OnInit {
 
   headerEnabled = true;
-  footerEnabled = environment.production;
+  footerEnabled = true;
   isLoading = true;
 
   constructor(

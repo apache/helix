@@ -1,11 +1,10 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { MediaChange, ObservableMedia } from '@angular/flex-layout';
 
 @Component({
   selector: 'hi-cluster',
   templateUrl: './cluster.component.html',
-  styleUrls: ['./cluster.component.scss'],
-  encapsulation: ViewEncapsulation.None
+  styleUrls: ['./cluster.component.scss']
 })
 export class ClusterComponent implements OnInit {
 

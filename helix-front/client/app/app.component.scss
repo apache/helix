@@ -22,3 +22,11 @@
     color: #666;
   }
 }
+
+.main-container {
+  height: calc(100vh - 64px - 50px);
+
+  &.no-header {
+    height: 100vh;
+  }
+}

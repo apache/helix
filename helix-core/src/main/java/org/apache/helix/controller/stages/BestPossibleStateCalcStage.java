@@ -183,6 +183,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         taskRebalancer.setClusterStatusMonitor((ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor"));
       }
 
+      ResourceAssignment partitionStateAssignment = null;
       try {
         HelixManager manager = event.getAttribute("helixmanager");
         rebalancer.init(manager);
@@ -192,14 +193,27 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
         // Use the internal MappingCalculator interface to compute the final assignment
         // The next release will support rebalancers that compute the mapping from start to finish
-        ResourceAssignment partitionStateAssignment =
-            mappingCalculator.computeBestPossiblePartitionState(cache, idealState, resource, currentStateOutput);
+        partitionStateAssignment = mappingCalculator
+            .computeBestPossiblePartitionState(cache, idealState, resource, currentStateOutput);
         for (Partition partition : resource.getPartitions()) {
           Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
           output.setState(resourceName, partition, newStateMap);
         }
       } catch (Exception e) {
         logger.error("Error computing assignment for resource " + resourceName + ". Skipping.", e);
+        // TODO : remove this part after debugging NPE
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(String
+            .format("HelixManager is null : %s\n", event.getAttribute("helixmanager") == null));
+        sb.append(String.format("Rebalancer is null : %s\n", rebalancer == null));
+        sb.append(String.format("Calculated idealState is null : %s\n", idealState == null));
+        sb.append(String.format("MappingCaculator is null : %s\n", mappingCalculator == null));
+        sb.append(
+            String.format("PartitionAssignment is null : %s\n", partitionStateAssignment == null));
+        sb.append(String.format("Output is null : %s\n", output == null));
+
+        logger.error(sb.toString());
       }
     }
   }

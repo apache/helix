@@ -721,7 +721,7 @@ public class ClusterDataCache {
    * @return
    */
   public JobContext getJobContext(String resourceName) {
-    if (_contextMap.containsKey(resourceName)) {
+    if (_contextMap.containsKey(resourceName) && _contextMap.get(resourceName) != null) {
       return new JobContext(_contextMap.get(resourceName));
     }
     return null;
@@ -733,7 +733,7 @@ public class ClusterDataCache {
    * @return
    */
   public WorkflowContext getWorkflowContext(String resourceName) {
-    if (_contextMap.containsKey(resourceName)) {
+    if (_contextMap.containsKey(resourceName) && _contextMap.get(resourceName) != null) {
       return new WorkflowContext(_contextMap.get(resourceName));
     }
     return null;
@@ -831,9 +831,14 @@ public class ClusterDataCache {
     }
 
     List<ZNRecord> contexts = accessor.getBaseDataAccessor().get(contextPaths, null, 0);
-    for (ZNRecord context : contexts) {
+    for (int i = 0; i < contexts.size(); i++) {
+      ZNRecord context = contexts.get(i);
       if (context != null && context.getSimpleField(NAME) != null) {
         _contextMap.put(context.getSimpleField(NAME), context);
+      } else {
+        _contextMap.put(childNames.get(i), context);
+        LOG.warn(
+            String.format("Context for %s is null or miss the context NAME!", childNames.get((i))));
       }
     }
   }

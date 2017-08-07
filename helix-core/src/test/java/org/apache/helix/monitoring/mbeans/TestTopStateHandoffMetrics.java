@@ -44,9 +44,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
   public final static String INITIAL_CURRENT_STATES = "initialCurrentStates";
   public final static String HANDOFF_CURRENT_STATES = "handoffCurrentStates";
   public final static String EXPECTED_DURATION = "expectedDuration";
-  public final static String DATA_CACHE = "ClusterDataCache";
   public final static String TEST_RESOURCE = "TestResource";
-  public final static String CLUSTER_STATUS_MONITOR = "clusterStatusMonitor";
   public final static String PARTITION = "PARTITION";
 
 
@@ -58,7 +56,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     resource.addPartition(PARTITION);
     event.addAttribute(AttributeName.RESOURCES.name(),
         Collections.singletonMap(TEST_RESOURCE, resource));
-    event.addAttribute(CLUSTER_STATUS_MONITOR, new ClusterStatusMonitor("TestCluster"));
+    event.addAttribute(AttributeName.clusterStatusMonitor.name(), new ClusterStatusMonitor("TestCluster"));
   }
 
   @Test(dataProvider = "successCurrentStateInput")
@@ -66,7 +64,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
       Map<String, Map<String, String>> handOffCurrentStates, Long expectedDuration) {
     preSetup();
     runCurrentStage(initialCurrentStates, handOffCurrentStates);
-    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(CLUSTER_STATUS_MONITOR);
+    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
     ResourceMonitor monitor = clusterStatusMonitor.getResourceMonitor(TEST_RESOURCE);
 
     // Should have 1 transition succeeded due to threshold.
@@ -85,7 +83,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     clusterConfig.setMissTopStateDurationThreshold(5000L);
     setClusterConfig(clusterConfig);
     runCurrentStage(initialCurrentStates, handOffCurrentStates);
-    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(CLUSTER_STATUS_MONITOR);
+    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
     ResourceMonitor monitor = clusterStatusMonitor.getResourceMonitor(TEST_RESOURCE);
 
     // Should have 1 transition failed due to threshold.

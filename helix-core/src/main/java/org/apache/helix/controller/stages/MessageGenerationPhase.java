@@ -51,8 +51,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    HelixManager manager = event.getAttribute("helixmanager");
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
@@ -180,7 +180,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
               message.setExecutionTimeout(timeout);
             }
 
-            message.getRecord().setSimpleField("ClusterEventName", event.getName());
+            message.getRecord().setSimpleField("ClusterEventName", event.getEventType().name());
             // output.addMessage(resourceName, partition, message);
             if (!messageMap.containsKey(desiredState)) {
               messageMap.put(desiredState, new ArrayList<Message>());

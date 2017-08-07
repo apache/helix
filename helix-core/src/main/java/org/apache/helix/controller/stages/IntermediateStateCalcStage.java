@@ -63,7 +63,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     BestPossibleStateOutput bestPossibleStateOutput =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
 
     if (currentStateOutput == null || bestPossibleStateOutput == null || resourceMap == null
         || cache == null) {
@@ -95,7 +95,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     // try to bring immediate state close to best possible state until
     // the possible pending state transition numbers reach the set throttle number.
     IntermediateStateOutput output = new IntermediateStateOutput();
-    ClusterDataCache dataCache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache dataCache = event.getAttribute(AttributeName.ClusterDataCache.name());
 
     StateTransitionThrottleController throttleController =
         new StateTransitionThrottleController(resourceMap.keySet(), dataCache.getClusterConfig(),
@@ -134,7 +134,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
 
     // Update cluster status monitor mbean
-    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
 
     for (ResourcePriority resourcePriority : prioritizedResourceList) {
       String resourceName = resourcePriority.getResourceName();
@@ -189,7 +189,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           int partitionCount = instancePartitionCounts.get(instance);
           partitionCount++;
           if (partitionCount > maxPartitionPerInstance) {
-            HelixManager manager = event.getAttribute("helixmanager");
+            HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
             String errMsg = String.format(
                 "Partition count to be assigned to instance %s is greater than %d. Stop rebalance and pause the cluster %s",
                 instance, maxPartitionPerInstance, cache.getClusterName());

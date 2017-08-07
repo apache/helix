@@ -46,12 +46,12 @@ public class ReadClusterDataStage extends AbstractBaseStage {
     long startTime = System.currentTimeMillis();
     logger.info("START ReadClusterDataStage.process()");
 
-    HelixManager manager = event.getAttribute("helixmanager");
+    HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     if (manager == null) {
       throw new StageException("HelixManager attribute value is null");
     }
 
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     if (cache == null && _cache == null) {
       cache = new ClusterDataCache();
     }
@@ -59,7 +59,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
     _cache.refresh(dataAccessor);
-    final ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+    final ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
     asyncExecute(_cache.getAsyncTasksThreadPool(), new Callable<Object>() {
       @Override
       public Object call() {
@@ -100,7 +100,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
         return null;
       }
     });
-    event.addAttribute("ClusterDataCache", _cache);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), _cache);
 
     long endTime = System.currentTimeMillis();
     logger.info("END ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");

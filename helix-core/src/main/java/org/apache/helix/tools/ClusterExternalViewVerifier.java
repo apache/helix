@@ -26,6 +26,7 @@ import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZkClient;
@@ -88,8 +89,8 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
   }
 
   BestPossibleStateOutput calculateBestPossibleState(ClusterDataCache cache) throws Exception {
-    ClusterEvent event = new ClusterEvent("event");
-    event.addAttribute("ClusterDataCache", cache);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.StateVerifier);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     List<Stage> stages = new ArrayList<Stage>();
     stages.add(new ResourceComputationStage());

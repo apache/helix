@@ -65,16 +65,16 @@ public class TestRebalancerMetrics extends BaseStageTest {
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
-    event.addAttribute("clusterStatusMonitor", new ClusterStatusMonitor(_clusterName));
+    event.addAttribute(AttributeName.clusterStatusMonitor.name(), new ClusterStatusMonitor(_clusterName));
 
     runStage(event, new ReadClusterDataStage());
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     setupThrottleConfig(cache.getClusterConfig(),
         StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE, maxPending);
     runStage(event, new BestPossibleStateCalcStage());
     runStage(event, new IntermediateStateCalcStage());
 
-    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
     ResourceMonitor resourceMonitor = clusterStatusMonitor.getResourceMonitor(resource);
 
     Assert.assertEquals(resourceMonitor.getPendingRecoveryRebalancePartitionGauge(), numPartition);
@@ -108,7 +108,7 @@ public class TestRebalancerMetrics extends BaseStageTest {
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
-    event.addAttribute("clusterStatusMonitor", new ClusterStatusMonitor(_clusterName));
+    event.addAttribute(AttributeName.clusterStatusMonitor.name(), new ClusterStatusMonitor(_clusterName));
 
     runStage(event, new ReadClusterDataStage());
     runStage(event, new BestPossibleStateCalcStage());
@@ -120,13 +120,13 @@ public class TestRebalancerMetrics extends BaseStageTest {
     setupLiveInstances(4);
 
     runStage(event, new ReadClusterDataStage());
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     setupThrottleConfig(cache.getClusterConfig(),
         StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, maxPending);
     runStage(event, new BestPossibleStateCalcStage());
     runStage(event, new IntermediateStateCalcStage());
 
-    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
     ResourceMonitor resourceMonitor = clusterStatusMonitor.getResourceMonitor(resource);
 
     long numPendingLoadBalance = resourceMonitor.getPendingLoadRebalancePartitionGauge();

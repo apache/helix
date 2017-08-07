@@ -63,10 +63,10 @@ public class TestResourceValidationStage {
     addStateModels(accessor);
 
     // refresh the cache
-    ClusterEvent event = new ClusterEvent("testEvent");
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);
-    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     // run resource computation
     new ResourceComputationStage().process(event);
@@ -95,10 +95,10 @@ public class TestResourceValidationStage {
     addStateModels(accessor);
 
     // refresh the cache
-    ClusterEvent event = new ClusterEvent("testEvent");
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);
-    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     // run resource computation
     new ResourceComputationStage().process(event);
@@ -125,10 +125,10 @@ public class TestResourceValidationStage {
     addStateModels(accessor);
 
     // refresh the cache
-    ClusterEvent event = new ClusterEvent("testEvent");
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);
-    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     // run resource computation
     new ResourceComputationStage().process(event);

@@ -58,9 +58,9 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     long startTime = System.currentTimeMillis();
     LOG.info("START ExternalViewComputeStage.process()");
 
-    HelixManager manager = event.getAttribute("helixmanager");
+    HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
 
     if (manager == null || resourceMap == null || cache == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -105,7 +105,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         }
       }
       // Update cluster status monitor mbean
-      ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+      ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
       IdealState idealState = cache.getIdealState(resourceName);
       ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
       if (idealState != null && (resourceConfig == null || !resourceConfig

@@ -73,7 +73,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
       manager.getProperties().getProperties()
           .put("minimum_supported_version.participant", minSupportedParticipantVersion);
     }
-    event.addAttribute("helixmanager", manager);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
     runStage(event, new ReadClusterDataStage());
   }
 

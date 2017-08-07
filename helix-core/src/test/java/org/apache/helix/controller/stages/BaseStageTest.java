@@ -81,7 +81,7 @@ public class BaseStageTest {
     ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
     setClusterConfig(clusterConfig);
     admin = new MockHelixAdmin(manager);
-    event = new ClusterEvent("sampleEvent");
+    event = new ClusterEvent(ClusterEventType.Unknown);
     admin.addCluster(_clusterName);
   }
 
@@ -177,7 +177,7 @@ public class BaseStageTest {
   }
 
   protected void runStage(ClusterEvent event, Stage stage) {
-    event.addAttribute("helixmanager", manager);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();

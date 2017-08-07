@@ -51,7 +51,7 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     LOG.info("START PersistAssignmentStage.process()");
     long startTime = System.currentTimeMillis();
 
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     ClusterConfig clusterConfig = cache.getClusterConfig();
 
     if (!clusterConfig.isPersistBestPossibleAssignment() && !clusterConfig
@@ -62,7 +62,7 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     BestPossibleStateOutput bestPossibleAssignment =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
 
-    HelixManager helixManager = event.getAttribute("helixmanager");
+    HelixManager helixManager = event.getAttribute(AttributeName.helixmanager.name());
     HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());

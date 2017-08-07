@@ -47,11 +47,11 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     long startTime = System.currentTimeMillis();
     logger.info("START TaskAssignmentStage.process()");
 
-    HelixManager manager = event.getAttribute("helixmanager");
+    HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     MessageThrottleStageOutput messageOutput =
         event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
 
     if (manager == null || resourceMap == null || messageOutput == null || cache == null
@@ -74,7 +74,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
         batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveInstanceMap,
             manager.getProperties());
     sendMessages(dataAccessor, outputMessages);
-    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
     clusterStatusMonitor.increaseMessageReceived(outputMessages);
 
     long cacheStart = System.currentTimeMillis();

@@ -50,7 +50,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     long startTime = System.currentTimeMillis();
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
 
     if (cache == null || resourceMap == null) {
@@ -140,7 +140,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       }
     }
 
-    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
     updateMissingTopStateStatus(cache, clusterStatusMonitor, resourceMap, currentStateOutput);
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);

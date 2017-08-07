@@ -70,8 +70,8 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     });
     setupStateModel(clusterName);
 
-    ClusterEvent event = new ClusterEvent("testEvent");
-    event.addAttribute("helixmanager", manager);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     MessageThrottleStage throttleStage = new MessageThrottleStage();
     try {
@@ -257,8 +257,8 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     Assert.assertTrue(containsConstraint(matches, constraint3));
 
     // test messageThrottleStage
-    ClusterEvent event = new ClusterEvent("testEvent");
-    event.addAttribute("helixmanager", manager);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());

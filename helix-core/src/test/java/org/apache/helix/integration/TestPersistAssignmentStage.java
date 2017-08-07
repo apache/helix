@@ -12,6 +12,7 @@ import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.PersistAssignmentStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
@@ -26,7 +27,7 @@ import org.testng.annotations.Test;
 
 
 public class TestPersistAssignmentStage extends ZkStandAloneCMTestBase {
-  ClusterEvent event = new ClusterEvent("sampleEvent");
+  ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
 
   /**
    * Case where we have one resource in IdealState
@@ -58,7 +59,7 @@ public class TestPersistAssignmentStage extends ZkStandAloneCMTestBase {
     // Ensure persist best possible assignment is true
     ClusterConfig clusterConfig = new ClusterConfig(CLUSTER_NAME);
     clusterConfig.setPersistBestPossibleAssignment(true);
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     cache.setClusterConfig(clusterConfig);
 
     // 1. Change best possible state (simulate a new rebalancer run)
@@ -89,7 +90,7 @@ public class TestPersistAssignmentStage extends ZkStandAloneCMTestBase {
   }
 
   private void runStage(ClusterEvent event, Stage stage) {
-    event.addAttribute("helixmanager", _manager);
+    event.addAttribute(AttributeName.helixmanager.name(), _manager);
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();

@@ -22,6 +22,7 @@ package org.apache.helix.controller.pipeline;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
@@ -57,7 +58,7 @@ public class Pipeline {
       logger.info(
           String.format("END %s for cluster %s. took: %d ms ", stage.getStageName(), event.getClusterName(), duration));
 
-      ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+      ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
       if (clusterStatusMonitor != null) {
         clusterStatusMonitor.updateClusterEventDuration(stage.getStageName(), duration);
       }

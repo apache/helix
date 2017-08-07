@@ -57,8 +57,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
-    ClusterEvent event = new ClusterEvent("testEvent");
-    event.addAttribute("helixmanager", manager);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     final String resourceName = "testResource_dup";
     String[] resourceGroups = new String[] {
@@ -130,7 +130,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
-    ClusterEvent event = new ClusterEvent("testEvent");
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
 
     final String resourceName = "testResource_dup";
     String[] resourceGroups = new String[] {
@@ -206,11 +206,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
-    ClusterEvent event = new ClusterEvent("testEvent");
-    event.addAttribute("helixmanager", manager);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     ClusterDataCache cache = new ClusterDataCache();
-    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
     refreshClusterConfig(event, clusterName);
 
     final String resourceName = "testResource_pending";
@@ -267,7 +267,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     cache.setIdealStates(idealStates);
 
     runPipeline(event, dataRefresh);
-    cache = event.getAttribute("ClusterDataCache");
+    cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     cache.setClusterConfig(new ClusterConfig(clusterName));
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
@@ -304,8 +304,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
-    ClusterEvent event = new ClusterEvent("testEvent");
-    event.addAttribute("helixmanager", manager);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     final String resourceName = "testResource_xfer";
     String[] resourceGroups = new String[] {
@@ -381,8 +381,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
-    ClusterEvent event = new ClusterEvent("testEvent");
-    event.addAttribute("helixmanager", manager);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     final String resourceName = "testResource_no_duplicated_master";
     String[] resourceGroups = new String[] {
@@ -451,8 +451,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   }
 
   private void refreshClusterConfig(ClusterEvent event, String clusterName) {
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     cache.setClusterConfig(new ClusterConfig(clusterName));
-    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
   }
 }

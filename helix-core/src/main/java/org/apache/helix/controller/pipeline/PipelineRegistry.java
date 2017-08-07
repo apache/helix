@@ -24,27 +24,28 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.helix.controller.stages.ClusterEventType;
 
 public class PipelineRegistry {
-  Map<String, List<Pipeline>> _map;
+  Map<ClusterEventType, List<Pipeline>> _map;
 
   public PipelineRegistry() {
-    _map = new HashMap<String, List<Pipeline>>();
+    _map = new HashMap<>();
   }
 
-  public void register(String eventName, Pipeline... pipelines) {
-    if (!_map.containsKey(eventName)) {
-      _map.put(eventName, new ArrayList<Pipeline>());
+  public void register(ClusterEventType eventType, Pipeline... pipelines) {
+    if (!_map.containsKey(eventType)) {
+      _map.put(eventType, new ArrayList<Pipeline>());
     }
-    List<Pipeline> list = _map.get(eventName);
+    List<Pipeline> list = _map.get(eventType);
     for (Pipeline pipeline : pipelines) {
       list.add(pipeline);
     }
   }
 
-  public List<Pipeline> getPipelinesForEvent(String eventName) {
-    if (_map.containsKey(eventName)) {
-      return _map.get(eventName);
+  public List<Pipeline> getPipelinesForEvent(ClusterEventType eventType) {
+    if (_map.containsKey(eventType)) {
+      return _map.get(eventType);
     }
     return Collections.emptyList();
   }

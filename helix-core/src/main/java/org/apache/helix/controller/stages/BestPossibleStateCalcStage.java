@@ -63,7 +63,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
     final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
 
     if (currentStateOutput == null || resourceMap == null || cache == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -75,12 +75,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     // Check whether the offline/disabled instance count in the cluster reaches the set limit,
     // if yes, pause the rebalancer.
-    validateOfflineInstancesLimit(cache, (HelixManager) event.getAttribute("helixmanager"));
+    validateOfflineInstancesLimit(cache, (HelixManager) event.getAttribute(AttributeName.helixmanager.name()));
 
     final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
-    final ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+    final ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
     final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
     final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();
     asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
@@ -106,12 +106,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
       CurrentStateOutput currentStateOutput) {
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     BestPossibleStateOutput output = new BestPossibleStateOutput();
 
     PriorityQueue<ResourcePriority> resourcePriorityQueue = new PriorityQueue<ResourcePriority>();
     TaskDriver taskDriver = null;
-    HelixManager helixManager = event.getAttribute("helixmanager");
+    HelixManager helixManager = event.getAttribute(AttributeName.helixmanager.name());
     if (helixManager != null) {
       taskDriver = new TaskDriver(helixManager);
     }
@@ -180,12 +180,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     if (rebalancer != null && mappingCalculator != null) {
       if (rebalancer instanceof TaskRebalancer) {
         TaskRebalancer taskRebalancer = TaskRebalancer.class.cast(rebalancer);
-        taskRebalancer.setClusterStatusMonitor((ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor"));
+        taskRebalancer.setClusterStatusMonitor((ClusterStatusMonitor) event.getAttribute(AttributeName.clusterStatusMonitor.name()));
       }
 
       ResourceAssignment partitionStateAssignment = null;
       try {
-        HelixManager manager = event.getAttribute("helixmanager");
+        HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
         rebalancer.init(manager);
         idealState = rebalancer.computeNewIdealState(resourceName, idealState, currentStateOutput, cache);
 

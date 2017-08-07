@@ -39,6 +39,7 @@ import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
@@ -290,9 +291,9 @@ public class TaskTestUtil {
 
   public static BestPossibleStateOutput calculateBestPossibleState(ClusterDataCache cache,
       HelixManager manager) throws Exception {
-    ClusterEvent event = new ClusterEvent("event");
-    event.addAttribute("ClusterDataCache", cache);
-    event.addAttribute("helixmanager", manager);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     List<Stage> stages = new ArrayList<Stage>();
     stages.add(new ReadClusterDataStage());

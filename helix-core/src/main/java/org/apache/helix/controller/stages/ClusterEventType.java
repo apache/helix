@@ -19,20 +19,15 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum AttributeName {
-  RESOURCES,
-  BEST_POSSIBLE_STATE,
-  CURRENT_STATE,
-  INTERMEDIATE_STATE,
-  MESSAGES_ALL,
-  MESSAGES_SELECTED,
-  MESSAGES_THROTTLE,
-  LOCAL_STATE,
-  EVENT_CREATE_TIME,
-  ClusterDataCache,
-  helixmanager,
-  clusterStatusMonitor,
-  changeContext,
-  instanceName,
-  eventData
+public enum ClusterEventType {
+  IdealStateChange,
+  CurrentStateChange,
+  ConfigChange,
+  LiveInstanceChange,
+  MessageChange,
+  ExternalViewChange,
+  Resume,
+  PeriodicalRebalance,
+  StateVerifier,
+  Unknown
 }

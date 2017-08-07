@@ -26,21 +26,21 @@ import org.apache.log4j.Logger;
 
 public class ClusterEvent {
   private static final Logger logger = Logger.getLogger(ClusterEvent.class.getName());
-  private final String _eventName;
+  private final ClusterEventType _eventType;
   private final Map<String, Object> _eventAttributeMap;
   private long _creationTime;
   private String _clusterName;
 
   @Deprecated
-  public ClusterEvent(String eventName) {
-    _eventName = eventName;
+  public ClusterEvent(ClusterEventType eventType) {
+    _eventType = eventType;
     _eventAttributeMap = new HashMap<>();
     _creationTime = System.currentTimeMillis();
   }
 
-  public ClusterEvent(String clusterName, String eventName) {
+  public ClusterEvent(String clusterName, ClusterEventType eventType) {
     _clusterName = clusterName;
-    _eventName = eventName;
+    _eventType = eventType;
     _eventAttributeMap = new HashMap<>();
     _creationTime = System.currentTimeMillis();
   }
@@ -54,9 +54,7 @@ public class ClusterEvent {
     _eventAttributeMap.put(attrName, attrValue);
   }
 
-  public String getName() {
-    return _eventName;
-  }
+  public ClusterEventType getEventType() { return _eventType; }
 
   public long getCreationTime() {
     return _creationTime;
@@ -86,7 +84,7 @@ public class ClusterEvent {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("name:" + _eventName).append("\n");
+    sb.append("name:" + _eventType.name()).append("\n");
     for (String key : _eventAttributeMap.keySet()) {
       sb.append(key).append(":").append(_eventAttributeMap.get(key)).append("\n");
     }

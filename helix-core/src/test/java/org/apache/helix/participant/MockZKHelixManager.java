@@ -48,6 +48,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.messaging.DefaultMessagingService;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
@@ -90,8 +91,18 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
+  public void addIdealStateChangeListener(org.apache.helix.IdealStateChangeListener listener) throws Exception {
+
+  }
+
+  @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addLiveInstanceChangeListener(org.apache.helix.LiveInstanceChangeListener listener) throws Exception {
 
   }
 
@@ -122,6 +133,11 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
+  public void addMessageListener(org.apache.helix.MessageListener listener, String instanceName) throws Exception {
+
+  }
+
+  @Override
   public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
       String instanceName, String sessionId) throws Exception {
     // TODO Auto-generated method stub
@@ -129,8 +145,19 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
+  public void addCurrentStateChangeListener(org.apache.helix.CurrentStateChangeListener listener, String instanceName,
+      String sessionId) throws Exception {
+
+  }
+
+  @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addExternalViewChangeListener(org.apache.helix.ExternalViewChangeListener listener) throws Exception {
 
   }
 
@@ -170,6 +197,11 @@ public class MockZKHelixManager implements HelixManager {
   @Override
   public void addControllerListener(ControllerChangeListener listener) {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addControllerListener(org.apache.helix.ControllerChangeListener listener) {
 
   }
 
@@ -245,9 +277,20 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
+  public void addInstanceConfigChangeListener(org.apache.helix.InstanceConfigChangeListener listener) throws Exception {
+
+  }
+
+  @Override
   public void addConfigChangeListener(ScopedConfigChangeListener listener, ConfigScopeProperty scope)
       throws Exception {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addConfigChangeListener(org.apache.helix.ScopedConfigChangeListener listener, ConfigScopeProperty scope)
+      throws Exception {
 
   }
 
@@ -266,6 +309,11 @@ public class MockZKHelixManager implements HelixManager {
   @Override
   public void addControllerMessageListener(MessageListener listener) {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addControllerMessageListener(org.apache.helix.MessageListener listener) {
 
   }
 

@@ -105,10 +105,25 @@ public interface HelixManager {
   void addIdealStateChangeListener(IdealStateChangeListener listener) throws Exception;
 
   /**
+   * @see IdealStateChangeListener#onIdealStateChange(List, NotificationContext)
+   * @param listener
+   * @throws Exception
+   */
+  @Deprecated
+  void addIdealStateChangeListener(org.apache.helix.IdealStateChangeListener listener) throws Exception;
+
+  /**
    * @see LiveInstanceChangeListener#onLiveInstanceChange(List, NotificationContext)
    * @param listener
    */
   void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception;
+
+  /**
+   * @see LiveInstanceChangeListener#onLiveInstanceChange(List, NotificationContext)
+   * @param listener
+   */
+  @Deprecated
+  void addLiveInstanceChangeListener(org.apache.helix.LiveInstanceChangeListener listener) throws Exception;
 
   /**
    * @see ConfigChangeListener#onConfigChange(List, NotificationContext)
@@ -123,6 +138,13 @@ public interface HelixManager {
    * @param listener
    */
   void addInstanceConfigChangeListener(InstanceConfigChangeListener listener) throws Exception;
+
+  /**
+   * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)
+   * @param listener
+   */
+  @Deprecated
+  void addInstanceConfigChangeListener(org.apache.helix.InstanceConfigChangeListener listener) throws Exception;
 
   /**
    * @see ResourceConfigChangeListener#onResourceConfigChange(List, NotificationContext)
@@ -145,19 +167,46 @@ public interface HelixManager {
       throws Exception;
 
   /**
+   * @see ScopedConfigChangeListener#onConfigChange(List, NotificationContext)
+   * @param listener
+   * @param scope
+   */
+  @Deprecated
+  void addConfigChangeListener(org.apache.helix.ScopedConfigChangeListener listener, ConfigScopeProperty scope)
+      throws Exception;
+
+  /**
    * @see MessageListener#onMessage(String, List, NotificationContext)
    * @param listener
    * @param instanceName
    */
   void addMessageListener(MessageListener listener, String instanceName) throws Exception;
 
+
+  /**
+   * @see MessageListener#onMessage(String, List, NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  @Deprecated
+  void addMessageListener(org.apache.helix.MessageListener listener, String instanceName)
+      throws Exception;
+
   /**
    * @see CurrentStateChangeListener#onStateChange(String, List, NotificationContext)
    * @param listener
    * @param instanceName
    */
-
   void addCurrentStateChangeListener(CurrentStateChangeListener listener, String instanceName,
+      String sessionId) throws Exception;
+
+  /**
+   * @see CurrentStateChangeListener#onStateChange(String, List, NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  @Deprecated
+  void addCurrentStateChangeListener(org.apache.helix.CurrentStateChangeListener listener, String instanceName,
       String sessionId) throws Exception;
 
   /**
@@ -166,6 +215,15 @@ public interface HelixManager {
    */
   void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception;
 
+
+  /**
+   * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)
+   * @param listener
+   */
+  @Deprecated
+  void addExternalViewChangeListener(org.apache.helix.ExternalViewChangeListener listener)
+      throws Exception;
+
   /**
    * Add listener for controller change
    * Used in distributed cluster controller
@@ -173,10 +231,24 @@ public interface HelixManager {
   void addControllerListener(ControllerChangeListener listener);
 
   /**
+   * Add listener for controller change
+   * Used in distributed cluster controller
+   */
+  @Deprecated
+  void addControllerListener(org.apache.helix.ControllerChangeListener listener);
+
+  /**
    * Add message listener for controller
    * @param listener
    */
   void addControllerMessageListener(MessageListener listener);
+
+  /**
+   * Add message listener for controller
+   * @param listener
+   */
+  @Deprecated
+  void addControllerMessageListener(org.apache.helix.MessageListener listener);
 
   /**
    * Removes the listener. If the same listener was used for multiple changes,

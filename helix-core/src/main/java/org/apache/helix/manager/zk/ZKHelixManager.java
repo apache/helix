@@ -360,8 +360,25 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         new EventType[] { EventType.NodeChildrenChanged });
   }
 
+
+  @Deprecated
+  @Override
+  public void addIdealStateChangeListener(final org.apache.helix.IdealStateChangeListener listener)
+      throws Exception {
+    addListener(listener, new Builder(_clusterName).idealStates(), ChangeType.IDEAL_STATE,
+        new EventType[] { EventType.NodeChildrenChanged });
+  }
+
   @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception {
+    addListener(listener, new Builder(_clusterName).liveInstances(), ChangeType.LIVE_INSTANCE,
+        new EventType[] { EventType.NodeChildrenChanged });
+  }
+
+  @Deprecated
+  @Override
+  public void addLiveInstanceChangeListener(org.apache.helix.LiveInstanceChangeListener listener)
+      throws Exception {
     addListener(listener, new Builder(_clusterName).liveInstances(), ChangeType.LIVE_INSTANCE,
         new EventType[] { EventType.NodeChildrenChanged });
   }
@@ -375,6 +392,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener)
+      throws Exception {
+    addListener(listener, new Builder(_clusterName).instanceConfigs(), ChangeType.INSTANCE_CONFIG,
+        new EventType[] { EventType.NodeChildrenChanged
+        });
+  }
+
+  @Deprecated
+  @Override
+  public void addInstanceConfigChangeListener(org.apache.helix.InstanceConfigChangeListener listener)
       throws Exception {
     addListener(listener, new Builder(_clusterName).instanceConfigs(), ChangeType.INSTANCE_CONFIG,
         new EventType[] { EventType.NodeChildrenChanged
@@ -424,6 +450,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
   }
 
+
+  @Deprecated
+  @Override
+  public void addConfigChangeListener(org.apache.helix.ScopedConfigChangeListener listener, ConfigScopeProperty scope)
+      throws Exception {
+    addConfigChangeListener((ScopedConfigChangeListener) listener, scope);
+  }
+
   // TODO: Decide if do we still need this since we are exposing
   // ClusterMessagingService
   @Override
@@ -432,8 +466,22 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         new EventType[] { EventType.NodeChildrenChanged });
   }
 
+  @Deprecated
+  @Override
+  public void addMessageListener(org.apache.helix.MessageListener listener, String instanceName) {
+    addListener(listener, new Builder(_clusterName).messages(instanceName), ChangeType.MESSAGE,
+        new EventType[] { EventType.NodeChildrenChanged });
+  }
+
   @Override
   public void addControllerMessageListener(MessageListener listener) {
+    addListener(listener, new Builder(_clusterName).controllerMessages(),
+        ChangeType.MESSAGES_CONTROLLER, new EventType[] { EventType.NodeChildrenChanged });
+  }
+
+  @Deprecated
+  @Override
+  public void addControllerMessageListener(org.apache.helix.MessageListener listener) {
     addListener(listener, new Builder(_clusterName).controllerMessages(),
         ChangeType.MESSAGES_CONTROLLER, new EventType[] { EventType.NodeChildrenChanged });
   }
@@ -446,14 +494,37 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         });
   }
 
+  @Deprecated
+  @Override
+  public void addCurrentStateChangeListener(org.apache.helix.CurrentStateChangeListener listener,
+      String instanceName, String sessionId) throws Exception {
+    addListener(listener, new Builder(_clusterName).currentStates(instanceName, sessionId),
+        ChangeType.CURRENT_STATE, new EventType[] { EventType.NodeChildrenChanged
+        });
+  }
+
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
     addListener(listener, new Builder(_clusterName).externalViews(), ChangeType.EXTERNAL_VIEW,
         new EventType[] { EventType.NodeChildrenChanged });
   }
 
+  @Deprecated
+  @Override
+  public void addExternalViewChangeListener(org.apache.helix.ExternalViewChangeListener listener) throws Exception {
+    addListener(listener, new Builder(_clusterName).externalViews(), ChangeType.EXTERNAL_VIEW,
+        new EventType[] { EventType.NodeChildrenChanged });
+  }
+
   @Override
   public void addControllerListener(ControllerChangeListener listener) {
+    addListener(listener, new Builder(_clusterName).controller(), ChangeType.CONTROLLER,
+        new EventType[] { EventType.NodeChildrenChanged });
+  }
+
+  @Deprecated
+  @Override
+  public void addControllerListener(org.apache.helix.ControllerChangeListener listener) {
     addListener(listener, new Builder(_clusterName).controller(), ChangeType.CONTROLLER,
         new EventType[] { EventType.NodeChildrenChanged });
   }

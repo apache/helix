@@ -525,7 +525,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("helixmanager", changeContext.getManager());
 
-    _eventQueue.put(event);
     logger.info("END: GenericClusterController.onConfigChange() for cluster " + _clusterName);
   }
 

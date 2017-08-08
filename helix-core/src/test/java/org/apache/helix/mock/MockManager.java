@@ -84,8 +84,18 @@ public class MockManager implements HelixManager {
   }
 
   @Override
+  public void addIdealStateChangeListener(org.apache.helix.IdealStateChangeListener listener) throws Exception {
+
+  }
+
+  @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addLiveInstanceChangeListener(org.apache.helix.LiveInstanceChangeListener listener) throws Exception {
 
   }
 
@@ -102,6 +112,11 @@ public class MockManager implements HelixManager {
   }
 
   @Override
+  public void addMessageListener(org.apache.helix.MessageListener listener, String instanceName) throws Exception {
+
+  }
+
+  @Override
   public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
       String instanceName, String sessionId) {
     // TODO Auto-generated method stub
@@ -109,8 +124,19 @@ public class MockManager implements HelixManager {
   }
 
   @Override
+  public void addCurrentStateChangeListener(org.apache.helix.CurrentStateChangeListener listener, String instanceName,
+      String sessionId) throws Exception {
+
+  }
+
+  @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addExternalViewChangeListener(org.apache.helix.ExternalViewChangeListener listener) throws Exception {
 
   }
 
@@ -162,6 +188,11 @@ public class MockManager implements HelixManager {
   @Override
   public void addControllerListener(ControllerChangeListener listener) {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addControllerListener(org.apache.helix.ControllerChangeListener listener) {
 
   }
 
@@ -251,9 +282,20 @@ public class MockManager implements HelixManager {
   }
 
   @Override
+  public void addInstanceConfigChangeListener(org.apache.helix.InstanceConfigChangeListener listener) throws Exception {
+
+  }
+
+  @Override
   public void addConfigChangeListener(ScopedConfigChangeListener listener,
       HelixConfigScope.ConfigScopeProperty scope) throws Exception {
     // TODO Auto-generated method stub
+  }
+
+  @Override
+  public void addConfigChangeListener(org.apache.helix.ScopedConfigChangeListener listener,
+      HelixConfigScope.ConfigScopeProperty scope) throws Exception {
+
   }
 
   @Override
@@ -270,6 +312,11 @@ public class MockManager implements HelixManager {
   @Override
   public void addControllerMessageListener(MessageListener listener) {
     // TODO Auto-generated method stub
+  }
+
+  @Override
+  public void addControllerMessageListener(org.apache.helix.MessageListener listener) {
+
   }
 
   @Override

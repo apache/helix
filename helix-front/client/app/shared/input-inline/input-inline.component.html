@@ -1,0 +1,29 @@
+<section>
+  <md-input-container *ngIf="editing" class="{{ hasError() ? 'error' : ''}}">
+    <input mdInput
+      #inputControl
+      [min]="min"
+      [max]="max"
+      [minlength]="minlength"
+      [maxlength]="maxlength"
+      (focus)="focus($event)"
+      (blur)="onBlur($event)"
+      (keyup)="keyup($event)"
+      [required]="required"
+      [name]="value"
+      [(ngModel)]="value"
+      [type]="type"
+      [placeholder]="label" />
+    <md-hint *ngIf="hasError()" align="start">{{ errorLabel }}</md-hint>
+  </md-input-container>
+  <section *ngIf="!editing">
+    <div
+      class="inline-edit {{hasError() ? 'error': ''}}"
+      [md-tooltip]="editLabel"
+      (click)="edit(value)"
+      (focus)="edit(value)"
+      tabindex="0">
+      {{ value }}
+    </div>
+  </section>
+</section>

@@ -19,9 +19,15 @@ export class ClusterService extends HelixService {
 
   public get(name: string) {
     return this
-      .request(`/clusters/${name}`)
+      .request(`/clusters/${ name }`)
       .map(data => {
         return new Cluster(data);
       });
   }
+
+  public create(name: string) {
+    return this
+      .put(`/clusters/${ name }`);
+  }
+
 }

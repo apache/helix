@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, Input, Output, ViewChild, ViewEncapsulation, EventEmitter } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import * as _ from 'lodash';
@@ -20,6 +20,9 @@ export class NodeViewerComponent implements OnInit {
   @ViewChild('listTable') listTable;
   @ViewChild('mapTable') mapTable;
 
+  @Output('update')
+  change: EventEmitter<Node> = new EventEmitter();
+
   // MODE 1: use directly in components
   @Input()
   set obj(value: any) {
@@ -32,6 +35,14 @@ export class NodeViewerComponent implements OnInit {
     return this._obj;
   }
 
+  @Input()
+  set editable(value: boolean) {
+    if (value) {
+      this.columns.simpleConfigs[1].editable = true;
+      this.columns.listConfigs[0].editable = true;
+    }
+  }
+
   protected _obj: any;
   protected node: Node;
 
@@ -40,6 +51,24 @@ export class NodeViewerComponent implements OnInit {
     { prop: 'name', dir: 'asc'}
   ];
   keyword = '';
+  columns = {
+    simpleConfigs: [
+      {
+        name: 'Name',
+        editable: false
+      },
+      {
+        name: 'Value',
+        editable: false
+      }
+    ],
+    listConfigs: [
+      {
+        name: 'Value',
+        editable: false
+      }
+    ]
+  };
 
   _simpleConfigs: any[];
   get simpleConfigs(): any[] {
@@ -107,6 +136,46 @@ export class NodeViewerComponent implements OnInit {
       // highlight HELIX own configs
       'primary': _.snakeCase(value).toUpperCase() === value
     };
+  }
+
+
+  edited(type, {row, column, value}, key) {
+    if (column.name !== 'Value') {
+      return;
+    }
+
+    let newNode: Node = new Node(null);
+
+    switch(type) {
+      case 'simple':
+        newNode.appendSimpleField(row.name, value);
+        break;
+
+      case 'list':
+        if (key) {
+          const entry = _.find(this.node.listFields, {'name': key});
+          const index = _.findIndex(entry.value, {'value': row.value});
+          entry.value[index].value = value;
+          newNode.listFields.push(entry);
+        }
+        break;
+
+      case 'map':
+        if (key) {
+          // have to fetch all other configs under this key
+          const entry = _.find(this.node.mapFields, {'name': key});
+          _.forEach(entry.value, (item: any) => {
+            if (item.name === row.name) {
+              newNode.appendMapField(key, item.name, value);
+            } else {
+              newNode.appendMapField(key, item.name, item.value);
+            }
+          });
+        }
+        break;
+    }
+
+    this.change.emit(newNode);
   }
 
 }

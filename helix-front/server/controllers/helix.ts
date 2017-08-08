@@ -10,7 +10,7 @@ export class HelixCtrl {
 
   constructor(router: Router) {
     router.route('/helix/list').get(this.list);
-    router.route('/helix/*').get(this.proxy);
+    router.route('/helix/*').all(this.proxy);
   }
 
   protected proxy(req: Request, res: Response) {
@@ -26,7 +26,10 @@ export class HelixCtrl {
     const apiPrefix = HELIX_ENDPOINTS[group][name];
     const realUrl = apiPrefix + url.replace(`/${ helixKey }`, '');
 
-    request(realUrl).pipe(res);
+    request[req.method.toLowerCase()]({
+      url: realUrl,
+      json: req.body
+    }).pipe(res);
 
     process.on('uncaughtException', function(err){
       console.error('uncaughtException: ' + err.message);

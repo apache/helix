@@ -2,5 +2,5 @@
 
   <!-- TODO vxu: implement loading -->
 
-  <hi-node-viewer [obj]="obj"></hi-node-viewer>
+  <hi-node-viewer [obj]="obj" [editable]="clusterName != null" (update)="updateConfig($event)"></hi-node-viewer>
 </section>

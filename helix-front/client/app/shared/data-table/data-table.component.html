@@ -1,0 +1,28 @@
+<ngx-datatable
+  class="material"
+  [headerHeight]="rowHeight"
+  rowHeight="auto"
+  [footerHeight]="rowHeight"
+  columnMode="force"
+  [rows]="rows"
+  [sorts]="sorts"
+  [limit]="20">
+  <ngx-datatable-column
+    *ngFor="let column of columns"
+    [name]="column.name"
+    [prop]="column.prop ? column.prop : column.name.toLowerCase()">
+    <ng-template
+      ngx-datatable-cell-template
+      let-value="value"
+      let-row="row">
+      <span *ngIf="!column.editable" [title]="value">{{ value }}</span>
+      <hi-input-inline
+        *ngIf="column.editable"
+        [value]="value"
+        label="new value"
+        (update)="onEdited(row, column, $event)"
+        [required]="true">
+      </hi-input-inline>
+    </ng-template>
+  </ngx-datatable-column>
+</ngx-datatable>

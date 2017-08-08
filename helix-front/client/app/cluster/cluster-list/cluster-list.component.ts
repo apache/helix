@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
-import { MdDialog } from '@angular/material';
+import { MdDialog, MdSnackBar } from '@angular/material';
 
 import { ClusterService } from '../shared/cluster.service';
 import { Cluster } from '../shared/cluster.model';
 import { AlertDialogComponent } from '../../shared/dialog/alert-dialog/alert-dialog.component';
+import { InputDialogComponent } from '../../shared/dialog/input-dialog/input-dialog.component';
 
 @Component({
   selector: 'hi-cluster-list',
@@ -15,13 +16,19 @@ export class ClusterListComponent implements OnInit {
   clusters: Cluster[] = [];
   errorMessage: string = '';
   isLoading: boolean = true;
+  count = 0;
 
   constructor(
     protected clusterService: ClusterService,
-    protected dialog: MdDialog
+    protected dialog: MdDialog,
+    protected snackBar: MdSnackBar
   ) { }
 
   ngOnInit() {
+    this.loadClusters();
+  }
+
+  loadClusters() {
     this.clusterService
       .getAll()
       .subscribe(
@@ -38,6 +45,32 @@ export class ClusterListComponent implements OnInit {
       data: {
         title: 'Error',
         message: this.errorMessage
+      }
+    });
+  }
+
+  increase() {
+    ++this.count;
+  }
+
+  createCluster() {
+    const dialogRef = this.dialog.open(InputDialogComponent, {
+      data: {
+        title: 'Create a cluster',
+        message: 'Please choose a cluster name:'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.isLoading = true;
+        this.clusterService.create(result)
+          .subscribe(data => {
+            this.snackBar.open('Cluster created!', 'OK', {
+              duration: 2000,
+            });
+            this.loadClusters();
+          });
       }
     });
   }

@@ -16,8 +16,7 @@ export class HelixService {
   protected request(path: string, helix?: string): Observable<any> {
 
     if (helix == null) {
-      // fetch helix key from url
-      helix = `/${this.router.url.split('/')[1]}`;
+      helix = this.getHelixKey();
     }
 
 console.log('Helix Key: ' + helix);
@@ -32,9 +31,37 @@ console.log(this.router.url);
       .catch(this.errorHandler);
   }
 
+  protected post(path: string, data: string): Observable<any> {
+    return this.http
+      .post(
+        `${Settings.helixAPI}${this.getHelixKey()}${path}`,
+        data,
+        { headers: this.getHeaders() }
+      )
+      .map(response => response.text().trim() ? response.json() : '{}')
+      .catch(this.errorHandler);
+  }
+
+  protected put(path: string): Observable<any> {
+    return this.http
+      .put(
+        `${Settings.helixAPI}${this.getHelixKey()}${path}`,
+        null,
+        { headers: this.getHeaders() }
+      )
+      .map(response => response.text().trim() ? response.json() : '{}')
+      .catch(this.errorHandler);
+  }
+
+  protected getHelixKey(): string {
+    // fetch helix key from url
+    return `/${this.router.url.split('/')[1]}`;
+  }
+
   protected getHeaders() {
     let headers = new Headers();
     headers.append('Accept', 'application/json');
+    headers.append('Content-Type', 'application/json');
     return headers;
   }
 

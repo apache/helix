@@ -5,7 +5,10 @@
     </md-spinner>
   </section>
   <md-nav-list *ngIf="!isLoading && !errorMessage">
-    <h3 md-subheader>Clusters</h3>
+    <button *ngIf="count > 9" md-mini-fab (click)="createCluster()">
+      <md-icon>add</md-icon>
+    </button>
+    <h3 md-subheader (click)="increase()">Clusters</h3>
     <a *ngFor="let cluster of clusters"
       md-list-item
       [routerLink]="[cluster.name]"

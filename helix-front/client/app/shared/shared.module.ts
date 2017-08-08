@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MaterialModule } from '@angular/material';
 import { FlexLayoutModule } from '@angular/flex-layout';
+import { FormsModule } from '@angular/forms';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
@@ -14,6 +15,8 @@ import { JsonViewerComponent } from './json-viewer/json-viewer.component';
 import { AlertDialogComponent } from './dialog/alert-dialog/alert-dialog.component';
 import { StateLabelComponent } from './state-label/state-label.component';
 import { NodeViewerComponent } from './node-viewer/node-viewer.component';
+import { InputInlineComponent } from './input-inline/input-inline.component';
+import { DataTableComponent } from './data-table/data-table.component';
 
 @NgModule({
   imports: [
@@ -21,6 +24,7 @@ import { NodeViewerComponent } from './node-viewer/node-viewer.component';
     RouterModule,
     MaterialModule,
     FlexLayoutModule,
+    FormsModule,
     NgxDatatableModule,
     NgxJsonViewerModule
   ],
@@ -32,7 +36,9 @@ import { NodeViewerComponent } from './node-viewer/node-viewer.component';
     KeyValuePairsComponent,
     JsonViewerComponent,
     StateLabelComponent,
-    NodeViewerComponent
+    NodeViewerComponent,
+    InputInlineComponent,
+    DataTableComponent
   ],
   entryComponents: [
     InputDialogComponent,
@@ -42,6 +48,7 @@ import { NodeViewerComponent } from './node-viewer/node-viewer.component';
     RouterModule,
     MaterialModule,
     FlexLayoutModule,
+    FormsModule,
     NgxJsonViewerModule,
     DetailHeaderComponent,
     KeyValuePairDirective,

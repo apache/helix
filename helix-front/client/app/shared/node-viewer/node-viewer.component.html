@@ -30,20 +30,13 @@
           </md-card-title>
         </md-card-header>
         <md-card-content>
-          <ngx-datatable
+          <hi-data-table
             *ngIf="simpleConfigs.length"
-            #simpleTable
-            class="material"
-            [headerHeight]="rowHeight"
-            rowHeight="auto"
-            [footerHeight]="rowHeight"
-            columnMode="force"
             [rows]="simpleConfigs"
             [sorts]="sorts"
-            [limit]="20">
-            <ngx-datatable-column name="Name" [cellClass]="getNameCellClass"></ngx-datatable-column>
-            <ngx-datatable-column name="Value"></ngx-datatable-column>
-          </ngx-datatable>
+            [columns]="columns.simpleConfigs"
+            (update)="edited('simple', $event)">
+          </hi-data-table>
         </md-card-content>
       </md-card>
       <md-card>
@@ -68,8 +61,15 @@
             [limit]="10">
             <ngx-datatable-column name="Name" [width]="80" [cellClass]="getNameCellClass"></ngx-datatable-column>
             <ngx-datatable-column name="Value" [width]="400">
-              <ng-template let-value="value" ngx-datatable-cell-template>
+              <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+                <hi-data-table
+                  [rows]="value"
+                  [sorts]="sorts"
+                  [columns]="columns.listConfigs"
+                  (update)="edited('list', $event, row.name)">
+                </hi-data-table>
                 <ngx-datatable
+                  *ngIf="false"
                   class="material"
                   [headerHeight]="rowHeight"
                   rowHeight="auto"
@@ -104,17 +104,13 @@
             [limit]="10">
             <ngx-datatable-column name="Name" [width]="80" [cellClass]="getNameCellClass"></ngx-datatable-column>
             <ngx-datatable-column name="Value" [width]="500">
-              <ng-template let-value="value" ngx-datatable-cell-template>
-                <ngx-datatable
-                  class="material"
-                  [headerHeight]="rowHeight"
-                  rowHeight="auto"
-                  columnMode="force"
+              <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+                <hi-data-table
                   [rows]="value"
-                  [sorts]="sorts">
-                  <ngx-datatable-column name="Name"></ngx-datatable-column>
-                  <ngx-datatable-column name="Value"></ngx-datatable-column>
-                </ngx-datatable>
+                  [sorts]="sorts"
+                  [columns]="columns.simpleConfigs"
+                  (update)="edited('map', $event, row.name)">
+                </hi-data-table>
               </ng-template>
             </ngx-datatable-column>
           </ngx-datatable>

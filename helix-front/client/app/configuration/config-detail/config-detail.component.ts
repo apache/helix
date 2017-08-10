@@ -54,17 +54,39 @@ export class ConfigDetailComponent implements OnInit {
       } else {
         this.route.parent.data
           .subscribe(data => {
-            this.isLoading = true;
             this.clusterName = data.cluster.name;
-            this.service
-              .getClusterConfig(this.clusterName)
-              .subscribe(
-                config => this.obj = config,
-                error => this.handleError(error),
-                () => this.isLoading = false
-              );
+            this.loadClusterConfig();
           });
       }
+    }
+  }
+
+  loadClusterConfig() {
+    this.isLoading = true;
+    this.service
+      .getClusterConfig(this.clusterName)
+      .subscribe(
+        config => this.obj = config,
+        error => this.handleError(error),
+        () => this.isLoading = false
+      );
+  }
+
+  createConfig(value: any) {
+    if (this.clusterName) {
+      this.isLoading = true;
+      this.service
+        .setClusterConfig(this.clusterName, value)
+        .subscribe(
+          () => {
+            this.snackBar.open('Configuration added!', 'OK', {
+              duration: 2000,
+            });
+            this.loadClusterConfig();
+          },
+          error => this.handleError(error),
+          () => this.isLoading = false
+        );
     }
   }
 
@@ -78,6 +100,25 @@ export class ConfigDetailComponent implements OnInit {
             this.snackBar.open('Configuration updated!', 'OK', {
               duration: 2000,
             });
+            this.loadClusterConfig();
+          },
+          error => this.handleError(error),
+          () => this.isLoading = false
+        );
+    }
+  }
+
+  deleteConfig(value: any) {
+    if (this.clusterName) {
+      this.isLoading = true;
+      this.service
+        .deleteClusterConfig(this.clusterName, value)
+        .subscribe(
+          () => {
+            this.snackBar.open('Configuration deleted!', 'OK', {
+              duration: 2000,
+            });
+            this.loadClusterConfig();
           },
           error => this.handleError(error),
           () => this.isLoading = false

@@ -16,7 +16,6 @@ export class ClusterListComponent implements OnInit {
   clusters: Cluster[] = [];
   errorMessage: string = '';
   isLoading: boolean = true;
-  count = 0;
 
   constructor(
     protected clusterService: ClusterService,
@@ -49,22 +48,23 @@ export class ClusterListComponent implements OnInit {
     });
   }
 
-  increase() {
-    ++this.count;
-  }
-
   createCluster() {
     const dialogRef = this.dialog.open(InputDialogComponent, {
       data: {
         title: 'Create a cluster',
-        message: 'Please choose a cluster name:'
+        message: 'Please enter the following information to continue:',
+        values: {
+          name: {
+            label: 'new cluster name'
+          }
+        }
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+      if (result && result.name && result.name.value) {
         this.isLoading = true;
-        this.clusterService.create(result)
+        this.clusterService.create(result.name.value)
           .subscribe(data => {
             this.snackBar.open('Cluster created!', 'OK', {
               duration: 2000,

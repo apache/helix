@@ -8,9 +8,21 @@
   [sorts]="sorts"
   [limit]="20">
   <ngx-datatable-column
+    *ngIf="deletable"
+    [width]="40"
+    [resizeable]="false"
+    [draggable]="false"
+    [canAutoResize]="false">
+    <ng-template let-row="row" ngx-datatable-cell-template>
+      <button md-icon-button mdTooltip="Click to delete" (click)="onDelete(row)">
+        <md-icon>delete_forever</md-icon>
+      </button>
+    </ng-template>
+  </ngx-datatable-column>
+  <ngx-datatable-column
     *ngFor="let column of columns"
     [name]="column.name"
-    [prop]="column.prop ? column.prop : column.name.toLowerCase()">
+    [prop]="getPropName(column)">
     <ng-template
       ngx-datatable-cell-template
       let-value="value"
@@ -20,9 +32,21 @@
         *ngIf="column.editable"
         [value]="value"
         label="new value"
-        (update)="onEdited(row, column, $event)"
-        [required]="true">
+        (update)="onEdited(row, column, $event)">
       </hi-input-inline>
     </ng-template>
   </ngx-datatable-column>
+  <ngx-datatable-footer>
+    <ng-template ngx-datatable-footer-template let-rowCount="rowCount">
+      <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
+        <button md-button *ngIf="insertable" (click)="onCreate()">
+          <md-icon>add</md-icon>
+          Add new entry
+        </button>
+        <section>
+          {{ rowCount }} total
+        </section>
+      </section>
+    </ng-template>
+  </ngx-datatable-footer>
 </ngx-datatable>

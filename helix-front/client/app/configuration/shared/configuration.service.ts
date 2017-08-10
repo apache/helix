@@ -14,6 +14,9 @@ export class ConfigurationService extends HelixService {
     return this.post(`/clusters/${ name }/configs?command=update`, config.json(name));
   }
 
+  public deleteClusterConfig(name: string, config: Node) {
+    return this.post(`/clusters/${ name }/configs?command=delete`, config.json(name));
+  }
 
   public getInstanceConfig(clusterName: string, instanceName: string) {
     return this.request(`/clusters/${ clusterName }/instances/${ instanceName }/configs`);

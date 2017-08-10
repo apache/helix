@@ -92,7 +92,7 @@ export class Node {
     });
 
     _.forEach(this.mapFields, (item: MapFieldObject) => {
-      obj.mapFields[item.name] = {};
+      obj.mapFields[item.name] = item.value ? {} : null;
       _.forEach(item.value, (subItem: SimpleFieldObject) => {
         obj.mapFields[item.name][subItem.name] = subItem.value;
       });

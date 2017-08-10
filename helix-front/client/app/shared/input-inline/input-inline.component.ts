@@ -97,10 +97,4 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
     this.editing = false;
   }
 
-  keyup($event) {
-    if ($event.key === 'Escape' || $event.keyCode == 27) {
-      this.cancel();
-    }
-  }
-
 }

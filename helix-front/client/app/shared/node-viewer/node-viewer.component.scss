@@ -21,3 +21,22 @@ md-card {
 ngx-datatable {
   word-break: break-all;
 }
+
+.footer {
+  width: 100%;
+  padding: 0 20px;
+}
+
+.delete-button {
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+
+  .mat-icon {
+    @include md-icon-size(20px);
+
+    &:hover {
+      color: mat-color($hi-warn);
+    }
+  }
+}

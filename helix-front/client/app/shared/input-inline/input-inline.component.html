@@ -1,5 +1,5 @@
 <section>
-  <md-input-container *ngIf="editing" class="{{ hasError() ? 'error' : ''}}">
+  <md-input-container *ngIf="editing" class="full-width {{ hasError() ? 'error' : ''}}">
     <input mdInput
       #inputControl
       [min]="min"
@@ -8,13 +8,15 @@
       [maxlength]="maxlength"
       (focus)="focus($event)"
       (blur)="onBlur($event)"
-      (keyup)="keyup($event)"
+      (keyup.enter)="onBlur($event)"
+      (keyup.escape)="cancel()"
       [required]="required"
       [name]="value"
       [(ngModel)]="value"
       [type]="type"
       [placeholder]="label" />
     <md-hint *ngIf="hasError()" align="start">{{ errorLabel }}</md-hint>
+    <md-hint align="end">press ESC to cancel</md-hint>
   </md-input-container>
   <section *ngIf="!editing">
     <div
@@ -23,7 +25,8 @@
       (click)="edit(value)"
       (focus)="edit(value)"
       tabindex="0">
-      {{ value }}
+      <span *ngIf="value.length">{{ value }}</span>
+      <span *ngIf="!value.length" class="empty-value">( Empty )</span>
     </div>
   </section>
 </section>

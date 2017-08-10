@@ -17,6 +17,7 @@ import { StateLabelComponent } from './state-label/state-label.component';
 import { NodeViewerComponent } from './node-viewer/node-viewer.component';
 import { InputInlineComponent } from './input-inline/input-inline.component';
 import { DataTableComponent } from './data-table/data-table.component';
+import { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.component';
 
 @NgModule({
   imports: [
@@ -38,11 +39,13 @@ import { DataTableComponent } from './data-table/data-table.component';
     StateLabelComponent,
     NodeViewerComponent,
     InputInlineComponent,
-    DataTableComponent
+    DataTableComponent,
+    ConfirmDialogComponent
   ],
   entryComponents: [
     InputDialogComponent,
-    AlertDialogComponent
+    AlertDialogComponent,
+    ConfirmDialogComponent
   ],
   exports: [
     RouterModule,

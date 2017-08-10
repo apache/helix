@@ -1,10 +1,13 @@
 import { Component, OnInit, Input, Output, ViewChild, ViewEncapsulation, EventEmitter } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { MdDialog } from '@angular/material';
 
 import * as _ from 'lodash';
 
 import { Node } from '../models/node.model';
 import { Settings } from '../../core/settings';
+import { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';
+import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'hi-node-viewer',
@@ -21,7 +24,13 @@ export class NodeViewerComponent implements OnInit {
   @ViewChild('mapTable') mapTable;
 
   @Output('update')
-  change: EventEmitter<Node> = new EventEmitter();
+  change: EventEmitter<Node> = new EventEmitter<Node>();
+
+  @Output('create')
+  create: EventEmitter<Node> = new EventEmitter<Node>();
+
+  @Output('delete')
+  delete: EventEmitter<Node> = new EventEmitter<Node>();
 
   // MODE 1: use directly in components
   @Input()
@@ -36,11 +45,16 @@ export class NodeViewerComponent implements OnInit {
   }
 
   @Input()
+  unlockable = false;
+
+  private _editable = false;
   set editable(value: boolean) {
-    if (value) {
-      this.columns.simpleConfigs[1].editable = true;
-      this.columns.listConfigs[0].editable = true;
-    }
+    this._editable = value;
+    this.columns.simpleConfigs[1].editable = this._editable;
+    this.columns.listConfigs[0].editable = this._editable;
+  }
+  get editable() {
+    return this._editable;
   }
 
   protected _obj: any;
@@ -99,7 +113,10 @@ export class NodeViewerComponent implements OnInit {
     }) : [];
   }
 
-  constructor(protected route: ActivatedRoute) { }
+  constructor(
+    protected dialog: MdDialog,
+    protected route: ActivatedRoute
+  ) { }
 
   ngOnInit() {
     // MODE 2: use in router
@@ -138,9 +155,104 @@ export class NodeViewerComponent implements OnInit {
     };
   }
 
+  onCreate(type) {
+    this.dialog
+      .open(InputDialogComponent, {
+        data: {
+          title: `Create a new ${ type } configuration`,
+          message: 'Please enter the name of the new configuration. You\'ll be able to add values later:',
+          values: {
+            name: {
+              label: 'the name of the new configuration'
+            }
+          }
+        }
+      })
+      .afterClosed()
+      .subscribe(result => {
+        if (result) {
+          const entry = [{
+            name: result.name.value,
+            value: []
+          }];
 
-  edited(type, {row, column, value}, key) {
-    if (column.name !== 'Value') {
+          let newNode: Node = new Node(null);
+          if (type === 'list') {
+            newNode.listFields = entry;
+          } else if (type === 'map') {
+            newNode.mapFields = entry;
+          }
+
+          this.create.emit(newNode);
+        }
+      });
+  }
+
+  beforeDelete(type, row) {
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Confirmation',
+          message: 'Are you sure you want to delete this configuration?'
+        }
+      })
+      .afterClosed()
+      .subscribe(result => {
+        if (result) {
+          this.onDelete(type, row);
+        }
+      });
+  }
+
+  onDelete(type, row) {
+    let newNode: Node = new Node(null);
+
+    if (type === 'simple') {
+      newNode.appendSimpleField(row.name, '');
+    } else if (type === 'list') {
+      newNode.listFields = [{ name: row.name, value: [] }];
+    } else if (type === 'map') {
+      newNode.mapFields =  [{ name: row.name, value: null }];
+    }
+
+    this.delete.emit(newNode);
+  }
+
+  created(type, data, key) {
+    let newNode: Node = new Node(null);
+
+    switch(type) {
+      case 'simple':
+        newNode.appendSimpleField(data.name.value, data.value.value);
+        break;
+
+      case 'list':
+        if (key) {
+          const entry = _.find(this.node.listFields, {'name': key});
+          entry.value.push({
+            name: '',
+            value: data.value.value
+          });
+          newNode.listFields.push(entry);
+        }
+        break;
+
+      case 'map':
+        if (key) {
+          const entry = _.find(this.node.mapFields, {'name': key});
+          _.forEach(entry.value, (item: any) => {
+            newNode.appendMapField(key, item.name, item.value);
+          });
+          newNode.appendMapField(key, data.name.value, data.value.value);
+        }
+        break;
+    }
+
+    this.create.emit(newNode);
+  }
+
+  edited(type, {row, column, value}, key, isDeleting) {
+    if (!isDeleting && column.name !== 'Value') {
       return;
     }
 
@@ -155,7 +267,11 @@ export class NodeViewerComponent implements OnInit {
         if (key) {
           const entry = _.find(this.node.listFields, {'name': key});
           const index = _.findIndex(entry.value, {'value': row.value});
-          entry.value[index].value = value;
+          if (isDeleting) {
+            entry.value.splice(index, 1);
+          } else {
+            entry.value[index].value = value;
+          }
           newNode.listFields.push(entry);
         }
         break;
@@ -166,7 +282,9 @@ export class NodeViewerComponent implements OnInit {
           const entry = _.find(this.node.mapFields, {'name': key});
           _.forEach(entry.value, (item: any) => {
             if (item.name === row.name) {
-              newNode.appendMapField(key, item.name, value);
+              if (!isDeleting) {
+                newNode.appendMapField(key, item.name, value);
+              }
             } else {
               newNode.appendMapField(key, item.name, item.value);
             }
@@ -177,5 +295,4 @@ export class NodeViewerComponent implements OnInit {
 
     this.change.emit(newNode);
   }
-
 }

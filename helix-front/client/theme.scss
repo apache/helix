@@ -3,6 +3,13 @@
 // Include the common styles for Angular Material
 @include mat-core();
 
+@mixin md-icon-size($size: 24px) {
+  font-size: $size;
+  line-height: $size;
+  height: $size;
+  width: $size;
+}
+
 // Customized palette designed by vivo
 $hi-nuage: (
   50: #E0EFF6,

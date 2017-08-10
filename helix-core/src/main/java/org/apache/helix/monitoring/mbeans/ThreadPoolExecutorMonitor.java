@@ -10,12 +10,14 @@ public class ThreadPoolExecutorMonitor implements ThreadPoolExecutorMonitorMBean
 
   private ObjectName _objectName;
   private ThreadPoolExecutor _executor;
+  private String _type;
 
   public ThreadPoolExecutorMonitor(String type, ThreadPoolExecutor executor)
       throws JMException {
+    _type = type;
+    _executor = executor;
     _objectName = MBeanRegistrar
         .register(this, MonitorDomainNames.HelixThreadPoolExecutor.name(), TYPE, type);
-    _executor = executor;
   }
 
   public void unregister() {
@@ -24,12 +26,8 @@ public class ThreadPoolExecutorMonitor implements ThreadPoolExecutorMonitorMBean
 
   @Override
   public String getSensorName() {
-    if (_objectName.getKeyProperty(MBeanRegistrar.DUPLICATE) == null) {
-      return String
-          .format("%s.%s", _objectName.getDomain(), _objectName.getKeyProperty(TYPE));
-    }
-    return String.format("%s.%s.%s", _objectName.getDomain(),
-        _objectName.getKeyProperty(TYPE), _objectName.getKeyProperty(MBeanRegistrar.DUPLICATE));
+    return String
+        .format("%s.%s", MonitorDomainNames.HelixThreadPoolExecutor.name(), _type);
   }
 
   @Override

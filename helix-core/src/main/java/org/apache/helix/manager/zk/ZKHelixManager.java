@@ -216,7 +216,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _keyBuilder = new Builder(clusterName);
     _messagingService = new DefaultMessagingService(this);
     try {
-      _callbackMonitor = new HelixCallbackMonitor(instanceType, clusterName);
+      _callbackMonitor =
+          new HelixCallbackMonitor(instanceType, String.format("%s.%s", clusterName, instanceName));
     } catch (JMException e) {
       LOG.error("Error in creating callback monitor.", e);
     }
@@ -572,7 +573,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         ChainedPathZkSerializer.builder(new ZNRecordStreamingSerializer()).build();
 
     _zkclient = new ZkClient(_zkAddress, _sessionTimeout, _clientConnectionTimeout, zkSerializer,
-        _instanceType.name(), _clusterName);
+        _instanceType.name(), String.format("%s.%s", _clusterName, _instanceName));
 
     _baseDataAccessor = createBaseDataAccessor();
 

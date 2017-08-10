@@ -28,10 +28,12 @@ import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.InstanceType;
 
 public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
-  public static final String INSTANCE_TYPE = "InstanceType";
-  public static final String CLUSTER = "Cluster";
+  public static final String MONITOR_TYPE = "Type";
+  public static final String MONITOR_KEY = "Key";
 
   private ObjectName _objectName;
+  private InstanceType _instanceType;
+  private String _key;
 
   private long _callbackCounter;
   private long _callbackUnbatchedCounter;
@@ -40,19 +42,21 @@ public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
   private Map<ChangeType, Long> _callbackUnbatchedCounterMap = new ConcurrentHashMap<>();
   private Map<ChangeType, Long> _callbackLatencyCounterMap = new ConcurrentHashMap<>();
 
-  public HelixCallbackMonitor(InstanceType type, String cluster) throws JMException {
+  public HelixCallbackMonitor(InstanceType type, String key) throws JMException {
     for (ChangeType changeType : ChangeType.values()) {
       _callbackCounterMap.put(changeType, 0L);
       _callbackUnbatchedCounterMap.put(changeType, 0L);
       _callbackLatencyCounterMap.put(changeType, 0L);
     }
-    register(type, cluster);
+    _instanceType = type;
+    _key = key;
+    register(type, key);
   }
 
-  private void register(InstanceType type, String cluster) throws JMException {
+  private void register(InstanceType type, String key) throws JMException {
     _objectName = MBeanRegistrar
-        .register(this, MonitorDomainNames.HelixCallback.name(), INSTANCE_TYPE, type.name(),
-            CLUSTER, cluster);
+        .register(this, MonitorDomainNames.HelixCallback.name(), MONITOR_TYPE, type.name(),
+            MONITOR_KEY, key);
   }
 
   /**
@@ -67,10 +71,9 @@ public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
     _callbackUnbatchedCounterMap.put(type, _callbackUnbatchedCounterMap.get(type) + 1);
   }
 
-  @Override
-  public String getSensorName() {
-    return String.format("%s.%s.%s", MonitorDomainNames.HelixCallback.name(),
-        _objectName.getKeyProperty(INSTANCE_TYPE), _objectName.getKeyProperty(CLUSTER));
+  @Override public String getSensorName() {
+    return String.format("%s.%s.%s", MonitorDomainNames.HelixCallback.name(), _instanceType.name(),
+        _key);
   }
 
   public void increaseCallbackCounters(ChangeType type, long time) {

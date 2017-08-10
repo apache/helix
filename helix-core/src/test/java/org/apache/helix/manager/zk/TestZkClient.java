@@ -136,12 +136,13 @@ public class TestZkClient extends ZkUnitTestBase {
   @Test
   public void testZkClientMonitor() throws Exception {
     final String TEST_TAG = "test_monitor";
+    final String TEST_KEY = "test_key";
     final String TEST_DATA = "testData";
     final String TEST_ROOT = "/my_cluster/IDEALSTATES";
     final String TEST_NODE = "/test_zkclient_monitor";
     final String TEST_PATH = TEST_ROOT + TEST_NODE;
 
-    ZkClient zkClient = new ZkClient(ZK_ADDR, TEST_TAG, null);
+    ZkClient zkClient = new ZkClient(ZK_ADDR, TEST_TAG, TEST_KEY);
 
     final long TEST_DATA_SIZE = zkClient.serialize(TEST_DATA, TEST_PATH).length;
 
@@ -156,7 +157,7 @@ public class TestZkClient extends ZkUnitTestBase {
 
     ObjectName name = MBeanRegistrar
         .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
-            TEST_TAG, ZkClientMonitor.MONITOR_KEY, ZkClientMonitor.DEFAULT_TAG);
+            TEST_TAG, ZkClientMonitor.MONITOR_KEY, TEST_KEY);
     Assert.assertTrue(beanServer.isRegistered(name));
 
     // Test exists

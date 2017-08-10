@@ -28,9 +28,12 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   private static final long RESET_INTERVAL = 1000 * 60 * 10; // 1 hour
   public static final String MONITOR_TYPE = "Type";
   public static final String MONITOR_KEY = "Key";
-  public static final String DEFAULT_TAG = "default";
+  public static final String SESSION_ID_PROPERTY_NAME = "SessionId";
+  public static final String CUSTOMIZED_PROPERTY_NAME = "CustomizedKey";
 
   private ObjectName _objectName;
+  private String _monitorType;
+  private String _monitorKey;
 
   private enum PredefinedPath {
     IdealStates(".*/IDEALSTATES/.*"),
@@ -72,12 +75,10 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   private Map<PredefinedPath, Long> _readMaxLatencyMap = new ConcurrentHashMap<>();
   private Map<PredefinedPath, Long> _writeMaxLatencyMap = new ConcurrentHashMap<>();
 
-  public ZkClientMonitor(String monitorType) throws JMException {
-    this(monitorType, null);
-  }
-
   public ZkClientMonitor(String monitorType, String monitorKey) throws JMException {
     initCounterMaps();
+    _monitorType = monitorType;
+    _monitorKey = monitorKey;
     regitster(monitorType, monitorKey);
   }
 
@@ -97,12 +98,6 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   public void regitster(String monitorType, String monitorKey) throws JMException {
-    if (monitorType == null) {
-      monitorType = DEFAULT_TAG;
-    }
-    if (monitorKey == null) {
-      monitorKey = DEFAULT_TAG;
-    }
     _objectName = MBeanRegistrar
         .register(this, MonitorDomainNames.HelixZkClient.name(), MONITOR_TYPE, monitorType,
             MONITOR_KEY, monitorKey);
@@ -115,14 +110,9 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     MBeanRegistrar.unregister(_objectName);
   }
 
-  @Override
-  public String getSensorName() {
-    String sensorName = String.format("%s.%s.%s", MonitorDomainNames.HelixZkClient.name(),
-        _objectName.getKeyProperty(MONITOR_TYPE), _objectName.getKeyProperty(MONITOR_KEY));
-    if (_objectName.getKeyProperty(MBeanRegistrar.DUPLICATE) != null) {
-      sensorName += "." + _objectName.getKeyProperty(MBeanRegistrar.DUPLICATE);
-    }
-    return sensorName;
+  @Override public String getSensorName() {
+    return String
+        .format("%s.%s.%s", MonitorDomainNames.HelixZkClient.name(), _monitorType, _monitorKey);
   }
 
   public void increaseStateChangeEventCounter() {

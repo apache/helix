@@ -31,37 +31,38 @@ public class TestZkClientMonitor {
 
   private MBeanServer _beanServer = ManagementFactory.getPlatformMBeanServer();
 
-  private ObjectName buildObjectName(String tag) throws MalformedObjectNameException {
+  private ObjectName buildObjectName(String tag, String key) throws MalformedObjectNameException {
     return MBeanRegistrar
         .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
-            tag, ZkClientMonitor.MONITOR_KEY, ZkClientMonitor.DEFAULT_TAG);
+            tag, ZkClientMonitor.MONITOR_KEY, key);
   }
 
-  private ObjectName buildObjectName(String tag, int num) throws MalformedObjectNameException {
+  private ObjectName buildObjectName(String tag, String key, int num) throws MalformedObjectNameException {
     return MBeanRegistrar.buildObjectName(num, MonitorDomainNames.HelixZkClient.name(),
-        ZkClientMonitor.MONITOR_TYPE, tag, ZkClientMonitor.MONITOR_KEY,
-        ZkClientMonitor.DEFAULT_TAG);
+        ZkClientMonitor.MONITOR_TYPE, tag, ZkClientMonitor.MONITOR_KEY, key);
   }
 
   @Test public void testMBeanRegisteration() throws JMException {
     final String TEST_TAG_1 = "test_tag_1";
+    final String TEST_KEY_1 = "test_key_1";
 
-    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG_1);
-    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TAG_1)));
-    ZkClientMonitor monitorDuplicate = new ZkClientMonitor(TEST_TAG_1);
-    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, 1)));
+    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG_1, TEST_KEY_1);
+    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1)));
+    ZkClientMonitor monitorDuplicate = new ZkClientMonitor(TEST_TAG_1, TEST_KEY_1);
+    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1, 1)));
 
     monitor.unregister();
     monitorDuplicate.unregister();
 
-    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TAG_1)));
-    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, 1)));
+    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1)));
+    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1, 1)));
   }
 
   @Test public void testCounter() throws JMException {
     final String TEST_TAG = "test_tag_3";
-    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG);
-    ObjectName name = buildObjectName(TEST_TAG);
+    final String TEST_KEY = "test_key_3";
+    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG, TEST_KEY);
+    ObjectName name = buildObjectName(TEST_TAG, TEST_KEY);
 
     monitor.increaseDataChangeEventCounter();
     long eventCount = (long) _beanServer.getAttribute(name, "DataChangeEventCounter");

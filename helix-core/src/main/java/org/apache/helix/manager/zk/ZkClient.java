@@ -42,6 +42,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
 import javax.management.JMException;
@@ -133,6 +134,20 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
       LOG.trace("created a zkclient. callstack: " + Arrays.asList(calls));
     }
     try {
+      if (monitorKey == null) {
+        // Use ZK session Id as monitor key
+        monitorType = ZkClientMonitor.SESSION_ID_PROPERTY_NAME;
+        // _connection cannot be null, checked in org.I0Itec.zkclient.ZkClient constructor
+        ZooKeeper zk = ((ZkConnection) _connection).getZookeeper();
+        if (zk != null) {
+          monitorKey = new Long(zk.getSessionId()).toString();
+        } else { // if zkClient is not connected
+          LOG.error("Cannot creating ZkClientMonitor because ZkClient is not connected.");
+          return;
+        }
+      } else if (monitorType == null) {
+        monitorType = ZkClientMonitor.CUSTOMIZED_PROPERTY_NAME;
+      }
       _monitor = new ZkClientMonitor(monitorType, monitorKey);
     } catch (JMException e) {
       LOG.error("Error in creating ZkClientMonitor", e);

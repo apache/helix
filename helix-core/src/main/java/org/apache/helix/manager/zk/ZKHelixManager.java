@@ -361,7 +361,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         new EventType[] { EventType.NodeChildrenChanged });
   }
 
-
   @Deprecated
   @Override
   public void addIdealStateChangeListener(final org.apache.helix.IdealStateChangeListener listener)

@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "ng": "ng",
-    "build": "rm -rf dist && ng build -aot -prod && tsc -p server",
+    "build": "rm -rf dist && mkdir dist && ng build -aot -prod && tsc -p server",
     "start": "concurrently \"ng serve -pc proxy.conf.json\" \"tsc -w -p server\" \"nodemon dist/server/app.js\"",
     "prod": "npm run build && node dist/server/app.js",
     "test": "ng test",

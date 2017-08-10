@@ -26,7 +26,7 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
   @Input() editLabel: string = 'Click to edit';
   @Input() disabled: boolean = false;
 
-  private editing: boolean = false;
+  editing: boolean = false;
 
   private _value: string = '';
   @Input()

@@ -68,12 +68,7 @@ export class ConfigDetailComponent implements OnInit {
     }
   }
 
-  protected handleError(error) {
-    // the API says if there's no config just return 404 ! sucks!
-    this.isLoading = false;
-  }
-
-  protected updateConfig(value: any) {
+  updateConfig(value: any) {
     if (this.clusterName) {
       this.isLoading = true;
       this.service
@@ -90,4 +85,8 @@ export class ConfigDetailComponent implements OnInit {
     }
   }
 
+  protected handleError(error) {
+    // the API says if there's no config just return 404 ! sucks!
+    this.isLoading = false;
+  }
 }

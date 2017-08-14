@@ -133,7 +133,7 @@ public class MockTask extends UserContentStore implements Task {
       if (_signalFail) {
         return new TaskResult(TaskResult.Status.FAILED, "Signaled to fail.");
       }
-      sleep(50);
+      sleep(10);
     }
     timeLeft = expiry - System.currentTimeMillis();
 

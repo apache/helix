@@ -52,7 +52,7 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
   @Test public void testWhenDisallowOverlapJobAssignment() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
-    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder();
+    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(queueName);
     cfgBuilder.setParallelJobs(PARALLEL_COUNT);
     cfgBuilder.setAllowOverlapJobAssignment(false);
 
@@ -94,7 +94,7 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
 
     String queueName = TestHelper.getTestMethodName();
 
-    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder();
+    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(queueName);
     cfgBuilder.setParallelJobs(PARALLEL_COUNT);
     cfgBuilder.setAllowOverlapJobAssignment(true);
 

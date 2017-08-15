@@ -18,12 +18,14 @@ package org.apache.helix.task;
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
@@ -164,6 +166,12 @@ public class TaskDriver {
    * @param newWorkflowConfig
    */
   public void updateWorkflow(String workflow, WorkflowConfig newWorkflowConfig) {
+    if (workflow == null || !workflow.equals(newWorkflowConfig.getWorkflowId())) {
+      throw new HelixException(String
+          .format("Workflow name {%s} does not match the workflow Id from WorkflowConfig {%s}",
+              workflow, newWorkflowConfig.getWorkflowId()));
+    }
+
     WorkflowConfig currentConfig =
         TaskUtil.getWorkflowConfig(_accessor, workflow);
     if (currentConfig == null) {

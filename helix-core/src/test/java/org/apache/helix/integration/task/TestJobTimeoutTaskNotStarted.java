@@ -19,9 +19,9 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -46,6 +46,8 @@ import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.google.common.collect.Sets;
 
 
 public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
@@ -141,8 +143,9 @@ public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
         .setNumConcurrentTasksPerInstance(_numParitions)
         .setTimeout(3000); // Wait a bit so that tasks are already assigned to the job (and will be cancelled)
 
-    WorkflowConfig.Builder timeoutWorkflowConfigBuilder = new WorkflowConfig.Builder()
-        .setFailureThreshold(1); // workflow ignores first job's timeout and schedule second job and succeed.
+    WorkflowConfig.Builder timeoutWorkflowConfigBuilder =
+        new WorkflowConfig.Builder(TIMEOUT_WORKFLOW_NAME).setFailureThreshold(
+            1); // workflow ignores first job's timeout and schedule second job and succeed.
 
     Workflow.Builder timeoutWorkflowBuilder = new Workflow.Builder(TIMEOUT_WORKFLOW_NAME)
         .setWorkflowConfig(timeoutWorkflowConfigBuilder.build())

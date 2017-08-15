@@ -411,8 +411,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // Create a queue
     System.out.println("START " + queueName + " at " + new Date(System.currentTimeMillis()));
-    WorkflowConfig wfCfg
-        = new WorkflowConfig.Builder().setExpiry(2, TimeUnit.MINUTES)
+    WorkflowConfig wfCfg = new WorkflowConfig.Builder(queueName).setExpiry(2, TimeUnit.MINUTES)
         .setScheduleConfig(ScheduleConfig.recurringFromNow(TimeUnit.MINUTES, 1)).build();
     JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
     _driver.createQueue(qCfg);

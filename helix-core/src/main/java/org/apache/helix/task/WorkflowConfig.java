@@ -314,7 +314,7 @@ public class  WorkflowConfig extends ResourceConfig {
   }
 
   public static class Builder {
-    private String _workflowId = "";
+    private String _workflowId = null;
     private JobDag _taskDag = DEFAULT_JOB_DAG;
     private int _parallelJobs = DEFAULT_PARALLEL_JOBS;
     private TargetState _targetState = DEFAULT_TARGET_STATE;
@@ -338,6 +338,10 @@ public class  WorkflowConfig extends ResourceConfig {
     }
 
     public Builder() {}
+
+    public Builder(String workflowId) {
+      _workflowId = workflowId;
+    }
 
     public Builder(WorkflowConfig workflowConfig) {
       _workflowId = workflowConfig.getWorkflowId();
@@ -474,14 +478,20 @@ public class  WorkflowConfig extends ResourceConfig {
       return this;
     }
 
+    @Deprecated
     public static Builder fromMap(Map<String, String> cfg) {
       Builder builder = new Builder();
       builder.setConfigMap(cfg);
       return builder;
     }
 
+    // TODO: Add user customized simple field clone.
     // TODO: Add API to set map fields. This API only set simple fields
     public Builder setConfigMap(Map<String, String> cfg) {
+      if (cfg.containsKey(WorkflowConfigProperty.WorkflowID.name())) {
+        setWorkflowId(cfg.get(WorkflowConfigProperty.WorkflowID.name()));
+      }
+
       if (cfg.containsKey(WorkflowConfigProperty.Expiry.name())) {
         setExpiry(Long.parseLong(cfg.get(WorkflowConfigProperty.Expiry.name())));
       }
@@ -598,11 +608,17 @@ public class  WorkflowConfig extends ResourceConfig {
     }
 
     private void validate() {
+      if (_workflowId == null) {
+        throw new HelixException("Workflow ID is required field!");
+      }
+
+      _taskDag.validate();
+
       if (_expiry < 0) {
-        throw new IllegalArgumentException(String
+        throw new HelixException(String
             .format("%s has invalid value %s", WorkflowConfigProperty.Expiry.name(), _expiry));
       } else if (_scheduleConfig != null && !_scheduleConfig.isValid()) {
-        throw new IllegalArgumentException(
+        throw new HelixException(
             "Scheduler configuration is invalid. The configuration must have a start time if it is "
                 + "one-time, and it must have a positive interval magnitude if it is recurring");
       }

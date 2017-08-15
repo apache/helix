@@ -196,7 +196,7 @@ public class TaskTestUtil {
 
   public static JobQueue.Builder buildRecurrentJobQueue(String jobQueueName, int delayStart,
       int recurrenInSeconds, TargetState targetState) {
-    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder();
+    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder(jobQueueName);
     workflowCfgBuilder.setExpiry(120000);
     if (targetState != null) {
       workflowCfgBuilder.setTargetState(TargetState.STOP);
@@ -218,7 +218,7 @@ public class TaskTestUtil {
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
       int failureThreshold, int capacity) {
-    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder();
+    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder(jobQueueName);
     workflowCfgBuilder.setExpiry(120000);
     workflowCfgBuilder.setCapacity(capacity);
 

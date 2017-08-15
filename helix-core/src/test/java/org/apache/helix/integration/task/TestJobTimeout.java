@@ -19,8 +19,6 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -37,6 +35,9 @@ import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 public final class TestJobTimeout extends TaskSynchronizedTestBase {
 
@@ -88,8 +89,9 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
         .setCommand(MockTask.TASK_COMMAND)
         .setIgnoreDependentJobFailure(true); // ignore first job's timeout
 
-    WorkflowConfig.Builder workflowConfigBuilder = new WorkflowConfig.Builder()
-        .setFailureThreshold(1); // workflow ignores first job's timeout and schedule second job and succeed.
+    WorkflowConfig.Builder workflowConfigBuilder = new WorkflowConfig.Builder(WORKFLOW_NAME)
+        .setFailureThreshold(
+            1); // workflow ignores first job's timeout and schedule second job and succeed.
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW_NAME)
         .setWorkflowConfig(workflowConfigBuilder.build())
@@ -135,8 +137,9 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
         .setCommand(MockTask.TASK_COMMAND)
         .setIgnoreDependentJobFailure(true); // ignore first job's timeout
 
-    WorkflowConfig.Builder workflowConfigBuilder = new WorkflowConfig.Builder()
-        .setFailureThreshold(1); // workflow ignores first job's timeout and schedule second job and succeed.
+    WorkflowConfig.Builder workflowConfigBuilder = new WorkflowConfig.Builder(WORKFLOW_NAME)
+        .setFailureThreshold(
+            1); // workflow ignores first job's timeout and schedule second job and succeed.
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW_NAME)
         .setWorkflowConfig(workflowConfigBuilder.build())

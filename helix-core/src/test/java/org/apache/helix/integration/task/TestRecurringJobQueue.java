@@ -243,7 +243,6 @@ public class TestRecurringJobQueue extends TaskTestBase {
   @Test
   public void testDeletingRecurrentQueueWithHistory() throws Exception {
     final String queueName = TestHelper.getTestMethodName();
-    int intervalSeconds = 3;
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
@@ -255,17 +254,12 @@ public class TestRecurringJobQueue extends TaskTestBase {
     WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queueName);
     Assert.assertEquals(workflowConfig.getTargetState(), TargetState.STOP);
 
-    // reset interval to a smaller number so as to accelerate test
-    workflowConfig.putSimpleConfig(WorkflowConfig.WorkflowConfigProperty.RecurrenceInterval.name(),
-        "" + intervalSeconds);
-    _driver.updateWorkflow(queueName, workflowConfig);
-
     _driver.resume(queueName);
 
     WorkflowContext wCtx;
     // wait until at least 2 workflows are scheduled based on template queue
     do {
-      Thread.sleep(intervalSeconds);
+      Thread.sleep(60000);
       wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
     } while (wCtx.getScheduledWorkflows().size() < 2);
 

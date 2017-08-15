@@ -132,6 +132,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   // timer for schedule timeout tasks
   final Timer _timer;
 
+  private boolean _isShuttingDown;
+
   public HelixTaskExecutor() {
     this(new ParticipantStatusMonitor(false, null));
   }
@@ -157,6 +159,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _timer = new Timer(true); // created as a daemon timer thread to handle task timeout
 
+    _isShuttingDown = false;
+
     startMonitorThread();
   }
 
@@ -172,6 +176,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       throw new HelixException("Message factory type mismatch. Type: " + type + ", factory: "
           + factory.getMessageTypes());
     }
+
+    _isShuttingDown = false;
 
     MsgHandlerFactoryRegistryItem newItem =
         new MsgHandlerFactoryRegistryItem(factory, threadpoolSize);
@@ -386,6 +392,13 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         if (!_taskMap.containsKey(taskId)) {
           ExecutorService exeSvc = findExecutorServiceForMsg(message);
 
+          if (exeSvc == null) {
+            LOG.warn(String
+                .format("Threadpool is null for type %s of message %s", message.getMsgType(),
+                    message.getMsgId()));
+            return false;
+          }
+
           LOG.info("Submit task: " + taskId + " to pool: " + exeSvc);
           Future<HelixTaskResult> future = exeSvc.submit(task);
 
@@ -586,6 +599,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       _messageQueueMonitor.init();
     }
 
+    _isShuttingDown = false;
+
     // Re-init all existing factories
     for (String msgType : _hdlrFtyRegistry.keySet()) {
       MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
@@ -647,6 +662,16 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     if (changeContext.getType() == Type.INIT) {
       init();
       // continue to process messages
+    }
+
+    if (_isShuttingDown) {
+      StringBuilder sb = new StringBuilder();
+      for (Message message : messages) {
+        sb.append(message.getMsgId() + ",");
+      }
+      LOG.info(
+          "Helix task executor is shutting down, discard unprocessed messages : " + sb.toString());
+      return;
     }
 
     if (messages == null || messages.size() == 0) {
@@ -953,6 +978,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   @Override
   public void shutdown() {
     LOG.info("Shutting down HelixTaskExecutor");
+    _isShuttingDown = true;
     _timer.cancel();
 
     reset();

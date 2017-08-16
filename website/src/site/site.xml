@@ -31,7 +31,7 @@
   <skin>
     <groupId>lt.velykis.maven.skins</groupId>
     <artifactId>reflow-maven-skin</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.1</version>
   </skin>
 
   <body>
@@ -137,7 +137,8 @@
       <sideBarEnabled>true</sideBarEnabled>
     </fluidoSkin-->
     <reflowSkin>
-      <theme>bootswatch-cerulean</theme>
+      <theme>site</theme>
+      <localResources>true</localResources>
       <highlightJs>false</highlightJs>
       <brand>
         <name>Apache Helix</name>

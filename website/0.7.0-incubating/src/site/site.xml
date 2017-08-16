@@ -106,7 +106,8 @@
 
   <custom>
     <reflowSkin>
-      <theme>default</theme>
+      <theme>site</theme>
+      <localResources>true</localResources>
       <highlightJs>false</highlightJs>
       <brand>
         <name>Apache Helix</name>

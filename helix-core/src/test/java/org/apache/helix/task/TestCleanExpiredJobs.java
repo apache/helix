@@ -80,6 +80,7 @@ public class TestCleanExpiredJobs extends TaskSynchronizedTestBase {
 
     _driver.start(builder.build());
     _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
+    _cache.setTaskCache(true);
     TaskUtil.setWorkflowContext(_manager, queue, workflowContext);
     TaskTestUtil.calculateBestPossibleState(_cache, _manager);
     WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queue);

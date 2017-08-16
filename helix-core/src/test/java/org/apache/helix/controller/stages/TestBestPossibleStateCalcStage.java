@@ -52,6 +52,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
         getResourceMap(resources, numPartition, BuiltInStateModelDefinitions.MasterSlave.name());
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();

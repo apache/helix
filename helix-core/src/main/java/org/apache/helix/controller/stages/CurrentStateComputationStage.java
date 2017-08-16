@@ -140,9 +140,11 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       }
     }
 
-    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    updateMissingTopStateStatus(cache, clusterStatusMonitor, resourceMap, currentStateOutput);
-
+    if (!cache.isTaskCache()) {
+      ClusterStatusMonitor clusterStatusMonitor =
+          event.getAttribute(AttributeName.clusterStatusMonitor.name());
+      updateMissingTopStateStatus(cache, clusterStatusMonitor, resourceMap, currentStateOutput);
+    }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     long endTime = System.currentTimeMillis();

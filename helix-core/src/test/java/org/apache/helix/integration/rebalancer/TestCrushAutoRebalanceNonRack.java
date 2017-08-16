@@ -143,11 +143,11 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test(dataProvider = "rebalanceStrategies", enabled = true)
+  @Test(dataProvider = "rebalanceStrategies", enabled = true, dependsOnMethods = "test")
   public void testWithInstanceTag(String rebalanceStrategyName, String rebalanceStrategyClass)
       throws Exception {
     Set<String> tags = new HashSet<String>(_nodeToTagMap.values());
-    int i = 0;
+    int i = 3;
     for (String tag : tags) {
       String db = "Test-DB-" + rebalanceStrategyName + "-" + i++;
       _setupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS,

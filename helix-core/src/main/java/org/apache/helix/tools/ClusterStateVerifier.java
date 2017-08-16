@@ -191,6 +191,7 @@ public class ClusterStateVerifier {
         // read cluster once and do verification
         ClusterDataCache cache = new ClusterDataCache(clusterName);
         cache.refresh(accessor);
+        cache.setTaskCache(false);
 
         Map<String, IdealState> idealStates = cache.getIdealStates();
         if (idealStates == null) {
@@ -350,7 +351,8 @@ public class ClusterStateVerifier {
 
       // Filter resources if specified
       if (resources != null) {
-        Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+        Map<String, Resource> resourceMap =
+            event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
         resourceMap.keySet().retainAll(resources);
       }
 

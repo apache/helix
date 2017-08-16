@@ -48,7 +48,8 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     logger.info("START TaskAssignmentStage.process()");
 
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     MessageThrottleStageOutput messageOutput =
         event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
@@ -74,9 +75,12 @@ public class TaskAssignmentStage extends AbstractBaseStage {
         batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveInstanceMap,
             manager.getProperties());
     sendMessages(dataAccessor, outputMessages);
-    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    clusterStatusMonitor.increaseMessageReceived(outputMessages);
-
+    // TODO: Need also count messages from task rebalancer
+    if (!cache.isTaskCache()) {
+      ClusterStatusMonitor clusterStatusMonitor =
+          event.getAttribute(AttributeName.clusterStatusMonitor.name());
+      clusterStatusMonitor.increaseMessageReceived(outputMessages);
+    }
     long cacheStart = System.currentTimeMillis();
     cache.cacheMessages(outputMessages);
     long cacheEnd = System.currentTimeMillis();

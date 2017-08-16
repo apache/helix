@@ -216,7 +216,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     logger.debug("Processing resource:" + resourceName);
 
     if (!throttleController.isThrottleEnabled() || !IdealState.RebalanceMode.FULL_AUTO
-        .equals(idealState.getRebalanceMode())) {
+        .equals(idealState.getRebalanceMode()) || cache.isTaskCache()) {
       // We only apply throttling on FULL-AUTO now.
       return bestPossiblePartitionStateMap;
     }

@@ -105,24 +105,26 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         }
       }
       // Update cluster status monitor mbean
-      ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
       IdealState idealState = cache.getIdealState(resourceName);
-      ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
-      if (idealState != null && (resourceConfig == null || !resourceConfig
-          .isMonitoringDisabled())) {
-        if (clusterStatusMonitor != null && !idealState.getStateModelDefRef()
-            .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-          StateModelDefinition stateModelDef =
-              cache.getStateModelDef(idealState.getStateModelDefRef());
-          clusterStatusMonitor
-              .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
-                  stateModelDef);
+      if (!cache.isTaskCache()) {
+        ClusterStatusMonitor clusterStatusMonitor =
+            event.getAttribute(AttributeName.clusterStatusMonitor.name());
+        ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
+        if (idealState != null && (resourceConfig == null || !resourceConfig
+            .isMonitoringDisabled())) {
+          if (clusterStatusMonitor != null && !idealState.getStateModelDefRef()
+              .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+            StateModelDefinition stateModelDef =
+                cache.getStateModelDef(idealState.getStateModelDefRef());
+            clusterStatusMonitor
+                .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
+                    stateModelDef);
+          }
+        } else {
+          // Drop the metrics if the resource is dropped, or the MonitorDisabled is changed to true.
+          clusterStatusMonitor.unregisterResource(view.getResourceName());
         }
-      } else {
-        // Drop the metrics if the resource is dropped, or the MonitorDisabled is changed to true.
-        clusterStatusMonitor.unregisterResource(view.getResourceName());
       }
-
       ExternalView curExtView = curExtViews.get(resourceName);
       // copy simplefields from IS, in cases where IS is deleted copy it from existing ExternalView
       if (idealState != null) {

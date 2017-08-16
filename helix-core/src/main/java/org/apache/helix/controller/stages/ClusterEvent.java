@@ -90,4 +90,13 @@ public class ClusterEvent {
     }
     return sb.toString();
   }
+
+  public ClusterEvent clone() {
+    ClusterEvent newEvent = new ClusterEvent(_clusterName, _eventType);
+    newEvent.setCreationTime(_creationTime);
+    for (String attributeName : _eventAttributeMap.keySet()) {
+      newEvent.addAttribute(attributeName, _eventAttributeMap.get(attributeName));
+    }
+    return newEvent;
+  }
 }

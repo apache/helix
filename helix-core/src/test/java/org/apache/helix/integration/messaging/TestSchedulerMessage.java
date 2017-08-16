@@ -498,6 +498,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
         }
       }
 
+      Thread.sleep(3000);
       PropertyKey controllerTaskStatus =
           keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgId);
       ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();

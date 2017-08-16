@@ -36,6 +36,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
   public void testEmptyCS() {
     Map<String, Resource> resourceMap = getResourceMap();
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     CurrentStateComputationStage stage = new CurrentStateComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
@@ -53,6 +54,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     setupLiveInstances(5);
 
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     CurrentStateComputationStage stage = new CurrentStateComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);

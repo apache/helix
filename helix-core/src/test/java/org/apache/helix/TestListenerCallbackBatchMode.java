@@ -130,9 +130,9 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
         return (listener._instanceConfigChangedCount == _numNode) && (
             listener._idealStateChangedCount == _numResource);
       }
-    }, 8000);
+    }, 12000);
 
-    Thread.sleep(10);
+    Thread.sleep(50);
 
     Assert.assertTrue(result,
         "non batched: instance: " + listener._instanceConfigChangedCount + ", idealstate: "

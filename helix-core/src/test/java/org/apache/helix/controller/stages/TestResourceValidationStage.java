@@ -70,14 +70,16 @@ public class TestResourceValidationStage {
 
     // run resource computation
     new ResourceComputationStage().process(event);
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     Assert.assertTrue(resourceMap.containsKey(masterSlaveCustomResource));
     Assert.assertTrue(resourceMap.containsKey(onlineOfflineFullAutoResource));
     Assert.assertTrue(resourceMap.containsKey(masterSlaveSemiAutoInvalidResource));
 
     // run resource validation
     new ResourceValidationStage().process(event);
-    Map<String, Resource> finalResourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    Map<String, Resource> finalResourceMap =
+        event.getAttribute(AttributeName.RESOURCES.name());
     Assert.assertTrue(finalResourceMap.containsKey(masterSlaveCustomResource));
     Assert.assertTrue(finalResourceMap.containsKey(onlineOfflineFullAutoResource));
     Assert.assertFalse(finalResourceMap.containsKey(masterSlaveSemiAutoInvalidResource));

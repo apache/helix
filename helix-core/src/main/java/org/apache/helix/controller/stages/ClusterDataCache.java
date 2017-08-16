@@ -100,6 +100,7 @@ public class ClusterDataCache {
   private ExecutorService _asyncTasksThreadPool;
 
   boolean _updateInstanceOfflineTime = true;
+  boolean _isTaskCache;
 
   private String _clusterName;
 
@@ -796,6 +797,22 @@ public class ClusterDataCache {
    */
   public void setAsyncTasksThreadPool(ExecutorService asyncTasksThreadPool) {
     _asyncTasksThreadPool = asyncTasksThreadPool;
+  }
+
+  /**
+   * Set the cache is serving for Task pipleline or not
+   * @param taskCache
+   */
+  public void setTaskCache(boolean taskCache) {
+    _isTaskCache = taskCache;
+  }
+
+  /**
+   * Get the cache is serving for Task pipleline or not
+   * @return
+   */
+  public boolean isTaskCache() {
+    return _isTaskCache;
   }
 
   /**

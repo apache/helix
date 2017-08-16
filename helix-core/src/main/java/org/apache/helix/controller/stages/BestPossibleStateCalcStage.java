@@ -62,7 +62,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
-    final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    final Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
 
     if (currentStateOutput == null || resourceMap == null || cache == null) {
@@ -80,24 +81,27 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
-    final ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
-    final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();
-    asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
-      @Override public Object call() {
-        try {
-          if (clusterStatusMonitor != null) {
-            clusterStatusMonitor
-                .setPerInstanceResourceStatus(bestPossibleStateOutput, instanceConfigMap,
-                    resourceMap, stateModelDefMap);
-          }
-        } catch (Exception e) {
-          logger.error("Could not update cluster status metrics!", e);
-        }
-        return null;
-      }
-    });
 
+    if (!cache.isTaskCache()) {
+      final ClusterStatusMonitor clusterStatusMonitor =
+          event.getAttribute(AttributeName.clusterStatusMonitor.name());
+      final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
+      final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();
+      asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
+        @Override public Object call() {
+          try {
+            if (clusterStatusMonitor != null) {
+              clusterStatusMonitor
+                  .setPerInstanceResourceStatus(bestPossibleStateOutput, instanceConfigMap,
+                      resourceMap, stateModelDefMap);
+            }
+          } catch (Exception e) {
+            logger.error("Could not update cluster status metrics!", e);
+          }
+          return null;
+        }
+      });
+    }
 
     long endTime = System.currentTimeMillis();
     logger.info("END BestPossibleStateCalcStage.process() for cluster " + cache.getClusterName()

@@ -64,6 +64,7 @@ public class TestRebalancerMetrics extends BaseStageTest {
             BuiltInStateModelDefinitions.MasterSlave.name());
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
     event.addAttribute(AttributeName.clusterStatusMonitor.name(), new ClusterStatusMonitor(_clusterName));
 
@@ -107,6 +108,7 @@ public class TestRebalancerMetrics extends BaseStageTest {
             BuiltInStateModelDefinitions.MasterSlave.name());
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
     event.addAttribute(AttributeName.clusterStatusMonitor.name(), new ClusterStatusMonitor(_clusterName));
 

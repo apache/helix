@@ -55,6 +55,9 @@ public class TestStateTransitionPrirority extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(),
         getResourceMap(resourceMap.keySet().toArray(new String[resourceMap.keySet().size()]), 1,
             "MasterSlave"));
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
+        getResourceMap(resourceMap.keySet().toArray(new String[resourceMap.keySet().size()]), 1,
+            "MasterSlave"));
 
     // Initialize bestpossible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
@@ -98,6 +101,10 @@ public class TestStateTransitionPrirority extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(),
         getResourceMap(resourceMap.keySet().toArray(new String[resourceMap.keySet().size()]), 1,
             "MasterSlave"));
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
+        getResourceMap(resourceMap.keySet().toArray(new String[resourceMap.keySet().size()]), 1,
+            "MasterSlave"));
+
     // Initialize bestpossible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
@@ -170,6 +177,7 @@ public class TestStateTransitionPrirority extends BaseStageTest {
 
     event.addAttribute(AttributeName.RESOURCES.name(),
         Collections.singletonMap(resourceName, resource));
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resource);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
     runStage(event, new ReadClusterDataStage());

@@ -30,6 +30,7 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
+import org.apache.helix.task.TaskConstants;
 import org.apache.log4j.Logger;
 
 /**
@@ -52,14 +53,27 @@ public class ResourceComputationStage extends AbstractBaseStage {
     Map<String, IdealState> idealStates = cache.getIdealStates();
 
     Map<String, Resource> resourceMap = new LinkedHashMap<String, Resource>();
+    Map<String, Resource> resourceToRebalance = new LinkedHashMap<>();
+
 
     if (idealStates != null && idealStates.size() > 0) {
       for (IdealState idealState : idealStates.values()) {
+        if (idealState == null) {
+          continue;
+        }
         Set<String> partitionSet = idealState.getPartitionSet();
         String resourceName = idealState.getResourceName();
         if (!resourceMap.containsKey(resourceName)) {
           Resource resource = new Resource(resourceName);
           resourceMap.put(resourceName, resource);
+
+          if (!idealState.isValid() && !cache.isTaskCache()
+              || idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && cache
+              .isTaskCache()
+              || !idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && !cache
+              .isTaskCache()) {
+            resourceToRebalance.put(resourceName, resource);
+          }
           resource.setStateModelDefRef(idealState.getStateModelDefRef());
           resource.setStateModelFactoryName(idealState.getStateModelFactoryName());
           resource.setBucketSize(idealState.getBucketSize());
@@ -111,6 +125,14 @@ public class ResourceComputationStage extends AbstractBaseStage {
             resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
             resource.setBucketSize(currentState.getBucketSize());
             resource.setBatchMessageMode(currentState.getBatchMessageMode());
+            if (resource.getStateModelDefRef() == null && !cache.isTaskCache()
+                || resource.getStateModelDefRef() != null && (
+                resource.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && cache
+                    .isTaskCache()
+                    || !resource.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)
+                    && !cache.isTaskCache())) {
+              resourceToRebalance.put(resourceName, resource);
+            }
 
             IdealState idealState = idealStates.get(resourceName);
             if (idealState != null) {
@@ -135,6 +157,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
     }
 
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceToRebalance);
 
     long endTime = System.currentTimeMillis();
     LOG.info("END ResourceComputationStage.process() for cluster " + cache.getClusterName()

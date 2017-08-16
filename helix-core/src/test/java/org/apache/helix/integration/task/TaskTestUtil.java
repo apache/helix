@@ -278,6 +278,7 @@ public class TaskTestUtil {
       String clusterName) {
     ClusterDataCache cache = new ClusterDataCache(clusterName);
     cache.refresh(accessor);
+    cache.setTaskCache(true);
     return cache;
   }
 

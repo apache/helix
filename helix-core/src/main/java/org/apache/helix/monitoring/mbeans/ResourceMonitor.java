@@ -178,6 +178,9 @@ public class ResourceMonitor implements ResourceMonitorMBean {
       Map<String, String> idealRecord = idealState.getInstanceStateMap(partition);
       Map<String, String> externalViewRecord = externalView.getStateMap(partition);
 
+      if (idealRecord == null) {
+        idealRecord = Collections.emptyMap();
+      }
       if (externalViewRecord == null) {
         externalViewRecord = Collections.emptyMap();
       }

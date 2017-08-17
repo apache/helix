@@ -21,9 +21,7 @@ package org.apache.helix.manager.zk;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
@@ -108,7 +106,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   protected ZkClient _zkclient = null;
   private final DefaultMessagingService _messagingService;
-  private HelixCallbackMonitor _callbackMonitor;
+  private Map<ChangeType, HelixCallbackMonitor> _callbackMonitors;
 
   private BaseDataAccessor<ZNRecord> _baseDataAccessor;
   private ZKHelixDataAccessor _dataAccessor;
@@ -219,8 +217,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _keyBuilder = new Builder(clusterName);
     _messagingService = new DefaultMessagingService(this);
     try {
-      _callbackMonitor =
-          new HelixCallbackMonitor(instanceType, String.format("%s.%s", clusterName, instanceName));
+      _callbackMonitors = new HashMap<>();
+      for (ChangeType changeType : ChangeType.values()) {
+        _callbackMonitors.put(changeType, new HelixCallbackMonitor(instanceType,
+            String.format("%s.%s", clusterName, instanceName), changeType));
+      }
     } catch (JMException e) {
       LOG.error("Error in creating callback monitor.", e);
     }
@@ -374,7 +375,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
       CallbackHandler newHandler =
           new CallbackHandler(this, _zkclient, propertyKey, listener, eventType, changeType,
-              _callbackMonitor);
+              _callbackMonitors.get(changeType));
 
       _handlers.add(newHandler);
       LOG.info("Added listener: " + listener + " for type: " + type + " to path: "
@@ -710,7 +711,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         _participantManager = null;
       }
 
-      _callbackMonitor.unregister();
+      for (HelixCallbackMonitor callbackMonitor : _callbackMonitors.values()) {
+        callbackMonitor.unregister();
+      }
+
       _helixPropertyStore = null;
 
       _zkclient.close();
@@ -1044,7 +1048,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
               new DistributedLeaderElection(this, _controller, _controllerTimerTasks),
               new EventType[] {
                   EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated
-              }, ChangeType.CONTROLLER, _callbackMonitor);
+              }, ChangeType.CONTROLLER, _callbackMonitors.get(ChangeType.CONTROLLER));
     }
   }
 

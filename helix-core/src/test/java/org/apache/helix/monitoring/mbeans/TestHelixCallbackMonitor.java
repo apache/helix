@@ -7,6 +7,7 @@ import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.InstanceType;
 import org.testng.Assert;
@@ -19,52 +20,65 @@ public class TestHelixCallbackMonitor {
   private final InstanceType TEST_TYPE = InstanceType.PARTICIPANT;
   private final String TEST_CLUSTER = "test_cluster";
 
-  private ObjectName buildObjectName(InstanceType type, String cluster)
-      throws MalformedObjectNameException {
-    return buildObjectName(type, cluster, 0);
+  private ObjectName buildObjectName(InstanceType type, String cluster,
+      HelixConstants.ChangeType changeType) throws MalformedObjectNameException {
+    return buildObjectName(type, cluster, changeType, 0);
   }
 
-  private ObjectName buildObjectName(InstanceType type, String cluster, int num)
-      throws MalformedObjectNameException {
+  private ObjectName buildObjectName(InstanceType type, String cluster,
+      HelixConstants.ChangeType changeType, int num) throws MalformedObjectNameException {
     return MBeanRegistrar.buildObjectName(num, MonitorDomainNames.HelixCallback.name(),
-        HelixCallbackMonitor.MONITOR_TYPE, type.name(), HelixCallbackMonitor.MONITOR_KEY,
-        cluster);
+        HelixCallbackMonitor.MONITOR_TYPE, type.name(), HelixCallbackMonitor.MONITOR_KEY, cluster,
+        HelixCallbackMonitor.MONITOR_CHANGE_TYPE, changeType.name());
   }
 
-  @Test public void testMBeanRegisteration() throws JMException {
+  @Test
+  public void testMBeanRegisteration() throws JMException {
     Set<HelixCallbackMonitor> monitors = new HashSet<>();
-    monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER));
-    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER)));
+    for (HelixConstants.ChangeType changeType : HelixConstants.ChangeType.values()) {
+      monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, changeType));
+      Assert.assertTrue(
+          _beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, changeType)));
+    }
 
-    monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER));
-    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, 1)));
+    for (HelixConstants.ChangeType changeType : HelixConstants.ChangeType.values()) {
+      monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, changeType));
+      Assert.assertTrue(
+          _beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, changeType, 1)));
+    }
 
-    HelixCallbackMonitor testMonitor =
-        new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER);
-    monitors.add(testMonitor);
-    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, 2)));
+    for (HelixConstants.ChangeType changeType : HelixConstants.ChangeType.values()) {
+      monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, changeType));
+      Assert.assertTrue(
+          _beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, changeType, 2)));
+    }
 
     // Un-register all monitors
     for (HelixCallbackMonitor monitor : monitors) {
       monitor.unregister();
     }
 
-    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER)));
-    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, 1)));
-    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, 2)));
+    for (HelixConstants.ChangeType changeType : HelixConstants.ChangeType.values()) {
+      Assert.assertFalse(
+          _beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, changeType)));
+      Assert.assertFalse(
+          _beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, changeType, 1)));
+      Assert.assertFalse(
+          _beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, changeType, 2)));
+    }
   }
 
-  @Test public void testCounter() throws JMException {
-    HelixCallbackMonitor monitor = new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER);
-    ObjectName name = buildObjectName(TEST_TYPE, TEST_CLUSTER);
+  @Test
+  public void testCounter() throws JMException {
+    HelixCallbackMonitor monitor =
+        new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, HelixConstants.ChangeType.CURRENT_STATE);
+    ObjectName name =
+        buildObjectName(TEST_TYPE, TEST_CLUSTER, HelixConstants.ChangeType.CURRENT_STATE);
 
-    monitor.increaseCallbackCounters(HelixConstants.ChangeType.CURRENT_STATE, 1000L);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "CallbackCounter"), 1);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "CallbackLatencyCounter"), 1000L);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "CurrentStateCallbackCounter"), 1);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "CurrentStateCallbackLatencyCounter"),
-        1000L);
-
+    monitor.increaseCallbackCounters(1000L);
+    Assert.assertEquals((long) _beanServer.getAttribute(name, "Counter"), 1);
+    Assert.assertEquals((long) _beanServer.getAttribute(name, "LatencyCounter"), 1000L);
+    Assert.assertEquals((long) _beanServer.getAttribute(name, "LatencyGauge.Max"), 1000L);
     monitor.unregister();
   }
 }

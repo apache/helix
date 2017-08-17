@@ -110,9 +110,16 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   public CallbackHandler(HelixManager manager, ZkClient client, PropertyKey propertyKey,
-      Object listener, EventType[] eventTypes, ChangeType changeType, HelixCallbackMonitor monitor) {
+      Object listener, EventType[] eventTypes, ChangeType changeType,
+      HelixCallbackMonitor monitor) {
     if (listener == null) {
       throw new HelixException("listener could not be null");
+    }
+
+    if (monitor != null && !monitor.getChangeType().equals(changeType)) {
+      throw new HelixException(
+          "The specified callback monitor is for different change type: " + monitor.getChangeType()
+              .name());
     }
 
     this._manager = manager;
@@ -125,6 +132,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     this._changeType = changeType;
     this._lastNotificationTimeStamp = new AtomicLong(System.nanoTime());
     this._queue = new LinkedBlockingQueue<>(1000);
+
     this._monitor = monitor;
 
     parseListenerProperties();
@@ -265,7 +273,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       invoke(changeContext);
     }
     if (_monitor != null) {
-      _monitor.increaseCallbackUnbatchedCounters(_changeType);
+      _monitor.increaseCallbackUnbatchedCounters();
     }
   }
 
@@ -373,7 +381,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       }
 
       if (_monitor != null) {
-        _monitor.increaseCallbackCounters(_changeType, end - start);
+        _monitor.increaseCallbackCounters(end - start);
       }
     }
   }

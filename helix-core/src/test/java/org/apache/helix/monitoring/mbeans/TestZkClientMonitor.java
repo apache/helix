@@ -24,6 +24,7 @@ import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -33,16 +34,26 @@ public class TestZkClientMonitor {
 
   private ObjectName buildObjectName(String tag, String key) throws MalformedObjectNameException {
     return MBeanRegistrar
-        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE, tag,
+            ZkClientMonitor.MONITOR_KEY, key);
+  }
+
+  private ObjectName buildObjectName(String tag, String key, int num)
+      throws MalformedObjectNameException {
+    return MBeanRegistrar
+        .buildObjectName(num, MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
             tag, ZkClientMonitor.MONITOR_KEY, key);
   }
 
-  private ObjectName buildObjectName(String tag, String key, int num) throws MalformedObjectNameException {
-    return MBeanRegistrar.buildObjectName(num, MonitorDomainNames.HelixZkClient.name(),
-        ZkClientMonitor.MONITOR_TYPE, tag, ZkClientMonitor.MONITOR_KEY, key);
+  private ObjectName buildPathMonitorObjectName(String tag, String key, String path)
+      throws MalformedObjectNameException {
+    return MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE, tag,
+            ZkClientMonitor.MONITOR_KEY, key, ZkClientPathMonitor.MONITOR_PATH, path);
   }
 
-  @Test public void testMBeanRegisteration() throws JMException {
+  @Test
+  public void testMBeanRegisteration() throws JMException {
     final String TEST_TAG_1 = "test_tag_1";
     final String TEST_KEY_1 = "test_key_1";
 
@@ -58,39 +69,52 @@ public class TestZkClientMonitor {
     Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1, 1)));
   }
 
-  @Test public void testCounter() throws JMException {
+  @Test
+  public void testCounter() throws JMException {
     final String TEST_TAG = "test_tag_3";
     final String TEST_KEY = "test_key_3";
+
     ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG, TEST_KEY);
     ObjectName name = buildObjectName(TEST_TAG, TEST_KEY);
+    ObjectName rootName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY,
+        ZkClientPathMonitor.PredefinedPath.Root.name());
+    ObjectName idealStateName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY,
+        ZkClientPathMonitor.PredefinedPath.IdealStates.name());
+    ObjectName instancesName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY,
+        ZkClientPathMonitor.PredefinedPath.Instances.name());
+    ObjectName currentStateName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY,
+        ZkClientPathMonitor.PredefinedPath.CurrentStates.name());
 
     monitor.increaseDataChangeEventCounter();
     long eventCount = (long) _beanServer.getAttribute(name, "DataChangeEventCounter");
     Assert.assertEquals(eventCount, 1);
 
     monitor.recordRead("TEST/IDEALSTATES/myResource", 0, System.currentTimeMillis() - 10);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "ReadCounter"), 1);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "IdealStatesReadCounter"), 1);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalReadLatencyCounter") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxSingleReadLatencyGauge") >= 10);
+    Assert.assertEquals((long) _beanServer.getAttribute(rootName, "ReadCounter"), 1);
+    Assert.assertEquals((long) _beanServer.getAttribute(idealStateName, "ReadCounter"), 1);
+    Assert.assertTrue((long) _beanServer.getAttribute(rootName, "ReadLatencyGauge.Max") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(rootName, "ReadMaxLatencyGauge") >= 10);
 
     monitor.recordRead("TEST/INSTANCES/testDB0", 0, System.currentTimeMillis() - 15);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "ReadCounter"), 2);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "InstancesReadCounter"), 1);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "IdealStatesReadCounter"), 1);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalReadLatencyCounter") >= 25);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxSingleReadLatencyGauge") >= 15);
+    Assert.assertEquals((long) _beanServer.getAttribute(rootName, "ReadCounter"), 2);
+    Assert.assertEquals((long) _beanServer.getAttribute(instancesName, "ReadCounter"), 1);
+    Assert.assertEquals((long) _beanServer.getAttribute(idealStateName, "ReadCounter"), 1);
+    Assert.assertTrue((long) _beanServer.getAttribute(rootName, "ReadTotalLatencyCounter") >= 25);
+    Assert.assertTrue((long) _beanServer.getAttribute(rootName, "ReadMaxLatencyGauge") >= 15);
 
     monitor.recordWrite("TEST/INSTANCES/node_1/CURRENTSTATES/session_1/Resource", 5,
         System.currentTimeMillis() - 10);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "WriteCounter"), 1);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "CurrentStatesWriteCounter"), 1);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "CurrentStatesWriteBytesCounter"), 5);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "InstancesWriteCounter"), 1);
-    Assert.assertEquals((long) _beanServer.getAttribute(name, "InstancesWriteBytesCounter"), 5);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "TotalWriteLatencyCounter") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "MaxSingleWriteLatencyGauge") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "InstancesTotalWriteLatencyCounter") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(name, "InstancesMaxSingleWriteLatencyGauge") >= 10);
+    Assert.assertEquals((long) _beanServer.getAttribute(rootName, "WriteCounter"), 1);
+    Assert.assertEquals((long) _beanServer.getAttribute(currentStateName, "WriteCounter"), 1);
+    Assert.assertEquals((long) _beanServer.getAttribute(currentStateName, "WriteBytesCounter"), 5);
+    Assert.assertEquals((long) _beanServer.getAttribute(instancesName, "WriteCounter"), 1);
+    Assert.assertEquals((long) _beanServer.getAttribute(instancesName, "WriteBytesCounter"), 5);
+    Assert.assertTrue((long) _beanServer.getAttribute(rootName, "WriteTotalLatencyCounter") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(rootName, "WriteMaxLatencyGauge") >= 10);
+    Assert
+        .assertTrue((long) _beanServer.getAttribute(instancesName, "WriteLatencyGauge.Max") >= 10);
+    Assert.assertTrue(
+        (long) _beanServer.getAttribute(instancesName, "WriteTotalLatencyCounter") >= 10);
+    Assert.assertTrue((long) _beanServer.getAttribute(instancesName, "WriteMaxLatencyGauge") >= 10);
   }
 }

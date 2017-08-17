@@ -19,44 +19,82 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
+import org.apache.helix.HelixConstants;
+import org.apache.helix.InstanceType;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+
 import javax.management.JMException;
 import javax.management.ObjectName;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.helix.HelixConstants.ChangeType;
-import org.apache.helix.InstanceType;
-
-public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
+public class HelixCallbackMonitor {
   public static final String MONITOR_TYPE = "Type";
   public static final String MONITOR_KEY = "Key";
+  public static final String MONITOR_CHANGE_TYPE = "Change";
+  private static final String MBEAN_DESCRIPTION = "Helix Callback Monitor";
 
+  private static final MetricRegistry _metricRegistry = new MetricRegistry();
+
+  private DynamicMBeanProvider _dynamicMBeanProvider;
   private ObjectName _objectName;
-  private InstanceType _instanceType;
-  private String _key;
+  private final InstanceType _instanceType;
+  private final String _key;
+  private final HelixConstants.ChangeType _changeType;
 
-  private long _callbackCounter;
-  private long _callbackUnbatchedCounter;
-  private long _callbackLatencyCounter;
-  private Map<ChangeType, Long> _callbackCounterMap = new ConcurrentHashMap<>();
-  private Map<ChangeType, Long> _callbackUnbatchedCounterMap = new ConcurrentHashMap<>();
-  private Map<ChangeType, Long> _callbackLatencyCounterMap = new ConcurrentHashMap<>();
+  private SimpleDynamicMetric<Long> _counter = new SimpleDynamicMetric("Counter", 0l);
+  private SimpleDynamicMetric<Long> _unbatchedCounter =
+      new SimpleDynamicMetric("UnbatchedCounter", 0l);
+  private SimpleDynamicMetric<Long> _totalLatencyCounter =
+      new SimpleDynamicMetric("LatencyCounter", 0l);
 
-  public HelixCallbackMonitor(InstanceType type, String key) throws JMException {
-    for (ChangeType changeType : ChangeType.values()) {
-      _callbackCounterMap.put(changeType, 0L);
-      _callbackUnbatchedCounterMap.put(changeType, 0L);
-      _callbackLatencyCounterMap.put(changeType, 0L);
-    }
+  private HistogramDynamicMetric _latencyGauge = new HistogramDynamicMetric("LatencyGauge",
+      _metricRegistry.histogram(toString() + "LatencyGauge"));
+
+  public HelixCallbackMonitor(InstanceType type, String key, HelixConstants.ChangeType changeType)
+      throws JMException {
     _instanceType = type;
     _key = key;
-    register(type, key);
+    _changeType = changeType;
+
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_counter);
+    attributeList.add(_unbatchedCounter);
+    attributeList.add(_totalLatencyCounter);
+    attributeList.add(_latencyGauge);
+
+    _dynamicMBeanProvider = new DynamicMBeanProvider(String
+        .format("%s.%s.%s.%s", MonitorDomainNames.HelixCallback.name(), _instanceType.name(), _key,
+            _changeType.name()), MBEAN_DESCRIPTION, attributeList);
+
+    register(type, key, changeType);
   }
 
-  private void register(InstanceType type, String key) throws JMException {
+  private void register(InstanceType type, String key, HelixConstants.ChangeType changeType)
+      throws JMException {
     _objectName = MBeanRegistrar
-        .register(this, MonitorDomainNames.HelixCallback.name(), MONITOR_TYPE, type.name(),
-            MONITOR_KEY, key);
+        .register(_dynamicMBeanProvider, MonitorDomainNames.HelixCallback.name(), MONITOR_TYPE,
+            type.name(), MONITOR_KEY, key, MONITOR_CHANGE_TYPE, changeType.name());
+  }
+
+  public HelixConstants.ChangeType getChangeType() {
+    return _changeType;
+  }
+
+  public void increaseCallbackCounters(long time) {
+    _counter.updateValue(_counter.getValue() + 1);
+    _totalLatencyCounter.updateValue(_totalLatencyCounter.getValue() + time);
+    _latencyGauge.updateValue(time);
+  }
+
+  public void increaseCallbackUnbatchedCounters() {
+    _unbatchedCounter.updateValue(_unbatchedCounter.getValue() + 1);
   }
 
   /**
@@ -64,170 +102,11 @@ public class HelixCallbackMonitor implements HelixCallbackMonitorMBean {
    */
   public void unregister() {
     MBeanRegistrar.unregister(_objectName);
-  }
-
-  public void increaseCallbackUnbatchedCounters(ChangeType type) {
-    _callbackUnbatchedCounter++;
-    _callbackUnbatchedCounterMap.put(type, _callbackUnbatchedCounterMap.get(type) + 1);
-  }
-
-  @Override public String getSensorName() {
-    return String.format("%s.%s.%s", MonitorDomainNames.HelixCallback.name(), _instanceType.name(),
-        _key);
-  }
-
-  public void increaseCallbackCounters(ChangeType type, long time) {
-    _callbackCounter++;
-    _callbackLatencyCounter += time;
-    _callbackCounterMap.put(type, _callbackCounterMap.get(type) + 1);
-    _callbackLatencyCounterMap.put(type, _callbackLatencyCounterMap.get(type) + time);
-  }
-
-  @Override
-  public long getCallbackCounter() {
-    return _callbackCounter;
-  }
-
-  @Override
-  public long getCallbackUnbatchedCounter() {
-    return _callbackUnbatchedCounter;
-  }
-
-  @Override
-  public long getCallbackLatencyCounter() {
-    return _callbackLatencyCounter;
-  }
-
-  @Override
-  public long getIdealStateCallbackCounter() {
-    return _callbackCounterMap.get(ChangeType.IDEAL_STATE);
-  }
-  @Override
-  public long getIdealStateCallbackLatencyCounter() {
-    return _callbackLatencyCounterMap.get(ChangeType.IDEAL_STATE);
-  }
-
-  @Override
-  public long getIdealStateCallbackUnbatchedCounter() {
-    return _callbackUnbatchedCounterMap.get(ChangeType.IDEAL_STATE);
-  }
-
-  @Override
-  public long getInstanceConfigCallbackCounter() {
-    return _callbackCounterMap.get(ChangeType.INSTANCE_CONFIG);
-  }
-
-  @Override
-  public long getInstanceConfigCallbackLatencyCounter() {
-    return _callbackLatencyCounterMap.get(ChangeType.INSTANCE_CONFIG);
-  }
-
-  @Override
-  public long getInstanceConfigCallbackUnbatchedCounter() {
-    return _callbackUnbatchedCounterMap.get(ChangeType.INSTANCE_CONFIG);
-  }
-
-  @Override
-  public long getConfigCallbackCounter() {
-    return _callbackCounterMap.get(ChangeType.CONFIG);
-  }
-
-  @Override
-  public long getConfigCallbackLatencyCounter() {
-    return _callbackLatencyCounterMap.get(ChangeType.CONFIG);
-  }
-
-  @Override
-  public long getConfigCallbackUnbatchedCounter() {
-    return _callbackUnbatchedCounterMap.get(ChangeType.CONFIG);
-  }
-
-  @Override
-  public long getLiveInstanceCallbackCounter() {
-    return _callbackCounterMap.get(ChangeType.LIVE_INSTANCE);
-  }
-
-  @Override
-  public long getLiveInstanceCallbackLatencyCounter() {
-    return _callbackLatencyCounterMap.get(ChangeType.LIVE_INSTANCE);
-  }
-
-  @Override
-  public long getLiveInstanceCallbackUnbatchedCounter() {
-    return _callbackUnbatchedCounterMap.get(ChangeType.LIVE_INSTANCE);
-  }
-
-  @Override
-  public long getCurrentStateCallbackCounter() {
-    return _callbackCounterMap.get(ChangeType.CURRENT_STATE);
-  }
-
-  @Override
-  public long getCurrentStateCallbackLatencyCounter() {
-    return _callbackLatencyCounterMap.get(ChangeType.CURRENT_STATE);
-  }
-
-  @Override
-  public long getCurrentStateCallbackUnbatchedCounter() {
-    return _callbackUnbatchedCounterMap.get(ChangeType.CURRENT_STATE);
-  }
-
-  @Override
-  public long getMessageCallbackCounter() {
-    return _callbackCounterMap.get(ChangeType.MESSAGE);
-  }
-
-  @Override public long getMessageCallbackLatencyCounter() {
-    return _callbackLatencyCounterMap.get(ChangeType.MESSAGE);
-  }
-
-  @Override
-  public long getMessageCallbackUnbatchedCounter() {
-    return _callbackUnbatchedCounterMap.get(ChangeType.MESSAGE);
-  }
-
-  @Override
-  public long getMessagesControllerCallbackCounter() {
-    return _callbackCounterMap.get(ChangeType.MESSAGES_CONTROLLER);
-  }
-
-  @Override
-  public long getMessagesControllerCallbackLatencyCounter() {
-    return _callbackLatencyCounterMap.get(ChangeType.MESSAGES_CONTROLLER);
-  }
-
-  @Override
-  public long getMessagesControllerCallbackUnbatchedCounter() {
-    return _callbackUnbatchedCounterMap.get(ChangeType.MESSAGES_CONTROLLER);
-  }
-
-  @Override
-  public long getExternalViewCallbackCounter() {
-    return _callbackCounterMap.get(ChangeType.EXTERNAL_VIEW);
-  }
-
-  @Override
-  public long getExternalViewCallbackLatencyCounter() {
-    return _callbackLatencyCounterMap.get(ChangeType.EXTERNAL_VIEW);
-  }
-
-  @Override
-  public long getExternalViewCallbackUnbatchedCounter() {
-    return _callbackUnbatchedCounterMap.get(ChangeType.EXTERNAL_VIEW);
-  }
-
-  @Override
-  public long getControllerCallbackCounter() {
-    return _callbackCounterMap.get(ChangeType.CONTROLLER);
-  }
-
-  @Override
-  public long getControllerCallbackLatencyCounter() {
-    return _callbackLatencyCounterMap.get(ChangeType.CONTROLLER);
-  }
-
-  @Override
-  public long getControllerCallbackUnbatchedCounter() {
-    return _callbackUnbatchedCounterMap.get(ChangeType.CONTROLLER);
+    _metricRegistry.removeMatching(new MetricFilter() {
+      @Override
+      public boolean matches(String name, Metric metric) {
+        return name.startsWith(toString());
+      }
+    });
   }
 }

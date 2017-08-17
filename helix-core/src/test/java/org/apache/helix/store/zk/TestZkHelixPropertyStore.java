@@ -41,6 +41,7 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
+import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.helix.store.HelixPropertyListener;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -384,7 +385,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     ObjectName name = MBeanRegistrar
         .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
-            ZkHelixPropertyStore.MONITOR_TAG, ZkClientMonitor.MONITOR_KEY, TEST_ROOT);
+            ZkHelixPropertyStore.MONITOR_TAG, ZkClientMonitor.MONITOR_KEY, TEST_ROOT,
+            ZkClientPathMonitor.MONITOR_PATH, "Root");
     MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
     Assert.assertTrue(beanServer.isRegistered(name));
 

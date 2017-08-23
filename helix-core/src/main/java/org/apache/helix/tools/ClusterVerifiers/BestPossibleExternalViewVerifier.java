@@ -20,7 +20,6 @@ package org.apache.helix.tools.ClusterVerifiers;
  */
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.Stage;
@@ -207,6 +206,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       if (_expectLiveInstances != null && !_expectLiveInstances.isEmpty()) {
         Set<String> actualLiveNodes = cache.getLiveInstances().keySet();
         if (!_expectLiveInstances.equals(actualLiveNodes)) {
+          LOG.warn("Live instances are not as expected. Actual live nodes: " + actualLiveNodes.toString());
           return false;
         }
       }
@@ -262,7 +262,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
           if (is.isExternalViewDisabled()) {
             continue;
           } else {
-            LOG.debug("externalView for " + resourceName + " is not available");
+            LOG.error("externalView for " + resourceName + " is not available");
             return false;
           }
         }
@@ -281,7 +281,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
         boolean result = verifyExternalView(is, extView, bpStateMap, stateModelDef);
         if (!result) {
-          LOG.debug("verifyExternalView fails for " + resourceName + "! ExternalView: " + extView
+          LOG.warn("verifyExternalView fails for " + resourceName + "! ExternalView: " + extView
               + " BestPossibleState: " + bpStateMap);
           return false;
         }

@@ -3,10 +3,16 @@ import * as dotenv from 'dotenv';
 import * as express from 'express';
 import * as morgan from 'morgan';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as http from 'http';
+import * as https from 'https';
 
+import { SSL } from './config';
 import setRoutes from './routes';
 
 const app = express();
+const server = http.createServer(app);
+
 dotenv.load({ path: '.env' });
 app.set('port', (process.env.PORT || 3000));
 
@@ -22,8 +28,34 @@ app.get('/*', function(req, res) {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-app.listen(app.get('port'), () => {
-  console.log('App is listening on port ' + app.get('port'));
+server.listen(app.get('port'), () => {
+  console.log(`App is listening on port ${ app.get('port') } as HTTP`);
 });
+
+// setup SSL
+if (SSL.port > 0 && fs.existsSync(SSL.keyfile) && fs.existsSync(SSL.certfile)) {
+  let credentials: any = {
+    key: fs.readFileSync(SSL.keyfile, 'ascii'),
+    cert: fs.readFileSync(SSL.certfile, 'ascii'),
+    ca: []
+  };
+
+  if (SSL.passphrase) {
+    credentials.passphrase = SSL.passphrase;
+  }
+
+  if (SSL.cafiles) {
+    SSL.cafiles.forEach(cafile => {
+      if (fs.existsSync(cafile)) {
+        credentials.ca.push(fs.readFileSync(cafile, 'ascii'));
+      }
+    });
+  }
+
+  const httpsServer = https.createServer(credentials, app);
+  httpsServer.listen(SSL.port, () => {
+    console.log(`App is listening on port ${ SSL.port } as HTTPS`);
+  });
+}
 
 export { app };

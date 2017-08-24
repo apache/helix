@@ -281,8 +281,13 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
         boolean result = verifyExternalView(is, extView, bpStateMap, stateModelDef);
         if (!result) {
-          LOG.warn("verifyExternalView fails for " + resourceName + "! ExternalView: " + extView
-              + " BestPossibleState: " + bpStateMap);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("verifyExternalView fails for " + resourceName + "! ExternalView: " + extView
+                + " BestPossibleState: " + bpStateMap);
+          } else {
+            LOG.warn("verifyExternalView fails for " + resourceName
+                + "! ExternalView does not match BestPossibleState");
+          }
           return false;
         }
       }

@@ -34,6 +34,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -83,9 +84,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
 
     long endTime = System.currentTimeMillis();
-    logger.info(
-        "END ImmediateStateCalcStage.process() for cluster " + cache.getClusterName() + ". took: "
-            + (endTime - startTime) + " ms");
+    logger.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
+        + " ImmediateStateCalcStage.process() for cluster " + cache.getClusterName() + ". took: "
+        + (endTime - startTime) + " ms");
   }
 
   private IntermediateStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,

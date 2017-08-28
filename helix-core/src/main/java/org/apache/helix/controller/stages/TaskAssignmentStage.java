@@ -30,6 +30,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.LiveInstance;
@@ -87,9 +88,9 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     logger.debug("Caching messages took " + (cacheEnd - cacheStart) + " ms");
 
     long endTime = System.currentTimeMillis();
-    logger.info(
-        "END TaskAssignmentStage.process() for cluster " + cache.getClusterName() + ". took: " + (
-            endTime - startTime) + " ms");
+    logger.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
+        + " TaskAssignmentStage.process() for cluster " + cache.getClusterName() + ". took: " + (
+        endTime - startTime) + " ms");
   }
 
   List<Message> batchMessage(Builder keyBuilder, List<Message> messages,

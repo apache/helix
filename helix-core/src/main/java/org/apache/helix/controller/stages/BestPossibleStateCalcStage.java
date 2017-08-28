@@ -26,6 +26,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
@@ -104,8 +105,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
 
     long endTime = System.currentTimeMillis();
-    logger.info("END BestPossibleStateCalcStage.process() for cluster " + cache.getClusterName()
-        + ". took: " + (endTime - startTime) + " ms");
+    logger.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
+        + " BestPossibleStateCalcStage.process() for cluster " + cache.getClusterName() + ". took: "
+        + (endTime - startTime) + " ms");
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,

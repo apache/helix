@@ -854,7 +854,7 @@ public class ClusterDataCache {
         _contextMap.put(context.getSimpleField(NAME), context);
       } else {
         _contextMap.put(childNames.get(i), context);
-        LOG.warn(
+        LOG.info(
             String.format("Context for %s is null or miss the context NAME!", childNames.get((i))));
       }
     }

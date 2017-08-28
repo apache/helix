@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CurrentState;
@@ -148,7 +149,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     long endTime = System.currentTimeMillis();
-    LOG.info("END CurrentStateComputationStage.process() for cluster " + cache.getClusterName()
+    LOG.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
+        + " CurrentStateComputationStage.process() for cluster " + cache.getClusterName()
         + ". took: " + (endTime - startTime) + " ms");
   }
 

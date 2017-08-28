@@ -29,10 +29,16 @@ import org.apache.log4j.Logger;
 
 public class Pipeline {
   private static final Logger logger = Logger.getLogger(Pipeline.class.getName());
+  private final String _pipelineType;
   List<Stage> _stages;
 
   public Pipeline() {
-    _stages = new ArrayList<Stage>();
+    this("");
+  }
+
+  public Pipeline(String pipelineType) {
+    _stages = new ArrayList<>();
+    _pipelineType = pipelineType;
   }
 
   public void addStage(Stage stage) {
@@ -47,7 +53,8 @@ public class Pipeline {
     }
     for (Stage stage : _stages) {
       long startTime = System.currentTimeMillis();
-      logger.info("START " + stage.getStageName());
+      logger.info(
+          String.format("START %s pipeline for stage %s", _pipelineType, stage.getStageName()));
 
       stage.preProcess();
       stage.process(event);
@@ -55,10 +62,12 @@ public class Pipeline {
 
       long endTime = System.currentTimeMillis();
       long duration = endTime - startTime;
-      logger.info(
-          String.format("END %s for cluster %s. took: %d ms ", stage.getStageName(), event.getClusterName(), duration));
+      logger.info(String
+          .format("END %s for %s pipeline cluster %s. took: %d ms ", stage.getStageName(),
+              _pipelineType, event.getClusterName(), duration));
 
-      ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
+      ClusterStatusMonitor clusterStatusMonitor =
+          event.getAttribute(AttributeName.clusterStatusMonitor.name());
       if (clusterStatusMonitor != null) {
         clusterStatusMonitor.updateClusterEventDuration(stage.getStageName(), duration);
       }

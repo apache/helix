@@ -26,6 +26,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.InstanceConfig;
@@ -105,6 +106,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
     event.addAttribute(AttributeName.ClusterDataCache.name(), _cache);
 
     long endTime = System.currentTimeMillis();
-    logger.info("END ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");
+    logger.info("END " + GenericHelixController.getPipelineType(_cache.isTaskCache())
+        + " ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");
   }
 }

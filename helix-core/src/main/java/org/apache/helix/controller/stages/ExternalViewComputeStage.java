@@ -35,6 +35,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordDelta;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
@@ -184,8 +185,9 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     }
 
     long endTime = System.currentTimeMillis();
-    LOG.info("END ExternalViewComputeStage.process() for cluster " + cache.getClusterName()
-        + ". took: " + (endTime - startTime) + " ms");
+    LOG.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
+        + " ExternalViewComputeStage.process() for cluster " + cache.getClusterName() + ". took: "
+        + (endTime - startTime) + " ms");
   }
 
   private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager,

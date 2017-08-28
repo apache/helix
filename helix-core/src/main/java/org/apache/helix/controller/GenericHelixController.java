@@ -137,17 +137,24 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
   private String _clusterName;
 
+  enum PipelineTypes {
+    DEFAULT,
+    TASK
+  }
+
   /**
    * Default constructor that creates a default pipeline registry. This is sufficient in most cases,
    * but if there is a some thing specific needed use another constructor where in you can pass a
    * pipeline registry
    */
   public GenericHelixController() {
-    this(createDefaultRegistry(), createDefaultRegistry());
+    this(createDefaultRegistry(PipelineTypes.DEFAULT.name()),
+        createDefaultRegistry(PipelineTypes.TASK.name()));
   }
 
   public GenericHelixController(String clusterName) {
-    this(createDefaultRegistry(), createDefaultRegistry(), clusterName);
+    this(createDefaultRegistry(PipelineTypes.DEFAULT.name()),
+        createDefaultRegistry(PipelineTypes.TASK.name()), clusterName);
   }
 
   class RebalanceTask extends TimerTask {
@@ -218,17 +225,17 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     _timerPeriod = Integer.MAX_VALUE;
   }
 
-  private static PipelineRegistry createDefaultRegistry() {
+  private static PipelineRegistry createDefaultRegistry(String pipelineName) {
     logger.info("createDefaultRegistry");
     synchronized (GenericHelixController.class) {
       PipelineRegistry registry = new PipelineRegistry();
 
       // cluster data cache refresh
-      Pipeline dataRefresh = new Pipeline();
+      Pipeline dataRefresh = new Pipeline(pipelineName);
       dataRefresh.addStage(new ReadClusterDataStage());
 
       // rebalance pipeline
-      Pipeline rebalancePipeline = new Pipeline();
+      Pipeline rebalancePipeline = new Pipeline(pipelineName);
       rebalancePipeline.addStage(new ResourceComputationStage());
       rebalancePipeline.addStage(new ResourceValidationStage());
       rebalancePipeline.addStage(new CurrentStateComputationStage());
@@ -241,11 +248,11 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       rebalancePipeline.addStage(new PersistAssignmentStage());
 
       // external view generation
-      Pipeline externalViewPipeline = new Pipeline();
+      Pipeline externalViewPipeline = new Pipeline(pipelineName);
       externalViewPipeline.addStage(new ExternalViewComputeStage());
 
       // backward compatibility check
-      Pipeline liveInstancePipeline = new Pipeline();
+      Pipeline liveInstancePipeline = new Pipeline(pipelineName);
       liveInstancePipeline.addStage(new CompatibilityCheckStage());
 
       registry.register(ClusterEventType.IdealStateChange, dataRefresh, rebalancePipeline);
@@ -349,26 +356,31 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
         ? _registry.getPipelinesForEvent(event.getEventType())
         : _taskRegistry.getPipelinesForEvent(event.getEventType());
     if (pipelines == null || pipelines.size() == 0) {
-      logger.info("No pipeline to run for event:" + event.getEventType());
+      logger.info(
+          "No " + getPipelineType(cache.isTaskCache()) + " pipeline to run for event:" + event
+              .getEventType());
       return;
     }
 
-    logger.info("START: Invoking controller pipeline for event: " + event.getEventType());
+    logger.info(String.format("START: Invoking %s controller pipeline for event: %s",
+        getPipelineType(cache.isTaskCache()), event.getEventType()));
     long startTime = System.currentTimeMillis();
     for (Pipeline pipeline : pipelines) {
       try {
         pipeline.handle(event);
         pipeline.finish();
       } catch (Exception e) {
-        logger.error("Exception while executing pipeline: " + pipeline
-            + ". Will not continue to next pipeline", e);
+        logger.error(
+            "Exception while executing " + getPipelineType(cache.isTaskCache()) + "pipeline: "
+                + pipeline + ". Will not continue to next pipeline", e);
         break;
       }
     }
     long endTime = System.currentTimeMillis();
     logger.info(
-        "END: Invoking controller pipeline for event: " + event.getEventType() + " for cluster "
-            + manager.getClusterName() + ", took " + (endTime - startTime) + " ms");
+        "END: Invoking " + getPipelineType(cache.isTaskCache()) + " controller pipeline for event: "
+            + event.getEventType() + " for cluster " + manager.getClusterName() + ", took " + (
+            endTime - startTime) + " ms");
 
     if (!cache.isTaskCache()) {
       // report event process durations
@@ -772,5 +784,9 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
     eventThread.setDaemon(true);
     eventThread.start();
+  }
+
+  public static String getPipelineType(boolean isTask) {
+    return isTask ? PipelineTypes.TASK.name() : PipelineTypes.DEFAULT.name();
   }
 }

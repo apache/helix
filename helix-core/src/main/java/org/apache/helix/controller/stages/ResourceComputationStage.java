@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.ClusterConfig;
@@ -160,8 +161,9 @@ public class ResourceComputationStage extends AbstractBaseStage {
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceToRebalance);
 
     long endTime = System.currentTimeMillis();
-    LOG.info("END ResourceComputationStage.process() for cluster " + cache.getClusterName()
-        + ". took: " + (endTime - startTime) + " ms");
+    LOG.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
+        + " ResourceComputationStage.process() for cluster " + cache.getClusterName() + ". took: "
+        + (endTime - startTime) + " ms");
   }
 
   private void addResource(String resource, Map<String, Resource> resourceMap) {

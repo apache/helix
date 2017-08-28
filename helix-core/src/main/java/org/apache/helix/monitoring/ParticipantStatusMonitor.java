@@ -57,7 +57,7 @@ public class ParticipantStatusMonitor {
         _messageLatencyMonitor = new MessageLatencyMonitor(instanceName);
         _executorMonitors = new ConcurrentHashMap<>();
         register(_messageMonitor, getObjectName(_messageMonitor.getParticipantBeanName()));
-        register(_messageLatencyMonitor, getObjectName(_messageLatencyMonitor.getBeanName()));
+        _messageLatencyMonitor.register(MonitorDomainNames.CLMParticipantReport.name());
       }
     } catch (Exception e) {
       LOG.warn(e);
@@ -152,6 +152,9 @@ public class ParticipantStatusMonitor {
         LOG.warn("fail to unregister " + _messageMonitor.getParticipantBeanName(), e);
       }
     }
+    if (_messageLatencyMonitor != null) {
+      _messageLatencyMonitor.unregister();
+    }
     for (StateTransitionContext cxt : _monitorMap.keySet()) {
       try {
         ObjectName name = getObjectName(cxt.toString());
@@ -163,7 +166,6 @@ public class ParticipantStatusMonitor {
       }
     }
     _monitorMap.clear();
-
   }
 
   public void createExecutorMonitor(String type, ExecutorService executor) {

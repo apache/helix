@@ -20,7 +20,6 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import java.lang.management.ManagementFactory;
-import java.util.Hashtable;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -88,13 +87,14 @@ public class MBeanRegistrar {
           + "number of String and at least 2 String");
     }
 
-    Hashtable<String, String> table = new Hashtable<>();
+    StringBuilder objectNameStr = new StringBuilder();
     for (int i = 0; i < keyValuePairs.length; i += 2) {
-      table.put(keyValuePairs[i], keyValuePairs[i + 1]);
+      objectNameStr.append(
+          String.format(i == 0 ? "%s=%s" : ",%s=%s", keyValuePairs[i], keyValuePairs[i + 1]));
     }
     if (num > 0) {
-      table.put(DUPLICATE, String.valueOf(num));
+      objectNameStr.append(String.format(",%s=%s", DUPLICATE, String.valueOf(num)));
     }
-    return new ObjectName(domain, table);
+    return new ObjectName(String.format("%s:%s", domain, objectNameStr.toString()));
   }
 }

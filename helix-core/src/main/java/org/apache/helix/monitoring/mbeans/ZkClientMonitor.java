@@ -19,6 +19,8 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import org.apache.helix.HelixException;
+
 import javax.management.JMException;
 import javax.management.ObjectName;
 import java.util.Map;
@@ -27,9 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ZkClientMonitor implements ZkClientMonitorMBean {
   public static final String MONITOR_TYPE = "Type";
   public static final String MONITOR_KEY = "Key";
-
-  public static final String SESSION_ID_PROPERTY_NAME = "SessionId";
-  public static final String CUSTOMIZED_PROPERTY_NAME = "CustomizedKey";
 
   private ObjectName _objectName;
   private String _monitorType;
@@ -41,14 +40,24 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   private Map<ZkClientPathMonitor.PredefinedPath, ZkClientPathMonitor> _zkClientPathMonitorMap =
       new ConcurrentHashMap<>();
 
-  public ZkClientMonitor(String monitorType, String monitorKey) throws JMException {
+  public ZkClientMonitor(String monitorType, String monitorKey, boolean monitorRootPathOnly)
+      throws JMException {
+    if (monitorKey == null || monitorKey.isEmpty() || monitorType == null || monitorType
+        .isEmpty()) {
+      throw new HelixException("Cannot create ZkClientMonitor without monitor key and type.");
+    }
+
     _monitorType = monitorType;
     _monitorKey = monitorKey;
     regitster(monitorType, monitorKey);
 
     for (ZkClientPathMonitor.PredefinedPath path : ZkClientPathMonitor.PredefinedPath.values()) {
-      _zkClientPathMonitorMap
-          .put(path, new ZkClientPathMonitor(path.name(), monitorType, monitorKey));
+      // If monitor root path only, check if the current path is Root.
+      // Otherwise, add monitors for every path.
+      if (!monitorRootPathOnly || path.equals(ZkClientPathMonitor.PredefinedPath.Root)) {
+        _zkClientPathMonitorMap
+            .put(path, new ZkClientPathMonitor(path.name(), monitorType, monitorKey));
+      }
     }
   }
 

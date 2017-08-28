@@ -109,9 +109,12 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths, String monitorType, String monitorkey) {
-    _zkclient = new ZkClient(zkAddress, ZkClient.DEFAULT_SESSION_TIMEOUT,
-        ZkClient.DEFAULT_CONNECTION_TIMEOUT, new BasicZkSerializer(serializer), monitorType,
-        monitorkey);
+    ZkClient.Builder zkClientBuilder = new ZkClient.Builder();
+    zkClientBuilder.setZkServer(zkAddress).setSessionTimeout(ZkClient.DEFAULT_SESSION_TIMEOUT)
+        .setConnectionTimeout(ZkClient.DEFAULT_CONNECTION_TIMEOUT).setZkSerializer(serializer)
+        .setMonitorType(monitorType).setMonitorKey(monitorkey);
+    _zkclient = zkClientBuilder.build();
+
     _zkclient.waitUntilConnected(ZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
     _baseAccessor = new ZkBaseDataAccessor<>(_zkclient);
 

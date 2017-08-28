@@ -42,7 +42,6 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooDefs.Ids;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
 import javax.management.JMException;
@@ -63,17 +62,23 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   private PathBasedZkSerializer _zkSerializer;
   private ZkClientMonitor _monitor;
 
+  private ZkClient(IZkConnection connection, int connectionTimeout, long operationRetryTimeout,
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      boolean monitorRootPathOnly) {
+    super(connection, connectionTimeout, new ByteArraySerializer(), operationRetryTimeout);
+    init(zkSerializer, monitorType, monitorKey, monitorRootPathOnly);
+  }
+
   public ZkClient(IZkConnection connection, int connectionTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       long operationRetryTimeout) {
-    super(connection, connectionTimeout, new ByteArraySerializer(), operationRetryTimeout);
-    init(zkSerializer, monitorType, monitorKey);
+    this(connection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
+        monitorKey, true);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
-    super(connection, connectionTimeout, new ByteArraySerializer());
-    init(zkSerializer, monitorType, monitorKey);
+    this(connection, connectionTimeout, zkSerializer, monitorType, monitorKey, -1);
   }
 
   public ZkClient(String zkServers, String monitorType, String monitorKey) {
@@ -127,28 +132,20 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
     this(zkServers, null, null);
   }
 
-  protected void init(PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
+  protected void init(PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      boolean monitorRootPathOnly) {
     _zkSerializer = zkSerializer;
     if (LOG.isTraceEnabled()) {
       StackTraceElement[] calls = Thread.currentThread().getStackTrace();
       LOG.trace("created a zkclient. callstack: " + Arrays.asList(calls));
     }
     try {
-      if (monitorKey == null) {
-        // Use ZK session Id as monitor key
-        monitorType = ZkClientMonitor.SESSION_ID_PROPERTY_NAME;
-        // _connection cannot be null, checked in org.I0Itec.zkclient.ZkClient constructor
-        ZooKeeper zk = ((ZkConnection) _connection).getZookeeper();
-        if (zk != null) {
-          monitorKey = new Long(zk.getSessionId()).toString();
-        } else { // if zkClient is not connected
-          LOG.error("Cannot creating ZkClientMonitor because ZkClient is not connected.");
-          return;
-        }
-      } else if (monitorType == null) {
-        monitorType = ZkClientMonitor.CUSTOMIZED_PROPERTY_NAME;
+      if (monitorKey != null && !monitorKey.isEmpty() &&
+          monitorType != null && !monitorType.isEmpty()) {
+        _monitor = new ZkClientMonitor(monitorType, monitorKey, monitorRootPathOnly);
+      } else {
+        LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
       }
-      _monitor = new ZkClientMonitor(monitorType, monitorKey);
     } catch (JMException e) {
       LOG.error("Error in creating ZkClientMonitor", e);
     }
@@ -593,6 +590,93 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   private void recordWriteFailure(String path) {
     if (_monitor != null) {
       _monitor.recordWriteFailure(path);
+    }
+  }
+
+  public static class Builder {
+    IZkConnection _connection;
+    String _zkServer;
+    Integer _sessionTimeout;
+
+    PathBasedZkSerializer _zkSerializer;
+
+    long _operationRetryTimeout = -1L;
+    int _connectionTimeout = Integer.MAX_VALUE;
+
+    String _monitorType;
+    String _monitorKey;
+    boolean _monitorRootPathOnly = true;
+
+    public Builder setConnection(IZkConnection connection) {
+      this._connection = connection;
+      return this;
+    }
+
+    public Builder setConnectionTimeout(Integer connectionTimeout) {
+      this._connectionTimeout = connectionTimeout;
+      return this;
+    }
+
+    public Builder setZkSerializer(PathBasedZkSerializer zkSerializer) {
+      this._zkSerializer = zkSerializer;
+      return this;
+    }
+
+    public Builder setZkSerializer(ZkSerializer zkSerializer) {
+      this._zkSerializer = new BasicZkSerializer(zkSerializer);
+      return this;
+    }
+
+    public Builder setMonitorType(String monitorType) {
+      this._monitorType = monitorType;
+      return this;
+    }
+
+    public Builder setMonitorKey(String monitorKey) {
+      this._monitorKey = monitorKey;
+      return this;
+    }
+
+    public Builder setMonitorRootPathOnly(Boolean monitorRootPathOnly) {
+      this._monitorRootPathOnly = monitorRootPathOnly;
+      return this;
+    }
+
+    public Builder setZkServer(String zkServer) {
+      this._zkServer = zkServer;
+      return this;
+    }
+
+    public Builder setSessionTimeout(Integer sessionTimeout) {
+      this._sessionTimeout = sessionTimeout;
+      return this;
+    }
+
+    public Builder setOperationRetryTimeout(Long operationRetryTimeout) {
+      this._operationRetryTimeout = operationRetryTimeout;
+      return this;
+    }
+
+    public ZkClient build() {
+      if (_connection == null) {
+        if (_zkServer == null) {
+          throw new HelixException(
+              "Failed to build ZkClient since no connection or ZK server address is specified.");
+        } else {
+          if (_sessionTimeout == null) {
+            _connection = new ZkConnection(_zkServer);
+          } else {
+            _connection = new ZkConnection(_zkServer, _sessionTimeout);
+          }
+        }
+      }
+
+      if (_zkSerializer == null) {
+        _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
+      }
+
+      return new ZkClient(_connection, _connectionTimeout, _operationRetryTimeout, _zkSerializer,
+          _monitorType, _monitorKey, _monitorRootPathOnly);
     }
   }
 }

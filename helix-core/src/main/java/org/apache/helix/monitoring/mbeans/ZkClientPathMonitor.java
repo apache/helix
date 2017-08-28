@@ -26,6 +26,7 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
+import org.apache.helix.HelixException;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.*;
 
 import java.util.ArrayList;
@@ -34,7 +35,6 @@ import java.util.List;
 
 public class ZkClientPathMonitor {
   public static final String MONITOR_PATH = "PATH";
-  private static final long RESET_INTERVAL = 1000 * 60 * 10; // 1 hour
   private static final String MBEAN_DESCRIPTION = "Helix Zookeeper Client Monitor";
 
   private static final MetricRegistry _metricRegistry = new MetricRegistry();
@@ -68,8 +68,6 @@ public class ZkClientPathMonitor {
     }
   }
 
-  private long _lastResetTime = 0;
-
   private SimpleDynamicMetric<Long> _readCounter = new SimpleDynamicMetric("ReadCounter", 0l);
   private SimpleDynamicMetric<Long> _writeCounter = new SimpleDynamicMetric("WriteCounter", 0l);
   private SimpleDynamicMetric<Long> _readBytesCounter =
@@ -84,10 +82,6 @@ public class ZkClientPathMonitor {
       new SimpleDynamicMetric("ReadTotalLatencyCounter", 0l);
   private SimpleDynamicMetric<Long> _writeTotalLatencyCounter =
       new SimpleDynamicMetric("WriteTotalLatencyCounter", 0l);
-  private SimpleDynamicMetric<Long> _readMaxLatencyGauge =
-      new SimpleDynamicMetric("ReadMaxLatencyGauge", 0l);
-  private SimpleDynamicMetric<Long> _writeMaxLatencyGauge =
-      new SimpleDynamicMetric("WriteMaxLatencyGauge", 0l);
 
   private HistogramDynamicMetric _readLatencyGauge = new HistogramDynamicMetric("ReadLatencyGauge",
       _metricRegistry.histogram(toString() + "ReadLatencyGauge"));
@@ -101,6 +95,11 @@ public class ZkClientPathMonitor {
 
   protected ZkClientPathMonitor(String path, String monitorType, String monitorKey)
       throws JMException {
+    if (monitorKey == null || monitorKey.isEmpty() || monitorType == null || monitorType
+        .isEmpty()) {
+      throw new HelixException("Cannot create ZkClientMonitor without monitor key and type.");
+    }
+
     _monitorType = monitorType;
     _monitorKey = monitorKey;
     _path = path;
@@ -114,8 +113,6 @@ public class ZkClientPathMonitor {
     attributeList.add(_writeFailureCounter);
     attributeList.add(_readTotalLatencyCounter);
     attributeList.add(_writeTotalLatencyCounter);
-    attributeList.add(_readMaxLatencyGauge);
-    attributeList.add(_writeMaxLatencyGauge);
     attributeList.add(_readLatencyGauge);
     attributeList.add(_writeLatencyGauge);
     attributeList.add(_readBytesGauge);
@@ -154,13 +151,6 @@ public class ZkClientPathMonitor {
     } else {
       increaseCounter(isRead);
       increaseTotalLatency(isRead, latencyMilliSec);
-      if (_lastResetTime + RESET_INTERVAL <= System.currentTimeMillis()
-          || latencyMilliSec > (isRead ?
-          _readMaxLatencyGauge.getValue() :
-          _writeMaxLatencyGauge.getValue())) {
-        setMaxLatency(isRead, latencyMilliSec);
-        _lastResetTime = System.currentTimeMillis();
-      }
       if (bytes > 0) {
         increaseBytesCounter(isRead, bytes);
       }
@@ -200,14 +190,6 @@ public class ZkClientPathMonitor {
     } else {
       _writeTotalLatencyCounter.updateValue(_writeTotalLatencyCounter.getValue() + latencyDelta);
       _writeLatencyGauge.updateValue(latencyDelta);
-    }
-  }
-
-  private void setMaxLatency(boolean isRead, long latency) {
-    if (isRead) {
-      _readMaxLatencyGauge.updateValue(latency);
-    } else {
-      _writeMaxLatencyGauge.updateValue(latency);
     }
   }
 }

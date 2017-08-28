@@ -41,15 +41,11 @@ public class HistogramDynamicMetric extends DynamicMetric<Histogram, Long> {
    * The enum statistic attributes
    */
   enum SnapshotAttribute {
-    Median("getMedian", "Median"),
     Pct75th("get75thPercentile", "75Pct"),
     Pct95th("get95thPercentile", "95Pct"),
-    Pct98th("get98thPercentile", "98ct"),
     Pct99th("get99thPercentile", "99Pct"),
-    Pct999th("get999thPercentile", "999Pct"),
     Max("getMax", "Max"),
     Mean("getMean", "Mean"),
-    Min("getMin", "Min"),
     StdDev("getStdDev", "StdDev");
 
     final String _getMethodName;

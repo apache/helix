@@ -57,9 +57,14 @@ public class TestZkClientMonitor {
     final String TEST_TAG_1 = "test_tag_1";
     final String TEST_KEY_1 = "test_key_1";
 
-    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG_1, TEST_KEY_1);
+    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG_1, TEST_KEY_1, true);
     Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1)));
-    ZkClientMonitor monitorDuplicate = new ZkClientMonitor(TEST_TAG_1, TEST_KEY_1);
+
+    // no per-path monitor items created since "monitorRootPathOnly" = true
+    Assert.assertFalse(_beanServer.isRegistered(buildPathMonitorObjectName(TEST_TAG_1, TEST_KEY_1,
+        ZkClientPathMonitor.PredefinedPath.IdealStates.name())));
+
+    ZkClientMonitor monitorDuplicate = new ZkClientMonitor(TEST_TAG_1, TEST_KEY_1, true);
     Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1, 1)));
 
     monitor.unregister();
@@ -74,7 +79,7 @@ public class TestZkClientMonitor {
     final String TEST_TAG = "test_tag_3";
     final String TEST_KEY = "test_key_3";
 
-    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG, TEST_KEY);
+    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG, TEST_KEY, false);
     ObjectName name = buildObjectName(TEST_TAG, TEST_KEY);
     ObjectName rootName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY,
         ZkClientPathMonitor.PredefinedPath.Root.name());
@@ -93,14 +98,11 @@ public class TestZkClientMonitor {
     Assert.assertEquals((long) _beanServer.getAttribute(rootName, "ReadCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(idealStateName, "ReadCounter"), 1);
     Assert.assertTrue((long) _beanServer.getAttribute(rootName, "ReadLatencyGauge.Max") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(rootName, "ReadMaxLatencyGauge") >= 10);
-
     monitor.recordRead("TEST/INSTANCES/testDB0", 0, System.currentTimeMillis() - 15);
     Assert.assertEquals((long) _beanServer.getAttribute(rootName, "ReadCounter"), 2);
     Assert.assertEquals((long) _beanServer.getAttribute(instancesName, "ReadCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(idealStateName, "ReadCounter"), 1);
     Assert.assertTrue((long) _beanServer.getAttribute(rootName, "ReadTotalLatencyCounter") >= 25);
-    Assert.assertTrue((long) _beanServer.getAttribute(rootName, "ReadMaxLatencyGauge") >= 15);
 
     monitor.recordWrite("TEST/INSTANCES/node_1/CURRENTSTATES/session_1/Resource", 5,
         System.currentTimeMillis() - 10);
@@ -110,11 +112,9 @@ public class TestZkClientMonitor {
     Assert.assertEquals((long) _beanServer.getAttribute(instancesName, "WriteCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(instancesName, "WriteBytesCounter"), 5);
     Assert.assertTrue((long) _beanServer.getAttribute(rootName, "WriteTotalLatencyCounter") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(rootName, "WriteMaxLatencyGauge") >= 10);
     Assert
         .assertTrue((long) _beanServer.getAttribute(instancesName, "WriteLatencyGauge.Max") >= 10);
     Assert.assertTrue(
         (long) _beanServer.getAttribute(instancesName, "WriteTotalLatencyCounter") >= 10);
-    Assert.assertTrue((long) _beanServer.getAttribute(instancesName, "WriteMaxLatencyGauge") >= 10);
   }
 }

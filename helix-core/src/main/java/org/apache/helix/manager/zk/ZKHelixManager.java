@@ -599,8 +599,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     PathBasedZkSerializer zkSerializer =
         ChainedPathZkSerializer.builder(new ZNRecordStreamingSerializer()).build();
 
-    _zkclient = new ZkClient(_zkAddress, _sessionTimeout, _clientConnectionTimeout, zkSerializer,
-        _instanceType.name(), String.format("%s.%s", _clusterName, _instanceName));
+    ZkClient.Builder zkClientBuilder = new ZkClient.Builder();
+    zkClientBuilder.setZkServer(_zkAddress).setSessionTimeout(_sessionTimeout)
+        .setConnectionTimeout(_clientConnectionTimeout).setZkSerializer(zkSerializer)
+        .setMonitorType(_instanceType.name())
+        .setMonitorKey(String.format("%s.%s", _clusterName, _instanceName))
+        .setMonitorRootPathOnly(!_instanceType.equals(InstanceType.CONTROLLER) && !_instanceType
+            .equals(InstanceType.CONTROLLER_PARTICIPANT));
+    _zkclient = zkClientBuilder.build();
 
     _baseDataAccessor = createBaseDataAccessor();
 

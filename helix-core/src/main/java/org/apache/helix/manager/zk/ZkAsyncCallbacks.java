@@ -133,10 +133,12 @@ public class ZkAsyncCallbacks {
 
       if (ctx != null && ctx instanceof ZkAsyncCallContext) {
         ZkAsyncCallContext zkCtx = (ZkAsyncCallContext) ctx;
-        if (zkCtx._isRead) {
-          zkCtx._monitor.recordRead(path, zkCtx._bytes, zkCtx._startTimeMilliSec);
-        } else {
-          zkCtx._monitor.recordWrite(path, zkCtx._bytes, zkCtx._startTimeMilliSec);
+        if (zkCtx._monitor != null) {
+          if (zkCtx._isRead) {
+            zkCtx._monitor.recordRead(path, zkCtx._bytes, zkCtx._startTimeMilliSec);
+          } else {
+            zkCtx._monitor.recordWrite(path, zkCtx._bytes, zkCtx._startTimeMilliSec);
+          }
         }
       }
 
@@ -177,9 +179,6 @@ public class ZkAsyncCallbacks {
 
     public ZkAsyncCallContext(final ZkClientMonitor monitor, long startTimeMilliSec, int bytes,
         boolean isRead) {
-      if (monitor == null) {
-        throw new NullPointerException("ZkClientMonitor must not be null.");
-      }
       _monitor = monitor;
       _startTimeMilliSec = startTimeMilliSec;
       _bytes = bytes;

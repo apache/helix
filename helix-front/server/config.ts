@@ -8,6 +8,6 @@ export const SSL = {
   port: 0,
   keyfile: '',
   certfile: '',
-  passphrase: '',
+  passfile: '',
   cafiles: []
 };

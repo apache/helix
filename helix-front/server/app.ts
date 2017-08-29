@@ -40,8 +40,8 @@ if (SSL.port > 0 && fs.existsSync(SSL.keyfile) && fs.existsSync(SSL.certfile)) {
     ca: []
   };
 
-  if (SSL.passphrase) {
-    credentials.passphrase = SSL.passphrase;
+  if (fs.existsSync(SSL.passfile)) {
+    credentials.passphrase = fs.readFileSync(SSL.passfile, 'ascii').trim();
   }
 
   if (SSL.cafiles) {

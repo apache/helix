@@ -310,7 +310,7 @@ public class  WorkflowConfig extends ResourceConfig {
       throw new IllegalArgumentException(
           String.format("%s is an invalid WorkflowConfig", property.getId()));
     }
-    return Builder.fromMap(configs).build();
+    return Builder.fromMap(configs).setWorkflowId(property.getId()).build();
   }
 
   public static class Builder {

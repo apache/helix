@@ -19,6 +19,8 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,10 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -47,9 +49,6 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.log4j.Logger;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 
 public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
@@ -79,15 +78,12 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private Map<String, List<String>> _oldDisabledPartitions = Collections.emptyMap();
   private Map<String, Long> _instanceMsgQueueSizes = Maps.newConcurrentMap();
 
-  private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap =
-      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap = new ConcurrentHashMap<>();
 
-  private final ConcurrentHashMap<String, InstanceMonitor> _instanceMbeanMap =
-      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, InstanceMonitor> _instanceMbeanMap = new ConcurrentHashMap<>();
 
   // phaseName -> eventMonitor
-  private final ConcurrentHashMap<String, ClusterEventMonitor> _clusterEventMbeanMap =
-      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, ClusterEventMonitor> _clusterEventMbeanMap = new ConcurrentHashMap<>();
 
   /**
    * PerInstanceResource bean map: beanName->bean
@@ -95,11 +91,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private final Map<PerInstanceResourceMonitor.BeanName, PerInstanceResourceMonitor> _perInstanceResourceMap =
       new ConcurrentHashMap<>();
 
-  private final Map<String, WorkflowMonitor> _perTypeWorkflowMonitorMap =
-      new ConcurrentHashMap<>();
+  private final Map<String, WorkflowMonitor> _perTypeWorkflowMonitorMap = new ConcurrentHashMap<>();
 
-  private final Map<String, JobMonitor> _perTypeJobMonitorMap =
-      new ConcurrentHashMap<>();
+  private final Map<String, JobMonitor> _perTypeJobMonitorMap = new ConcurrentHashMap<>();
 
   public ClusterStatusMonitor(String clusterName) {
     _clusterName = clusterName;
@@ -140,7 +134,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     return _disabledInstances.size();
   }
 
-  @Override public long getDisabledPartitionsGauge() {
+  @Override
+  public long getDisabledPartitionsGauge() {
     int numDisabled = 0;
     for (Map<String, List<String>> perInstance : _disabledPartitions.values()) {
       for (List<String> partitions : perInstance.values()) {
@@ -216,9 +211,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param disabledPartitions a map of instance name to the set of partitions disabled on it
    * @param tags a map of instance name to the set of tags on it
    */
-  public synchronized void setClusterInstanceStatus(Set<String> liveInstanceSet,
-      Set<String> instanceSet, Set<String> disabledInstanceSet,
-      Map<String, Map<String, List<String>>> disabledPartitions,
+  public synchronized void setClusterInstanceStatus(Set<String> liveInstanceSet, Set<String> instanceSet,
+      Set<String> disabledInstanceSet, Map<String, Map<String, List<String>>> disabledPartitions,
       Map<String, List<String>> oldDisabledPartitions, Map<String, Set<String>> tags) {
     // Unregister beans for instances that are no longer configured
     Set<String> toUnregister = Sets.newHashSet(_instanceMbeanMap.keySet());
@@ -287,15 +281,14 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     if (!_clusterEventMbeanMap.containsKey(phase)) {
       ClusterEventMonitor monitor = new ClusterEventMonitor(this, phase);
       try {
-        String beanName = monitor.getBeanName();
-        register(monitor, getObjectName(beanName));
         ClusterEventMonitor prevEventMbean = _clusterEventMbeanMap.put(phase, monitor);
         if (prevEventMbean != null) {
-          unregister(getObjectName(monitor.getBeanName()));
+          prevEventMbean.unregister();
         }
-      } catch (MalformedObjectNameException e) {
-        LOG.error("Failed to register ClusterEventMonitorMbean for cluster " + _clusterName
-            + " and phase type: " + phase, e);
+        monitor.register();
+      } catch (JMException e) {
+        LOG.error(
+            "Failed to register ClusterEventMonitorMbean for cluster " + _clusterName + " and phase type: " + phase, e);
         return;
       }
     }
@@ -309,8 +302,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param messages a list of messages
    */
   public void increaseMessageReceived(List<Message> messages) {
-    Map<String, Long> messageCountPerInstance = new HashMap<String, Long>();
-    Map<String, Long> messageCountPerResource = new HashMap<String, Long>();
+    Map<String, Long> messageCountPerInstance = new HashMap<>();
+    Map<String, Long> messageCountPerResource = new HashMap<>();
 
     // Aggregate messages
     for (Message message : messages) {
@@ -357,7 +350,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
     // Convert to perInstanceResource beanName->partition->state
     Map<PerInstanceResourceMonitor.BeanName, Map<Partition, String>> beanMap =
-        new HashMap<PerInstanceResourceMonitor.BeanName, Map<Partition, String>>();
+        new HashMap<>();
     Set<String> resourceSet = new HashSet<>(bestPossibleStates.resourceSet());
     for (String resource : resourceSet) {
       Map<Partition, Map<String, String>> partitionStateMap =
@@ -366,8 +359,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         Map<String, String> instanceStateMap = partitionStateMap.get(partition);
         for (String instance : instanceStateMap.keySet()) {
           String state = instanceStateMap.get(instance);
-          PerInstanceResourceMonitor.BeanName beanName =
-              new PerInstanceResourceMonitor.BeanName(instance, resource);
+          PerInstanceResourceMonitor.BeanName beanName = new PerInstanceResourceMonitor.BeanName(instance, resource);
           if (!beanMap.containsKey(beanName)) {
             beanMap.put(beanName, new HashMap<Partition, String>());
           }
@@ -377,8 +369,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
     synchronized (_perInstanceResourceMap) {
       // Unregister beans for per-instance resources that no longer exist
-      Set<PerInstanceResourceMonitor.BeanName> toUnregister =
-          Sets.newHashSet(_perInstanceResourceMap.keySet());
+      Set<PerInstanceResourceMonitor.BeanName> toUnregister = Sets.newHashSet(_perInstanceResourceMap.keySet());
       toUnregister.removeAll(beanMap.keySet());
       try {
         unregisterPerInstanceResources(toUnregister);
@@ -391,12 +382,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       Set<PerInstanceResourceMonitor> monitorsToRegister = Sets.newHashSet();
       for (PerInstanceResourceMonitor.BeanName beanName : toRegister) {
         PerInstanceResourceMonitor bean =
-            new PerInstanceResourceMonitor(_clusterName, beanName.instanceName(),
-                beanName.resourceName());
+            new PerInstanceResourceMonitor(_clusterName, beanName.instanceName(), beanName.resourceName());
         String stateModelDefName = resourceMap.get(beanName.resourceName()).getStateModelDefRef();
         InstanceConfig config = instanceConfigMap.get(beanName.instanceName());
-        bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()),
-            stateModelDefMap.get(stateModelDefName));
+        bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()), stateModelDefMap.get(stateModelDefName));
         monitorsToRegister.add(bean);
       }
       try {
@@ -409,8 +398,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         PerInstanceResourceMonitor bean = _perInstanceResourceMap.get(beanName);
         String stateModelDefName = resourceMap.get(beanName.resourceName()).getStateModelDefRef();
         InstanceConfig config = instanceConfigMap.get(beanName.instanceName());
-        bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()),
-            stateModelDefMap.get(stateModelDefName));
+        bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()), stateModelDefMap.get(stateModelDefName));
       }
     }
   }
@@ -433,39 +421,23 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void setResourceStatus(ExternalView externalView, IdealState idealState,
-      StateModelDefinition stateModelDef) {
+  public void setResourceStatus(ExternalView externalView, IdealState idealState, StateModelDefinition stateModelDef) {
     try {
-      String resourceName = externalView.getId();
-      if (!_resourceMbeanMap.containsKey(resourceName)) {
-        synchronized (this) {
-          if (!_resourceMbeanMap.containsKey(resourceName)) {
-            ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
-            bean.updateResource(externalView, idealState, stateModelDef);
-            registerResources(Arrays.asList(bean));
-          }
-        }
-      }
-      ResourceMonitor bean = _resourceMbeanMap.get(resourceName);
-      String oldSensorName = bean.getSensorName();
-      bean.updateResource(externalView, idealState, stateModelDef);
-      String newSensorName = bean.getSensorName();
-      if (!oldSensorName.equals(newSensorName)) {
-        unregisterResources(Arrays.asList(resourceName));
-        registerResources(Arrays.asList(bean));
+      ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(externalView.getId());
+
+      if (resourceMonitor != null) {
+        resourceMonitor.updateResource(externalView, idealState, stateModelDef);
       }
     } catch (Exception e) {
       LOG.error("Fail to set resource status, resource: " + idealState.getResourceName(), e);
     }
   }
 
-  public synchronized void updateMissingTopStateDurationStats(String resourceName, long duration,
-      boolean succeeded) {
+  public synchronized void updateMissingTopStateDurationStats(String resourceName, long duration, boolean succeeded) {
     ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
 
     if (resourceMonitor != null) {
-      resourceMonitor
-          .updateStateHandoffStats(ResourceMonitor.MonitorState.TOP_STATE, duration, succeeded);
+      resourceMonitor.updateStateHandoffStats(ResourceMonitor.MonitorState.TOP_STATE, duration, succeeded);
     }
   }
 
@@ -475,9 +447,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
 
     if (resourceMonitor != null) {
-      resourceMonitor.updateRebalancerStat(numPendingRecoveryRebalancePartitions,
-          numPendingLoadRebalancePartitions, numRecoveryRebalanceThrottledPartitions,
-          numLoadRebalanceThrottledPartitions);
+      resourceMonitor.updateRebalancerStat(numPendingRecoveryRebalancePartitions, numPendingLoadRebalancePartitions,
+          numRecoveryRebalanceThrottledPartitions, numLoadRebalanceThrottledPartitions);
     }
   }
 
@@ -486,12 +457,13 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       if (!_resourceMbeanMap.containsKey(resourceName)) {
         synchronized (this) {
           if (!_resourceMbeanMap.containsKey(resourceName)) {
-            ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
-            registerResources(Arrays.asList(bean));
+            String beanName = getResourceBeanName(resourceName);
+            ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName, getObjectName(beanName));
+            _resourceMbeanMap.put(resourceName, bean);
           }
         }
       }
-    } catch (MalformedObjectNameException ex) {
+    } catch (JMException ex) {
       LOG.error("Fail to register resource mbean, resource: " + resourceName);
     }
 
@@ -540,8 +512,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         continue;
       }
       WorkflowContext workflowContext = driver.getWorkflowContext(workflow);
-      TaskState currentState =
-          workflowContext == null ? TaskState.NOT_STARTED : workflowContext.getWorkflowState();
+      TaskState currentState = workflowContext == null ? TaskState.NOT_STARTED : workflowContext.getWorkflowState();
       updateWorkflowGauges(workflowConfigMap.get(workflow), currentState);
     }
   }
@@ -587,10 +558,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       Set<String> allJobs = workflowConfig.getJobDag().getAllNodes();
       WorkflowContext workflowContext = driver.getWorkflowContext(workflow);
       for (String job : allJobs) {
-        TaskState currentState =
-            workflowContext == null ? TaskState.NOT_STARTED : workflowContext.getJobState(job);
-        updateJobGauges(
-            workflowConfig.getJobTypes() == null ? null : workflowConfig.getJobTypes().get(job),
+        TaskState currentState = workflowContext == null ? TaskState.NOT_STARTED : workflowContext.getJobState(job);
+        updateJobGauges(workflowConfig.getJobTypes() == null ? null : workflowConfig.getJobTypes().get(job),
             currentState);
       }
     }
@@ -636,8 +605,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  private synchronized void unregisterInstances(Collection<String> instances)
-      throws MalformedObjectNameException {
+  private synchronized void unregisterInstances(Collection<String> instances) throws MalformedObjectNameException {
     for (String instanceName : instances) {
       String beanName = getInstanceBeanName(instanceName);
       unregister(getObjectName(beanName));
@@ -645,21 +613,12 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     _instanceMbeanMap.keySet().removeAll(instances);
   }
 
-  private synchronized void registerResources(Collection<ResourceMonitor> resources)
-      throws MalformedObjectNameException {
-    for (ResourceMonitor monitor : resources) {
-      String resourceName = monitor.getResourceName();
-      String beanName = getResourceBeanName(resourceName);
-      register(monitor, getObjectName(beanName));
-      _resourceMbeanMap.put(resourceName, monitor);
-    }
-  }
-
-  private synchronized void unregisterResources(Collection<String> resources)
-      throws MalformedObjectNameException {
+  private synchronized void unregisterResources(Collection<String> resources) throws MalformedObjectNameException {
     for (String resourceName : resources) {
-      String beanName = getResourceBeanName(resourceName);
-      unregister(getObjectName(beanName));
+      ResourceMonitor monitor = _resourceMbeanMap.get(resourceName);
+      if (monitor != null) {
+        monitor.unregister();
+      }
     }
     _resourceMbeanMap.keySet().removeAll(resources);
   }
@@ -667,36 +626,31 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private synchronized void unregisterEventMonitors(Collection<ClusterEventMonitor> monitors)
       throws MalformedObjectNameException {
     for (ClusterEventMonitor monitor : monitors) {
-      String beanName = monitor.getBeanName();
-      unregister(getObjectName(beanName));
+      monitor.unregister();
     }
     _resourceMbeanMap.keySet().removeAll(monitors);
   }
 
-  private synchronized void registerPerInstanceResources(
-      Collection<PerInstanceResourceMonitor> monitors) throws MalformedObjectNameException {
+  private synchronized void registerPerInstanceResources(Collection<PerInstanceResourceMonitor> monitors)
+      throws MalformedObjectNameException {
     for (PerInstanceResourceMonitor monitor : monitors) {
       String instanceName = monitor.getInstanceName();
       String resourceName = monitor.getResourceName();
       String beanName = getPerInstanceResourceBeanName(instanceName, resourceName);
       register(monitor, getObjectName(beanName));
-      _perInstanceResourceMap.put(
-          new PerInstanceResourceMonitor.BeanName(instanceName, resourceName), monitor);
+      _perInstanceResourceMap.put(new PerInstanceResourceMonitor.BeanName(instanceName, resourceName), monitor);
     }
   }
 
-  private synchronized void unregisterPerInstanceResources(
-      Collection<PerInstanceResourceMonitor.BeanName> beanNames)
+  private synchronized void unregisterPerInstanceResources(Collection<PerInstanceResourceMonitor.BeanName> beanNames)
       throws MalformedObjectNameException {
     for (PerInstanceResourceMonitor.BeanName beanName : beanNames) {
-      unregister(getObjectName(
-          getPerInstanceResourceBeanName(beanName.instanceName(), beanName.resourceName())));
+      unregister(getObjectName(getPerInstanceResourceBeanName(beanName.instanceName(), beanName.resourceName())));
     }
     _perInstanceResourceMap.keySet().removeAll(beanNames);
   }
 
-  private synchronized void registerWorkflow(WorkflowMonitor workflowMonitor)
-      throws MalformedObjectNameException {
+  private synchronized void registerWorkflow(WorkflowMonitor workflowMonitor) throws MalformedObjectNameException {
     String workflowBeanName = getWorkflowBeanName(workflowMonitor.getWorkflowType());
     register(workflowMonitor, getObjectName(workflowBeanName));
   }
@@ -715,8 +669,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     register(jobMonitor, getObjectName(jobBeanName));
   }
 
-  private synchronized void unregisterJobs(Collection<String> jobMonitors)
-      throws MalformedObjectNameException {
+  private synchronized void unregisterJobs(Collection<String> jobMonitors) throws MalformedObjectNameException {
     for (String jobMonitor : jobMonitors) {
       String jobBeanName = getJobBeanName(jobMonitor);
       unregister(getObjectName(jobBeanName));
@@ -758,8 +711,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @return per-instance resource bean name
    */
   public String getPerInstanceResourceBeanName(String instanceName, String resourceName) {
-    return String.format("%s,%s", clusterBeanName(), new PerInstanceResourceMonitor.BeanName(
-        instanceName, resourceName).toString());
+    return String.format("%s,%s", clusterBeanName(),
+        new PerInstanceResourceMonitor.BeanName(instanceName, resourceName).toString());
   }
 
   /**

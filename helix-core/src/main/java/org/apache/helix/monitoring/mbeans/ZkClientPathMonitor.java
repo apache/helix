@@ -19,31 +19,20 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+
 import javax.management.JMException;
-import javax.management.ObjectName;
-
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricFilter;
-import com.codahale.metrics.MetricRegistry;
-import org.apache.helix.HelixException;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.*;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-public class ZkClientPathMonitor {
+public class ZkClientPathMonitor extends DynamicMBeanProvider {
   public static final String MONITOR_PATH = "PATH";
+
   private static final String MBEAN_DESCRIPTION = "Helix Zookeeper Client Monitor";
-
-  private static final MetricRegistry _metricRegistry = new MetricRegistry();
-
-  private DynamicMBeanProvider _dynamicMBeanProvider;
-  private ObjectName _objectName;
-  private String _monitorType;
-  private String _monitorKey;
-  private String _path;
+  private final String _sensorName;
 
   protected enum PredefinedPath {
     IdealStates(".*/IDEALSTATES/.*"),
@@ -84,25 +73,25 @@ public class ZkClientPathMonitor {
       new SimpleDynamicMetric("WriteTotalLatencyCounter", 0l);
 
   private HistogramDynamicMetric _readLatencyGauge = new HistogramDynamicMetric("ReadLatencyGauge",
-      _metricRegistry.histogram(toString() + "ReadLatencyGauge"));
+      _metricRegistry.histogram(getMetricRegistryNamePrefix() + "ReadLatencyGauge"));
   private HistogramDynamicMetric _writeLatencyGauge =
       new HistogramDynamicMetric("WriteLatencyGauge",
-          _metricRegistry.histogram(toString() + "WriteLatencyGauge"));
+          _metricRegistry.histogram(getMetricRegistryNamePrefix() + "WriteLatencyGauge"));
   private HistogramDynamicMetric _readBytesGauge = new HistogramDynamicMetric("ReadBytesGauge",
-      _metricRegistry.histogram(toString() + "ReadBytesGauge"));
+      _metricRegistry.histogram(getMetricRegistryNamePrefix() + "ReadBytesGauge"));
   private HistogramDynamicMetric _writeBytesGauge = new HistogramDynamicMetric("WriteBytesGauge",
-      _metricRegistry.histogram(toString() + "WriteBytesGauge"));
+      _metricRegistry.histogram(getMetricRegistryNamePrefix() + "WriteBytesGauge"));
 
-  protected ZkClientPathMonitor(String path, String monitorType, String monitorKey)
+  @Override
+  public String getSensorName() {
+    return _sensorName;
+  }
+
+  public ZkClientPathMonitor(String path, String monitorType, String monitorKey)
       throws JMException {
-    if (monitorKey == null || monitorKey.isEmpty() || monitorType == null || monitorType
-        .isEmpty()) {
-      throw new HelixException("Cannot create ZkClientMonitor without monitor key and type.");
-    }
-
-    _monitorType = monitorType;
-    _monitorKey = monitorKey;
-    _path = path;
+    _sensorName = String
+        .format("%s.%s.%s.%s", MonitorDomainNames.HelixZkClient.name(), monitorType, monitorKey,
+            path);
 
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
     attributeList.add(_readCounter);
@@ -117,32 +106,9 @@ public class ZkClientPathMonitor {
     attributeList.add(_writeLatencyGauge);
     attributeList.add(_readBytesGauge);
     attributeList.add(_writeBytesGauge);
-
-    _dynamicMBeanProvider = new DynamicMBeanProvider(String
-        .format("%s.%s.%s.%s", MonitorDomainNames.HelixZkClient.name(), _monitorType, _monitorKey,
-            _path), MBEAN_DESCRIPTION, attributeList);
-
-    regitster(path, monitorType, monitorKey);
-  }
-
-  private void regitster(String path, String monitorType, String monitorKey) throws JMException {
-    _objectName = MBeanRegistrar
-        .register(_dynamicMBeanProvider, MonitorDomainNames.HelixZkClient.name(),
-            ZkClientMonitor.MONITOR_TYPE, monitorType, ZkClientMonitor.MONITOR_KEY, monitorKey,
-            MONITOR_PATH, path);
-  }
-
-  /**
-   * After unregistered, the MBean can't be registered again, a new monitor has be to created.
-   */
-  protected void unregister() {
-    MBeanRegistrar.unregister(_objectName);
-    _metricRegistry.removeMatching(new MetricFilter() {
-      @Override
-      public boolean matches(String name, Metric metric) {
-        return name.startsWith(toString());
-      }
-    });
+    register(attributeList, MBEAN_DESCRIPTION, MonitorDomainNames.HelixZkClient.name(),
+        ZkClientMonitor.MONITOR_TYPE, monitorType, ZkClientMonitor.MONITOR_KEY, monitorKey,
+        MONITOR_PATH, path);
   }
 
   protected void record(int bytes, long latencyMilliSec, boolean isFailure, boolean isRead) {

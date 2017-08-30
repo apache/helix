@@ -19,9 +19,6 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricFilter;
-import com.codahale.metrics.MetricRegistry;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.InstanceType;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
@@ -30,22 +27,16 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
 import javax.management.JMException;
-import javax.management.ObjectName;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HelixCallbackMonitor {
+public class HelixCallbackMonitor extends DynamicMBeanProvider {
   public static final String MONITOR_TYPE = "Type";
   public static final String MONITOR_KEY = "Key";
   public static final String MONITOR_CHANGE_TYPE = "Change";
+
   private static final String MBEAN_DESCRIPTION = "Helix Callback Monitor";
-
-  private static final MetricRegistry _metricRegistry = new MetricRegistry();
-
-  private DynamicMBeanProvider _dynamicMBeanProvider;
-  private ObjectName _objectName;
-  private final InstanceType _instanceType;
-  private final String _key;
+  private final String _sensorName;
   private final HelixConstants.ChangeType _changeType;
 
   private SimpleDynamicMetric<Long> _counter = new SimpleDynamicMetric("Counter", 0l);
@@ -55,32 +46,27 @@ public class HelixCallbackMonitor {
       new SimpleDynamicMetric("LatencyCounter", 0l);
 
   private HistogramDynamicMetric _latencyGauge = new HistogramDynamicMetric("LatencyGauge",
-      _metricRegistry.histogram(toString() + "LatencyGauge"));
+      _metricRegistry.histogram(getMetricRegistryNamePrefix() + "LatencyGauge"));
 
   public HelixCallbackMonitor(InstanceType type, String key, HelixConstants.ChangeType changeType)
       throws JMException {
-    _instanceType = type;
-    _key = key;
     _changeType = changeType;
+    _sensorName = String
+        .format("%s.%s.%s.%s", MonitorDomainNames.HelixCallback.name(), type.name(), key,
+            changeType.name());
 
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
     attributeList.add(_counter);
     attributeList.add(_unbatchedCounter);
     attributeList.add(_totalLatencyCounter);
     attributeList.add(_latencyGauge);
-
-    _dynamicMBeanProvider = new DynamicMBeanProvider(String
-        .format("%s.%s.%s.%s", MonitorDomainNames.HelixCallback.name(), _instanceType.name(), _key,
-            _changeType.name()), MBEAN_DESCRIPTION, attributeList);
-
-    register(type, key, changeType);
+    register(attributeList, MBEAN_DESCRIPTION, MonitorDomainNames.HelixCallback.name(),
+        MONITOR_TYPE, type.name(), MONITOR_KEY, key, MONITOR_CHANGE_TYPE, changeType.name());
   }
 
-  private void register(InstanceType type, String key, HelixConstants.ChangeType changeType)
-      throws JMException {
-    _objectName = MBeanRegistrar
-        .register(_dynamicMBeanProvider, MonitorDomainNames.HelixCallback.name(), MONITOR_TYPE,
-            type.name(), MONITOR_KEY, key, MONITOR_CHANGE_TYPE, changeType.name());
+  @Override
+  public String getSensorName() {
+    return _sensorName;
   }
 
   public HelixConstants.ChangeType getChangeType() {
@@ -95,18 +81,5 @@ public class HelixCallbackMonitor {
 
   public void increaseCallbackUnbatchedCounters() {
     _unbatchedCounter.updateValue(_unbatchedCounter.getValue() + 1);
-  }
-
-  /**
-   * After unregistered, the MBean can't be registered again, a new monitor has be to created.
-   */
-  public void unregister() {
-    MBeanRegistrar.unregister(_objectName);
-    _metricRegistry.removeMatching(new MetricFilter() {
-      @Override
-      public boolean matches(String name, Metric metric) {
-        return name.startsWith(toString());
-      }
-    });
   }
 }

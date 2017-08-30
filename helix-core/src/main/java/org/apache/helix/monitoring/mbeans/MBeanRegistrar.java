@@ -19,13 +19,10 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.lang.management.ManagementFactory;
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.JMException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import org.apache.log4j.Logger;
+
+import javax.management.*;
+import java.lang.management.ManagementFactory;
 
 public class MBeanRegistrar {
   private static Logger LOG = Logger.getLogger(MBeanRegistrar.class);
@@ -36,6 +33,39 @@ public class MBeanRegistrar {
   private static MBeanServer _beanServer = ManagementFactory.getPlatformMBeanServer();
 
   /**
+   * This method registers an object with specified ObjectName.
+   * If the same ObjectName is already registered, this method tags a "Duplicate" property
+   * with an incremental number and tries to register the object again until the object is
+   * successfully registered.
+   */
+  public static ObjectName register(Object object, ObjectName objectName) throws JMException {
+    int num = 0;
+    while (num < MAX_NUM_DUPLICATED_MONITORS) {
+      ObjectName newObjectName;
+      if (num > 0) {
+        newObjectName = new ObjectName(
+            String.format("%s,%s=%s", objectName.toString(), DUPLICATE, String.valueOf(num)));
+      } else {
+        newObjectName = objectName;
+      }
+      num++;
+      try {
+        _beanServer.registerMBean(object, newObjectName);
+      } catch (InstanceAlreadyExistsException e) {
+        continue;
+      } catch (JMException e) {
+        LOG.error(String.format("Error in registering: %s", objectName.getCanonicalName()), e);
+        return null;
+      }
+      return newObjectName;
+    }
+    LOG.error(String
+        .format("There're already %d %s, no more will be registered.", MAX_NUM_DUPLICATED_MONITORS,
+            objectName.getCanonicalName()));
+    return null;
+  }
+
+  /**
    * This method registers an object with specified domain and properties.
    * If the same ObjectName is already registered, this method tags a "Duplicate" property
    * with an incremental number and tries to register the object again until the object is
@@ -43,25 +73,7 @@ public class MBeanRegistrar {
    */
   public static ObjectName register(Object object, String domain, String... keyValuePairs)
       throws JMException {
-    int num = 0;
-    while (num < MAX_NUM_DUPLICATED_MONITORS) {
-      ObjectName newObjectName = buildObjectName(num, domain, keyValuePairs);
-      num++;
-      try {
-        _beanServer.registerMBean(object, newObjectName);
-      } catch (InstanceAlreadyExistsException e) {
-        continue;
-      } catch (JMException e) {
-        LOG.error(String.format("Error in registering: %s",
-            buildObjectName(domain, keyValuePairs).getCanonicalName()), e);
-        return null;
-      }
-      return newObjectName;
-    }
-    LOG.error(String.format(
-        "There're already %d %s, no more will be registered.", MAX_NUM_DUPLICATED_MONITORS,
-        buildObjectName(domain, keyValuePairs).getCanonicalName()));
-    return null;
+    return register(object, buildObjectName(domain, keyValuePairs));
   }
 
   public static void unregister(ObjectName objectName) {
@@ -75,13 +87,7 @@ public class MBeanRegistrar {
   }
 
   public static ObjectName buildObjectName(String domain, String... keyValuePairs)
-      throws MalformedObjectNameException{
-    return buildObjectName(0, domain, keyValuePairs);
-  }
-
-  public static ObjectName buildObjectName(int num, String domain, String... keyValuePairs)
       throws MalformedObjectNameException {
-
     if (keyValuePairs.length < 2 || keyValuePairs.length % 2 != 0) {
       throw new IllegalArgumentException("key-value pairs for ObjectName must contain even "
           + "number of String and at least 2 String");
@@ -92,9 +98,7 @@ public class MBeanRegistrar {
       objectNameStr.append(
           String.format(i == 0 ? "%s=%s" : ",%s=%s", keyValuePairs[i], keyValuePairs[i + 1]));
     }
-    if (num > 0) {
-      objectNameStr.append(String.format(",%s=%s", DUPLICATE, String.valueOf(num)));
-    }
+
     return new ObjectName(String.format("%s:%s", domain, objectNameStr.toString()));
   }
 }

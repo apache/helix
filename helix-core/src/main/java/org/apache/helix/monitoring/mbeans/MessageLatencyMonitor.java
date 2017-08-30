@@ -19,33 +19,22 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricFilter;
-import com.codahale.metrics.MetricRegistry;
-import org.apache.helix.HelixException;
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.ParticipantStatusMonitor;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
-import org.apache.log4j.Logger;
 
 import javax.management.JMException;
-import javax.management.ObjectName;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MessageLatencyMonitor {
-  private static final Logger logger = Logger.getLogger(MessageLatencyMonitor.class.getName());
-  private static final String MBEAN_DESCRIPTION = "Helix Message Latency Monitor";
+public class MessageLatencyMonitor extends DynamicMBeanProvider {
   public static String MONITOR_TYPE_KW = "MonitorType";
 
-  private static final MetricRegistry _metricRegistry = new MetricRegistry();
-  private String _participantName;
-  private ObjectName _objectName;
-
-  private DynamicMBeanProvider _dynamicMBeanProvider;
+  private static final String MBEAN_DESCRIPTION = "Helix Message Latency Monitor";
+  private final String _sensorName;
 
   private SimpleDynamicMetric<Long> _totalMessageCount =
       new SimpleDynamicMetric("TotalMessageCount", 0l);
@@ -53,48 +42,32 @@ public class MessageLatencyMonitor {
       new SimpleDynamicMetric("TotalMessageLatency", 0l);
   private HistogramDynamicMetric _messageLatencyGauge =
       new HistogramDynamicMetric("MessageLatencyGauge",
-          _metricRegistry.histogram(toString() + "MessageLatencyGauge"));
+          _metricRegistry.histogram(getMetricRegistryNamePrefix() + "MessageLatencyGauge"));
 
-  public MessageLatencyMonitor(String participantName) {
+  public MessageLatencyMonitor(String domainName, String participantName) throws JMException {
+    _sensorName = String
+        .format("%s.%s.%s.%s", ParticipantStatusMonitor.PARTICIPANT_STATUS_KEY, participantName,
+            MONITOR_TYPE_KW, MessageLatencyMonitor.class.getSimpleName());
+
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
     attributeList.add(_totalMessageCount);
     attributeList.add(_totalMessageLatency);
     attributeList.add(_messageLatencyGauge);
+    register(attributeList, MBEAN_DESCRIPTION, domainName, ParticipantStatusMonitor.PARTICIPANT_KEY,
+        participantName, MONITOR_TYPE_KW, MessageLatencyMonitor.class.getSimpleName());
+  }
 
-    _participantName = participantName;
-    _dynamicMBeanProvider = new DynamicMBeanProvider(String
-        .format("%s.%s.%s.%s", ParticipantStatusMonitor.PARTICIPANT_STATUS_KEY, participantName,
-            MONITOR_TYPE_KW, MessageLatencyMonitor.class.getSimpleName()), MBEAN_DESCRIPTION,
-        attributeList);
+  @Override
+  public String getSensorName() {
+    return _sensorName;
   }
 
   public void updateLatency(Message message) {
     long latency = System.currentTimeMillis() - message.getCreateTimeStamp();
-    logger.info(String.format("The latency of message %s is %d ms", message.getMsgId(), latency));
+    _logger.info(String.format("The latency of message %s is %d ms", message.getMsgId(), latency));
 
     _totalMessageCount.updateValue(_totalMessageCount.getValue() + 1);
     _totalMessageLatency.updateValue(_totalMessageLatency.getValue() + latency);
     _messageLatencyGauge.updateValue(latency);
-  }
-
-  public void register(String domainName) throws JMException {
-    if (_objectName != null) {
-      throw new HelixException("Monitor has already been registed: " + _objectName.toString());
-    }
-    _objectName = MBeanRegistrar
-        .register(_dynamicMBeanProvider, domainName, ParticipantStatusMonitor.PARTICIPANT_KEY,
-            _participantName, MONITOR_TYPE_KW, MessageLatencyMonitor.class.getSimpleName());
-  }
-
-  public void unregister() {
-    if (_objectName != null) {
-      MBeanRegistrar.unregister(_objectName);
-    }
-    _metricRegistry.removeMatching(new MetricFilter() {
-      @Override
-      public boolean matches(String name, Metric metric) {
-        return name.startsWith(toString());
-      }
-    });
   }
 }

@@ -19,7 +19,12 @@ package org.apache.helix.monitoring.mbeans.dynamicMBeans;
  * under the License.
  */
 
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
+import org.apache.helix.HelixException;
 import org.apache.helix.monitoring.SensorNameProvider;
+import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
@@ -28,36 +33,97 @@ import java.util.*;
 /**
  * Dynamic MBean provider that reporting DynamicMetric attributes
  */
-public class DynamicMBeanProvider implements DynamicMBean, SensorNameProvider {
+public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNameProvider {
+  protected final Logger _logger = Logger.getLogger(getClass());
+  protected static final MetricRegistry _metricRegistry = new MetricRegistry();
   private static String SENSOR_NAME_TAG = "SensorName";
-  private static final Logger _logger = Logger.getLogger(DynamicMBeanProvider.class);
+  private static String DEFAULT_DESCRIPTION =
+      "Information on the management interface of the MBean";
 
   // Attribute name to the DynamicMetric object mapping
-  private Map<String, DynamicMetric> _attributeMap = new HashMap<>();
-  private MBeanInfo _mBeanInfo = null;
-  private String _sensorName;
+  private final Map<String, DynamicMetric> _attributeMap = new HashMap<>();
+  private ObjectName _objectName;
+  private MBeanInfo _mBeanInfo;
 
   /**
    * Instantiates a new Dynamic MBean provider.
    *
-   * @param sensorName     the sensor name
+   * @param dynamicMetrics Dynamic Metrics that are exposed by this provider
    * @param description    the MBean description
+   * @param domain         the MBean domain name
+   * @param keyValuePairs  the MBean object name components
+   */
+  protected synchronized void register(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+      String description, String domain, String... keyValuePairs) throws JMException {
+    if (_objectName != null) {
+      throw new HelixException(
+          "Mbean has been registered before. Please create new object for new registration.");
+    }
+    updateAttributtInfos(dynamicMetrics, description);
+    _objectName = MBeanRegistrar.register(this, domain, keyValuePairs);
+  }
+
+  /**
+   * Instantiates a new Dynamic MBean provider.
+   *
+   * @param dynamicMetrics Dynamic Metrics that are exposed by this provider
+   * @param description    the MBean description
+   * @param objectName     the proposed MBean ObjectName
+   */
+  protected synchronized void register(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+      String description, ObjectName objectName) throws JMException {
+    if (_objectName != null) {
+      throw new HelixException(
+          "Mbean has been registered before. Please create new object for new registration.");
+    }
+    updateAttributtInfos(dynamicMetrics, description);
+    _objectName = MBeanRegistrar.register(this, objectName);
+  }
+
+  protected synchronized void register(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+      ObjectName objectName) throws JMException {
+    register(dynamicMetrics, null, objectName);
+  }
+
+  /**
+   * After unregistered, the MBean can't be registered again, a new monitor has be to created.
+   */
+  public synchronized void unregister() {
+    _metricRegistry.removeMatching(new MetricFilter() {
+      @Override
+      public boolean matches(String name, Metric metric) {
+        return name.startsWith(getMetricRegistryNamePrefix());
+      }
+    });
+    MBeanRegistrar.unregister(_objectName);
+  }
+
+  protected String getMetricRegistryNamePrefix() {
+    return String.format("%s-%s-", getClass().getSimpleName(), Integer.toHexString(hashCode()));
+  }
+
+  /**
+   * Update the Dynamic MBean provider with new metric list.
+   *
+   * @param description    description of the MBean
    * @param dynamicMetrics the DynamicMetrics
    */
-  public DynamicMBeanProvider(String sensorName, String description,
-      Collection<DynamicMetric<?, ?>> dynamicMetrics) {
-    _sensorName = sensorName;
+  private void updateAttributtInfos(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+      String description) {
+    _attributeMap.clear();
 
     // get all attributes that can be emit by the dynamicMetrics.
     List<MBeanAttributeInfo> attributeInfoList = new ArrayList<>();
-    for (DynamicMetric dynamicMetric : dynamicMetrics) {
-      Iterator<MBeanAttributeInfo> iter = dynamicMetric.getAttributeInfos().iterator();
-      while (iter.hasNext()) {
-        MBeanAttributeInfo attributeInfo = iter.next();
-        // Info list to create MBean info
-        attributeInfoList.add(attributeInfo);
-        // Attribute mapping for getting attribute value when getAttribute() is called
-        _attributeMap.put(attributeInfo.getName(), dynamicMetric);
+    if (dynamicMetrics != null) {
+      for (DynamicMetric dynamicMetric : dynamicMetrics) {
+        Iterator<MBeanAttributeInfo> iter = dynamicMetric.getAttributeInfos().iterator();
+        while (iter.hasNext()) {
+          MBeanAttributeInfo attributeInfo = iter.next();
+          // Info list to create MBean info
+          attributeInfoList.add(attributeInfo);
+          // Attribute mapping for getting attribute value when getAttribute() is called
+          _attributeMap.put(attributeInfo.getName(), dynamicMetric);
+        }
       }
     }
 
@@ -71,6 +137,10 @@ public class DynamicMBeanProvider implements DynamicMBean, SensorNameProvider {
 
     MBeanAttributeInfo[] attributeInfos = new MBeanAttributeInfo[attributeInfoList.size()];
     attributeInfos = attributeInfoList.toArray(attributeInfos);
+
+    if (description == null) {
+      description = DEFAULT_DESCRIPTION;
+    }
 
     _mBeanInfo = new MBeanInfo(getClass().getName(), description, attributeInfos,
         new MBeanConstructorInfo[] { constructorInfo }, new MBeanOperationInfo[0],
@@ -129,10 +199,5 @@ public class DynamicMBeanProvider implements DynamicMBean, SensorNameProvider {
       throws MBeanException, ReflectionException {
     // No operation supported
     return null;
-  }
-
-  @Override
-  public String getSensorName() {
-    return _sensorName;
   }
 }

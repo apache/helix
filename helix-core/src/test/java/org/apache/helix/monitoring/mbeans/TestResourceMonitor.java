@@ -26,6 +26,9 @@ import java.util.Map;
 
 import java.util.Random;
 import java.util.TreeMap;
+import javax.management.JMException;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
@@ -41,9 +44,9 @@ public class TestResourceMonitor {
   int _replicas = 3;
   int _partitions = 50;
 
-  @Test() public void testReportData() {
+  @Test() public void testReportData() throws JMException {
     final int n = 5;
-    ResourceMonitor monitor = new ResourceMonitor(_clusterName, _dbName);
+    ResourceMonitor monitor = new ResourceMonitor(_clusterName, _dbName, new ObjectName("testDomain:key=value"));
 
     List<String> instances = new ArrayList<String>();
     for (int i = 0; i < n; i++) {

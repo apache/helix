@@ -19,8 +19,18 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-public class ClusterEventMonitor implements ClusterEventMonitorMBean {
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
+import javax.management.JMException;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ClusterEventMonitor extends DynamicMBeanProvider {
   public enum PhaseName {
     Callback,
     InQueue,
@@ -32,13 +42,17 @@ public class ClusterEventMonitor implements ClusterEventMonitorMBean {
   private static final String EVENT_DN_KEY = "eventName";
   private static final String PHASE_DN_KEY = "phaseName";
 
-  private String _phaseName;
-  private long _totalDuration;
-  private long _maxDuration;
-  private long _count;
+  private final String _phaseName;
+
+  private SimpleDynamicMetric<Long> _totalDuration =
+      new SimpleDynamicMetric("TotalDurationCounter", 0l);
+  private SimpleDynamicMetric<Long> _maxDuration =
+      new SimpleDynamicMetric("MaxSingleDurationGauge", 0l);
+  private SimpleDynamicMetric<Long> _count = new SimpleDynamicMetric("EventCounter", 0l);
+  private HistogramDynamicMetric _duration = new HistogramDynamicMetric("DurationGauge",
+      _metricRegistry.histogram(getMetricRegistryNamePrefix() + "DurationGauge"));
 
   private long _lastResetTime;
-
   private ClusterStatusMonitor _clusterStatusMonitor;
 
   public ClusterEventMonitor(ClusterStatusMonitor clusterStatusMonitor, String phaseName) {
@@ -46,28 +60,13 @@ public class ClusterEventMonitor implements ClusterEventMonitorMBean {
     _clusterStatusMonitor = clusterStatusMonitor;
   }
 
-  @Override
-  public long getTotalDurationCounter() {
-    return _totalDuration;
-  }
-
-  @Override
-  public long getMaxSingleDurationGauge() {
-    return _maxDuration;
-  }
-
-  @Override
-  public long getEventCounter() {
-    return _count;
-  }
-
   public void reportDuration(long duration) {
-    _totalDuration += duration;
-    _count++;
-
+    _totalDuration.updateValue(_totalDuration.getValue() + duration);
+    _count.updateValue(_count.getValue() + 1);
+    _duration.updateValue(duration);
     if (_lastResetTime + RESET_INTERVAL <= System.currentTimeMillis() ||
-        duration > _maxDuration) {
-      _maxDuration = duration;
+        duration > _maxDuration.getValue()) {
+      _maxDuration.updateValue(duration);
       _lastResetTime = System.currentTimeMillis();
     }
   }
@@ -78,13 +77,17 @@ public class ClusterEventMonitor implements ClusterEventMonitorMBean {
         ClusterStatusMonitor.DEFAULT_TAG, _phaseName);
   }
 
-  /**
-   * get clusterEvent bean name
-   *
-   * @return clusterEvent bean name
-   */
-  public String getBeanName() {
+  private String getBeanName() {
     return String.format("%s,%s=%s,%s=%s", _clusterStatusMonitor.clusterBeanName(), EVENT_DN_KEY,
         "ClusterEvent", PHASE_DN_KEY, _phaseName);
+  }
+
+  public void register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_totalDuration);
+    attributeList.add(_maxDuration);
+    attributeList.add(_count);
+    attributeList.add(_duration);
+    register(attributeList, _clusterStatusMonitor.getObjectName(getBeanName()));
   }
 }

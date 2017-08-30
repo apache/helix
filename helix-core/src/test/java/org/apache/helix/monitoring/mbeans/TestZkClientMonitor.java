@@ -19,14 +19,14 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.lang.management.ManagementFactory;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import java.lang.management.ManagementFactory;
 
 public class TestZkClientMonitor {
 
@@ -40,9 +40,14 @@ public class TestZkClientMonitor {
 
   private ObjectName buildObjectName(String tag, String key, int num)
       throws MalformedObjectNameException {
-    return MBeanRegistrar
-        .buildObjectName(num, MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
-            tag, ZkClientMonitor.MONITOR_KEY, key);
+    ObjectName objectName = buildObjectName(tag, key);
+    if (num > 0) {
+      return new ObjectName(String
+          .format("%s,%s=%s", objectName.toString(), MBeanRegistrar.DUPLICATE,
+              String.valueOf(num)));
+    } else {
+      return objectName;
+    }
   }
 
   private ObjectName buildPathMonitorObjectName(String tag, String key, String path)

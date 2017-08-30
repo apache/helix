@@ -22,14 +22,21 @@ public class TestHelixCallbackMonitor {
 
   private ObjectName buildObjectName(InstanceType type, String cluster,
       HelixConstants.ChangeType changeType) throws MalformedObjectNameException {
-    return buildObjectName(type, cluster, changeType, 0);
+    return MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixCallback.name(),
+        HelixCallbackMonitor.MONITOR_TYPE, type.name(), HelixCallbackMonitor.MONITOR_KEY, cluster,
+        HelixCallbackMonitor.MONITOR_CHANGE_TYPE, changeType.name());
   }
 
   private ObjectName buildObjectName(InstanceType type, String cluster,
       HelixConstants.ChangeType changeType, int num) throws MalformedObjectNameException {
-    return MBeanRegistrar.buildObjectName(num, MonitorDomainNames.HelixCallback.name(),
-        HelixCallbackMonitor.MONITOR_TYPE, type.name(), HelixCallbackMonitor.MONITOR_KEY, cluster,
-        HelixCallbackMonitor.MONITOR_CHANGE_TYPE, changeType.name());
+    ObjectName objectName = buildObjectName(type, cluster, changeType);
+    if (num > 0) {
+      return new ObjectName(String
+          .format("%s,%s=%s", objectName.toString(), MBeanRegistrar.DUPLICATE,
+              String.valueOf(num)));
+    } else {
+      return objectName;
+    }
   }
 
   @Test

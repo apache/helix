@@ -19,23 +19,19 @@ package org.apache.helix.monitoring;
  * under the License.
  */
 
+import org.apache.helix.model.Message;
+import org.apache.helix.monitoring.mbeans.*;
+import org.apache.log4j.Logger;
+
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
-import javax.management.JMException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-
-import org.apache.helix.model.Message;
-import org.apache.helix.monitoring.mbeans.MessageLatencyMonitor;
-import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
-import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
-import org.apache.helix.monitoring.mbeans.StateTransitionStatMonitor;
-import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
-import org.apache.log4j.Logger;
 
 public class ParticipantStatusMonitor {
   private final ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap =
@@ -54,10 +50,10 @@ public class ParticipantStatusMonitor {
       _beanServer = ManagementFactory.getPlatformMBeanServer();
       if (isParticipant) {
         _messageMonitor = new ParticipantMessageMonitor(instanceName);
-        _messageLatencyMonitor = new MessageLatencyMonitor(instanceName);
+        _messageLatencyMonitor =
+            new MessageLatencyMonitor(MonitorDomainNames.CLMParticipantReport.name(), instanceName);
         _executorMonitors = new ConcurrentHashMap<>();
         register(_messageMonitor, getObjectName(_messageMonitor.getParticipantBeanName()));
-        _messageLatencyMonitor.register(MonitorDomainNames.CLMParticipantReport.name());
       }
     } catch (Exception e) {
       LOG.warn(e);

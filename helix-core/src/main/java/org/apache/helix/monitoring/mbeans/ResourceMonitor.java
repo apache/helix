@@ -19,122 +19,156 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.model.*;
-import org.apache.log4j.Logger;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
+import javax.management.JMException;
+import javax.management.ObjectName;
+import java.util.*;
 
-public class ResourceMonitor implements ResourceMonitorMBean {
-  private static final Logger LOG = Logger.getLogger(ResourceMonitor.class);
+public class ResourceMonitor extends DynamicMBeanProvider {
   private static final long RESET_TIME_RANGE = 1000 * 60 * 60; // 1 hour
 
   // Gauges
-  private int _numOfPartitions;
-  private int _numOfPartitionsInExternalView;
-  private int _numOfErrorPartitions;
-  private int _numNonTopStatePartitions;
-  private long _numLessMinActiveReplicaPartitions;
-  private long _numLessReplicaPartitions;
-  private long _numPendingRecoveryRebalancePartitions;
-  private long _numPendingLoadRebalancePartitions;
-  private long _numRecoveryRebalanceThrottledPartitions;
-  private long _numLoadRebalanceThrottledPartitions;
-  private int _externalViewIdealStateDiff;
+  private SimpleDynamicMetric<Integer> _numOfPartitions =
+      new SimpleDynamicMetric("PartitionGauge", 0);
+  private SimpleDynamicMetric<Integer> _numOfPartitionsInExternalView =
+      new SimpleDynamicMetric("ExternalViewPartitionGauge", 0);
+  private SimpleDynamicMetric<Integer> _numOfErrorPartitions =
+      new SimpleDynamicMetric("ErrorPartitionGauge", 0);
+  private SimpleDynamicMetric<Integer> _numNonTopStatePartitions =
+      new SimpleDynamicMetric("MissingTopStatePartitionGauge", 0);
+  private SimpleDynamicMetric<Long> _numLessMinActiveReplicaPartitions =
+      new SimpleDynamicMetric("MissingMinActiveReplicaPartitionGauge", 0l);
+  private SimpleDynamicMetric<Long> _numLessReplicaPartitions =
+      new SimpleDynamicMetric("MissingReplicaPartitionGauge", 0l);
+  private SimpleDynamicMetric<Long> _numPendingRecoveryRebalancePartitions =
+      new SimpleDynamicMetric("PendingRecoveryRebalancePartitionGauge", 0l);
+  private SimpleDynamicMetric<Long> _numPendingLoadRebalancePartitions =
+      new SimpleDynamicMetric("PendingLoadRebalancePartitionGauge", 0l);
+  private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledPartitions =
+      new SimpleDynamicMetric("RecoveryRebalanceThrottledPartitionGauge", 0l);
+  private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledPartitions =
+      new SimpleDynamicMetric("LoadRebalanceThrottledPartitionGauge", 0l);
+  private SimpleDynamicMetric<Integer> _externalViewIdealStateDiff =
+      new SimpleDynamicMetric("DifferenceWithIdealStateGauge", 0);
 
   // Counters
-  private long _successfulTopStateHandoffDurationCounter;
-  private long _successTopStateHandoffCounter;
-  private long _failedTopStateHandoffCounter;
-  private long _maxSinglePartitionTopStateHandoffDuration;
+  private SimpleDynamicMetric<Long> _successfulTopStateHandoffDurationCounter =
+      new SimpleDynamicMetric("SuccessfulTopStateHandoffDurationCounter", 0l);
+  private SimpleDynamicMetric<Long> _successTopStateHandoffCounter =
+      new SimpleDynamicMetric("SucceededTopStateHandoffCounter", 0l);
+  private SimpleDynamicMetric<Long> _failedTopStateHandoffCounter =
+      new SimpleDynamicMetric("FailedTopStateHandoffCounter", 0l);
+  private SimpleDynamicMetric<Long> _maxSinglePartitionTopStateHandoffDuration =
+      new SimpleDynamicMetric("MaxSinglePartitionTopStateHandoffDurationGauge", 0l);
+  private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge =
+      new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", _metricRegistry
+          .histogram(getMetricRegistryNamePrefix() + "PartitionTopStateHandoffDurationGauge"));
+  private SimpleDynamicMetric<Long> _totalMessageReceived =
+      new SimpleDynamicMetric("TotalMessageReceived", 0l);
 
-  private long _lastResetTime;
   private String _tag = ClusterStatusMonitor.DEFAULT_TAG;
+  private long _lastResetTime;
   private String _resourceName;
   private String _clusterName;
-
-  private long _totalMessageReceived;
 
   public enum MonitorState {
     TOP_STATE
   }
 
-  public ResourceMonitor(String clusterName, String resourceName) {
+  public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName)
+      throws JMException {
     _clusterName = clusterName;
     _resourceName = resourceName;
-    _successfulTopStateHandoffDurationCounter = 0L;
-    _successTopStateHandoffCounter = 0L;
-    _failedTopStateHandoffCounter = 0L;
-    _lastResetTime = System.currentTimeMillis();
-    _totalMessageReceived = 0L;
-  }
 
-  @Override
-  public long getPartitionGauge() {
-    return _numOfPartitions;
-  }
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_numOfPartitions);
+    attributeList.add(_numOfPartitionsInExternalView);
+    attributeList.add(_numOfErrorPartitions);
+    attributeList.add(_numNonTopStatePartitions);
+    attributeList.add(_numLessMinActiveReplicaPartitions);
+    attributeList.add(_numLessReplicaPartitions);
+    attributeList.add(_numPendingRecoveryRebalancePartitions);
+    attributeList.add(_numPendingLoadRebalancePartitions);
+    attributeList.add(_numRecoveryRebalanceThrottledPartitions);
+    attributeList.add(_numLoadRebalanceThrottledPartitions);
+    attributeList.add(_externalViewIdealStateDiff);
+    attributeList.add(_successfulTopStateHandoffDurationCounter);
+    attributeList.add(_successTopStateHandoffCounter);
+    attributeList.add(_failedTopStateHandoffCounter);
+    attributeList.add(_maxSinglePartitionTopStateHandoffDuration);
+    attributeList.add(_partitionTopStateHandoffDurationGauge);
+    attributeList.add(_totalMessageReceived);
 
-  @Override
-  public long getErrorPartitionGauge() {
-    return _numOfErrorPartitions;
-  }
-
-  @Override
-  public long getMissingTopStatePartitionGauge() {
-    return _numNonTopStatePartitions;
-  }
-
-  @Override
-  public long getDifferenceWithIdealStateGauge() {
-    return _externalViewIdealStateDiff;
-  }
-
-  @Override
-  public long getSuccessfulTopStateHandoffDurationCounter() {
-    return _successfulTopStateHandoffDurationCounter;
-  }
-
-  @Override
-  public long getSucceededTopStateHandoffCounter() {
-    return _successTopStateHandoffCounter;
-  }
-
-  @Override
-  public long getMaxSinglePartitionTopStateHandoffDurationGauge() {
-    return _maxSinglePartitionTopStateHandoffDuration;
-  }
-
-  @Override
-  public long getFailedTopStateHandoffCounter() {
-    return _failedTopStateHandoffCounter;
-  }
-
-  @Override
-  public long getTotalMessageReceived() {
-    return _totalMessageReceived;
-  }
-
-  public synchronized void increaseMessageCount(long messageReceived) {
-    _totalMessageReceived += messageReceived;
+    register(attributeList, objectName);
   }
 
   @Override
   public String getSensorName() {
-    return String.format("%s.%s.%s.%s", ClusterStatusMonitor.RESOURCE_STATUS_KEY, _clusterName,
-        _tag, _resourceName);
+    return String
+        .format("%s.%s.%s.%s", ClusterStatusMonitor.RESOURCE_STATUS_KEY, _clusterName, _tag,
+            _resourceName);
+  }
+
+  public long getPartitionGauge() {
+    return _numOfPartitions.getValue();
+  }
+
+  public long getErrorPartitionGauge() {
+    return _numOfErrorPartitions.getValue();
+  }
+
+  public long getMissingTopStatePartitionGauge() {
+    return _numNonTopStatePartitions.getValue();
+  }
+
+  public long getDifferenceWithIdealStateGauge() {
+    return _externalViewIdealStateDiff.getValue();
+  }
+
+  public long getSuccessfulTopStateHandoffDurationCounter() {
+    return _successfulTopStateHandoffDurationCounter.getValue();
+  }
+
+  public long getSucceededTopStateHandoffCounter() {
+    return _successTopStateHandoffCounter.getValue();
+  }
+
+  public long getMaxSinglePartitionTopStateHandoffDurationGauge() {
+    return _maxSinglePartitionTopStateHandoffDuration.getValue();
+  }
+
+  public long getFailedTopStateHandoffCounter() {
+    return _failedTopStateHandoffCounter.getValue();
+  }
+
+  public long getTotalMessageReceived() {
+    return _totalMessageReceived.getValue();
+  }
+
+  public synchronized void increaseMessageCount(long messageReceived) {
+    _totalMessageReceived.updateValue(_totalMessageReceived.getValue() + messageReceived);
   }
 
   public String getResourceName() {
     return _resourceName;
   }
 
-  public void updateResource(ExternalView externalView, IdealState idealState, StateModelDefinition stateModelDef) {
+  public String getBeanName() {
+    return _clusterName + " " + _resourceName;
+  }
+
+  public void updateResource(ExternalView externalView, IdealState idealState,
+      StateModelDefinition stateModelDef) {
     if (externalView == null) {
-      LOG.warn("External view is null");
+      _logger.warn("External view is null");
       return;
     }
 
@@ -148,7 +182,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
 
     resetGauges();
     if (idealState == null) {
-      LOG.warn("ideal state is null for " + _resourceName);
+      _logger.warn("ideal state is null for " + _resourceName);
       return;
     }
 
@@ -161,8 +195,8 @@ public class ResourceMonitor implements ResourceMonitorMBean {
 
     Set<String> partitions = idealState.getPartitionSet();
 
-    if (_numOfPartitions == 0) {
-      _numOfPartitions = partitions.size();
+    if (_numOfPartitions.getValue() == 0) {
+      _numOfPartitions.updateValue(partitions.size());
     }
 
     int replica = -1;
@@ -198,23 +232,25 @@ public class ResourceMonitor implements ResourceMonitorMBean {
           numOfPartitionWithTopState++;
         }
 
-        Map<String, Integer> stateCount = stateModelDef.getStateCountMap(idealRecord.size(), replica);
+        Map<String, Integer> stateCount =
+            stateModelDef.getStateCountMap(idealRecord.size(), replica);
         Set<String> activeStates = stateCount.keySet();
         if (currentState != null && activeStates.contains(currentState)) {
           activeReplicaCount++;
         }
       }
       if (replica > 0 && activeReplicaCount < replica) {
-        _numLessReplicaPartitions ++;
+        _numLessReplicaPartitions.updateValue(_numLessReplicaPartitions.getValue() + 1);
       }
       if (minActiveReplica >= 0 && activeReplicaCount < minActiveReplica) {
-        _numLessMinActiveReplicaPartitions ++;
+        _numLessMinActiveReplicaPartitions
+            .updateValue(_numLessMinActiveReplicaPartitions.getValue() + 1);
       }
     }
-    _numOfErrorPartitions = numOfErrorPartitions;
-    _externalViewIdealStateDiff = numOfDiff;
-    _numOfPartitionsInExternalView = externalView.getPartitionSet().size();
-    _numNonTopStatePartitions = _numOfPartitions - numOfPartitionWithTopState;
+    _numOfErrorPartitions.updateValue(numOfErrorPartitions);
+    _externalViewIdealStateDiff.updateValue(numOfDiff);
+    _numOfPartitionsInExternalView.updateValue(externalView.getPartitionSet().size());
+    _numNonTopStatePartitions.updateValue(_numOfPartitions.getValue() - numOfPartitionWithTopState);
 
     String tag = idealState.getInstanceGroupTag();
     if (tag == null || tag.equals("") || tag.equals("null")) {
@@ -225,34 +261,36 @@ public class ResourceMonitor implements ResourceMonitorMBean {
   }
 
   private void resetGauges() {
-    _numOfErrorPartitions = 0;
-    _numNonTopStatePartitions = 0;
-    _externalViewIdealStateDiff = 0;
-    _numOfPartitionsInExternalView = 0;
-    _numLessMinActiveReplicaPartitions = 0;
-    _numLessReplicaPartitions = 0;
-    _numPendingRecoveryRebalancePartitions = 0;
-    _numPendingLoadRebalancePartitions = 0;
-    _numRecoveryRebalanceThrottledPartitions = 0;
-    _numLoadRebalanceThrottledPartitions = 0;
+    _numOfErrorPartitions.updateValue(0);
+    _numNonTopStatePartitions.updateValue(0);
+    _externalViewIdealStateDiff.updateValue(0);
+    _numOfPartitionsInExternalView.updateValue(0);
+    _numLessMinActiveReplicaPartitions.updateValue(0l);
+    _numLessReplicaPartitions.updateValue(0l);
+    _numPendingRecoveryRebalancePartitions.updateValue(0l);
+    _numPendingLoadRebalancePartitions.updateValue(0l);
+    _numRecoveryRebalanceThrottledPartitions.updateValue(0l);
+    _numLoadRebalanceThrottledPartitions.updateValue(0l);
   }
 
   public void updateStateHandoffStats(MonitorState monitorState, long duration, boolean succeeded) {
     switch (monitorState) {
     case TOP_STATE:
       if (succeeded) {
-        _successTopStateHandoffCounter++;
-        _successfulTopStateHandoffDurationCounter += duration;
-        if (duration > _maxSinglePartitionTopStateHandoffDuration) {
-          _maxSinglePartitionTopStateHandoffDuration = duration;
+        _successTopStateHandoffCounter.updateValue(_successTopStateHandoffCounter.getValue() + 1);
+        _successfulTopStateHandoffDurationCounter
+            .updateValue(_successfulTopStateHandoffDurationCounter.getValue() + duration);
+        _partitionTopStateHandoffDurationGauge.updateValue(duration);
+        if (duration > _maxSinglePartitionTopStateHandoffDuration.getValue()) {
+          _maxSinglePartitionTopStateHandoffDuration.updateValue(duration);
           _lastResetTime = System.currentTimeMillis();
         }
       } else {
-        _failedTopStateHandoffCounter++;
+        _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
       }
       break;
     default:
-      LOG.warn(
+      _logger.warn(
           String.format("Wrong monitor state \"%s\" that not supported ", monitorState.name()));
     }
   }
@@ -260,54 +298,43 @@ public class ResourceMonitor implements ResourceMonitorMBean {
   public void updateRebalancerStat(long numPendingRecoveryRebalancePartitions,
       long numPendingLoadRebalancePartitions, long numRecoveryRebalanceThrottledPartitions,
       long numLoadRebalanceThrottledPartitions) {
-    _numPendingRecoveryRebalancePartitions = numPendingRecoveryRebalancePartitions;
-    _numPendingLoadRebalancePartitions = numPendingLoadRebalancePartitions;
-    _numRecoveryRebalanceThrottledPartitions = numRecoveryRebalanceThrottledPartitions;
-    _numLoadRebalanceThrottledPartitions = numLoadRebalanceThrottledPartitions;
+    _numPendingRecoveryRebalancePartitions.updateValue(numPendingRecoveryRebalancePartitions);
+    _numPendingLoadRebalancePartitions.updateValue(numPendingLoadRebalancePartitions);
+    _numRecoveryRebalanceThrottledPartitions.updateValue(numRecoveryRebalanceThrottledPartitions);
+    _numLoadRebalanceThrottledPartitions.updateValue(numLoadRebalanceThrottledPartitions);
   }
 
-  @Override
   public long getExternalViewPartitionGauge() {
-    return _numOfPartitionsInExternalView;
+    return _numOfPartitionsInExternalView.getValue();
   }
 
-  @Override
   public long getMissingMinActiveReplicaPartitionGauge() {
-    return _numLessMinActiveReplicaPartitions;
+    return _numLessMinActiveReplicaPartitions.getValue();
   }
 
-  @Override
   public long getMissingReplicaPartitionGauge() {
-    return _numLessReplicaPartitions;
+    return _numLessReplicaPartitions.getValue();
   }
 
-  @Override
   public long getPendingRecoveryRebalancePartitionGauge() {
-    return _numPendingRecoveryRebalancePartitions;
+    return _numPendingRecoveryRebalancePartitions.getValue();
   }
 
-  @Override
   public long getPendingLoadRebalancePartitionGauge() {
-    return _numPendingLoadRebalancePartitions;
+    return _numPendingLoadRebalancePartitions.getValue();
   }
 
-  @Override
   public long getRecoveryRebalanceThrottledPartitionGauge() {
-    return _numRecoveryRebalanceThrottledPartitions;
+    return _numRecoveryRebalanceThrottledPartitions.getValue();
   }
 
-  @Override
   public long getLoadRebalanceThrottledPartitionGauge() {
-    return _numLoadRebalanceThrottledPartitions;
-  }
-
-  public String getBeanName() {
-    return _clusterName + " " + _resourceName;
+    return _numLoadRebalanceThrottledPartitions.getValue();
   }
 
   public void resetMaxTopStateHandoffGauge() {
     if (_lastResetTime + RESET_TIME_RANGE <= System.currentTimeMillis()) {
-      _maxSinglePartitionTopStateHandoffDuration = 0L;
+      _maxSinglePartitionTopStateHandoffDuration.updateValue(0l);
       _lastResetTime = System.currentTimeMillis();
     }
   }

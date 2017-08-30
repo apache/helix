@@ -608,10 +608,6 @@ public class  WorkflowConfig extends ResourceConfig {
     }
 
     private void validate() {
-      if (_workflowId == null) {
-        throw new HelixException("Workflow ID is required field!");
-      }
-
       _taskDag.validate();
 
       if (_expiry < 0) {

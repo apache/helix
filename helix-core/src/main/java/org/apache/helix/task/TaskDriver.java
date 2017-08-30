@@ -166,6 +166,10 @@ public class TaskDriver {
    * @param newWorkflowConfig
    */
   public void updateWorkflow(String workflow, WorkflowConfig newWorkflowConfig) {
+    if (newWorkflowConfig.getWorkflowId() == null) {
+      newWorkflowConfig.getRecord()
+          .setSimpleField(WorkflowConfig.WorkflowConfigProperty.WorkflowID.name(), workflow);
+    }
     if (workflow == null || !workflow.equals(newWorkflowConfig.getWorkflowId())) {
       throw new HelixException(String
           .format("Workflow name {%s} does not match the workflow Id from WorkflowConfig {%s}",

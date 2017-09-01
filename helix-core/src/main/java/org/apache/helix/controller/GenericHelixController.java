@@ -353,8 +353,9 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     List<Pipeline> pipelines = cache.isTaskCache()
-        ? _registry.getPipelinesForEvent(event.getEventType())
-        : _taskRegistry.getPipelinesForEvent(event.getEventType());
+        ? _taskRegistry.getPipelinesForEvent(event.getEventType())
+        : _registry.getPipelinesForEvent(event.getEventType());
+
     if (pipelines == null || pipelines.size() == 0) {
       logger.info(
           "No " + getPipelineType(cache.isTaskCache()) + " pipeline to run for event:" + event

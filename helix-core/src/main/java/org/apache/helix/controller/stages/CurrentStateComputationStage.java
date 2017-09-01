@@ -282,6 +282,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
 
     if (handOffStartTime != TRANSITION_FAILED && handOffEndTime - handOffStartTime <= threshold) {
+      LOG.info(String.format("Missing topstate duration is %d for partition %s",
+          handOffEndTime - handOffStartTime, partition.getPartitionName()));
       clusterStatusMonitor.updateMissingTopStateDurationStats(resource.getResourceName(),
           handOffEndTime - handOffStartTime, true);
     }

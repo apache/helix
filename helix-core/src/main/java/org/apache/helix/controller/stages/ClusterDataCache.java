@@ -46,6 +46,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.JobConfig;
@@ -60,7 +61,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.zookeeper.data.Stat;
 
 import static org.apache.helix.HelixConstants.ChangeType;
 
@@ -72,7 +72,6 @@ public class ClusterDataCache {
   private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
   private static final String NAME = "NAME";
 
-  private Map<ChangeType, Boolean> _propertyChangedMap;
   private ClusterConfig _clusterConfig;
   private Map<String, LiveInstance> _liveInstanceMap;
   private Map<String, LiveInstance> _liveInstanceCacheMap;
@@ -97,8 +96,13 @@ public class ClusterDataCache {
   private Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
   private Map<PropertyKey, CurrentState> _currentStateCache = Maps.newHashMap();
 
+  // maintain a cache of bestPossible assignment across pipeline runs
+  private Map<String, ResourceAssignment>  _resourceAssignmentCache = Maps.newHashMap();
+
+  private Map<ChangeType, Boolean> _propertyDataChangedMap;
 
   private Map<String, Integer> _participantActiveTaskCount = new HashMap<>();
+
 
   private ExecutorService _asyncTasksThreadPool;
 
@@ -108,9 +112,9 @@ public class ClusterDataCache {
   private String _clusterName;
 
   public ClusterDataCache () {
-    _propertyChangedMap = new ConcurrentHashMap<>();
+    _propertyDataChangedMap = new ConcurrentHashMap<>();
     for(ChangeType type : ChangeType.values()) {
-      _propertyChangedMap.put(type, Boolean.valueOf(true));
+      _propertyDataChangedMap.put(type, Boolean.valueOf(true));
     }
   }
 
@@ -130,32 +134,32 @@ public class ClusterDataCache {
     long startTime = System.currentTimeMillis();
     Builder keyBuilder = accessor.keyBuilder();
 
-    if (_propertyChangedMap.get(ChangeType.IDEAL_STATE)) {
+    if (_propertyDataChangedMap.get(ChangeType.IDEAL_STATE)) {
       long start = System.currentTimeMillis();
       _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
-      _propertyChangedMap.put(ChangeType.IDEAL_STATE, Boolean.valueOf(false));
+      _propertyDataChangedMap.put(ChangeType.IDEAL_STATE, Boolean.valueOf(false));
       if (LOG.isDebugEnabled()) {
         LOG.debug("Reload IdealStates: " + _idealStateCacheMap.keySet() + ". Takes " + (
             System.currentTimeMillis() - start) + " ms");
       }
     }
 
-    if (_propertyChangedMap.get(ChangeType.LIVE_INSTANCE)) {
+    if (_propertyDataChangedMap.get(ChangeType.LIVE_INSTANCE)) {
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
-      _propertyChangedMap.put(ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
+      _propertyDataChangedMap.put(ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
       _updateInstanceOfflineTime = true;
       LOG.debug("Reload LiveInstances: " + _liveInstanceCacheMap.keySet());
     }
 
-    if (_propertyChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
+    if (_propertyDataChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
-      _propertyChangedMap.put(ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
+      _propertyDataChangedMap.put(ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
       LOG.debug("Reload InstanceConfig: " + _instanceConfigCacheMap.keySet());
     }
 
-    if (_propertyChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
+    if (_propertyDataChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
       _resourceConfigCacheMap = accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs());
-      _propertyChangedMap.put(ChangeType.RESOURCE_CONFIG, Boolean.valueOf(false));
+      _propertyDataChangedMap.put(ChangeType.RESOURCE_CONFIG, Boolean.valueOf(false));
       LOG.debug("Reload ResourceConfigs: " + _resourceConfigCacheMap.size());
     }
 
@@ -618,7 +622,12 @@ public class ClusterDataCache {
    * Notify the cache that some part of the cluster data has been changed.
    */
   public void notifyDataChange(ChangeType changeType) {
-    _propertyChangedMap.put(changeType, Boolean.valueOf(true));
+    _propertyDataChangedMap.put(changeType, Boolean.valueOf(true));
+
+    if (changeType.equals(ChangeType.IDEAL_STATE) || changeType.equals(ChangeType.INSTANCE_CONFIG)
+        || changeType.equals(ChangeType.LIVE_INSTANCE)) {
+      clearCachedResourceAssignments();
+    }
   }
 
   /**
@@ -781,8 +790,9 @@ public class ClusterDataCache {
         TaskPartitionState.RUNNING.name()), _participantActiveTaskCount);
     fillActiveTaskCount(currentStateOutput.getPartitionCountWithCurrentState(TaskConstants.STATE_MODEL_NAME,
         TaskPartitionState.INIT.name()), _participantActiveTaskCount);
-    fillActiveTaskCount(currentStateOutput.getPartitionCountWithCurrentState(TaskConstants.STATE_MODEL_NAME,
-        TaskPartitionState.RUNNING.name()), _participantActiveTaskCount);
+    fillActiveTaskCount(currentStateOutput
+        .getPartitionCountWithCurrentState(TaskConstants.STATE_MODEL_NAME,
+            TaskPartitionState.RUNNING.name()), _participantActiveTaskCount);
   }
 
   private void fillActiveTaskCount(Map<String, Integer> additionPartitionMap,
@@ -855,8 +865,9 @@ public class ClusterDataCache {
    */
   public synchronized void requireFullRefresh() {
     for(ChangeType type : ChangeType.values()) {
-      _propertyChangedMap.put(type, Boolean.valueOf(true));
+      _propertyDataChangedMap.put(type, Boolean.valueOf(true));
     }
+    clearCachedResourceAssignments();
   }
 
   /**
@@ -865,6 +876,42 @@ public class ClusterDataCache {
    */
   public ExecutorService getAsyncTasksThreadPool() {
     return _asyncTasksThreadPool;
+  }
+
+  /**
+   * Get cached resourceAssignment (bestPossible mapping) for a resource
+   *
+   * @param resource
+   *
+   * @return
+   */
+  public ResourceAssignment getCachedResourceAssignment(String resource) {
+    return _resourceAssignmentCache.get(resource);
+  }
+
+  /**
+   * Get cached resourceAssignments
+   *
+   * @return
+   */
+  public Map<String, ResourceAssignment> getCachedResourceAssignments() {
+    return Collections.unmodifiableMap(_resourceAssignmentCache);
+  }
+
+  /**
+   * Cache resourceAssignment (bestPossible mapping) for a resource
+   *
+   * @param resource
+   *
+   * @return
+   */
+  public void setCachedResourceAssignment(String resource, ResourceAssignment resourceAssignment) {
+    _resourceAssignmentCache.put(resource, resourceAssignment);
+  }
+
+
+  public void clearCachedResourceAssignments() {
+    _resourceAssignmentCache.clear();
   }
 
   /**

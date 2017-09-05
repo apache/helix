@@ -53,8 +53,8 @@ public class TestPersistAssignmentStage extends ZkStandAloneCMTestBase {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
-    runStage(event, new ReadClusterDataStage());
-    runStage(event, new ResourceComputationStage());
+    runStage(_manager, event, new ReadClusterDataStage());
+    runStage(_manager, event, new ResourceComputationStage());
 
     // Ensure persist best possible assignment is true
     ClusterConfig clusterConfig = new ClusterConfig(CLUSTER_NAME);
@@ -74,7 +74,7 @@ public class TestPersistAssignmentStage extends ZkStandAloneCMTestBase {
     // Persist new assignment
     PersistAssignmentStage stage = new PersistAssignmentStage();
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
-    runStage(event, stage);
+    runStage(_manager, event, stage);
 
     IdealState newIdealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
     // 1. New assignment should be set
@@ -87,18 +87,5 @@ public class TestPersistAssignmentStage extends ZkStandAloneCMTestBase {
     }
     // 2. Admin config should be set
     Assert.assertTrue(newIdealState.isDelayRebalanceEnabled());
-  }
-
-  private void runStage(ClusterEvent event, Stage stage) {
-    event.addAttribute(AttributeName.helixmanager.name(), _manager);
-    StageContext context = new StageContext();
-    stage.init(context);
-    stage.preProcess();
-    try {
-      stage.process(event);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    stage.postProcess();
   }
 }

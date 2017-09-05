@@ -85,6 +85,8 @@ public class TestDisable extends ZkIntegrationTestBase {
       participants[i].syncStart();
     }
 
+    Thread.sleep(100000000);
+
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));

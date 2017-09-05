@@ -180,7 +180,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   @Override
-  protected boolean verifyState() {
+  protected synchronized boolean verifyState() {
     try {
       PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
       // read cluster once and do verification
@@ -226,7 +226,10 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       // add empty idealState for the resource
       for (String resource : extViews.keySet()) {
         if (!idealStates.containsKey(resource)) {
-          idealStates.put(resource, new IdealState(resource));
+          ExternalView ev = extViews.get(resource);
+          IdealState is = new IdealState(resource);
+          is.getRecord().setSimpleFields(ev.getRecord().getSimpleFields());
+          idealStates.put(resource, is);
         }
       }
 
@@ -279,7 +282,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
           return false;
         }
 
-        boolean result = verifyExternalView(is, extView, bpStateMap, stateModelDef);
+        boolean result = verifyExternalView(extView, bpStateMap, stateModelDef);
         if (!result) {
           if (LOG.isDebugEnabled()) {
             LOG.debug("verifyExternalView fails for " + resourceName + "! ExternalView: " + extView
@@ -298,9 +301,9 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     }
   }
 
-  private boolean verifyExternalView(IdealState idealState, ExternalView externalView,
+  private boolean verifyExternalView(ExternalView externalView,
       PartitionStateMap bestPossibleState, StateModelDefinition stateModelDef) {
-    Set<String> ignoreStaes = new HashSet<String>(
+    Set<String> ignoreStaes = new HashSet<>(
         Arrays.asList(stateModelDef.getInitialState(), HelixDefinedState.DROPPED.toString()));
 
     Map<String, Map<String, String>> bestPossibleStateMap =

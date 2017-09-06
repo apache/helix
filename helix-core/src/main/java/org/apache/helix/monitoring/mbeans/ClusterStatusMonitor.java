@@ -151,8 +151,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
 
     // TODO : Get rid of this after old API removed.
-    for (String instance : _oldDisabledPartitions.keySet()) {
-      numDisabled += _oldDisabledPartitions.get(instance).size();
+    for (List<String> partitions : _oldDisabledPartitions.values()) {
+      if (partitions != null) {
+        numDisabled += partitions.size();
+      }
     }
 
     return numDisabled;

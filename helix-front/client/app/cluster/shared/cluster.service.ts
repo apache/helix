@@ -27,7 +27,11 @@ export class ClusterService extends HelixService {
 
   public create(name: string) {
     return this
-      .put(`/clusters/${ name }`);
+      .put(`/clusters/${ name }`, null);
   }
 
+  public remove(name: string) {
+    return this
+      .delete(`/clusters/${ name }`);
+  }
 }

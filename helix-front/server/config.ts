@@ -1,7 +1,7 @@
 export const HELIX_ENDPOINTS = {
-  helix: {
+  helix: [{
     default: 'http://localhost:8100/admin/v2'
-  }
+  }]
 };
 
 export const SSL = {

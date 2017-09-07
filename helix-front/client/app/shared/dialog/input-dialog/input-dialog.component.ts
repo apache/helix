@@ -23,7 +23,8 @@ export class InputDialogComponent implements OnInit {
     this.message = (this.data && this.data.message) || 'Please enter:';
     this.values = (this.data && this.data.values) || {
       'input': {
-        label: 'Anything you want'
+        label: 'Anything you want',
+        type: 'input'
       }
     };
   }

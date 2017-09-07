@@ -26,6 +26,7 @@ export class Cluster {
       ins.push(new Instance(
         instance,
         this.name,
+        false, // here's a dummy value. should not be used
         obj.liveInstances.indexOf(instance) >= 0)
       );
     }

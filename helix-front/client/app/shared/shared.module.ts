@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
+import { HelperService } from './helper.service';
 import { InputDialogComponent } from './dialog/input-dialog/input-dialog.component';
 import { DetailHeaderComponent } from './detail-header/detail-header.component';
 import { KeyValuePairDirective, KeyValuePairsComponent } from './key-value-pairs/key-value-pairs.component';
@@ -59,6 +60,9 @@ import { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.c
     JsonViewerComponent,
     StateLabelComponent,
     NodeViewerComponent
+  ],
+  providers: [
+    HelperService
   ]
 })
 export class SharedModule { }

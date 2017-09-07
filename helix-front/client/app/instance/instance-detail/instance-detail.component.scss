@@ -15,4 +15,9 @@
     padding-left: 24px;
     color: mat-color($hi-warn);
   }
+
+  .disabled {
+    padding-left: 24px;
+    color: mat-color($hi-accent);
+  }
 }

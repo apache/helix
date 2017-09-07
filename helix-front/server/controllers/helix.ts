@@ -23,13 +23,24 @@ export class HelixCtrl {
     segments.shift();
     const name = segments.join('.');
 
-    const apiPrefix = HELIX_ENDPOINTS[group][name];
-    const realUrl = apiPrefix + url.replace(`/${ helixKey }`, '');
+    let apiPrefix = null;
+    if (HELIX_ENDPOINTS[group]) {
+      HELIX_ENDPOINTS[group].forEach(section => {
+        if (section[name]) {
+          apiPrefix = section[name];
+        }
+      });
+    }
 
-    request[req.method.toLowerCase()]({
-      url: realUrl,
-      json: req.body
-    }).pipe(res);
+    if (apiPrefix) {
+      const realUrl = apiPrefix + url.replace(`/${ helixKey }`, '');
+      request[req.method.toLowerCase()]({
+        url: realUrl,
+        json: req.body
+      }).pipe(res);
+    } else {
+      res.status(404).send('Not found');
+    }
 
     process.on('uncaughtException', function(err){
       console.error('uncaughtException: ' + err.message);

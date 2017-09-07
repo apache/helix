@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 
+import { InstanceService } from '../shared/instance.service';
+
 @Component({
   selector: 'hi-instance-list',
   templateUrl: './instance-list.component.html',
@@ -8,6 +10,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 })
 export class InstanceListComponent implements OnInit {
 
+  clusterName: string;
   instances: any[];
   rowHeight = 40;
   sorts = [
@@ -16,16 +19,19 @@ export class InstanceListComponent implements OnInit {
   ];
 
   constructor(
-    private route: ActivatedRoute,
-    private router: Router
+    protected route: ActivatedRoute,
+    protected router: Router,
+    protected service: InstanceService
   ) { }
 
   ngOnInit() {
     if (this.route.parent) {
-      this.route.parent.data.subscribe(
-        data => this.instances = data.cluster.instances,
-        error => console.log(error)
-      );
+      this.clusterName = this.route.parent.snapshot.params['name'];
+      this.service
+        .getAll(this.clusterName)
+        .subscribe(
+          data => this.instances = data
+        );
     }
   }
 

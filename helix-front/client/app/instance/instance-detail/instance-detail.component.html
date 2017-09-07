@@ -14,6 +14,29 @@
           This Instance is currently offline.
         </div>
       </section>
+      <section *ngIf="!isLoading && !instance.enabled">
+        <div class="disabled">
+          This Instance is currently disabled.
+        </div>
+      </section>
+      <span fxFlex="1 1 auto"></span>
+      <button md-mini-fab [mdMenuTriggerFor]="menu">
+        <md-icon>menu</md-icon>
+      </button>
+      <md-menu #menu="mdMenu">
+        <button md-menu-item *ngIf="instance && instance.enabled" (click)="disableInstance()">
+          <md-icon>not_interested</md-icon>
+          <span>Disable this Instance</span>
+        </button>
+        <button md-menu-item *ngIf="instance && !instance.enabled" (click)="enableInstance()">
+          <md-icon>play_circle_outline</md-icon>
+          <span>Enable this Instance</span>
+        </button>
+        <button md-menu-item (click)="removeInstance()">
+          <md-icon>delete</md-icon>
+          <span>REMOVE this Instance</span>
+        </button>
+      </md-menu>
     </md-toolbar-row>
   </md-toolbar>
   <nav md-tab-nav-bar>

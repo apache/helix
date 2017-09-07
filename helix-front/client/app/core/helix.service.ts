@@ -42,11 +42,21 @@ console.log(this.router.url);
       .catch(this.errorHandler);
   }
 
-  protected put(path: string): Observable<any> {
+  protected put(path: string, data: string): Observable<any> {
     return this.http
       .put(
         `${Settings.helixAPI}${this.getHelixKey()}${path}`,
-        null,
+        data,
+        { headers: this.getHeaders() }
+      )
+      .map(response => response.text().trim() ? response.json() : '{}')
+      .catch(this.errorHandler);
+  }
+
+  protected delete(path: string): Observable<any> {
+    return this.http
+      .delete(
+        `${Settings.helixAPI}${this.getHelixKey()}${path}`,
         { headers: this.getHeaders() }
       )
       .map(response => response.text().trim() ? response.json() : '{}')
@@ -66,8 +76,17 @@ console.log(this.router.url);
   }
 
   protected errorHandler(error: any) {
-    let message = error.message || 'Cannot reach Helix restful service.';
     console.error(error);
+
+    let message = error.message || 'Cannot reach Helix restful service.';
+
+    if (error instanceof Response) {
+      message = error.text();
+      try {
+        message = JSON.parse(message).error;
+      } catch (e) {}
+    }
+
     return Observable.throw(message);
   }
 }

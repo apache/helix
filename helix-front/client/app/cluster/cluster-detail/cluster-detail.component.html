@@ -2,22 +2,39 @@
   <section *ngIf="cluster">
     <md-toolbar class="mat-elevation-z1">
       <hi-detail-header [cluster]="cluster.name"></hi-detail-header>
+      <md-icon
+        *ngIf="cluster.enabled"
+        color="primary">
+        check_circle
+      </md-icon>
+      <md-icon
+        *ngIf="!cluster.enabled"
+        color="warn"
+        mdTooltip="This cluster is paused.">
+        pause_circle_filled
+      </md-icon>
       <md-toolbar-row class="information">
         <h6>Controller:
           <a md-button color="accent" routerLink="controller">{{ cluster.controller }}</a>
         </h6>
         <span fxFlex="1 1 auto"></span>
-        <md-icon
-          *ngIf="cluster.enabled"
-          color="primary">
-          check_circle
-        </md-icon>
-        <md-icon
-          *ngIf="!cluster.enabled"
-          color="warn"
-          mdTooltip="This cluster is paused.">
-          pause_circle_filled
-        </md-icon>
+        <button md-mini-fab [mdMenuTriggerFor]="menu">
+          <md-icon>menu</md-icon>
+        </button>
+        <md-menu #menu="mdMenu">
+          <button md-menu-item disabled>
+            <md-icon>pause</md-icon>
+            <span>Disable this Cluster</span>
+          </button>
+          <button md-menu-item (click)="addInstance()">
+            <md-icon>add</md-icon>
+            <span>Add an Instance</span>
+          </button>
+          <button md-menu-item (click)="deleteCluster()" disabled>
+            <md-icon>delete</md-icon>
+            <span>DELETE this Cluster</span>
+          </button>
+        </md-menu>
       </md-toolbar-row>
     </md-toolbar>
     <nav md-tab-nav-bar>

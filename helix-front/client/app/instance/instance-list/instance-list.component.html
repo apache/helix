@@ -12,16 +12,25 @@
     (select)="onSelect($event)">
     <ngx-datatable-column
       name="Status"
-      prop="liveInstance"
+      prop="healthy"
       [width]="85"
       [resizeable]="false"
       [draggable]="false"
       [canAutoResize]="false">
-      <ng-template let-value="value" ngx-datatable-cell-template>
-        <md-icon *ngIf="value" color="primary">lens</md-icon>
-        <md-icon *ngIf="!value" color="warn" mdTooltip="The instance is offline.">panorama_fish_eye</md-icon>
+      <ng-template let-row="row" ngx-datatable-cell-template>
+        <md-icon *ngIf="row.healthy" class="status-healthy">lens</md-icon>
+        <md-icon *ngIf="!row.healthy && row.enabled" class="status-not-healthy" mdTooltip="The instance is offline.">lens</md-icon>
+        <md-icon *ngIf="!row.healthy && row.liveInstance" class="status-not-healthy" mdTooltip="The instance is disabled.">lens</md-icon>
+        <md-icon *ngIf="!row.healthy && !row.enabled && !row.liveInstance" class="status-not-healthy" mdTooltip="The instance is offline and disabled.">lens</md-icon>
       </ng-template>
     </ngx-datatable-column>
-    <ngx-datatable-column name="Name"></ngx-datatable-column>
+    <ngx-datatable-column name="Name">
+      <ng-template let-row="row" ngx-datatable-cell-template>
+        <section fxLayout="row" fxLayoutAlign="start center">
+          {{ row.name }}
+          <span *ngIf="!row.enabled" class="status-disabled">DISABLED</span>
+        </section>
+      </ng-template>
+    </ngx-datatable-column>
   </ngx-datatable>
 </section>

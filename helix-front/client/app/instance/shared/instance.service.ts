@@ -32,7 +32,9 @@ export class InstanceService extends HelixService {
       .map(data => {
         const liveInstance = data.liveInstance;
         const config = data.config;
-        const enabled = config && config.simpleFields && config.simpleFields.HELIX_ENABLED == 'true';
+        // there are two cases meaning enabled both:
+        //   HELIX_ENABLED: true or no such configuration
+        const enabled = config && config.simpleFields && config.simpleFields.HELIX_ENABLED != 'false';
 
         return liveInstance && liveInstance.simpleFields ? new Instance(
           data.id,

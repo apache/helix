@@ -1,8 +1,8 @@
-<section>
-
-  <!-- TODO vxu: implement loading -->
-
+<section fxLayout="column" fxLayoutAlign="center center">
+  <md-spinner *ngIf="isLoading"></md-spinner>
   <hi-node-viewer
+    *ngIf="!isLoading"
+    fxFlexFill
     [obj]="obj"
     [unlockable]="can && clusterName != null"
     (update)="updateConfig($event)"

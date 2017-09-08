@@ -9,14 +9,12 @@
         <hi-key-value-pair name="Session ID" prop="sessionId"></hi-key-value-pair>
         <hi-key-value-pair name="Helix Version" prop="helixVersion"></hi-key-value-pair>
       </hi-key-value-pairs>
-      <section *ngIf="!isLoading && !instance.liveInstance">
+      <section *ngIf="!isLoading && !instance.healthy">
         <div class="offline">
-          This Instance is currently offline.
-        </div>
-      </section>
-      <section *ngIf="!isLoading && !instance.enabled">
-        <div class="disabled">
-          This Instance is currently disabled.
+          This Instance is currently
+          <span *ngIf="!instance.liveInstance">OFFLINE</span>
+          <span *ngIf="!instance.liveInstance && !instance.enabled">and</span>
+          <span *ngIf="!instance.enabled">DISABLED</span>
         </div>
       </section>
       <span fxFlex="1 1 auto"></span>

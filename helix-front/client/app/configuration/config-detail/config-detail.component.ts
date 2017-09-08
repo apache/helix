@@ -53,11 +53,8 @@ export class ConfigDetailComponent implements OnInit {
             () => this.isLoading = false
           );
       } else {
-        this.route.parent.data
-          .subscribe(data => {
-            this.clusterName = data.cluster.name;
-            this.loadClusterConfig();
-          });
+        this.clusterName = this.route.parent.snapshot.params['name'];
+        this.loadClusterConfig();
       }
     }
 

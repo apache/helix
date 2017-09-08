@@ -22,18 +22,16 @@ export class WorkflowListComponent implements OnInit {
 
   ngOnInit() {
     if (this.route.parent) {
-      this.route.parent.data.subscribe(data => {
-        this.isLoading = true;
-        this.clusterName = data.cluster.name;
+      this.isLoading = true;
+      this.clusterName = this.route.parent.snapshot.params['name'];
 
-        this.service
-          .getAll(this.clusterName)
-          .subscribe(
-            workflows => this.workflows = workflows,
-            error => console.log(error),
-            () => this.isLoading = false
-          );
-      });
+      this.service
+        .getAll(this.clusterName)
+        .subscribe(
+          workflows => this.workflows = workflows,
+          error => console.log(error),
+          () => this.isLoading = false
+        );
     }
   }
 

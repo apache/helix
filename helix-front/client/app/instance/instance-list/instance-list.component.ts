@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { InstanceService } from '../shared/instance.service';
+import { HelperService } from '../../shared/helper.service';
 
 @Component({
   selector: 'hi-instance-list',
@@ -10,6 +11,7 @@ import { InstanceService } from '../shared/instance.service';
 })
 export class InstanceListComponent implements OnInit {
 
+  isLoading = true;
   clusterName: string;
   instances: any[];
   rowHeight = 40;
@@ -21,7 +23,8 @@ export class InstanceListComponent implements OnInit {
   constructor(
     protected route: ActivatedRoute,
     protected router: Router,
-    protected service: InstanceService
+    protected service: InstanceService,
+    protected helper: HelperService
   ) { }
 
   ngOnInit() {
@@ -30,7 +33,9 @@ export class InstanceListComponent implements OnInit {
       this.service
         .getAll(this.clusterName)
         .subscribe(
-          data => this.instances = data
+          data => this.instances = data,
+          error => this.helper.showError(error),
+          () => this.isLoading = false
         );
     }
   }

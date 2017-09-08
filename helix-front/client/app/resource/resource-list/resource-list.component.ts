@@ -4,6 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Resource } from '../shared/resource.model';
 import { ResourceService } from '../shared/resource.service';
 import { WorkflowService } from '../../workflow/shared/workflow.service';
+import { HelperService } from '../../shared/helper.service';
 import { Observable } from 'rxjs/Rx';
 import * as _ from 'lodash';
 
@@ -33,7 +34,8 @@ export class ResourceListComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private service: ResourceService,
-    private workflowService: WorkflowService
+    private workflowService: WorkflowService,
+    protected helper: HelperService
   ) { }
 
   ngOnInit() {
@@ -53,11 +55,12 @@ export class ResourceListComponent implements OnInit {
             () => this.isLoading = false
           );
       } else {
-        this.route.parent.data.subscribe(data => {
-          this.isLoading = true;
-          this.clusterName = data.cluster.name;
-          this.fetchResources();
-        });
+        this.route.parent.params
+          .map(p => p.name)
+          .subscribe(name => {
+            this.clusterName = name;
+            this.fetchResources();
+          });
       }
     }
   }
@@ -68,6 +71,9 @@ export class ResourceListComponent implements OnInit {
   // and perform get request for each
   protected fetchResources() {
     let jobs = [];
+
+    this.isLoading = true;
+    this.resources = null;
 
     this.workflowService
       .getAll(this.clusterName)
@@ -82,7 +88,7 @@ export class ResourceListComponent implements OnInit {
         list => {
           jobs = jobs.concat(list);
         },
-        error => console.log(error),
+        error => this.helper.showError(error),
         () => {
           this.service
             .getAll(this.clusterName)
@@ -90,7 +96,7 @@ export class ResourceListComponent implements OnInit {
               result => {
                 this.resources = _.differenceWith(result, jobs, (resource: Resource, name) => resource.name === name);
               },
-              error => console.log(error),
+              error => this.helper.showError(error),
               () => this.isLoading = false
             );
         }

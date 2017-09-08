@@ -4,7 +4,6 @@ import { RouterModule, Routes } from '@angular/router';
 import { AppComponent } from './app.component';
 import { NodeViewerComponent } from './shared/node-viewer/node-viewer.component';
 import { ClusterComponent } from './cluster/cluster.component';
-import { ClusterResolver } from './cluster/shared/cluster.resolver';
 import { ClusterDetailComponent } from './cluster/cluster-detail/cluster-detail.component';
 import { ConfigDetailComponent } from './configuration/config-detail/config-detail.component';
 import { InstanceListComponent } from './instance/instance-list/instance-list.component';
@@ -36,9 +35,6 @@ const HELIX_ROUTES: Routes = [
       {
         path: ':name',
         component: ClusterDetailComponent,
-        resolve: {
-          cluster: ClusterResolver
-        },
         children: [
           {
             path: '',

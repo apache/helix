@@ -1,6 +1,9 @@
 <section fxLayout="column" fxLayoutAlign="center center">
   <md-spinner *ngIf="isLoading"></md-spinner>
   <section fxFlexFill>
+    <section *ngIf="!isLoading && workflows.length == 0" class="empty">
+      There's no workflow here.
+    </section>
     <md-nav-list>
       <a *ngFor="let name of workflows"
         md-list-item

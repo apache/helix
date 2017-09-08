@@ -34,4 +34,14 @@ export class ClusterService extends HelixService {
     return this
       .delete(`/clusters/${ name }`);
   }
+
+  public enable(name: string) {
+    return this
+      .post(`/clusters/${ name }?command=enable`, null);
+  }
+
+  public disable(name: string) {
+    return this
+      .post(`/clusters/${ name }?command=disable`, null);
+  }
 }

@@ -23,6 +23,8 @@ export class ClusterDetailComponent implements OnInit {
     { label: 'Configuration', link: 'configs' }
   ];
 
+  isLoading = false;
+  clusterName: string; // for better UX needs
   cluster: Cluster;
   can = false;
 
@@ -37,13 +39,24 @@ export class ClusterDetailComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.route.data.subscribe(data => this.cluster = data.cluster);
     this.clusterService.can().subscribe(data => this.can = data);
     this.route.params
       .map(p => p.name)
       .subscribe(name => {
-        console.log(name);
+        this.clusterName = name;
+        this.loadCluster();
       });
+  }
+
+  protected loadCluster() {
+    this.isLoading = true;
+    this.clusterService
+      .get(this.clusterName)
+      .subscribe(
+        data => this.cluster = data,
+        error => this.helperService.showError(error),
+        () => this.isLoading = false
+      );
   }
 
   addInstance() {
@@ -86,6 +99,24 @@ export class ClusterDetailComponent implements OnInit {
             );
         }
       });
+  }
+
+  enableCluster() {
+    this.clusterService
+      .enable(this.clusterName)
+      .subscribe(
+        () => this.loadCluster(),
+        error => this.helperService.showError(error)
+      );
+  }
+
+  disableCluster() {
+    this.clusterService
+      .disable(this.clusterName)
+      .subscribe(
+        () => this.loadCluster(),
+        error => this.helperService.showError(error)
+      );
   }
 
   deleteCluster() {

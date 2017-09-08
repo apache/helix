@@ -20,17 +20,14 @@ package org.apache.helix.messaging.handling;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
-import org.apache.helix.api.listeners.ClusterConfigChangeListener;
-import org.apache.helix.api.listeners.ResourceConfigChangeListener;
+import org.apache.helix.*;
 import org.apache.helix.mock.MockManager;
-import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.testng.Assert;
@@ -50,7 +47,7 @@ public class TestHelixTaskExecutor {
 
   class TestMessageHandlerFactory implements MessageHandlerFactory {
     int _handlersCreated = 0;
-    ConcurrentHashMap<String, String> _processedMsgIds = new ConcurrentHashMap<String, String>();
+    ConcurrentHashMap<String, String> _processedMsgIds = new ConcurrentHashMap<>();
 
     class TestMessageHandler extends MessageHandler {
       public TestMessageHandler(Message message, NotificationContext context) {
@@ -277,6 +274,7 @@ public class TestHelixTaskExecutor {
       msg.setCorrelationId(UUID.randomUUID().toString());
       msgList.add(msg);
     }
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
 
     Thread.sleep(1000);
@@ -328,6 +326,7 @@ public class TestHelixTaskExecutor {
       msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg);
     }
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
 
     Thread.sleep(1000);
@@ -377,6 +376,7 @@ public class TestHelixTaskExecutor {
       msg.setTgtName("");
       msgList.add(msg);
     }
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
 
     Thread.sleep(1000);
@@ -424,6 +424,7 @@ public class TestHelixTaskExecutor {
     exceptionMsg.setCorrelationId(UUID.randomUUID().toString());
     msgList.add(exceptionMsg);
 
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
 
     Thread.sleep(1000);
@@ -466,6 +467,7 @@ public class TestHelixTaskExecutor {
       msg.setSrcName("127.101.1.23_2234");
       msgListToCancel.add(msg);
     }
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
     Thread.sleep(500);
     for (int i = 0; i < nMsgs2; i++) {
@@ -535,6 +537,7 @@ public class TestHelixTaskExecutor {
       msgList.add(msg);
     }
     NotificationContext changeContext = new NotificationContext(manager);
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("some", msgList, changeContext);
     Thread.sleep(500);
     for (ExecutorService svc : executor._executorMap.values()) {
@@ -572,6 +575,7 @@ public class TestHelixTaskExecutor {
       msg.setExecutionTimeout((i + 1) * 600);
       msgList.add(msg);
     }
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
 
     Thread.sleep(4000);
@@ -618,6 +622,7 @@ public class TestHelixTaskExecutor {
       msg.setRetryCount(1);
       msgList.add(msg);
     }
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
     Thread.sleep(3500);
     AssertJUnit.assertEquals(factory._processedMsgIds.size(), 3);
@@ -663,10 +668,54 @@ public class TestHelixTaskExecutor {
     msg2.setToState("MASTER");
     msgList.add(msg2);
 
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage("someInstance", msgList, changeContext);
 
     Thread.sleep(3000);
     AssertJUnit.assertEquals(cancelFactory._processedMsgIds.size(), 0);
     AssertJUnit.assertEquals(stateTransitionFactory._processedMsgIds.size(), 0);
+  }
+
+  @Test
+  public void testMessageReadOptimization() throws InterruptedException {
+    HelixTaskExecutor executor = new HelixTaskExecutor();
+    HelixManager manager = new MockClusterManager();
+
+    TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
+    for (String type : factory.getMessageTypes()) {
+      executor.registerMessageHandlerFactory(type, factory);
+    }
+
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+    List<String> messageIds = new ArrayList<>();
+    int nMsgs1 = 5;
+    for (int i = 0; i < nMsgs1; i++) {
+      Message msg = new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
+      msg.setTgtSessionId(manager.getSessionId());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
+      msg.setCorrelationId(UUID.randomUUID().toString());
+      accessor.setProperty(keyBuilder.message("someInstance", msg.getId()), msg);
+      messageIds.add(msg.getId());
+    }
+
+    NotificationContext changeContext = new NotificationContext(manager);
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
+
+    // Simulate read message already, then processing message. Should read and handle no message.
+    executor._knownMessageIds.addAll(messageIds);
+    executor.onMessage("someInstance", Collections.EMPTY_LIST, changeContext);
+    Thread.sleep(3000);
+    AssertJUnit.assertEquals(0, factory._processedMsgIds.size());
+    executor._knownMessageIds.clear();
+
+    // Processing message normally
+    executor.onMessage("someInstance", Collections.EMPTY_LIST, changeContext);
+    Thread.sleep(3000);
+    AssertJUnit.assertEquals(nMsgs1, factory._processedMsgIds.size());
+    // After all messages are processed, _knownMessageIds should be empty.
+    Assert.assertTrue(executor._knownMessageIds.isEmpty());
   }
 }

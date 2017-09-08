@@ -19,35 +19,12 @@ package org.apache.helix.messaging.handling;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.helix.ConfigAccessor;
-import org.apache.helix.Criteria;
-import org.apache.helix.HelixConstants;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
-import org.apache.helix.InstanceType;
-import org.apache.helix.MessageListener;
-import org.apache.helix.NotificationContext;
+import org.apache.helix.*;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.NotificationContext.Type;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.listeners.MessageListener;
+import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
@@ -65,6 +42,9 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
+
+import java.util.*;
+import java.util.concurrent.*;
 
 public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   /**
@@ -125,6 +105,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   final ConcurrentHashMap<String, String> _messageTaskMap;
 
+  final Set<String> _knownMessageIds;
+
   /* Resources whose configuration for dedicate thread pool has been checked.*/
   final Set<String> _resourcesThreadpoolChecked;
   final Set<String> _transitionTypeThreadpoolChecked;
@@ -140,11 +122,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   public HelixTaskExecutor(ParticipantStatusMonitor participantStatusMonitor) {
     _monitor = participantStatusMonitor;
-    _taskMap = new ConcurrentHashMap<String, MessageTaskInfo>();
+    _taskMap = new ConcurrentHashMap<>();
 
-    _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
-    _executorMap = new ConcurrentHashMap<String, ExecutorService>();
-    _messageTaskMap = new ConcurrentHashMap<String, String>();
+    _hdlrFtyRegistry = new ConcurrentHashMap<>();
+    _executorMap = new ConcurrentHashMap<>();
+    _messageTaskMap = new ConcurrentHashMap<>();
+    _knownMessageIds = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
     _batchMessageExecutorService = Executors.newCachedThreadPool();
     _monitor.createExecutorMonitor("BatchMessageExecutor", _batchMessageExecutorService);
 
@@ -500,9 +483,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private void updateMessageState(List<Message> readMsgs, HelixDataAccessor accessor,
       String instanceName) {
     Builder keyBuilder = accessor.keyBuilder();
-    List<PropertyKey> readMsgKeys = new ArrayList<PropertyKey>();
+    List<PropertyKey> readMsgKeys = new ArrayList<>();
     for (Message msg : readMsgs) {
       readMsgKeys.add(msg.getKey(keyBuilder, instanceName));
+      _knownMessageIds.add(msg.getId());
     }
     accessor.setChildren(readMsgKeys, readMsgs);
   }
@@ -589,6 +573,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _messageTaskMap.clear();
 
+    _knownMessageIds.clear();
+
     _lastSessionSyncTime = null;
   }
 
@@ -611,7 +597,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         LOG.info("Skip init a new thread pool for type: " + msgType + ", already existing pool: "
             + prevPool + ", isShutdown: " + prevPool.isShutdown());
         newPool.shutdown();
-        newPool = null;
       } else {
         _monitor.createExecutorMonitor(msgType, newPool);
       }
@@ -641,7 +626,47 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
   }
 
+  private List<Message> readNewMessagesFromZK(HelixManager manager, String instanceName,
+      HelixConstants.ChangeType changeType) {
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+
+    Set<String> messageIds = new HashSet<>();
+    if (changeType.equals(HelixConstants.ChangeType.MESSAGE)) {
+      messageIds.addAll(accessor.getChildNames(keyBuilder.messages(instanceName)));
+    } else if (changeType.equals(HelixConstants.ChangeType.MESSAGES_CONTROLLER)) {
+      messageIds.addAll(accessor.getChildNames(keyBuilder.controllerMessages()));
+    } else {
+      LOG.warn("Unexpected ChangeType for Message Change CallbackHandler: " + changeType);
+      return Collections.emptyList();
+    }
+
+    // In case the cache contains any deleted message Id, clean up
+    _knownMessageIds.retainAll(messageIds);
+
+    messageIds.removeAll(_knownMessageIds);
+    List<PropertyKey> keys = new ArrayList<>();
+    for (String messageId : messageIds) {
+      if (changeType.equals(HelixConstants.ChangeType.MESSAGE)) {
+        keys.add(keyBuilder.message(instanceName, messageId));
+      } else if (changeType.equals(HelixConstants.ChangeType.MESSAGES_CONTROLLER)) {
+        keys.add(keyBuilder.controllerMessage(messageId));
+      }
+    }
+
+    List<Message> newMessages = accessor.getProperty(keys);
+    // Message may be removed before get read, clean up null messages.
+    Iterator<Message> messageIterator = newMessages.iterator();
+    while(messageIterator.hasNext()) {
+      if (messageIterator.next() == null) {
+        messageIterator.remove();
+      }
+    }
+    return newMessages;
+  }
+
   @Override
+  @PreFetch(enabled = false)
   public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext) {
 
@@ -662,6 +687,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     if (changeContext.getType() == Type.INIT) {
       init();
       // continue to process messages
+    }
+
+    if (messages == null || messages.isEmpty()) {
+      // If no messages are given, check and read all new messages.
+      messages = readNewMessagesFromZK(manager, instanceName, changeContext.getChangeType());
     }
 
     if (_isShuttingDown) {
@@ -689,18 +719,18 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     Builder keyBuilder = accessor.keyBuilder();
 
     // message handlers created
-    Map<String, MessageHandler> stateTransitionHandlers = new HashMap<String, MessageHandler>();
-    List<MessageHandler> nonStateTransitionHandlers = new ArrayList<MessageHandler>();
+    Map<String, MessageHandler> stateTransitionHandlers = new HashMap<>();
+    List<MessageHandler> nonStateTransitionHandlers = new ArrayList<>();
 
     // message read
-    List<Message> readMsgs = new ArrayList<Message>();
+    List<Message> readMsgs = new ArrayList<>();
 
     String sessionId = manager.getSessionId();
     List<String> curResourceNames =
         accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
-    List<PropertyKey> createCurStateKeys = new ArrayList<PropertyKey>();
-    List<CurrentState> metaCurStates = new ArrayList<CurrentState>();
-    Set<String> createCurStateNames = new HashSet<String>();
+    List<PropertyKey> createCurStateKeys = new ArrayList<>();
+    List<CurrentState> metaCurStates = new ArrayList<>();
+    Set<String> createCurStateNames = new HashSet<>();
 
     for (Message message : messages) {
       // nop messages are simply removed. It is used to trigger onMessage() in
@@ -708,7 +738,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString())) {
         LOG.info("Dropping NO-OP message. mid: " + message.getId() + ", from: "
             + message.getMsgSrc());
-        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        removeMessageFromZk(accessor, message, instanceName);
         continue;
       }
 
@@ -721,7 +751,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
                 + ", tgtSessionId in message: " + tgtSessionId + ", messageId: "
                 + message.getMsgId();
         LOG.warn(warningMessage);
-        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        removeMessageFromZk(accessor, message, instanceName);
         _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage, accessor);
 
         // Proactively send a session sync message from participant to controller
@@ -743,7 +773,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         PropertyKey key = new Builder(manager.getClusterName()).liveInstances();
         List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
         _controller.onLiveInstanceChange(liveInstances, changeContext);
-        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        removeMessageFromZk(accessor, message, instanceName);
         _monitor.reportReceivedMessage(message);
         _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
         continue;
@@ -846,7 +876,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e, error, accessor);
 
         message.setMsgState(MessageState.UNPROCESSABLE);
-        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        removeMessageFromZk(accessor, message, instanceName);
         LOG.error("Message cannot be processed: " + message.getRecord(), e);
         _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
@@ -937,6 +967,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   }
 
   private void removeMessageFromTaskAndFutureMap(Message message) {
+    _knownMessageIds.remove(message.getId());
     String messageTarget = getMessageTarget(message.getResourceName(), message.getPartitionName());
     if (_messageTaskMap.containsKey(messageTarget)) {
       _messageTaskMap.remove(messageTarget);
@@ -966,13 +997,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   private void removeMessageFromZk(HelixDataAccessor accessor, Message message,
       String instanceName) {
-    Builder keyBuilder = accessor.keyBuilder();
-    if (message.getTgtName().equalsIgnoreCase("controller")) {
-      // TODO: removeProperty returns boolean
-      accessor.removeProperty(keyBuilder.controllerMessage(message.getMsgId()));
-    } else {
-      accessor.removeProperty(keyBuilder.message(instanceName, message.getMsgId()));
-    }
+    accessor.removeProperty(message.getKey(accessor.keyBuilder(), instanceName));
   }
 
   @Override

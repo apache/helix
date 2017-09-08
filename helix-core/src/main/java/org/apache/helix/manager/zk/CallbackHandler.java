@@ -511,6 +511,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     try {
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.INIT);
+      changeContext.setChangeType(_changeType);
       enqueueTask(changeContext);
     } catch (Exception e) {
       String msg = "Exception while invoking init callback for listener:" + _listener;
@@ -528,6 +529,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         NotificationContext changeContext = new NotificationContext(_manager);
         changeContext.setType(NotificationContext.Type.CALLBACK);
         changeContext.setPathChanged(dataPath);
+        changeContext.setChangeType(_changeType);
         enqueueTask(changeContext);
       }
     } catch (Exception e) {
@@ -579,6 +581,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           NotificationContext changeContext = new NotificationContext(_manager);
           changeContext.setType(NotificationContext.Type.CALLBACK);
           changeContext.setPathChanged(parentPath);
+          changeContext.setChangeType(_changeType);
           enqueueTask(changeContext);
         }
       }
@@ -596,6 +599,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     try {
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
+      changeContext.setChangeType(_changeType);
       enqueueTask(changeContext);
     } catch (Exception e) {
       String msg = "Exception while resetting the listener:" + _listener;

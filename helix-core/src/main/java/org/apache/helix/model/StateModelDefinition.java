@@ -427,14 +427,19 @@ public class StateModelDefinition extends HelixProperty {
    * @return state count map: state->count
    */
   public LinkedHashMap<String, Integer> getStateCountMap(int candidateNodeNum, int totalReplicas) {
-    LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
+    LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<>();
     List<String> statesPriorityList = getStatesPriorityList();
 
     int replicas = totalReplicas;
     for (String state : statesPriorityList) {
       String num = getNumInstancesPerState(state);
+      if (candidateNodeNum <= 0) {
+        break;
+      }
       if ("N".equals(num)) {
         stateCountMap.put(state, candidateNodeNum);
+        replicas -= candidateNodeNum;
+        break;
       } else if ("R".equals(num)) {
         // wait until we get the counts for all other states
         continue;
@@ -443,13 +448,13 @@ public class StateModelDefinition extends HelixProperty {
         try {
           stateCount = Integer.parseInt(num);
         } catch (Exception e) {
-          // LOG.error("Invalid count for state: " + state + ", count: " + num +
-          // ", use -1 instead");
         }
 
         if (stateCount > 0) {
-          stateCountMap.put(state, stateCount);
-          replicas -= stateCount;
+          int count = stateCount <= candidateNodeNum ? stateCount : candidateNodeNum;
+          candidateNodeNum -= count;
+          stateCountMap.put(state, count);
+          replicas -= count;
         }
       }
     }
@@ -458,11 +463,31 @@ public class StateModelDefinition extends HelixProperty {
     for (String state : statesPriorityList) {
       String num = getNumInstancesPerState(state);
       if ("R".equals(num)) {
-        stateCountMap.put(state, replicas);
+        if (candidateNodeNum > 0 && replicas > 0) {
+          stateCountMap.put(state, replicas < candidateNodeNum ? replicas : candidateNodeNum);
+        }
         // should have at most one state using R
         break;
       }
     }
     return stateCountMap;
+  }
+
+  /**
+   * Given instance->state map, return the state counts
+   *
+   * @param stateMap
+   *
+   * @return state->count map for the given state map.
+   */
+  public static Map<String, Integer> getStateCounts(Map<String, String> stateMap) {
+    Map<String, Integer> stateCounts = new HashMap<>();
+    for (String state : stateMap.values()) {
+      if (!stateCounts.containsKey(state)) {
+        stateCounts.put(state, 0);
+      }
+      stateCounts.put(state, stateCounts.get(state) + 1);
+    }
+    return stateCounts;
   }
 }

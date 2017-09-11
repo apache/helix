@@ -385,7 +385,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       List<String> preferenceList = getPreferenceList(partition, idealState, activeNodes);
       Map<String, String> bestStateForPartition =
           computeBestPossibleStateForPartition(liveNodes, stateModelDef, preferenceList, currentStateMap,
-              disabledInstancesForPartition, idealState.isEnabled());
+              disabledInstancesForPartition, idealState);
 
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
@@ -414,14 +414,14 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
    * @param currentStateMap
    *          : instance->state for each partition
    * @param disabledInstancesForPartition
-   * @param isResourceEnabled
+   * @param idealState
    * @return
    */
   @Override
   protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
       StateModelDefinition stateModelDef, List<String> preferenceList,
       Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
-      boolean isResourceEnabled) {
+      IdealState idealState) {
 
     if (currentStateMap == null) {
       currentStateMap = Collections.emptyMap();
@@ -434,7 +434,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     }
 
     // (2) If resource disabled altogether, transit to initial-state (e.g. OFFLINE) if it's not in ERROR.
-    if (!isResourceEnabled) {
+    if (!idealState.isEnabled()) {
       return computeBestPossibleMapForDisabledResource(currentStateMap, stateModelDef);
     }
 
@@ -442,7 +442,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     List<String> instancesToMove = new ArrayList<String>(currentStateMap.keySet());
     instancesToMove.removeAll(preferenceList);
 
-    Set<String> instancesToDrop = new HashSet<String>();
+    Set<String> instancesToDrop = new HashSet<>();
     Iterator<String> it = instancesToMove.iterator();
     while (it.hasNext()) {
       String instance = it.next();
@@ -471,13 +471,11 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.name());
     }
 
-    // The eventual goal is to have all instances in preferenceList all in the target states as specified in bestPossibleStateMap.
-    Map<String, String> targetInstanceMap = new HashMap<String, String>(bestPossibleStateMap);
+    // If the load-balance finishes (all replica are migrated to new instances),
+    // we should drop all partitions from previous assigned instances.
+    Map<String, String> targetInstanceMap = new HashMap<>(currentStateMap);
     targetInstanceMap.keySet().retainAll(preferenceList);
-
-    // Once currentStateMap contains all required target instances and states, the
-    // load-balance finishes, we should drop all partitions from previous assigned instances.
-    if (currentStateMap.entrySet().containsAll(targetInstanceMap.entrySet())) {
+    if (migrationCompleted(preferenceList, stateModelDef, targetInstanceMap, idealState)) {
       for (String instance : currentStateMap.keySet()) {
         if (!preferenceList.contains(instance)) {
           String state = currentStateMap.get(instance);
@@ -489,6 +487,37 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     }
 
     return bestPossibleStateMap;
+  }
+
+  private boolean migrationCompleted(List<String> preferenceList,
+      StateModelDefinition stateModelDef, Map<String, String> currentStateMap,
+      IdealState idealState) {
+    if (preferenceList == null) {
+      preferenceList = Collections.emptyList();
+    }
+
+    int replica = idealState.getReplicaCount(preferenceList.size());
+    LinkedHashMap<String, Integer> bestPossileStateCountMap =
+        stateModelDef.getStateCountMap(preferenceList.size(), replica);
+    Map<String, Integer> currentStateCounts = StateModelDefinition.getStateCounts(currentStateMap);
+
+    for (String state : bestPossileStateCountMap.keySet()) {
+      if (state.equals(HelixDefinedState.DROPPED.name()) ||
+          state.equals(HelixDefinedState.ERROR.name()) ||
+          state.equals(stateModelDef.getInitialState())) {
+        continue;
+      }
+
+      Integer bestPossibleCount = bestPossileStateCountMap.get(state);
+      Integer currentCount = currentStateCounts.get(state);
+      bestPossibleCount = bestPossibleCount == null ? 0 : bestPossibleCount;
+      currentCount = currentCount == null ? 0 : currentCount;
+      if (currentCount < bestPossibleCount) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
 

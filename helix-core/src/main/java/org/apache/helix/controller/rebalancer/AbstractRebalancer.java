@@ -96,7 +96,7 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
           Collections.unmodifiableSet(cache.getLiveInstances().keySet()));
       Map<String, String> bestStateForPartition =
           computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef, preferenceList,
-              currentStateMap, disabledInstancesForPartition, idealState.isEnabled());
+              currentStateMap, disabledInstancesForPartition, idealState);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
@@ -160,7 +160,7 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
   protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
       StateModelDefinition stateModelDef, List<String> preferenceList,
       Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
-      boolean isResourceEnabled) {
+      IdealState idealState) {
 
     if (currentStateMap == null) {
       currentStateMap = Collections.emptyMap();
@@ -173,7 +173,7 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     }
 
     // (2) If resource disabled altogether, transit to initial-state (e.g. OFFLINE) if it's not in ERROR.
-    if (!isResourceEnabled) {
+    if (!idealState.isEnabled()) {
       return computeBestPossibleMapForDisabledResource(currentStateMap, stateModelDef);
     }
 
@@ -243,7 +243,7 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
   protected Map<String, String> computeBestPossibleMap(List<String> preferenceList, StateModelDefinition stateModelDef,
       Map<String, String> currentStateMap, Set<String> liveInstances, Set<String> disabledInstancesForPartition) {
 
-    Map<String, String> bestPossibleStateMap = new HashMap<String, String>();
+    Map<String, String> bestPossibleStateMap = new HashMap<>();
 
     // (1) Instances that have current state but not in preference list, drop, no matter it's disabled or not.
     for (String instance : currentStateMap.keySet()) {
@@ -276,8 +276,8 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     // To achieve that, we sort the preferenceList based on CurrentState, by treating top-state and second-states with
     // same priority and rely on the fact that Collections.sort() is stable.
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-    Set<String> assigned = new HashSet<String>();
-    Set<String> liveAndEnabled = new HashSet<String>(liveInstances);
+    Set<String> assigned = new HashSet<>();
+    Set<String> liveAndEnabled = new HashSet<>(liveInstances);
     liveAndEnabled.removeAll(disabledInstancesForPartition);
 
     for (String state : statesPriorityList) {
@@ -294,11 +294,14 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
         if (stateCount <= 0) {
           break;
         }
-        boolean inError = HelixDefinedState.ERROR.toString().equals(currentStateMap.get(instance));
-        if (!assigned.contains(instance) && liveAndEnabled.contains(instance) && !inError) {
-          bestPossibleStateMap.put(instance, state);
+        if (!assigned.contains(instance) && liveAndEnabled.contains(instance)) {
+          if (HelixDefinedState.ERROR.toString().equals(currentStateMap.get(instance))) {
+            bestPossibleStateMap.put(instance, HelixDefinedState.ERROR.toString());
+          } else {
+            bestPossibleStateMap.put(instance, state);
+            stateCount--;
+          }
           assigned.add(instance);
-          stateCount--;
         }
       }
     }

@@ -193,7 +193,8 @@ public class PersistAssignmentStage extends AbstractBaseStage {
       IdealState idealState, Map<Partition, Map<String, String>> assignments) {
     String stateModelDef = idealState.getStateModelDefRef();
     /** Only convert for MasterSlave resources */
-    if (!stateModelDef.equals(BuiltInStateModelDefinitions.MasterSlave.name())) {
+    if (!stateModelDef.equals(BuiltInStateModelDefinitions.MasterSlave.name()) || idealState
+        .getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)) {
       return assignments;
     }
 

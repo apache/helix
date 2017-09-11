@@ -33,7 +33,6 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
@@ -137,7 +136,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
     }
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
   }
@@ -160,7 +159,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _replica);
+      validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
     }
   }
 
@@ -187,9 +186,9 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
           _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
 
       if (db.equals(testDb)) {
-        validateMinActiveAndTopStateReplica(idealState, ev, _replica);
+        validateMinActiveAndTopStateReplica(idealState, ev, _replica, NUM_NODE);
       } else {
-        validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+        validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
         validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
             _participants.get(0).getInstanceName(), false);
       }
@@ -212,9 +211,8 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String db : _testDBs) {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
-          CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _replica);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
     }
 
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
@@ -312,46 +310,6 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     }
   }
 
-  /**
-   * Validate there should be always minimal active replica and top state replica for each partition.
-   * Also make sure there is always some partitions with only active replica count.
-   */
-  protected void validateMinActiveAndTopStateReplica(IdealState is, ExternalView ev,
-      int minActiveReplica) {
-    StateModelDefinition stateModelDef =
-        BuiltInStateModelDefinitions.valueOf(is.getStateModelDefRef()).getStateModelDefinition();
-    String topState = stateModelDef.getStatesPriorityList().get(0);
-    int replica = Integer.valueOf(is.getReplicas());
-
-    Map<String, Integer> stateCount =
-        stateModelDef.getStateCountMap(NUM_NODE, replica);
-    Set<String> activeStates = stateCount.keySet();
-
-    for (String partition : is.getPartitionSet()) {
-      Map<String, String> assignmentMap = ev.getRecord().getMapField(partition);
-      Assert.assertNotNull(assignmentMap,
-          is.getResourceName() + "'s best possible assignment is null for partition " + partition);
-      Assert.assertTrue(!assignmentMap.isEmpty(),
-          is.getResourceName() + "'s partition " + partition + " has no best possible map in IS.");
-
-      boolean hasTopState = false;
-      int activeReplica = 0;
-      for (String state : assignmentMap.values()) {
-        if (topState.equalsIgnoreCase(state)) {
-          hasTopState = true;
-        }
-        if (activeStates.contains(state)) {
-          activeReplica++;
-        }
-      }
-
-      Assert.assertTrue(hasTopState, String.format("%s missing %s replica", partition, topState));
-      Assert.assertTrue(activeReplica >= minActiveReplica, String
-          .format("%s has less active replica %d then required %d", partition, activeReplica,
-              minActiveReplica));
-    }
-  }
-
   private void validateDelayedMovements(Map<String, ExternalView> externalViewsBefore)
       throws InterruptedException {
     // bring down one node, no partition should be moved.
@@ -363,7 +321,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), false);
     }

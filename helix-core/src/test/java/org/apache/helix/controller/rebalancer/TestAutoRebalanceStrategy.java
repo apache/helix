@@ -41,6 +41,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
@@ -221,13 +222,15 @@ public class TestAutoRebalanceStrategy {
         accessor.setProperty(keyBuilder.liveInstance(node), liveInstance);
       }
       cache.refresh(accessor);
+
+      IdealState is = new IdealState("resource");
       for (String partition : _partitions) {
         List<String> preferenceList = listResult.get(partition);
         Map<String, String> currentStateMap = _currentMapping.get(partition);
         Set<String> disabled = Collections.emptySet();
         Map<String, String> assignment = new AutoRebalancer()
             .computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), _stateModelDef, preferenceList,
-                currentStateMap, disabled, true);
+                currentStateMap, disabled, is);
         mapResult.put(partition, assignment);
       }
       return mapResult;

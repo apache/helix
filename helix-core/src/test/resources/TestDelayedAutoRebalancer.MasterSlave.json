@@ -99,7 +99,8 @@
         "localhost_2": "MASTER",
         "localhost_4": "SLAVE",
         "localhost_0": "DROPPED",
-        "localhost_1": "SLAVE"
+        "localhost_1": "SLAVE",
+        "localhost_3": "ERROR"
       }
     }
   ]

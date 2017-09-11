@@ -24,8 +24,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
+import org.apache.helix.InstanceType;
+import org.apache.helix.NotificationContext;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.MultiRoundCrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
@@ -33,9 +37,23 @@ import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.mock.participant.DummyProcess;
+import org.apache.helix.mock.participant.MockMSModelFactory;
+import org.apache.helix.mock.participant.MockMSStateModel;
+import org.apache.helix.mock.participant.MockSchemataModelFactory;
+import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.participant.statemachine.StateModel;
+import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.participant.statemachine.StateModelInfo;
+import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
@@ -146,6 +164,50 @@ public class TestMixedModeAutoRebalance extends ZkIntegrationTestBase {
     }
   }
 
+  @Test
+  public void testUserDefinedPreferenceListsInFullAutoWithErrors() throws Exception {
+    String db = "Test-DB-1";
+    createResourceWithDelayedRebalance(CLUSTER_NAME, db,
+        BuiltInStateModelDefinitions.MasterSlave.name(), 5, _replica, _replica, 0,
+        CrushRebalanceStrategy.class.getName());
+
+    IdealState idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+    Map<String, List<String>> userDefinedPreferenceLists = idealState.getPreferenceLists();
+
+    List<String> newNodes = new ArrayList<>();
+    for (int i = NUM_NODE; i < NUM_NODE + _replica; i++) {
+      String instance = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instance);
+
+      // start dummy participants
+      MockParticipantManager participant =
+          new TestMockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance);
+      participant.syncStart();
+      _participants.add(participant);
+      newNodes.add(instance);
+    }
+
+    List<String> userDefinedPartitions = new ArrayList<>();
+    for (String partition : userDefinedPreferenceLists.keySet()) {
+      userDefinedPreferenceLists.put(partition, newNodes);
+      userDefinedPartitions.add(partition);
+    }
+
+    ResourceConfig resourceConfig =
+        new ResourceConfig.Builder(db).setPreferenceLists(userDefinedPreferenceLists).build();
+    _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
+
+    //TODO: Trigger rebalancer, remove this once Helix controller is listening on resource config changes.
+    RebalanceScheduler.invokeRebalance(_dataAccessor, db);
+
+    Thread.sleep(1000);
+    ExternalView ev =
+        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+    IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+    validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
+  }
+
   private void verifyUserDefinedPreferenceLists(String db,
       Map<String, List<String>> userDefinedPreferenceLists, List<String> userDefinedPartitions)
       throws InterruptedException {
@@ -189,5 +251,34 @@ public class TestMixedModeAutoRebalance extends ZkIntegrationTestBase {
       participant.syncStop();
     }
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  public static class TestMockParticipantManager extends MockParticipantManager {
+    public TestMockParticipantManager(String zkAddr, String clusterName, String instanceName) {
+      super(zkAddr, clusterName, instanceName);
+      _msModelFactory = new MockDelayMSStateModelFactory();
+    }
+  }
+
+  public static class MockDelayMSStateModelFactory extends MockMSModelFactory {
+    @Override
+    public MockDelayMSStateModel createNewStateModel(String resourceName,
+        String partitionKey) {
+      MockDelayMSStateModel model = new MockDelayMSStateModel(null);
+      return model;
+    }
+  }
+
+  // mock delay master-slave state model
+  @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE", "ERROR" })
+  public static class MockDelayMSStateModel extends MockMSStateModel {
+    public MockDelayMSStateModel(MockTransition transition) {
+      super(transition);
+    }
+
+    @Transition(to = "*", from = "*")
+    public void generalTransitionHandle(Message message, NotificationContext context) {
+      throw new IllegalArgumentException("AAA");
+    }
   }
 }

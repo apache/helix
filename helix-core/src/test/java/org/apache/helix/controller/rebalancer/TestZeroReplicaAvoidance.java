@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.helix.controller.stages.BaseStageTest;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.StateModelDefinition;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectReader;
@@ -53,14 +54,19 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
       liveInstances.add("localhost_" + i);
     }
 
+    IdealState is = new IdealState("test");
+    is.setReplicas("3");
+
     DelayedAutoRebalancer rebalancer = new DelayedAutoRebalancer();
     Map<String, String> bestPossibleMap = rebalancer
         .computeBestPossibleStateForPartition(liveInstances, stateModelDef, instancePreferenceList, currentStateMap,
-            Collections.<String>emptySet(), true);
+            Collections.<String>emptySet(), is);
     Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap,
-        "Differs, get " + bestPossibleMap + ": expected: " + expectedBestPossibleMap);
+        "Differs, get " + bestPossibleMap + "\nexpected: " + expectedBestPossibleMap
+            + "\ncurrentState: " + currentStateMap + "\npreferenceList: " + instancePreferenceList);
 
-    System.out.println("END TestBestPossibleStateCalcStage at " + new Date(System.currentTimeMillis()));
+    System.out.println(
+        "END TestBestPossibleStateCalcStage at " + new Date(System.currentTimeMillis()));
   }
 
   @DataProvider(name = "zeroReplicaInput")

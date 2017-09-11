@@ -63,7 +63,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev, instance, true);
     }
   }
@@ -86,7 +86,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
     }
@@ -113,7 +113,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
     }
@@ -127,7 +127,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
     }
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
   }
@@ -150,7 +150,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
     }
@@ -164,7 +164,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
     }
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
   }
@@ -188,7 +188,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
     }
@@ -199,7 +199,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _replica);
+      validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
     }
   }
 
@@ -217,7 +217,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
     }
@@ -240,9 +240,9 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
           _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
 
       if (db.equals(testDb)) {
-        validateMinActiveAndTopStateReplica(idealState, ev, _replica);
+        validateMinActiveAndTopStateReplica(idealState, ev, _replica, NUM_NODE);
       } else {
-        validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+        validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
         validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
             _participants.get(0).getInstanceName(), true);
       }
@@ -265,7 +265,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
     }
@@ -281,7 +281,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
           CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _replica);
+      validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
     }
 
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);

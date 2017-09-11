@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.util.TestInputLoader;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -40,7 +41,7 @@ public class TestAbstractRebalancer {
     Map<String, String> bestPossibleMap = rebalancer
         .computeBestPossibleStateForPartition(new HashSet<String>(liveInstances),
             BuiltInStateModelDefinitions.valueOf(stateModelName).getStateModelDefinition(),
-            preferenceList, currentStateMap, new HashSet<String>(disabledInstancesForPartition), true);
+            preferenceList, currentStateMap, new HashSet<String>(disabledInstancesForPartition), new IdealState("test"));
 
     Assert.assertTrue(bestPossibleMap.equals(expectedBestPossibleMap));
   }

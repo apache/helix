@@ -227,8 +227,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     PartitionStateMap intermediatePartitionStateMap = new PartitionStateMap(resourceName);
 
-    Set<Partition> partitionsNeedRecovery = new HashSet<Partition>();
-    Set<Partition> partitionsNeedLoadbalance = new HashSet<Partition>();
+    Set<Partition> partitionsNeedRecovery = new HashSet<>();
+    Set<Partition> partitionsNeedLoadbalance = new HashSet<>();
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resourceName, partition);
@@ -245,32 +245,30 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         partitionsNeedLoadbalance.add(partition);
       } else {
         // no rebalance needed.
-        Map<String, String> intermediateMap = new HashMap<String, String>(bestPossibleMap);
+        Map<String, String> intermediateMap = new HashMap<>(bestPossibleMap);
         intermediatePartitionStateMap.setState(partition, intermediateMap);
       }
     }
 
-    if (logger.isDebugEnabled()) {
-      logger.debug(
-          "recovery balance needed for " + resource + " partitions: " + partitionsNeedRecovery);
-      logger.debug(
-          "load balance needed for " + resource + " partitions: " + partitionsNeedLoadbalance);
-    }
+    logger.info(
+        "recovery balance needed for " + resourceName + " partitions: " + partitionsNeedRecovery);
+    logger.info(
+        "load balance needed for " + resourceName + " partitions: " + partitionsNeedLoadbalance);
 
     chargePendingTransition(resource, currentStateOutput, throttleController,
         partitionsNeedRecovery, partitionsNeedLoadbalance);
 
     // perform recovery rebalance
-    int recoveryRebalanceThrottledCount =
+    Set<Partition> recoveryThrottledPartitions =
     recoveryRebalance(resource, bestPossiblePartitionStateMap, throttleController,
         intermediatePartitionStateMap, partitionsNeedRecovery, currentStateOutput,
         cache.getStateModelDef(resource.getStateModelDefRef()).getTopState());
 
-    int loadRebalanceThrottledCount = partitionsNeedLoadbalance.size();
+    Set<Partition> loadbalanceThrottledPartitions = partitionsNeedLoadbalance;
     if (partitionsNeedRecovery.isEmpty()) {
       // perform load balance only if no partition need recovery rebalance.
       // TODO: to set a minimal threshold for allowing load-rebalance.
-      loadRebalanceThrottledCount =
+      loadbalanceThrottledPartitions =
           loadRebalance(resource, currentStateOutput, bestPossiblePartitionStateMap,
               throttleController, intermediatePartitionStateMap, partitionsNeedLoadbalance,
               currentStateOutput.getCurrentStateMap(resourceName));
@@ -284,8 +282,15 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     if (clusterStatusMonitor != null) {
       clusterStatusMonitor.updateRebalancerStats(resourceName, partitionsNeedRecovery.size(),
-          partitionsNeedLoadbalance.size(), recoveryRebalanceThrottledCount,
-          loadRebalanceThrottledCount);
+          partitionsNeedLoadbalance.size(), recoveryThrottledPartitions.size(),
+          loadbalanceThrottledPartitions.size());
+    }
+
+    if (logger.isDebugEnabled()) {
+      logParitionMapState(resourceName, new HashSet<>(resource.getPartitions()),
+          partitionsNeedRecovery, recoveryThrottledPartitions, partitionsNeedLoadbalance,
+          loadbalanceThrottledPartitions, currentStateOutput, bestPossiblePartitionStateMap,
+          intermediatePartitionStateMap);
     }
 
     logger.debug("End processing resource:" + resourceName);
@@ -333,10 +338,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
   /**
    *  Perform any recovery balance if needed, fill intermediatePartitionStateMap
    *  if recover rebalance is needed.
-   *  return the number of partitions needs recoveryRebalance but get throttled
+   *  return the partitions needs recoveryRebalance but get throttled
    */
 
-  public int recoveryRebalance(Resource resource, PartitionStateMap bestPossiblePartitionStateMap,
+  public Set<Partition> recoveryRebalance(Resource resource, PartitionStateMap bestPossiblePartitionStateMap,
       StateTransitionThrottleController throttleController,
       PartitionStateMap intermediatePartitionStateMap, Set<Partition> partitionsNeedRecovery,
       CurrentStateOutput currentStateOutput, String topState) {
@@ -366,14 +371,14 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           intermediatePartitionStateMap, RebalanceType.RECOVERY_BALANCE);
     }
 
-    logger.debug(String
+    logger.info(String
         .format("needRecovery: %d, recoverybalanceThrottled: %d", partitionsNeedRecovery.size(),
             partitionRecoveryBalanceThrottled.size()));
-    return partitionRecoveryBalanceThrottled.size();
+    return partitionRecoveryBalanceThrottled;
   }
 
-  /* return the number of partitions needs loadRebalance but get throttled */
-  private int loadRebalance(Resource resource, CurrentStateOutput currentStateOutput,
+  /* return the partitions needs loadRebalance but get throttled */
+  private Set<Partition> loadRebalance(Resource resource, CurrentStateOutput currentStateOutput,
       PartitionStateMap bestPossiblePartitionStateMap,
       StateTransitionThrottleController throttleController,
       PartitionStateMap intermediatePartitionStateMap, Set<Partition> partitionsNeedLoadbalance,
@@ -382,7 +387,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     Set<Partition> partitionsLoadbalanceThrottled = new HashSet<Partition>();
 
     List<Partition> partitionsNeedLoadRebalancePrioritized =
-        new ArrayList<Partition>(partitionsNeedLoadbalance);
+        new ArrayList<>(partitionsNeedLoadbalance);
 
     // TODO : Due to currently using JAVA 1.6, the original order of partitions list is not
     // determinable, sort the list by partition name and remove the code after bump to JAVA 1.8
@@ -408,11 +413,11 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
             partitionsLoadbalanceThrottled.size()));
 
     if (logger.isDebugEnabled()) {
-      logger.debug("recovery balance throttled for " + resource + " partitions: "
+      logger.debug("recovery balance throttled for " + resourceName + " partitions: "
           + partitionsLoadbalanceThrottled);
     }
 
-    return partitionsLoadbalanceThrottled.size();
+    return partitionsLoadbalanceThrottled;
   }
 
   private void throtteStateTransitions(StateTransitionThrottleController throttleController,
@@ -482,12 +487,12 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
 
     int replica = idealState.getReplicaCount(preferenceList.size());
-    Set<String> activeList = new HashSet<String>(preferenceList);
+    Set<String> activeList = new HashSet<>(preferenceList);
     activeList.retainAll(cache.getEnabledLiveInstances());
 
     LinkedHashMap<String, Integer> bestPossileStateCountMap =
-        getBestPossibleStateCountMap(stateModelDef, activeList.size(), replica);
-    Map<String, Integer> currentStateCounts = getStateCounts(currentStateMap);
+        stateModelDef.getStateCountMap(activeList.size(), replica);
+    Map<String, Integer> currentStateCounts = StateModelDefinition.getStateCounts(currentStateMap);
 
     for (String state : bestPossileStateCountMap.keySet()) {
       Integer bestPossibleCount = bestPossileStateCountMap.get(state);
@@ -506,66 +511,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     return RebalanceType.LOAD_BALANCE;
   }
 
-  private LinkedHashMap<String, Integer> getBestPossibleStateCountMap(
-      StateModelDefinition stateModelDef, int candidateNodeNum, int totalReplicas) {
-    LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-
-    int replicas = totalReplicas;
-    for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
-      if (candidateNodeNum <= 0) {
-        break;
-      }
-      if ("N".equals(num)) {
-        stateCountMap.put(state, candidateNodeNum);
-        replicas -= candidateNodeNum;
-        break;
-      } else if ("R".equals(num)) {
-        // wait until we get the counts for all other states
-        continue;
-      } else {
-        int stateCount = -1;
-        try {
-          stateCount = Integer.parseInt(num);
-        } catch (Exception e) {
-        }
-
-        if (stateCount > 0) {
-          int count = stateCount <= candidateNodeNum ? stateCount : candidateNodeNum;
-          candidateNodeNum -= count;
-          stateCountMap.put(state, count);
-          replicas -= count;
-        }
-      }
-    }
-
-    // get state count for R
-    for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
-      if ("R".equals(num)) {
-        if (candidateNodeNum > 0 && replicas > 0) {
-          stateCountMap.put(state, replicas < candidateNodeNum ? replicas : candidateNodeNum);
-        }
-        // should have at most one state using R
-        break;
-      }
-    }
-    return stateCountMap;
-  }
-
-  /* given instance->state map, return the state counts */
-  private Map<String, Integer> getStateCounts(Map<String, String> stateMap) {
-    Map<String, Integer> stateCounts = new HashMap<String, Integer>();
-    for (String state : stateMap.values()) {
-      if (!stateCounts.containsKey(state)) {
-        stateCounts.put(state, 0);
-      }
-      stateCounts.put(state, stateCounts.get(state) + 1);
-    }
-    return stateCounts;
-  }
-
   private void logParitionMapState(String resource, Set<Partition> allPartitions,
       Set<Partition> recoveryPartitions, Set<Partition> recoveryThrottledPartitions,
       Set<Partition> loadbalancePartitions, Set<Partition> loadbalanceThrottledPartitions,
@@ -579,23 +524,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         + "\nPartitions get throttled on load-balance: " + loadbalanceThrottledPartitions);
 
     for (Partition partition : allPartitions) {
-      if (recoveryPartitions.contains(partition)) {
-        logger
-            .debug("recovery balance needed for " + resource + " " + partition.getPartitionName());
-        if (recoveryThrottledPartitions.contains(partition)) {
-          logger.debug("Recovery balance throttled on resource for " + resource + " " + partition
-              .getPartitionName());
-        }
-      } else if (loadbalancePartitions.contains(partition)) {
-        logger.debug("load balance needed for " + resource + " " + partition.getPartitionName());
-        if (loadbalanceThrottledPartitions.contains(partition)) {
-          logger.debug("Load balance throttled on resource for " + resource + " " + partition
-              .getPartitionName());
-        }
-      } else {
-        logger.debug("no balance needed for " + resource + " " + partition.getPartitionName());
-      }
-
       logger.debug(
           partition + ": Best possible map: " + bestPossibleStateMap.getPartitionMap(partition));
       logger.debug(partition + ": Current State: " + currentStateOutput

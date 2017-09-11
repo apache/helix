@@ -13,6 +13,11 @@ export class HelixService {
     private http: Http
   ) { }
 
+  public can(): Observable<boolean> {
+    return this
+      .request(`/can`, '');
+  }
+
   protected request(path: string, helix?: string): Observable<any> {
 
     if (helix == null) {

@@ -24,6 +24,7 @@ export class ClusterDetailComponent implements OnInit {
   ];
 
   cluster: Cluster;
+  can = false;
 
   constructor(
     protected route: ActivatedRoute,
@@ -37,7 +38,7 @@ export class ClusterDetailComponent implements OnInit {
 
   ngOnInit() {
     this.route.data.subscribe(data => this.cluster = data.cluster);
-
+    this.clusterService.can().subscribe(data => this.can = data);
     this.route.params
       .map(p => p.name)
       .subscribe(name => {

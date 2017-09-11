@@ -4,7 +4,7 @@
 
   <hi-node-viewer
     [obj]="obj"
-    [unlockable]="clusterName != null"
+    [unlockable]="can && clusterName != null"
     (update)="updateConfig($event)"
     (create)="createConfig($event)"
     (delete)="deleteConfig($event)">

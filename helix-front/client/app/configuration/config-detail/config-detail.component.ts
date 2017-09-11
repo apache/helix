@@ -15,6 +15,7 @@ export class ConfigDetailComponent implements OnInit {
   isLoading = true;
   obj: any = {};
   clusterName: string;
+  can = false;
 
   constructor(
     protected route: ActivatedRoute,
@@ -59,6 +60,8 @@ export class ConfigDetailComponent implements OnInit {
           });
       }
     }
+
+    this.service.can().subscribe(data => this.can = data);
   }
 
   loadClusterConfig() {

@@ -5,7 +5,7 @@
     </md-spinner>
   </section>
   <md-nav-list *ngIf="!isLoading && !errorMessage">
-    <button md-mini-fab (click)="createCluster()">
+    <button md-mini-fab *ngIf="can" (click)="createCluster()">
       <md-icon>add</md-icon>
     </button>
     <h3 md-subheader>Clusters</h3>

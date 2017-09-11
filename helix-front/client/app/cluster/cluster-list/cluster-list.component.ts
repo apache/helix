@@ -16,6 +16,7 @@ export class ClusterListComponent implements OnInit {
   clusters: Cluster[] = [];
   errorMessage: string = '';
   isLoading: boolean = true;
+  can: boolean = false;
 
   constructor(
     protected clusterService: ClusterService,
@@ -25,6 +26,7 @@ export class ClusterListComponent implements OnInit {
 
   ngOnInit() {
     this.loadClusters();
+    this.clusterService.can().subscribe(data => this.can = data);
   }
 
   loadClusters() {

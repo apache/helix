@@ -10,6 +10,7 @@ export class HelixCtrl {
 
   constructor(router: Router) {
     router.route('/helix/list').get(this.list);
+    router.route('/helix/can').get(this.can);
     router.route('/helix/*').all(this.proxy);
   }
 
@@ -50,5 +51,9 @@ export class HelixCtrl {
 
   protected list(req: Request, res: Response) {
     res.json(HELIX_ENDPOINTS);
+  }
+
+  protected can(req: Request, res: Response) {
+    res.json(false);
   }
 }

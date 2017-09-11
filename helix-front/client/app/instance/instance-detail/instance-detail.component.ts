@@ -1,11 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MdDialog } from '@angular/material';
 
 import { Instance } from '../shared/instance.model';
 import { HelperService } from '../../shared/helper.service';
 import { InstanceService } from '../shared/instance.service';
-import { ConfirmDialogComponent } from '../../shared/dialog/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'hi-instance-detail',
@@ -22,32 +20,28 @@ export class InstanceDetailComponent implements OnInit {
   ];
 
   clusterName: string;
+  instanceName: string;
   instance: Instance;
   isLoading = true;
+  can = false;
 
   constructor(
     protected route: ActivatedRoute,
     protected router: Router,
     protected service: InstanceService,
-    protected dialog: MdDialog,
     protected helperService: HelperService
   ) { }
 
   ngOnInit() {
-    this.clusterName = this.route.snapshot.params['cluster_name'];
+    this.service.can().subscribe(data => this.can = data);
+    this.clusterName = this.route.snapshot.params.cluster_name;
+    this.instanceName = this.route.snapshot.params.instance_name;
     this.loadInstance();
   }
 
   removeInstance() {
-    this.dialog
-      .open(ConfirmDialogComponent, {
-        data: {
-          title: 'Confirmation',
-          message: 'Are you sure you want to remove this Instance?'
-        }
-      })
-      .afterClosed()
-      .subscribe(result => {
+    this.helperService.showConfirmation('Are you sure you want to remove this Instance?')
+      .then(result => {
         if (result) {
           this.service
             .remove(this.clusterName, this.instance.name)
@@ -78,10 +72,9 @@ export class InstanceDetailComponent implements OnInit {
   }
 
   protected loadInstance() {
-    const instanceName = this.instance ? this.instance.name : this.route.snapshot.params['instance_name'];
     this.isLoading = true;
     this.service
-      .get(this.clusterName, instanceName)
+      .get(this.clusterName, this.instanceName)
       .subscribe(
         instance => this.instance = instance,
         error => this.helperService.showError(error),

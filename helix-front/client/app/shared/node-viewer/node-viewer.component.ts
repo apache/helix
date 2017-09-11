@@ -47,6 +47,9 @@ export class NodeViewerComponent implements OnInit {
   @Input()
   unlockable = false;
 
+  @Input()
+  loadingIndicator = false;
+
   private _editable = false;
   set editable(value: boolean) {
     this._editable = value;

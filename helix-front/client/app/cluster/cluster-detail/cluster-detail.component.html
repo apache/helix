@@ -2,6 +2,7 @@
   <section *ngIf="clusterName">
     <md-toolbar class="mat-elevation-z1">
       <hi-detail-header [cluster]="clusterName"></hi-detail-header>
+      <hi-disabled-label *ngIf="!cluster?.enabled" text="DISABLED"></hi-disabled-label>
       <md-toolbar-row *ngIf="isLoading" class="information">
         <md-spinner></md-spinner>
       </md-toolbar-row>
@@ -9,11 +10,6 @@
         <h6>Controller:
           <a md-button color="accent" routerLink="controller">{{ cluster.controller }}</a>
         </h6>
-        <section *ngIf="!cluster.enabled">
-          <div class="offline">
-            This Cluster is currently DISABLED
-          </div>
-        </section>
         <span fxFlex="1 1 auto"></span>
         <button md-mini-fab *ngIf="can" [mdMenuTriggerFor]="menu">
           <md-icon>menu</md-icon>
@@ -27,11 +23,15 @@
             <md-icon>play_circle_outline</md-icon>
             <span>Enable this Cluster</span>
           </button>
+          <button md-menu-item *ngIf="false" (click)="addResource()">
+            <md-icon>note_add</md-icon>
+            <span>Add a Resource</span>
+          </button>
           <button md-menu-item (click)="addInstance()">
-            <md-icon>add</md-icon>
+            <md-icon>add_circle</md-icon>
             <span>Add an Instance</span>
           </button>
-          <button md-menu-item (click)="deleteCluster()" disabled>
+          <button md-menu-item *ngIf="false" (click)="deleteCluster()" disabled>
             <md-icon>delete</md-icon>
             <span>DELETE this Cluster</span>
           </button>

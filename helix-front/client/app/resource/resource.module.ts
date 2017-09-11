@@ -14,6 +14,7 @@ import { ResourceDetailComponent } from './resource-detail/resource-detail.compo
 import { ResourceDetailForInstanceComponent } from './resource-detail-for-instance/resource-detail-for-instance.component';
 import { PartitionListComponent } from './partition-list/partition-list.component';
 import { PartitionDetailComponent } from './partition-detail/partition-detail.component';
+import { ResourceNodeViewerComponent } from './resource-node-viewer/resource-node-viewer.component';
 
 @NgModule({
   imports: [
@@ -33,7 +34,8 @@ import { PartitionDetailComponent } from './partition-detail/partition-detail.co
     ResourceDetailComponent,
     ResourceDetailForInstanceComponent,
     PartitionListComponent,
-    PartitionDetailComponent
+    PartitionDetailComponent,
+    ResourceNodeViewerComponent
   ]
 })
 export class ResourceModule { }

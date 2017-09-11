@@ -36,11 +36,20 @@ export class Resource {
   readonly partitionCount: number;
   readonly replicaCount: number;
 
-  readonly partitions: Partition[];
-
-  // for debugging purpose only
   readonly idealState: any;
   readonly externalView: any;
+
+  get enabled(): boolean {
+    // there are two cases meaning enabled both:
+    //   HELIX_ENABLED: true or no such item in idealState
+    return _.get(this.idealState, 'simpleFields.HELIX_ENABLED') != 'false';
+  }
+
+  get online(): boolean {
+     return !_.isEmpty(this.externalView);
+  }
+
+  readonly partitions: Partition[];
 
   constructor(cluster: string, name: string, config: any, idealState: any, externalView: any) {
     this.cluster = cluster;

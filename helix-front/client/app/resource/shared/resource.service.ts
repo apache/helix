@@ -80,4 +80,19 @@ export class ResourceService extends HelixService {
         return ret;
       });
   }
+
+  public enable(clusterName: string, resourceName: string) {
+    return this
+      .post(`/clusters/${ clusterName }/resources/${ resourceName }?command=enable`, null);
+  }
+
+  public disable(clusterName: string, resourceName: string) {
+    return this
+      .post(`/clusters/${ clusterName }/resources/${ resourceName }?command=disable`, null);
+  }
+
+  public remove(clusterName: string, resourceName: string) {
+    return this
+      .delete(`/clusters/${ clusterName }/resources/${ resourceName }`);
+  }
 }

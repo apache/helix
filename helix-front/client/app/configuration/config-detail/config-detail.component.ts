@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { MdSnackBar } from '@angular/material';
 
 import { ConfigurationService } from '../shared/configuration.service';
+import { HelperService } from '../../shared/helper.service';
 
 @Component({
   selector: 'hi-config-detail',
@@ -15,119 +15,101 @@ export class ConfigDetailComponent implements OnInit {
   isLoading = true;
   obj: any = {};
   clusterName: string;
+  instanceName: string;
+  resourceName: string;
   can = false;
 
   constructor(
     protected route: ActivatedRoute,
     protected service: ConfigurationService,
-    protected snackBar: MdSnackBar
+    protected helper: HelperService
   ) { }
 
   ngOnInit() {
     if (this.route.parent) {
-      // TODO vxu: convert this logic to config.resolver
-      if (this.route.snapshot.data.forInstance) {
-        this.isLoading = true;
-
-        this.service
-          .getInstanceConfig(
-            this.route.parent.snapshot.params.cluster_name,
-            this.route.parent.snapshot.params.instance_name
-          )
-          .subscribe(
-            config => this.obj = config,
-            error => this.handleError(error),
-            () => this.isLoading = false
-          );
-      } else if (this.route.snapshot.data.forResource) {
-        this.isLoading = true;
-
-        this.service
-          .getResourceConfig(
-            this.route.parent.snapshot.params.cluster_name,
-            this.route.parent.snapshot.params.resource_name
-          )
-          .subscribe(
-            config => this.obj = config,
-            error => this.handleError(error),
-            () => this.isLoading = false
-          );
-      } else {
-        this.clusterName = this.route.parent.snapshot.params['name'];
-        this.loadClusterConfig();
-      }
+      this.clusterName = this.route.parent.snapshot.params.name || this.route.parent.snapshot.params.cluster_name;
+      this.instanceName = this.route.parent.snapshot.params.instance_name;
+      this.resourceName = this.route.parent.snapshot.params.resource_name;
     }
+
+    this.loadConfig();
 
     this.service.can().subscribe(data => this.can = data);
   }
 
-  loadClusterConfig() {
-    this.isLoading = true;
-    this.service
-      .getClusterConfig(this.clusterName)
-      .subscribe(
+  loadConfig() {
+    let observer: any;
+
+    if (this.clusterName && this.instanceName) {
+      observer = this.service.getInstanceConfig(this.clusterName, this.instanceName);
+    } else if (this.clusterName && this.resourceName) {
+      observer = this.service.getResourceConfig(this.clusterName, this.resourceName);
+    } else {
+      observer = this.service.getClusterConfig(this.clusterName);
+    }
+
+    if (observer) {
+      this.isLoading = true;
+      observer.subscribe(
         config => this.obj = config,
-        error => this.handleError(error),
+        error => {
+          // since rest API simply throws 404 instead of empty config when config is not initialized yet
+          // frontend has to treat 404 as normal result
+          if (error != 'Not Found') {
+            this.helper.showError(error);
+          }
+          this.isLoading = false;
+        },
         () => this.isLoading = false
       );
-  }
-
-  createConfig(value: any) {
-    if (this.clusterName) {
-      this.isLoading = true;
-      this.service
-        .setClusterConfig(this.clusterName, value)
-        .subscribe(
-          () => {
-            this.snackBar.open('Configuration added!', 'OK', {
-              duration: 2000,
-            });
-            this.loadClusterConfig();
-          },
-          error => this.handleError(error),
-          () => this.isLoading = false
-        );
     }
   }
 
   updateConfig(value: any) {
-    if (this.clusterName) {
+    let observer: any;
+
+    if (this.clusterName && this.instanceName) {
+      observer = this.service.setInstanceConfig(this.clusterName, this.instanceName, value);
+    } else if (this.clusterName && this.resourceName) {
+      observer = this.service.setResourceConfig(this.clusterName, this.resourceName, value);
+    } else {
+      observer = this.service.setClusterConfig(this.clusterName, value);
+    }
+
+    if (observer) {
       this.isLoading = true;
-      this.service
-        .setClusterConfig(this.clusterName, value)
-        .subscribe(
-          () => {
-            this.snackBar.open('Configuration updated!', 'OK', {
-              duration: 2000,
-            });
-            this.loadClusterConfig();
-          },
-          error => this.handleError(error),
-          () => this.isLoading = false
-        );
+      observer.subscribe(
+        () => {
+          this.helper.showSnackBar('Configuration updated!');
+          this.loadConfig();
+        },
+        error => this.helper.showError(error),
+        () => this.isLoading = false
+      );
     }
   }
 
   deleteConfig(value: any) {
-    if (this.clusterName) {
-      this.isLoading = true;
-      this.service
-        .deleteClusterConfig(this.clusterName, value)
-        .subscribe(
-          () => {
-            this.snackBar.open('Configuration deleted!', 'OK', {
-              duration: 2000,
-            });
-            this.loadClusterConfig();
-          },
-          error => this.handleError(error),
-          () => this.isLoading = false
-        );
-    }
-  }
+    let observer: any;
 
-  protected handleError(error) {
-    // the API says if there's no config just return 404 ! sucks!
-    this.isLoading = false;
+    if (this.clusterName && this.instanceName) {
+      observer = this.service.deleteInstanceConfig(this.clusterName, this.instanceName, value);
+    } else if (this.clusterName && this.resourceName) {
+      observer = this.service.deleteResourceConfig(this.clusterName, this.resourceName, value);
+    } else {
+      observer = this.service.deleteClusterConfig(this.clusterName, value);
+    }
+
+    if (observer) {
+      this.isLoading = true;
+      observer.subscribe(
+        () => {
+          this.helper.showSnackBar('Configuration deleted!');
+          this.loadConfig();
+        },
+        error => this.helper.showError(error),
+        () => this.isLoading = false
+      );
+    }
   }
 }

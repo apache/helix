@@ -1,4 +1,5 @@
 <section class="node-viewer" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="10px">
+  <md-progress-bar *ngIf="loadingIndicator" mode="indeterminate"></md-progress-bar>
   <md-button-toggle-group #group="mdButtonToggleGroup" value="table">
     <md-button-toggle value="table">
       Table View
@@ -23,8 +24,8 @@
         </md-input-container>
         <span fxFlex="1 1 auto"></span>
         <button md-button
+          *ngIf="unlockable"
           (click)="editable = !editable"
-          [disabled]="!unlockable"
           [mdTooltip]="editable ? 'Click to prevent further changes' : 'Click to make changes'">
           <md-icon>{{ editable ? 'lock_open' : 'lock' }}</md-icon>
           {{ editable ? 'Unlocked' : 'Locked' }}

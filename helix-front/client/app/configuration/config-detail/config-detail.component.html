@@ -1,12 +1,10 @@
-<section fxLayout="column" fxLayoutAlign="center center">
-  <md-spinner *ngIf="isLoading"></md-spinner>
+<section>
   <hi-node-viewer
-    *ngIf="!isLoading"
-    fxFlexFill
+    [loadingIndicator]="isLoading"
     [obj]="obj"
-    [unlockable]="can && clusterName != null"
+    [unlockable]="can && instanceName == null"
     (update)="updateConfig($event)"
-    (create)="createConfig($event)"
+    (create)="updateConfig($event)"
     (delete)="deleteConfig($event)">
   </hi-node-viewer>
 </section>

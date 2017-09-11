@@ -19,6 +19,7 @@ import { NodeViewerComponent } from './node-viewer/node-viewer.component';
 import { InputInlineComponent } from './input-inline/input-inline.component';
 import { DataTableComponent } from './data-table/data-table.component';
 import { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.component';
+import { DisabledLabelComponent } from './disabled-label/disabled-label.component';
 
 @NgModule({
   imports: [
@@ -41,7 +42,8 @@ import { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.c
     NodeViewerComponent,
     InputInlineComponent,
     DataTableComponent,
-    ConfirmDialogComponent
+    ConfirmDialogComponent,
+    DisabledLabelComponent
   ],
   entryComponents: [
     InputDialogComponent,
@@ -59,7 +61,8 @@ import { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.c
     KeyValuePairsComponent,
     JsonViewerComponent,
     StateLabelComponent,
-    NodeViewerComponent
+    NodeViewerComponent,
+    DisabledLabelComponent
   ],
   providers: [
     HelperService

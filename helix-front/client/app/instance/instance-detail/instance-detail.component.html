@@ -1,24 +1,18 @@
 <section>
   <md-toolbar class="mat-elevation-z1">
-    <hi-detail-header [cluster]="clusterName" [instance]="instance?.name"></hi-detail-header>
+    <hi-detail-header [cluster]="clusterName" [instance]="instanceName"></hi-detail-header>
+    <hi-disabled-label *ngIf="!isLoading && !instance.liveInstance" text="OFFLINE"></hi-disabled-label>
+    <hi-disabled-label *ngIf="!isLoading && !instance.enabled" text="DISABLED"></hi-disabled-label>
     <md-toolbar-row class="information">
       <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
       <md-spinner *ngIf="isLoading"></md-spinner>
-      <hi-key-value-pairs *ngIf="!isLoading && instance.liveInstance != null" [obj]="instance">
+      <hi-key-value-pairs *ngIf="!isLoading" [obj]="instance">
         <hi-key-value-pair name="Instance" prop="liveInstance"></hi-key-value-pair>
         <hi-key-value-pair name="Session ID" prop="sessionId"></hi-key-value-pair>
         <hi-key-value-pair name="Helix Version" prop="helixVersion"></hi-key-value-pair>
       </hi-key-value-pairs>
-      <section *ngIf="!isLoading && !instance.healthy">
-        <div class="offline">
-          This Instance is currently
-          <span *ngIf="!instance.liveInstance">OFFLINE</span>
-          <span *ngIf="!instance.liveInstance && !instance.enabled">and</span>
-          <span *ngIf="!instance.enabled">DISABLED</span>
-        </div>
-      </section>
       <span fxFlex="1 1 auto"></span>
-      <button md-mini-fab [mdMenuTriggerFor]="menu">
+      <button md-mini-fab *ngIf="can" [mdMenuTriggerFor]="menu">
         <md-icon>menu</md-icon>
       </button>
       <md-menu #menu="mdMenu">

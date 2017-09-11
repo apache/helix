@@ -29,7 +29,7 @@
       <ng-template let-row="row" ngx-datatable-cell-template>
         <section fxLayout="row" fxLayoutAlign="start center">
           {{ row.name }}
-          <span *ngIf="!row.enabled" class="status-disabled">DISABLED</span>
+          <hi-disabled-label *ngIf="!row.enabled" text="DISABLED"></hi-disabled-label>
         </section>
       </ng-template>
     </ngx-datatable-column>

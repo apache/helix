@@ -1,8 +1,9 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { RouterTestingModule } from '@angular/router/testing';
 
+import { TestingModule } from '../../../testing/testing.module';
 import { PartitionListComponent } from './partition-list.component';
+import { ResourceService } from '../shared/resource.service';
 
 describe('PartitionListComponent', () => {
   let component: PartitionListComponent;
@@ -11,7 +12,10 @@ describe('PartitionListComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        RouterTestingModule
+        TestingModule
+      ],
+      providers: [
+        ResourceService
       ],
       declarations: [ PartitionListComponent ],
       schemas: [

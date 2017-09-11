@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { MdDialog, MdSnackBar } from '@angular/material';
 
 import { AlertDialogComponent } from './dialog/alert-dialog/alert-dialog.component';
+import { ConfirmDialogComponent } from './dialog/confirm-dialog/confirm-dialog.component';
 
 @Injectable()
 export class HelperService {
@@ -26,4 +27,15 @@ export class HelperService {
     });
   }
 
+  showConfirmation(message: string) {
+    return this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Confirmation',
+          message: message
+        }
+      })
+      .afterClosed()
+      .toPromise();
+  }
 }

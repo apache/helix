@@ -1,17 +1,10 @@
-@import 'client/theme.scss';
-
 .information {
 
   font-size: 14px;
 
-  md-spinner {
+  .mat-spinner {
     width: 30px;
     height: 30px;
     margin: 0 20px;
-  }
-
-  .offline {
-    padding-left: 24px;
-    color: mat-color($hi-warn);
   }
 }

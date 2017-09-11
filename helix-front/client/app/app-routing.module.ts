@@ -2,14 +2,13 @@ import { ModuleWithProviders } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { AppComponent } from './app.component';
-import { NodeViewerComponent } from './shared/node-viewer/node-viewer.component';
 import { ClusterComponent } from './cluster/cluster.component';
 import { ClusterDetailComponent } from './cluster/cluster-detail/cluster-detail.component';
 import { ConfigDetailComponent } from './configuration/config-detail/config-detail.component';
 import { InstanceListComponent } from './instance/instance-list/instance-list.component';
-import { ResourceResolver } from './resource/shared/resource.resolver';
 import { ResourceListComponent } from './resource/resource-list/resource-list.component';
 import { ResourceDetailComponent } from './resource/resource-detail/resource-detail.component';
+import { ResourceNodeViewerComponent } from './resource/resource-node-viewer/resource-node-viewer.component';
 import { PartitionListComponent } from './resource/partition-list/partition-list.component';
 import { ControllerDetailComponent } from './controller/controller-detail/controller-detail.component';
 import { HistoryListComponent } from './history/history-list/history-list.component';
@@ -43,10 +42,7 @@ const HELIX_ROUTES: Routes = [
           },
           {
             path: 'configs',
-            component: ConfigDetailComponent,
-            data: {
-              forCluster: true
-            }
+            component: ConfigDetailComponent
           },
           {
             path: 'instances',
@@ -80,9 +76,6 @@ const HELIX_ROUTES: Routes = [
       {
         path: ':cluster_name/resources/:resource_name',
         component: ResourceDetailComponent,
-        resolve: {
-          resource: ResourceResolver
-        },
         children: [
           {
             path: '',
@@ -95,24 +88,21 @@ const HELIX_ROUTES: Routes = [
           },
           {
             path: 'externalView',
-            component: NodeViewerComponent,
+            component: ResourceNodeViewerComponent,
             data: {
-              path: 'resource.externalView'
+              path: 'externalView'
             }
           },
           {
             path: 'idealState',
-            component: NodeViewerComponent,
+            component: ResourceNodeViewerComponent,
             data: {
-              path: 'resource.idealState'
+              path: 'idealState'
             }
           },
           {
             path: 'configs',
-            component: ConfigDetailComponent,
-            data: {
-              forResource: true
-            }
+            component: ConfigDetailComponent
           }
         ]
       },
@@ -138,10 +128,7 @@ const HELIX_ROUTES: Routes = [
           },
           {
             path: 'configs',
-            component: ConfigDetailComponent,
-            data: {
-              forInstance: true
-            }
+            component: ConfigDetailComponent
           },
           {
             path: 'history',

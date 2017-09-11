@@ -86,10 +86,15 @@ console.log(this.router.url);
     let message = error.message || 'Cannot reach Helix restful service.';
 
     if (error instanceof Response) {
-      message = error.text();
-      try {
-        message = JSON.parse(message).error;
-      } catch (e) {}
+      if (error.status == 404) {
+        // rest api throws 404 directly to app without any wrapper
+        message = 'Not Found';
+      } else {
+        message = error.text();
+        try {
+          message = JSON.parse(message).error;
+        } catch (e) {}
+      }
     }
 
     return Observable.throw(message);

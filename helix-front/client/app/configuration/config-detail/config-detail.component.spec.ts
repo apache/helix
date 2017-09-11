@@ -1,9 +1,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { HttpModule } from '@angular/http';
-import { MaterialModule } from '@angular/material';
-import { RouterTestingModule } from '@angular/router/testing';
 
+import { TestingModule } from '../../../testing/testing.module';
 import { ConfigDetailComponent } from './config-detail.component';
 
 describe('ConfigDetailComponent', () => {
@@ -13,9 +11,7 @@ describe('ConfigDetailComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        HttpModule,
-        RouterTestingModule,
-        MaterialModule
+        TestingModule
       ],
       declarations: [
         ConfigDetailComponent

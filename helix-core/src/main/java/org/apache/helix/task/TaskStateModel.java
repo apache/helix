@@ -39,14 +39,19 @@ public class TaskStateModel extends StateModel {
   private final Map<String, TaskFactory> _taskFactoryRegistry;
   private ScheduledFuture timeout_task;
   private TaskRunner _taskRunner;
-  private final ScheduledExecutorService _timeoutTaskExecutor =
-      Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService _timeoutTaskExecutor;
 
   public TaskStateModel(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
       ScheduledExecutorService taskExecutor) {
+    this(manager, taskFactoryRegistry, taskExecutor, taskExecutor);
+  }
+
+  public TaskStateModel(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
+      ScheduledExecutorService taskExecutor, ScheduledExecutorService timerTaskExecutor) {
     _manager = manager;
     _taskFactoryRegistry = taskFactoryRegistry;
     _taskExecutor = taskExecutor;
+    _timeoutTaskExecutor = timerTaskExecutor;
   }
 
   public boolean isShutdown() {

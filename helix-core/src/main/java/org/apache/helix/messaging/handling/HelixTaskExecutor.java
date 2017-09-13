@@ -19,9 +19,34 @@ package org.apache.helix.messaging.handling;
  * under the License.
  */
 
-import org.apache.helix.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.helix.ConfigAccessor;
+import org.apache.helix.Criteria;
+import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
+import org.apache.helix.InstanceType;
+import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.NotificationContext.Type;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.PreFetch;
@@ -166,7 +191,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         new MsgHandlerFactoryRegistryItem(factory, threadpoolSize);
     MsgHandlerFactoryRegistryItem prevItem = _hdlrFtyRegistry.putIfAbsent(type, newItem);
     if (prevItem == null) {
-      ExecutorService newPool = Executors.newFixedThreadPool(threadpoolSize);
+      ExecutorService newPool = Executors.newFixedThreadPool(threadpoolSize, new ThreadFactory() {
+        @Override public Thread newThread(Runnable r) {
+          return new Thread(r, "HelixTaskExecutor-message_handle_thread");
+        }
+      });
       ExecutorService prevExecutor = _executorMap.putIfAbsent(type, newPool);
       if (prevExecutor != null) {
         LOG.warn("Skip creating a new thread pool for type: " + type + ", already existing pool: "
@@ -254,9 +283,13 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
               "Failed to parse ThreadPoolSize from resourceConfig for resource" + resourceName, e);
         }
       }
-      String key = getPerResourceStateTransitionPoolName(resourceName);
+      final String key = getPerResourceStateTransitionPoolName(resourceName);
       if (threadpoolSize > 0) {
-        _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
+        _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize, new ThreadFactory() {
+          @Override public Thread newThread(Runnable r) {
+            return new Thread(r, "GerenricHelixController-message_handle_" + key);
+          }
+        }));
         LOG.info("Added dedicate threadpool for resource: " + resourceName + " with size: "
             + threadpoolSize);
       } else {
@@ -564,8 +597,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // Log all tasks that fail to terminate
     for (String taskId : _taskMap.keySet()) {
       MessageTaskInfo info = _taskMap.get(taskId);
-      sb.append(
-          "Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage() + "\n");
+      sb.append("Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage() + "\n");
     }
 
     LOG.info(sb.toString());
@@ -588,9 +620,14 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _isShuttingDown = false;
 
     // Re-init all existing factories
-    for (String msgType : _hdlrFtyRegistry.keySet()) {
+    for (final String msgType : _hdlrFtyRegistry.keySet()) {
       MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
-      ExecutorService newPool = Executors.newFixedThreadPool(item.threadPoolSize());
+      ExecutorService newPool =
+          Executors.newFixedThreadPool(item.threadPoolSize(), new ThreadFactory() {
+            @Override public Thread newThread(Runnable r) {
+              return new Thread(r, "HelixTaskExecutor-message_handle_" + msgType);
+            }
+          });
       ExecutorService prevPool = _executorMap.putIfAbsent(msgType, newPool);
       if (prevPool != null) {
         // Will happen if we register and call init
@@ -699,8 +736,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       for (Message message : messages) {
         sb.append(message.getMsgId() + ",");
       }
-      LOG.info(
-          "Helix task executor is shutting down, discard unprocessed messages : " + sb.toString());
+      LOG.info("Helix task executor is shutting down, discard unprocessed messages : " + sb.toString());
       return;
     }
 
@@ -805,8 +841,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           Message targetMessage = stateTransitionHandlers.get(targetMessageName).getMessage();
           if (!isCancelingSameStateTransition(targetMessage, message)) {
             removeMessageFromZk(accessor, message, instanceName);
-            _monitor.reportProcessedMessage(message,
-                ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+            _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
             continue;
           }
 
@@ -815,8 +850,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
               ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
 
           removeMessageFromZk(accessor, targetMessage, instanceName);
-          _monitor.reportProcessedMessage(targetMessage,
-              ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+          _monitor
+              .reportProcessedMessage(targetMessage, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
           stateTransitionHandlers.remove(targetMessageName);
           continue;
         } else {
@@ -831,8 +866,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
             if (!isCancelingSameStateTransition(task.getMessage(), message)) {
               removeMessageFromZk(accessor, message, instanceName);
-              _monitor.reportProcessedMessage(message,
-                  ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+              _monitor
+                  .reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
               continue;
             }
 
@@ -842,10 +877,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
               _messageTaskMap.remove(targetMessageName);
               _taskMap.remove(taskId);
               removeMessageFromZk(accessor, message, instanceName);
-              removeMessageFromZk(accessor, stateTransitionMessage,
-                  instanceName);
-              _monitor.reportProcessedMessage(message,
-                  ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
+              removeMessageFromZk(accessor, stateTransitionMessage, instanceName);
+              _monitor
+                  .reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
               _monitor.reportProcessedMessage(stateTransitionMessage,
                   ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
               continue;

@@ -40,14 +40,15 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   private final HelixManager _manager;
   private final Map<String, TaskFactory> _taskFactoryRegistry;
   private final ScheduledExecutorService _taskExecutor;
+  private final ScheduledExecutorService _timerTaskExecutor;
   private ThreadPoolExecutorMonitor _monitor;
-  private final static int TASK_THREADPOOL_SIZE = 40;
+  public final static int TASK_THREADPOOL_SIZE = 40;
 
   public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry) {
     this(manager, taskFactoryRegistry,
         Executors.newScheduledThreadPool(TASK_THREADPOOL_SIZE, new ThreadFactory() {
           @Override public Thread newThread(Runnable r) {
-            return new Thread(r, "TaskStateModel-thread-pool");
+            return new Thread(r, "TaskStateModelFactory-task_thread");
           }
         }));
   }
@@ -57,6 +58,11 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     _manager = manager;
     _taskFactoryRegistry = taskFactoryRegistry;
     _taskExecutor = taskExecutor;
+    _timerTaskExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+      @Override public Thread newThread(Runnable r) {
+        return new Thread(r, "TaskStateModelFactory-timeTask_thread");
+      }
+    });
     if (_taskExecutor instanceof ThreadPoolExecutor) {
       try {
         _monitor = new ThreadPoolExecutorMonitor(TaskConstants.STATE_MODEL_NAME,
@@ -67,12 +73,17 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     }
   }
 
-  @Override public TaskStateModel createNewStateModel(String resourceName, String partitionKey) {
-    return new TaskStateModel(_manager, _taskFactoryRegistry, _taskExecutor);
+  @Override
+  public TaskStateModel createNewStateModel(String resourceName, String partitionKey) {
+    return new TaskStateModel(_manager, _taskFactoryRegistry, _taskExecutor, _timerTaskExecutor);
   }
 
   public void shutdown() {
     _taskExecutor.shutdown();
+    _timerTaskExecutor.shutdown();
+    if (_monitor != null ) {
+      _monitor.unregister();
+    }
   }
 
   public boolean isShutdown() {

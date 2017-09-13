@@ -738,7 +738,7 @@ public class TaskDriver {
       throw new HelixException(String.format("Workflow \"%s\" does not exists!", workflowName));
     }
 
-    long timeToSleep = timeout > 100L ? 100L : timeout;
+    long timeToSleep = timeout > 50L ? 50L : timeout;
 
     WorkflowContext ctx;
     if (workflowConfig.isRecurring()) {
@@ -750,10 +750,10 @@ public class TaskDriver {
 
       jobName = jobName.substring(workflowName.length() + 1);
       workflowName = ctx.getLastScheduledSingleWorkflow();
-      jobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
     }
+    jobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
 
-    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(states));
+    Set<TaskState> allowedStates = new HashSet<>(Arrays.asList(states));
     // Wait for state
     long st = System.currentTimeMillis();
     do {

@@ -97,14 +97,6 @@ public class InstanceMonitor implements InstanceMonitorMBean {
     return _participantName;
   }
 
-  /**
-   * Helper for basic formatted view of this bean
-   * @return bean name
-   */
-  public String getBeanName() {
-    return _clusterName + " " + serializedTags() + " " + _participantName;
-  }
-
   private String serializedTags() {
     return Joiner.on('|').skipNulls().join(_tags).toString();
   }

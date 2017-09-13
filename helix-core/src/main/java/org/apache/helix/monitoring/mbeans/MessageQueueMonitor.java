@@ -121,6 +121,6 @@ public class MessageQueueMonitor implements MessageQueueMonitorMBean {
   }
 
   public ObjectName getObjectName(String name) throws MalformedObjectNameException {
-    return new ObjectName(String.format("%s: %s", MonitorDomainNames.ClusterStatus.name(), name));
+    return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), name));
   }
 }

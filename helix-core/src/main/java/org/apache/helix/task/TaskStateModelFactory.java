@@ -79,6 +79,9 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   }
 
   public void shutdown() {
+    if (_monitor != null) {
+      _monitor.unregister();
+    }
     _taskExecutor.shutdown();
     _timerTaskExecutor.shutdown();
     if (_monitor != null ) {

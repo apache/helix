@@ -102,6 +102,6 @@ public class TestResetClusterMetrics extends ZkUnitTestBase {
   }
 
   private ObjectName objectName(String beanName) throws Exception {
-    return new ObjectName(MonitorDomainNames.ClusterStatus.name() + ": " + beanName);
+    return new ObjectName(MonitorDomainNames.ClusterStatus.name() + ":" + beanName);
   }
 }

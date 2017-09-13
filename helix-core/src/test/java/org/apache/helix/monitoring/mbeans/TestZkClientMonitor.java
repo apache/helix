@@ -32,15 +32,13 @@ public class TestZkClientMonitor {
 
   private MBeanServer _beanServer = ManagementFactory.getPlatformMBeanServer();
 
-  private ObjectName buildObjectName(String tag, String key) throws MalformedObjectNameException {
-    return MBeanRegistrar
-        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE, tag,
-            ZkClientMonitor.MONITOR_KEY, key);
+  private ObjectName buildObjectName(String tag, String key, String instance) throws MalformedObjectNameException {
+    return ZkClientMonitor.getObjectName(tag, key, instance);
   }
 
-  private ObjectName buildObjectName(String tag, String key, int num)
+  private ObjectName buildObjectName(String tag, String key, String instance, int num)
       throws MalformedObjectNameException {
-    ObjectName objectName = buildObjectName(tag, key);
+    ObjectName objectName = buildObjectName(tag, key, instance);
     if (num > 0) {
       return new ObjectName(String
           .format("%s,%s=%s", objectName.toString(), MBeanRegistrar.DUPLICATE,
@@ -50,11 +48,10 @@ public class TestZkClientMonitor {
     }
   }
 
-  private ObjectName buildPathMonitorObjectName(String tag, String key, String path)
+  private ObjectName buildPathMonitorObjectName(String tag, String key, String instance, String path)
       throws MalformedObjectNameException {
-    return MBeanRegistrar
-        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE, tag,
-            ZkClientMonitor.MONITOR_KEY, key, ZkClientPathMonitor.MONITOR_PATH, path);
+    return new ObjectName(String
+        .format("%s,%s=%s", buildObjectName(tag, key, instance).toString(), ZkClientPathMonitor.MONITOR_PATH, path));
   }
 
   @Test
@@ -62,37 +59,39 @@ public class TestZkClientMonitor {
     final String TEST_TAG_1 = "test_tag_1";
     final String TEST_KEY_1 = "test_key_1";
 
-    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG_1, TEST_KEY_1, true);
-    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1)));
+    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG_1, TEST_KEY_1, null, true);
+    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1, null)));
 
     // no per-path monitor items created since "monitorRootPathOnly" = true
-    Assert.assertFalse(_beanServer.isRegistered(buildPathMonitorObjectName(TEST_TAG_1, TEST_KEY_1,
-        ZkClientPathMonitor.PredefinedPath.IdealStates.name())));
+    Assert.assertFalse(_beanServer.isRegistered(
+        buildPathMonitorObjectName(TEST_TAG_1, TEST_KEY_1, null,
+            ZkClientPathMonitor.PredefinedPath.IdealStates.name())));
 
-    ZkClientMonitor monitorDuplicate = new ZkClientMonitor(TEST_TAG_1, TEST_KEY_1, true);
-    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1, 1)));
+    ZkClientMonitor monitorDuplicate = new ZkClientMonitor(TEST_TAG_1, TEST_KEY_1, null, true);
+    Assert.assertTrue(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1, null, 1)));
 
     monitor.unregister();
     monitorDuplicate.unregister();
 
-    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1)));
-    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1, 1)));
+    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1, null)));
+    Assert.assertFalse(_beanServer.isRegistered(buildObjectName(TEST_TAG_1, TEST_KEY_1, null, 1)));
   }
 
   @Test
   public void testCounter() throws JMException {
     final String TEST_TAG = "test_tag_3";
     final String TEST_KEY = "test_key_3";
+    final String TEST_INSTANCE = "test_instance_3";
 
-    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG, TEST_KEY, false);
-    ObjectName name = buildObjectName(TEST_TAG, TEST_KEY);
+    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG, TEST_KEY, TEST_INSTANCE, false);
+    ObjectName name = buildObjectName(TEST_TAG, TEST_KEY, TEST_INSTANCE);
     ObjectName rootName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY,
-        ZkClientPathMonitor.PredefinedPath.Root.name());
-    ObjectName idealStateName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY,
+        TEST_INSTANCE, ZkClientPathMonitor.PredefinedPath.Root.name());
+    ObjectName idealStateName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY, TEST_INSTANCE,
         ZkClientPathMonitor.PredefinedPath.IdealStates.name());
-    ObjectName instancesName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY,
+    ObjectName instancesName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY, TEST_INSTANCE,
         ZkClientPathMonitor.PredefinedPath.Instances.name());
-    ObjectName currentStateName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY,
+    ObjectName currentStateName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY, TEST_INSTANCE,
         ZkClientPathMonitor.PredefinedPath.CurrentStates.name());
 
     monitor.increaseDataChangeEventCounter();

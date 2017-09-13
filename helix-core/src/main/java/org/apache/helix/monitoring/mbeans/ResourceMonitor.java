@@ -76,18 +76,12 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   private String _tag = ClusterStatusMonitor.DEFAULT_TAG;
   private long _lastResetTime;
-  private String _resourceName;
-  private String _clusterName;
+  private final String _resourceName;
+  private final String _clusterName;
+  private final ObjectName _initObjectName;
 
-  public enum MonitorState {
-    TOP_STATE
-  }
-
-  public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName)
-      throws JMException {
-    _clusterName = clusterName;
-    _resourceName = resourceName;
-
+  @Override
+  public ResourceMonitor register() throws JMException {
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
     attributeList.add(_numOfPartitions);
     attributeList.add(_numOfPartitionsInExternalView);
@@ -106,8 +100,20 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     attributeList.add(_maxSinglePartitionTopStateHandoffDuration);
     attributeList.add(_partitionTopStateHandoffDurationGauge);
     attributeList.add(_totalMessageReceived);
+    doRegister(attributeList, _initObjectName);
 
-    register(attributeList, objectName);
+    return this;
+  }
+
+  public enum MonitorState {
+    TOP_STATE
+  }
+
+  public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName)
+      throws JMException {
+    _clusterName = clusterName;
+    _resourceName = resourceName;
+    _initObjectName = objectName;
   }
 
   @Override

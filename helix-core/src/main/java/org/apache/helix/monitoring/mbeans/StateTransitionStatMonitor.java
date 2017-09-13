@@ -51,11 +51,6 @@ public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBe
     return _context;
   }
 
-  public String getBeanName() {
-    return _context.getClusterName() + " " + _context.getResourceName() + " "
-        + _context.getTransition();
-  }
-
   public String getSensorName() {
     return String.format("StateTransitionStat.%s.%s.%s", _context.getClusterName(),
         _context.getResourceName(), _context.getTransition());

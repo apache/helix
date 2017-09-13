@@ -209,8 +209,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
 
     _instanceName = instanceName;
-    _preConnectCallbacks = new ArrayList<PreConnectCallback>();
-    _handlers = new ArrayList<CallbackHandler>();
+    _preConnectCallbacks = new ArrayList<>();
+    _handlers = new ArrayList<>();
     _properties = new HelixManagerProperties("cluster-manager-version.properties");
     _version = _properties.getVersion();
 
@@ -219,8 +219,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     try {
       _callbackMonitors = new HashMap<>();
       for (ChangeType changeType : ChangeType.values()) {
-        _callbackMonitors.put(changeType, new HelixCallbackMonitor(instanceType,
-            String.format("%s.%s", clusterName, instanceName), changeType));
+        HelixCallbackMonitor callbackMonitor =
+            new HelixCallbackMonitor(instanceType, clusterName, instanceName, changeType);
+        callbackMonitor.register();
+        _callbackMonitors.put(changeType, callbackMonitor);
       }
     } catch (JMException e) {
       LOG.error("Error in creating callback monitor.", e);
@@ -603,7 +605,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     zkClientBuilder.setZkServer(_zkAddress).setSessionTimeout(_sessionTimeout)
         .setConnectionTimeout(_clientConnectionTimeout).setZkSerializer(zkSerializer)
         .setMonitorType(_instanceType.name())
-        .setMonitorKey(String.format("%s.%s", _clusterName, _instanceName))
+        .setMonitorKey(_clusterName)
+        .setMonitorInstanceName(_instanceName)
         .setMonitorRootPathOnly(!_instanceType.equals(InstanceType.CONTROLLER) && !_instanceType
             .equals(InstanceType.CONTROLLER_PARTICIPANT));
     _zkclient = zkClientBuilder.build();

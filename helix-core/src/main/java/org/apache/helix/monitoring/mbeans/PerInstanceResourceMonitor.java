@@ -92,11 +92,9 @@ public class PerInstanceResourceMonitor implements PerInstanceResourceMonitorMBe
 
   @Override
   public String getSensorName() {
-    return Joiner
-        .on('.')
-        .join(
-            ImmutableList.of(ClusterStatusMonitor.PARTICIPANT_STATUS_KEY, _clusterName,
-                serializedTags(), _participantName, _resourceName)).toString();
+    return Joiner.on('.').join(ImmutableList
+        .of(ClusterStatusMonitor.PARTICIPANT_STATUS_KEY, _clusterName, serializedTags(),
+            _participantName, _resourceName)).toString();
   }
 
   private String serializedTags() {

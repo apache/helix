@@ -1,4 +1,4 @@
-package org.apache.helix.monitoring;
+package org.apache.helix.monitoring.mbeans;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -20,7 +20,8 @@ package org.apache.helix.monitoring;
  */
 
 import org.apache.helix.model.Message;
-import org.apache.helix.monitoring.mbeans.*;
+import org.apache.helix.monitoring.StateTransitionContext;
+import org.apache.helix.monitoring.StateTransitionDataPoint;
 import org.apache.log4j.Logger;
 
 import javax.management.JMException;
@@ -37,8 +38,6 @@ public class ParticipantStatusMonitor {
   private final ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap =
       new ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor>();
   private static final Logger LOG = Logger.getLogger(ParticipantStatusMonitor.class);
-  public static final String PARTICIPANT_KEY = "ParticipantName";
-  public static final String PARTICIPANT_STATUS_KEY = "ParticipantMessageStatus";
 
   private MBeanServer _beanServer;
   private ParticipantMessageMonitor _messageMonitor;
@@ -52,6 +51,7 @@ public class ParticipantStatusMonitor {
         _messageMonitor = new ParticipantMessageMonitor(instanceName);
         _messageLatencyMonitor =
             new MessageLatencyMonitor(MonitorDomainNames.CLMParticipantReport.name(), instanceName);
+        _messageLatencyMonitor.register();
         _executorMonitors = new ConcurrentHashMap<>();
         register(_messageMonitor, getObjectName(_messageMonitor.getParticipantBeanName()));
       }
@@ -182,9 +182,11 @@ public class ParticipantStatusMonitor {
   }
 
   public void removeExecutorMonitor(String type) {
-    if (_executorMonitors != null && _executorMonitors.containsKey(type)) {
-      _executorMonitors.get(type).unregister();
-      _executorMonitors.remove(type);
+    if (_executorMonitors != null) {
+      ThreadPoolExecutorMonitor monitor = _executorMonitors.remove(type);
+      if (monitor != null) {
+        monitor.unregister();
+      }
     }
   }
 }

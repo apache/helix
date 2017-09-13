@@ -52,7 +52,7 @@ public class TestClusterEventStatusMonitor {
 
     MBeanServer _server = ManagementFactory.getPlatformMBeanServer();
     Set<ObjectInstance> mbeans =
-        _server.queryMBeans(new ObjectName("ClusterStatus" + ":Cluster=TestCluster,eventName=ClusterEvent,*"), null);
+        _server.queryMBeans(new ObjectName("ClusterStatus:Cluster=TestCluster,eventName=ClusterEvent,*"), null);
     Assert.assertEquals(mbeans.size(), 0);
 
     int count = 5;
@@ -69,7 +69,7 @@ public class TestClusterEventStatusMonitor {
 
     mbeans =
         _server.queryMBeans(
-            new ObjectName("ClusterStatus: cluster=TestCluster,eventName=ClusterEvent,*"), null);
+            new ObjectName("ClusterStatus:cluster=TestCluster,eventName=ClusterEvent,*"), null);
     Assert.assertEquals(mbeans.size(), 6);
 
     for (ObjectInstance mbean : mbeans) {
@@ -86,7 +86,7 @@ public class TestClusterEventStatusMonitor {
 
     mbeans =
         _server.queryMBeans(
-            new ObjectName("ClusterStatus: cluster=TestCluster,eventName=ClusterEvent,*"), null);
+            new ObjectName("ClusterStatus:cluster=TestCluster,eventName=ClusterEvent,*"), null);
     Assert.assertEquals(mbeans.size(), 0);
 
     System.out.println("END TestParticipantMonitor");

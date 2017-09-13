@@ -64,16 +64,16 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
 
   private ZkClient(IZkConnection connection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
-      boolean monitorRootPathOnly) {
+      String monitorInstanceName, boolean monitorRootPathOnly) {
     super(connection, connectionTimeout, new ByteArraySerializer(), operationRetryTimeout);
-    init(zkSerializer, monitorType, monitorKey, monitorRootPathOnly);
+    init(zkSerializer, monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       long operationRetryTimeout) {
     this(connection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
-        monitorKey, true);
+        monitorKey, null, true);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
@@ -133,16 +133,17 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   }
 
   protected void init(PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
-      boolean monitorRootPathOnly) {
+      String monitorInstanceName, boolean monitorRootPathOnly) {
     _zkSerializer = zkSerializer;
     if (LOG.isTraceEnabled()) {
       StackTraceElement[] calls = Thread.currentThread().getStackTrace();
       LOG.trace("created a zkclient. callstack: " + Arrays.asList(calls));
     }
     try {
-      if (monitorKey != null && !monitorKey.isEmpty() &&
-          monitorType != null && !monitorType.isEmpty()) {
-        _monitor = new ZkClientMonitor(monitorType, monitorKey, monitorRootPathOnly);
+      if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null && !monitorType
+          .isEmpty()) {
+        _monitor =
+            new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly);
       } else {
         LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
       }
@@ -605,6 +606,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
 
     String _monitorType;
     String _monitorKey;
+    String _monitorInstanceName = null;
     boolean _monitorRootPathOnly = true;
 
     public Builder setConnection(IZkConnection connection) {
@@ -627,15 +629,33 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
       return this;
     }
 
+    /**
+     * Used as part of the MBean ObjectName. This item is required for enabling monitoring.
+     * @param monitorType
+     */
     public Builder setMonitorType(String monitorType) {
       this._monitorType = monitorType;
       return this;
     }
 
+    /**
+     * Used as part of the MBean ObjectName. This item is required for enabling monitoring.
+     * @param monitorKey
+     */
     public Builder setMonitorKey(String monitorKey) {
       this._monitorKey = monitorKey;
       return this;
     }
+
+    /**
+     * Used as part of the MBean ObjectName. This item is optional.
+     * @param instanceName
+     */
+    public Builder setMonitorInstanceName(String instanceName) {
+      this._monitorInstanceName = instanceName;
+      return this;
+    }
+
 
     public Builder setMonitorRootPathOnly(Boolean monitorRootPathOnly) {
       this._monitorRootPathOnly = monitorRootPathOnly;
@@ -676,7 +696,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
       }
 
       return new ZkClient(_connection, _connectionTimeout, _operationRetryTimeout, _zkSerializer,
-          _monitorType, _monitorKey, _monitorRootPathOnly);
+          _monitorType, _monitorKey, _monitorInstanceName, _monitorRootPathOnly);
     }
   }
 }

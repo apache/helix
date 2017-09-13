@@ -43,19 +43,19 @@ public class TestHelixCallbackMonitor {
   public void testMBeanRegisteration() throws JMException {
     Set<HelixCallbackMonitor> monitors = new HashSet<>();
     for (HelixConstants.ChangeType changeType : HelixConstants.ChangeType.values()) {
-      monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, changeType));
+      monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, null, changeType).register());
       Assert.assertTrue(
           _beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, changeType)));
     }
 
     for (HelixConstants.ChangeType changeType : HelixConstants.ChangeType.values()) {
-      monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, changeType));
+      monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, null, changeType).register());
       Assert.assertTrue(
           _beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, changeType, 1)));
     }
 
     for (HelixConstants.ChangeType changeType : HelixConstants.ChangeType.values()) {
-      monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, changeType));
+      monitors.add(new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, null, changeType).register());
       Assert.assertTrue(
           _beanServer.isRegistered(buildObjectName(TEST_TYPE, TEST_CLUSTER, changeType, 2)));
     }
@@ -77,8 +77,9 @@ public class TestHelixCallbackMonitor {
 
   @Test
   public void testCounter() throws JMException {
-    HelixCallbackMonitor monitor =
-        new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, HelixConstants.ChangeType.CURRENT_STATE);
+    HelixCallbackMonitor monitor = new HelixCallbackMonitor(TEST_TYPE, TEST_CLUSTER, null,
+        HelixConstants.ChangeType.CURRENT_STATE);
+    monitor.register();
     ObjectName name =
         buildObjectName(TEST_TYPE, TEST_CLUSTER, HelixConstants.ChangeType.CURRENT_STATE);
 

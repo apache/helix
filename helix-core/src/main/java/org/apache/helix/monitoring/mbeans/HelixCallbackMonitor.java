@@ -38,6 +38,9 @@ public class HelixCallbackMonitor extends DynamicMBeanProvider {
   private static final String MBEAN_DESCRIPTION = "Helix Callback Monitor";
   private final String _sensorName;
   private final HelixConstants.ChangeType _changeType;
+  private final InstanceType _type;
+  private final String _clusterName;
+  private final String _instanceName;
 
   private SimpleDynamicMetric<Long> _counter = new SimpleDynamicMetric("Counter", 0l);
   private SimpleDynamicMetric<Long> _unbatchedCounter =
@@ -48,20 +51,17 @@ public class HelixCallbackMonitor extends DynamicMBeanProvider {
   private HistogramDynamicMetric _latencyGauge = new HistogramDynamicMetric("LatencyGauge",
       _metricRegistry.histogram(getMetricRegistryNamePrefix() + "LatencyGauge"));
 
-  public HelixCallbackMonitor(InstanceType type, String key, HelixConstants.ChangeType changeType)
-      throws JMException {
+  public HelixCallbackMonitor(InstanceType type, String clusterName, String instanceName,
+      HelixConstants.ChangeType changeType) throws JMException {
     _changeType = changeType;
-    _sensorName = String
-        .format("%s.%s.%s.%s", MonitorDomainNames.HelixCallback.name(), type.name(), key,
-            changeType.name());
+    _type = type;
+    _clusterName = clusterName;
+    _instanceName = instanceName;
 
-    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
-    attributeList.add(_counter);
-    attributeList.add(_unbatchedCounter);
-    attributeList.add(_totalLatencyCounter);
-    attributeList.add(_latencyGauge);
-    register(attributeList, MBEAN_DESCRIPTION, MonitorDomainNames.HelixCallback.name(),
-        MONITOR_TYPE, type.name(), MONITOR_KEY, key, MONITOR_CHANGE_TYPE, changeType.name());
+    // Don't put instanceName into sensor name. This detail information is in the MBean name already.
+    _sensorName = String
+        .format("%s.%s.%s.%s", MonitorDomainNames.HelixCallback.name(), type.name(), clusterName,
+            changeType.name());
   }
 
   @Override
@@ -81,5 +81,19 @@ public class HelixCallbackMonitor extends DynamicMBeanProvider {
 
   public void increaseCallbackUnbatchedCounters() {
     _unbatchedCounter.updateValue(_unbatchedCounter.getValue() + 1);
+  }
+
+  @Override
+  public HelixCallbackMonitor register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_counter);
+    attributeList.add(_unbatchedCounter);
+    attributeList.add(_totalLatencyCounter);
+    attributeList.add(_latencyGauge);
+    doRegister(attributeList, MBEAN_DESCRIPTION, MonitorDomainNames.HelixCallback.name(),
+        MONITOR_TYPE, _type.name(), MONITOR_KEY,
+        _clusterName + (_instanceName == null ? "" : "." + _instanceName), MONITOR_CHANGE_TYPE,
+        _changeType.name());
+    return this;
   }
 }

@@ -25,8 +25,6 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
 import javax.management.JMException;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,12 +80,13 @@ public class ClusterEventMonitor extends DynamicMBeanProvider {
         "ClusterEvent", PHASE_DN_KEY, _phaseName);
   }
 
-  public void register() throws JMException {
+  public ClusterEventMonitor register() throws JMException {
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
     attributeList.add(_totalDuration);
     attributeList.add(_maxDuration);
     attributeList.add(_count);
     attributeList.add(_duration);
-    register(attributeList, _clusterStatusMonitor.getObjectName(getBeanName()));
+    doRegister(attributeList, _clusterStatusMonitor.getObjectName(getBeanName()));
+    return this;
   }
 }

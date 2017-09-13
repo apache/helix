@@ -21,34 +21,18 @@ package org.apache.helix.monitoring.mbeans;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.lang.management.ManagementFactory;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
+import org.apache.helix.model.*;
+import org.apache.helix.task.*;
+import org.apache.log4j.Logger;
+
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.Message;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
-import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.task.JobConfig;
-import org.apache.helix.task.TaskDriver;
-import org.apache.helix.task.TaskState;
-import org.apache.helix.task.WorkflowConfig;
-import org.apache.helix.task.WorkflowContext;
-import org.apache.log4j.Logger;
+import java.lang.management.ManagementFactory;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
@@ -83,7 +67,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private final ConcurrentHashMap<String, InstanceMonitor> _instanceMbeanMap = new ConcurrentHashMap<>();
 
   // phaseName -> eventMonitor
-  private final ConcurrentHashMap<String, ClusterEventMonitor> _clusterEventMbeanMap = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, ClusterEventMonitor> _clusterEventMbeanMap =
+      new ConcurrentHashMap<>();
 
   /**
    * PerInstanceResource bean map: beanName->bean
@@ -106,13 +91,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   public ObjectName getObjectName(String name) throws MalformedObjectNameException {
-    return new ObjectName(String.format("%s: %s", MonitorDomainNames.ClusterStatus.name(), name));
-  }
-
-  // TODO remove getBeanName()?
-  // Used by other external JMX consumers like ingraph
-  public String getBeanName() {
-    return MonitorDomainNames.ClusterStatus.name() + " " + _clusterName;
+    return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), name));
   }
 
   public String getClusterName() {
@@ -287,8 +266,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         }
         monitor.register();
       } catch (JMException e) {
-        LOG.error(
-            "Failed to register ClusterEventMonitorMbean for cluster " + _clusterName + " and phase type: " + phase, e);
+        LOG.error("Failed to register ClusterEventMonitorMbean for cluster " + _clusterName
+            + " and phase type: " + phase, e);
         return;
       }
     }
@@ -458,7 +437,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         synchronized (this) {
           if (!_resourceMbeanMap.containsKey(resourceName)) {
             String beanName = getResourceBeanName(resourceName);
-            ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName, getObjectName(beanName));
+            ResourceMonitor bean =
+                new ResourceMonitor(_clusterName, resourceName, getObjectName(beanName));
+            bean.register();
             _resourceMbeanMap.put(resourceName, bean);
           }
         }
@@ -555,6 +536,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         continue;
       }
       WorkflowConfig workflowConfig = driver.getWorkflowConfig(workflow);
+      if (workflowConfig == null) {
+        continue;
+      }
       Set<String> allJobs = workflowConfig.getJobDag().getAllNodes();
       WorkflowContext workflowContext = driver.getWorkflowContext(workflow);
       for (String job : allJobs) {

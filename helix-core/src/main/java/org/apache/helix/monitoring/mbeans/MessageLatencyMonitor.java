@@ -20,7 +20,6 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import org.apache.helix.model.Message;
-import org.apache.helix.monitoring.ParticipantStatusMonitor;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
@@ -31,10 +30,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MessageLatencyMonitor extends DynamicMBeanProvider {
-  public static String MONITOR_TYPE_KW = "MonitorType";
-
   private static final String MBEAN_DESCRIPTION = "Helix Message Latency Monitor";
   private final String _sensorName;
+  private final String _domainName;
+  private final String _participantName;
 
   private SimpleDynamicMetric<Long> _totalMessageCount =
       new SimpleDynamicMetric("TotalMessageCount", 0l);
@@ -45,16 +44,10 @@ public class MessageLatencyMonitor extends DynamicMBeanProvider {
           _metricRegistry.histogram(getMetricRegistryNamePrefix() + "MessageLatencyGauge"));
 
   public MessageLatencyMonitor(String domainName, String participantName) throws JMException {
-    _sensorName = String
-        .format("%s.%s.%s.%s", ParticipantStatusMonitor.PARTICIPANT_STATUS_KEY, participantName,
-            MONITOR_TYPE_KW, MessageLatencyMonitor.class.getSimpleName());
-
-    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
-    attributeList.add(_totalMessageCount);
-    attributeList.add(_totalMessageLatency);
-    attributeList.add(_messageLatencyGauge);
-    register(attributeList, MBEAN_DESCRIPTION, domainName, ParticipantStatusMonitor.PARTICIPANT_KEY,
-        participantName, MONITOR_TYPE_KW, MessageLatencyMonitor.class.getSimpleName());
+    _domainName = domainName;
+    _participantName = participantName;
+    _sensorName = String.format("%s.%s", ParticipantMessageMonitor.PARTICIPANT_STATUS_KEY,
+        "MessageLatency");
   }
 
   @Override
@@ -69,5 +62,17 @@ public class MessageLatencyMonitor extends DynamicMBeanProvider {
     _totalMessageCount.updateValue(_totalMessageCount.getValue() + 1);
     _totalMessageLatency.updateValue(_totalMessageLatency.getValue() + latency);
     _messageLatencyGauge.updateValue(latency);
+  }
+
+  @Override
+  public MessageLatencyMonitor register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_totalMessageCount);
+    attributeList.add(_totalMessageLatency);
+    attributeList.add(_messageLatencyGauge);
+    doRegister(attributeList, MBEAN_DESCRIPTION, _domainName, ParticipantMessageMonitor.PARTICIPANT_KEY,
+        _participantName, "MonitorType", MessageLatencyMonitor.class.getSimpleName());
+
+    return this;
   }
 }

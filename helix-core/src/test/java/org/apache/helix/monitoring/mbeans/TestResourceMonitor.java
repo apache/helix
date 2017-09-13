@@ -47,6 +47,7 @@ public class TestResourceMonitor {
   @Test() public void testReportData() throws JMException {
     final int n = 5;
     ResourceMonitor monitor = new ResourceMonitor(_clusterName, _dbName, new ObjectName("testDomain:key=value"));
+    monitor.register();
 
     List<String> instances = new ArrayList<String>();
     for (int i = 0; i < n; i++) {

@@ -59,7 +59,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.monitoring.ParticipantStatusMonitor;
+import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;

@@ -385,7 +385,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     ObjectName name = MBeanRegistrar
         .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
-            ZkHelixPropertyStore.MONITOR_TAG, ZkClientMonitor.MONITOR_KEY, TEST_ROOT,
+            ZkHelixPropertyStore.MONITOR_TYPE, ZkClientMonitor.MONITOR_KEY, TEST_ROOT,
             ZkClientPathMonitor.MONITOR_PATH, "Root");
     MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
     Assert.assertTrue(beanServer.isRegistered(name));

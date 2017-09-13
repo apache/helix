@@ -53,7 +53,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * @param domain         the MBean domain name
    * @param keyValuePairs  the MBean object name components
    */
-  protected synchronized void register(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+  protected synchronized void doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       String description, String domain, String... keyValuePairs) throws JMException {
     if (_objectName != null) {
       throw new HelixException(
@@ -70,7 +70,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * @param description    the MBean description
    * @param objectName     the proposed MBean ObjectName
    */
-  protected synchronized void register(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+  protected synchronized void doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       String description, ObjectName objectName) throws JMException {
     if (_objectName != null) {
       throw new HelixException(
@@ -80,22 +80,9 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
     _objectName = MBeanRegistrar.register(this, objectName);
   }
 
-  protected synchronized void register(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+  protected synchronized void doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       ObjectName objectName) throws JMException {
-    register(dynamicMetrics, null, objectName);
-  }
-
-  /**
-   * After unregistered, the MBean can't be registered again, a new monitor has be to created.
-   */
-  public synchronized void unregister() {
-    _metricRegistry.removeMatching(new MetricFilter() {
-      @Override
-      public boolean matches(String name, Metric metric) {
-        return name.startsWith(getMetricRegistryNamePrefix());
-      }
-    });
-    MBeanRegistrar.unregister(_objectName);
+    doRegister(dynamicMetrics, null, objectName);
   }
 
   protected String getMetricRegistryNamePrefix() {
@@ -145,6 +132,24 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
     _mBeanInfo = new MBeanInfo(getClass().getName(), description, attributeInfos,
         new MBeanConstructorInfo[] { constructorInfo }, new MBeanOperationInfo[0],
         new MBeanNotificationInfo[0]);
+  }
+
+  /**
+   * Call doRegister() to finish registration MBean and the attributes.
+   */
+  public abstract DynamicMBeanProvider register() throws JMException;
+
+  /**
+   * After unregistered, the MBean can't be registered again, a new monitor has be to created.
+   */
+  public synchronized void unregister() {
+    _metricRegistry.removeMatching(new MetricFilter() {
+      @Override
+      public boolean matches(String name, Metric metric) {
+        return name.startsWith(getMetricRegistryNamePrefix());
+      }
+    });
+    MBeanRegistrar.unregister(_objectName);
   }
 
   @Override

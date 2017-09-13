@@ -25,14 +25,19 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
 import javax.management.JMException;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ZkClientPathMonitor extends DynamicMBeanProvider {
   public static final String MONITOR_PATH = "PATH";
-
   private static final String MBEAN_DESCRIPTION = "Helix Zookeeper Client Monitor";
   private final String _sensorName;
+  private final String _type;
+  private final String _key;
+  private final String _instanceName;
+  private final PredefinedPath _path;
 
   protected enum PredefinedPath {
     IdealStates(".*/IDEALSTATES/.*"),
@@ -87,12 +92,18 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     return _sensorName;
   }
 
-  public ZkClientPathMonitor(String path, String monitorType, String monitorKey)
-      throws JMException {
+  public ZkClientPathMonitor(PredefinedPath path, String monitorType, String monitorKey,
+      String monitorInstanceName) {
+    _type = monitorType;
+    _key = monitorKey;
+    _instanceName = monitorInstanceName;
+    _path = path;
     _sensorName = String
         .format("%s.%s.%s.%s", MonitorDomainNames.HelixZkClient.name(), monitorType, monitorKey,
-            path);
+            path.name());
+  }
 
+  public ZkClientPathMonitor register() throws JMException {
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
     attributeList.add(_readCounter);
     attributeList.add(_writeCounter);
@@ -106,9 +117,13 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     attributeList.add(_writeLatencyGauge);
     attributeList.add(_readBytesGauge);
     attributeList.add(_writeBytesGauge);
-    register(attributeList, MBEAN_DESCRIPTION, MonitorDomainNames.HelixZkClient.name(),
-        ZkClientMonitor.MONITOR_TYPE, monitorType, ZkClientMonitor.MONITOR_KEY, monitorKey,
-        MONITOR_PATH, path);
+
+    ObjectName objectName = new ObjectName(String.format("%s,%s=%s",
+        ZkClientMonitor.getObjectName(_type, _key, _instanceName).toString(),
+        MONITOR_PATH, _path.name()));
+    doRegister(attributeList, MBEAN_DESCRIPTION, objectName);
+
+    return this;
   }
 
   protected void record(int bytes, long latencyMilliSec, boolean isFailure, boolean isRead) {

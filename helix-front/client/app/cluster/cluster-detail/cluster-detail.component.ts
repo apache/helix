@@ -6,6 +6,7 @@ import { Cluster } from '../shared/cluster.model';
 import { HelperService } from '../../shared/helper.service';
 import { ClusterService } from '../shared/cluster.service';
 import { InstanceService } from '../../instance/shared/instance.service';
+import { AlertDialogComponent } from '../../shared/dialog/alert-dialog/alert-dialog.component';
 import { InputDialogComponent } from '../../shared/dialog/input-dialog/input-dialog.component';
 
 @Component({
@@ -117,6 +118,41 @@ export class ClusterDetailComponent implements OnInit {
         () => this.loadCluster(),
         error => this.helperService.showError(error)
       );
+  }
+
+  activateCluster() {
+    this.dialog
+      .open(InputDialogComponent, {
+        data: {
+          title: 'Activate this Cluster',
+          message: 'To link this cluster to a Helix super cluster (controller), please enter the super cluster name:',
+          values: {
+            name: {
+              label: 'super cluster name'
+            }
+          }
+        }
+      })
+      .afterClosed()
+      .subscribe(result => {
+        if (result && result.name.value) {
+          this.clusterService
+            .activate(this.clusterName, result.name.value)
+            .subscribe(
+              () => {
+                // since this action may delay a little bit, to prevent re-activation,
+                // use an alert dialog to reload the data later
+                this.dialog.open(AlertDialogComponent, { data: {
+                  title: 'Cluster Activated',
+                  message: `Cluster '${ this.clusterName }' is linked to super cluster '${ result.name.value }'.`
+                }}).afterClosed().subscribe(() => {
+                  this.loadCluster();
+                });
+              },
+              error => this.helperService.showError(error)
+            );
+        }
+      });
   }
 
   deleteCluster() {

@@ -44,4 +44,9 @@ export class ClusterService extends HelixService {
     return this
       .post(`/clusters/${ name }?command=disable`, null);
   }
+
+  public activate(name: string, superCluster: string) {
+    return this
+      .post(`/clusters/${ name }?command=activate&superCluster=${ superCluster }`, null);
+  }
 }

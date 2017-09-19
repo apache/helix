@@ -15,6 +15,10 @@
           <md-icon>menu</md-icon>
         </button>
         <md-menu #menu="mdMenu">
+          <button md-menu-item *ngIf="cluster.controller == 'No Lead Controller!'" (click)="activateCluster()">
+            <md-icon>settings_input_antenna</md-icon>
+            <span>Activate this Cluster</span>
+          </button>
           <button md-menu-item *ngIf="cluster.enabled" (click)="disableCluster()">
             <md-icon>not_interested</md-icon>
             <span>Disable this Cluster</span>

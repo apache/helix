@@ -86,9 +86,9 @@ public class PropertyKey {
 
   @Override
   public int hashCode() {
-    int result = _type.hashCode();
+    int result = (_type != null ? _type.hashCode() : 0);
     result = 31 * result + Arrays.hashCode(_params);
-    result = 31 * result + _typeClazz.hashCode();
+    result = 31 * result + (_typeClazz != null ? _typeClazz.hashCode() : 0);
     result = 31 * result + (_configScope != null ? _configScope.hashCode() : 0);
     return result;
   }

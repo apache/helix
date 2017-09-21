@@ -78,14 +78,14 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
       new SimpleDynamicMetric("WriteTotalLatencyCounter", 0l);
 
   private HistogramDynamicMetric _readLatencyGauge = new HistogramDynamicMetric("ReadLatencyGauge",
-      _metricRegistry.histogram(getMetricRegistryNamePrefix() + "ReadLatencyGauge"));
+      _metricRegistry.histogram(getMetricName("ReadLatencyGauge")));
   private HistogramDynamicMetric _writeLatencyGauge =
       new HistogramDynamicMetric("WriteLatencyGauge",
-          _metricRegistry.histogram(getMetricRegistryNamePrefix() + "WriteLatencyGauge"));
+          _metricRegistry.histogram(getMetricName("WriteLatencyGauge")));
   private HistogramDynamicMetric _readBytesGauge = new HistogramDynamicMetric("ReadBytesGauge",
-      _metricRegistry.histogram(getMetricRegistryNamePrefix() + "ReadBytesGauge"));
+      _metricRegistry.histogram(getMetricName("ReadBytesGauge")));
   private HistogramDynamicMetric _writeBytesGauge = new HistogramDynamicMetric("WriteBytesGauge",
-      _metricRegistry.histogram(getMetricRegistryNamePrefix() + "WriteBytesGauge"));
+      _metricRegistry.histogram(getMetricName("WriteBytesGauge")));
 
   @Override
   public String getSensorName() {

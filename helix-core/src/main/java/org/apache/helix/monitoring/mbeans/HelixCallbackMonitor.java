@@ -49,7 +49,7 @@ public class HelixCallbackMonitor extends DynamicMBeanProvider {
       new SimpleDynamicMetric("LatencyCounter", 0l);
 
   private HistogramDynamicMetric _latencyGauge = new HistogramDynamicMetric("LatencyGauge",
-      _metricRegistry.histogram(getMetricRegistryNamePrefix() + "LatencyGauge"));
+      _metricRegistry.histogram(getMetricName("LatencyGauge")));
 
   public HelixCallbackMonitor(InstanceType type, String clusterName, String instanceName,
       HelixConstants.ChangeType changeType) throws JMException {

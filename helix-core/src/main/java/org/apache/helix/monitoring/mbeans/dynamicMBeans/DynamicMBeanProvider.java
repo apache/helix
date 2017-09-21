@@ -85,8 +85,9 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
     doRegister(dynamicMetrics, null, objectName);
   }
 
-  protected String getMetricRegistryNamePrefix() {
-    return String.format("%s-%s-", getClass().getSimpleName(), Integer.toHexString(hashCode()));
+  protected String getMetricName(String metricName) {
+    return MetricRegistry
+        .name(getClass().getSimpleName(), Integer.toHexString(hashCode()), metricName);
   }
 
   /**
@@ -143,10 +144,11 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * After unregistered, the MBean can't be registered again, a new monitor has be to created.
    */
   public synchronized void unregister() {
+    final String metricNamePrefix = getMetricName(null);
     _metricRegistry.removeMatching(new MetricFilter() {
       @Override
       public boolean matches(String name, Metric metric) {
-        return name.startsWith(getMetricRegistryNamePrefix());
+        return name.startsWith(metricNamePrefix);
       }
     });
     MBeanRegistrar.unregister(_objectName);

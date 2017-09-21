@@ -41,7 +41,7 @@ public class MessageLatencyMonitor extends DynamicMBeanProvider {
       new SimpleDynamicMetric("TotalMessageLatency", 0l);
   private HistogramDynamicMetric _messageLatencyGauge =
       new HistogramDynamicMetric("MessageLatencyGauge",
-          _metricRegistry.histogram(getMetricRegistryNamePrefix() + "MessageLatencyGauge"));
+          _metricRegistry.histogram(getMetricName("MessageLatencyGauge")));
 
   public MessageLatencyMonitor(String domainName, String participantName) throws JMException {
     _domainName = domainName;

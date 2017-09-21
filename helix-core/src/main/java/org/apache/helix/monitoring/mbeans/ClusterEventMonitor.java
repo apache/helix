@@ -48,7 +48,7 @@ public class ClusterEventMonitor extends DynamicMBeanProvider {
       new SimpleDynamicMetric("MaxSingleDurationGauge", 0l);
   private SimpleDynamicMetric<Long> _count = new SimpleDynamicMetric("EventCounter", 0l);
   private HistogramDynamicMetric _duration = new HistogramDynamicMetric("DurationGauge",
-      _metricRegistry.histogram(getMetricRegistryNamePrefix() + "DurationGauge"));
+      _metricRegistry.histogram(getMetricName("DurationGauge")));
 
   private long _lastResetTime;
   private ClusterStatusMonitor _clusterStatusMonitor;

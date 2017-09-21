@@ -70,7 +70,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
       new SimpleDynamicMetric("MaxSinglePartitionTopStateHandoffDurationGauge", 0l);
   private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge =
       new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", _metricRegistry
-          .histogram(getMetricRegistryNamePrefix() + "PartitionTopStateHandoffDurationGauge"));
+          .histogram(getMetricName("PartitionTopStateHandoffDurationGauge")));
   private SimpleDynamicMetric<Long> _totalMessageReceived =
       new SimpleDynamicMetric("TotalMessageReceived", 0l);
 

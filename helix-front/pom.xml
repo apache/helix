@@ -19,9 +19,9 @@ under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <groupId>org.apache.helix</groupId>
-    <artifactId>helix</artifactId>
-    <version>0.6.9-SNAPSHOT</version>
+   <groupId>org.apache.helix</groupId>
+   <artifactId>helix</artifactId>
+   <version>0.6.9-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -38,12 +38,6 @@ under the License.
   </dependencies>
 
   <build>
-
-    <resources>
-      <resource>
-        <directory>dist</directory>
-      </resource>
-    </resources>
 
     <plugins>
       <plugin>
@@ -108,6 +102,43 @@ under the License.
           </execution>
         </executions>
       </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <descriptors>
+            <descriptor>assemble/assembly.xml</descriptor>
+          </descriptors>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <artifactId>exec-maven-plugin</artifactId>
+        <groupId>org.codehaus.mojo</groupId>
+        <version>1.6.0</version>
+        <executions>
+          <execution>
+            <id>Unpack assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>assemble/package.sh</executable>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
   </build>
 </project>

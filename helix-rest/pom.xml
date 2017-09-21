@@ -126,10 +126,6 @@ under the License.
           <include>DISCLAIMER</include>
         </includes>
       </resource>
-      <resource>
-        <targetPath>ui</targetPath>
-        <directory>../helix-front/dist</directory>
-      </resource>
     </resources>
     <plugins>
       <plugin>

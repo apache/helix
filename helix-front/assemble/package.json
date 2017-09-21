@@ -1,0 +1,19 @@
+{
+  "name": "helix-ui",
+  "version": "1.0.0",
+  "author": "Vivo Xu <vivo@fancyber.com>",
+  "description": "Helix Web UI to manage helix clusters",
+  "scripts": {
+    "start": "node ./dist/server/app.js"
+  },
+  "private": true,
+  "license": "Apache-2.0",
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "cookie-parser": "^1.3.5",
+    "dotenv": "^4.0.0",
+    "express": "^4.15.3",
+    "morgan": "^1.8.2",
+    "request": "2.81.0"
+  }
+}

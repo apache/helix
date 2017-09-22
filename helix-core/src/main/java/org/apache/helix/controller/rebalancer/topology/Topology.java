@@ -223,14 +223,24 @@ public class Topology {
       if (config == null) {
         throw new HelixException(String.format("Config for instance %s is not found!", ins));
       }
-      Map<String, String> pathValueMap = new HashMap<String, String>();
+      Map<String, String> pathValueMap = new HashMap<>();
       if (_topologyAwareEnabled) {
         String zone = config.getZoneId();
         if (zone == null) {
           // we have the hierarchy style of domain id for instance.
-          throw new HelixException(String
-              .format("ZONE_ID for instance %s is not set, failed the topology-aware placement!",
-                  ins));
+          if (config.getInstanceEnabled()) {
+            // if enabled instance missing ZONE_ID information, fails the rebalance.
+            throw new HelixException(String
+                .format("ZONE_ID for instance %s is not set, failed the topology-aware placement!",
+                    ins));
+          } else {
+            // if the disabled instance missing ZONE setting, ignore it should be fine.
+            logger.warn(String
+                .format("ZONE_ID for instance %s is not set, failed the topology-aware placement!",
+                    ins));
+            continue;
+          }
+
         }
         pathValueMap.put(Types.ZONE.name(), zone);
       }
@@ -263,9 +273,17 @@ public class Topology {
       }
       String domain = insConfig.getDomain();
       if (domain == null) {
-        throw new HelixException(String
-            .format("Domain for instance %s is not set, failed the topology-aware placement!",
-                ins));
+        if (insConfig.getInstanceEnabled()) {
+          // if enabled instance missing domain information, fails the rebalance.
+          throw new HelixException(String
+              .format("Domain for instance %s is not set, failed the topology-aware placement!",
+                  ins));
+        } else {
+          // if the disabled instance missing domain setting, ignore it should be fine.
+          logger
+              .warn(String.format("Domain for instance %s is not set, ignore the instance!", ins));
+          continue;
+        }
       }
 
       String[] pathPairs = domain.trim().split(",");

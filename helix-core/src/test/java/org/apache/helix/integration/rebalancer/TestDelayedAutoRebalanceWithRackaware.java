@@ -55,6 +55,9 @@ public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebala
       _participants.add(participant);
     }
 
+    enableTopologyAwareRebalance(_gZkClient, CLUSTER_NAME, true);
+    enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
+
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);

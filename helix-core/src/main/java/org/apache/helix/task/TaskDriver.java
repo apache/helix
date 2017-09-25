@@ -202,19 +202,28 @@ public class TaskDriver {
     LOG.info("Starting workflow " + flow.getName());
     flow.validate();
 
-    // first, add workflow config.
-    if (!TaskUtil.setResourceConfig(_accessor, flow.getName(),
-        new WorkflowConfig(flow.getWorkflowConfig(), flow.getName()))) {
-      LOG.error("Failed to add workflow configuration for workflow " + flow.getName());
-    }
+    WorkflowConfig newWorkflowConfig =
+        new WorkflowConfig.Builder().setConfigMap(flow.getResourceConfigMap())
+            .setWorkflowId(flow.getName()).build();
 
-    // then add all job configs.
+    Map<String, String> jobTypes = new HashMap<String, String>();
+    // add all job configs.
     for (String job : flow.getJobConfigs().keySet()) {
       JobConfig.Builder jobCfgBuilder = JobConfig.Builder.fromMap(flow.getJobConfigs().get(job));
       if (flow.getTaskConfigs() != null && flow.getTaskConfigs().containsKey(job)) {
         jobCfgBuilder.addTaskConfigs(flow.getTaskConfigs().get(job));
       }
-      addJobConfig(job, jobCfgBuilder.build());
+      JobConfig jobCfg = jobCfgBuilder.build();
+      if (jobCfg.getJobType() != null) {
+        jobTypes.put(job, jobCfg.getJobType());
+      }
+      addJobConfig(job, jobCfg);
+    }
+    newWorkflowConfig.setJobTypes(jobTypes);
+
+    // add workflow config.
+    if (!TaskUtil.setResourceConfig(_accessor, flow.getName(), newWorkflowConfig)) {
+      LOG.error("Failed to add workflow configuration for workflow " + flow.getName());
     }
 
     // Finally add workflow resource.
@@ -549,6 +558,7 @@ public class TaskDriver {
 
     // add job config first.
     addJobConfig(namespacedJobName, jobConfig);
+    final String jobType = jobConfig.getJobType();
 
     // Add the job to the end of the queue in the DAG
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
@@ -578,6 +588,17 @@ public class TaskDriver {
         }
         if (candidate != null) {
           jobDag.addParentToChild(candidate, namespacedJobName);
+        }
+
+        // Add job type if job type is not null
+        if (jobType != null) {
+          Map<String, String> jobTypes =
+              currentData.getMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name());
+          if (jobTypes == null) {
+            jobTypes = new HashMap<String, String>();
+          }
+          jobTypes.put(jobName, jobType);
+          currentData.setMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name(), jobTypes);
         }
 
         // Save the updated DAG

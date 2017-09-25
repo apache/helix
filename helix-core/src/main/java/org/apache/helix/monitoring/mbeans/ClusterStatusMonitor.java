@@ -483,12 +483,13 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       if (workflow.isEmpty()) {
         continue;
       }
-      Set<String> allJobs = driver.getWorkflowConfig(workflow).getJobDag().getAllNodes();
+      WorkflowConfig workflowConfig = driver.getWorkflowConfig(workflow);
+      Set<String> allJobs = workflowConfig.getJobDag().getAllNodes();
       WorkflowContext workflowContext = driver.getWorkflowContext(workflow);
       for (String job : allJobs) {
-        TaskState currentState =
-            workflowContext == null ? TaskState.NOT_STARTED : workflowContext.getJobState(job);
-        updateJobGauges(driver.getJobConfig(job), currentState);
+        TaskState currentState = workflowContext == null ? TaskState.NOT_STARTED : workflowContext.getJobState(job);
+        updateJobGauges(workflowConfig.getJobTypes() == null ? null : workflowConfig.getJobTypes().get(job),
+            currentState);
       }
     }
   }
@@ -499,13 +500,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     _perTypeJobMonitorMap.get(jobType).updateJobCounters(to);
   }
 
-  private void updateJobGauges(JobConfig jobConfig, TaskState current) {
+  private void updateJobGauges(String jobType, TaskState current) {
     // When first time for WorkflowRebalancer call, jobconfig may not ready.
     // Thus only check it for gauge.
-    if (jobConfig == null) {
-      return;
-    }
-    String jobType = jobConfig.getJobType();
     jobType = preProcessJobMonitor(jobType);
     _perTypeJobMonitorMap.get(jobType).updateJobGauge(current);
   }

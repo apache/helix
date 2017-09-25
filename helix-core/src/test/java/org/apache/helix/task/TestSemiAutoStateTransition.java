@@ -45,6 +45,7 @@ public class TestSemiAutoStateTransition extends TaskTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     _numParitions = 1;
+    _participants =  new MockParticipantManager[_numNodes];
 
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {

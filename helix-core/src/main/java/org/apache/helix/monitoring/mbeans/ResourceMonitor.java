@@ -201,9 +201,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
     Set<String> partitions = idealState.getPartitionSet();
 
-    if (_numOfPartitions.getValue() == 0) {
-      _numOfPartitions.updateValue(partitions.size());
-    }
+    _numOfPartitions.updateValue(partitions.size());
 
     int replica = -1;
     try {
@@ -229,13 +227,14 @@ public class ResourceMonitor extends DynamicMBeanProvider {
       }
 
       int activeReplicaCount = 0;
+      boolean hasTopState = false;
       for (String host : externalViewRecord.keySet()) {
         String currentState = externalViewRecord.get(host);
         if (HelixDefinedState.ERROR.toString().equalsIgnoreCase(currentState)) {
           numOfErrorPartitions++;
         }
         if (topState != null && topState.equalsIgnoreCase(currentState)) {
-          numOfPartitionWithTopState++;
+          hasTopState = true;
         }
 
         Map<String, Integer> stateCount =
@@ -244,6 +243,9 @@ public class ResourceMonitor extends DynamicMBeanProvider {
         if (currentState != null && activeStates.contains(currentState)) {
           activeReplicaCount++;
         }
+      }
+      if (hasTopState) {
+        numOfPartitionWithTopState ++;
       }
       if (replica > 0 && activeReplicaCount < replica) {
         _numLessReplicaPartitions.updateValue(_numLessReplicaPartitions.getValue() + 1);

@@ -198,7 +198,8 @@ public class StateModelDefinition extends HelixProperty {
     String topState = _statesPriorityList.get(0);
     for (String state : _stateTransitionTable.keySet()) {
       Map<String, String> transitionMap = _stateTransitionTable.get(state);
-      if (transitionMap.containsKey(topState) && transitionMap.get(topState).equals(topState)) {
+      if (transitionMap != null && transitionMap.containsKey(topState) && transitionMap
+          .get(topState).equals(topState)) {
         secondTopStates.add(state);
       }
     }

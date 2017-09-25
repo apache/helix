@@ -20,7 +20,7 @@ package org.apache.helix.tools.ClusterVerifiers;
  */
 
 import org.apache.helix.PropertyKey;
-import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
+import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
@@ -266,7 +266,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     liveEnabledInstances.removeAll(cache.getDisabledInstances());
 
     for (String partition : idealState.getPartitionSet()) {
-      List<String> preferenceList = ConstraintBasedAssignment
+      List<String> preferenceList = AbstractRebalancer
           .getPreferenceList(new Partition(partition), idealState, liveEnabledInstances);
       Map<String, String> idealMapping =
           computeIdealMapping(preferenceList, stateModelDef, liveEnabledInstances);

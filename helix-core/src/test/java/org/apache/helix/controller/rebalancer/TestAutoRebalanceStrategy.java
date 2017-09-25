@@ -40,7 +40,6 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
-import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
@@ -226,9 +225,9 @@ public class TestAutoRebalanceStrategy {
         List<String> preferenceList = listResult.get(partition);
         Map<String, String> currentStateMap = _currentMapping.get(partition);
         Set<String> disabled = Collections.emptySet();
-        Map<String, String> assignment =
-            ConstraintBasedAssignment.computeAutoBestStateForPartition(cache, _stateModelDef,
-                preferenceList, currentStateMap, disabled, true);
+        Map<String, String> assignment = new AutoRebalancer()
+            .computeAutoBestStateForPartition(cache, _stateModelDef, preferenceList,
+                currentStateMap, disabled, true);
         mapResult.put(partition, assignment);
       }
       return mapResult;

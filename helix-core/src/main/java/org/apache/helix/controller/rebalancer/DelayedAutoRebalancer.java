@@ -19,8 +19,15 @@ package org.apache.helix.controller.rebalancer;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -31,15 +38,6 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * This is the Full-Auto Rebalancer that is featured with delayed partition movement.
@@ -319,10 +317,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
       Set<String> disabledInstancesForPartition =
           cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
-      List<String> preferenceList =
-          ConstraintBasedAssignment.getPreferenceList(partition, idealState, activeNodes);
-      Map<String, String> bestStateForPartition = ConstraintBasedAssignment
-          .computeAutoBestStateForPartition(cache, stateModelDef, preferenceList, currentStateMap,
+      List<String> preferenceList = getPreferenceList(partition, idealState, activeNodes);
+      Map<String, String> bestStateForPartition =
+          computeAutoBestStateForPartition(cache, stateModelDef, preferenceList, currentStateMap,
               disabledInstancesForPartition, idealState.isEnabled());
 
       if (preferenceList == null) {

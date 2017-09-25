@@ -19,13 +19,10 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum AttributeName {
-  RESOURCES,
-  BEST_POSSIBLE_STATE,
-  CURRENT_STATE,
-  INTERMEDIATE_STATE,
-  MESSAGES_ALL,
-  MESSAGES_SELECTED,
-  MESSAGES_THROTTLE,
-  LOCAL_STATE
+import org.apache.helix.controller.common.ResourcesStateMap;
+
+/**
+ * Output for IntermediateStateCalStage.
+ */
+public class IntermediateStateOutput extends ResourcesStateMap {
 }

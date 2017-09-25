@@ -82,6 +82,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     rebalancePipeline.addStage(new ResourceComputationStage());
     rebalancePipeline.addStage(new CurrentStateComputationStage());
     rebalancePipeline.addStage(new BestPossibleStateCalcStage());
+    rebalancePipeline.addStage(new IntermediateStateCalcStage());
     rebalancePipeline.addStage(new MessageGenerationPhase());
     rebalancePipeline.addStage(new MessageSelectionStage());
     rebalancePipeline.addStage(new MessageThrottleStage());
@@ -233,6 +234,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     rebalancePipeline.addStage(new ResourceComputationStage());
     rebalancePipeline.addStage(new CurrentStateComputationStage());
     rebalancePipeline.addStage(new BestPossibleStateCalcStage());
+    rebalancePipeline.addStage(new IntermediateStateCalcStage());
     rebalancePipeline.addStage(new MessageGenerationPhase());
     rebalancePipeline.addStage(new MessageSelectionStage());
     rebalancePipeline.addStage(new MessageThrottleStage());
@@ -330,6 +332,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     rebalancePipeline.addStage(new ResourceComputationStage());
     rebalancePipeline.addStage(new CurrentStateComputationStage());
     rebalancePipeline.addStage(new BestPossibleStateCalcStage());
+    rebalancePipeline.addStage(new IntermediateStateCalcStage());
     rebalancePipeline.addStage(new MessageGenerationPhase());
     rebalancePipeline.addStage(new MessageSelectionStage());
     rebalancePipeline.addStage(new MessageThrottleStage());

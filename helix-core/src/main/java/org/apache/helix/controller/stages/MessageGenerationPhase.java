@@ -54,12 +54,12 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
-    BestPossibleStateOutput bestPossibleStateOutput =
-        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+    IntermediateStateOutput intermediateStateOutput =
+        event.getAttribute(AttributeName.INTERMEDIATE_STATE.toString());
     if (manager == null || cache == null || resourceMap == null || currentStateOutput == null
-        || bestPossibleStateOutput == null) {
+        || intermediateStateOutput == null) {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires HelixManager|DataCache|RESOURCES|CURRENT_STATE|BEST_POSSIBLE_STATE");
+          + ". Requires HelixManager|DataCache|RESOURCES|CURRENT_STATE|INTERMEDIATE_STATE");
     }
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
@@ -78,7 +78,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       for (Partition partition : resource.getPartitions()) {
 
         Map<String, String> instanceStateMap =
-            bestPossibleStateOutput.getInstanceStateMap(resourceName, partition);
+            intermediateStateOutput.getInstanceStateMap(resourceName, partition);
 
         // we should generate message based on the desired-state priority
         // so keep generated messages in a temp map keyed by state

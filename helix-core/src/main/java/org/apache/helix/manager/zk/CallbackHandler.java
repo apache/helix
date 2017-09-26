@@ -191,6 +191,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         listenerClass = MessageListener.class;
         break;
       case EXTERNAL_VIEW:
+      case TARGET_EXTERNAL_VIEW:
         listenerClass = ExternalViewChangeListener.class;
         break;
       case CONTROLLER:
@@ -362,7 +363,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         List<Message> messages = preFetch(_propertyKey);
         messageListener.onMessage(_manager.getInstanceName(), messages, changeContext);
 
-      } else if (_changeType == EXTERNAL_VIEW) {
+      } else if (_changeType == EXTERNAL_VIEW || _changeType == TARGET_EXTERNAL_VIEW) {
         ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
         subscribeForChanges(changeContext, _path, true);
         List<ExternalView> externalViewList = preFetch(_propertyKey);
@@ -447,7 +448,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           switch (_changeType) {
           case CURRENT_STATE:
           case IDEAL_STATE:
-          case EXTERNAL_VIEW: {
+          case EXTERNAL_VIEW:
+            case TARGET_EXTERNAL_VIEW:{
             // check if bucketized
             BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
             List<ZNRecord> records = baseAccessor.getChildren(path, null, 0);

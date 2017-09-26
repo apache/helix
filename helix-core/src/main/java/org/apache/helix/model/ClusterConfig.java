@@ -58,7 +58,8 @@ public class ClusterConfig extends HelixProperty {
     REBALANCE_TIMER_PERIOD,
     MAX_CONCURRENT_TASK_PER_INSTANCE,
     MAX_PARTITIONS_PER_INSTANCE,
-    MAX_OFFLINE_INSTANCES_ALLOWED
+    MAX_OFFLINE_INSTANCES_ALLOWED,
+    TARGET_EXTERNALVIEW_ENABLED
   }
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
@@ -417,6 +418,21 @@ public class ClusterConfig extends HelixProperty {
     return StateTransitionTimeoutConfig.fromRecord(_record);
   }
 
+  /**
+   * Enable/disable target externalview persist
+   * @param enabled
+   */
+  public void enableTargetExternalView(boolean enabled) {
+    _record.setBooleanField(ClusterConfigProperty.TARGET_EXTERNALVIEW_ENABLED.name(), enabled);
+  }
+
+  /**
+   * Determine whether target externalview is enabled or disabled
+   * @return
+   */
+  public boolean isTargetExternalViewEnabled() {
+    return _record.getBooleanField(ClusterConfigProperty.TARGET_EXTERNALVIEW_ENABLED.name(), false);
+  }
   /**
    * Get maximum allowed running task count on all instances in this cluster.
    * Instance level configuration will override cluster configuration.

@@ -215,7 +215,11 @@ public interface HelixManager {
    */
   void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception;
 
-
+  /**
+   * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)
+   * @param listener
+   */
+  void addTargetExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception;
   /**
    * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)
    * @param listener

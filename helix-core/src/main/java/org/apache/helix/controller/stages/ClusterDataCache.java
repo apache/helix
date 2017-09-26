@@ -41,6 +41,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -91,6 +92,7 @@ public class ClusterDataCache {
   private Map<String, JobConfig> _jobConfigMap = new HashMap<>();
   private Map<String, WorkflowConfig> _workflowConfigMap = new HashMap<>();
   private Map<String, ZNRecord> _contextMap = new HashMap<>();
+  private Map<String, ExternalView> _targetExternalViewMap = Maps.newHashMap();
 
   // maintain a cache of participant messages across pipeline runs
   private Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
@@ -857,6 +859,14 @@ public class ClusterDataCache {
    */
   public Map<String, ZNRecord> getContexts() {
     return _contextMap;
+  }
+
+  public ExternalView getTargetExternalView(String resourceName) {
+    return _targetExternalViewMap.get(resourceName);
+  }
+
+  public void updateTargetExternalView(String resourceName, ExternalView targetExternalView) {
+    _targetExternalViewMap.put(resourceName, targetExternalView);
   }
 
   /**

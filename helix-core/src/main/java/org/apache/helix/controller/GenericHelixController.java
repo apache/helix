@@ -65,6 +65,7 @@ import org.apache.helix.controller.stages.PersistAssignmentStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.ResourceValidationStage;
+import org.apache.helix.controller.stages.TargetExteralViewCalcStage;
 import org.apache.helix.controller.stages.TaskAssignmentStage;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
@@ -248,6 +249,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       rebalancePipeline.addStage(new MessageThrottleStage());
       rebalancePipeline.addStage(new TaskAssignmentStage());
       rebalancePipeline.addStage(new PersistAssignmentStage());
+      rebalancePipeline.addStage(new TargetExteralViewCalcStage());
 
       // external view generation
       Pipeline externalViewPipeline = new Pipeline(pipelineName);

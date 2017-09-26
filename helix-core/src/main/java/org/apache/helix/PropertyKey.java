@@ -554,6 +554,23 @@ public class PropertyKey {
     }
 
     /**
+     * Get a property key associated with all target external view
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey targetExternalViews() {
+      return new PropertyKey(TARGETEXTERNALVIEW, ExternalView.class, _clusterName);
+    }
+
+    /**
+     * Get a property key associated with an target external view of a resource
+     * @param resourceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey targetExternalView(String resourceName) {
+      return new PropertyKey(TARGETEXTERNALVIEW, ExternalView.class, _clusterName, resourceName);
+    }
+
+    /**
      * Get a property key associated with a controller
      * @return {@link PropertyKey}
      */

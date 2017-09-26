@@ -136,6 +136,11 @@ public class MockManager implements HelixManager {
   }
 
   @Override
+  public void addTargetExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
+    // TODO Auto-generated method stub
+  }
+
+  @Override
   public void addExternalViewChangeListener(org.apache.helix.ExternalViewChangeListener listener) throws Exception {
 
   }

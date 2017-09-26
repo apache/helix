@@ -83,6 +83,8 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.IDEALSTATES, 2, "/{clusterName}/IDEALSTATES/{resourceName}");
     addEntry(PropertyType.EXTERNALVIEW, 1, "/{clusterName}/EXTERNALVIEW");
     addEntry(PropertyType.EXTERNALVIEW, 2, "/{clusterName}/EXTERNALVIEW/{resourceName}");
+    addEntry(PropertyType.TARGETEXTERNALVIEW, 1, "/{clusterName}/TARGETEXTERNALVIEW");
+    addEntry(PropertyType.TARGETEXTERNALVIEW, 2, "/{clusterName}/TARGETEXTERNALVIEW/{resourceName}");
     addEntry(PropertyType.STATEMODELDEFS, 1, "/{clusterName}/STATEMODELDEFS");
     addEntry(PropertyType.STATEMODELDEFS, 2, "/{clusterName}/STATEMODELDEFS/{stateModelName}");
     addEntry(PropertyType.CONTROLLER, 1, "/{clusterName}/CONTROLLER");
@@ -226,6 +228,14 @@ public class PropertyPathBuilder {
 
   public static String externalView(String clusterName, String resourceName) {
     return String.format("/%s/EXTERNALVIEW/%s", clusterName, resourceName);
+  }
+
+  public static String targetExternalView(String clusterName) {
+    return String.format("/%s/TARGETEXTERNALVIEW", clusterName);
+  }
+
+  public static String targetExternalView(String clusterName, String resourceName) {
+    return String.format("/%s/TARGETEXTERNALVIEW/%s", clusterName, resourceName);
   }
 
   public static String liveInstance(String clusterName) {

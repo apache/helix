@@ -539,6 +539,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         new EventType[] { EventType.NodeChildrenChanged });
   }
 
+  @Override
+  public void addTargetExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
+    addListener(listener, new Builder(_clusterName).externalViews(), ChangeType.TARGET_EXTERNAL_VIEW,
+        new EventType[] { EventType.NodeChildrenChanged });
+  }
+
   @Deprecated
   @Override
   public void addExternalViewChangeListener(org.apache.helix.ExternalViewChangeListener listener) throws Exception {

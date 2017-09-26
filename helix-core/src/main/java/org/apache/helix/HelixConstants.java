@@ -35,6 +35,7 @@ public interface HelixConstants {
     CURRENT_STATE,
     MESSAGE,
     EXTERNAL_VIEW,
+    TARGET_EXTERNAL_VIEW,
     CONTROLLER,
     MESSAGES_CONTROLLER,
     HEALTH

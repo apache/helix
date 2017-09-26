@@ -182,11 +182,11 @@ public class RebalanceConfig {
   }
 
   /**
-   * Generate the simple field map for RebalanceConfig.
+   * Generate the config map for RebalanceConfig.
    *
    * @return
    */
-  public Map<String, String> getSimpleFieldsMap() {
+  public Map<String, String> getConfigsMap() {
     Map<String, String> simpleFieldMap = new HashMap<String, String>();
 
     if (_rebalanceDelay >= 0) {

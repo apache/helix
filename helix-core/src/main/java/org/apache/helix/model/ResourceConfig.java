@@ -136,7 +136,7 @@ public class ResourceConfig extends HelixProperty {
     }
 
     if (rebalanceConfig != null) {
-      putSimpleConfigs(rebalanceConfig.getSimpleFieldsMap());
+      putSimpleConfigs(rebalanceConfig.getConfigsMap());
     }
   }
 

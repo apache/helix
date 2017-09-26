@@ -19,8 +19,13 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.config.StateTransitionThrottleConfig;
+
 
 /**
  * Cluster configurations
@@ -36,6 +41,7 @@ public class ClusterConfig extends HelixProperty {
     FAULT_ZONE_TYPE, // the type in which isolation should be applied on when Helix places the replicas from same partition.
     DELAY_REBALANCE_DISABLED,  // enabled the delayed rebalaning in case node goes offline.
     DELAY_REBALANCE_TIME,     // delayed time in ms that the delay time Helix should hold until rebalancing.
+    STATE_TRANSITION_THROTTLE_CONFIGS,
     BATCH_STATE_TRANSITION_MAX_THREADS,
     MAX_CONCURRENT_TASK_PER_INSTANCE
   }
@@ -140,6 +146,52 @@ public class ClusterConfig extends HelixProperty {
       }
     }
     return false;
+  }
+
+  /**
+   * Get a list StateTransitionThrottleConfig set for this cluster.
+   *
+   * @return
+   */
+  public List<StateTransitionThrottleConfig> getStateTransitionThrottleConfigs() {
+    List<String> configs =
+        _record.getListField(ClusterConfigProperty.STATE_TRANSITION_THROTTLE_CONFIGS.name());
+    if (configs == null || configs.isEmpty()) {
+      return Collections.emptyList();
+    }
+    List<StateTransitionThrottleConfig> throttleConfigs =
+        new ArrayList<StateTransitionThrottleConfig>();
+    for (String configstr : configs) {
+      StateTransitionThrottleConfig throttleConfig =
+          StateTransitionThrottleConfig.fromJSON(configstr);
+      if (throttleConfig != null) {
+        throttleConfigs.add(throttleConfig);
+      }
+    }
+
+    return throttleConfigs;
+  }
+
+  /**
+   * Set StateTransitionThrottleConfig for this cluster.
+   *
+   * @param throttleConfigs
+   */
+  public void setStateTransitionThrottleConfigs(
+      List<StateTransitionThrottleConfig> throttleConfigs) {
+    List<String> configStrs = new ArrayList<String>();
+
+    for (StateTransitionThrottleConfig throttleConfig : throttleConfigs) {
+      String configStr = throttleConfig.toJSON();
+      if (configStr != null) {
+        configStrs.add(configStr);
+      }
+    }
+
+    if (!configStrs.isEmpty()) {
+      _record
+          .setListField(ClusterConfigProperty.STATE_TRANSITION_THROTTLE_CONFIGS.name(), configStrs);
+    }
   }
 
   @Override

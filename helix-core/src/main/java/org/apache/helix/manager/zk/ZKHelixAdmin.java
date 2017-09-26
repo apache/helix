@@ -121,24 +121,27 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public void dropInstance(String clusterName, InstanceConfig instanceConfig) {
-    String instanceConfigsPath =
-        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
-            ConfigScopeProperty.PARTICIPANT.toString());
-    String nodeId = instanceConfig.getId();
-    String instanceConfigPath = instanceConfigsPath + "/" + nodeId;
-    String instancePath = PropertyPathBuilder.instance(clusterName, nodeId);
+    String instanceName = instanceConfig.getInstanceName();
 
+    String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
     if (!_zkClient.exists(instanceConfigPath)) {
-      throw new HelixException("Node " + nodeId + " does not exist in config for cluster "
+      throw new HelixException("Node " + instanceName + " does not exist in config for cluster "
           + clusterName);
     }
 
+    String instancePath = PropertyPathBuilder.instance(clusterName, instanceName);
     if (!_zkClient.exists(instancePath)) {
-      throw new HelixException("Node " + nodeId + " does not exist in instances for cluster "
+      throw new HelixException("Node " + instanceName + " does not exist in instances for cluster "
           + clusterName);
+    }
+
+    String liveInstancePath = PropertyPathBuilder.liveInstance(clusterName, instanceName);
+    if (_zkClient.exists(liveInstancePath)) {
+      throw new HelixException("Node " + instanceName + " is still alive for cluster " + clusterName + ", can't drop.");
     }
 
     // delete config path
+    String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
     ZKUtil.dropChildren(_zkClient, instanceConfigsPath, instanceConfig.getRecord());
 
     // delete instance path

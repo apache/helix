@@ -452,4 +452,47 @@ public class InstanceConfig extends HelixProperty {
     // HELIX-65: remove check for hostname/port existence
     return true;
   }
+
+  /**
+   * Create InstanceConfig with given instanceId, instanceId should be in format of host:port
+   * @param instanceId
+   * @return
+   */
+  public static InstanceConfig toInstanceConfig(String instanceId) {
+    String host = null;
+    int port = -1;
+    // to maintain backward compatibility we parse string of format host:port
+    // and host_port, where host port must be of type string and int
+    char[] delims = new char[] {
+        ':', '_'
+    };
+    for (char delim : delims) {
+      String regex = String.format("(.*)[%c]([\\d]+)", delim);
+      if (instanceId.matches(regex)) {
+        int lastIndexOf = instanceId.lastIndexOf(delim);
+        try {
+          port = Integer.parseInt(instanceId.substring(lastIndexOf + 1));
+          host = instanceId.substring(0, lastIndexOf);
+        } catch (Exception e) {
+          _logger.warn("Unable to extract host and port from instanceId:" + instanceId);
+        }
+        break;
+      }
+    }
+    if (host != null && port > 0) {
+      instanceId = host + "_" + port;
+    }
+    InstanceConfig config = new InstanceConfig(instanceId);
+    if (host != null && port > 0) {
+      config.setHostName(host);
+      config.setPort(String.valueOf(port));
+
+    }
+
+    config.setInstanceEnabled(true);
+    if (config.getHostName() == null) {
+      config.setHostName(instanceId);
+    }
+    return config;
+  }
 }

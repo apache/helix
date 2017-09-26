@@ -65,7 +65,9 @@ public class TestTaskThreadLeak extends TaskTestBase {
         .setWorkflowConfig(new WorkflowConfig.Builder(queueName).setParallelJobs(10).build());
 
     _driver.start(queueBuilder.build());
-    _driver.pollForJobState(queueName, lastJob, TaskState.COMPLETED);
+
+    String nameSpacedJob = TaskUtil.getNamespacedJobName(queueName, lastJob);
+    _driver.pollForJobState(queueName, nameSpacedJob, TaskState.COMPLETED);
 
     Set<Thread> threads = Thread.getAllStackTraces().keySet();
     Set<Thread> taskThreads = new HashSet<>();

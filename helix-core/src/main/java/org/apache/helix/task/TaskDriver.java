@@ -751,7 +751,6 @@ public class TaskDriver {
       jobName = jobName.substring(workflowName.length() + 1);
       workflowName = ctx.getLastScheduledSingleWorkflow();
     }
-    jobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
 
     Set<TaskState> allowedStates = new HashSet<>(Arrays.asList(states));
     // Wait for state

@@ -11,3 +11,7 @@ export const SSL = {
   passfile: '',
   cafiles: []
 };
+
+export function IsAdmin(username: string) {
+  return username === 'root';
+}

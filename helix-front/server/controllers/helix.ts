@@ -10,7 +10,6 @@ export class HelixCtrl {
 
   constructor(router: Router) {
     router.route('/helix/list').get(this.list);
-    router.route('/helix/can').get(this.can);
     router.route('/helix/*').all(this.proxy);
   }
 
@@ -37,7 +36,10 @@ export class HelixCtrl {
       const realUrl = apiPrefix + url.replace(`/${ helixKey }`, '');
       request[req.method.toLowerCase()]({
         url: realUrl,
-        json: req.body
+        json: req.body,
+        headers: {
+          'Helix-User': req.session.username
+        }
       }).pipe(res);
     } else {
       res.status(404).send('Not found');
@@ -51,9 +53,5 @@ export class HelixCtrl {
 
   protected list(req: Request, res: Response) {
     res.json(HELIX_ENDPOINTS);
-  }
-
-  protected can(req: Request, res: Response) {
-    res.json(false);
   }
 }

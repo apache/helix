@@ -14,8 +14,10 @@ export class HelixService {
   ) { }
 
   public can(): Observable<boolean> {
-    return this
-      .request(`/can`, '');
+    return this.http
+      .get(`${ Settings.userAPI }/can`, { headers: this.getHeaders() })
+      .map(response => response.json())
+      .catch(this.errorHandler);
   }
 
   protected request(path: string, helix?: string): Observable<any> {
@@ -23,9 +25,6 @@ export class HelixService {
     if (helix == null) {
       helix = this.getHelixKey();
     }
-
-console.log('Helix Key: ' + helix);
-console.log(this.router.url);
 
     return this.http
       .get(

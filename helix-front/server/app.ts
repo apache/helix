@@ -6,6 +6,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
+import * as session from 'express-session';
 
 import { SSL } from './config';
 import setRoutes from './routes';
@@ -19,6 +20,12 @@ app.set('port', (process.env.PORT || 3000));
 app.use('/', express.static(path.join(__dirname, '../public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(session({
+  secret: 'helix',
+  resave: true,
+  saveUninitialized: true,
+  cookie: { expires: new Date(2147483647000) }
+}));
 
 app.use(morgan('dev'));
 

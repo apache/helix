@@ -1,4 +1,4 @@
-package org.apache.helix.integration.rebalancer;
+package org.apache.helix.integration.rebalancer.CrushRebalancers;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -20,25 +20,28 @@ package org.apache.helix.integration.rebalancer;
  */
 
 import java.util.Date;
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 public class TestCrushAutoRebalanceTopoplogyAwareDisabled extends TestCrushAutoRebalanceNonRack {
+
   @BeforeClass
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+    if (ZkIntegrationTestBase._gZkClient.exists(namespace)) {
+      ZkIntegrationTestBase._gZkClient.deleteRecursive(namespace);
     }
-    _setupTool = new ClusterSetup(_gZkClient);
+    _setupTool = new ClusterSetup(ZkIntegrationTestBase._gZkClient);
     _setupTool.addCluster(CLUSTER_NAME, true);
 
     for (int i = 0; i < NUM_NODE; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      String storageNodeName = PARTICIPANT_PREFIX + "_" + (TestCrushAutoRebalanceNonRack.START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
       _nodes.add(storageNodeName);
       String tag = "tag-" + i % 2;
@@ -49,16 +52,42 @@ public class TestCrushAutoRebalanceTopoplogyAwareDisabled extends TestCrushAutoR
     // start dummy participants
     for (String node : _nodes) {
       MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, node);
+          new MockParticipantManager(ZkIntegrationTestBase.ZK_ADDR, CLUSTER_NAME, node);
       participant.syncStart();
       _participants.add(participant);
     }
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller = new ClusterControllerManager(ZkIntegrationTestBase.ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
+    enablePersistBestPossibleAssignment(ZkIntegrationTestBase._gZkClient, CLUSTER_NAME, true);
+  }
+
+  @Test(dataProvider = "rebalanceStrategies")
+  public void test(String rebalanceStrategyName,
+      String rebalanceStrategyClass) throws Exception {
+    super.test(rebalanceStrategyName, rebalanceStrategyClass);
+  }
+
+  @Test(dataProvider = "rebalanceStrategies", dependsOnMethods = "test")
+  public void testWithInstanceTag(
+      String rebalanceStrategyName, String rebalanceStrategyClass) throws Exception {
+    super.testWithInstanceTag(rebalanceStrategyName, rebalanceStrategyClass);
+  }
+
+  @Test(dataProvider = "rebalanceStrategies", dependsOnMethods = { "test", "testWithInstanceTag"
+  })
+  public void testLackEnoughLiveInstances(String rebalanceStrategyName,
+      String rebalanceStrategyClass) throws Exception {
+    super.testLackEnoughLiveInstances(rebalanceStrategyName, rebalanceStrategyClass);
+  }
+
+  @Test(dataProvider = "rebalanceStrategies", dependsOnMethods = { "test", "testWithInstanceTag"
+  })
+  public void testLackEnoughInstances(String rebalanceStrategyName,
+      String rebalanceStrategyClass) throws Exception {
+    super.testLackEnoughInstances(rebalanceStrategyName, rebalanceStrategyClass);
   }
 }

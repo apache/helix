@@ -1,4 +1,4 @@
-package org.apache.helix.integration.rebalancer;
+package org.apache.helix.integration.rebalancer.CrushRebalancers;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

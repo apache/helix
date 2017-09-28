@@ -1,4 +1,4 @@
-package org.apache.helix.integration.rebalancer;
+package org.apache.helix.integration.rebalancer.DelayedAutoRebalancer;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -20,13 +20,19 @@ package org.apache.helix.integration.rebalancer;
  */
 
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebalance {
   final int NUM_NODE = 9;
@@ -72,5 +78,47 @@ public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebala
       String stateModel, int numPartition, int replica, int minActiveReplica, long delay) {
     return createResourceWithDelayedRebalance(clusterName, db, stateModel, numPartition, replica,
         minActiveReplica, delay, CrushRebalanceStrategy.class.getName());
+  }
+
+  @Test
+  public void testDelayedPartitionMovement() throws Exception {
+    super.testDelayedPartitionMovement();
+  }
+
+  @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
+  public void testDelayedPartitionMovementWithClusterConfigedDelay() throws Exception {
+    super.testDelayedPartitionMovementWithClusterConfigedDelay();
+  }
+
+  /**
+   * Test when two nodes go offline,  the minimal active replica should be maintained.
+   * @throws Exception
+   */
+  @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
+  public void testMinimalActiveReplicaMaintain() throws Exception {
+    super.testMinimalActiveReplicaMaintain();
+  }
+
+  /**
+   * The partititon should be moved to other nodes after the delay time
+   */
+  @Test (dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
+  public void testPartitionMovementAfterDelayTime() throws Exception {
+    super.testPartitionMovementAfterDelayTime();
+  }
+
+  @Test (dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
+  public void testDisableDelayRebalanceInResource() throws Exception {
+    super.testDisableDelayRebalanceInResource();
+  }
+
+  @Test (dependsOnMethods = {"testDisableDelayRebalanceInResource"})
+  public void testDisableDelayRebalanceInCluster() throws Exception {
+    super.testDisableDelayRebalanceInCluster();
+  }
+
+  @Test (dependsOnMethods = {"testDisableDelayRebalanceInCluster"})
+  public void testDisableDelayRebalanceInInstance() throws Exception {
+    super.testDisableDelayRebalanceInInstance();
   }
 }

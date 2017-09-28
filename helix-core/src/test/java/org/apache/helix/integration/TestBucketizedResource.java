@@ -166,7 +166,7 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
     participants[0].syncStop();
     participants[0] = new MockParticipantManager(ZK_ADDR, clusterName, instanceNames.get(0));
     participants[0].syncStart();
-
+    
     Assert.assertTrue(_clusterVerifier.verify());
 
     // make sure participants[0]'s current state is bucketzied correctly during carryover

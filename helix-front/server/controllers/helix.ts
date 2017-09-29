@@ -2,7 +2,7 @@ import { Request, Response, Router } from 'express';
 
 import * as request from 'request';
 
-import { HELIX_ENDPOINTS } from '../config';
+import { HELIX_ENDPOINTS, IsAdmin } from '../config';
 
 export class HelixCtrl {
 
@@ -23,6 +23,13 @@ export class HelixCtrl {
     segments.shift();
     const name = segments.join('.');
 
+    const user = req.session.username;
+    const method = req.method.toLowerCase();
+    if (method != 'get' && !IsAdmin(user)) {
+      res.status(403).send('Forbidden');
+      return;
+    }
+
     let apiPrefix = null;
     if (HELIX_ENDPOINTS[group]) {
       HELIX_ENDPOINTS[group].forEach(section => {
@@ -34,11 +41,11 @@ export class HelixCtrl {
 
     if (apiPrefix) {
       const realUrl = apiPrefix + url.replace(`/${ helixKey }`, '');
-      request[req.method.toLowerCase()]({
+      request[method]({
         url: realUrl,
         json: req.body,
         headers: {
-          'Helix-User': req.session.username
+          'Helix-User': user
         }
       }).pipe(res);
     } else {

@@ -19,7 +19,6 @@ package org.apache.helix.integration.controller;
  * under the License.
  */
 
-import java.util.Map;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.stages.AttributeName;

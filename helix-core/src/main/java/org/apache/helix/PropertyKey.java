@@ -587,15 +587,15 @@ public class PropertyKey {
     }
 
     /**
-     * Get a property key associated with {@link StatusUpdate} of controller errors
+     * Get a property key associated with {@link Error} of controller errors
      * @return {@link PropertyKey}
      */
     public PropertyKey controllerTaskErrors() {
-      return new PropertyKey(ERRORS_CONTROLLER, StatusUpdate.class, _clusterName);
+      return new PropertyKey(ERRORS_CONTROLLER, Error.class, _clusterName);
     }
 
     /**
-     * Get a property key associated with {@link StatusUpdate} of a controller error
+     * Get a property key associated with {@link Error} of a controller error
      * @param errorId
      * @return {@link PropertyKey}
      */

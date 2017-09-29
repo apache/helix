@@ -19,12 +19,14 @@ package org.apache.helix.integration.rebalancer;
  * under the License.
  */
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -33,6 +35,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
@@ -40,10 +43,18 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import javax.management.MBeanServerConnection;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
+import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.CLUSTER_DN_KEY;
+import static org.apache.helix.util.StatusUpdateUtil.ErrorType.RebalanceResourceFailure;
+
 public class TestPauseClusterWhenReachingOfflineInstancesLimit extends ZkIntegrationTestBase {
   static final int NUM_NODE = 10;
   static final int START_PORT = 12918;
   static final int _PARTITIONS = 5;
+  private static final MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
 
   final String CLASS_NAME = getShortClassName();
   final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
@@ -155,6 +166,17 @@ public class TestPauseClusterWhenReachingOfflineInstancesLimit extends ZkIntegra
     pauseSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().pause());
     Assert.assertNotNull(pauseSignal);
     Assert.assertNotNull(pauseSignal.getReason());
+
+    // Verify there is no rebalance error logged
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+    PropertyKey errorNodeKey =
+        accessor.keyBuilder().controllerTaskError(RebalanceResourceFailure.name());
+    Assert.assertNotNull(accessor.getProperty(errorNodeKey));
+
+    Long value =
+        (Long) _server.getAttribute(getMbeanName(CLUSTER_NAME), "RebalanceFailureGauge");
+    Assert.assertNotNull(value);
+    Assert.assertTrue(value.longValue() > 0);
   }
 
   @AfterClass
@@ -171,4 +193,13 @@ public class TestPauseClusterWhenReachingOfflineInstancesLimit extends ZkIntegra
     _gSetupTool.deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
+
+  private ObjectName getMbeanName(String clusterName)
+      throws MalformedObjectNameException {
+    String clusterBeanName =
+        String.format("%s=%s", CLUSTER_DN_KEY, clusterName);
+    return new ObjectName(
+        String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), clusterBeanName));
+  }
+
 }

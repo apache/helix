@@ -310,35 +310,34 @@ public class ClusterSetup {
     _admin.addResource(clusterName, resourceName, idealState);
   }
 
-  public void addResourceToCluster(String clusterName, String resourceName, int numResources,
+  public void addResourceToCluster(String clusterName, String resourceName, int numPartitions,
       String stateModelRef) {
-    addResourceToCluster(clusterName, resourceName, numResources, stateModelRef,
+    addResourceToCluster(clusterName, resourceName, numPartitions, stateModelRef,
         RebalanceMode.SEMI_AUTO.toString());
   }
 
-  public void addResourceToCluster(String clusterName, String resourceName, int numResources,
+  public void addResourceToCluster(String clusterName, String resourceName, int numPartitions,
       String stateModelRef, String rebalancerMode) {
-    _admin.addResource(clusterName, resourceName, numResources, stateModelRef, rebalancerMode);
+    _admin.addResource(clusterName, resourceName, numPartitions, stateModelRef, rebalancerMode);
   }
 
-  public void addResourceToCluster(String clusterName, String resourceName, int numResources,
+  public void addResourceToCluster(String clusterName, String resourceName, int numPartitions,
       String stateModelRef, String rebalancerMode, String rebalanceStrategy) {
-    _admin.addResource(clusterName, resourceName, numResources, stateModelRef, rebalancerMode,
+    _admin.addResource(clusterName, resourceName, numPartitions, stateModelRef, rebalancerMode,
         rebalanceStrategy);
   }
 
-  public void addResourceToCluster(String clusterName, String resourceName, int numResources,
+  public void addResourceToCluster(String clusterName, String resourceName, int numPartitions,
       String stateModelRef, String rebalancerMode, int bucketSize) {
-    _admin.addResource(clusterName, resourceName, numResources, stateModelRef, rebalancerMode,
+    _admin.addResource(clusterName, resourceName, numPartitions, stateModelRef, rebalancerMode,
         bucketSize);
   }
 
-  public void addResourceToCluster(String clusterName, String resourceName, int numResources,
+  public void addResourceToCluster(String clusterName, String resourceName, int numPartitions,
       String stateModelRef, String rebalancerMode, int bucketSize, int maxPartitionsPerInstance) {
-    _admin.addResource(clusterName, resourceName, numResources, stateModelRef, rebalancerMode,
+    _admin.addResource(clusterName, resourceName, numPartitions, stateModelRef, rebalancerMode,
         bucketSize, maxPartitionsPerInstance);
   }
-
 
   /**
    * Get the mangled IdealState name if resourceGroup/resourceTag is enable.
@@ -1176,7 +1175,7 @@ public class ClusterSetup {
         instances =
             setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
       }
-      
+
       System.out.println("Instances in cluster " + clusterName + ":");
       for (String instanceName : instances) {
         System.out.println(instanceName);

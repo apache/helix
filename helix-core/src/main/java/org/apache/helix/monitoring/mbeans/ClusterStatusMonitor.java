@@ -41,7 +41,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   static final String MESSAGE_QUEUE_STATUS_KEY = "MessageQueueStatus";
   static final String RESOURCE_STATUS_KEY = "ResourceStatus";
   public static final String PARTICIPANT_STATUS_KEY = "ParticipantStatus";
-  static final String CLUSTER_DN_KEY = "cluster";
+  public static final String CLUSTER_DN_KEY = "cluster";
   static final String RESOURCE_DN_KEY = "resourceName";
   static final String INSTANCE_DN_KEY = "instanceName";
   static final String MESSAGE_QUEUE_DN_KEY = "messageQueue";
@@ -61,6 +61,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private Map<String, Map<String, List<String>>> _disabledPartitions = Collections.emptyMap();
   private Map<String, List<String>> _oldDisabledPartitions = Collections.emptyMap();
   private Map<String, Long> _instanceMsgQueueSizes = Maps.newConcurrentMap();
+  private boolean _rebalanceFailure = false;
 
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap = new ConcurrentHashMap<>();
 
@@ -132,6 +133,15 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
 
     return numDisabled;
+  }
+
+  @Override
+  public long getRebalanceFailureGauge() {
+    return _rebalanceFailure ? 1 : 0;
+  }
+
+  public void setRebalanceFailureGauge(boolean isFailure) {
+    this._rebalanceFailure = isFailure;
   }
 
   @Override
@@ -257,6 +267,13 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param duration
    */
   public void updateClusterEventDuration(String phase, long duration) {
+    ClusterEventMonitor monitor = getOrCreateClusterEventMonitor(phase);
+    if (monitor != null) {
+      monitor.reportDuration(duration);
+    }
+  }
+
+  private ClusterEventMonitor getOrCreateClusterEventMonitor(String phase) {
     if (!_clusterEventMbeanMap.containsKey(phase)) {
       ClusterEventMonitor monitor = new ClusterEventMonitor(this, phase);
       try {
@@ -268,12 +285,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       } catch (JMException e) {
         LOG.error("Failed to register ClusterEventMonitorMbean for cluster " + _clusterName
             + " and phase type: " + phase, e);
-        return;
+        return null;
       }
     }
-
-    ClusterEventMonitor eventMbean = _clusterEventMbeanMap.get(phase);
-    eventMbean.reportDuration(duration);
+    return _clusterEventMbeanMap.get(phase);
   }
 
   /**
@@ -477,6 +492,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       unregisterEventMonitors(_clusterEventMbeanMap.values());
       unregisterWorkflows(_perTypeWorkflowMonitorMap.keySet());
       unregisterJobs(_perTypeJobMonitorMap.keySet());
+
+      _rebalanceFailure = false;
     } catch (Exception e) {
       LOG.error("Fail to reset ClusterStatusMonitor, cluster: " + _clusterName, e);
     }

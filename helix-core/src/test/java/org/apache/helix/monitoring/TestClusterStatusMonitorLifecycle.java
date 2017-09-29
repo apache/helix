@@ -221,8 +221,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     // 1 cluster status monitor, 1 resource monitor, 5 instances
     // Unregister 1+4+1 per-instance resource mbean
     // Register 4 per-instance resource mbean
-    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 32);
-    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 28);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 33);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 29);
 
     String instanceName = "localhost0_" + (12918 + 0);
     _participants[0] = new MockParticipantManager(ZK_ADDR, _firstClusterName, instanceName);
@@ -232,8 +232,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     // No change in instance/resource mbean
     // Register 1 per-instance resource mbean
     Thread.sleep(2000);
-    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 32);
-    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 30);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 33);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 31);
 
     // Add a resource
     // Register 1 resource mbean
@@ -247,16 +247,15 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
         Integer.parseInt(idealState.getReplicas()));
 
     Thread.sleep(2000);
-    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 32);
-    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 36);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 33);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 37);
 
     // Remove a resource
     // No change in instance/resource mbean
     // Unregister 5 per-instance resource mbean
     setupTool.dropResourceFromCluster(_firstClusterName, "TestDB1");
     Thread.sleep(2000);
-    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 38);
-    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 36);
-
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 39);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 37);
   }
 }

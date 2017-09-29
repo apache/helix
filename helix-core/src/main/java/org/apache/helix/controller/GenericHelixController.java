@@ -341,8 +341,10 @@ public class GenericHelixController implements IdealStateChangeListener,
         logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getEventType());
         return;
       } else {
-        if (_clusterStatusMonitor == null) {
-          _clusterStatusMonitor = new ClusterStatusMonitor(manager.getClusterName());
+        synchronized (this) {
+          if (_clusterStatusMonitor == null) {
+            _clusterStatusMonitor = new ClusterStatusMonitor(manager.getClusterName());
+          }
         }
         // TODO: should be in the initization of controller.
         if (_cache != null) {
@@ -628,8 +630,10 @@ public class GenericHelixController implements IdealStateChangeListener,
         _taskEventQueue.put(event.clone());
       }
     }
-    if (_clusterStatusMonitor == null) {
-      _clusterStatusMonitor = new ClusterStatusMonitor(changeContext.getManager().getClusterName());
+    synchronized (this) {
+      if (_clusterStatusMonitor == null) {
+        _clusterStatusMonitor = new ClusterStatusMonitor(changeContext.getManager().getClusterName());
+      }
     }
     _clusterStatusMonitor.setEnabled(!_paused);
     logger.info("END: GenericClusterController.onControllerChange() for cluster " + _clusterName);

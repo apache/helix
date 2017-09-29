@@ -30,6 +30,8 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
 
   public long getDisabledPartitionsGauge();
 
+  public long getRebalanceFailureGauge();
+
   /**
    * The max message queue size across all instances including controller
    * @return

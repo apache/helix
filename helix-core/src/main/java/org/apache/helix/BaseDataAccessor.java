@@ -88,7 +88,7 @@ public interface BaseDataAccessor<T> {
    * Use it when creating children under a parent node. This will use async api for better
    * performance. If the child already exists it will return false.
    * @param paths the paths to the children ZNodes
-   * @param record List of data to write to each of the path
+   * @param records List of data to write to each of the path
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return For each child: true if creation succeeded, false otherwise (e.g. if the child exists)
    */
@@ -98,7 +98,7 @@ public interface BaseDataAccessor<T> {
    * can set multiple children under a parent node. This will use async api for better
    * performance. If this child does not exist it will create it.
    * @param paths the paths to the children ZNodes
-   * @param record List of data with which to overwrite the corresponding ZNodes
+   * @param records List of data with which to overwrite the corresponding ZNodes
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return For each child: true if the data was set, false otherwise
    */
@@ -107,7 +107,7 @@ public interface BaseDataAccessor<T> {
   /**
    * Can update multiple nodes using async api for better performance. If a child does not
    * exist it will create it.
-   * @param the paths to the children ZNodes
+   * @param paths the paths to the children ZNodes
    * @param updaters List of update routines for records to update
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return For each child, true if the data is updated successfully, false otherwise
@@ -142,7 +142,7 @@ public interface BaseDataAccessor<T> {
 
   /**
    * Get the children under a parent path using async api
-   * @param path path to the immediate parent ZNode
+   * @param parentPath path to the immediate parent ZNode
    * @param stats Zookeeper Stat objects corresponding to each child
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return A list of children of the parent ZNode

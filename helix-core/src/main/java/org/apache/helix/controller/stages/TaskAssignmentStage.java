@@ -154,6 +154,6 @@ public class TaskAssignmentStage extends AbstractBaseStage {
       keys.add(keyBuilder.message(message.getTgtName(), message.getId()));
     }
 
-    dataAccessor.createChildren(keys, new ArrayList<Message>(messages));
+    dataAccessor.createChildren(keys, new ArrayList<>(messages));
   }
 }

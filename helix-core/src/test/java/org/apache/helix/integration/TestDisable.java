@@ -37,6 +37,8 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -85,36 +87,30 @@ public class TestDisable extends ZkIntegrationTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+    HelixClusterVerifier _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(_clusterVerifier.verify());
+
 
     // disable localhost_12918
     String command =
         "--zkSvr " + ZK_ADDR + " --enableInstance " + clusterName + " " + disableNode + " false";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+    Assert.assertTrue(_clusterVerifier.verify());
 
     // make sure localhost_12918 is in OFFLINE state
     Map<String, Map<String, String>> expectStateMap = new HashMap<String, Map<String, String>>();
     Map<String, String> expectInstanceStateMap = new HashMap<String, String>();
     expectInstanceStateMap.put(disableNode, "OFFLINE");
     expectStateMap.put(".*", expectInstanceStateMap);
-    result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "==");
+    boolean result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "==");
     Assert.assertTrue(result, disableNode + " should be in OFFLINE");
 
     // re-enable localhost_12918
     command =
         "--zkSvr " + ZK_ADDR + " --enableInstance " + clusterName + " " + disableNode + " true";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+    Assert.assertTrue(_clusterVerifier.verify());
 
     // make sure localhost_12918 is NOT in OFFLINE state
     result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "!=");

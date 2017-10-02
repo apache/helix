@@ -137,6 +137,7 @@ public class ClusterDataCache {
     if (_propertyDataChangedMap.get(ChangeType.IDEAL_STATE)) {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(ChangeType.IDEAL_STATE, Boolean.valueOf(false));
+      clearCachedResourceAssignments();
       _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
       if (LOG.isDebugEnabled()) {
         LOG.debug("Reload IdealStates: " + _idealStateCacheMap.keySet() + ". Takes " + (
@@ -146,6 +147,7 @@ public class ClusterDataCache {
 
     if (_propertyDataChangedMap.get(ChangeType.LIVE_INSTANCE)) {
       _propertyDataChangedMap.put(ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
+      clearCachedResourceAssignments();
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
       _updateInstanceOfflineTime = true;
       LOG.debug("Reload LiveInstances: " + _liveInstanceCacheMap.keySet());
@@ -153,12 +155,14 @@ public class ClusterDataCache {
 
     if (_propertyDataChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
       _propertyDataChangedMap.put(ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
+      clearCachedResourceAssignments();
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
       LOG.debug("Reload InstanceConfig: " + _instanceConfigCacheMap.keySet());
     }
 
     if (_propertyDataChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
       _propertyDataChangedMap.put(ChangeType.RESOURCE_CONFIG, Boolean.valueOf(false));
+      clearCachedResourceAssignments();
       _resourceConfigCacheMap = accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs());
       LOG.debug("Reload ResourceConfigs: " + _resourceConfigCacheMap.size());
     }
@@ -623,11 +627,6 @@ public class ClusterDataCache {
    */
   public void notifyDataChange(ChangeType changeType) {
     _propertyDataChangedMap.put(changeType, Boolean.valueOf(true));
-
-    if (changeType.equals(ChangeType.IDEAL_STATE) || changeType.equals(ChangeType.INSTANCE_CONFIG)
-        || changeType.equals(ChangeType.LIVE_INSTANCE)) {
-      clearCachedResourceAssignments();
-    }
   }
 
   /**
@@ -867,7 +866,6 @@ public class ClusterDataCache {
     for(ChangeType type : ChangeType.values()) {
       _propertyDataChangedMap.put(type, Boolean.valueOf(true));
     }
-    clearCachedResourceAssignments();
   }
 
   /**

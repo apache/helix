@@ -258,13 +258,17 @@ public abstract class ZkHelixClusterVerifier
 
   @Override
   public void handleDataChange(String dataPath, Object data) throws Exception {
-    _verifyTaskThreadPool.submit(new VerifyStateCallbackTask());
+    if (!_verifyTaskThreadPool.isShutdown()) {
+      _verifyTaskThreadPool.submit(new VerifyStateCallbackTask());
+    }
   }
 
   @Override
   public void handleDataDeleted(String dataPath) throws Exception {
     _zkClient.unsubscribeDataChanges(dataPath, this);
-    _verifyTaskThreadPool.submit(new VerifyStateCallbackTask());
+    if (!_verifyTaskThreadPool.isShutdown()) {
+      _verifyTaskThreadPool.submit(new VerifyStateCallbackTask());
+    }
   }
 
   @Override
@@ -273,7 +277,9 @@ public abstract class ZkHelixClusterVerifier
       String childPath = String.format("%s/%s", parentPath, child);
       _zkClient.subscribeDataChanges(childPath, this);
     }
-    _verifyTaskThreadPool.submit(new VerifyStateCallbackTask());
+    if (!_verifyTaskThreadPool.isShutdown()) {
+      _verifyTaskThreadPool.submit(new VerifyStateCallbackTask());
+    }
   }
 
   public ZkClient getZkClient() {

@@ -123,6 +123,14 @@ public class ZkIntegrationTestBase {
     configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
+  protected void enablePersistIntermediateAssignment(ZkClient zkClient, String clusterName,
+      Boolean enabled) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setPersistIntermediateAssignment(enabled);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
   protected void enableTopologyAwareRebalance(ZkClient zkClient, String clusterName,
       Boolean enabled) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);

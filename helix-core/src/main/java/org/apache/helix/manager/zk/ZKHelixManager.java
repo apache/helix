@@ -100,6 +100,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    * helix version#
    */
   private final String _version;
+  private int _reportLatency;
 
   protected ZkClient _zkclient = null;
   private final DefaultMessagingService _messagingService;
@@ -231,6 +232,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     _connectionRetryTimeout =
         getSystemPropertyAsInt("zk.connectionReEstablishment.timeout", DEFAULT_CONNECTION_ESTABLISHMENT_RETRY_TIMEOUT);
+    _reportLatency = getSystemPropertyAsInt("helixmanager.participantHealthReport.reportLatency",
+        ParticipantHealthReportTask.DEFAULT_REPORT_LATENCY);
 
     /**
      * instance type specific init
@@ -240,7 +243,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       _stateMachineEngine = new HelixStateMachineEngine(this);
       _participantHealthInfoCollector =
           new ParticipantHealthReportCollectorImpl(this, _instanceName);
-      _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
+      _timerTasks
+          .add(new ParticipantHealthReportTask(_participantHealthInfoCollector, _reportLatency));
       break;
     case CONTROLLER:
       _stateMachineEngine = null;
@@ -253,7 +257,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       _participantHealthInfoCollector =
           new ParticipantHealthReportCollectorImpl(this, _instanceName);
 
-      _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
+      _timerTasks
+          .add(new ParticipantHealthReportTask(_participantHealthInfoCollector, _reportLatency));
       _controllerTimerTasks.add(new StatusDumpTask(this));
       break;
     case ADMINISTRATOR:

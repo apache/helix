@@ -29,6 +29,7 @@ import org.apache.log4j.Logger;
 public class ParticipantHealthReportTask extends HelixTimerTask {
   private static final Logger LOG = Logger.getLogger(ParticipantHealthReportTask.class);
   public final static int DEFAULT_REPORT_LATENCY = 60 * 1000;
+  private final int _reportLatency;
 
   Timer _timer;
   final ParticipantHealthReportCollectorImpl _healthReportCollector;
@@ -42,7 +43,13 @@ public class ParticipantHealthReportTask extends HelixTimerTask {
   }
 
   public ParticipantHealthReportTask(ParticipantHealthReportCollectorImpl healthReportCollector) {
+    this(healthReportCollector, DEFAULT_REPORT_LATENCY);
+  }
+
+  public ParticipantHealthReportTask(ParticipantHealthReportCollectorImpl healthReportCollector,
+      int reportLatency) {
     _healthReportCollector = healthReportCollector;
+    _reportLatency = reportLatency;
   }
 
   @Override
@@ -51,7 +58,7 @@ public class ParticipantHealthReportTask extends HelixTimerTask {
       LOG.info("Start HealthCheckInfoReportingTask");
       _timer = new Timer("ParticipantHealthReportTimerTask", true);
       _timer.scheduleAtFixedRate(new ParticipantHealthReportTimerTask(),
-          new Random().nextInt(DEFAULT_REPORT_LATENCY), DEFAULT_REPORT_LATENCY);
+          new Random().nextInt(_reportLatency), _reportLatency);
     } else {
       LOG.warn("ParticipantHealthReportTimerTask already started");
     }

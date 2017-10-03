@@ -38,6 +38,7 @@ public class JobBean {
   public String command;
   public Map<String, String> jobCommandConfigMap;
   public List<TaskBean> tasks;
+  public long timeout = JobConfig.DEFAULT_TIMEOUT;
   public long timeoutPerPartition = JobConfig.DEFAULT_TIMEOUT_PER_TASK;
   public int numConcurrentTasksPerInstance = JobConfig.DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE;
   public int maxAttemptsPerTask = JobConfig.DEFAULT_MAX_ATTEMPTS_PER_TASK;

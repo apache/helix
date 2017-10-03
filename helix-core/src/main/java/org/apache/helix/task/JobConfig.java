@@ -80,6 +80,10 @@ public class JobConfig extends ResourceConfig {
      */
     JobCommandConfig,
     /**
+     * The allowed execution time of the job.
+     */
+    Timeout,
+    /**
      * The timeout for a task.
      */
     TimeoutPerPartition,
@@ -151,6 +155,7 @@ public class JobConfig extends ResourceConfig {
   }
 
   //Default property values
+  public static final long DEFAULT_TIMEOUT = Long.MAX_VALUE;
   public static final long DEFAULT_TIMEOUT_PER_TASK = 60 * 60 * 1000; // 1 hr.
   public static final long DEFAULT_TASK_RETRY_DELAY = -1; // no delay
   public static final int DEFAULT_MAX_ATTEMPTS_PER_TASK = 10;
@@ -171,7 +176,7 @@ public class JobConfig extends ResourceConfig {
   public JobConfig(String jobId, JobConfig jobConfig) {
     this(jobConfig.getWorkflow(), jobConfig.getTargetResource(), jobConfig.getTargetPartitions(),
         jobConfig.getTargetPartitionStates(), jobConfig.getCommand(),
-        jobConfig.getJobCommandConfigMap(), jobConfig.getTimeoutPerTask(),
+        jobConfig.getJobCommandConfigMap(), jobConfig.getTimeout(), jobConfig.getTimeoutPerTask(),
         jobConfig.getNumConcurrentTasksPerInstance(), jobConfig.getMaxAttemptsPerTask(),
         jobConfig.getMaxAttemptsPerTask(), jobConfig.getFailureThreshold(),
         jobConfig.getTaskRetryDelay(), jobConfig.isDisableExternalView(),
@@ -183,7 +188,7 @@ public class JobConfig extends ResourceConfig {
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
       Set<String> targetPartitionStates, String command, Map<String, String> jobCommandConfigMap,
-      long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
+      long timeout, long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
       int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
       boolean disableExternalView, boolean ignoreDependentJobFailure,
       Map<String, TaskConfig> taskConfigMap, String jobType, String instanceGroupTag,
@@ -221,6 +226,7 @@ public class JobConfig extends ResourceConfig {
     if (executionStart > 0) {
       getRecord().setLongField(JobConfigProperty.StartTime.name(), executionStart);
     }
+    getRecord().setLongField(JobConfigProperty.Timeout.name(), timeout);
     getRecord().setLongField(JobConfigProperty.TimeoutPerPartition.name(), timeoutPerTask);
     getRecord().setIntField(JobConfigProperty.MaxAttemptsPerTask.name(), maxAttemptsPerTask);
     getRecord().setIntField(JobConfigProperty.MaxForcedReassignmentsPerTask.name(),
@@ -287,6 +293,10 @@ public class JobConfig extends ResourceConfig {
         ? TaskUtil
         .deserializeJobCommandConfigMap(getSimpleConfig(JobConfigProperty.JobCommandConfig.name()))
         : null;
+  }
+
+  public long getTimeout() {
+    return getRecord().getLongField(JobConfigProperty.Timeout.name(), DEFAULT_TIMEOUT);
   }
 
   public long getTimeoutPerTask() {
@@ -389,6 +399,7 @@ public class JobConfig extends ResourceConfig {
     private String _command;
     private Map<String, String> _commandConfig;
     private Map<String, TaskConfig> _taskConfigMap = Maps.newHashMap();
+    private long _timeout = DEFAULT_TIMEOUT;
     private long _timeoutPerTask = DEFAULT_TIMEOUT_PER_TASK;
     private int _numConcurrentTasksPerInstance = DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE;
     private int _maxAttemptsPerTask = DEFAULT_MAX_ATTEMPTS_PER_TASK;
@@ -417,7 +428,7 @@ public class JobConfig extends ResourceConfig {
       validate();
 
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
-          _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
+          _command, _commandConfig, _timeout, _timeoutPerTask, _numConcurrentTasksPerInstance,
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
           _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap, _jobType,
           _instanceGroupTag, _executionDelay, _executionStart, _jobId, _expiry,
@@ -455,6 +466,9 @@ public class JobConfig extends ResourceConfig {
         Map<String, String> commandConfigMap = TaskUtil.deserializeJobCommandConfigMap(
             cfg.get(JobConfigProperty.JobCommandConfig.name()));
         b.setJobCommandConfigMap(commandConfigMap);
+      }
+      if (cfg.containsKey(JobConfigProperty.Timeout.name())) {
+        b.setTimeout(Long.parseLong(cfg.get(JobConfigProperty.Timeout.name())));
       }
       if (cfg.containsKey(JobConfigProperty.TimeoutPerPartition.name())) {
         b.setTimeoutPerTask(Long.parseLong(cfg.get(JobConfigProperty.TimeoutPerPartition.name())));
@@ -541,6 +555,11 @@ public class JobConfig extends ResourceConfig {
 
     public Builder setJobCommandConfigMap(Map<String, String> v) {
       _commandConfig = v;
+      return this;
+    }
+
+    public Builder setTimeout(long v) {
+      _timeout = v;
       return this;
     }
 
@@ -660,6 +679,10 @@ public class JobConfig extends ResourceConfig {
           }
         }
       }
+      if (_timeout < 0) {
+        throw new IllegalArgumentException(String
+            .format("%s has invalid value %s", JobConfigProperty.Timeout, _timeout));
+      }
       if (_timeoutPerTask < 0) {
         throw new IllegalArgumentException(String
             .format("%s has invalid value %s", JobConfigProperty.TimeoutPerPartition,
@@ -696,6 +719,7 @@ public class JobConfig extends ResourceConfig {
 
       b.setMaxAttemptsPerTask(jobBean.maxAttemptsPerTask)
           .setNumConcurrentTasksPerInstance(jobBean.numConcurrentTasksPerInstance)
+          .setTimeout(jobBean.timeout)
           .setTimeoutPerTask(jobBean.timeoutPerPartition)
           .setFailureThreshold(jobBean.failureThreshold).setTaskRetryDelay(jobBean.taskRetryDelay)
           .setDisableExternalView(jobBean.disableExternalView)

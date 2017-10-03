@@ -43,6 +43,7 @@ public class ClusterConfig extends HelixProperty {
     DELAY_REBALANCE_DISABLED,  // enabled the delayed rebalaning in case node goes offline.
     DELAY_REBALANCE_TIME,     // delayed time in ms that the delay time Helix should hold until rebalancing.
     STATE_TRANSITION_THROTTLE_CONFIGS,
+    STATE_TRANSITION_CANCELLATION_ENABLED,
     BATCH_STATE_TRANSITION_MAX_THREADS,
     MAX_CONCURRENT_TASK_PER_INSTANCE
   }
@@ -154,6 +155,24 @@ public class ClusterConfig extends HelixProperty {
   public int getMaxConcurrentTaskPerInstance() {
     return _record.getIntField(ClusterConfigProperty.MAX_CONCURRENT_TASK_PER_INSTANCE.name(),
         DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE);
+  }
+  /**
+   * Enable/Disable state transition cancellation for the cluster
+   * @param enable
+   */
+  public void stateTransitionCancelEnabled(Boolean enable) {
+    if (enable == null) {
+      _record.getSimpleFields()
+          .remove(ClusterConfigProperty.STATE_TRANSITION_CANCELLATION_ENABLED.name());
+    } else {
+      _record.setBooleanField(ClusterConfigProperty.STATE_TRANSITION_CANCELLATION_ENABLED.name(),
+          enable);
+    }
+  }
+
+  public boolean isStateTransitionCancelEnabled() {
+    return _record
+        .getBooleanField(ClusterConfigProperty.STATE_TRANSITION_CANCELLATION_ENABLED.name(), false);
   }
 
   @Override

@@ -303,6 +303,10 @@ public class HelixStateTransitionHandler extends MessageHandler {
         if (e.getCause() != null && e.getCause() instanceof InterruptedException) {
           e = (InterruptedException) e.getCause();
         }
+
+        if (e.getCause() != null && e.getCause() instanceof HelixRollbackException) {
+          throw new HelixRollbackException(e.getCause());
+        }
         _statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e, errorMessage,
             accessor);
         taskResult.setSuccess(false);
@@ -321,7 +325,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
   private void invoke(HelixDataAccessor accessor, NotificationContext context,
       HelixTaskResult taskResult, Message message) throws IllegalAccessException,
-      InvocationTargetException, InterruptedException {
+      InvocationTargetException, InterruptedException, HelixRollbackException {
     _statusUpdateUtil.logInfo(message, HelixStateTransitionHandler.class,
         "Message handling invoking", accessor);
 

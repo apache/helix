@@ -27,9 +27,9 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.Message.MessageType;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId matches
@@ -54,7 +54,9 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String instanceName = instance.getInstanceName();
       Map<String, Message> instanceMessages = cache.getMessages(instanceName);
       for (Message message : instanceMessages.values()) {
-        if (!MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())) {
+        if (!MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())
+            && !MessageType.STATE_TRANSITION_CANCELLATION.name()
+            .equalsIgnoreCase(message.getMsgType())) {
           continue;
         }
         if (!instance.getSessionId().equals(message.getTgtSessionId())) {
@@ -70,7 +72,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           String partitionName = message.getPartitionName();
           Partition partition = resource.getPartition(partitionName);
           if (partition != null) {
-            currentStateOutput.setPendingState(resourceName, partition, instanceName, message);
+            setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
           } else {
             // log
           }
@@ -80,7 +82,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
             for (String partitionName : partitionNames) {
               Partition partition = resource.getPartition(partitionName);
               if (partition != null) {
-                currentStateOutput.setPendingState(resourceName, partition, instanceName, message);
+                setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
               } else {
                 // log
               }
@@ -127,5 +129,14 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       }
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+  }
+
+  private void setMessageState(CurrentStateOutput currentStateOutput, String resourceName,
+      Partition partition, String instanceName, Message message) {
+    if (MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())) {
+      currentStateOutput.setPendingState(resourceName, partition, instanceName, message);
+    } else {
+      currentStateOutput.setCancellationState(resourceName, partition, instanceName, message);
+    }
   }
 }

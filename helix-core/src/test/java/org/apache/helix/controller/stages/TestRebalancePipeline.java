@@ -34,6 +34,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -209,6 +210,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     event.addAttribute("helixmanager", manager);
 
     ClusterDataCache cache = new ClusterDataCache();
+    cache._clusterConfig = new ClusterConfig(clusterName);
     event.addAttribute("ClusterDataCache", cache);
 
     final String resourceName = "testResource_pending";
@@ -266,6 +268,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     cache.setIdealStates(idealStates);
 
     runPipeline(event, dataRefresh);
+    cache = event.getAttribute("ClusterDataCache");
+    cache._clusterConfig = new ClusterConfig(clusterName);
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));

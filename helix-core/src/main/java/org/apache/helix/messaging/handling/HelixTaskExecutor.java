@@ -729,6 +729,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             getMessageTarget(message.getResourceName(), message.getPartitionName());
         // State transition message and cancel message are in same batch
         if (stateTransitionHandlers.containsKey(messageTarget)) {
+          if (!isCancelingSameStateTransition(
+              stateTransitionHandlers.get(messageTarget).getMessage(), message)) {
+            removeMessageFromZk(accessor, message, instanceName);
+            continue;
+          }
+
           markReadMessage(message, changeContext, accessor);
           readMsgs.add(message);
           _monitor.reportProcessedMessage(message,
@@ -747,12 +753,19 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             String taskId = _messageTaskMap.get(messageTarget);
             HelixTask task = (HelixTask) _taskMap.get(taskId).getTask();
             Future<HelixTaskResult> future = _taskMap.get(taskId).getFuture();
+
+            if (!isCancelingSameStateTransition(task.getMessage(), message)) {
+              removeMessageFromZk(accessor, message, instanceName);
+              continue;
+            }
+
             if (task.cancel()) {
+              Message stateTransitionMessage = task.getMessage();
               future.cancel(false);
               _monitor.reportProcessedMessage(message,
                   ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
               removeMessageFromZk(accessor, message, instanceName);
-              removeMessageFromZk(accessor, stateTransitionHandlers.get(messageTarget).getMessage(),
+              removeMessageFromZk(accessor, stateTransitionMessage,
                   instanceName);
               continue;
             }
@@ -881,6 +894,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     if (_messageTaskMap.containsKey(messageTarget)) {
       _messageTaskMap.remove(messageTarget);
     }
+  }
+
+  private boolean isCancelingSameStateTransition(Message stateTranstionMessage,
+      Message cancellationMessage) {
+    return stateTranstionMessage.getFromState().equalsIgnoreCase(cancellationMessage.getFromState())
+        && stateTranstionMessage.getToState().equalsIgnoreCase(cancellationMessage.getToState());
   }
 
   private String getMessageTarget(String resourceName, String partitionName) {

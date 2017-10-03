@@ -109,6 +109,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
             continue;
           }
 
+          Message message = null;
+
           if (pendingMessage != null) {
             String pendingState = pendingMessage.getToState();
             if (nextState.equalsIgnoreCase(pendingState)) {
@@ -121,20 +123,32 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                       + pendingState + ", desiredState: " + desiredState);
             } else {
               logger.info("IdealState changed before state transition completes for " +
-                  resource.getResourceName() + "." + partition.getPartitionName() + " on "
+                      resource.getResourceName() + "." + partition.getPartitionName() + " on "
                       + instanceName + ", pendingState: " + pendingState + ", currentState: "
                       + currentState + ", nextState: " + nextState);
+              Message cancellationMessage =
+                  currentStateOutput.getCancellationState(resourceName, partition, instanceName);
+              if (cache.getClusterConfig().isStateTransitionCancelEnabled()
+                  && cancellationMessage == null) {
+                logger.info("Send cancellation message of the state transition for " + resource
+                    .getResourceName() + "." + partition.getPartitionName() + " on " + instanceName
+                    + ", currentState: " + currentState + ", nextState: " + nextState);
+                message = createStateTransitionCancellationMessage(manager, resource,
+                    partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
+                    stateModelDef.getId(), pendingMessage.getFromState(),
+                    pendingMessage.getToState());
+              }
             }
           } else {
+            // Create new state transition message
+            message = createStateTransitionMessage(manager, resource, partition.getPartitionName(), instanceName,
+                currentState, nextState, sessionIdMap.get(instanceName), stateModelDef.getId());
+          }
 
-            Message message =
-                createMessage(manager, resource, partition.getPartitionName(), instanceName,
-                    currentState, nextState, sessionIdMap.get(instanceName), stateModelDef.getId());
-
+          if (message != null) {
             IdealState idealState = cache.getIdealState(resourceName);
-            if (idealState != null
-                && idealState.getStateModelDefRef().equalsIgnoreCase(
-                    DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+            if (idealState != null && idealState.getStateModelDefRef()
+                .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
               if (idealState.getRecord().getMapField(partition.getPartitionName()) != null) {
                 message.getRecord().setMapField(Message.Attributes.INNER_MESSAGE.toString(),
                     idealState.getRecord().getMapField(partition.getPartitionName()));
@@ -171,7 +185,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     event.addAttribute(AttributeName.MESSAGES_ALL.name(), output);
   }
 
-  private Message createMessage(HelixManager manager, Resource resource, String partitionName,
+  private Message createStateTransitionMessage(HelixManager manager, Resource resource, String partitionName,
       String instanceName, String currentState, String nextState, String sessionId,
       String stateModelDefName) {
     String uuid = UUID.randomUUID().toString();
@@ -195,6 +209,27 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     if (resource.getResourceTag() != null) {
       message.setResourceTag(resource.getResourceTag());
     }
+
+    return message;
+  }
+
+  private Message createStateTransitionCancellationMessage(HelixManager manager, Resource resource,
+      String partitionName, String instanceName, String sessionId, String stateModelDefName,
+      String fromState, String nextState) {
+    String uuid = UUID.randomUUID().toString();
+    Message message = new Message(MessageType.STATE_TRANSITION_CANCELLATION, uuid);
+    message.setSrcName(manager.getInstanceName());
+    message.setTgtName(instanceName);
+    message.setMsgState(MessageState.NEW);
+    message.setPartitionName(partitionName);
+    message.setResourceName(resource.getResourceName());
+    message.setFromState(fromState);
+    message.setToState(nextState);
+    message.setTgtSessionId(sessionId);
+    message.setSrcSessionId(manager.getSessionId());
+    message.setStateModelDef(stateModelDefName);
+    message.setStateModelFactoryName(resource.getStateModelFactoryname());
+    message.setBucketSize(resource.getBucketSize());
 
     return message;
   }

@@ -83,6 +83,18 @@ public abstract class StateModel {
 
   /**
    * Default implementation for cancelling state transition
+   *
+   * IMPORTANT:
+   *
+   * 1. Be careful with the implementation of this method. There is no
+   * grantee that this method is called before user state transition method invoked.
+   * Please make sure the implemention contains logic for checking state transition already started.
+   * Similar to this situation, when this cancel method has been called. Helix does not grantee the
+   * state transition is still running. The state transition could be completed.
+   *
+   * 2. This cancel method should not throw HelixRollbackException. It is better to trigger the real
+   * state transition to throw HelixRollbackException if user would like to cancel the current
+   * running state transition.
    */
   public void cancel() {
     _cancelled = true;

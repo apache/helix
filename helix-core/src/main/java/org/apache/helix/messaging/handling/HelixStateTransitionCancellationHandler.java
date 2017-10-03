@@ -1,0 +1,65 @@
+package org.apache.helix.messaging.handling;
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import org.apache.helix.HelixRollbackException;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.model.Message;
+import org.apache.helix.participant.statemachine.StateModel;
+import org.apache.log4j.Logger;
+
+public class HelixStateTransitionCancellationHandler extends MessageHandler {
+  private final StateModel _stateModel;
+  private static final Logger logger =
+      Logger.getLogger(HelixStateTransitionCancellationHandler.class);
+
+
+  public HelixStateTransitionCancellationHandler(StateModel stateModel, Message message,
+      NotificationContext context) {
+    super(message, context);
+    _stateModel = stateModel;
+  }
+
+  @Override
+  public HelixTaskResult handleMessage() throws InterruptedException {
+    HelixTaskResult taskResult = new HelixTaskResult();
+    synchronized (_stateModel) {
+      try {
+        _stateModel.cancel();
+        taskResult.setSuccess(true);
+      } catch (Exception e) {
+        taskResult.setSuccess(false);
+        taskResult.setMessage(e.toString());
+        taskResult.setException(e);
+      }
+
+      if (taskResult.isSuccess()) {
+        throw new HelixRollbackException("Cancellation success for " + _message.getMsgId());
+      }
+    }
+    return taskResult;
+  }
+
+  @Override
+  public void onError(Exception e, ErrorCode code, ErrorType type) {
+    // Nothing need to do when it is error
+    logger.warn("No extra action needed when cancel failed.");
+  }
+}

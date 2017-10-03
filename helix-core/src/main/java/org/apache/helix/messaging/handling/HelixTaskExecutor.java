@@ -22,6 +22,7 @@ package org.apache.helix.messaging.handling;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +103,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
   public static final int DEFAULT_PARALLEL_TASKS = 40;
+  public static final int DEFAULT_CANCELLATION_THREADPOOL_SIZE = 40;
   // TODO: create per-task type threadpool with customizable pool size
   protected final Map<String, MessageTaskInfo> _taskMap;
   private final Object _lock;
@@ -120,6 +122,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   final ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem> _hdlrFtyRegistry;
 
   final ConcurrentHashMap<String, ExecutorService> _executorMap;
+
+  final ConcurrentHashMap<String, Future<HelixTaskResult>> _messageFutureMap;
+  private ExecutorService _cancellationExcutorService;
 
   /**
    * separate executor for executing batch messages
@@ -144,6 +149,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
     _executorMap = new ConcurrentHashMap<String, ExecutorService>();
+    _messageFutureMap = new ConcurrentHashMap<String, Future<HelixTaskResult>>();
+    _cancellationExcutorService = Executors.newFixedThreadPool(DEFAULT_CANCELLATION_THREADPOOL_SIZE);
     _batchMessageExecutorService = Executors.newFixedThreadPool(DEFAULT_PARALLEL_TASKS);
     _batchMessageThreadpoolChecked = false;
     _resourcesThreadpoolChecked =
@@ -209,7 +216,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
    *  This method is to check it and update the thread pool if necessary.
    */
   private void updateStateTransitionMessageThreadPool(Message message, HelixManager manager) {
-    if (!message.getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
+    if (!message.getMsgType().equals(MessageType.STATE_TRANSITION.name())) {
       return;
     }
 
@@ -245,7 +252,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
               "Failed to parse ThreadPoolSize from resourceConfig for resource" + resourceName, e);
         }
       }
-      String key = MessageType.STATE_TRANSITION.toString() + "." + resourceName;
+      String key = MessageType.STATE_TRANSITION.name() + "." + resourceName;
       if (threadpoolSize > 0) {
         _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
         LOG.info("Added dedicate threadpool for resource: " + resourceName + " with size: "
@@ -283,9 +290,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
    */
   ExecutorService findExecutorServiceForMsg(Message message) {
     ExecutorService executorService = _executorMap.get(message.getMsgType());
-    if (message.getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
+    if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())) {
       if(message.getBatchMessageMode() == true) {
         executorService = _batchMessageExecutorService;
+      } else if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
+        executorService = _cancellationExcutorService;
       } else {
         String resourceName = message.getResourceName();
         if (resourceName != null) {
@@ -333,6 +342,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       String taskId = task.getTaskId();
       if (_taskMap.containsKey(taskId)) {
         MessageTaskInfo info = _taskMap.get(taskId);
+        removeMessageFromFutureMap(task.getMessage());
         if (info._timerTask != null) {
           info._timerTask.cancel();
         }
@@ -369,6 +379,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
           LOG.info("Submit task: " + taskId + " to pool: " + exeSvc);
           Future<HelixTaskResult> future = exeSvc.submit(task);
+          _messageFutureMap
+              .putIfAbsent(getMessageTarget(message.getResourceName(), message.getPartitionName()),
+                  future);
 
           TimerTask timerTask = null;
           if (message.getExecutionTimeout() > 0) {
@@ -416,7 +429,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
         // cancel task
         Future<HelixTaskResult> future = taskInfo.getFuture();
-
+        removeMessageFromFutureMap(message);
         _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class, "Canceling task: " + taskId,
             notificationContext.getManager().getHelixDataAccessor());
 
@@ -450,6 +463,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     synchronized (_lock) {
       if (_taskMap.containsKey(taskId)) {
         MessageTaskInfo info = _taskMap.remove(taskId);
+        removeMessageFromFutureMap(message);
         if (info._timerTask != null) {
           // ok to cancel multiple times
           info._timerTask.cancel();
@@ -544,6 +558,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
     _taskMap.clear();
 
+    shutdownAndAwaitTermination(_cancellationExcutorService);
+    _messageFutureMap.clear();
+
     _lastSessionSyncTime = null;
   }
 
@@ -631,7 +648,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     Builder keyBuilder = accessor.keyBuilder();
 
     // message handlers created
-    List<MessageHandler> handlers = new ArrayList<MessageHandler>();
+    Map<String, MessageHandler> stateTransitionHandlers = new HashMap<String, MessageHandler>();
+    List<MessageHandler> nonStateTransitionHandlers = new ArrayList<MessageHandler>();
 
     // message read
     List<Message> readMsgs = new ArrayList<Message>();
@@ -702,6 +720,44 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         continue;
       }
 
+      // State Transition Cancellation
+      // Three Types of Cancellation: 1. Message arrived with previous state transition
+      //                              2. Message handled but task not started
+      //                              3. Message handled and task already started
+      if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
+        String messageTarget =
+            getMessageTarget(message.getResourceName(), message.getPartitionName());
+        // State transition message and cancel message are in same batch
+        if (stateTransitionHandlers.containsKey(messageTarget)) {
+          markReadMessage(message, changeContext, accessor);
+          readMsgs.add(message);
+          _monitor.reportProcessedMessage(message,
+              ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
+          removeMessageFromZk(accessor, message, instanceName);
+          removeMessageFromZk(accessor, stateTransitionHandlers.get(messageTarget).getMessage(),
+              instanceName);
+          stateTransitionHandlers.remove(messageTarget);
+          continue;
+        } else {
+          if (_messageFutureMap.containsKey(messageTarget)) {
+            Future<HelixTaskResult> future = _messageFutureMap.get(messageTarget);
+            // Cancel the from future without interrupt ->  Cancel the task future without
+            // interruptting the state transition that is already started.  If the state transition
+            // is already started, we should call cancel in the state model.
+            if (future.cancel(false) || future.isDone()) {
+              markReadMessage(message, changeContext, accessor);
+              readMsgs.add(message);
+              _monitor.reportProcessedMessage(message,
+                  ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
+              removeMessageFromZk(accessor, message, instanceName);
+              removeMessageFromZk(accessor, stateTransitionHandlers.get(messageTarget).getMessage(),
+                  instanceName);
+              continue;
+            }
+          }
+        }
+      }
+
       // create message handlers, if handlers not found, leave its state as NEW
       try {
         MessageHandler createHandler = createMessageHandler(message, changeContext);
@@ -709,7 +765,14 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
           continue;
         }
-        handlers.add(createHandler);
+        if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name()) || message.getMsgType()
+            .equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
+          stateTransitionHandlers
+              .put(getMessageTarget(message.getResourceName(), message.getPartitionName()),
+                  createHandler);
+        } else {
+          nonStateTransitionHandlers.add(createHandler);
+        }
       } catch (Exception e) {
         LOG.error("Failed to create message handler for " + message.getMsgId(), e);
         String error =
@@ -724,10 +787,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         continue;
       }
 
-      // update msgState to read
-      message.setMsgState(MessageState.READ);
-      message.setReadTimeStamp(new Date().getTime());
-      message.setExecuteSessionId(changeContext.getManager().getSessionId());
+      markReadMessage(message, changeContext, accessor);
 
       _statusUpdateUtil.logInfo(message, HelixStateMachineEngine.class, "New Message", accessor);
 
@@ -736,7 +796,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       // batch creation of all current state meta data
       // do it for non-controller and state transition messages only
       if (!message.isControlerMsg()
-          && message.getMsgType().equals(Message.MessageType.STATE_TRANSITION.toString())) {
+          && message.getMsgType().equals(Message.MessageType.STATE_TRANSITION.name())) {
         String resourceName = message.getResourceName();
         if (!curResourceNames.contains(resourceName) && !createCurStateNames.contains(resourceName)) {
           createCurStateNames.add(resourceName);
@@ -772,11 +832,25 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     if (readMsgs.size() > 0) {
       updateMessageState(readMsgs, accessor, instanceName);
 
-      for (MessageHandler handler : handlers) {
+      for (MessageHandler handler : stateTransitionHandlers.values()) {
+        HelixTask task = new HelixTask(handler._message, changeContext, handler, this);
+        scheduleTask(task);
+      }
+
+      for (MessageHandler handler : nonStateTransitionHandlers) {
         HelixTask task = new HelixTask(handler._message, changeContext, handler, this);
         scheduleTask(task);
       }
     }
+  }
+
+  private void markReadMessage(Message message, NotificationContext context,
+      HelixDataAccessor accessor) {
+    message.setMsgState(MessageState.READ);
+    message.setReadTimeStamp(new Date().getTime());
+    message.setExecuteSessionId(context.getManager().getSessionId());
+
+    _statusUpdateUtil.logInfo(message, HelixStateMachineEngine.class, "New Message", accessor);
   }
 
   public MessageHandler createMessageHandler(Message message, NotificationContext changeContext) {
@@ -798,6 +872,28 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // sub-msgs
     changeContext.add(MapKey.TASK_EXECUTOR.toString(), this);
     return handlerFactory.createHandler(message, changeContext);
+  }
+
+  private void removeMessageFromFutureMap(Message message) {
+    String messageTarget = getMessageTarget(message.getResourceName(), message.getPartitionName());
+    if (_messageFutureMap.containsKey(messageTarget)) {
+      _messageFutureMap.remove(messageTarget);
+    }
+  }
+
+  private String getMessageTarget(String resourceName, String partitionName) {
+    return String.format("%s_%s", resourceName, partitionName);
+  }
+
+  private void removeMessageFromZk(HelixDataAccessor accessor, Message message,
+      String instanceName) {
+    Builder keyBuilder = accessor.keyBuilder();
+    if (message.getTgtName().equalsIgnoreCase("controller")) {
+      // TODO: removeProperty returns boolean
+      accessor.removeProperty(keyBuilder.controllerMessage(message.getMsgId()));
+    } else {
+      accessor.removeProperty(keyBuilder.message(instanceName, message.getMsgId()));
+    }
   }
 
   @Override

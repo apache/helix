@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixRollbackException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
@@ -91,6 +92,14 @@ public class HelixTask implements MessageTask {
       _statusUpdateUtil.logError(_message, HelixTask.class, e,
           "State transition interrupted, timeout:" + _isTimeout, accessor);
       logger.info("Message " + _message.getMsgId() + " is interrupted");
+    } catch (HelixRollbackException e) {
+      // TODO : Support cancel to any state
+      logger.info(
+          "Rollback happened of state transition on resource \"" + _message.getResourceName()
+              + "\" partition \"" + _message.getPartitionName() + "\" from \"" + _message
+              .getFromState() + "\" to \"" + _message.getToState() + "\"");
+      taskResult = new HelixTaskResult();
+      taskResult.setCancelled(true);
     } catch (Exception e) {
       taskResult = new HelixTaskResult();
       taskResult.setException(e);
@@ -136,6 +145,13 @@ public class HelixTask implements MessageTask {
               return taskResult;
             }
           }
+        } else if (taskResult.isCancelled()) {
+          // Cancellation success, report message complete
+          _statusUpdateUtil
+              .logInfo(_message, _handler.getClass(), "Cancellation completed successfully",
+                  accessor);
+          _executor.getParticipantMonitor().reportProcessedMessage(_message,
+              ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
         } else // logging for errors
         {
           code = ErrorCode.ERROR;
@@ -223,7 +239,7 @@ public class HelixTask implements MessageTask {
 
   private void reportMessageStat(HelixManager manager, Message message, HelixTaskResult taskResult) {
     // report stat
-    if (!message.getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
+    if (!message.getMsgType().equals(MessageType.STATE_TRANSITION.name())) {
       return;
     }
     long now = new Date().getTime();

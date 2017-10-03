@@ -98,7 +98,7 @@ public class TestMessageThrottle extends ZkIntegrationTestBase {
             int transitionMsgCount = 0;
             for (ZNRecord record : records) {
               Message msg = new Message(record);
-              if (msg.getMsgType().equals(Message.MessageType.STATE_TRANSITION.toString())) {
+              if (msg.getMsgType().equals(Message.MessageType.STATE_TRANSITION.name())) {
                 transitionMsgCount++;
               }
             }

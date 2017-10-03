@@ -33,13 +33,14 @@ import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.messaging.handling.BatchMessageHandler;
 import org.apache.helix.messaging.handling.BatchMessageWrapper;
+import org.apache.helix.messaging.handling.HelixStateTransitionCancellationHandler;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.TaskExecutor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
@@ -161,7 +162,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
   public MessageHandler createHandler(Message message, NotificationContext context) {
     String type = message.getMsgType();
 
-    if (!type.equals(MessageType.STATE_TRANSITION.toString())) {
+    if (!type.equals(MessageType.STATE_TRANSITION.name())) {
       throw new HelixException("Expect state-transition message type, but was "
           + message.getMsgType() + ", msgId: " + message.getMsgId());
     }
@@ -207,7 +208,6 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     }
 
     if (message.getBatchMessageMode() == false) {
-      // create currentStateDelta for this partition
       String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialState();
       StateModel stateModel = stateModelFactory.getStateModel(resourceName, partitionKey);
       if (stateModel == null) {
@@ -215,18 +215,23 @@ public class HelixStateMachineEngine implements StateMachineEngine {
         stateModel.updateState(initState);
       }
 
-      // TODO: move currentStateDelta to StateTransitionMsgHandler
-      CurrentState currentStateDelta = new CurrentState(resourceName);
-      currentStateDelta.setSessionId(sessionId);
-      currentStateDelta.setStateModelDefRef(stateModelName);
-      currentStateDelta.setStateModelFactoryName(factoryName);
-      currentStateDelta.setBucketSize(bucketSize);
+      if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
+        return new HelixStateTransitionCancellationHandler(stateModel, message, context);
+      } else {
+        // create currentStateDelta for this partition
+        // TODO: move currentStateDelta to StateTransitionMsgHandler
+        CurrentState currentStateDelta = new CurrentState(resourceName);
+        currentStateDelta.setSessionId(sessionId);
+        currentStateDelta.setStateModelDefRef(stateModelName);
+        currentStateDelta.setStateModelFactoryName(factoryName);
+        currentStateDelta.setBucketSize(bucketSize);
 
-      currentStateDelta.setState(partitionKey, (stateModel.getCurrentState() == null) ? initState
-          : stateModel.getCurrentState());
+        currentStateDelta.setState(partitionKey,
+            (stateModel.getCurrentState() == null) ? initState : stateModel.getCurrentState());
 
-      return new HelixStateTransitionHandler(stateModelFactory, stateModel, message, context,
-          currentStateDelta);
+        return new HelixStateTransitionHandler(stateModelFactory, stateModel, message, context,
+            currentStateDelta);
+      }
     } else {
       BatchMessageWrapper wrapper = stateModelFactory.getBatchMessageWrapper(resourceName);
       if (wrapper == null) {
@@ -236,8 +241,9 @@ public class HelixStateMachineEngine implements StateMachineEngine {
       // get executor-service for the message
       TaskExecutor executor = (TaskExecutor) context.get(MapKey.TASK_EXECUTOR.toString());
       if (executor == null) {
-        logger.error("fail to get executor-service for batch message: " + message.getId()
-            + ". msgType: " + message.getMsgType() + ", resource: " + message.getResourceName());
+        logger.error(
+            "fail to get executor-service for batch message: " + message.getId() + ". msgType: "
+                + message.getMsgType() + ", resource: " + message.getResourceName());
         return null;
       }
       return new BatchMessageHandler(message, context, this, wrapper, executor);
@@ -246,7 +252,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
 
   @Override
   public String getMessageType() {
-    return MessageType.STATE_TRANSITION.toString();
+    return MessageType.STATE_TRANSITION.name();
   }
 
   @Override

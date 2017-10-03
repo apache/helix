@@ -29,10 +29,6 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.Mocks;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.messaging.handling.HelixTaskExecutor;
-import org.apache.helix.messaging.handling.HelixTaskResult;
-import org.apache.helix.messaging.handling.MessageHandler;
-import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.testng.Assert;
@@ -176,6 +172,41 @@ public class TestHelixTaskExecutor {
       _processedMsgIds.clear();
       _processingMsgIds.clear();
       _timedOutMsgIds.clear();
+    }
+  }
+
+  class TestStateTransitionHandlerFactory implements MessageHandlerFactory {
+    ConcurrentHashMap<String, String> _processedMsgIds = new ConcurrentHashMap<String, String>();
+    private final String _msgType;
+    public TestStateTransitionHandlerFactory(String msgType) {
+      _msgType = msgType;
+    }
+    class TestStateTransitionMessageHandler extends MessageHandler {
+      public TestStateTransitionMessageHandler(Message message, NotificationContext context) {
+        super(message, context);
+      }
+
+      @Override public HelixTaskResult handleMessage() throws InterruptedException {
+        HelixTaskResult result = new HelixTaskResult();
+        _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
+        result.setSuccess(true);
+        return result;
+      }
+
+      @Override public void onError(Exception e, ErrorCode code, ErrorType type) {
+      }
+    }
+
+    @Override public MessageHandler createHandler(Message message, NotificationContext context) {
+      return new TestStateTransitionMessageHandler(message, context);
+    }
+
+    @Override public String getMessageType() {
+      return _msgType;
+    }
+
+    @Override public void reset() {
+
     }
   }
 
@@ -545,6 +576,45 @@ public class TestHelixTaskExecutor {
     AssertJUnit.assertTrue(msgList.get(1).getRecord().getSimpleField("Cancelcount").equals("1"));
     AssertJUnit.assertEquals(factory._timedOutMsgIds.size(), 2);
     AssertJUnit.assertTrue(executor._taskMap.size() == 0);
+
+  }
+
+  @Test
+  public void testStateTransitionCancellationMsg() throws InterruptedException {
+    HelixTaskExecutor executor = new HelixTaskExecutor();
+    HelixManager manager = new MockClusterManager();
+
+    TestStateTransitionHandlerFactory stateTransitionFactory = new TestStateTransitionHandlerFactory(Message.MessageType.STATE_TRANSITION.name());
+    TestStateTransitionHandlerFactory cancelFactory = new TestStateTransitionHandlerFactory(Message.MessageType.STATE_TRANSITION_CANCELLATION
+        .name());
+    executor.registerMessageHandlerFactory(Message.MessageType.STATE_TRANSITION.name(), stateTransitionFactory);
+    executor.registerMessageHandlerFactory(Message.MessageType.STATE_TRANSITION_CANCELLATION.name(), cancelFactory);
+
+
+    NotificationContext changeContext = new NotificationContext(manager);
+
+    List<Message> msgList = new ArrayList<Message>();
+    Message msg1 = new Message(Message.MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
+    msg1.setTgtSessionId("*");
+    msg1.setPartitionName("P1");
+    msg1.setResourceName("R1");
+    msg1.setTgtName("Localhost_1123");
+    msg1.setSrcName("127.101.1.23_2234");
+    msgList.add(msg1);
+
+    Message msg2 = new Message(Message.MessageType.STATE_TRANSITION_CANCELLATION, UUID.randomUUID().toString());
+    msg2.setTgtSessionId("*");
+    msg2.setPartitionName("P1");
+    msg2.setResourceName("R1");
+    msg2.setTgtName("Localhost_1123");
+    msg2.setSrcName("127.101.1.23_2234");
+    msgList.add(msg2);
+
+    executor.onMessage("someInstance", msgList, changeContext);
+
+    Thread.sleep(3000);
+    AssertJUnit.assertEquals(cancelFactory._processedMsgIds.size(), 0);
+    AssertJUnit.assertEquals(stateTransitionFactory._processedMsgIds.size(), 0);
 
   }
 }

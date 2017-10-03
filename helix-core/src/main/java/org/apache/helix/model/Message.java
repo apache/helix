@@ -43,6 +43,7 @@ public class Message extends HelixProperty {
    */
   public enum MessageType {
     STATE_TRANSITION,
+    STATE_TRANSITION_CANCELLATION,
     SCHEDULER_MSG,
     USER_DEFINE_MSG,
     CONTROLLER_MSG,
@@ -50,7 +51,7 @@ public class Message extends HelixProperty {
     NO_OP,
     PARTICIPANT_ERROR_REPORT,
     PARTICIPANT_SESSION_CHANGE
-  };
+  }
 
   /**
    * Properties attached to Messages
@@ -696,7 +697,7 @@ public class Message extends HelixProperty {
     // TODO: refactor message to state transition message and task-message and
     // implement this function separately
 
-    if (getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
+    if (getMsgType().equals(MessageType.STATE_TRANSITION.name())) {
       boolean isNotValid =
           isNullOrEmpty(getTgtName()) || isNullOrEmpty(getPartitionName())
               || isNullOrEmpty(getResourceName()) || isNullOrEmpty(getStateModelDef())

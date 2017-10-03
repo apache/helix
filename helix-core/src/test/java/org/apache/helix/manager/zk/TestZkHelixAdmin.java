@@ -56,9 +56,17 @@ import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestZkHelixAdmin extends ZkUnitTestBase {
+
+  @BeforeClass
+  public void beforeClass() {
+
+  }
+
+  @Test
   public void testZkHelixAdmin() {
     //TODO refactor this test into small test cases and use @before annotations
     System.out.println("START testZkHelixAdmin at " + new Date(System.currentTimeMillis()));

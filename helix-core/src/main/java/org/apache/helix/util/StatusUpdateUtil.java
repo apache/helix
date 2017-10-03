@@ -435,7 +435,7 @@ public class StatusUpdateUtil {
   }
 
   private String getStatusUpdateKey(Message message) {
-    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString())) {
+    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.name())) {
       return message.getPartitionName();
     }
     return message.getMsgId();
@@ -445,7 +445,7 @@ public class StatusUpdateUtil {
    * Generate the sub-path under STATUSUPDATE or ERROR path for a status update
    */
   String getStatusUpdateSubPath(Message message) {
-    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString())) {
+    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.name())) {
       return message.getResourceName();
     } else {
       return message.getMsgType();
@@ -453,7 +453,7 @@ public class StatusUpdateUtil {
   }
 
   String getStatusUpdateRecordName(Message message) {
-    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString())) {
+    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.name())) {
       return message.getTgtSessionId() + "__" + message.getResourceName();
     }
     return message.getMsgId();

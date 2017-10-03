@@ -25,6 +25,7 @@ import org.apache.log4j.Logger;
 
 public abstract class StateModel {
   static final String DEFAULT_INITIAL_STATE = "OFFLINE";
+  private boolean _cancelled;
   Logger logger = Logger.getLogger(StateModel.class);
 
   // TODO Get default state from implementation or from state model annotation
@@ -80,4 +81,10 @@ public abstract class StateModel {
     logger.info("Default ERROR->DROPPED transition invoked.");
   }
 
+  /**
+   * Default implementation for cancelling state transition
+   */
+  public void cancel() {
+    _cancelled = true;
+  }
 }

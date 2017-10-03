@@ -102,7 +102,7 @@ public class DummyProcess {
     stateMach.registerStateModelFactory("OnlineOffline", stateModelFactory2);
 
     manager.connect();
-    // manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+    // manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.name(),
     // genericStateMachineHandler);
     return manager;
   }

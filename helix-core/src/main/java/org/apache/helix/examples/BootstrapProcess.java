@@ -107,7 +107,7 @@ public class BootstrapProcess {
     stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
 
     manager.getMessagingService().registerMessageHandlerFactory(
-        MessageType.STATE_TRANSITION.toString(), stateMach);
+        MessageType.STATE_TRANSITION.name(), stateMach);
     manager.getMessagingService().registerMessageHandlerFactory(
         MessageType.USER_DEFINE_MSG.toString(), new CustomMessageHandlerFactory());
     manager.connect();

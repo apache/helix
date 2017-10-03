@@ -80,4 +80,12 @@ public abstract class MessageHandler {
   public void onTimeout() {
 
   }
+
+  /**
+   * Get message for this message handler
+   * @return
+   */
+  public Message getMessage() {
+    return _message;
+  }
 }

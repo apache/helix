@@ -106,7 +106,7 @@ public class TestSchedulerMessage2 extends ZkStandAloneCMTestBase {
     for (int i = 0; i < 10; i++) {
       Thread.sleep(200);
       PropertyKey controllerTaskStatus =
-          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgId);
       ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
       if (statusUpdate.getMapFields().containsKey("Summary")) {
         break;
@@ -115,7 +115,7 @@ public class TestSchedulerMessage2 extends ZkStandAloneCMTestBase {
 
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
     PropertyKey controllerTaskStatus =
-        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgId);
     ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
     Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
         .equals("" + (_PARTITIONS * 3)));

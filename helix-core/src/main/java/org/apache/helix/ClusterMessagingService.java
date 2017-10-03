@@ -121,10 +121,25 @@ public interface ClusterMessagingService {
    *          The message type that the factory will create handler for
    * @param factory
    *          The per-type message factory
-   * @param threadpoolSize
-   *          size of the execution threadpool that handles the message
    */
   public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory);
+
+
+  /**
+   * This will register a message handler factory to create handlers for
+   * message. In case client code defines its own message type, it can define a
+   * message handler factory to create handlers to process those messages.
+   * Messages are processed in a threadpool which is hosted by cluster manager,
+   * and cluster manager will call the factory to create handler, and the
+   * handler is called in the threadpool.
+   * Note that only one message handler factory can be registered with one
+   * message type.
+   * @param types
+   *          The different message types that the factory will create handler for
+   * @param factory
+   *          The per-type message factory
+   */
+  public void registerMessageHandlerFactory(List<String> types, MessageHandlerFactory factory);
 
   /**
    * This will generate all messages to be sent given the recipientCriteria and MessageTemplate,

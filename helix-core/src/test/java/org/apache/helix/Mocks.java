@@ -678,6 +678,11 @@ public class Mocks {
 
     }
 
+    @Override public void registerMessageHandlerFactory(List<String> types,
+        MessageHandlerFactory factory) {
+      // TODO Auto-generated method stub
+    }
+
     @Override
     public int send(Criteria receipientCriteria, Message message, AsyncCallback callbackOnReply,
         int timeOut, int retryCount) {

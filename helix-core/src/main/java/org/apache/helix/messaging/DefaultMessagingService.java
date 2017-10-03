@@ -20,6 +20,7 @@ package org.apache.helix.messaging;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +69,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
 
     _taskExecutor = new HelixTaskExecutor(_participantStatusMonitor);
     _asyncCallbackService = new AsyncCallbackService();
-    _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
+    _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.name(),
         _asyncCallbackService);
   }
 
@@ -207,11 +208,22 @@ public class DefaultMessagingService implements ClusterMessagingService {
   }
 
   @Override
-  public synchronized void registerMessageHandlerFactory(String type, MessageHandlerFactory factory) {
+  public synchronized void registerMessageHandlerFactory(String type,
+      MessageHandlerFactory factory) {
+    registerMessageHandlerFactory(Collections.singletonList(type), factory);
+  }
+
+  @Override
+  public synchronized void registerMessageHandlerFactory(List<String> types,
+      MessageHandlerFactory factory) {
     if (_manager.isConnected()) {
-      registerMessageHandlerFactoryInternal(type, factory);
+      for (String type : types) {
+        registerMessageHandlerFactoryInternal(type, factory);
+      }
     } else {
-      _messageHandlerFactoriestobeAdded.put(type, factory);
+      for (String type : types) {
+        _messageHandlerFactoriestobeAdded.put(type, factory);
+      }
     }
   }
 

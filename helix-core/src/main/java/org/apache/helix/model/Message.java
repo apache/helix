@@ -116,7 +116,7 @@ public class Message extends HelixProperty {
    * @param msgId unique message identifier
    */
   public Message(MessageType type, String msgId) {
-    this(type.toString(), msgId);
+    this(type.name(), msgId);
   }
 
   /**

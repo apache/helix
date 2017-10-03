@@ -241,7 +241,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     if (controllerMsgUpdates.size() > 0) {
       for (String controllerMsgId : controllerMsgUpdates.keySet()) {
         PropertyKey controllerStatusUpdateKey =
-            keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), controllerMsgId);
+            keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), controllerMsgId);
         StatusUpdate controllerStatusUpdate = accessor.getProperty(controllerStatusUpdateKey);
         for (String taskPartitionName : controllerMsgUpdates.get(controllerMsgId).keySet()) {
           Map<String, String> result = new HashMap<String, String>();

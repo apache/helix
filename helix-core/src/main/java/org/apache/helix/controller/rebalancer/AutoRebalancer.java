@@ -27,17 +27,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
-import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
 /**
@@ -53,9 +49,9 @@ import org.apache.log4j.Logger;
 public class AutoRebalancer extends AbstractRebalancer {
   private static final Logger LOG = Logger.getLogger(AutoRebalancer.class);
 
-  @Override
-  public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+  @Override public IdealState computeNewIdealState(String resourceName,
+      IdealState currentIdealState, CurrentStateOutput currentStateOutput,
+      ClusterDataCache clusterData) {
     List<String> partitions = new ArrayList<String>(currentIdealState.getPartitionSet());
     String stateModelName = currentIdealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);

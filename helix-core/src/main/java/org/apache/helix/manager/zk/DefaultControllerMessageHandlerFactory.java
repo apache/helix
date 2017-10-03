@@ -19,6 +19,8 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.util.List;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.messaging.handling.HelixTaskResult;
@@ -27,6 +29,8 @@ import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.ImmutableList;
 
 public class DefaultControllerMessageHandlerFactory implements MessageHandlerFactory {
   private static Logger _logger = Logger.getLogger(DefaultControllerMessageHandlerFactory.class);
@@ -45,7 +49,12 @@ public class DefaultControllerMessageHandlerFactory implements MessageHandlerFac
 
   @Override
   public String getMessageType() {
-    return MessageType.CONTROLLER_MSG.toString();
+    return MessageType.CONTROLLER_MSG.name();
+  }
+
+  @Override
+  public List<String> getMessageTypes() {
+    return ImmutableList.of(MessageType.CONTROLLER_MSG.name());
   }
 
   @Override
@@ -62,7 +71,7 @@ public class DefaultControllerMessageHandlerFactory implements MessageHandlerFac
     public HelixTaskResult handleMessage() throws InterruptedException {
       String type = _message.getMsgType();
       HelixTaskResult result = new HelixTaskResult();
-      if (!type.equals(MessageType.CONTROLLER_MSG.toString())) {
+      if (!type.equals(MessageType.CONTROLLER_MSG.name())) {
         throw new HelixException("Unexpected msg type for message " + _message.getMsgId()
             + " type:" + _message.getMsgType());
       }

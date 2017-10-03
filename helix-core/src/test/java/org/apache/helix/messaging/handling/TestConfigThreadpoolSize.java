@@ -20,6 +20,7 @@ package org.apache.helix.messaging.handling;
  */
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.helix.ConfigAccessor;
@@ -36,6 +37,8 @@ import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableList;
+
 public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
   public static class TestMessagingHandlerFactory implements MessageHandlerFactory {
     public static HashSet<String> _processedMsgIds = new HashSet<String>();
@@ -48,6 +51,10 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
     @Override
     public String getMessageType() {
       return "TestMsg";
+    }
+
+    @Override public List<String> getMessageTypes() {
+      return ImmutableList.of("TestMsg");
     }
 
     @Override
@@ -68,6 +75,10 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
     @Override
     public String getMessageType() {
       return "TestMsg2";
+    }
+
+    @Override public List<String> getMessageTypes() {
+      return ImmutableList.of("TestMsg2");
     }
 
     @Override

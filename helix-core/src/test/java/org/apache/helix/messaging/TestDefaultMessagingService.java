@@ -21,6 +21,7 @@ package org.apache.helix.messaging;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.helix.Criteria;
@@ -40,8 +41,11 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
+
+import com.google.common.collect.ImmutableList;
 
 public class TestDefaultMessagingService {
   class MockHelixManager extends Mocks.MockManager {
@@ -154,10 +158,49 @@ public class TestDefaultMessagingService {
       return "TestingMessageHandler";
     }
 
+    @Override public List<String> getMessageTypes() {
+      return ImmutableList.of("TestingMessageHandler");
+    }
+
     @Override
     public void reset() {
       // TODO Auto-generated method stub
 
+    }
+  }
+
+  class TestStateTransitionHandlerFactory implements MessageHandlerFactory {
+
+    @Override
+    public MessageHandler createHandler(Message message, NotificationContext context) {
+      return null;
+    }
+
+    @Override
+    public String getMessageType() {
+      return null;
+    }
+
+    @Override
+    public List<String> getMessageTypes() {
+      return ImmutableList.of(Message.MessageType.STATE_TRANSITION.name(),
+          Message.MessageType.STATE_TRANSITION_CANCELLATION.name(),
+          Message.MessageType.CONTROLLER_MSG.name());
+    }
+
+    @Override
+    public void reset() {
+
+    }
+  }
+
+  class MockDefaultMessagingService extends DefaultMessagingService {
+    public MockDefaultMessagingService(HelixManager manager) {
+      super(manager);
+    }
+
+    public Map<String, MessageHandlerFactory> getMessageHandlerFactoryMap() {
+      return _messageHandlerFactoriestobeAdded;
     }
   }
 
@@ -242,5 +285,19 @@ public class TestDefaultMessagingService {
     recipientCriteria.setResource("DB");
     recipientCriteria.setPartition("%");
     AssertJUnit.assertEquals(1, svc.send(recipientCriteria, template));
+  }
+
+  @Test public void testMultipleMessageTypeRegisteration() {
+    HelixManager manager = new Mocks.MockManager();
+    MockDefaultMessagingService svc = new MockDefaultMessagingService(manager);
+    TestStateTransitionHandlerFactory factory = new TestStateTransitionHandlerFactory();
+    svc.registerMessageHandlerFactory(factory.getMessageTypes(), factory);
+
+    Assert.assertTrue(
+        svc.getMessageHandlerFactoryMap().containsKey(Message.MessageType.STATE_TRANSITION.name()));
+    Assert.assertTrue(svc.getMessageHandlerFactoryMap()
+        .containsKey(Message.MessageType.STATE_TRANSITION_CANCELLATION.name()));
+    Assert.assertTrue(
+        svc.getMessageHandlerFactoryMap().containsKey(Message.MessageType.CONTROLLER_MSG.name()));
   }
 }

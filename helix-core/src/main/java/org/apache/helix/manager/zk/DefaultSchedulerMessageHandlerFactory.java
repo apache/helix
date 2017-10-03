@@ -48,6 +48,8 @@ import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
+import com.google.common.collect.ImmutableList;
+
 /*
  * The current implementation supports throttling on STATE-TRANSITION type of message, transition SCHEDULED-COMPLETED.
  *
@@ -107,12 +109,12 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
       Builder keyBuilder = accessor.keyBuilder();
       ZNRecord statusUpdate =
           accessor.getProperty(
-              keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+              keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
                   originalMessage.getMsgId())).getRecord();
 
       statusUpdate.getMapFields().putAll(_resultSummaryMap);
       accessor.setProperty(
-          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
               originalMessage.getMsgId()), new StatusUpdate(statusUpdate));
 
     }
@@ -139,7 +141,12 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
 
   @Override
   public String getMessageType() {
-    return MessageType.SCHEDULER_MSG.toString();
+    return MessageType.SCHEDULER_MSG.name();
+  }
+
+  @Override
+  public List<String> getMessageTypes() {
+    return ImmutableList.of(MessageType.SCHEDULER_MSG.name());
   }
 
   @Override
@@ -219,11 +226,11 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
 
       ZNRecord statusUpdate =
           accessor.getProperty(
-              keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+              keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
                   _message.getMsgId())).getRecord();
 
       statusUpdate.getMapFields().put("SentMessageCount", sendSummary);
-      accessor.updateProperty(keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+      accessor.updateProperty(keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
           _message.getMsgId()), new StatusUpdate(statusUpdate));
     }
 
@@ -247,7 +254,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
     public HelixTaskResult handleMessage() throws InterruptedException {
       String type = _message.getMsgType();
       HelixTaskResult result = new HelixTaskResult();
-      if (!type.equals(MessageType.SCHEDULER_MSG.toString())) {
+      if (!type.equals(MessageType.SCHEDULER_MSG.name())) {
         throw new HelixException("Unexpected msg type for message " + _message.getMsgId()
             + " type:" + _message.getMsgType());
       }
@@ -324,12 +331,12 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
 
       ZNRecord statusUpdate =
           accessor.getProperty(
-              keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+              keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
                   _message.getMsgId())).getRecord();
 
       statusUpdate.getMapFields().put("SentMessageCount", sendSummary);
 
-      accessor.setProperty(keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+      accessor.setProperty(keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
           _message.getMsgId()), new StatusUpdate(statusUpdate));
 
       result.getTaskResultMap().put("ControllerResult",

@@ -20,6 +20,7 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -29,6 +30,8 @@ import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * DefaultParticipantErrorMessageHandlerFactory works on controller side.
@@ -118,7 +121,12 @@ public class DefaultParticipantErrorMessageHandlerFactory implements MessageHand
 
   @Override
   public String getMessageType() {
-    return Message.MessageType.PARTICIPANT_ERROR_REPORT.toString();
+    return Message.MessageType.PARTICIPANT_ERROR_REPORT.name();
+  }
+
+  @Override
+  public List<String> getMessageTypes() {
+    return ImmutableList.of(Message.MessageType.PARTICIPANT_ERROR_REPORT.name());
   }
 
   @Override

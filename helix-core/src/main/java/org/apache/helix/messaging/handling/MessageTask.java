@@ -33,4 +33,5 @@ public interface MessageTask extends Callable<HelixTaskResult> {
 
   void onTimeout();
 
+  boolean cancel();
 }

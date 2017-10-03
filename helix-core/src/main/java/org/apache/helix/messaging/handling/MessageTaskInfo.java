@@ -37,4 +37,8 @@ public class MessageTaskInfo {
     return _future;
   }
 
+  public MessageTask getTask(){
+    return _task;
+  }
+
 }

@@ -49,6 +49,8 @@ public class HelixTask implements MessageTask {
   StatusUpdateUtil _statusUpdateUtil;
   HelixTaskExecutor _executor;
   volatile boolean _isTimeout = false;
+  volatile boolean _isStarted = false;
+  volatile boolean _isCancelled = false;
 
   public HelixTask(Message message, NotificationContext notificationContext,
       MessageHandler handler, HelixTaskExecutor executor) {
@@ -83,6 +85,7 @@ public class HelixTask implements MessageTask {
 
     // Handle the message
     try {
+      setStarted();
       taskResult = _handler.handleMessage();
     } catch (InterruptedException e) {
       taskResult = new HelixTaskResult();
@@ -147,6 +150,7 @@ public class HelixTask implements MessageTask {
           }
         } else if (taskResult.isCancelled()) {
           // Cancellation success, report message complete
+          type = null;
           _statusUpdateUtil
               .logInfo(_message, _handler.getClass(), "Cancellation completed successfully",
                   accessor);
@@ -210,7 +214,7 @@ public class HelixTask implements MessageTask {
 
   private void sendReply(HelixDataAccessor accessor, Message message, HelixTaskResult taskResult) {
     if (_message.getCorrelationId() != null
-        && !message.getMsgType().equals(MessageType.TASK_REPLY.toString())) {
+        && !message.getMsgType().equals(MessageType.TASK_REPLY.name())) {
       logger.info("Sending reply for message " + message.getCorrelationId());
       _statusUpdateUtil.logInfo(message, HelixTask.class, "Sending reply", accessor);
 
@@ -285,5 +289,22 @@ public class HelixTask implements MessageTask {
   public void onTimeout() {
     _isTimeout = true;
     _handler.onTimeout();
+  }
+
+  @Override
+  public synchronized boolean cancel() {
+    if (!_isStarted) {
+      _isCancelled = true;
+      _handler.cancel();
+      return true;
+    }
+    return false;
+  }
+
+  private synchronized void setStarted() {
+    if (_isCancelled) {
+      throw new HelixRollbackException("Task has already been cancelled");
+    }
+    _isStarted = true;
   }
 };

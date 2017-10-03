@@ -114,4 +114,10 @@ public class HelixBatchMessageTask implements MessageTask {
       }
     }
   }
+
+  @Override
+  public boolean cancel() {
+    // TODO: implement this method if need for batch message cancel
+    return false;
+  }
 }

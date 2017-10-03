@@ -20,6 +20,7 @@ package org.apache.helix.integration;
  */
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.helix.Criteria;
@@ -36,6 +37,8 @@ import org.apache.helix.model.Message.MessageType;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableList;
+
 public class TestMessagingService extends ZkStandAloneCMTestBase {
   public static class TestMessagingHandlerFactory implements MessageHandlerFactory {
     public static HashSet<String> _processedMsgIds = new HashSet<String>();
@@ -48,6 +51,11 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
     @Override
     public String getMessageType() {
       return "TestExtensibility";
+    }
+
+    @Override
+    public List<String> getMessageTypes() {
+      return ImmutableList.of("TestExtensibility");
     }
 
     @Override
@@ -87,11 +95,11 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
     String hostDest = "localhost_" + (START_PORT + 1);
 
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageType(),
+    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageTypes(),
         factory);
 
     String msgId = new UUID(123, 456).toString();
-    Message msg = new Message(factory.getMessageType(), msgId);
+    Message msg = new Message(factory.getMessageTypes().get(0), msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
     msg.setTgtSessionId("*");
@@ -179,14 +187,14 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
     String hostDest = "localhost_" + (START_PORT + 1);
 
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageType(),
+    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageTypes(),
         factory);
 
-    _participants[0].getMessagingService().registerMessageHandlerFactory(factory.getMessageType(),
+    _participants[0].getMessagingService().registerMessageHandlerFactory(factory.getMessageTypes(),
         factory);
 
     String msgId = new UUID(123, 456).toString();
-    Message msg = new Message(factory.getMessageType(), msgId);
+    Message msg = new Message(factory.getMessageTypes().get(0), msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
@@ -246,11 +254,11 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
     String hostDest = "localhost_" + (START_PORT + 1);
 
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageType(),
+    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageTypes(),
         factory);
 
     String msgId = new UUID(123, 456).toString();
-    Message msg = new Message(factory.getMessageType(), msgId);
+    Message msg = new Message(factory.getMessageTypes().get(0), msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
@@ -287,11 +295,11 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
       TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
       String hostDest = "localhost_" + (START_PORT + i);
       _participants[i].getMessagingService().registerMessageHandlerFactory(
-          factory.getMessageType(), factory);
+          factory.getMessageTypes(), factory);
 
     }
     String msgId = new UUID(123, 456).toString();
-    Message msg = new Message(new TestMessagingHandlerFactory().getMessageType(), msgId);
+    Message msg = new Message(new TestMessagingHandlerFactory().getMessageTypes().get(0), msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
@@ -351,11 +359,11 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
       TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
       String hostDest = "localhost_" + (START_PORT + i);
       _participants[i].getMessagingService().registerMessageHandlerFactory(
-          factory.getMessageType(), factory);
+          factory.getMessageTypes(), factory);
 
     }
     String msgId = new UUID(123, 456).toString();
-    Message msg = new Message(new TestMessagingHandlerFactory().getMessageType(), msgId);
+    Message msg = new Message(new TestMessagingHandlerFactory().getMessageTypes().get(0), msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
@@ -387,7 +395,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
       TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
       String hostDest = "localhost_" + (START_PORT + i);
       _participants[i].getMessagingService().registerMessageHandlerFactory(
-          factory.getMessageType(), factory);
+          factory.getMessageTypes(), factory);
 
     }
     String msgId = new UUID(123, 456).toString();

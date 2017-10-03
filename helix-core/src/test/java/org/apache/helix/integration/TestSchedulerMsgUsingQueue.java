@@ -103,7 +103,7 @@ public class TestSchedulerMsgUsingQueue extends ZkStandAloneCMTestBase {
 
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
     PropertyKey controllerTaskStatus =
-        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
             schedulerMessage.getMsgId());
 
     int messageResultCount = 0;

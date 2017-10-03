@@ -28,11 +28,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixRollbackException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
@@ -340,6 +342,13 @@ public class HelixStateTransitionHandler extends MessageHandler {
                                 message.getFromState(),
                                 message.getToState(),
                                 message.getTgtSessionId()));
+
+      if (_cancelled) {
+        throw new HelixRollbackException(String.format(
+            "Instance %s, partition %s state transition from %s to %s on session %s has been cancelled",
+            message.getTgtName(), message.getPartitionName(), message.getFromState(),
+            message.getToState(), message.getTgtSessionId()));
+      }
 
       Object result = methodToInvoke.invoke(_stateModel, new Object[] { message, context });
       taskResult.setSuccess(true);

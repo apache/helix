@@ -21,6 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -40,6 +41,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import com.google.common.collect.ImmutableList;
 
 public class TestZkSessionExpiry extends ZkUnitTestBase {
   final static String DUMMY_MSG_TYPE = "DUMMY";
@@ -83,6 +86,10 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
     @Override
     public String getMessageType() {
       return DUMMY_MSG_TYPE;
+    }
+
+    @Override public List<String> getMessageTypes() {
+      return ImmutableList.of(DUMMY_MSG_TYPE);
     }
 
     @Override
@@ -158,7 +165,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
   /**
    * trigger dummy message handler and verify it's invoked
    * @param manager
-   * @param handledMsgMap
+   * @param handledMsgSet
    * @throws Exception
    */
   private static void checkDummyMsgHandler(HelixManager manager,

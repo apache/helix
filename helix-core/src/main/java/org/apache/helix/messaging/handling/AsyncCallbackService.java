@@ -19,6 +19,7 @@ package org.apache.helix.messaging.handling;
  * under the License.
  */
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixException;
@@ -27,6 +28,8 @@ import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.ImmutableList;
 
 public class AsyncCallbackService implements MessageHandlerFactory {
   private final ConcurrentHashMap<String, AsyncCallback> _callbackMap =
@@ -45,7 +48,7 @@ public class AsyncCallbackService implements MessageHandlerFactory {
   }
 
   void verifyMessage(Message message) {
-    if (!message.getMsgType().toString().equalsIgnoreCase(MessageType.TASK_REPLY.toString())) {
+    if (!message.getMsgType().toString().equalsIgnoreCase(MessageType.TASK_REPLY.name())) {
       String errorMsg =
           "Unexpected msg type for message " + message.getMsgId() + " type:" + message.getMsgType()
               + " Expected : " + MessageType.TASK_REPLY;
@@ -79,7 +82,12 @@ public class AsyncCallbackService implements MessageHandlerFactory {
 
   @Override
   public String getMessageType() {
-    return MessageType.TASK_REPLY.toString();
+    return MessageType.TASK_REPLY.name();
+  }
+
+  @Override
+  public List<String> getMessageTypes() {
+    return ImmutableList.of(MessageType.TASK_REPLY.name());
   }
 
   @Override

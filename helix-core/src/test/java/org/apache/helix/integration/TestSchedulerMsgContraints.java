@@ -131,7 +131,7 @@ public class TestSchedulerMsgContraints extends ZkStandAloneCMTestBase {
     for (int j = 0; j < 10; j++) {
       Thread.sleep(200);
       PropertyKey controllerTaskStatus =
-          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgId);
       ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
       if (statusUpdate.getMapFields().containsKey("SentMessageCount")) {
         Assert.assertEquals(
@@ -156,7 +156,7 @@ public class TestSchedulerMsgContraints extends ZkStandAloneCMTestBase {
     for (int j = 0; j < 10; j++) {
       Thread.sleep(200);
       PropertyKey controllerTaskStatus =
-          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgId);
       ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
       if (statusUpdate.getMapFields().containsKey("Summary")) {
         break;
@@ -165,7 +165,7 @@ public class TestSchedulerMsgContraints extends ZkStandAloneCMTestBase {
 
     Assert.assertEquals(_PARTITIONS, factory._results.size());
     PropertyKey controllerTaskStatus =
-        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgId);
     ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
     Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
         .equals("" + (_PARTITIONS * 3)));

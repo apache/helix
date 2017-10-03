@@ -268,13 +268,13 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
         */
         if (!resourcePatitionTransitionTimes.containsKey(message.getResourceName())) {
           resourcePatitionTransitionTimes
-              .put(message.getResourceName(), new ArrayList<PartitionTransitionTime>());
+              .put(message.getResourceName(), Collections.synchronizedList(new ArrayList<PartitionTransitionTime>()));
         }
         resourcePatitionTransitionTimes.get(message.getResourceName()).add(partitionTransitionTime);
 
         if (!instancePatitionTransitionTimes.containsKey(message.getTgtName())) {
           instancePatitionTransitionTimes
-              .put(message.getTgtName(), new ArrayList<PartitionTransitionTime>());
+              .put(message.getTgtName(), Collections.synchronizedList(new ArrayList<PartitionTransitionTime>()));
         }
         instancePatitionTransitionTimes.get(message.getTgtName()).add(partitionTransitionTime);
       }

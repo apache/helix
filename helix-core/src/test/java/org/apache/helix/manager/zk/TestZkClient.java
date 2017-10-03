@@ -116,7 +116,7 @@ public class TestZkClient extends ZkUnitTestBase {
 
   @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Data size larger than 1M.*")
   void testDataSizeLimit() {
-    ZNRecord data = new ZNRecord(new String(new char[1024*1024]));
+    ZNRecord data = new ZNRecord(new String(new char[1024*1024*128]));
     _zkClient.writeData("/test", data, -1);
   }
 }

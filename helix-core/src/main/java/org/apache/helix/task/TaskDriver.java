@@ -360,7 +360,7 @@ public class TaskDriver {
     removeJobStateFromQueue(queueName, jobName);
 
     // Delete the job from property store
-    TaskUtil.removeJobContext(_propertyStore, jobName);
+    TaskUtil.removeJobContext(_propertyStore, namespacedJobName);
   }
 
   /** Remove the job name from the DAG from the queue configuration */

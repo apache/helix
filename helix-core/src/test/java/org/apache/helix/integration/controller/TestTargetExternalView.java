@@ -56,6 +56,7 @@ public class TestTargetExternalView extends TaskTestBase{
     clusterConfig.enableTargetExternalView(true);
     clusterConfig.setPersistIntermediateAssignment(true);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+    _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, _testDbs.get(0), 3);
     Thread.sleep(2000L);
 
     Assert

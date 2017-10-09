@@ -28,6 +28,8 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -42,7 +44,8 @@ import java.util.Map;
 public class TestDisableResourceMbean extends ZkUnitTestBase {
   private MBeanServerConnection _mbeanServer = ManagementFactory.getPlatformMBeanServer();
 
-  @Test public void testDisableResourceMonitoring() throws Exception {
+  @Test
+  public void testDisableResourceMonitoring() throws Exception {
     final int NUM_PARTICIPANTS = 2;
     String clusterName = TestHelper.getTestClassName() + "_" + TestHelper.getTestMethodName();
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -83,7 +86,9 @@ public class TestDisableResourceMbean extends ZkUnitTestBase {
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
 
-    Thread.sleep(300);
+    HelixClusterVerifier clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+    Assert.assertTrue(clusterVerifier.verify());
 
     // Verify the bean was created for TestDB0, but not for TestDB1.
     Assert.assertTrue(_mbeanServer.isRegistered(getMbeanName("TestDB0", clusterName)));

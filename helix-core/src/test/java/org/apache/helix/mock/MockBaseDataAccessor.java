@@ -150,7 +150,7 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
 
   @Override
   public List<ZNRecord> get(List<String> paths, List<Stat> stats, int options) {
-    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    List<ZNRecord> records = new ArrayList<>();
     for (int i = 0; i < paths.size(); i++) {
       ZNRecord record = get(paths.get(i), stats.get(i), options);
       records.add(record);
@@ -160,7 +160,7 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
 
   @Override
   public List<ZNRecord> getChildren(String parentPath, List<Stat> stats, int options) {
-    List<ZNRecord> children = new ArrayList<ZNRecord>();
+    List<ZNRecord> children = new ArrayList<>();
     for (String key : _recordMap.keySet()) {
       if (key.startsWith(parentPath)) {
         String[] keySplit = key.split("\\/");
@@ -182,7 +182,7 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
 
   @Override
   public List<String> getChildNames(String parentPath, int options) {
-    List<String> child = new ArrayList<String>();
+    List<String> child = new ArrayList<>();
     for (String key : _recordMap.keySet()) {
       if (key.startsWith(parentPath)) {
         String[] keySplit = key.split("\\/");

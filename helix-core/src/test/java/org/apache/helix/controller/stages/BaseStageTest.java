@@ -19,6 +19,7 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -43,9 +44,13 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.codehaus.jackson.annotate.JsonAnySetter;
+import org.testng.ITestContext;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
@@ -73,7 +78,6 @@ public class BaseStageTest {
         + new Date(System.currentTimeMillis()));
   }
 
-  @BeforeMethod()
   public void setup() {
     _clusterName = "testCluster-" + UUID.randomUUID().toString();
     manager = new MockManager(_clusterName);
@@ -83,6 +87,21 @@ public class BaseStageTest {
     admin = new MockHelixAdmin(manager);
     event = new ClusterEvent(ClusterEventType.Unknown);
     admin.addCluster(_clusterName);
+  }
+
+  @BeforeMethod
+  public void beforeTest(Method testMethod, ITestContext testContext){
+    long startTime = System.currentTimeMillis();
+    System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
+    testContext.setAttribute("StartTime", System.currentTimeMillis());
+    setup();
+  }
+
+  @AfterMethod
+  public void endTest(Method testMethod, ITestContext testContext) {
+    Long startTime = (Long) testContext.getAttribute("StartTime");
+    long endTime = System.currentTimeMillis();
+    System.out.println("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: " + (endTime - startTime) + "ms.");
   }
 
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
@@ -137,14 +156,18 @@ public class BaseStageTest {
       stateModelName, rebalanceClassName, null);
   }
 
-  protected void setupLiveInstances(int numLiveInstances) {
+  protected List<String> setupLiveInstances(int numLiveInstances) {
+    List<String> instances = new ArrayList<>();
     for (int i = 0; i < numLiveInstances; i++) {
       LiveInstance liveInstance = new LiveInstance(HOSTNAME_PREFIX + i);
       liveInstance.setSessionId(SESSION_PREFIX + i);
 
       Builder keyBuilder = accessor.keyBuilder();
       accessor.setProperty(keyBuilder.liveInstance(HOSTNAME_PREFIX + i), liveInstance);
+      instances.add(liveInstance.getInstanceName());
     }
+
+    return instances;
   }
 
   protected void setupInstances(int numInstances) {
@@ -225,6 +248,22 @@ public class BaseStageTest {
 
     for (String r : resources) {
       Resource testResource = new Resource(r);
+      testResource.setStateModelDefRef(stateModel);
+      for (int i = 0; i < partitions; i++) {
+        testResource.addPartition(r + "_" + i);
+      }
+      resourceMap.put(r, testResource);
+    }
+
+    return resourceMap;
+  }
+
+  protected Map<String, Resource> getResourceMap(String[] resources, int partitions,
+      String stateModel, ClusterConfig clusterConfig, ResourceConfig resourceConfig) {
+    Map<String, Resource> resourceMap = new HashMap<String, Resource>();
+
+    for (String r : resources) {
+      Resource testResource = new Resource(r, clusterConfig, resourceConfig);
       testResource.setStateModelDefRef(stateModel);
       for (int i = 0; i < partitions; i++) {
         testResource.addPartition(r + "_" + i);

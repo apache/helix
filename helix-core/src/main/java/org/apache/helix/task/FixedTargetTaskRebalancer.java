@@ -36,7 +36,8 @@ import org.apache.helix.model.ResourceAssignment;
 /**
  * This rebalancer is deprecated, left here only for back-compatible. *
  */
-@Deprecated public class FixedTargetTaskRebalancer extends DeprecatedTaskRebalancer {
+@Deprecated
+public class FixedTargetTaskRebalancer extends DeprecatedTaskRebalancer {
   private FixedTargetTaskAssignmentCalculator taskAssignmentCalculator =
       new FixedTargetTaskAssignmentCalculator();
 

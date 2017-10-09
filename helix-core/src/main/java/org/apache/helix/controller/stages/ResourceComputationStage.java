@@ -56,7 +56,6 @@ public class ResourceComputationStage extends AbstractBaseStage {
     Map<String, Resource> resourceMap = new LinkedHashMap<String, Resource>();
     Map<String, Resource> resourceToRebalance = new LinkedHashMap<>();
 
-
     if (idealStates != null && idealStates.size() > 0) {
       for (IdealState idealState : idealStates.values()) {
         if (idealState == null) {
@@ -65,7 +64,8 @@ public class ResourceComputationStage extends AbstractBaseStage {
         Set<String> partitionSet = idealState.getPartitionSet();
         String resourceName = idealState.getResourceName();
         if (!resourceMap.containsKey(resourceName)) {
-          Resource resource = new Resource(resourceName);
+          Resource resource = new Resource(resourceName, cache.getClusterConfig(),
+              cache.getResourceConfig(resourceName));
           resourceMap.put(resourceName, resource);
 
           if (!idealState.isValid() && !cache.isTaskCache()

@@ -22,17 +22,20 @@ package org.apache.helix.controller.stages;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,33 +43,13 @@ import org.slf4j.LoggerFactory;
 public class MessageSelectionStage extends AbstractBaseStage {
   private static final Logger LOG = LoggerFactory.getLogger(MessageSelectionStage.class);
 
-  public static class Bounds {
+  protected static class Bounds {
     private int upper;
     private int lower;
 
     public Bounds(int lower, int upper) {
       this.lower = lower;
       this.upper = upper;
-    }
-
-    public void increaseUpperBound() {
-      upper++;
-    }
-
-    public void increaseLowerBound() {
-      lower++;
-    }
-
-    public void decreaseUpperBound() {
-      upper--;
-    }
-
-    public void decreaseLowerBound() {
-      lower--;
-    }
-
-    public int getLowerBound() {
-      return lower;
     }
 
     public int getUpperBound() {
@@ -100,11 +83,11 @@ public class MessageSelectionStage extends AbstractBaseStage {
           computeStateConstraints(stateModelDef, idealState, cache);
       for (Partition partition : resource.getPartitions()) {
         List<Message> messages = messageGenOutput.getMessages(resourceName, partition);
-        List<Message> selectedMessages =
-            selectMessages(cache.getLiveInstances(),
-                currentStateOutput.getCurrentStateMap(resourceName, partition),
-                currentStateOutput.getPendingMessageMap(resourceName, partition), messages,
-                stateConstraints, stateTransitionPriorities, stateModelDef.getInitialState());
+        List<Message> selectedMessages = selectMessages(cache.getLiveInstances(),
+            currentStateOutput.getCurrentStateMap(resourceName, partition),
+            currentStateOutput.getPendingMessageMap(resourceName, partition), messages,
+            stateConstraints, stateTransitionPriorities, stateModelDef,
+            resource.isP2PMessageEnabled());
         output.addMessages(resourceName, partition, selectedMessages);
       }
     }
@@ -124,34 +107,36 @@ public class MessageSelectionStage extends AbstractBaseStage {
   }
 
   // TODO: This method deserves its own class. The class should not understand helix but
-  // just be
-  // able to solve the problem using the algo. I think the method is following that but if
-  // we don't move it to another class its quite easy to break that contract
+  // just be able to solve the problem using the algo. I think the method is following that
+  // but if we don't move it to another class its quite easy to break that contract
   /**
    * greedy message selection algorithm: 1) calculate CS+PS state lower/upper-bounds 2)
    * group messages by state transition and sorted by priority 3) from highest priority to
    * lowest, for each message group with the same transition add message one by one and
    * make sure state constraint is not violated update state lower/upper-bounds when a new
-   * message is selected
+   * message is selected.
+   *
+   * @param liveInstances
    * @param currentStates
-   * @param pendingStates
+   * @param pendingMessages
    * @param messages
    * @param stateConstraints
-   *          : STATE -> bound (lower:upper)
    * @param stateTransitionPriorities
-   *          : FROME_STATE-TO_STATE -> priority
-   * @return: selected messages
+   * @param stateModelDef
+   * @return
    */
   List<Message> selectMessages(Map<String, LiveInstance> liveInstances,
       Map<String, String> currentStates, Map<String, Message> pendingMessages,
       List<Message> messages, Map<String, Bounds> stateConstraints,
-      final Map<String, Integer> stateTransitionPriorities, String initialState) {
+      final Map<String, Integer> stateTransitionPriorities, StateModelDefinition stateModelDef,
+      boolean p2pMessageEnabled) {
     if (messages == null || messages.isEmpty()) {
       return Collections.emptyList();
     }
-    List<Message> selectedMessages = new ArrayList<Message>();
-    Map<String, Integer> stateCnts = new HashMap<String, Integer>();
+    List<Message> selectedMessages = new ArrayList<>();
+    Map<String, Integer> stateCnts = new HashMap<>();
 
+    String initialState = stateModelDef.getInitialState();
     // count currentState, if no currentState, count as in initialState
     for (String instance : liveInstances.keySet()) {
       String state = initialState;
@@ -171,7 +156,10 @@ public class MessageSelectionStage extends AbstractBaseStage {
 
     // group messages based on state transition priority
     Map<Integer, List<Message>> messagesGroupByStateTransitPriority =
-        new TreeMap<Integer, List<Message>>();
+        new TreeMap<>();
+
+    /* record all state transition messages that transition a replica from top-state */
+    List<Message> fromTopStateMessages = new LinkedList<>();
     for (Message message : messages) {
       if (message.getMsgType().equals(Message.MessageType.STATE_TRANSITION_CANCELLATION.name())) {
         selectedMessages.add(message);
@@ -190,6 +178,10 @@ public class MessageSelectionStage extends AbstractBaseStage {
         messagesGroupByStateTransitPriority.put(priority, new ArrayList<Message>());
       }
       messagesGroupByStateTransitPriority.get(priority).add(message);
+
+      if (fromState.equals(stateModelDef.getTopState())) {
+        fromTopStateMessages.add(message);
+      }
     }
 
     // select messages
@@ -200,8 +192,18 @@ public class MessageSelectionStage extends AbstractBaseStage {
         if (stateConstraints.containsKey(toState)) {
           int newCnt = (stateCnts.containsKey(toState) ? stateCnts.get(toState) + 1 : 1);
           if (newCnt > stateConstraints.get(toState).getUpperBound()) {
-            LOG.info("Reach upper_bound: " + stateConstraints.get(toState).getUpperBound()
-                + ", not send message: " + message);
+            if (p2pMessageEnabled && toState.equals(stateModelDef.getTopState())
+                && stateModelDef.isSingleTopStateModel()) {
+              // attach this message as a relay message to the message to transition off current top-state replica
+              if (fromTopStateMessages.size() > 0) {
+                Message fromTopStateMsg = fromTopStateMessages.get(0);
+                fromTopStateMsg.attachRelayMessage(message.getTgtName(), message);
+                fromTopStateMessages.remove(0);
+              }
+            } else {
+              // reach upper-bound of message for the topState, will not send the message
+              LOG.info("Reach upper_bound: " + stateConstraints.get(toState).getUpperBound() + ", not send message: " + message);
+            }
             continue;
           }
         }

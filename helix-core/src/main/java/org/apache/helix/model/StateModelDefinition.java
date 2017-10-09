@@ -95,8 +95,8 @@ public class StateModelDefinition extends HelixProperty {
         record.getListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString());
     _stateTransitionPriorityList =
         record.getListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString());
-    _stateTransitionTable = new HashMap<String, Map<String, String>>();
-    _statesCountMap = new HashMap<String, String>();
+    _stateTransitionTable = new HashMap<>();
+    _statesCountMap = new HashMap<>();
     if (_statesPriorityList != null) {
       int priority = 1;
       for (String state : _statesPriorityList) {
@@ -203,6 +203,22 @@ public class StateModelDefinition extends HelixProperty {
   }
 
   /**
+   * Whether this state model allows at most a single replica in the top-state?
+   *
+   * @return
+   */
+  public boolean isSingleTopStateModel() {
+    int topStateCount = 0;
+    try {
+      topStateCount = Integer.valueOf(_statesCountMap.get(getTopState()));
+    } catch (NumberFormatException ex) {
+
+    }
+
+    return topStateCount == 1;
+  }
+
+  /**
    * Get the second top states, which need one step transition to top state
    * @return a set of second top states
    */
@@ -244,9 +260,9 @@ public class StateModelDefinition extends HelixProperty {
      */
     public Builder(String name) {
       this._statemodelName = name;
-      statesMap = new HashMap<String, Integer>();
-      transitionMap = new HashMap<Transition, Integer>();
-      stateConstraintMap = new HashMap<String, String>();
+      statesMap = new HashMap<>();
+      transitionMap = new HashMap<>();
+      stateConstraintMap = new HashMap<>();
     }
 
     /**
@@ -368,7 +384,7 @@ public class StateModelDefinition extends HelixProperty {
         }
       };
       Collections.sort(transitionList, c2);
-      List<String> transitionPriorityList = new ArrayList<String>(transitionList.size());
+      List<String> transitionPriorityList = new ArrayList<>(transitionList.size());
       for (Transition t : transitionList) {
         transitionPriorityList.add(t.toString());
       }
@@ -383,7 +399,7 @@ public class StateModelDefinition extends HelixProperty {
       StateTransitionTableBuilder stateTransitionTableBuilder = new StateTransitionTableBuilder();
       Map<String, Map<String, String>> transitionTable =
           stateTransitionTableBuilder.buildTransitionTable(statePriorityList,
-              new ArrayList<Transition>(transitionMap.keySet()));
+              new ArrayList<>(transitionMap.keySet()));
       for (String state : transitionTable.keySet()) {
         record.setMapField(state + ".next", transitionTable.get(state));
       }

@@ -31,6 +31,7 @@ public class HelixTaskResult {
   private Map<String, String> _taskResultMap = new HashMap<String, String>();
   private boolean _interrupted = false;
   Exception _exception = null;
+  private long _completeTime = -1;
 
   public boolean isSuccess() {
     return _success;
@@ -82,5 +83,13 @@ public class HelixTaskResult {
 
   public Exception getException() {
     return _exception;
+  }
+
+  public long getCompleteTime() {
+    return _completeTime;
+  }
+
+  public void setCompleteTime(long completeTime) {
+    _completeTime = completeTime;
   }
 }

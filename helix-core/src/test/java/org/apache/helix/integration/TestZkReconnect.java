@@ -49,7 +49,7 @@ import org.testng.annotations.Test;
 public class TestZkReconnect {
   private static final Logger LOG = LoggerFactory.getLogger(TestZkReconnect.class);
 
-  @Test
+  @Test (enabled = false)
   public void testZKReconnect() throws Exception {
     final AtomicReference<ZkServer> zkServerRef = new AtomicReference<ZkServer>();
     final int zkPort = TestHelper.getRandomPort();

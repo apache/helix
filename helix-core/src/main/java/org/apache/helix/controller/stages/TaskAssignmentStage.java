@@ -144,7 +144,15 @@ public class TaskAssignmentStage extends AbstractBaseStage {
           "Sending Message " + message.getMsgId() + " to " + message.getTgtName() + " transit "
               + message.getResourceName() + "." + message.getPartitionName() + "|" + message
               .getPartitionNames() + " from:" + message.getFromState() + " to:" + message
-              .getToState() + ", Message type ");
+              .getToState() + ", relayMessages: " + message.getRelayMessages().size());
+      if (message.hasRelayMessages()) {
+        for (Message msg : message.getRelayMessages().values()) {
+          logger.info("Sending Relay Message " + msg.getMsgId() + " to " + msg.getTgtName() + " transit "
+              + msg.getResourceName() + "." + msg.getPartitionName() + "|" + msg.getPartitionNames() + " from:"
+              + msg.getFromState() + " to:" + msg.getToState() + ", relayFrom: " + msg.getRelaySrcHost()
+              + ", attached to message: " + message.getMsgId());
+        }
+      }
 
       keys.add(keyBuilder.message(message.getTgtName(), message.getId()));
     }

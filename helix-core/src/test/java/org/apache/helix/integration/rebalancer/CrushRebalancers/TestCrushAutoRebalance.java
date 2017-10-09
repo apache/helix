@@ -109,17 +109,16 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
   }
 
   @DataProvider(name = "rebalanceStrategies")
-  public static String [][] rebalanceStrategies() {
+  public static Object [][] rebalanceStrategies() {
     return new String[][] { {"CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName()},
         {"MultiRoundCrushRebalanceStrategy", MultiRoundCrushRebalanceStrategy.class.getName()}
     };
   }
 
-  @Test(dataProvider = "rebalanceStrategies", enabled=true)
+  @Test(dataProvider = "rebalanceStrategies")
   public void testZoneIsolation(String rebalanceStrategyName, String rebalanceStrategyClass)
       throws Exception {
     System.out.println("testZoneIsolation " + rebalanceStrategyName);
-
     int i = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + rebalanceStrategyName + "-" + i++;
@@ -143,7 +142,7 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
     }
   }
 
-  @Test(dataProvider = "rebalanceStrategies", enabled=true)
+  @Test(dataProvider = "rebalanceStrategies")
   public void testZoneIsolationWithInstanceTag(
       String rebalanceStrategyName, String rebalanceStrategyClass) throws Exception {
     Set<String> tags = new HashSet<String>(_nodeToTagMap.values());

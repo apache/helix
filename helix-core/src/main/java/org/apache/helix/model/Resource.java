@@ -24,16 +24,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.helix.HelixConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import org.apache.helix.api.config.HelixConfigProperty;
 /**
  * A resource contains a set of partitions and its replicas are managed by a state model
  */
 public class Resource {
-  private static Logger LOG = LoggerFactory.getLogger(Resource.class);
-
   private final String _resourceName;
+  private ClusterConfig _clusterConfig;
+  private ResourceConfig _resourceConfig;
   private final Map<String, Partition> _partitionMap;
   private String _stateModelDefRef;
   private String _stateModelFactoryName;
@@ -48,7 +46,18 @@ public class Resource {
    */
   public Resource(String resourceName) {
     this._resourceName = resourceName;
-    this._partitionMap = new LinkedHashMap<String, Partition>();
+    this._partitionMap = new LinkedHashMap<>();
+  }
+
+  /**
+   * Instantiate a resource by its name
+   *
+   * @param resourceName the name of the resource that identifies it
+   */
+  public Resource(String resourceName, ClusterConfig clusterConfig, ResourceConfig resourceConfig) {
+    this(resourceName);
+    _clusterConfig = clusterConfig;
+    _resourceConfig = resourceConfig;
   }
 
   /**
@@ -183,6 +192,25 @@ public class Resource {
    */
   public void setResourceGroupName(String resourceGroupName) {
     _resourceGroupName = resourceGroupName;
+  }
+
+  /**
+   * Whether P2P state transition message is enabled.
+   *
+   * @return
+   */
+  public boolean isP2PMessageEnabled() {
+    String enabledInResource = _resourceConfig != null ?
+        _resourceConfig.getRecord().getSimpleField(HelixConfigProperty.P2P_MESSAGE_ENABLED.name()) : null;
+
+    if (enabledInResource != null) {
+      return Boolean.valueOf(enabledInResource);
+    }
+
+    String enabledInCluster = _clusterConfig != null ?
+        _clusterConfig.getRecord().getSimpleField(HelixConfigProperty.P2P_MESSAGE_ENABLED.name()) : null;
+
+    return enabledInCluster != null ? Boolean.valueOf(enabledInCluster) : false;
   }
 
   @Override

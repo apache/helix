@@ -197,6 +197,7 @@ public class BatchMessageHandler extends MessageHandler {
         result.setSuccess(isBatchTaskSucceed);
       }
 
+      result.setCompleteTime(System.currentTimeMillis());
       // pass task-result to post-handle-msg
       _notificationContext.add(MapKey.HELIX_TASK_RESULT.toString(), result);
       postHandleMessage();

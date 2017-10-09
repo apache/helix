@@ -54,13 +54,13 @@ public class CurrentStateOutput {
   private final Map<String, CurrentState> _curStateMetaMap;
 
   public CurrentStateOutput() {
-    _currentStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
-    _pendingStateMap = new HashMap<String, Map<Partition, Map<String, Message>>>();
-    _cancellationStateMap = new HashMap<String, Map<Partition, Map<String, Message>>>();
-    _resourceStateModelMap = new HashMap<String, String>();
-    _curStateMetaMap = new HashMap<String, CurrentState>();
-    _requestedStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
-    _infoMap = new HashMap<String, Map<Partition, Map<String, String>>>();
+    _currentStateMap = new HashMap<>();
+    _pendingStateMap = new HashMap<>();
+    _cancellationStateMap = new HashMap<>();
+    _resourceStateModelMap = new HashMap<>();
+    _curStateMetaMap = new HashMap<>();
+    _requestedStateMap = new HashMap<>();
+    _infoMap = new HashMap<>();
   }
 
   public void setResourceStateModelDef(String resourceName, String stateModelDefName) {
@@ -331,7 +331,7 @@ public class CurrentStateOutput {
 
   private Map<String, Integer> getPartitionCountWithState(String resourceStateModel, String state,
       Map<String, Map<Partition, Map<String, Object>>> stateMap) {
-    Map<String, Integer> currentPartitionCount = new HashMap<String, Integer>();
+    Map<String, Integer> currentPartitionCount = new HashMap<>();
     for (String resource : stateMap.keySet()) {
       String stateModel = _resourceStateModelMap.get(resource);
       if ((stateModel != null && stateModel.equals(resourceStateModel)) || (stateModel == null

@@ -20,13 +20,13 @@ package org.apache.helix.model;
  */
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import java.util.TreeMap;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.slf4j.Logger;
@@ -61,7 +61,6 @@ public class ResourceConfig extends HelixProperty {
   }
 
   private static final Logger _logger = LoggerFactory.getLogger(ResourceConfig.class.getName());
-
   /**
    * Instantiate for a specific instance
    *
@@ -95,11 +94,16 @@ public class ResourceConfig extends HelixProperty {
       Boolean helixEnabled, String resourceGroupName, String resourceType,
       Boolean groupRoutingEnabled, Boolean externalViewDisabled,
       RebalanceConfig rebalanceConfig, StateTransitionTimeoutConfig stateTransitionTimeoutConfig,
-      Map<String, List<String>> listFields, Map<String, Map<String, String>> mapFields) {
+      Map<String, List<String>> listFields, Map<String, Map<String, String>> mapFields,
+      Boolean p2pMessageEnabled) {
     super(resourceId);
 
     if (monitorDisabled != null) {
       _record.setBooleanField(ResourceConfigProperty.MONITORING_DISABLED.name(), monitorDisabled);
+    }
+
+    if (p2pMessageEnabled != null) {
+      _record.setBooleanField(HelixConfigProperty.P2P_MESSAGE_ENABLED.name(), p2pMessageEnabled);
     }
 
     if (numPartitions > 0) {
@@ -180,6 +184,15 @@ public class ResourceConfig extends HelixProperty {
     return _record.getBooleanField(ResourceConfigProperty.MONITORING_DISABLED.toString(), false);
   }
 
+  /**
+   * Whether the P2P state transition message is enabled for this resource.
+   * By default it is disabled if not set.
+   *
+   * @return
+   */
+  public boolean isP2PMessageEnabled() {
+    return _record.getBooleanField(HelixConfigProperty.P2P_MESSAGE_ENABLED.name(), false);
+  }
 
   /**
    * Get the associated resource
@@ -458,6 +471,7 @@ public class ResourceConfig extends HelixProperty {
     private String _resourceType;
     private Boolean _groupRoutingEnabled;
     private Boolean _externalViewDisabled;
+    private Boolean _p2pMessageEnabled;
     private RebalanceConfig _rebalanceConfig;
     private StateTransitionTimeoutConfig _stateTransitionTimeoutConfig;
     private Map<String, List<String>> _preferenceLists;
@@ -469,6 +483,17 @@ public class ResourceConfig extends HelixProperty {
 
     public Builder setMonitorDisabled(boolean monitorDisabled) {
       _monitorDisabled = monitorDisabled;
+      return this;
+    }
+
+    /**
+     * Enable/Disable the p2p state transition message for this resource.
+     * By default it is disabled if not set.
+     *
+     * @param enabled
+     */
+    public Builder setP2PMessageEnabled(boolean enabled) {
+      _p2pMessageEnabled = enabled;
       return this;
     }
 
@@ -693,7 +718,7 @@ public class ResourceConfig extends HelixProperty {
           _stateModelFactoryName, _numReplica, _minActiveReplica, _maxPartitionsPerInstance,
           _instanceGroupTag, _helixEnabled, _resourceGroupName, _resourceType, _groupRoutingEnabled,
           _externalViewDisabled, _rebalanceConfig, _stateTransitionTimeoutConfig, _preferenceLists,
-          _mapFields);
+          _mapFields, _p2pMessageEnabled);
     }
   }
 }

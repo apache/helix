@@ -19,12 +19,16 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.helix.HelixException;
@@ -50,7 +54,9 @@ public class Message extends HelixProperty {
     TASK_REPLY,
     NO_OP,
     PARTICIPANT_ERROR_REPORT,
-    PARTICIPANT_SESSION_CHANGE
+    PARTICIPANT_SESSION_CHANGE,
+    CHAINED_MESSAGE, // this is a message subtype
+    RELAYED_MESSAGE
   }
 
   /**
@@ -58,6 +64,7 @@ public class Message extends HelixProperty {
    */
   public enum Attributes {
     MSG_ID,
+    RELAY_MSG_ID,
     SRC_SESSION_ID,
     TGT_SESSION_ID,
     SRC_NAME,
@@ -84,7 +91,12 @@ public class Message extends HelixProperty {
     STATE_MODEL_FACTORY_NAME,
     BUCKET_SIZE,
     PARENT_MSG_ID, // used for group message mode
-    INNER_MESSAGE
+    ClusterEventName,
+    INNER_MESSAGE,
+    RELAY_PARTICIPANTS,
+    RELAY_TIME,
+    RELAY_FROM,
+    EXPIRY_PERIOD
   }
 
   /**
@@ -95,6 +107,9 @@ public class Message extends HelixProperty {
     READ, // not used
     UNPROCESSABLE // get exception when create handler
   }
+
+  // default expiry time period for a relay message.
+  public static final long RELAY_MESSAGE_DEFAULT_EXPIRY = 5 * 1000;  //5 second
 
   /**
    * Compares the creation time of two Messages
@@ -662,6 +677,171 @@ public class Message extends HelixProperty {
     }
 
     return partitionNames;
+  }
+
+  /**
+   * Get the completion time of previous task associated with this message.
+   * This applies only when this is a relay message,
+   * which specified the completion time of the task running on the participant that sent this relay message.
+   *
+   * @return
+   */
+  public long getRelayTime() {
+    return _record.getLongField(Attributes.RELAY_TIME.name(), -1);
+  }
+
+  /**
+   * Set the completion time of previous task associated with this message.
+   * This applies only when this is a relay message,
+   * which specified the completion time of the task running on the participant that sent this relay message.
+   *
+   * @param completionTime
+   */
+  public void setRelayTime(long completionTime) {
+    _record.setLongField(Attributes.RELAY_TIME.name(), completionTime);
+  }
+
+  /**
+   * Attach a relayed message and its destination participant to this message.
+   *
+   * WARNNING: only content in SimpleFields of relayed message will be carried over and sent,
+   * all contents in either ListFields or MapFields will be ignored.
+   *
+   * @param instance destination participant name
+   * @param message relayed message.
+   */
+  public void attachRelayMessage(String instance, Message message) {
+    List<String> relayList = _record.getListField(Attributes.RELAY_PARTICIPANTS.name());
+    if (relayList == null) {
+      relayList = Collections.EMPTY_LIST;
+    }
+    Set<String> relayParticipants = new LinkedHashSet<>(relayList);
+    relayParticipants.add(instance);
+    Map<String, String> messageInfo = message.getRecord().getSimpleFields();
+    messageInfo.put(Attributes.RELAY_MSG_ID.name(), message.getId());
+    messageInfo.put(Attributes.MSG_SUBTYPE.name(), MessageType.RELAYED_MESSAGE.name());
+    messageInfo.put(Attributes.RELAY_FROM.name(), getTgtName());
+    messageInfo
+        .put(Attributes.EXPIRY_PERIOD.name(), String.valueOf(RELAY_MESSAGE_DEFAULT_EXPIRY));
+    _record.setMapField(instance, messageInfo);
+    _record.setListField(Attributes.RELAY_PARTICIPANTS.name(),
+        Lists.newArrayList(relayParticipants));
+  }
+
+  /**
+   * Get relay message attached for the given instance.
+   *
+   * @param instance
+   * @return null if no message for the instance
+   */
+  public Message getRelayMessage(String instance) {
+    Map<String, String> messageInfo = _record.getMapField(instance);
+    if (messageInfo != null) {
+      String id = messageInfo.get(Attributes.RELAY_MSG_ID.name());
+      if (id == null) {
+        id = messageInfo.get(Attributes.MSG_ID.name());
+        if (id == null) {
+          return null;
+        }
+      }
+      ZNRecord record = new ZNRecord(id);
+      record.setSimpleFields(messageInfo);
+      return new Message(record);
+    }
+
+    return null;
+  }
+
+  public String getRelaySrcHost() {
+    return _record.getSimpleField(Attributes.RELAY_FROM.name());
+  }
+
+  /**
+   * Get all relay messages attached to this message as a map (instance->message).
+   *
+   * @return map of instanceName->message, empty map if none.
+   */
+  public Map<String, Message> getRelayMessages() {
+    Map<String, Message> relayMessageMap = new HashMap<>();
+    List<String> relayParticipants = _record.getListField(Attributes.RELAY_PARTICIPANTS.name());
+    if (relayParticipants != null) {
+      for (String p : relayParticipants) {
+        Message msg = getRelayMessage(p);
+        if (p != null) {
+          relayMessageMap.put(p, msg);
+        }
+      }
+    }
+
+    return relayMessageMap;
+  }
+
+  /**
+   * Whether there are any relay message attached to this message.
+   *
+   * @return
+   */
+  public boolean hasRelayMessages() {
+    List<String> relayHosts = _record.getListField(Attributes.RELAY_PARTICIPANTS.name());
+    return (relayHosts != null && relayHosts.size() > 0);
+  }
+
+  /**
+   * Whether this message is a relay message.
+   * @return
+   */
+  public boolean isRelayMessage() {
+    String subType = _record.getStringField(Attributes.MSG_SUBTYPE.name(), null);
+    String relayFrom = _record.getStringField(Attributes.RELAY_FROM.name(), null);
+    return MessageType.RELAYED_MESSAGE.name().equals(subType) && (relayFrom != null);
+  }
+
+  /**
+   * Whether a message is expired.
+   *
+   * A message is expired if:
+   *   1) creationTime + expiryPeriod > current time
+   *   or
+   *   2) relayTime + expiryPeriod > current time iff it is relay message.
+   *
+   * @return
+   */
+  public boolean isExpired() {
+    long expiry = getExpiryPeriod();
+    if (expiry < 0) {
+      return false;
+    }
+
+    long current = System.currentTimeMillis();
+
+    // use relay time if this is a relay message
+    if (isRelayMessage()) {
+      long relayTime = getRelayTime();
+      return relayTime <= 0 || (relayTime + expiry < current);
+    }
+
+    return getCreateTimeStamp() + expiry < current;
+  }
+
+  /**
+   * Get the expiry period (in milliseconds)
+   *
+   * @return
+   */
+  public long getExpiryPeriod() {
+    return _record.getLongField(Attributes.EXPIRY_PERIOD.name(), -1);
+  }
+
+  /**
+   * Set expiry period for this message.
+   * A message will be expired after this period of time from either its 1) creationTime or 2)
+   * relayTime if it is relay message.
+   * Default is -1 if it is not set.
+   *
+   * @param expiry
+   */
+  public void setExpiryPeriod(long expiry) {
+    _record.setLongField(Attributes.EXPIRY_PERIOD.name(), expiry);
   }
 
   /**

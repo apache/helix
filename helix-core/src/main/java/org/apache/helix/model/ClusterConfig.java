@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 
@@ -489,6 +490,28 @@ public class ClusterConfig extends HelixProperty {
    */
   public Map<String, String> getDisabledInstances() {
     return _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES.name());
+  }
+
+  /**
+   * Whether the P2P state transition message is enabled for all resources in this cluster. By
+   * default it is disabled if not set.
+   *
+   * @return
+   */
+  public boolean isP2PMessageEnabled() {
+    return _record.getBooleanField(HelixConfigProperty.P2P_MESSAGE_ENABLED.name(), false);
+  }
+
+  /**
+   * Enable P2P state transition message for all resources in this cluster. P2P State Transition
+   * message can reduce the top-state replica unavailable time during top-state handoff period. This
+   * only applies for those resources with state models that only have a single top-state replica,
+   * such as MasterSlave or LeaderStandy models. By default P2P message is disabled if not set.
+   *
+   * @param enabled
+   */
+  public void enableP2PMessage(boolean enabled) {
+    _record.setBooleanField(HelixConfigProperty.P2P_MESSAGE_ENABLED.name(), enabled);
   }
 
   /**

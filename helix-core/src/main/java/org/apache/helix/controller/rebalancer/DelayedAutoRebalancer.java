@@ -310,7 +310,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   private boolean isDelayRebalanceEnabled(IdealState idealState, ClusterConfig clusterConfig) {
     long delay = getRebalanceDelay(idealState, clusterConfig);
     return (delay > 0 && idealState.isDelayRebalanceEnabled() && clusterConfig
-        .isDelayRebalaceEnabled());
+        . isDelayRebalaceEnabled());
   }
 
   private ZNRecord getFinalDelayedMapping(IdealState idealState, ZNRecord newIdealMapping,

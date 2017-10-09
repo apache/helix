@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -187,7 +186,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
               message.setExecutionTimeout(timeout);
             }
 
-            message.getRecord().setSimpleField("ClusterEventName", event.getEventType().name());
+            message.setAttribute(Message.Attributes.ClusterEventName, event.getEventType().name());
             // output.addMessage(resourceName, partition, message);
             if (!messageMap.containsKey(desiredState)) {
               messageMap.put(desiredState, new ArrayList<Message>());

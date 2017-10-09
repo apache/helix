@@ -188,16 +188,20 @@ public class ClusterDataCache {
         accessor.getChildValuesMap(keyBuilder.stateModelDefs());
     _stateModelDefMap = new ConcurrentHashMap<>(stateDefMap);
     _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
+    _clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
 
     refreshMessages(accessor);
     refreshCurrentStates(accessor);
 
-    _clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
+    // current state must be refreshed before refreshing relay messages
+    // because we need to use current state to validate all relay messages.
+    updateRelayMessages(_messageMap);
+
     if (_clusterConfig != null) {
       _idealStateRuleMap = _clusterConfig.getIdealStateRules();
     } else {
       _idealStateRuleMap = Maps.newHashMap();
-      LOG.error("Cluster config is null!");
+      LOG.warn("Cluster config is null!");
     }
 
     long endTime = System.currentTimeMillis();
@@ -275,12 +279,66 @@ public class ClusterDataCache {
         }
       }
     }
+
     _messageMap = Collections.unmodifiableMap(msgMap);
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Message purge took: " + purgeSum);
       LOG.debug("# of Messages read from ZooKeeper " + newMessageKeys.size() + ". took " + (
           System.currentTimeMillis() - start) + " ms.");
+    }
+  }
+
+  // update all valid relay messages attached to existing state transition messages into message map.
+  private void updateRelayMessages(Map<String, Map<String, Message>> messageMap) {
+    List<Message> relayMessages = new ArrayList<>();
+    for (String instance : messageMap.keySet()) {
+      Map<String, Message> instanceMessages = messageMap.get(instance);
+      Map<String, Map<String, CurrentState>> instanceCurrentStateMap = _currentStateMap.get(instance);
+      if (instanceCurrentStateMap == null) {
+        continue;
+      }
+
+      for (Message message : instanceMessages.values()) {
+        if (message.hasRelayMessages()) {
+          String sessionId = message.getTgtSessionId();
+          String resourceName = message.getResourceName();
+          String partitionName = message.getPartitionName();
+          String targetState = message.getToState();
+          String instanceSessionId = _liveInstanceMap.get(instance).getSessionId();
+
+          if (!instanceSessionId.equals(sessionId)) {
+            continue;
+          }
+
+          Map<String, CurrentState> sessionCurrentStateMap = instanceCurrentStateMap.get(sessionId);
+          if (sessionCurrentStateMap == null) {
+            continue;
+          }
+          CurrentState currentState = sessionCurrentStateMap.get(resourceName);
+          if (currentState == null || !targetState.equals(currentState.getState(partitionName))) {
+            continue;
+          }
+          long transitionCompleteTime = currentState.getEndTime(partitionName);
+
+          for (Message msg : message.getRelayMessages().values()) {
+            msg.setRelayTime(transitionCompleteTime);
+            if (!message.isExpired()) {
+              relayMessages.add(msg);
+            }
+          }
+        }
+      }
+    }
+
+    for (Message message : relayMessages) {
+      String instance = message.getTgtName();
+      Map<String, Message> instanceMessages = messageMap.get(instance);
+      if (instanceMessages == null) {
+        instanceMessages = new HashMap<>();
+        messageMap.put(instance, instanceMessages);
+      }
+      instanceMessages.put(message.getId(), message);
     }
   }
 

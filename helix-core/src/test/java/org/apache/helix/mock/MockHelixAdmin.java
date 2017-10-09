@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -215,8 +216,19 @@ public class MockHelixAdmin implements HelixAdmin {
 
   }
 
-  @Override public void enableInstance(String clusterName, String instanceName, boolean enabled) {
+  @Override
+  public void enableInstance(String clusterName, String instanceName, boolean enabled) {
+    String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
+    if (!_baseDataAccessor.exists(instanceConfigsPath, 0)) {
+      _baseDataAccessor.create(instanceConfigsPath, new ZNRecord(instanceName), 0);
+    }
 
+    String instanceConfigPath = instanceConfigsPath + "/" + instanceName;
+
+    ZNRecord  record = (ZNRecord) _baseDataAccessor.get(instanceConfigPath, null, 0);
+    InstanceConfig instanceConfig = new InstanceConfig(record);
+    instanceConfig.setInstanceEnabled(enabled);
+    _baseDataAccessor.set(instanceConfigPath, instanceConfig.getRecord(), 0);
   }
 
   @Override public void enableInstance(String clusterName, List<String> instances,

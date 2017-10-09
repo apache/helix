@@ -182,7 +182,6 @@ public class TestResourceComputationStage extends BaseStageTest {
 
   @Test
   public void testNull() {
-    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     ResourceComputationStage stage = new ResourceComputationStage();
     StageContext context = new StageContext();
     stage.init(context);

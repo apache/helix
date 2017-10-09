@@ -27,8 +27,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageSelectionStage.Bounds;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
@@ -86,7 +86,8 @@ public class TestMsgSelectionStage {
 
     List<Message> selectedMsg =
         new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingMessages,
-            messages, stateConstraints, stateTransitionPriorities, "OFFLINE");
+            messages, stateConstraints, stateTransitionPriorities,
+            BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition(), false);
 
     Assert.assertEquals(selectedMsg.size(), 1);
     Assert.assertEquals(selectedMsg.get(0).getMsgId(), "msgId_1");
@@ -123,7 +124,8 @@ public class TestMsgSelectionStage {
 
     List<Message> selectedMsg =
         new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingMessages,
-            messages, stateConstraints, stateTransitionPriorities, "OFFLINE");
+            messages, stateConstraints, stateTransitionPriorities,
+            BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition(), false);
 
     Assert.assertEquals(selectedMsg.size(), 0);
     System.out.println("END testMasterXferAfterMasterResume at "

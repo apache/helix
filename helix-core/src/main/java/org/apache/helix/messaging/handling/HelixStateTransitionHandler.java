@@ -94,6 +94,12 @@ public class HelixStateTransitionHandler extends MessageHandler {
       throw new HelixException(errorMessage);
     }
 
+    logger.info(
+        "handling message: " + _message.getMsgId() + " transit " + _message.getResourceName()
+            + "." + _message.getPartitionName() + "|" + _message.getPartitionNames() + " from:"
+            + _message.getFromState() + " to:" + _message.getToState() + ", relayedFrom: "
+            + _message.getRelaySrcHost());
+
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
 
     String partitionName = _message.getPartitionName();
@@ -188,8 +194,15 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
     // Set the INFO property and mark the end time, previous state of the state transition
     _currentStateDelta.setInfo(partitionKey, taskResult.getInfo());
-    _currentStateDelta.setEndTime(partitionKey, System.currentTimeMillis());
+    _currentStateDelta.setEndTime(partitionKey, taskResult.getCompleteTime());
     _currentStateDelta.setPreviousState(partitionKey, _message.getFromState());
+
+    // add host name this state transition is triggered by.
+    if (Message.MessageType.RELAYED_MESSAGE.name().equals(_message.getMsgSubType())) {
+      _currentStateDelta.setTriggerHost(partitionKey, _message.getRelaySrcHost());
+    } else {
+      _currentStateDelta.setTriggerHost(partitionKey, _message.getMsgSrc());
+    }
 
     if (taskResult.isSuccess()) {
       // String fromState = message.getFromState();
@@ -339,6 +352,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
         }
       }
 
+      taskResult.setCompleteTime(System.currentTimeMillis());
       // add task result to context for postHandling
       context.add(MapKey.HELIX_TASK_RESULT.toString(), taskResult);
       postHandleMessage();

@@ -47,15 +47,13 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
   public final static String TEST_RESOURCE = "TestResource";
   public final static String PARTITION = "PARTITION";
 
-
   public void preSetup() {
     setupLiveInstances(3);
     setupStateModel();
     Resource resource = new Resource(TEST_RESOURCE);
     resource.setStateModelDefRef("MasterSlave");
     resource.addPartition(PARTITION);
-    event.addAttribute(AttributeName.RESOURCES.name(),
-        Collections.singletonMap(TEST_RESOURCE, resource));
+    event.addAttribute(AttributeName.RESOURCES.name(), Collections.singletonMap(TEST_RESOURCE, resource));
     event.addAttribute(AttributeName.clusterStatusMonitor.name(), new ClusterStatusMonitor("TestCluster"));
   }
 

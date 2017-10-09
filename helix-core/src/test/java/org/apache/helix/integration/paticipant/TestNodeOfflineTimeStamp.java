@@ -45,8 +45,10 @@ public class TestNodeOfflineTimeStamp extends ZkStandAloneCMTestBase {
     Assert.assertTrue(Math.abs(shutdownTime - recordTime) <= 500L);
 
     _participants[0].reset();
+    Thread.sleep(50);
     _participants[0].syncStart();
 
+    Thread.sleep(50);
     history = getInstanceHistory(_participants[0].getInstanceName());
     Assert.assertEquals(history.getLastOfflineTime(), ParticipantHistory.ONLINE);
   }

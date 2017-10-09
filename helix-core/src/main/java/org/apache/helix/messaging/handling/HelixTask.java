@@ -20,15 +20,19 @@ package org.apache.helix.messaging.handling;
  */
 
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.messaging.handling.MessageHandler.ErrorCode;
 import org.apache.helix.messaging.handling.MessageHandler.ErrorType;
 import org.apache.helix.model.Message;
@@ -37,6 +41,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
+import org.apache.helix.task.TaskResult;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,8 +166,12 @@ public class HelixTask implements MessageTask {
         }
       }
 
+      // forward relay messages attached to this message to other participants
+      if (taskResult.isSuccess()) {
+        forwardRelayMessages(accessor, _message, taskResult.getCompleteTime());
+      }
+
       if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
-        // System.err.println("\t[dbg]remove msg: " + getTaskId());
         removeMessageFromZk(accessor, _message);
         reportMessageStat(_manager, _message, taskResult);
         sendReply(accessor, _message, taskResult);
@@ -196,11 +205,46 @@ public class HelixTask implements MessageTask {
 
   private void removeMessageFromZk(HelixDataAccessor accessor, Message message) {
     Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey msgKey;
     if (message.getTgtName().equalsIgnoreCase("controller")) {
-      // TODO: removeProperty returns boolean
-      accessor.removeProperty(keyBuilder.controllerMessage(message.getMsgId()));
+      msgKey = keyBuilder.controllerMessage(message.getMsgId());
     } else {
-      accessor.removeProperty(keyBuilder.message(_manager.getInstanceName(), message.getMsgId()));
+      msgKey = keyBuilder.message(_manager.getInstanceName(), message.getMsgId());
+    }
+    boolean success = accessor.removeProperty(msgKey);
+    if (!success) {
+      logger.warn("Failed to delete message " + message.getId() + " from zk!");
+    }
+  }
+
+  private void forwardRelayMessages(HelixDataAccessor accessor, Message message,
+      long taskCompletionTime) {
+    if (message.hasRelayMessages()) {
+      Map<String, Message> relayMessages = message.getRelayMessages();
+      Builder keyBuilder = accessor.keyBuilder();
+
+      // Ignore all relay messages if participant's session has changed.
+      if (!_manager.getSessionId().equals(message.getTgtSessionId())) {
+        return;
+      }
+
+      for (String instance : relayMessages.keySet()) {
+        Message msg = relayMessages.get(instance);
+        if (msg.getMsgSubType().equals(MessageType.RELAYED_MESSAGE.name())) {
+          msg.setRelayTime(taskCompletionTime);
+          if (msg.isExpired()) {
+            logger.info(
+                "Relay message expired, ignore it! " + msg.getId() + " to instance " + instance);
+            continue;
+          }
+          PropertyKey msgKey = keyBuilder.message(instance, msg.getId());
+          boolean success = accessor.getBaseDataAccessor()
+              .create(msgKey.getPath(), msg.getRecord(), AccessOption.PERSISTENT);
+          if (!success) {
+            logger.warn("Failed to send relay message " + msg.getId() + " to " + instance);
+          }
+        }
+      }
     }
   }
 

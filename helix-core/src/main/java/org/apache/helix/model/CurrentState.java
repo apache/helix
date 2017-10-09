@@ -47,7 +47,8 @@ public class CurrentState extends HelixProperty {
     RESOURCE,
     START_TIME,
     END_TIME,
-    PREVIOUS_STATE // ,
+    PREVIOUS_STATE,
+    TRIGGERED_BY// ,
              // BUCKET_SIZE
   }
 
@@ -134,6 +135,10 @@ public class CurrentState extends HelixProperty {
     return endTime == null ? -1L : Long.parseLong(endTime);
   }
 
+  public String getTriggerHost(String partitionName) {
+    return getProperty(partitionName, CurrentStateProperty.TRIGGERED_BY);
+  }
+
   public String getPreviousState(String partitionName) {
     return getProperty(partitionName, CurrentStateProperty.PREVIOUS_STATE);
   }
@@ -185,6 +190,10 @@ public class CurrentState extends HelixProperty {
 
   public void setEndTime(String partitionName, long endTime) {
     setProperty(partitionName, CurrentStateProperty.END_TIME, String.valueOf(endTime));
+  }
+
+  public void setTriggerHost(String partitionName, String triggerHost) {
+    setProperty(partitionName, CurrentStateProperty.TRIGGERED_BY, triggerHost);
   }
 
   public void setPreviousState(String partitionName, String state) {

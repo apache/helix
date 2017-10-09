@@ -19,6 +19,8 @@ package org.apache.helix.integration.common;
  * under the License.
  */
 
+import java.lang.reflect.Method;
+import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -54,7 +56,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
+import org.testng.ITestContext;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterSuite;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 
 public class ZkIntegrationTestBase {
@@ -93,6 +98,21 @@ public class ZkIntegrationTestBase {
     ZKClientPool.reset();
     _gZkClient.close();
     TestHelper.stopZkServer(_zkServer);
+  }
+
+  @BeforeMethod
+  public void beforeTest(Method testMethod, ITestContext testContext){
+    long startTime = System.currentTimeMillis();
+    System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
+    testContext.setAttribute("StartTime", System.currentTimeMillis());
+  }
+
+  @AfterMethod
+  public void endTest(Method testMethod, ITestContext testContext) {
+    Long startTime = (Long) testContext.getAttribute("StartTime");
+    long endTime = System.currentTimeMillis();
+    System.out.println(
+        "END " + testMethod.getName() + " at " + new Date(endTime) + ", took: " + (endTime - startTime) + "ms.");
   }
 
   protected String getShortClassName() {

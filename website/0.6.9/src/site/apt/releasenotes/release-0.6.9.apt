@@ -1,0 +1,88 @@
+ -----
+ Release Notes for Apache Helix 0.6.9
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 0.6.9
+
+  The Apache Helix team would like to announce the release of Apache Helix 0.6.9.
+
+  This is the twelfth release under the Apache umbrella, and the eighth as a top-level project.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. Helix provides the following features:
+
+  * Automatic assignment of resource/partition to nodes
+
+  * Node failure detection and recovery
+
+  * Dynamic addition of Resources
+
+  * Dynamic addition of nodes to the cluster
+
+  * Pluggable distributed state machine to manage the state of a resource via state transitions
+
+  * Automatic load balancing and throttling of transitions
+
+[]
+
+* Detailed Changes
+
+** Feature
+
+    * [HELIX-669] - Support state transition cancellation.
+
+    * [HELIX-668] - Support configurable latency for participant health report.
+
+    * [HELIX-659] - Extend Helix to Support Resource with Multiple States.
+
+    * [HELIX-654] - Running task rebalance.
+
+    * Support Job Level Expiration.
+
+
+** Bug
+
+    * [HELIX-668] Fix remove context with namespaced job name
+
+    * [HELIX-670] Fix typo in Javadoc
+
+    * Fix disconnected zkConnection issue. 
+
+    * Fix Semi-Auto state transition jump to top state when instance just connected back.
+
+    * Fix JobQueue ignoring FailedThreshold.
+
+** Improvement
+
+    * Record workflow scheduling history in recurrent workflows.
+
+    * Add API in StateModelDefinition to get second top states
+
+    * Add protective check for ZKHelixAdmin.dropInstance()
+
+    * Add protective check for ZooKeeper writing data that is bigger than 1MB
+
+[]
+
+Cheers,
+--
+The Apache Helix Team

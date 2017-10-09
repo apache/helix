@@ -126,7 +126,7 @@ public class TestZkReconnect {
 
     LOG.info("Wait for OFFLINE->ONLINE state transition");
     try {
-      Assert.assertTrue(latch.await(10, TimeUnit.SECONDS));
+      Assert.assertTrue(latch.await(15, TimeUnit.SECONDS));
 
       // wait until stable state
       boolean result =

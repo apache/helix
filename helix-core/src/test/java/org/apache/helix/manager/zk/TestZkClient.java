@@ -19,6 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.util.Random;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.helix.HelixException;
@@ -37,6 +38,7 @@ import org.testng.annotations.Test;
 
 public class TestZkClient extends ZkUnitTestBase {
   private static Logger LOG = Logger.getLogger(TestZkClient.class);
+  private static final String elems = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   ZkClient _zkClient;
 
@@ -116,7 +118,12 @@ public class TestZkClient extends ZkUnitTestBase {
 
   @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Data size larger than 1M.*")
   void testDataSizeLimit() {
-    ZNRecord data = new ZNRecord(new String(new char[1024*1024*128]));
+    StringBuilder str = new StringBuilder();
+    Random random = new Random();
+    for (int i = 0; i < 1024 * 1024 * 2; i++) {
+      str.append(elems.charAt(random.nextInt(elems.length())));
+    }
+    ZNRecord data = new ZNRecord(str.toString());
     _zkClient.writeData("/test", data, -1);
   }
 }

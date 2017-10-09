@@ -41,13 +41,20 @@ export class HelixCtrl {
 
     if (apiPrefix) {
       const realUrl = apiPrefix + url.replace(`/${ helixKey }`, '');
-      request[method]({
+      const options = {
         url: realUrl,
         json: req.body,
         headers: {
           'Helix-User': user
         }
-      }).pipe(res);
+      };
+      request[method](options, (error, response, body) => {
+        if (error) {
+          res.status(500).send(error);
+        } else {
+          res.status(response.statusCode).send(body);
+        }
+      });
     } else {
       res.status(404).send('Not found');
     }

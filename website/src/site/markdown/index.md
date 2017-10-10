@@ -77,9 +77,9 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 Apache Helix has two new releases:
 
-* [0.6.8](./0.6.8-docs/index.html) - A release that includes stability improvements.
+* [0.6.9](./0.6.9-docs/index.html) - A release that includes stability improvements.
 
-    [\[Quick Start\]](./0.6.8-docs/Quickstart.html) [\[Release Notes\]](./releasenotes/release-0.6.8.html)
+    [\[Quick Start\]](./0.6.9-docs/Quickstart.html) [\[Release Notes\]](./releasenotes/release-0.6.9.html)
 
 * [0.7.1 (beta)](./0.7.1-docs/index.html) - A release that includes YARN integration, ad-hoc task management, and performant IPC.
 
@@ -87,7 +87,7 @@ Apache Helix has two new releases:
 
 ### Download
 
-<a href="./0.6.8-docs/download.html" class="btn btn-primary btn-small">0.6.8</a>
+<a href="./0.6.9-docs/download.html" class="btn btn-primary btn-small">0.6.9</a>
 
 <a href="./0.7.1-docs/download.html" class="btn btn-primary btn-small">0.7.1 (beta)</a>
 
@@ -97,7 +97,7 @@ Apache Helix has two new releases:
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>0.6.8</version>
+  <version>0.6.9</version>
 </dependency>
 ```
 
@@ -108,6 +108,6 @@ Requirements: JDK 1.6+, Maven 2.0.8+
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout helix-0.6.8
+git checkout helix-0.6.9
 mvn install package -DskipTests
 ```

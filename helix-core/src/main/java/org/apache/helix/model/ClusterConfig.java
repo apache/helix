@@ -59,9 +59,11 @@ public class ClusterConfig extends HelixProperty {
     MAX_CONCURRENT_TASK_PER_INSTANCE,
     MAX_PARTITIONS_PER_INSTANCE,
     MAX_OFFLINE_INSTANCES_ALLOWED,
-    TARGET_EXTERNALVIEW_ENABLED
+    TARGET_EXTERNALVIEW_ENABLED,
+    ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE // Controller won't execute load balance state transition if the number of partitons that need recovery exceeds this limitation
   }
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
+  private final static int DEFAULT_ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE = 0; // By default, no load balance if any error partition
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
 
   /**
@@ -433,9 +435,9 @@ public class ClusterConfig extends HelixProperty {
   public boolean isTargetExternalViewEnabled() {
     return _record.getBooleanField(ClusterConfigProperty.TARGET_EXTERNALVIEW_ENABLED.name(), false);
   }
+
   /**
    * Get maximum allowed running task count on all instances in this cluster.
-   * Instance level configuration will override cluster configuration.
    * @return the maximum task count
    */
   public int getMaxConcurrentTaskPerInstance() {
@@ -443,9 +445,34 @@ public class ClusterConfig extends HelixProperty {
         DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE);
   }
 
+  /**
+   * Set maximum allowed running task count on all instances in this cluster.
+   * Instance level configuration will override cluster configuration.
+   * @param maxConcurrentTaskPerInstance the maximum task count
+   */
   public void setMaxConcurrentTaskPerInstance(int maxConcurrentTaskPerInstance) {
     _record.setIntField(ClusterConfigProperty.MAX_CONCURRENT_TASK_PER_INSTANCE.name(),
         maxConcurrentTaskPerInstance);
+  }
+
+  /**
+   * Get maximum allowed error partitions for a resource to be load balanced.
+   * If limitation is set to negative number, Helix won't check error partition count before schedule load balance.
+   * @return the maximum allowed error partition count
+   */
+  public int getErrorPartitionThresholdForLoadBalance() {
+    return _record.getIntField(ClusterConfigProperty.ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE.name(),
+        DEFAULT_ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE);
+  }
+
+  /**
+   * Set maximum allowed error partitions for a resource to be load balanced.
+   * If limitation is set to negative number, Helix won't check error partition count before schedule load balance.
+   * @param errorPartitionThreshold the maximum allowed error partition count
+   */
+  public void setErrorPartitionThresholdForLoadBalance(int errorPartitionThreshold) {
+    _record.setIntField(ClusterConfigProperty.ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE.name(),
+        errorPartitionThreshold);
   }
 
   /**

@@ -19,16 +19,6 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -38,13 +28,11 @@ import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.model.BuiltInStateModelDefinitions;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
-import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.*;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
+
+import java.util.*;
 
 /**
  * For partition compute the Intermediate State (instance,state) pair based on the BestPossible
@@ -229,6 +217,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     Set<Partition> partitionsNeedRecovery = new HashSet<>();
     Set<Partition> partitionsNeedLoadbalance = new HashSet<>();
+    Set<Partition> partitionshaveErrorStateReplica =  new HashSet<>();
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resourceName, partition);
@@ -240,7 +229,14 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           getRebalanceType(cache, bestPossibleMap, preferenceList, stateModelDef, currentStateMap,
               idealState);
       if (rebalanceType.equals(RebalanceType.RECOVERY_BALANCE)) {
-        partitionsNeedRecovery.add(partition);
+        // Check if any error exist
+        if (currentStateMap.values().contains(HelixDefinedState.ERROR.name())) {
+          partitionshaveErrorStateReplica.add(partition);
+        }
+        // Check if recovery is needed for this partition
+        if (!currentStateMap.equals(bestPossibleMap)) {
+          partitionsNeedRecovery.add(partition);
+        }
       } else if (rebalanceType.equals(RebalanceType.LOAD_BALANCE)){
         partitionsNeedLoadbalance.add(partition);
       } else {
@@ -254,6 +250,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         "recovery balance needed for " + resourceName + " partitions: " + partitionsNeedRecovery);
     logger.info(
         "load balance needed for " + resourceName + " partitions: " + partitionsNeedLoadbalance);
+    logger.info("partition currently has ERROR replica in " + resourceName + " partitions: "
+        + partitionshaveErrorStateReplica);
 
     chargePendingTransition(resource, currentStateOutput, throttleController,
         partitionsNeedRecovery, partitionsNeedLoadbalance);
@@ -265,14 +263,20 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         cache.getStateModelDef(resource.getStateModelDefRef()).getTopState());
 
     Set<Partition> loadbalanceThrottledPartitions = partitionsNeedLoadbalance;
-    if (partitionsNeedRecovery.isEmpty()) {
-      // perform load balance only if no partition need recovery rebalance.
-      // TODO: to set a minimal threshold for allowing load-rebalance.
+
+    long maxAllowedErrorPartitions = cache.getClusterConfig().getErrorPartitionThresholdForLoadBalance();
+    if (partitionsNeedRecovery.isEmpty() &&
+        (maxAllowedErrorPartitions < 0
+            || partitionshaveErrorStateReplica.size() <= maxAllowedErrorPartitions)) {
+      // perform load balance only if
+      //   1. no recovery operation to be scheduled.
+      //   2. error partition count is less than configured limitation.
       loadbalanceThrottledPartitions =
           loadRebalance(resource, currentStateOutput, bestPossiblePartitionStateMap,
               throttleController, intermediatePartitionStateMap, partitionsNeedLoadbalance,
               currentStateOutput.getCurrentStateMap(resourceName));
     } else {
+      // skip load balance, use current state mapping
       for (Partition p : partitionsNeedLoadbalance) {
         Map<String, String> currentStateMap =
             currentStateOutput.getCurrentStateMap(resourceName, p);
@@ -340,8 +344,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    *  if recover rebalance is needed.
    *  return the partitions needs recoveryRebalance but get throttled
    */
-
-  public Set<Partition> recoveryRebalance(Resource resource, PartitionStateMap bestPossiblePartitionStateMap,
+  private Set<Partition> recoveryRebalance(Resource resource, PartitionStateMap bestPossiblePartitionStateMap,
       StateTransitionThrottleController throttleController,
       PartitionStateMap intermediatePartitionStateMap, Set<Partition> partitionsNeedRecovery,
       CurrentStateOutput currentStateOutput, String topState) {
@@ -473,15 +476,16 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
   /**
    * Given preferenceList, bestPossibleState and currentState, determine which type of rebalance is
-   * needed.
+   * needed to fit the idea states defined by the state model definition.
+   *
+   * @return rebalance type needed to bring the replicas to idea states
+   *         RECOVERY_BALANCE - required states is not available through all replicas
+   *         NONE - current state matches the idea state
+   *         LOAD_BALANCE - although all replicas required exist, Helix needs to optimize the allocation
    */
   private RebalanceType getRebalanceType(ClusterDataCache cache,
       Map<String, String> bestPossibleMap, List<String> preferenceList,
       StateModelDefinition stateModelDef, Map<String, String> currentStateMap, IdealState idealState) {
-    if (currentStateMap.equals(bestPossibleMap)) {
-      return RebalanceType.NONE;
-    }
-
     if (preferenceList == null) {
       preferenceList = Collections.emptyList();
     }
@@ -490,17 +494,18 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     Set<String> activeList = new HashSet<>(preferenceList);
     activeList.retainAll(cache.getEnabledLiveInstances());
 
-    LinkedHashMap<String, Integer> bestPossileStateCountMap =
+    // Check current states against state model define. If doesn't match, need recovery.
+    LinkedHashMap<String, Integer> expectedStateCountMap =
         stateModelDef.getStateCountMap(activeList.size(), replica);
     Map<String, Integer> currentStateCounts = StateModelDefinition.getStateCounts(currentStateMap);
 
-    for (String state : bestPossileStateCountMap.keySet()) {
-      Integer bestPossibleCount = bestPossileStateCountMap.get(state);
+    for (String state : expectedStateCountMap.keySet()) {
+      Integer expectedCount = expectedStateCountMap.get(state);
       Integer currentCount = currentStateCounts.get(state);
-      bestPossibleCount = bestPossibleCount == null? 0 : bestPossibleCount;
+      expectedCount = expectedCount == null? 0 : expectedCount;
       currentCount = currentCount == null? 0 : currentCount;
 
-      if (currentCount < bestPossibleCount) {
+      if (currentCount < expectedCount) {
         if (!state.equals(HelixDefinedState.DROPPED.name()) &&
             !state.equals(HelixDefinedState.ERROR.name()) &&
             !state.equals(stateModelDef.getInitialState())) {
@@ -508,7 +513,14 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         }
       }
     }
-    return RebalanceType.LOAD_BALANCE;
+    // No recovery needed, all expected replicas exist.
+    // Check if the calculated best possible states matches current states
+    if (currentStateMap.equals(bestPossibleMap)) {
+      return RebalanceType.NONE;
+    } else {
+      // All other cases is categorized as load balance change
+      return RebalanceType.LOAD_BALANCE;
+    }
   }
 
   private void logParitionMapState(String resource, Set<Partition> allPartitions,

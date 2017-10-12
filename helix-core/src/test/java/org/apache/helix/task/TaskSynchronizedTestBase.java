@@ -110,6 +110,7 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
   }
 
   protected void setupParticipants() {
+    _participants = new MockParticipantManager[_numNodes];
     for (int i = 0; i < _numNodes; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);

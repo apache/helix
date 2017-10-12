@@ -219,6 +219,11 @@ public class MockHelixAdmin implements HelixAdmin {
 
   }
 
+  @Override public void enableInstance(String clusterName, List<String> instances,
+      boolean enabled) {
+
+  }
+
   @Override public void enableResource(String clusterName, String resourceName, boolean enabled) {
 
   }
@@ -364,6 +369,15 @@ public class MockHelixAdmin implements HelixAdmin {
   @Override public void enableBatchMessageMode(String clusterName, String resourceName,
       boolean enabled) {
 
+  }
+
+  @Override
+  public Map<String, String> getBatchDisabledInstances(String clusterName) {
+    return null;
+  }
+
+  @Override public List<String> getInstancesByDomain(String clusterName, String domain) {
+    return null;
   }
 
   @Override public void close() {

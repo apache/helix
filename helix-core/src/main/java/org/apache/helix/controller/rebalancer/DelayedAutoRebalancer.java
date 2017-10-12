@@ -210,7 +210,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     long currentTime = System.currentTimeMillis();
     for (String ins : offlineOrDisabledInstances) {
       long inactiveTime = getInactiveTime(ins, liveNodes, instanceOfflineTimeMap.get(ins), delay,
-          instanceConfigMap.get(ins));
+          instanceConfigMap.get(ins), clusterConfig);
       InstanceConfig instanceConfig = instanceConfigMap.get(ins);
       if (inactiveTime > currentTime && instanceConfig != null && instanceConfig
           .isDelayRebalanceEnabled()) {
@@ -237,7 +237,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     // calculate the closest future rebalance time
     for (String ins : offlineOrDisabledInstances) {
       long inactiveTime = getInactiveTime(ins, liveNodes, instanceOfflineTimeMap.get(ins), delay,
-          instanceConfigMap.get(ins));
+          instanceConfigMap.get(ins), clusterConfig);
       if (inactiveTime != -1 && inactiveTime > currentTime && inactiveTime < nextRebalanceTime) {
         nextRebalanceTime = inactiveTime;
       }
@@ -265,7 +265,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
    * @return
    */
   private long getInactiveTime(String instance, Set<String> liveInstances, Long offlineTime,
-      long delay, InstanceConfig instanceConfig) {
+      long delay, InstanceConfig instanceConfig, ClusterConfig clusterConfig) {
     long inactiveTime = Long.MAX_VALUE;
 
     // check the time instance went offline.
@@ -276,8 +276,17 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     }
 
     // check the time instance got disabled.
-    if (!instanceConfig.getInstanceEnabled()) {
+    if (!instanceConfig.getInstanceEnabled() || (clusterConfig.getDisabledInstances() != null
+        && clusterConfig.getDisabledInstances().containsKey(instance))) {
       long disabledTime = instanceConfig.getInstanceEnabledTime();
+      if (clusterConfig.getDisabledInstances() != null && clusterConfig.getDisabledInstances()
+          .containsKey(instance)) {
+        // Update batch disable time
+        long batchDisableTime = Long.parseLong(clusterConfig.getDisabledInstances().get(instance));
+        if (disabledTime == -1 || disabledTime > batchDisableTime) {
+          disabledTime = batchDisableTime;
+        }
+      }
       if (disabledTime > 0 && disabledTime + delay < inactiveTime) {
         inactiveTime = disabledTime + delay;
       }

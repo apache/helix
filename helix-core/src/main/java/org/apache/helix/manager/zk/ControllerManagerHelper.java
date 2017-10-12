@@ -80,6 +80,7 @@ public class ControllerManagerHelper {
        */
       _manager.addInstanceConfigChangeListener(controller);
       _manager.addResourceConfigChangeListener(controller);
+      _manager.addClusterfigChangeListener(controller);
       _manager.addLiveInstanceChangeListener(controller);
       _manager.addIdealStateChangeListener(controller);
       _manager.addControllerListener(controller);

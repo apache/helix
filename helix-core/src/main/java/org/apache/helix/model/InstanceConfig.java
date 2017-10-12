@@ -20,6 +20,7 @@ package org.apache.helix.model;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.util.HelixUtil;
@@ -424,6 +426,22 @@ public class InstanceConfig extends HelixProperty {
       _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(),
           oldDisabledPartitions);
     }
+  }
+
+  public boolean isInstanceInDomain(String domain) {
+    if (domain == null) {
+      throw new HelixException("Invalid input for domain.");
+    }
+
+    if (_record.getSimpleField(InstanceConfigProperty.DOMAIN.name()) == null) {
+      return false;
+    }
+
+    Set<String> domainSet = new HashSet<>(Arrays.asList(domain.split(",")));
+    Set<String> instanceDomains = new HashSet<>(
+        Arrays.asList(_record.getSimpleField(InstanceConfigProperty.DOMAIN.name()).split(",")));
+    domainSet.removeAll(instanceDomains);
+    return domainSet.size() == 0;
   }
 
   /**

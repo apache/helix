@@ -217,6 +217,15 @@ public interface HelixAdmin {
   void enableInstance(String clusterName, String instanceName, boolean enabled);
 
   /**
+   * Batch enable/disable instances in a cluster
+   * By default, all the instances are enabled
+   * @param clusterName
+   * @param instances
+   * @param enabled
+   */
+  void enableInstance(String clusterName, List<String> instances, boolean enabled);
+
+  /**
    * Disable or enable a resource
    * @param clusterName
    * @param resourceName
@@ -478,6 +487,26 @@ public interface HelixAdmin {
    * @param enabled
    */
   void enableBatchMessageMode(String clusterName, String resourceName, boolean enabled);
+
+
+
+  /**
+   * Get batch disabled instance map (disabled instance -> disabled time) in a cluster. It will
+   * include disabled instances and instances in disabled zones
+   * @param clusterName
+   * @return
+   */
+  Map<String, String> getBatchDisabledInstances(String clusterName);
+
+  /**
+   * Get list of instances by domain for a cluster
+   *
+   * Example : domain could be "helixZoneId=1,rackId=3". All the instances domain contains these
+   * two domains will be selected.
+   * @param clusterName
+   * @return
+   */
+  List<String> getInstancesByDomain(String clusterName, String domain);
 
   /**
    * Release resources

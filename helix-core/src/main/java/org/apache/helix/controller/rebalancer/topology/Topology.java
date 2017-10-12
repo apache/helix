@@ -229,7 +229,8 @@ public class Topology {
         String zone = config.getZoneId();
         if (zone == null) {
           // we have the hierarchy style of domain id for instance.
-          if (config.getInstanceEnabled()) {
+          if (config.getInstanceEnabled() && (_clusterConfig.getDisabledInstances() == null
+              || !_clusterConfig.getDisabledInstances().containsKey(ins))) {
             // if enabled instance missing ZONE_ID information, fails the rebalance.
             throw new HelixException(String
                 .format("ZONE_ID for instance %s is not set, failed the topology-aware placement!",
@@ -274,7 +275,8 @@ public class Topology {
       }
       String domain = insConfig.getDomain();
       if (domain == null) {
-        if (insConfig.getInstanceEnabled()) {
+        if (insConfig.getInstanceEnabled() && (_clusterConfig.getDisabledInstances() == null
+            || !_clusterConfig.getDisabledInstances().containsKey(ins))) {
           // if enabled instance missing domain information, fails the rebalance.
           throw new HelixException(String
               .format("Domain for instance %s is not set, failed the topology-aware placement!",

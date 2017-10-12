@@ -29,6 +29,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
@@ -60,6 +61,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
     _cache.refresh(dataAccessor);
+    final ClusterConfig clusterConfig = cache.getClusterConfig();
     if (!_cache.isTaskCache()) {
       final ClusterStatusMonitor clusterStatusMonitor =
           event.getAttribute(AttributeName.clusterStatusMonitor.name());
@@ -83,7 +85,8 @@ public class ReadClusterDataStage extends AbstractBaseStage {
               if (liveInstanceMap.containsKey(instanceName)) {
                 liveInstanceSet.add(instanceName);
               }
-              if (!config.getInstanceEnabled()) {
+              if (!config.getInstanceEnabled() || (clusterConfig.getDisabledInstances() != null
+                  && clusterConfig.getDisabledInstances().containsKey(instanceName))) {
                 disabledInstanceSet.add(instanceName);
               }
 

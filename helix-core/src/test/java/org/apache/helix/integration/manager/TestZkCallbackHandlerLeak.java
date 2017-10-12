@@ -96,7 +96,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         return watchPaths.size() == (7 + 5 * n);
       }
     }, 500);
-    Assert.assertTrue(result, "Controller should have 7 + 5*n zk-watchers.");
+    Assert.assertTrue(result, "Controller should have 8 + 5*n zk-watchers.");
 
     // check participant zk-watchers
     final MockParticipantManager participantManagerToExpire = participants[0];
@@ -152,7 +152,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         return watchPaths.size() == (7 + 5 * n);
       }
     }, 500);
-    Assert.assertTrue(result, "Controller should have 7 + 5*n zk-watchers after session expiry.");
+    Assert.assertTrue(result, "Controller should have 8 + 5*n zk-watchers after session expiry.");
 
     // check participant zk-watchers
     result = TestHelper.verify(new TestHelper.Verifier() {
@@ -237,7 +237,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManager.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, (6 + 2 * n),
+    Assert.assertEquals(controllerHandlerNb, (7 + 2 * n),
         "HelixController should have 9 (5+2n) callback handlers for 2 participant, but was "
             + controllerHandlerNb + ", " + TestHelper.printHandlers(controller));
     Assert.assertEquals(particHandlerNb, 1,
@@ -270,10 +270,10 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
         // controller should have 5 + 2n + m + (m+2)n zk-watchers
         // where n is number of nodes and m is number of resources
-        return watchPaths.size() == (7 + 5 * n);
+        return watchPaths.size() == (8 + 5 * n);
       }
     }, 500);
-    Assert.assertTrue(result, "Controller should have 7 + 5*n zk-watchers after session expiry.");
+    Assert.assertTrue(result, "Controller should have 8 + 5*n zk-watchers after session expiry.");
 
     // check participant zk-watchers
     result = TestHelper.verify(new TestHelper.Verifier() {

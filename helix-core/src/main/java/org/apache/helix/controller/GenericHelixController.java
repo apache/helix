@@ -268,6 +268,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       registry.register(ClusterEventType.CurrentStateChange, dataRefresh, rebalancePipeline, externalViewPipeline);
       registry.register(ClusterEventType.InstanceConfigChange, dataRefresh, rebalancePipeline);
       registry.register(ClusterEventType.ResourceConfigChange, dataRefresh, rebalancePipeline);
+      registry.register(ClusterEventType.ClusterConfigChange, dataRefresh, rebalancePipeline);
       registry.register(ClusterEventType.LiveInstanceChange, dataRefresh, liveInstancePipeline, rebalancePipeline,
           externalViewPipeline);
       registry.register(ClusterEventType.MessageChange, dataRefresh, rebalancePipeline);

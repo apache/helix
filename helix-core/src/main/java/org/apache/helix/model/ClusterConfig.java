@@ -60,7 +60,8 @@ public class ClusterConfig extends HelixProperty {
     MAX_PARTITIONS_PER_INSTANCE,
     MAX_OFFLINE_INSTANCES_ALLOWED,
     TARGET_EXTERNALVIEW_ENABLED,
-    ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE // Controller won't execute load balance state transition if the number of partitons that need recovery exceeds this limitation
+    ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state transition if the number of partitons that need recovery exceeds this limitation
+    DISABLED_INSTANCES
   }
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
   private final static int DEFAULT_ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE = 0; // By default, no load balance if any error partition
@@ -473,6 +474,21 @@ public class ClusterConfig extends HelixProperty {
   public void setErrorPartitionThresholdForLoadBalance(int errorPartitionThreshold) {
     _record.setIntField(ClusterConfigProperty.ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE.name(),
         errorPartitionThreshold);
+  }
+  /**
+   * Set the disabled instance list
+   * @param disabledInstances
+   */
+  public void setDisabledInstances(Map<String, String> disabledInstances) {
+    _record.setMapField(ClusterConfigProperty.DISABLED_INSTANCES.name(), disabledInstances);
+  }
+
+  /**
+   * Get current disabled instance map of <instance, disabledTimeStamp>
+   * @return
+   */
+  public Map<String, String> getDisabledInstances() {
+    return _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES.name());
   }
 
   /**

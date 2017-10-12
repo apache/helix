@@ -36,6 +36,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.HealthStat;
@@ -91,13 +92,14 @@ public class InstanceAccessor extends AbstractResource {
     }
 
     List<String> liveInstances = accessor.getChildNames(accessor.keyBuilder().liveInstances());
-
+    ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
 
     for (String instanceName : instances) {
       InstanceConfig instanceConfig =
           accessor.getProperty(accessor.keyBuilder().instanceConfig(instanceName));
       if (instanceConfig != null) {
-        if (!instanceConfig.getInstanceEnabled()) {
+        if (!instanceConfig.getInstanceEnabled() || (clusterConfig.getDisabledInstances() != null
+            && clusterConfig.getDisabledInstances().containsKey(instanceName))) {
           disabledNode.add(JsonNodeFactory.instance.textNode(instanceName));
         }
 

@@ -46,6 +46,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -217,8 +218,10 @@ public class ClusterSetup {
       throw new HelixException(error);
     }
 
+    ClusterConfig clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
     // ensure node is disabled, otherwise fail
-    if (config.getInstanceEnabled()) {
+    if (config.getInstanceEnabled() && (clusterConfig.getDisabledInstances() == null
+        || !clusterConfig.getDisabledInstances().containsKey(instanceId))) {
       String error = "Node " + instanceId + " is enabled, cannot drop";
       _logger.warn(error);
       throw new HelixException(error);
@@ -245,8 +248,10 @@ public class ClusterSetup {
       throw new HelixException(error);
     }
 
+    ClusterConfig clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
     // ensure old instance is disabled, otherwise fail
-    if (oldConfig.getInstanceEnabled()) {
+    if (oldConfig.getInstanceEnabled() && (clusterConfig.getDisabledInstances() == null
+        || !clusterConfig.getDisabledInstances().containsKey(oldInstanceName))) {
       String error =
           "Old instance " + oldInstanceName + " is enabled, it need to be disabled and turned off";
       _logger.warn(error);

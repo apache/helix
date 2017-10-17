@@ -41,9 +41,20 @@ export class PartitionListComponent implements OnInit {
 
   // check whether we are capable of analysing the states :(
   canAnalyse() {
-    return this.partitions// && false
-      && this.partitions.length
-      && this.resource.replicaCount === this.partitions[0].replicas.length;
+    return this.partitions && this.partitions.length;
+  }
+
+  getReasonWhyCannotAnalyse(): boolean | string {
+    if (!this.canAnalyse()) {
+      if (!this.resource.online) {
+        return 'The resource is OFFLINE and does not have partition information available.';
+      }
+      if (this.resource.partitionCount < 1) {
+        return 'This resource does not contain any partition information.'
+      }
+    }
+
+    return false;
   }
 
   onSelect({ selected }) {

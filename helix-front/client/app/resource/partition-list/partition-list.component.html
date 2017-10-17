@@ -52,10 +52,10 @@
   </ngx-datatable>
   <div *ngIf="!canAnalyse()" class="message" fxLayout="column" fxLayoutAlign="center center">
     <md-spinner *ngIf="isLoading"></md-spinner>
-    <section *ngIf="!isLoading && !resource.online" fxFlexFill>
-      The resource is OFFLINE and does not have partition information available.
+    <section *ngIf="!isLoading && getReasonWhyCannotAnalyse()" fxFlexFill>
+      {{ getReasonWhyCannotAnalyse() }}
     </section>
-    <section *ngIf="!isLoading && resource.online" fxFlexFill>
+    <section *ngIf="!isLoading && !getReasonWhyCannotAnalyse()" fxFlexFill>
       <div>Sorry, we do not support this kind of partition information yet. Detailed debugging information:</div>
       <ngx-json-viewer [json]="resource"></ngx-json-viewer>
     </section>

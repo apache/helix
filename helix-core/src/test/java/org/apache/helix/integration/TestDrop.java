@@ -109,7 +109,7 @@ public class TestDrop extends ZkIntegrationTestBase {
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.dropResource(clusterName, "TestDB0");
 
-    Assert.assertTrue(verifier.verify());
+    Thread.sleep(1000);
 
     assertEmptyCSandEV(clusterName, "TestDB0", participants);
 

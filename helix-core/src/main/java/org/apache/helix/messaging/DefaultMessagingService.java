@@ -42,6 +42,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.log4j.Logger;
 
@@ -51,11 +52,10 @@ public class DefaultMessagingService implements ClusterMessagingService {
   private final HelixTaskExecutor _taskExecutor;
   // TODO:rename to factory, this is not a service
   private final AsyncCallbackService _asyncCallbackService;
-  private final ParticipantStatusMonitor _participantStatusMonitor;
 
   private static Logger _logger = Logger.getLogger(DefaultMessagingService.class);
   ConcurrentHashMap<String, MessageHandlerFactory> _messageHandlerFactoriestobeAdded =
-      new ConcurrentHashMap<String, MessageHandlerFactory>();
+      new ConcurrentHashMap<>();
 
   public DefaultMessagingService(HelixManager manager) {
     _manager = manager;
@@ -65,9 +65,10 @@ public class DefaultMessagingService implements ClusterMessagingService {
     if (manager.getInstanceType() == InstanceType.PARTICIPANT || manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
       isParticipant = true;
     }
-    _participantStatusMonitor = new ParticipantStatusMonitor(isParticipant, manager.getInstanceName());
 
-    _taskExecutor = new HelixTaskExecutor(_participantStatusMonitor);
+    _taskExecutor = new HelixTaskExecutor(
+        new ParticipantStatusMonitor(isParticipant, manager.getInstanceName()),
+        new MessageQueueMonitor(manager.getClusterName(), manager.getInstanceName()));
     _asyncCallbackService = new AsyncCallbackService();
     _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.name(),
         _asyncCallbackService);

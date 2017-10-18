@@ -24,7 +24,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix.recipes</groupId>
     <artifactId>recipes</artifactId>
-    <version>0.6.9-SNAPSHOT</version>
+    <version>0.6.10-SNAPSHOT</version>
   </parent>
 
   <artifactId>rabbitmq-consumer-group</artifactId>

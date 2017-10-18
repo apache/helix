@@ -29,7 +29,7 @@ under the License.
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.6.9-SNAPSHOT</version>
+  <version>0.6.10-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -176,7 +176,7 @@ under the License.
     </repository>
   </repositories>
 
- 
+
   <pluginRepositories>
     <pluginRepository>
       <id>apache.snapshots</id>
@@ -240,10 +240,10 @@ under the License.
     <osgi.ignore />
     <osgi.activator />
     <osgi.export.service />
-    
+
     <!--Skips test in default 'mvn clean install' build command-->
     <!-- <maven.test.skip.exec>true</maven.test.skip.exec> -->
-    
+
     <!--  Configuration for unit/integration tests section 1 of 3 (properties) STARTS HERE.
     Property for running integration tests with profiles
     at the command line, where you do:

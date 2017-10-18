@@ -20,13 +20,13 @@ under the License.
 <ivy-module version="1.0" xmlns:m="http://ant.apache.org/ivy/maven">
 	<info organisation="org.apache.helix"
 		module="helix-core"
-		revision="0.6.8-SNAPSHOT"
+		revision="0.6.10-SNAPSHOT"
 		status="release"
 		publication="2011111505113547"
 	>
 	<description homepage="http://maven.apache.org" />
 	</info>
-	
+
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
 		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
@@ -39,12 +39,12 @@ under the License.
 		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
 		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
 	</configurations>
-	
+
 	<publications>
 		<artifact name="helix-core" type="jar" ext="jar" conf="master"/>
     <artifact name="helix-core" type="jar" ext="jar" conf="sources" m:classifier="sources"/>
 	</publications>
-	
+
 	<dependencies>
     <dependency org="log4j" name="log4j" rev="1.2.15" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.4.9" conf="compile->compile(default);runtime->runtime(default);default->default"/>
@@ -57,6 +57,7 @@ under the License.
     <dependency org="com.google.guava" name="guava" rev="15.0" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.yaml" name="snakeyaml" rev="1.12" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="commons-logging" name="commons-logging-api" rev="1.1" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="io.dropwizard.metrics" name="metrics-core" rev="3.1.2" conf="compile->compile(default);runtime->runtime(default);default->default"/>
 	</dependencies>
 </ivy-module>
 

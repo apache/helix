@@ -34,12 +34,13 @@ import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestZkCallbackHandlerLeak.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestZkCallbackHandlerLeak.class);
 
   @Test
   public void testCbHdlrLeakOnParticipantSessionExpiry() throws Exception {

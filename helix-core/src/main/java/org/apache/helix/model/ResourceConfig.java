@@ -29,7 +29,8 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Resource configurations
@@ -59,7 +60,7 @@ public class ResourceConfig extends HelixProperty {
     ANY_LIVEINSTANCE
   }
 
-  private static final Logger _logger = Logger.getLogger(ResourceConfig.class.getName());
+  private static final Logger _logger = LoggerFactory.getLogger(ResourceConfig.class.getName());
 
   /**
    * Instantiate for a specific instance

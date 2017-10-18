@@ -33,14 +33,15 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * do distributed leader election
  */
 public class DistributedLeaderElection implements ControllerChangeListener {
-  private static Logger LOG = Logger.getLogger(DistributedLeaderElection.class);
+  private static Logger LOG = LoggerFactory.getLogger(DistributedLeaderElection.class);
 
   final HelixManager _manager;
   final GenericHelixController _controller;

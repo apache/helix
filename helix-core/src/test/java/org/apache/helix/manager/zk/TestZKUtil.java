@@ -33,14 +33,15 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestZKUtil extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestZKUtil.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestZKUtil.class);
 
   String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
   ZkClient _zkClient;

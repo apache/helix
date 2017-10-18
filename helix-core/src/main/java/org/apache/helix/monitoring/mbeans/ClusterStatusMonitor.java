@@ -24,7 +24,8 @@ import com.google.common.collect.Sets;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.model.*;
 import org.apache.helix.task.*;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -36,7 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
-  private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ClusterStatusMonitor.class);
 
   static final String MESSAGE_QUEUE_STATUS_KEY = "MessageQueueStatus";
   static final String RESOURCE_STATUS_KEY = "ResourceStatus";

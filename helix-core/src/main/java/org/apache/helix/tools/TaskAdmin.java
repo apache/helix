@@ -45,7 +45,8 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * CLI for operating workflows and jobs.
@@ -53,7 +54,7 @@ import org.apache.log4j.Logger;
  */
 public class TaskAdmin {
   /** For logging */
-  private static final Logger LOG = Logger.getLogger(TaskAdmin.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskAdmin.class);
 
   /** Required option name for Helix endpoint */
   private static final String ZK_ADDRESS = "zk";

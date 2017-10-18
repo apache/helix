@@ -26,11 +26,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.apache.helix.model.Message;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AsyncCallback {
 
-  private static Logger _logger = Logger.getLogger(AsyncCallback.class);
+  private static Logger _logger = LoggerFactory.getLogger(AsyncCallback.class);
   long _startTimeStamp = 0;
   protected long _timeout = -1;
   Timer _timer = null;
@@ -77,7 +78,7 @@ public abstract class AsyncCallback {
       try {
         onReplyMessage(message);
       } catch (Exception e) {
-        _logger.error(e);
+        _logger.error(e.toString());
       }
     }
     if (isDone()) {
@@ -134,7 +135,7 @@ public abstract class AsyncCallback {
           _callback.onTimeOut();
         }
       } catch (Exception e) {
-        _logger.error(e);
+        _logger.error(e.toString());
       } finally {
         if (_timer != null) {
           _timer.cancel();

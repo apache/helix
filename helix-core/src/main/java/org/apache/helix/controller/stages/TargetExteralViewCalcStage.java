@@ -36,12 +36,13 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
 public class TargetExteralViewCalcStage extends AbstractBaseStage {
-  private static final Logger LOG = Logger.getLogger(TargetExteralViewCalcStage.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TargetExteralViewCalcStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {

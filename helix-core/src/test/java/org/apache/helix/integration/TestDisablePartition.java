@@ -43,7 +43,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -52,7 +53,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class TestDisablePartition extends ZkStandAloneCMTestBase {
-  private static Logger LOG = Logger.getLogger(TestDisablePartition.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestDisablePartition.class);
 
   @Test()
   public void testDisablePartition() throws Exception {

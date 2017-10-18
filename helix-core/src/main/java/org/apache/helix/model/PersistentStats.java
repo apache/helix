@@ -23,13 +23,14 @@ import java.util.Map;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Statistics for an instance
  */
 public class PersistentStats extends HelixProperty {
-  private static final Logger _logger = Logger.getLogger(PersistentStats.class.getName());
+  private static final Logger _logger = LoggerFactory.getLogger(PersistentStats.class.getName());
 
   /**
    * High-level properties to provide context for these statistics

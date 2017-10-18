@@ -23,13 +23,14 @@ import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestZkConnectionLost extends TaskTestBase {
-  private static final Logger LOG = Logger.getLogger(TestZkConnectionLost.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestZkConnectionLost.class);
 
   private final AtomicReference<ZkServer> _zkServerRef = new AtomicReference<>();
 

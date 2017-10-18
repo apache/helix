@@ -45,13 +45,14 @@ import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBase {
 
-  private static Logger LOG = Logger.getLogger(TestPartitionLevelTransitionConstraint.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestPartitionLevelTransitionConstraint.class);
 
   final Queue<Message> _msgOrderList = new ConcurrentLinkedQueue<Message>();
 

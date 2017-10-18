@@ -41,12 +41,13 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZkReconnect {
-  private static final Logger LOG = Logger.getLogger(TestZkReconnect.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestZkReconnect.class);
 
   @Test
   public void testZKReconnect() throws Exception {

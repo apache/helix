@@ -22,14 +22,15 @@ package org.apache.helix.api.config;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectReader;
 import org.codehaus.jackson.map.ObjectWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StateTransitionThrottleConfig {
   private static final Logger logger =
-      Logger.getLogger(StateTransitionThrottleConfig.class.getName());
+      LoggerFactory.getLogger(StateTransitionThrottleConfig.class.getName());
 
   private enum ConfigProperty {
     CONFIG_TYPE,

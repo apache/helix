@@ -29,13 +29,14 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @StateModelInfo(initialState = "OFFLINE", states = {
     "LEADER", "STANDBY"
 })
 public class GenericLeaderStandbyModel extends StateModel {
-  private static Logger LOG = Logger.getLogger(GenericLeaderStandbyModel.class);
+  private static Logger LOG = LoggerFactory.getLogger(GenericLeaderStandbyModel.class);
 
   private final CustomCodeInvoker _particHolder;
   private final List<ChangeType> _notificationTypes;

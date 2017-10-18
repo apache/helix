@@ -29,7 +29,8 @@ import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a Rebalancer specific to semi-automatic mode. It is tasked with computing the ideal
@@ -41,7 +42,7 @@ import org.apache.log4j.Logger;
  * with state s.
  */
 public class SemiAutoRebalancer extends AbstractRebalancer {
-  private static final Logger LOG = Logger.getLogger(SemiAutoRebalancer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SemiAutoRebalancer.class);
 
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,

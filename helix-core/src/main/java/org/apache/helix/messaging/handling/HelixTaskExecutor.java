@@ -70,7 +70,8 @@ import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.util.StatusUpdateUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -104,7 +105,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
   }
 
-  private static Logger LOG = Logger.getLogger(HelixTaskExecutor.class);
+  private static Logger LOG = LoggerFactory.getLogger(HelixTaskExecutor.class);
 
   // TODO: we need to further design how to throttle this.
   // From storage point of view, only bootstrap case is expensive

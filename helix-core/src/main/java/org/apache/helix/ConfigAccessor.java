@@ -37,14 +37,15 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.util.StringTemplate;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides access to the persistent configuration of the cluster, the instances that live on it,
  * and the logical resources assigned to it.
  */
 public class ConfigAccessor {
-  private static Logger LOG = Logger.getLogger(ConfigAccessor.class);
+  private static Logger LOG = LoggerFactory.getLogger(ConfigAccessor.class);
 
   private static final StringTemplate template = new StringTemplate();
   static {

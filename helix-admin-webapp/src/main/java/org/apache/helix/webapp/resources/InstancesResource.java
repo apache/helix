@@ -33,7 +33,8 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.MediaType;
@@ -46,7 +47,7 @@ import org.restlet.resource.ServerResource;
 import com.google.common.collect.Lists;
 
 public class InstancesResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(InstancesResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(InstancesResource.class);
 
   public InstancesResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

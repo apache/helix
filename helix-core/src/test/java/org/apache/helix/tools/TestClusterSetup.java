@@ -41,7 +41,8 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
@@ -50,7 +51,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestClusterSetup extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestClusterSetup.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestClusterSetup.class);
 
   protected static final String CLUSTER_NAME = "TestClusterSetup";
   protected static final String TEST_DB = "TestDB";

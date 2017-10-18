@@ -38,7 +38,8 @@ import org.apache.helix.model.ResourceAssignment;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A TaskAssignmentCalculator for when a task group must be assigned according to partitions/states on a target
@@ -46,7 +47,7 @@ import org.apache.log4j.Logger;
  * (if desired) only where those partitions are in a given state.
  */
 public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculator {
-  private static final Logger LOG = Logger.getLogger(FixedTargetTaskAssignmentCalculator.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FixedTargetTaskAssignmentCalculator.class);
 
   @Override
   public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,

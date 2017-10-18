@@ -38,7 +38,8 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.HelixPropertyStore;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 
@@ -48,7 +49,7 @@ import com.google.common.base.Joiner;
  * Static utility methods.
  */
 public class TaskUtil {
-  private static final Logger LOG = Logger.getLogger(TaskUtil.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskUtil.class);
   public static final String CONTEXT_NODE = "Context";
   public static final String USER_CONTENT_NODE = "UserContent";
   public static final String WORKFLOW_CONTEXT_KW = "WorkflowContext";

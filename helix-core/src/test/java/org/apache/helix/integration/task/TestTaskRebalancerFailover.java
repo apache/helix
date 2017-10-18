@@ -31,14 +31,15 @@ import org.apache.helix.task.JobDag;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.Sets;
 
 public class TestTaskRebalancerFailover extends TaskTestBase {
-  private static final Logger LOG = Logger.getLogger(TestTaskRebalancerFailover.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestTaskRebalancerFailover.class);
 
   @Test
   public void test() throws Exception {

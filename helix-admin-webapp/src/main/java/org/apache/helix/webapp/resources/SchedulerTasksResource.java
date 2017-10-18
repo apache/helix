@@ -38,7 +38,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.Form;
@@ -53,7 +54,7 @@ import org.restlet.resource.ServerResource;
  * This resource can be used to send scheduler tasks to the controller.
  */
 public class SchedulerTasksResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(SchedulerTasksResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(SchedulerTasksResource.class);
 
   public static String CRITERIA = "Criteria";
   public static String MESSAGETEMPLATE = "MessageTemplate";

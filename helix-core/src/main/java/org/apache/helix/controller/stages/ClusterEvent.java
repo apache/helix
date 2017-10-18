@@ -22,10 +22,11 @@ package org.apache.helix.controller.stages;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClusterEvent {
-  private static final Logger logger = Logger.getLogger(ClusterEvent.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(ClusterEvent.class.getName());
   private final ClusterEventType _eventType;
   private final Map<String, Object> _eventAttributeMap;
   private long _creationTime;

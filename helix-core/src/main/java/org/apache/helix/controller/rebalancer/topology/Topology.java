@@ -34,7 +34,8 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -42,7 +43,7 @@ import org.apache.log4j.Logger;
  * This class is intended for topology-aware partition placement.
  */
 public class Topology {
-  private static Logger logger = Logger.getLogger(Topology.class);
+  private static Logger logger = LoggerFactory.getLogger(Topology.class);
   public enum Types {
     ROOT,
     ZONE,

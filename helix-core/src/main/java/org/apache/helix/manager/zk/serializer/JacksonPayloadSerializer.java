@@ -24,7 +24,8 @@ import java.io.StringWriter;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.serializer.PayloadSerializer;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
@@ -34,7 +35,7 @@ import org.codehaus.jackson.map.SerializationConfig;
  */
 public class JacksonPayloadSerializer implements PayloadSerializer {
 
-  private static Logger logger = Logger.getLogger(JacksonPayloadSerializer.class);
+  private static Logger logger = LoggerFactory.getLogger(JacksonPayloadSerializer.class);
 
   @Override
   public <T> byte[] serialize(final T data) {

@@ -29,13 +29,14 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * All of the constraints on a given cluster and its subcomponents, both physical and logical.
  */
 public class ClusterConstraints extends HelixProperty {
-  private static Logger LOG = Logger.getLogger(ClusterConstraints.class);
+  private static Logger LOG = LoggerFactory.getLogger(ClusterConstraints.class);
 
   /**
    * Attributes on which constraints operate

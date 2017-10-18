@@ -32,7 +32,8 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a Rebalancer specific to custom mode. It is tasked with checking an existing mapping of
@@ -44,7 +45,7 @@ import org.apache.log4j.Logger;
  * on node k with state s, where s may be a dropped or error state if necessary.
  */
 public class CustomRebalancer extends AbstractRebalancer {
-  private static final Logger LOG = Logger.getLogger(CustomRebalancer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CustomRebalancer.class);
 
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,

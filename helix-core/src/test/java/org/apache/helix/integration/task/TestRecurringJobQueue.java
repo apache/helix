@@ -33,7 +33,8 @@ import org.apache.helix.task.TargetState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -41,7 +42,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 public class TestRecurringJobQueue extends TaskTestBase {
-  private static final Logger LOG = Logger.getLogger(TestRecurringJobQueue.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestRecurringJobQueue.class);
 
   @Test
   public void deleteRecreateRecurrentQueue() throws Exception {

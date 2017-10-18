@@ -22,13 +22,14 @@ package org.apache.helix.rest.server.auditlog.auditloggers;
 import com.sun.research.ws.wadl.HTTPMethods;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default AuditLogger implementation that log the AuditLog into local log file.
  */
 public class FileBasedAuditLogger implements AuditLogger {
-  private static Logger _logger = Logger.getLogger(FileBasedAuditLogger.class.getName());
+  private static Logger _logger = LoggerFactory.getLogger(FileBasedAuditLogger.class.getName());
 
   private boolean _logReadOperations;
 
@@ -43,11 +44,11 @@ public class FileBasedAuditLogger implements AuditLogger {
   @Override
   public void write(AuditLog auditLog) {
     if (_logReadOperations) {
-      _logger.info(auditLog);
+      _logger.info(auditLog.toString());
     } else if (auditLog.getHttpMethod() == HTTPMethods.PUT.name()
         || auditLog.getHttpMethod() == HTTPMethods.POST.name()
         || auditLog.getHttpMethod() == HTTPMethods.DELETE.name()) {
-      _logger.info(auditLog);
+      _logger.info(auditLog.toString());
     }
   }
 }

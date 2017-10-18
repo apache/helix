@@ -30,7 +30,8 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.MediaType;
@@ -44,7 +45,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class ResourceGroupsResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(ResourceGroupsResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(ResourceGroupsResource.class);
 
   public ResourceGroupsResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

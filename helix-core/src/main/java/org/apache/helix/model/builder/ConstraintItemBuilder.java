@@ -25,11 +25,12 @@ import java.util.TreeMap;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintValue;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConstraintItemBuilder {
 
-  private static Logger LOG = Logger.getLogger(ConstraintItemBuilder.class);
+  private static Logger LOG = LoggerFactory.getLogger(ConstraintItemBuilder.class);
 
   // attributes e.g. {STATE:MASTER, RESOURCE:TestDB, INSTANCE:localhost_12918}
   final Map<ConstraintAttribute, String> _attributes = new TreeMap<ConstraintAttribute, String>();

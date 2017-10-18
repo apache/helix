@@ -39,12 +39,13 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Provider
 @PreMatching
 public class AuditLogFilter implements ContainerRequestFilter, ContainerResponseFilter {
-  private static Logger _logger = Logger.getLogger(AuditLogFilter.class.getName());
+  private static Logger _logger = LoggerFactory.getLogger(AuditLogFilter.class.getName());
 
   @Context
   private HttpServletRequest _servletRequest;

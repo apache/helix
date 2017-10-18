@@ -46,7 +46,8 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * CLI for scheduling/canceling workflows
@@ -64,7 +65,7 @@ public class TaskDriver {
   }
 
   /** For logging */
-  private static final Logger LOG = Logger.getLogger(TaskDriver.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskDriver.class);
 
   /** Default time out for monitoring workflow or job state */
   private final static int _defaultTimeout = 3 * 60 * 1000; /* 3 mins */

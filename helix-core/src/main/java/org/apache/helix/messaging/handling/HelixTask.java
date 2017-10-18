@@ -38,10 +38,11 @@ import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.util.StatusUpdateUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HelixTask implements MessageTask {
-  private static Logger logger = Logger.getLogger(HelixTask.class);
+  private static Logger logger = LoggerFactory.getLogger(HelixTask.class);
   private final Message _message;
   private final MessageHandler _handler;
   private final NotificationContext _notificationContext;

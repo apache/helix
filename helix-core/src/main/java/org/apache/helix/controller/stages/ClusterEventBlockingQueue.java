@@ -23,7 +23,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -35,7 +36,7 @@ import com.google.common.collect.Maps;
  * {@link BlockingQueue} interface.
  */
 public class ClusterEventBlockingQueue {
-  private static final Logger LOG = Logger.getLogger(ClusterEventBlockingQueue.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ClusterEventBlockingQueue.class);
   private final Map<ClusterEventType, ClusterEvent> _eventMap;
   private final Queue<ClusterEvent> _eventQueue;
 

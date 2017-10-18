@@ -24,11 +24,12 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.integration.TestDriver;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
 
 public class TestCustomIdealState extends ZkIntegrationTestBase {
-  private static Logger LOG = Logger.getLogger(TestCustomIdealState.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestCustomIdealState.class);
 
   @Test
   public void testBasic() throws Exception {

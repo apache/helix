@@ -22,7 +22,8 @@ package org.apache.helix.monitoring.mbeans;
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -37,7 +38,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class ParticipantStatusMonitor {
   private final ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap =
       new ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor>();
-  private static final Logger LOG = Logger.getLogger(ParticipantStatusMonitor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ParticipantStatusMonitor.class);
 
   private MBeanServer _beanServer;
   private ParticipantMessageMonitor _messageMonitor;
@@ -56,7 +57,7 @@ public class ParticipantStatusMonitor {
         register(_messageMonitor, getObjectName(_messageMonitor.getParticipantBeanName()));
       }
     } catch (Exception e) {
-      LOG.warn(e);
+      LOG.warn(e.toString());
       e.printStackTrace();
       _beanServer = null;
     }
@@ -109,7 +110,7 @@ public class ParticipantStatusMonitor {
       }
       _monitorMap.get(cxt).addDataPoint(data);
     } catch (Exception e) {
-      LOG.warn(e);
+      LOG.warn(e.toString());
       e.printStackTrace();
     }
   }

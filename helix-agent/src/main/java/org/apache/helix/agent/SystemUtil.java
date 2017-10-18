@@ -25,11 +25,12 @@ import java.io.FileReader;
 import java.io.IOException;
 
 import org.apache.helix.ExternalCommand;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SystemUtil {
   public static final String OS_NAME = System.getProperty("os.name");
-  private static Logger LOG = Logger.getLogger(SystemUtil.class);
+  private static Logger LOG = LoggerFactory.getLogger(SystemUtil.class);
 
   /**
    * PROCESS STATE CODES

@@ -45,12 +45,13 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
 public class HelixStateMachineEngine implements StateMachineEngine {
-  private static Logger logger = Logger.getLogger(HelixStateMachineEngine.class);
+  private static Logger logger = LoggerFactory.getLogger(HelixStateMachineEngine.class);
 
   // StateModelName->FactoryName->StateModelFactory
   private final Map<String, Map<String, StateModelFactory<? extends StateModel>>> _stateModelFactoryMap;
@@ -137,7 +138,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
         }
         logger.info("Send NO_OP message to " + nopMsg.getTgtName() + ", msgId: " + nopMsg.getId());
       } catch (Exception e) {
-        logger.error(e);
+        logger.error(e.toString());
       }
     }
   }

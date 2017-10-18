@@ -43,13 +43,14 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is the Full-Auto Rebalancer that is featured with delayed partition movement.
  */
 public class DelayedAutoRebalancer extends AbstractRebalancer {
-  private static final Logger LOG = Logger.getLogger(DelayedAutoRebalancer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DelayedAutoRebalancer.class);
   private static RebalanceScheduler _rebalanceScheduler = new RebalanceScheduler();
 
   @Override

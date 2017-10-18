@@ -27,7 +27,8 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
@@ -41,7 +42,7 @@ import org.restlet.resource.ServerResource;
  * <li>GET list job info
  */
 public class JobResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(JobResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(JobResource.class);
 
   public JobResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

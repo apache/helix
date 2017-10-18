@@ -44,7 +44,8 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultMessagingService implements ClusterMessagingService {
   private final HelixManager _manager;
@@ -53,7 +54,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
   // TODO:rename to factory, this is not a service
   private final AsyncCallbackService _asyncCallbackService;
 
-  private static Logger _logger = Logger.getLogger(DefaultMessagingService.class);
+  private static Logger _logger = LoggerFactory.getLogger(DefaultMessagingService.class);
   ConcurrentHashMap<String, MessageHandlerFactory> _messageHandlerFactoriestobeAdded =
       new ConcurrentHashMap<>();
 
@@ -307,7 +308,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
         accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
       }
     } catch (Exception e) {
-      _logger.error(e);
+      _logger.error(e.toString());
     }
   }
 
@@ -325,7 +326,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
           try {
             asyncCallback.wait();
           } catch (InterruptedException e) {
-            _logger.error(e);
+            _logger.error(e.toString());
             asyncCallback.setInterrupted(true);
             break;
           }

@@ -36,7 +36,8 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -44,7 +45,7 @@ import org.testng.annotations.Test;
  * test drop resource should remove state-models
  */
 public class TestStateModelLeak extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestStateModelLeak.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestStateModelLeak.class);
 
   /**
    * test drop resource should remove all state models

@@ -30,7 +30,8 @@ import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.Form;
@@ -54,7 +55,7 @@ import java.util.Map;
  * <li>POST add a new job queue
  */
 public class JobQueuesResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(JobQueuesResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(JobQueuesResource.class);
 
   public JobQueuesResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

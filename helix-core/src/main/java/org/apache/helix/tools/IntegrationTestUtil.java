@@ -37,13 +37,14 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * collection of test utilities for integration tests
  */
 public class IntegrationTestUtil {
-  private static Logger LOG = Logger.getLogger(IntegrationTestUtil.class);
+  private static Logger LOG = LoggerFactory.getLogger(IntegrationTestUtil.class);
 
   public static final long defaultTimeout = 30 * 1000; // in milliseconds
   public static final String help = "help";

@@ -41,12 +41,13 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestMessageThrottleStage extends ZkUnitTestBase {
-  private static final Logger LOG = Logger.getLogger(TestMessageThrottleStage.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(TestMessageThrottleStage.class.getName());
   final String _className = getShortClassName();
 
   @Test

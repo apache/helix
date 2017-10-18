@@ -24,14 +24,15 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // mock STORAGE_DEFAULT_SM_SCHEMATA state model
 @StateModelInfo(initialState = "OFFLINE", states = {
     "MASTER", "DROPPED", "ERROR"
 })
 public class MockSchemataStateModel extends StateModel {
-  private static Logger LOG = Logger.getLogger(MockSchemataStateModel.class);
+  private static Logger LOG = LoggerFactory.getLogger(MockSchemataStateModel.class);
 
   @Transition(to = "MASTER", from = "OFFLINE")
   public void onBecomeMasterFromOffline(Message message, NotificationContext context) {

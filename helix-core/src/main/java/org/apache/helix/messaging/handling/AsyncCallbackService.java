@@ -27,14 +27,15 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
 public class AsyncCallbackService implements MessageHandlerFactory {
   private final ConcurrentHashMap<String, AsyncCallback> _callbackMap =
       new ConcurrentHashMap<String, AsyncCallback>();
-  private static Logger _logger = Logger.getLogger(AsyncCallbackService.class);
+  private static Logger _logger = LoggerFactory.getLogger(AsyncCallbackService.class);
 
   public AsyncCallbackService() {
   }

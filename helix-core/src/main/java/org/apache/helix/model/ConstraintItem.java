@@ -24,13 +24,14 @@ import java.util.Map;
 
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A single constraint and its associated attributes
  */
 public class ConstraintItem {
-  private static Logger LOG = Logger.getLogger(ConstraintItem.class);
+  private static Logger LOG = LoggerFactory.getLogger(ConstraintItem.class);
 
   // attributes e.g. {STATE:MASTER, RESOURCE:TestDB, INSTANCE:localhost_12918}
   final Map<ConstraintAttribute, String> _attributes;

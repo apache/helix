@@ -28,13 +28,14 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * helper class for controller manager
  */
 public class ControllerManagerHelper {
-  private static Logger LOG = Logger.getLogger(ControllerManagerHelper.class);
+  private static Logger LOG = LoggerFactory.getLogger(ControllerManagerHelper.class);
 
   final HelixManager _manager;
   final DefaultMessagingService _messagingService;

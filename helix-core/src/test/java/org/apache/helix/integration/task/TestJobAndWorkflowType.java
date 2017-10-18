@@ -26,12 +26,13 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.Workflow;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestJobAndWorkflowType extends TaskTestBase {
-  private static final Logger LOG = Logger.getLogger(TestJobAndWorkflowType.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestJobAndWorkflowType.class);
 
   @Test
   public void testJobAndWorkflowType() throws InterruptedException {

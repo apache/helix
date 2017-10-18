@@ -43,7 +43,8 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.type.TypeFactory;
 import org.codehaus.jackson.node.ArrayNode;
@@ -53,7 +54,7 @@ import org.codehaus.jackson.node.TextNode;
 
 @Path("/clusters/{clusterId}/workflows")
 public class WorkflowAccessor extends AbstractResource {
-  private static Logger _logger = Logger.getLogger(WorkflowAccessor.class.getName());
+  private static Logger _logger = LoggerFactory.getLogger(WorkflowAccessor.class.getName());
 
   public enum WorkflowProperties {
     Workflows,

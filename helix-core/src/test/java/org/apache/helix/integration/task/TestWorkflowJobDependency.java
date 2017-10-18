@@ -27,7 +27,8 @@ import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -35,7 +36,7 @@ import org.testng.annotations.Test;
 import com.google.common.collect.Sets;
 
 public class TestWorkflowJobDependency extends TaskTestBase {
-  private static final Logger LOG = Logger.getLogger(TestWorkflowJobDependency.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestWorkflowJobDependency.class);
 
   @BeforeClass
   public void beforeClass() throws Exception {

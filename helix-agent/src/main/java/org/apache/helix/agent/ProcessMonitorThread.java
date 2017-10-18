@@ -5,7 +5,8 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.agent.SystemUtil.ProcessStateCode;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -30,7 +31,7 @@ import org.apache.log4j.Logger;
  * thread for monitoring a pid
  */
 public class ProcessMonitorThread extends Thread {
-  private static final Logger LOG = Logger.getLogger(ProcessMonitorThread.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ProcessMonitorThread.class);
   private static final int MONITOR_PERIOD_BASE = 1000; // 1 second
 
   private final String _pid;

@@ -42,14 +42,15 @@ import org.apache.helix.task.beans.WorkflowBean;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.webapp.AdminTestBase;
 import org.apache.helix.webapp.AdminTestHelper;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import org.yaml.snakeyaml.Yaml;
 
 public class TestJobQueuesResource extends AdminTestBase {
-  private static final Logger LOG = Logger.getLogger(TestJobQueuesResource.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestJobQueuesResource.class);
 
   @Test
   public void test() throws Exception {

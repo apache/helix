@@ -26,10 +26,11 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ResourceValidationStage extends AbstractBaseStage {
-  private static final Logger LOG = Logger.getLogger(ResourceValidationStage.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ResourceValidationStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {

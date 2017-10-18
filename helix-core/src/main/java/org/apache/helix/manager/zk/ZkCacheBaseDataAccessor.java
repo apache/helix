@@ -43,13 +43,14 @@ import org.apache.helix.store.HelixPropertyListener;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.PathUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
 
 public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
-  private static final Logger LOG = Logger.getLogger(ZkCacheBaseDataAccessor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZkCacheBaseDataAccessor.class);
 
   protected WriteThroughCache<T> _wtCache;
   protected ZkCallbackCache<T> _zkCache;

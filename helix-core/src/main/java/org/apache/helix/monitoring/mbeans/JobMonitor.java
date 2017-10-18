@@ -20,13 +20,14 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import org.apache.helix.task.TaskState;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class JobMonitor implements JobMonitorMBean {
 
   private static final String JOB_KEY = "Job";
-  private static final Logger LOG = Logger.getLogger(JobMonitor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(JobMonitor.class);
 
   private String _clusterName;
   private String _jobType;

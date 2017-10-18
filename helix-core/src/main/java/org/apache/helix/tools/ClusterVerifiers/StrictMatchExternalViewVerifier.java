@@ -42,7 +42,8 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Verifier that verifies whether the ExternalViews of given resources (or all resources in the cluster)
@@ -50,7 +51,7 @@ import org.apache.log4j.Logger;
  * To use this verifier on resources in Full-Auto mode, BestPossible state must be persisted in Cluster config.
  */
 public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
-  private static Logger LOG = Logger.getLogger(StrictMatchExternalViewVerifier.class);
+  private static Logger LOG = LoggerFactory.getLogger(StrictMatchExternalViewVerifier.class);
 
   private final Set<String> _resources;
   private final Set<String> _expectLiveInstances;

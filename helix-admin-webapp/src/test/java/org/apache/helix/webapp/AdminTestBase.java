@@ -28,7 +28,8 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.helix.webapp.AdminTestHelper.AdminThread;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.restlet.Client;
 import org.restlet.data.Protocol;
 import org.testng.AssertJUnit;
@@ -36,7 +37,7 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
 public class AdminTestBase {
-  private static Logger LOG = Logger.getLogger(AdminTestBase.class);
+  private static Logger LOG = LoggerFactory.getLogger(AdminTestBase.class);
   public static final String ZK_ADDR = "localhost:2187";
   protected final static int ADMIN_PORT = 2202;
 

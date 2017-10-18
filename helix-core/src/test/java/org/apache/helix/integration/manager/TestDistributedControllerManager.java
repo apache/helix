@@ -37,12 +37,13 @@ import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestDistributedControllerManager extends ZkIntegrationTestBase {
-  private static Logger LOG = Logger.getLogger(TestDistributedControllerManager.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestDistributedControllerManager.class);
 
   @Test
   public void simpleIntegrationTest() throws Exception {

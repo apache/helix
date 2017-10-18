@@ -64,7 +64,8 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.ZKClientPool;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
@@ -80,7 +81,7 @@ public class ClusterStateVerifier {
   public static String period = "period";
   public static String resources = "resources";
 
-  private static Logger LOG = Logger.getLogger(ClusterStateVerifier.class);
+  private static Logger LOG = LoggerFactory.getLogger(ClusterStateVerifier.class);
 
   public interface Verifier {
     boolean verify();

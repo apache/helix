@@ -39,7 +39,8 @@ import org.apache.helix.store.PropertyJsonComparator;
 import org.apache.helix.store.PropertyJsonSerializer;
 import org.apache.helix.store.PropertyStoreException;
 import org.apache.helix.tools.TestCommand.CommandType;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.data.Stat;
 
 /**
@@ -74,7 +75,7 @@ public class TestExecutor {
     ZNODE_VALUE
   }
 
-  private static Logger logger = Logger.getLogger(TestExecutor.class);
+  private static Logger logger = LoggerFactory.getLogger(TestExecutor.class);
   private static final long SLEEP_TIME = 500; // in
                                               // ms
 

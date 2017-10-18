@@ -32,12 +32,13 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestStandAloneCMMain extends ZkStandAloneCMTestBase {
-  private static Logger logger = Logger.getLogger(TestStandAloneCMMain.class);
+  private static Logger logger = LoggerFactory.getLogger(TestStandAloneCMMain.class);
 
   @Test()
   public void testStandAloneCMMain() throws Exception {

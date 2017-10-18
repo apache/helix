@@ -38,10 +38,11 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BatchMessageHandler extends MessageHandler {
-  private static Logger LOG = Logger.getLogger(BatchMessageHandler.class);
+  private static Logger LOG = LoggerFactory.getLogger(BatchMessageHandler.class);
 
   final MessageHandlerFactory _msgHandlerFty;
   final TaskExecutor _executor;

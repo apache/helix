@@ -27,13 +27,14 @@ import java.util.TreeMap;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.manager.zk.serializer.JacksonPayloadSerializer;
 import org.apache.helix.manager.zk.serializer.PayloadSerializer;
-import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Generic Record Format to store data at a Node This can be used to store
@@ -42,7 +43,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = Inclusion.NON_NULL)
 public class ZNRecord {
-  static Logger _logger = Logger.getLogger(ZNRecord.class);
+  static Logger _logger = LoggerFactory.getLogger(ZNRecord.class);
   private final String id;
 
   @JsonIgnore(true)

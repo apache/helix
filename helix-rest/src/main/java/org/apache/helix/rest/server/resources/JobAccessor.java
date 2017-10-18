@@ -39,14 +39,15 @@ import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.WorkflowConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
 @Path("/clusters/{clusterId}/workflows/{workflowName}/jobs")
 public class JobAccessor extends AbstractResource {
-  private static Logger _logger = Logger.getLogger(JobAccessor.class.getName());
+  private static Logger _logger = LoggerFactory.getLogger(JobAccessor.class.getName());
 
   public enum JobProperties {
     Jobs,

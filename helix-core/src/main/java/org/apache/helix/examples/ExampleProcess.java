@@ -38,10 +38,11 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExampleProcess {
-  private static final Logger LOG = Logger.getLogger(ExampleProcess.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ExampleProcess.class);
 
   public static final String zkServer = "zkSvr";
   public static final String cluster = "cluster";

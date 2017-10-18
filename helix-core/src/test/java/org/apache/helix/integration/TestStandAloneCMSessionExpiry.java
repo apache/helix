@@ -28,12 +28,13 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase {
-  private static Logger LOG = Logger.getLogger(TestStandAloneCMSessionExpiry.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestStandAloneCMSessionExpiry.class);
 
   @Test()
   public void testStandAloneCMSessionExpiry() throws Exception {

@@ -26,13 +26,14 @@ import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.LiveInstance;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * controller checks if participant version is compatible
  */
 public class CompatibilityCheckStage extends AbstractBaseStage {
-  private static final Logger LOG = Logger.getLogger(CompatibilityCheckStage.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(CompatibilityCheckStage.class.getName());
 
   @Override
   public void process(ClusterEvent event) throws Exception {

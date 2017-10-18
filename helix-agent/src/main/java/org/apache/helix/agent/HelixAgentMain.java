@@ -33,10 +33,11 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HelixAgentMain {
-  private static Logger LOG = Logger.getLogger(HelixAgentMain.class);
+  private static Logger LOG = LoggerFactory.getLogger(HelixAgentMain.class);
 
   public static final String zkAddr = "zkSvr";
   public static final String cluster = "cluster";
@@ -136,7 +137,7 @@ public class HelixAgentMain {
       manager.connect();
       Thread.currentThread().join();
     } catch (Exception e) {
-      LOG.error(e);
+      LOG.error(e.toString());
     } finally {
       if (manager != null && manager.isConnected()) {
         manager.disconnect();

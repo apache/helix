@@ -24,11 +24,12 @@ import java.util.Date;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
 
 public class TestParticipantNameCollision extends ZkStandAloneCMTestBase {
-  private static Logger logger = Logger.getLogger(TestParticipantNameCollision.class);
+  private static Logger logger = LoggerFactory.getLogger(TestParticipantNameCollision.class);
 
   @Test()
   public void testParticiptantNameCollision() throws Exception {

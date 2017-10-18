@@ -33,11 +33,12 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChangeListener,
     ExternalViewChangeListener {
-  private static Logger LOG = Logger.getLogger(CustomCodeInvoker.class);
+  private static Logger LOG = LoggerFactory.getLogger(CustomCodeInvoker.class);
   private final CustomCodeCallbackHandler _callback;
   private final String _partitionKey;
 

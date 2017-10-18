@@ -36,12 +36,13 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestConstraint extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestConstraint.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestConstraint.class);
 
   @Test
   public void testMsgConstraint() {

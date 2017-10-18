@@ -25,14 +25,15 @@ import java.util.Map;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.util.StringTemplate;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @deprecated replaced by {@link HelixConfigScopeBuilder}
  */
 @Deprecated
 public class ConfigScopeBuilder {
-  private static Logger LOG = Logger.getLogger(ConfigScopeBuilder.class);
+  private static Logger LOG = LoggerFactory.getLogger(ConfigScopeBuilder.class);
 
   private static StringTemplate template = new StringTemplate();
   static {

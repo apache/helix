@@ -30,7 +30,8 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.data.Stat;
 
 @StateModelInfo(initialState = "OFFLINE", states = {
@@ -86,7 +87,7 @@ public class FileStoreStateModel extends StateModel {
     }
   }
 
-  private static Logger LOG = Logger.getLogger(FileStoreStateModel.class);
+  private static Logger LOG = LoggerFactory.getLogger(FileStoreStateModel.class);
 
   private final String _serverId;
   private final String _partition;

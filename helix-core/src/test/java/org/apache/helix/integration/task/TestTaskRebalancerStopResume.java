@@ -44,7 +44,8 @@ import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -54,7 +55,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class TestTaskRebalancerStopResume extends TaskTestBase {
-  private static final Logger LOG = Logger.getLogger(TestTaskRebalancerStopResume.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestTaskRebalancerStopResume.class);
   private static final String TIMEOUT_CONFIG = "Timeout";
   private static final String JOB_RESOURCE = "SomeJob";
 

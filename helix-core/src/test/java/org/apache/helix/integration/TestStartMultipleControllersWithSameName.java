@@ -27,15 +27,12 @@ import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestStartMultipleControllersWithSameName extends ZkIntegrationTestBase {
   @Test
   public void test() throws Exception {
-    Logger.getRootLogger().setLevel(Level.WARN);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;

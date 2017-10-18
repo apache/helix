@@ -27,14 +27,15 @@ import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.Sets;
 
 public class TestJobFailureDependence extends TaskTestBase {
-  private static final Logger LOG = Logger.getLogger(TestJobFailureDependence.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestJobFailureDependence.class);
 
   @BeforeClass
   public void beforeClass() throws Exception {

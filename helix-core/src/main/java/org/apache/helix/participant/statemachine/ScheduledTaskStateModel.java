@@ -27,11 +27,12 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.model.Message;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScheduledTaskStateModel extends StateModel {
   static final String DEFAULT_INITIAL_STATE = "OFFLINE";
-  Logger logger = Logger.getLogger(ScheduledTaskStateModel.class);
+  Logger logger = LoggerFactory.getLogger(ScheduledTaskStateModel.class);
 
   // TODO Get default state from implementation or from state model annotation
   // StateModel with initial state other than OFFLINE should override this field
@@ -62,7 +63,7 @@ public class ScheduledTaskStateModel extends StateModel {
     record.getSimpleFields().putAll(messageInfo);
     Message taskMessage = new Message(record);
     if (logger.isDebugEnabled()) {
-      logger.debug(taskMessage.getRecord().getSimpleFields());
+      logger.debug(taskMessage.getRecord().getSimpleFields().toString());
     }
     MessageHandler handler =
         _executor.createMessageHandler(taskMessage, new NotificationContext(null));

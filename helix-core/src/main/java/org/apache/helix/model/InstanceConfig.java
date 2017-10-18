@@ -30,7 +30,8 @@ import java.util.Set;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.util.HelixUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Instance configurations
@@ -55,7 +56,7 @@ public class InstanceConfig extends HelixProperty {
   public static final int WEIGHT_NOT_SET = -1;
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
 
-  private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
+  private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
   /**
    * Instantiate for a specific instance

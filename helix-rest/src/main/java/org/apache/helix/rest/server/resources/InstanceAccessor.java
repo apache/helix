@@ -43,7 +43,8 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
@@ -51,7 +52,7 @@ import org.codehaus.jackson.node.ObjectNode;
 
 @Path("/clusters/{clusterId}/instances")
 public class InstanceAccessor extends AbstractResource {
-  private final static Logger _logger = Logger.getLogger(InstanceAccessor.class);
+  private final static Logger _logger = LoggerFactory.getLogger(InstanceAccessor.class);
 
   public enum InstanceProperties {
     instances,

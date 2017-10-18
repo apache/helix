@@ -30,7 +30,8 @@ import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.*;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -39,7 +40,7 @@ import java.util.*;
  * State and Current State, with all constraints applied (such as state transition throttling).
  */
 public class IntermediateStateCalcStage extends AbstractBaseStage {
-  private static final Logger logger = Logger.getLogger(IntermediateStateCalcStage.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(IntermediateStateCalcStage.class.getName());
 
   @Override
   public void process(ClusterEvent event) throws Exception {

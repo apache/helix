@@ -55,7 +55,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.BiMap;
@@ -71,7 +72,7 @@ import com.google.common.collect.Sets;
 /** This rebalancer is deprecated, left here only for back-compatible. **/
 @Deprecated
 public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCalculator {
-  private static final Logger LOG = Logger.getLogger(TaskRebalancer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskRebalancer.class);
 
   // Management of already-scheduled rebalances across jobs
   private static final BiMap<String, Date> SCHEDULED_TIMES = HashBiMap.create();

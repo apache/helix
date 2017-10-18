@@ -41,14 +41,15 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Compares the currentState, pendingState with IdealState and generate messages
  */
 public class MessageGenerationPhase extends AbstractBaseStage {
   private final static String NO_DESIRED_STATE = "NoDesiredState";
-  private static Logger logger = Logger.getLogger(MessageGenerationPhase.class);
+  private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {

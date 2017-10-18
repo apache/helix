@@ -19,7 +19,8 @@ package org.apache.helix.recipes.rabbitmq;
  * under the License.
  */
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
@@ -31,7 +32,7 @@ import org.apache.helix.participant.statemachine.Transition;
     "ONLINE", "ERROR"
 })
 public class ConsumerStateModel extends StateModel {
-  private static Logger LOG = Logger.getLogger(ConsumerStateModel.class);
+  private static Logger LOG = LoggerFactory.getLogger(ConsumerStateModel.class);
 
   private final String _consumerId;
   private final String _partition;

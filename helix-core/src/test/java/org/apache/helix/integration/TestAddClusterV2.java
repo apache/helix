@@ -26,14 +26,15 @@ import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestAddClusterV2 extends ZkIntegrationTestBase {
-  private static Logger LOG = Logger.getLogger(TestAddClusterV2.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestAddClusterV2.class);
 
   protected static final int CLUSTER_NR = 10;
   protected static final int NODE_NR = 5;

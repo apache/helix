@@ -24,14 +24,15 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // mock master-slave state model
 @StateModelInfo(initialState = "OFFLINE", states = {
     "MASTER", "SLAVE", "ERROR"
 })
 public class MockMSStateModel extends StateModel {
-  private static Logger LOG = Logger.getLogger(MockMSStateModel.class);
+  private static Logger LOG = LoggerFactory.getLogger(MockMSStateModel.class);
 
   protected MockTransition _transition;
 

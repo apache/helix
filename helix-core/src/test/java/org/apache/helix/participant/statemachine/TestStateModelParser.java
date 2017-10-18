@@ -23,13 +23,14 @@ import java.lang.reflect.Method;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestStateModelParser {
 
-  private static Logger LOG = Logger.getLogger(TestStateModelParser.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestStateModelParser.class);
 
   @StateModelInfo(initialState = "OFFLINE", states = {
       "MASTER", "SLAVE", "ERROR"

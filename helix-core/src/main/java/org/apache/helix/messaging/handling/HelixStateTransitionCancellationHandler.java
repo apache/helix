@@ -23,12 +23,13 @@ import org.apache.helix.HelixRollbackException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HelixStateTransitionCancellationHandler extends MessageHandler {
   private final StateModel _stateModel;
   private static final Logger logger =
-      Logger.getLogger(HelixStateTransitionCancellationHandler.class);
+      LoggerFactory.getLogger(HelixStateTransitionCancellationHandler.class);
 
 
   public HelixStateTransitionCancellationHandler(StateModel stateModel, Message message,

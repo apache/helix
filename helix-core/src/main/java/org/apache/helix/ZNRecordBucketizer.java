@@ -22,13 +22,14 @@ package org.apache.helix;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Operations to divide a ZNRecord into specified buckets
  */
 public class ZNRecordBucketizer {
-  private static Logger LOG = Logger.getLogger(ZNRecordBucketizer.class);
+  private static Logger LOG = LoggerFactory.getLogger(ZNRecordBucketizer.class);
   final int _bucketSize;
 
   /**

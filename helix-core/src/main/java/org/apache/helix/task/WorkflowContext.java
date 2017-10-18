@@ -28,14 +28,15 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Typed interface to the workflow context information stored by {@link TaskRebalancer} in the Helix
  * property store
  */
 public class WorkflowContext extends HelixProperty {
-  private static final Logger LOG = Logger.getLogger(WorkflowContext.class);
+  private static final Logger LOG = LoggerFactory.getLogger(WorkflowContext.class);
 
   protected enum WorkflowContextProperties {
     STATE,

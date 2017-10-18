@@ -24,10 +24,11 @@ import java.util.List;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HelixBatchMessageTask implements MessageTask {
-  private static Logger LOG = Logger.getLogger(HelixBatchMessageTask.class);
+  private static Logger LOG = LoggerFactory.getLogger(HelixBatchMessageTask.class);
 
   final NotificationContext _context;
   final Message _batchMsg;

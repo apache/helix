@@ -38,7 +38,8 @@ import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooDefs.Ids;
@@ -53,7 +54,7 @@ import javax.management.JMException;
  */
 
 public class ZkClient extends org.I0Itec.zkclient.ZkClient {
-  private static Logger LOG = Logger.getLogger(ZkClient.class);
+  private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
   public static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   public static final int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
   // public static String sessionId;

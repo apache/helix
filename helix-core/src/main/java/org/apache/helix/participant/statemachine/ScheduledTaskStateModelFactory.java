@@ -20,10 +20,11 @@ package org.apache.helix.participant.statemachine;
  */
 
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScheduledTaskStateModelFactory extends StateModelFactory<ScheduledTaskStateModel> {
-  Logger logger = Logger.getLogger(ScheduledTaskStateModelFactory.class);
+  Logger logger = LoggerFactory.getLogger(ScheduledTaskStateModelFactory.class);
 
   HelixTaskExecutor _executor;
 

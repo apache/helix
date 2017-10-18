@@ -22,11 +22,12 @@ package org.apache.helix.integration;
 import java.util.Date;
 
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
 
 public class TestHelixUsingDifferentParams extends ZkIntegrationTestBase {
-  private static Logger LOG = Logger.getLogger(TestHelixUsingDifferentParams.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestHelixUsingDifferentParams.class);
 
   @Test()
   public void testCMUsingDifferentParams() throws Exception {

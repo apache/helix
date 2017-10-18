@@ -21,12 +21,13 @@ package org.apache.helix.participant.statemachine;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class StateModel {
   static final String DEFAULT_INITIAL_STATE = "OFFLINE";
   protected boolean _cancelled;
-  Logger logger = Logger.getLogger(StateModel.class);
+  Logger logger = LoggerFactory.getLogger(StateModel.class);
 
   // TODO Get default state from implementation or from state model annotation
   // StateModel with initial state other than OFFLINE should override this field

@@ -25,13 +25,14 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Current states of partitions in a resource for an instance.
  */
 public class CurrentState extends HelixProperty {
-  private static Logger LOG = Logger.getLogger(CurrentState.class);
+  private static Logger LOG = LoggerFactory.getLogger(CurrentState.class);
 
   /**
    * Lookup keys for the current state

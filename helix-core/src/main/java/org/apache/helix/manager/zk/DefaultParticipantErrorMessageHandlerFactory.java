@@ -29,7 +29,8 @@ import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
@@ -50,7 +51,7 @@ public class DefaultParticipantErrorMessageHandlerFactory implements MessageHand
 
   public static final String ACTIONKEY = "ActionOnError";
 
-  private static Logger _logger = Logger
+  private static Logger _logger = LoggerFactory
       .getLogger(DefaultParticipantErrorMessageHandlerFactory.class);
   final HelixManager _manager;
 

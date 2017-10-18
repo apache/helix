@@ -32,7 +32,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
 import org.apache.helix.task.TaskConstants;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This stage computes all the resources in a cluster. The resources are
@@ -41,7 +42,7 @@ import org.apache.log4j.Logger;
  * and needs to be dropped
  */
 public class ResourceComputationStage extends AbstractBaseStage {
-  private static Logger LOG = Logger.getLogger(ResourceComputationStage.class);
+  private static Logger LOG = LoggerFactory.getLogger(ResourceComputationStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {

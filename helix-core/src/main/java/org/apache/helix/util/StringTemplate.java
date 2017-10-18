@@ -25,10 +25,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StringTemplate {
-  private static Logger LOG = Logger.getLogger(StringTemplate.class);
+  private static Logger LOG = LoggerFactory.getLogger(StringTemplate.class);
 
   Map<Enum, Map<Integer, String>> templateMap = new HashMap<Enum, Map<Integer, String>>();
   static Pattern pattern = Pattern.compile("(\\{.+?\\})");

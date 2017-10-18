@@ -30,14 +30,15 @@ import org.apache.helix.task.TargetState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.Sets;
 
 public class TestUpdateWorkflow extends TaskTestBase {
-  private static final Logger LOG = Logger.getLogger(TestUpdateWorkflow.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestUpdateWorkflow.class);
 
   @Test
   public void testUpdateRunningQueue() throws InterruptedException {

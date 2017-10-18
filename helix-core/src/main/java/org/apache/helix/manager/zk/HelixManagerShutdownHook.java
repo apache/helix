@@ -20,7 +20,8 @@ package org.apache.helix.manager.zk;
  */
 
 import org.apache.helix.HelixManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Shutdown hook for helix manager
@@ -28,7 +29,7 @@ import org.apache.log4j.Logger;
  * NOT working for kill -9
  */
 public class HelixManagerShutdownHook extends Thread {
-  private static Logger LOG = Logger.getLogger(HelixManagerShutdownHook.class);
+  private static Logger LOG = LoggerFactory.getLogger(HelixManagerShutdownHook.class);
 
   final HelixManager _manager;
 

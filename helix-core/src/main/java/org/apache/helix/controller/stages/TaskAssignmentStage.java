@@ -38,10 +38,11 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskAssignmentStage extends AbstractBaseStage {
-  private static Logger logger = Logger.getLogger(TaskAssignmentStage.class);
+  private static Logger logger = LoggerFactory.getLogger(TaskAssignmentStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {

@@ -46,13 +46,14 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility mapping properties to their Zookeeper locations
  */
 public class PropertyPathBuilder {
-  private static Logger logger = Logger.getLogger(PropertyPathBuilder.class);
+  private static Logger logger = LoggerFactory.getLogger(PropertyPathBuilder.class);
 
   static final Map<PropertyType, Map<Integer, String>> templateMap =
       new HashMap<PropertyType, Map<Integer, String>>();

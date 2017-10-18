@@ -24,13 +24,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.helix.HelixConstants;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A resource contains a set of partitions and its replicas are managed by a state model
  */
 public class Resource {
-  private static Logger LOG = Logger.getLogger(Resource.class);
+  private static Logger LOG = LoggerFactory.getLogger(Resource.class);
 
   private final String _resourceName;
   private final Map<String, Partition> _partitionMap;

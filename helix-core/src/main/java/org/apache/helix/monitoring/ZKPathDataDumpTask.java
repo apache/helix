@@ -29,13 +29,14 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.data.Stat;
 
 import com.google.common.collect.Lists;
 
 public class ZKPathDataDumpTask extends TimerTask {
-  static Logger LOG = Logger.getLogger(ZKPathDataDumpTask.class);
+  static Logger LOG = LoggerFactory.getLogger(ZKPathDataDumpTask.class);
 
   private final long _thresholdNoChangeMsForStatusUpdates;
   private final long _thresholdNoChangeMsForErrors;

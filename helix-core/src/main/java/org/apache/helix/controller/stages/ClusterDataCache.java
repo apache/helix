@@ -56,7 +56,8 @@ import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -70,7 +71,7 @@ import static org.apache.helix.HelixConstants.ChangeType;
  * provides useful methods to search/lookup properties
  */
 public class ClusterDataCache {
-  private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(ClusterDataCache.class.getName());
   private static final String NAME = "NAME";
 
   private ClusterConfig _clusterConfig;

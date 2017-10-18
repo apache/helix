@@ -49,11 +49,12 @@ import org.apache.helix.tools.TestTrigger;
 import org.apache.helix.tools.ZnodeOpArg;
 import org.apache.helix.tools.TestCommand.CommandType;
 import org.apache.helix.tools.TestExecutor.ZnodePropertyType;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
 public class TestDriver {
-  private static Logger LOG = Logger.getLogger(TestDriver.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestDriver.class);
   private static final String ZK_ADDR = ZkIntegrationTestBase.ZK_ADDR;
 
   // private static final String CLUSTER_PREFIX = "TestDriver";

@@ -51,7 +51,8 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.helix.participant.statemachine.StateTransitionError;
 import org.apache.helix.util.StatusUpdateUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HelixStateTransitionHandler extends MessageHandler {
   public static class HelixStateMismatchException extends Exception {
@@ -60,7 +61,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
     }
   }
 
-  private static final Logger logger = Logger.getLogger(HelixStateTransitionHandler.class);
+  private static final Logger logger = LoggerFactory.getLogger(HelixStateTransitionHandler.class);
   private final StateModel _stateModel;
   StatusUpdateUtil _statusUpdateUtil;
   private final StateModelParser _transitionMethodFinder;

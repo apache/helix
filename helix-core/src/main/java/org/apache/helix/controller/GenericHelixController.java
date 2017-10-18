@@ -78,7 +78,8 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.ClusterEventMonitor;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.TaskDriver;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.helix.HelixConstants.ChangeType;
 
@@ -98,7 +99,7 @@ import static org.apache.helix.HelixConstants.ChangeType;
 public class GenericHelixController implements IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
     ControllerChangeListener, InstanceConfigChangeListener, ResourceConfigChangeListener {
-  private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(GenericHelixController.class.getName());
   private static final long EVENT_THREAD_JOIN_TIMEOUT = 1000;
   private static final int ASYNC_TASKS_THREADPOOL_SIZE = 10;
   private final PipelineRegistry _registry;

@@ -37,7 +37,8 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.webapp.RestAdminApplication;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.Form;
@@ -52,7 +53,7 @@ import org.restlet.resource.ServerResource;
 import com.google.common.collect.Lists;
 
 public class WorkflowsResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(WorkflowsResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(WorkflowsResource.class);
 
   public WorkflowsResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

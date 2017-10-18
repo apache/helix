@@ -21,7 +21,8 @@ package org.apache.helix.monitoring.mbeans.dynamicMBeans;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Snapshot;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.management.MBeanAttributeInfo;
 import java.lang.reflect.Method;
@@ -33,7 +34,7 @@ import java.util.Set;
  * The dynamic metric that accept Long monitor data and emits histogram information based on the input
  */
 public class HistogramDynamicMetric extends DynamicMetric<Histogram, Long> {
-  private static final Logger _logger = Logger.getLogger(HistogramDynamicMetric.class);
+  private static final Logger _logger = LoggerFactory.getLogger(HistogramDynamicMetric.class);
 
   private final Set<String> _attributeNameSet;
 

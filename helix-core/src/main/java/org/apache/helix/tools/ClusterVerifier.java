@@ -27,7 +27,8 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -38,7 +39,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Deprecated
 public abstract class ClusterVerifier implements IZkChildListener, IZkDataListener {
-  private static Logger LOG = Logger.getLogger(ClusterVerifier.class);
+  private static Logger LOG = LoggerFactory.getLogger(ClusterVerifier.class);
 
   protected final ZkClient _zkclient;
   protected final String _clusterName;

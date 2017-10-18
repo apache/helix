@@ -46,7 +46,8 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.apache.helix.util.ZKClientPool;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -54,7 +55,7 @@ import org.testng.annotations.Test;
  * Test that node tagging behaves correctly in FULL_AUTO mode
  */
 public class TestFullAutoNodeTagging extends ZkUnitTestBase {
-  private static final Logger LOG = Logger.getLogger(TestFullAutoNodeTagging.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestFullAutoNodeTagging.class);
 
   @Test
   public void testUntag() throws Exception {

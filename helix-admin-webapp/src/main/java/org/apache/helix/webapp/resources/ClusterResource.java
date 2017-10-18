@@ -29,7 +29,8 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.MediaType;
@@ -47,7 +48,7 @@ import org.restlet.resource.ServerResource;
  * <li>DELETE remove a cluster
  */
 public class ClusterResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(ClusterResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(ClusterResource.class);
 
   public ClusterResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

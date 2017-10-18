@@ -43,7 +43,8 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.util.HelixUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a abstract rebalancer that defines some default behaviors for Helix rebalancer
@@ -54,7 +55,7 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
   protected HelixManager _manager;
   protected RebalanceStrategy _rebalanceStrategy;
 
-  private static final Logger LOG = Logger.getLogger(AbstractRebalancer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractRebalancer.class);
 
   @Override
   public void init(HelixManager manager) {

@@ -24,10 +24,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.apache.helix.HelixTimerTask;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParticipantHealthReportTask extends HelixTimerTask {
-  private static final Logger LOG = Logger.getLogger(ParticipantHealthReportTask.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ParticipantHealthReportTask.class);
   public final static int DEFAULT_REPORT_LATENCY = 60 * 1000;
   private final int _reportLatency;
 

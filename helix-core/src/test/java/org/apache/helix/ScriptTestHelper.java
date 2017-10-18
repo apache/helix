@@ -23,11 +23,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
 public class ScriptTestHelper {
-  private static final Logger LOG = Logger.getLogger(ScriptTestHelper.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ScriptTestHelper.class);
 
   public static final String INTEGRATION_SCRIPT_DIR = "src/main/scripts/integration-test/script";
   public static final String INTEGRATION_TEST_DIR = "src/main/scripts/integration-test/testcases";

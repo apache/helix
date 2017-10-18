@@ -38,12 +38,13 @@ import org.apache.helix.manager.zk.DistributedLeaderElection;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.LiveInstance;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 public class TestDistControllerElection extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestDistControllerElection.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestDistControllerElection.class);
 
   @Test()
   public void testController() throws Exception {

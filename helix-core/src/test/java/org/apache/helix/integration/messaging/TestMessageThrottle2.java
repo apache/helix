@@ -61,7 +61,8 @@ import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -270,7 +271,7 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
       "MASTER", "SLAVE", "ERROR"
   })
   public static class MyStateModel extends StateModel {
-    private static final Logger LOGGER = Logger.getLogger(MyStateModel.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MyStateModel.class);
 
     private final HelixManager helixManager;
 
@@ -337,7 +338,7 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
   static class Node {
     // ------------------------------ FIELDS ------------------------------
 
-    private static final Logger LOGGER = Logger.getLogger(Node.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Node.class);
 
     // -------------------------- INNER CLASSES --------------------------
 
@@ -374,7 +375,7 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
     }
 
     public static void echo(Object obj) {
-      LOGGER.info(obj);
+      LOGGER.info(obj.toString());
     }
 
     private static void startProcess(String instanceName) throws Exception {

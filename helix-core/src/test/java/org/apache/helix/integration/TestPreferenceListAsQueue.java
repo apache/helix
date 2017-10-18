@@ -48,7 +48,8 @@ import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -56,7 +57,7 @@ import org.testng.annotations.Test;
 import com.google.common.collect.Lists;
 
 public class TestPreferenceListAsQueue extends ZkUnitTestBase {
-  private static final Logger LOG = Logger.getLogger(TestPreferenceListAsQueue.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestPreferenceListAsQueue.class);
   private static final int TRANSITION_TIME = 500;
   private static final int PARALLELISM = 1;
 

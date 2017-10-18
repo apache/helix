@@ -6,7 +6,8 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  * Class for trigger rebalancing of a set of resource in a future time.
  */
 public class RebalanceScheduler {
-  private static final Logger LOG = Logger.getLogger(RebalanceScheduler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RebalanceScheduler.class);
 
   private class ScheduledTask {
     long _startTime;

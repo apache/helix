@@ -34,10 +34,11 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageSelectionStage extends AbstractBaseStage {
-  private static final Logger LOG = Logger.getLogger(MessageSelectionStage.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MessageSelectionStage.class);
 
   public static class Bounds {
     private int upper;

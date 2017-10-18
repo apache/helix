@@ -40,7 +40,8 @@ import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 
 import org.apache.jute.BinaryInputArchive;
 import org.apache.jute.Record;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.ZooDefs.OpCode;
 import org.apache.zookeeper.data.Stat;
@@ -53,7 +54,7 @@ import org.apache.zookeeper.server.util.SerializeUtils;
 import org.apache.zookeeper.txn.TxnHeader;
 
 public class ZKLogFormatter {
-  private static final Logger LOG = Logger.getLogger(ZKLogFormatter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZKLogFormatter.class);
   private static DateFormat dateTimeInstance = DateFormat.getDateTimeInstance(DateFormat.SHORT,
       DateFormat.LONG);
   private static HexBinaryAdapter adapter = new HexBinaryAdapter();

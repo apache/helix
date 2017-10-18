@@ -45,7 +45,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -55,7 +56,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TestAutoRebalanceStrategy {
-  private static Logger logger = Logger.getLogger(TestAutoRebalanceStrategy.class);
+  private static Logger logger = LoggerFactory.getLogger(TestAutoRebalanceStrategy.class);
 
   /**
    * Sanity test for a basic Master-Slave model
@@ -195,7 +196,7 @@ public class TestAutoRebalanceStrategy {
       ZNRecord initialResult =
           strategy.computePartitionAssignment(_allNodes, _liveNodes, _currentMapping, null);
       _currentMapping = getMapping(initialResult.getListFields());
-      logger.info(_currentMapping);
+      logger.info(_currentMapping.toString());
       getRunResult(_currentMapping, initialResult.getListFields());
       for (int i = 0; i < numIterations; i++) {
         logger.info("~~~~ Iteration " + i + " ~~~~~");
@@ -203,8 +204,8 @@ public class TestAutoRebalanceStrategy {
         if (znRecord != null) {
           final Map<String, List<String>> listResult = znRecord.getListFields();
           final Map<String, Map<String, String>> mapResult = getMapping(listResult);
-          logger.info(mapResult);
-          logger.info(listResult);
+          logger.info(mapResult.toString());
+          logger.info(listResult.toString());
           getRunResult(mapResult, listResult);
           _currentMapping = mapResult;
         }

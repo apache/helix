@@ -31,13 +31,14 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.beans.WorkflowBean;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides a typed interface to workflow level configurations. Validates the configurations.
  */
 public class  WorkflowConfig extends ResourceConfig {
-  private static final Logger LOG = Logger.getLogger(WorkflowConfig.class);
+  private static final Logger LOG = LoggerFactory.getLogger(WorkflowConfig.class);
 
   /**
    * Do not use these values directly, always use the getters/setters

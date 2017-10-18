@@ -47,7 +47,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -223,7 +224,7 @@ public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
   }
 
   public static class MockProcess {
-    private static final Logger logger = Logger.getLogger(DummyProcess.class);
+    private static final Logger logger = LoggerFactory.getLogger(DummyProcess.class);
     // public static final String rootNamespace = "rootNamespace";
 
     private final String _zkConnectString;
@@ -381,7 +382,7 @@ public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
   }
 
   public static class TestParticipantManager extends ZKHelixManager implements Runnable, ZkTestManager {
-    private static Logger LOG = Logger.getLogger(TestParticipantManager.class);
+    private static Logger LOG = LoggerFactory.getLogger(TestParticipantManager.class);
 
     private final CountDownLatch _startCountDown = new CountDownLatch(1);
     private final CountDownLatch _stopCountDown = new CountDownLatch(1);

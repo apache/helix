@@ -39,13 +39,14 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Persist the ResourceAssignment of each resource that went through rebalancing
  */
 public class PersistAssignmentStage extends AbstractBaseStage {
-  private static final Logger LOG = Logger.getLogger(PersistAssignmentStage.class);
+  private static final Logger LOG = LoggerFactory.getLogger(PersistAssignmentStage.class);
 
   @Override public void process(ClusterEvent event) throws Exception {
     LOG.info("START PersistAssignmentStage.process()");

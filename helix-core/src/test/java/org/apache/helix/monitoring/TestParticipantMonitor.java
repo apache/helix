@@ -35,12 +35,13 @@ import javax.management.ObjectName;
 
 import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 public class TestParticipantMonitor {
-  static Logger _logger = Logger.getLogger(TestParticipantMonitor.class);
+  static Logger _logger = LoggerFactory.getLogger(TestParticipantMonitor.class);
 
   class ParticipantMonitorListener extends ClusterMBeanObserver {
     Map<String, Map<String, Object>> _beanValueMap = new HashMap<String, Map<String, Object>>();

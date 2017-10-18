@@ -32,13 +32,14 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class ReadClusterDataStage extends AbstractBaseStage {
-  private static final Logger logger = Logger.getLogger(ReadClusterDataStage.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(ReadClusterDataStage.class.getName());
 
   private ClusterDataCache _cache = null;
 

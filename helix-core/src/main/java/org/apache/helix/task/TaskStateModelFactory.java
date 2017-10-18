@@ -29,13 +29,14 @@ import javax.management.JMException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Factory class for {@link TaskStateModel}.
  */
 public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
-  private static Logger LOG = Logger.getLogger(TaskStateModelFactory.class);
+  private static Logger LOG = LoggerFactory.getLogger(TaskStateModelFactory.class);
 
   private final HelixManager _manager;
   private final Map<String, TaskFactory> _taskFactoryRegistry;

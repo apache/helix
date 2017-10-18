@@ -7,13 +7,14 @@ import java.util.Set;
 
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Output for IntermediateStateCalStage.
  */
 class StateTransitionThrottleController {
-  private static Logger logger = Logger.getLogger(StateTransitionThrottleController.class);
+  private static Logger logger = LoggerFactory.getLogger(StateTransitionThrottleController.class);
 
   // pending allowed transition counts in the cluster level for recovery and load balance
   Map<StateTransitionThrottleConfig.RebalanceType, Long> _pendingTransitionAllowedInCluster;

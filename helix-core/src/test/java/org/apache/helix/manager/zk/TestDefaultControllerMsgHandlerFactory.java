@@ -30,12 +30,13 @@ import org.apache.helix.manager.zk.DefaultControllerMessageHandlerFactory.Defaul
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 public class TestDefaultControllerMsgHandlerFactory {
-  private static Logger LOG = Logger.getLogger(TestDefaultControllerMsgHandlerFactory.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestDefaultControllerMsgHandlerFactory.class);
 
   @Test()
   public void testDefaultControllerMsgHandlerFactory() {

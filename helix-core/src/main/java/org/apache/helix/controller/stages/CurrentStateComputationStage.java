@@ -34,7 +34,8 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId matches
@@ -42,7 +43,7 @@ import org.apache.log4j.Logger;
  * previous State [ResourceComputationStage]
  */
 public class CurrentStateComputationStage extends AbstractBaseStage {
-  private static Logger LOG = Logger.getLogger(CurrentStateComputationStage.class);
+  private static Logger LOG = LoggerFactory.getLogger(CurrentStateComputationStage.class);
 
   public final long NOT_RECORDED = -1L;
   public final long TRANSITION_FAILED = -2L;

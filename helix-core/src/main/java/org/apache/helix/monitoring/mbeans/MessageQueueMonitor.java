@@ -25,10 +25,11 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageQueueMonitor implements MessageQueueMonitorMBean {
-  private static final Logger LOG = Logger.getLogger(MessageQueueMonitor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MessageQueueMonitor.class);
 
   private final String _clusterName;
   private final String _instanceName;

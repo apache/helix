@@ -29,7 +29,8 @@ import java.util.Set;
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.data.Stat;
 
 /**
@@ -37,7 +38,7 @@ import org.apache.zookeeper.data.Stat;
  * Assuming no concurrent updates
  */
 public class AutoFallbackPropertyStore<T> extends ZkHelixPropertyStore<T> {
-  private static Logger LOG = Logger.getLogger(AutoFallbackPropertyStore.class);
+  private static Logger LOG = LoggerFactory.getLogger(AutoFallbackPropertyStore.class);
 
   private final ZkHelixPropertyStore<T> _fallbackStore;
 

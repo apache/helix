@@ -41,14 +41,15 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
 @Path("/clusters/{clusterId}/resources")
 public class ResourceAccessor extends AbstractResource {
-  private final static Logger _logger = Logger.getLogger(ResourceAccessor.class);
+  private final static Logger _logger = LoggerFactory.getLogger(ResourceAccessor.class);
   public enum ResourceProperties {
     idealState,
     idealStates,

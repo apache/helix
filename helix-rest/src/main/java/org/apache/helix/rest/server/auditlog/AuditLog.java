@@ -23,10 +23,11 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AuditLog {
-  private static Logger _logger = Logger.getLogger(AuditLog.class.getName());
+  private static Logger _logger = LoggerFactory.getLogger(AuditLog.class.getName());
   public static final String ATTRIBUTE_NAME = "AUDIT_LOG";
 
   private Date _startTime;

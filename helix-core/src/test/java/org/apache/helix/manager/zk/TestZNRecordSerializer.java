@@ -6,7 +6,8 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.apache.helix.ZNRecord;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

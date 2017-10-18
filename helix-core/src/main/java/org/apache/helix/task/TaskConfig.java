@@ -24,7 +24,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.helix.task.beans.TaskBean;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.common.collect.Maps;
@@ -41,7 +42,7 @@ public class TaskConfig {
     TASK_TARGET_PARTITION
   }
 
-  private static final Logger LOG = Logger.getLogger(TaskConfig.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskConfig.class);
 
   private final Map<String, String> _configMap;
 

@@ -71,7 +71,8 @@ import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.RebalanceUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class ZKHelixAdmin implements HelixAdmin {
@@ -79,7 +80,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   private final ZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
 
-  private static Logger logger = Logger.getLogger(ZKHelixAdmin.class);
+  private static Logger logger = LoggerFactory.getLogger(ZKHelixAdmin.class);
 
   public ZKHelixAdmin(ZkClient zkClient) {
     _zkClient = zkClient;

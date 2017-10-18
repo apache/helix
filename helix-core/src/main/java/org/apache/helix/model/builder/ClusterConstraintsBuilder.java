@@ -24,10 +24,11 @@ import java.util.Map;
 
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClusterConstraintsBuilder {
-  private static Logger LOG = Logger.getLogger(ClusterConstraintsBuilder.class);
+  private static Logger LOG = LoggerFactory.getLogger(ClusterConstraintsBuilder.class);
 
   final private ConstraintType _constraintType;
 

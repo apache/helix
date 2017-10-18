@@ -38,7 +38,8 @@ import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.helix.PropertyType.*;
 
@@ -46,7 +47,7 @@ import static org.apache.helix.PropertyType.*;
  * Key allowing for type-safe lookups of and conversions to {@link HelixProperty} objects.
  */
 public class PropertyKey {
-  private static Logger LOG = Logger.getLogger(PropertyKey.class);
+  private static Logger LOG = LoggerFactory.getLogger(PropertyKey.class);
   public PropertyType _type;
   private final String[] _params;
   Class<? extends HelixProperty> _typeClazz;

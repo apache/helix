@@ -29,7 +29,8 @@ import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,7 +44,7 @@ import java.util.Set;
  * CRUSH-based partition mapping strategy.
  */
 public class CrushRebalanceStrategy implements RebalanceStrategy {
-  private static final Logger Log = Logger.getLogger(CrushRebalanceStrategy.class.getName());
+  private static final Logger Log = LoggerFactory.getLogger(CrushRebalanceStrategy.class.getName());
 
   private String _resourceName;
   private List<String> _partitions;

@@ -37,12 +37,13 @@ import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestConsecutiveZkSessionExpiry.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestConsecutiveZkSessionExpiry.class);
 
   /**
    * make use of PreConnectCallback to insert session expiry during HelixManager#handleNewSession()

@@ -30,7 +30,8 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.MediaType;
@@ -48,7 +49,7 @@ import org.restlet.resource.ServerResource;
  * <li>POST set ideal state
  */
 public class IdealStateResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(IdealStateResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(IdealStateResource.class);
 
   public IdealStateResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

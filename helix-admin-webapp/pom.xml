@@ -34,14 +34,24 @@ under the License.
       org.apache.helix*,
       org.codehaus.jackson*,
       org.apache.commons.cli*,
-      org.apache.log4j,
       org.restlet*,
+      org.slf4j*;version="[1.6,2)",
       *
     </osgi.import>
     <osgi.export>org.apache.helix.webapp*;version="${project.version};-noimport:=true</osgi.export>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.25</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.14</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>

@@ -43,7 +43,8 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.model.builder.IdealStateBuilder;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
@@ -51,7 +52,7 @@ import com.google.common.collect.Lists;
  * Custom rebalancer implementation for the {@code Workflow} in task state model.
  */
 public class WorkflowRebalancer extends TaskRebalancer {
-  private static final Logger LOG = Logger.getLogger(WorkflowRebalancer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(WorkflowRebalancer.class);
 
   @Override
   public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,

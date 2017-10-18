@@ -23,13 +23,14 @@ import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.webapp.resources.ResourceUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.restlet.Component;
 import org.restlet.Context;
 import org.restlet.data.Protocol;
 
 public class HelixAdminWebApp {
-  public final Logger LOG = Logger.getLogger(HelixAdminWebApp.class);
+  public final Logger LOG = LoggerFactory.getLogger(HelixAdminWebApp.class);
   private RestAdminApplication _adminApp = null;
   private Component _component = null;
 

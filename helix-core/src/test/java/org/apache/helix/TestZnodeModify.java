@@ -36,7 +36,8 @@ import org.apache.helix.tools.TestTrigger;
 import org.apache.helix.tools.ZnodeOpArg;
 import org.apache.helix.tools.TestCommand.CommandType;
 import org.apache.helix.tools.TestExecutor.ZnodePropertyType;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
@@ -44,7 +45,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestZnodeModify extends ZkUnitTestBase {
-  private static Logger logger = Logger.getLogger(TestZnodeModify.class);
+  private static Logger logger = LoggerFactory.getLogger(TestZnodeModify.class);
   private final String PREFIX = "/" + getShortClassName();
 
   @Test()

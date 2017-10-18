@@ -27,11 +27,12 @@ import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskState;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
 
 public class TestGenericJobs extends TaskTestBase {
-  private static final Logger LOG = Logger.getLogger(TestGenericJobs.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestGenericJobs.class);
 
   @Test public void testGenericJobs() throws Exception {
     String queueName = TestHelper.getTestMethodName();

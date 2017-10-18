@@ -25,12 +25,13 @@ import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.DistClusterControllerStateModel;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestDistControllerStateModel extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestDistControllerStateModel.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestDistControllerStateModel.class);
 
   final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
   DistClusterControllerStateModel stateModel = null;

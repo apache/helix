@@ -50,11 +50,12 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.util.ZKClientPool;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
@@ -62,7 +63,7 @@ import org.testng.annotations.BeforeSuite;
 
 // TODO merge code with ZkIntegrationTestBase
 public class ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(ZkUnitTestBase.class);
+  private static Logger LOG = LoggerFactory.getLogger(ZkUnitTestBase.class);
   protected static ZkServer _zkServer = null;
   protected static ZkClient _gZkClient;
 

@@ -50,14 +50,15 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
 public class ZkIntegrationTestBase {
-  private static Logger LOG = Logger.getLogger(ZkIntegrationTestBase.class);
+  private static Logger LOG = LoggerFactory.getLogger(ZkIntegrationTestBase.class);
 
   protected static ZkServer _zkServer;
   protected static ZkClient _gZkClient;

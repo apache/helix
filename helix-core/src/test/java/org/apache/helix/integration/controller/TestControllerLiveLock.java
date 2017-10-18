@@ -36,7 +36,8 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -45,7 +46,7 @@ import org.testng.annotations.Test;
  * The test has a high probability to reproduce the problem
  */
 public class TestControllerLiveLock extends ZkUnitTestBase {
-  private static final Logger LOG = Logger.getLogger(TestControllerLiveLock.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestControllerLiveLock.class);
 
   @Test
   public void test() throws Exception {

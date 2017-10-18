@@ -38,12 +38,13 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.participant.CustomCodeCallbackHandler;
 import org.apache.helix.participant.HelixCustomCodeRunner;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
-  private static Logger LOG = Logger.getLogger(TestHelixCustomCodeRunner.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestHelixCustomCodeRunner.class);
 
   private final String _clusterName = "CLUSTER_" + getShortClassName();
   private final int _nodeNb = 5;

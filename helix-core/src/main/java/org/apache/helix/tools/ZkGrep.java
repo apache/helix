@@ -44,7 +44,8 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * utility for grep zk transaction/snapshot logs
@@ -60,7 +61,7 @@ import org.apache.log4j.Logger;
  * fail-over latency = timestamp difference between 2) and 3)
  */
 public class ZkGrep {
-  private static Logger LOG = Logger.getLogger(ZkGrep.class);
+  private static Logger LOG = LoggerFactory.getLogger(ZkGrep.class);
 
   private static final String zkCfg = "zkCfg";
   private static final String pattern = "pattern";

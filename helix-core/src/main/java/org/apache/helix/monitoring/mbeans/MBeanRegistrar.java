@@ -19,13 +19,14 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.management.*;
 import java.lang.management.ManagementFactory;
 
 public class MBeanRegistrar {
-  private static Logger LOG = Logger.getLogger(MBeanRegistrar.class);
+  private static Logger LOG = LoggerFactory.getLogger(MBeanRegistrar.class);
 
   public static final String DUPLICATE = "Duplicate";
   public static final int MAX_NUM_DUPLICATED_MONITORS = 1000;

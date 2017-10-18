@@ -51,14 +51,15 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.data.Stat;
 
 /**
  * Class to handle all session related work for a participant.
  */
 public class ParticipantManager {
-  private static Logger LOG = Logger.getLogger(ParticipantManager.class);
+  private static Logger LOG = LoggerFactory.getLogger(ParticipantManager.class);
 
   final ZkClient _zkclient;
   final HelixManager _manager;

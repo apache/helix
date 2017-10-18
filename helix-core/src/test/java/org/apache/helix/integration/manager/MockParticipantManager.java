@@ -34,10 +34,11 @@ import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MockParticipantManager extends ZKHelixManager implements Runnable, ZkTestManager {
-  private static Logger LOG = Logger.getLogger(MockParticipantManager.class);
+  private static Logger LOG = LoggerFactory.getLogger(MockParticipantManager.class);
 
   private CountDownLatch _startCountDown = new CountDownLatch(1);
   private CountDownLatch _stopCountDown = new CountDownLatch(1);

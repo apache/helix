@@ -35,7 +35,8 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
@@ -43,7 +44,7 @@ import com.google.common.collect.Maps;
  * Abstract rebalancer class for the {@code Task} state model.
  */
 public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
-  private static final Logger LOG = Logger.getLogger(TaskRebalancer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskRebalancer.class);
 
   // For connection management
   protected HelixManager _manager;

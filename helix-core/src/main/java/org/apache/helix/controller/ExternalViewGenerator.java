@@ -30,7 +30,8 @@ import java.util.TreeSet;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.CurrentState.CurrentStateProperty;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * ZKRoutingInfoProvider keeps a copy of the routing table. Given a partition id,
@@ -46,7 +47,7 @@ import org.apache.log4j.Logger;
  * TODO: add listeners to node current state changes
  * */
 public class ExternalViewGenerator {
-  static Logger _logger = Logger.getLogger(ExternalViewGenerator.class);
+  static Logger _logger = LoggerFactory.getLogger(ExternalViewGenerator.class);
 
   /*
    * Given a list of external view ZNRecord nodes(one for each cluster),

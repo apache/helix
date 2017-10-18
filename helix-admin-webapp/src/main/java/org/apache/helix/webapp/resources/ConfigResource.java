@@ -32,7 +32,8 @@ import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
@@ -47,7 +48,7 @@ import org.restlet.resource.ServerResource;
  * <li>POST set/remove scoped configs
  */
 public class ConfigResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(ConfigResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(ConfigResource.class);
 
   public ConfigResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

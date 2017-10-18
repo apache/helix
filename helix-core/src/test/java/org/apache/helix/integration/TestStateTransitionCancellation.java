@@ -44,7 +44,8 @@ import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -186,7 +187,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
   @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE", "ERROR"
   })
   public static class InternalMockDelayMSStateModel extends StateModel {
-    private static Logger LOG = Logger.getLogger(MockDelayMSStateModel.class);
+    private static Logger LOG = LoggerFactory.getLogger(MockDelayMSStateModel.class);
     private long _delay;
     public static boolean _cancelledStatic;
     public static boolean _cancelledFirstTime;

@@ -50,7 +50,8 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.HelixManagerShutdownHook;
 import org.apache.helix.participant.DistClusterControllerStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HelixControllerMain {
   public static final String zkServerAddress = "zkSvr";
@@ -60,7 +61,7 @@ public class HelixControllerMain {
   public static final String name = "controllerName";
   public static final String STANDALONE = "STANDALONE";
   public static final String DISTRIBUTED = "DISTRIBUTED";
-  private static final Logger logger = Logger.getLogger(HelixControllerMain.class);
+  private static final Logger logger = LoggerFactory.getLogger(HelixControllerMain.class);
 
   // hack: OptionalBuilder is not thread safe
   @SuppressWarnings("static-access")
@@ -203,6 +204,7 @@ public class HelixControllerMain {
     controllerName = cmd.getOptionValue(name);
 
     // Espresso_driver.py will consume this
+    System.out.println("HARRY_DEBUG: starting HelixControllerMain");
     logger.info("Cluster manager started, zkServer: " + zkConnectString + ", clusterName:"
         + clusterName + ", controllerName:" + controllerName + ", mode:" + controllerMode);
 

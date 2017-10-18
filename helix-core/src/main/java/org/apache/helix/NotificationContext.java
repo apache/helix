@@ -194,7 +194,7 @@ public class NotificationContext {
   /**
    * Gets the change type.
    *
-   * @return the change type
+   * @return the change typte
    */
   public HelixConstants.ChangeType getChangeType() {
     return _changeType;

@@ -27,14 +27,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Generic class that will read the data given the root path.
  */
 public class HierarchicalDataHolder<T> {
-  private static final Logger logger = Logger.getLogger(HierarchicalDataHolder.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(HierarchicalDataHolder.class.getName());
   AtomicReference<Node<T>> root;
 
   /**

@@ -36,11 +36,12 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @StateModelInfo(initialState = "OFFLINE", states = {})
 public class AgentStateModel extends StateModel {
-  private static final Logger _logger = Logger.getLogger(AgentStateModel.class);
+  private static final Logger _logger = LoggerFactory.getLogger(AgentStateModel.class);
   private static Pattern pattern = Pattern.compile("(\\{.+?\\})");
 
   private static String buildKey(String fromState, String toState, CommandAttribute attribute) {

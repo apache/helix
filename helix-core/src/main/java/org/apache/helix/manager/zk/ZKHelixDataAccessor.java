@@ -46,12 +46,13 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.data.Stat;
 
 
 public class ZKHelixDataAccessor implements HelixDataAccessor {
-  private static Logger LOG = Logger.getLogger(ZKHelixDataAccessor.class);
+  private static Logger LOG = LoggerFactory.getLogger(ZKHelixDataAccessor.class);
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
   final InstanceType _instanceType;
   private final String _clusterName;

@@ -25,7 +25,8 @@ import java.util.TreeMap;
 
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.Workflow;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Convenience class for generating various test workflows

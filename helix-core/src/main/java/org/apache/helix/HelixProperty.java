@@ -28,13 +28,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.I0Itec.zkclient.serialize.ZkSerializer;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A wrapper class for ZNRecord. Used as a base class for IdealState, CurrentState, etc.
  */
 public class HelixProperty {
-  private static Logger LOG = Logger.getLogger(HelixProperty.class);
+  private static Logger LOG = LoggerFactory.getLogger(HelixProperty.class);
 
   public enum HelixPropertyAttribute {
     BUCKET_SIZE,

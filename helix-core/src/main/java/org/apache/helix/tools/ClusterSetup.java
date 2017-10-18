@@ -62,10 +62,11 @@ import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.ZKClientPool;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClusterSetup {
-  private static Logger logger = Logger.getLogger(ClusterSetup.class);
+  private static Logger logger = LoggerFactory.getLogger(ClusterSetup.class);
   public static final String zkServerAddress = "zkSvr";
 
   // List info about the cluster / resource / Instances
@@ -131,7 +132,7 @@ public class ClusterSetup {
   public static final String setConstraint = "setConstraint";
   public static final String removeConstraint = "removeConstraint";
 
-  static Logger _logger = Logger.getLogger(ClusterSetup.class);
+  static Logger _logger = LoggerFactory.getLogger(ClusterSetup.class);
   String _zkServerAddress;
   ZkClient _zkClient;
   HelixAdmin _admin;

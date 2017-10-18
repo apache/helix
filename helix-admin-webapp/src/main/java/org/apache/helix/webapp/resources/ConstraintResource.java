@@ -27,7 +27,8 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
@@ -43,7 +44,7 @@ import org.restlet.resource.ServerResource;
  * <li>DELETE remove constraints
  */
 public class ConstraintResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(ConstraintResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(ConstraintResource.class);
 
   public ConstraintResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

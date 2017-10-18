@@ -21,10 +21,11 @@ package org.apache.helix.mock.participant;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MockTransition {
-  private static Logger LOG = Logger.getLogger(MockTransition.class);
+  private static Logger LOG = LoggerFactory.getLogger(MockTransition.class);
 
   // called by state model transition functions
   public void doTransition(Message message, NotificationContext context)

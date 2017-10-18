@@ -32,13 +32,23 @@ under the License.
     <osgi.import>
       org.apache.helix*,
       org.apache.commons.cli;version="[1.2,2)",
-      org.apache.log4j,
+      org.slf4j*;version="[1.6,2)",
       *
     </osgi.import>
     <osgi.export>org.apache.helix.agent*;version="${project.version};-noimport:=true</osgi.export>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.25</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.14</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>

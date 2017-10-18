@@ -29,11 +29,12 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @StateModelInfo(states = "{'NOT USED BY HELIX'}", initialState = "INIT")
 public class TaskStateModel extends StateModel {
-  private static final Logger LOG = Logger.getLogger(TaskStateModel.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskStateModel.class);
   private final HelixManager _manager;
   private final ScheduledExecutorService _taskExecutor;
   private final Map<String, TaskFactory> _taskFactoryRegistry;

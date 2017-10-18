@@ -25,10 +25,11 @@ import java.util.List;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Pipeline {
-  private static final Logger logger = Logger.getLogger(Pipeline.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(Pipeline.class.getName());
   private final String _pipelineType;
   List<Stage> _stages;
 

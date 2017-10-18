@@ -38,7 +38,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,7 +56,7 @@ import java.util.Set;
  * match its best possible mapping states.
  */
 public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
-  private static Logger LOG = Logger.getLogger(BestPossibleExternalViewVerifier.class);
+  private static Logger LOG = LoggerFactory.getLogger(BestPossibleExternalViewVerifier.class);
 
   private final Map<String, Map<String, String>> _errStates;
   private final Set<String> _resources;

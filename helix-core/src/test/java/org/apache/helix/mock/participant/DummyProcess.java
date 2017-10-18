@@ -36,10 +36,11 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DummyProcess {
-  private static final Logger logger = Logger.getLogger(DummyProcess.class);
+  private static final Logger logger = LoggerFactory.getLogger(DummyProcess.class);
   public static final String zkServer = "zkSvr";
   public static final String cluster = "cluster";
   public static final String hostAddress = "host";

@@ -31,7 +31,8 @@ import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.relation.MBeanServerNotificationFilter;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * TODO: this class should be in espresso common, as the only usage of it is
@@ -40,7 +41,7 @@ import org.apache.log4j.Logger;
 public abstract class ClusterMBeanObserver implements NotificationListener {
   protected final String _domain;
   protected MBeanServerConnection _server;
-  private static final Logger _logger = Logger.getLogger(ClusterMBeanObserver.class);
+  private static final Logger _logger = LoggerFactory.getLogger(ClusterMBeanObserver.class);
 
   public ClusterMBeanObserver(String domain) throws InstanceNotFoundException, IOException,
       MalformedObjectNameException, NullPointerException {

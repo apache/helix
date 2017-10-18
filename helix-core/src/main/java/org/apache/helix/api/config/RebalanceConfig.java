@@ -24,7 +24,8 @@ import java.util.Map;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.task.TaskRebalancer;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Resource's rebalance configurations
@@ -66,7 +67,7 @@ public class RebalanceConfig {
   private Boolean _delayRebalanceDisabled;
   private long _rebalanceTimerPeriod = -1;  /* in seconds */
 
-  private static final Logger _logger = Logger.getLogger(RebalanceConfig.class.getName());
+  private static final Logger _logger = LoggerFactory.getLogger(RebalanceConfig.class.getName());
 
   /**
    * Instantiate from an znRecord

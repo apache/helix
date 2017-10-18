@@ -29,13 +29,14 @@ import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.helix.participant.statemachine.StateTransitionError;
 import org.apache.helix.participant.statemachine.Transition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @StateModelInfo(initialState = "OFFLINE", states = {
     "LEADER", "STANDBY"
 })
 public class DistClusterControllerStateModel extends StateModel {
-  private static Logger logger = Logger.getLogger(DistClusterControllerStateModel.class);
+  private static Logger logger = LoggerFactory.getLogger(DistClusterControllerStateModel.class);
   protected HelixManager _controller = null;
   protected final String _zkAddr;
 

@@ -39,12 +39,13 @@ import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.webapp.resources.JsonParameters;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestResetPartitionState extends AdminTestBase {
-  private final static Logger LOG = Logger.getLogger(TestResetPartitionState.class);
+  private final static Logger LOG = LoggerFactory.getLogger(TestResetPartitionState.class);
 
   String getClusterUrl(String cluster) {
     return "http://localhost:" + ADMIN_PORT + "/clusters" + "/" + cluster;

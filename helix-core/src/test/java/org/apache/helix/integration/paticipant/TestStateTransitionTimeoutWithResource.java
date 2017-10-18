@@ -53,14 +53,15 @@ import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBase {
-  private static Logger LOG = Logger.getLogger(TestStateTransitionTimeout.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestStateTransitionTimeout.class);
   private Map<String, SleepStateModelFactory> _factories;
   private ConfigAccessor _configAccessor;
 

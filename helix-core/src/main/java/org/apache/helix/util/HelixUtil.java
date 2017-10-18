@@ -38,12 +38,13 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 
 public final class HelixUtil {
-  static private Logger LOG = Logger.getLogger(HelixUtil.class);
+  static private Logger LOG = LoggerFactory.getLogger(HelixUtil.class);
 
   private HelixUtil() {
   }

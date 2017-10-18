@@ -40,12 +40,13 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Partition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestRebalancePipeline extends ZkUnitTestBase {
-  private static final Logger LOG = Logger.getLogger(TestRebalancePipeline.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(TestRebalancePipeline.class.getName());
   final String _className = getShortClassName();
 
   @Test

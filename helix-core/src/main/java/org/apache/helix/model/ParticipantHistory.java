@@ -30,13 +30,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The history of participant.
  */
 public class ParticipantHistory extends HelixProperty {
-  private static Logger LOG = Logger.getLogger(ParticipantHistory.class);
+  private static Logger LOG = LoggerFactory.getLogger(ParticipantHistory.class);
 
   private final static int HISTORY_SIZE = 20;
   private enum ConfigProperty {

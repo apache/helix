@@ -27,13 +27,14 @@ package org.apache.helix;
  */
 import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Obtain one of a set of Helix cluster managers, organized by the backing system.
  */
 public final class HelixManagerFactory {
-  private static final Logger logger = Logger.getLogger(HelixManagerFactory.class);
+  private static final Logger logger = LoggerFactory.getLogger(HelixManagerFactory.class);
 
   /**
    * Construct a zk-based cluster manager that enforces all types (PARTICIPANT, CONTROLLER, and

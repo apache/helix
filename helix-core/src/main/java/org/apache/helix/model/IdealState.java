@@ -37,7 +37,8 @@ import org.apache.helix.task.GenericTaskRebalancer;
 import org.apache.helix.task.JobRebalancer;
 import org.apache.helix.task.TaskRebalancer;
 import org.apache.helix.task.WorkflowRebalancer;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The ideal states of all partitions in a resource
@@ -108,7 +109,7 @@ public class IdealState extends HelixProperty {
     NONE
   }
 
-  private static final Logger logger = Logger.getLogger(IdealState.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(IdealState.class.getName());
 
   /**
    * Instantiate an ideal state for a resource
@@ -769,7 +770,7 @@ public class IdealState extends HelixProperty {
         IdealStateModeProperty oldMode = IdealStateModeProperty.valueOf(mode);
         rebalanceMode = normalizeRebalanceMode(oldMode);
       } catch (Exception e) {
-        logger.error(e);
+        logger.error(e.toString());
       }
     }
     return rebalanceMode;

@@ -23,10 +23,11 @@ import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateMod
 import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DummyProcessThread implements Runnable {
-  private static final Logger LOG = Logger.getLogger(DummyProcessThread.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DummyProcessThread.class);
   private final HelixManager _manager;
   private final String _instanceName;
 

@@ -39,7 +39,8 @@ import org.apache.helix.model.Error;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Util class to create statusUpdates ZK records and error ZK records. These message
@@ -47,7 +48,7 @@ import org.apache.log4j.Logger;
  * "errors" ZNodes in the zookeeper instances.
  */
 public class StatusUpdateUtil {
-  static Logger _logger = Logger.getLogger(StatusUpdateUtil.class);
+  static Logger _logger = LoggerFactory.getLogger(StatusUpdateUtil.class);
 
   public static class Transition implements Comparable<Transition> {
     private final String _msgID;

@@ -26,7 +26,8 @@ import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -39,7 +40,7 @@ import com.google.common.collect.Sets;
  * StateModelDefinitionValidator.isStateModelDefinitionValid(stateModelDef);
  */
 public class StateModelDefinitionValidator {
-  private static final Logger _logger = Logger.getLogger(StateModelDefinitionValidator.class);
+  private static final Logger _logger = LoggerFactory.getLogger(StateModelDefinitionValidator.class);
   private final StateModelDefinition _stateModelDef;
   private final List<String> _statePriorityList;
   private final List<String> _transitionPriorityList;

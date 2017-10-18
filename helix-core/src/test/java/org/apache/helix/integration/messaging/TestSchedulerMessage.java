@@ -52,8 +52,6 @@ import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
@@ -197,7 +195,6 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
   @Test(dependsOnMethods = "testSchedulerZeroMsg")
   public void testSchedulerMsg() throws Exception {
-    Logger.getRootLogger().setLevel(Level.INFO);
     _factory._results.clear();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {

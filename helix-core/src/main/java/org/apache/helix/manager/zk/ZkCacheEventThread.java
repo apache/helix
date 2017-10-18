@@ -24,12 +24,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // copy from ZkEventThread
 public class ZkCacheEventThread extends Thread {
 
-  private static final Logger LOG = Logger.getLogger(ZkCacheEventThread.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZkCacheEventThread.class);
   private final BlockingQueue<ZkCacheEvent> _events = new LinkedBlockingQueue<ZkCacheEvent>();
   private static AtomicInteger _eventId = new AtomicInteger(0);
 

@@ -23,13 +23,14 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.task.beans.ScheduleBean;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Configuration for scheduling both one-time and recurring workflows in Helix
  */
 public class ScheduleConfig {
-  private static final Logger LOG = Logger.getLogger(ScheduleConfig.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ScheduleConfig.class);
 
   /** Enforce that a workflow can recur at most once per minute */
   private static final long MIN_RECURRENCE_MILLIS = 60 * 1000;

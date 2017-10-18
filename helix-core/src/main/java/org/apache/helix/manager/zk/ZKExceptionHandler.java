@@ -20,11 +20,12 @@ package org.apache.helix.manager.zk;
  */
 
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZKExceptionHandler {
   private static ZKExceptionHandler instance = new ZKExceptionHandler();
-  private static Logger logger = Logger.getLogger(ZKExceptionHandler.class);
+  private static Logger logger = LoggerFactory.getLogger(ZKExceptionHandler.class);
 
   private ZKExceptionHandler() {
 

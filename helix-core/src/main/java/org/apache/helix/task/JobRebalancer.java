@@ -44,7 +44,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -54,7 +55,7 @@ import com.google.common.collect.Sets;
  * Custom rebalancer implementation for the {@code Job} in task model.
  */
 public class JobRebalancer extends TaskRebalancer {
-  private static final Logger LOG = Logger.getLogger(JobRebalancer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(JobRebalancer.class);
   private static TaskAssignmentCalculator _fixTaskAssignmentCal =
       new FixedTargetTaskAssignmentCalculator();
   private static TaskAssignmentCalculator _genericTaskAssignmentCal =

@@ -37,7 +37,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a Rebalancer specific to full automatic mode. It is tasked with computing the ideal
@@ -50,7 +51,7 @@ import org.apache.log4j.Logger;
  * has a replica on node k with state s.
  */
 public class AutoRebalancer extends AbstractRebalancer {
-  private static final Logger LOG = Logger.getLogger(AutoRebalancer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AutoRebalancer.class);
 
   @Override
   public IdealState computeNewIdealState(String resourceName,

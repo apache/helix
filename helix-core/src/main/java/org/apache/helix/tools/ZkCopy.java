@@ -38,7 +38,8 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.common.PathUtils;
 import org.apache.zookeeper.data.Stat;
 
@@ -50,7 +51,7 @@ public class ZkCopy {
     zk
   }
 
-  private static Logger logger = Logger.getLogger(ZkCopy.class);
+  private static Logger logger = LoggerFactory.getLogger(ZkCopy.class);
   private static final String src = "src";
   private static final String dst = "dst";
 

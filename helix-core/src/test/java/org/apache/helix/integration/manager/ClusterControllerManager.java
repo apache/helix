@@ -27,10 +27,11 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClusterControllerManager extends ZKHelixManager implements Runnable, ZkTestManager {
-  private static Logger LOG = Logger.getLogger(ClusterControllerManager.class);
+  private static Logger LOG = LoggerFactory.getLogger(ClusterControllerManager.class);
 
   private final CountDownLatch _startCountDown = new CountDownLatch(1);
   private final CountDownLatch _stopCountDown = new CountDownLatch(1);

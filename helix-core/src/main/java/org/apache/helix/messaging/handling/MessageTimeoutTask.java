@@ -22,10 +22,11 @@ package org.apache.helix.messaging.handling;
 import java.util.TimerTask;
 
 import org.apache.helix.model.Message;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageTimeoutTask extends TimerTask {
-  private static Logger LOG = Logger.getLogger(MessageTimeoutTask.class);
+  private static Logger LOG = LoggerFactory.getLogger(MessageTimeoutTask.class);
 
   final HelixTaskExecutor _executor;
   final MessageTask _task;

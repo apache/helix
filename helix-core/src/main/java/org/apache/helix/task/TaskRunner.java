@@ -24,14 +24,15 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.task.TaskResult.Status;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A wrapping {@link Runnable} used to manage the life-cycle of a user-defined {@link Task}
  * implementation.
  */
 public class TaskRunner implements Runnable {
-  private static final Logger LOG = Logger.getLogger(TaskRunner.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskRunner.class);
   private final HelixManager _manager;
   private final String _taskName;
   private final String _taskPartition;

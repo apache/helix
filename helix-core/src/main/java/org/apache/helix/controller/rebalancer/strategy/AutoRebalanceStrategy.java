@@ -36,10 +36,11 @@ import java.util.TreeSet;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AutoRebalanceStrategy implements RebalanceStrategy {
-  private static Logger logger = Logger.getLogger(AutoRebalanceStrategy.class);
+  private static Logger logger = LoggerFactory.getLogger(AutoRebalanceStrategy.class);
   private final ReplicaPlacementScheme _placementScheme = new DefaultPlacementScheme();
 
   private String _resourceName;

@@ -31,12 +31,13 @@ import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase {
-  private static Logger LOG = Logger.getLogger(TestAddNodeAfterControllerStart.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestAddNodeAfterControllerStart.class);
   final String className = getShortClassName();
 
   @Test

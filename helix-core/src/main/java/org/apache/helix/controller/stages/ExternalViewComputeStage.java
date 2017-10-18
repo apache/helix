@@ -49,10 +49,11 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExternalViewComputeStage extends AbstractBaseStage {
-  private static Logger LOG = Logger.getLogger(ExternalViewComputeStage.class);
+  private static Logger LOG = LoggerFactory.getLogger(ExternalViewComputeStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {

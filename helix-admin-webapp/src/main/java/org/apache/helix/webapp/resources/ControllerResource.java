@@ -37,7 +37,8 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.StatusUpdateUtil.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.MediaType;
@@ -54,7 +55,7 @@ import org.restlet.resource.ServerResource;
  * <li>POST enable/disable Helix controller
  */
 public class ControllerResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(ControllerResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(ControllerResource.class);
 
   public ControllerResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

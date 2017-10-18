@@ -30,7 +30,8 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
@@ -48,7 +49,7 @@ import java.util.Map;
  * <li>POST start a new job in a job queue, or stop/resume/flush/delete a job queue
  */
 public class JobQueueResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(JobQueueResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(JobQueueResource.class);
 
   public JobQueueResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

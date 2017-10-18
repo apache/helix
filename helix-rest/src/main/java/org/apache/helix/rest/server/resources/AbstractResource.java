@@ -41,14 +41,15 @@ import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
 @Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 @Consumes({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class AbstractResource {
-  private static Logger _logger = Logger.getLogger(AbstractResource.class.getName());
+  private static Logger _logger = LoggerFactory.getLogger(AbstractResource.class.getName());
 
   public enum Properties {
     id,

@@ -29,7 +29,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -86,7 +87,7 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
   }
 
   public static class TestOnlineOfflineStateModel extends StateModel {
-    private static Logger LOG = Logger.getLogger(MockMSStateModel.class);
+    private static Logger LOG = LoggerFactory.getLogger(MockMSStateModel.class);
     public static Integer _numOfSuccessBeforeFail;
 
     public void onBecomeOnlineFromOffline(Message message,

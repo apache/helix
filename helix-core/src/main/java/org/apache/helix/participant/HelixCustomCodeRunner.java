@@ -34,7 +34,8 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This provides the ability for users to run a custom code in exactly one
@@ -53,7 +54,7 @@ import org.apache.log4j.Logger;
  */
 public class HelixCustomCodeRunner {
   private static final String LEADER_STANDBY = "LeaderStandby";
-  private static Logger LOG = Logger.getLogger(HelixCustomCodeRunner.class);
+  private static Logger LOG = LoggerFactory.getLogger(HelixCustomCodeRunner.class);
   private static String PARTICIPANT_LEADER = "PARTICIPANT_LEADER";
 
   private CustomCodeCallbackHandler _callback;

@@ -31,11 +31,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExternalCommand {
   public static final String MODULE = ExternalCommand.class.getName();
-  public static final Logger LOG = Logger.getLogger(MODULE);
+  public static final Logger LOG = LoggerFactory.getLogger(MODULE);
 
   private final ProcessBuilder _processBuilder;
 

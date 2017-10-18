@@ -27,12 +27,13 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.HealthStat;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParticipantHealthReportCollectorImpl implements ParticipantHealthReportCollector {
   private final LinkedList<HealthReportProvider> _healthReportProviderList =
       new LinkedList<HealthReportProvider>();
-  private static final Logger LOG = Logger
+  private static final Logger LOG = LoggerFactory
       .getLogger(ParticipantHealthReportCollectorImpl.class);
   private final HelixManager _helixManager;
   String _instanceName;
@@ -53,7 +54,7 @@ public class ParticipantHealthReportCollectorImpl implements ParticipantHealthRe
         }
       }
     } catch (Exception e) {
-      LOG.error(e);
+      LOG.error(e.toString());
     }
   }
 

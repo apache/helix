@@ -36,12 +36,13 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZNRecordSizeLimit extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestZNRecordSizeLimit.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestZNRecordSizeLimit.class);
 
   @Test
   public void testZNRecordSizeLimitUseZNRecordSerializer() {

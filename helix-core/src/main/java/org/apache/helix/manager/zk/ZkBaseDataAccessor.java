@@ -42,7 +42,8 @@ import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
@@ -77,7 +78,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     }
   }
 
-  private static Logger LOG = Logger.getLogger(ZkBaseDataAccessor.class);
+  private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
   private final ZkClient _zkClient;
 

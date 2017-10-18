@@ -29,12 +29,13 @@ import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 
 public final class ZKUtil {
-  private static Logger logger = Logger.getLogger(ZKUtil.class);
+  private static Logger logger = LoggerFactory.getLogger(ZKUtil.class);
   private static int RETRYLIMIT = 3;
 
   private ZKUtil() {

@@ -34,7 +34,8 @@ import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.*;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StatusUpdateUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -44,7 +45,7 @@ import java.util.concurrent.Callable;
  * IdealState,StateModel,LiveInstance
  */
 public class BestPossibleStateCalcStage extends AbstractBaseStage {
-  private static final Logger logger = Logger.getLogger(BestPossibleStateCalcStage.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(BestPossibleStateCalcStage.class.getName());
   private final StatusUpdateUtil _statusUpdateUtil = new StatusUpdateUtil();
 
   @Override

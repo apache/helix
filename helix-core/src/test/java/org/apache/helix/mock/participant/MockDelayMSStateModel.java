@@ -10,7 +10,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -35,7 +36,7 @@ import org.apache.log4j.Logger;
     "MASTER", "SLAVE", "ERROR"
 })
 public class MockDelayMSStateModel extends StateModel {
-  private static Logger LOG = Logger.getLogger(MockDelayMSStateModel.class);
+  private static Logger LOG = LoggerFactory.getLogger(MockDelayMSStateModel.class);
   private long _delay;
 
   public MockDelayMSStateModel(long delay) {

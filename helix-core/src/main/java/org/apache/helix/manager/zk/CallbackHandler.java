@@ -66,14 +66,14 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.Watcher.Event.EventType;
-import sun.rmi.runtime.Log;
 
 import static org.apache.helix.HelixConstants.ChangeType.*;
 
 public class CallbackHandler implements IZkChildListener, IZkDataListener {
-  private static Logger logger = Logger.getLogger(CallbackHandler.class);
+  private static Logger logger = LoggerFactory.getLogger(CallbackHandler.class);
 
   /**
    * define the next possible notification types

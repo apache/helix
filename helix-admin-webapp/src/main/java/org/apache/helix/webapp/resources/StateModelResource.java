@@ -30,7 +30,8 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.MediaType;
@@ -41,7 +42,7 @@ import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
 public class StateModelResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(StateModelResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(StateModelResource.class);
 
   public StateModelResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));

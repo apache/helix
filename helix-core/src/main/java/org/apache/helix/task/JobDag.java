@@ -26,7 +26,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -35,7 +36,7 @@ import org.codehaus.jackson.map.ObjectMapper;
  * and validate a job dependency graph
  */
 public class JobDag {
-  private static final Logger LOG = Logger.getLogger(JobDag.class);
+  private static final Logger LOG = LoggerFactory.getLogger(JobDag.class);
 
   @JsonProperty("parentsToChildren")
   private Map<String, Set<String>> _parentsToChildren;

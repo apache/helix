@@ -49,11 +49,12 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/clusters")
 public class ClusterAccessor extends AbstractResource {
-  private static Logger _logger = Logger.getLogger(ClusterAccessor.class.getName());
+  private static Logger _logger = LoggerFactory.getLogger(ClusterAccessor.class.getName());
 
   public enum ClusterProperties {
     controller,

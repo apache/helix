@@ -21,7 +21,8 @@ package org.apache.helix.taskexecution;
 
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.model.ConfigScope;
@@ -40,7 +41,7 @@ import org.apache.helix.participant.statemachine.Transition;
     "ONLINE", "ERROR"
 })
 public class TaskStateModel extends StateModel {
-  private static Logger LOG = Logger.getLogger(TaskStateModel.class);
+  private static Logger LOG = LoggerFactory.getLogger(TaskStateModel.class);
 
   private final String _workerId;
   private final String _partition;

@@ -57,7 +57,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JmxDumper implements NotificationListener {
   public static final String help = "help";
@@ -71,7 +72,7 @@ public class JmxDumper implements NotificationListener {
   public static final String jmxUrl = "jmxUrl";
   public static final String sampleCount = "sampleCount";
 
-  private static final Logger _logger = Logger.getLogger(JmxDumper.class);
+  private static final Logger _logger = LoggerFactory.getLogger(JmxDumper.class);
   String _domain;
   MBeanServerConnection _mbeanServer;
 

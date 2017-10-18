@@ -25,7 +25,8 @@ import org.apache.helix.tools.YAMLClusterSetup.YAMLClusterConfig.ParticipantConf
 import org.apache.helix.tools.YAMLClusterSetup.YAMLClusterConfig.ResourceConfig;
 import org.apache.helix.tools.YAMLClusterSetup.YAMLClusterConfig.ResourceConfig.ConstraintsConfig;
 import org.apache.helix.tools.YAMLClusterSetup.YAMLClusterConfig.ResourceConfig.StateModelConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 /*
@@ -53,7 +54,7 @@ import org.yaml.snakeyaml.Yaml;
  * See the user-rebalanced-lock-manager recipe for an annotated example file.
  */
 public class YAMLClusterSetup {
-  private static final Logger LOG = Logger.getLogger(YAMLClusterSetup.class);
+  private static final Logger LOG = LoggerFactory.getLogger(YAMLClusterSetup.class);
 
   private final String _zkAddress;
 

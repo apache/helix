@@ -27,7 +27,6 @@ under the License.
 	>
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>
-		<m:dependency.management__log4j__log4j__version>1.2.15</m:dependency.management__log4j__log4j__version>
 		<m:properties__organization.logo>http://www.apache.org/images/asf_logo_wide.gif</m:properties__organization.logo>
 		<m:properties__osgi.export>org.apache.helix.agent*;version=&quot;${project.version};-noimport:=true</m:properties__osgi.export>
 		<m:properties__svnImpl>svn</m:properties__svnImpl>
@@ -86,7 +85,12 @@ under the License.
 		<dependency org="org.apache.helix" name="helix-core" rev="0.6.10-SNAPSHOT" force="true" conf="test->runtime(*),master(*)">
 			<artifact name="helix-core" type="test-jar" ext="jar" conf="" m:classifier="tests"/>
 		</dependency>
-		<override org="log4j" module="log4j" matcher="exact" rev="1.2.15"/>
+    <dependency org="org.slf4j" name="slf4j-api" rev="1.7.25" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+        <artifact name="slf4j-api" ext="jar"/>
+    </dependency>
+    <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.7.14" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+        <artifact name="slf4j-log4j12" ext="ivy"/>
+    </dependency>
 		<override org="org.mockito" module="mockito-all" matcher="exact" rev="1.9.5"/>
 		<override org="org.apache.helix" module="helix-core" matcher="exact" rev="0.6.10-SNAPSHOT"/>
 		<override org="org.restlet.jse" module="org.restlet" matcher="exact" rev="2.2.1"/>

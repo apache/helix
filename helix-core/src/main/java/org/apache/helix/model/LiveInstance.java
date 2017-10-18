@@ -21,7 +21,8 @@ package org.apache.helix.model;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Instance that connects to zookeeper (stored ephemerally)
@@ -37,7 +38,7 @@ public class LiveInstance extends HelixProperty {
     ZKPROPERTYTRANSFERURL
   }
 
-  private static final Logger _logger = Logger.getLogger(LiveInstance.class.getName());
+  private static final Logger _logger = LoggerFactory.getLogger(LiveInstance.class.getName());
 
   /**
    * Instantiate with an instance identifier

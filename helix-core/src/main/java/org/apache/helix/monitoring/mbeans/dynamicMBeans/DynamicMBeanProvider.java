@@ -25,7 +25,8 @@ import com.codahale.metrics.MetricRegistry;
 import org.apache.helix.HelixException;
 import org.apache.helix.monitoring.SensorNameProvider;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.management.*;
 import java.util.*;
@@ -34,7 +35,7 @@ import java.util.*;
  * Dynamic MBean provider that reporting DynamicMetric attributes
  */
 public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNameProvider {
-  protected final Logger _logger = Logger.getLogger(getClass());
+  protected final Logger _logger = LoggerFactory.getLogger(getClass());
   protected static final MetricRegistry _metricRegistry = new MetricRegistry();
   private static String SENSOR_NAME_TAG = "SensorName";
   private static String DEFAULT_DESCRIPTION =

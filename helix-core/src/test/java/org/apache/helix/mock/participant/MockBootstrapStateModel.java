@@ -24,14 +24,15 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // mock Bootstrap state model
 @StateModelInfo(initialState = "OFFLINE", states = {
     "ONLINE", "BOOTSTRAP", "OFFLINE", "IDLE"
 })
 public class MockBootstrapStateModel extends StateModel {
-  private static Logger LOG = Logger.getLogger(MockBootstrapStateModel.class);
+  private static Logger LOG = LoggerFactory.getLogger(MockBootstrapStateModel.class);
 
   // Overwrite the default value of intial state
   MockBootstrapStateModel() {

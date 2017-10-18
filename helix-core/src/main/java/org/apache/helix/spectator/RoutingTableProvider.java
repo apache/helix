@@ -37,10 +37,11 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RoutingTableProvider implements ExternalViewChangeListener, ConfigChangeListener {
-  private static final Logger logger = Logger.getLogger(RoutingTableProvider.class);
+  private static final Logger logger = LoggerFactory.getLogger(RoutingTableProvider.class);
   private final AtomicReference<RoutingTable> _routingTableRef;
 
   public RoutingTableProvider() {

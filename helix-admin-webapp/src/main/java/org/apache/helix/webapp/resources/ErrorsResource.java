@@ -24,7 +24,8 @@ import java.io.IOException;
 import org.apache.helix.PropertyType;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.webapp.RestAdminApplication;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.MediaType;
@@ -34,7 +35,7 @@ import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
 public class ErrorsResource extends ServerResource {
-  private final static Logger LOG = Logger.getLogger(ErrorsResource.class);
+  private final static Logger LOG = LoggerFactory.getLogger(ErrorsResource.class);
 
   public ErrorsResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
@@ -54,7 +55,7 @@ public class ErrorsResource extends ServerResource {
 
       LOG.error("", e);
     }
-    
+
     return presentation;
   }
 

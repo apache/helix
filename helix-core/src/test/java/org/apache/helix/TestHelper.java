@@ -62,12 +62,13 @@ import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
 public class TestHelper {
-  private static final Logger LOG = Logger.getLogger(TestHelper.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
 
   /**
    * Returns a unused random port.

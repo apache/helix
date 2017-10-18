@@ -26,14 +26,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // TODO: move to mananger.zk
 /**
  * Support committing updates to data such that they are ordered for each key
  */
 public class GroupCommit {
-  private static Logger LOG = Logger.getLogger(GroupCommit.class);
+  private static Logger LOG = LoggerFactory.getLogger(GroupCommit.class);
   private static int MAX_RETRY = 3;
 
   private static class Queue {

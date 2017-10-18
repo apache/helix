@@ -22,14 +22,15 @@ package org.apache.helix;
 import java.io.InputStream;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * hold helix-manager properties read from
  * helix-core/src/main/resources/cluster-manager.properties
  */
 public class HelixManagerProperties {
-  private static final Logger LOG = Logger.getLogger(HelixManagerProperties.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(HelixManagerProperties.class.getName());
 
   private final Properties _properties = new Properties();
 

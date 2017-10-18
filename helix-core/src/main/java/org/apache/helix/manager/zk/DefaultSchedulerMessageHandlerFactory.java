@@ -45,7 +45,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.util.StatusUpdateUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.common.collect.ImmutableList;
@@ -120,7 +121,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
     }
   }
 
-  private static Logger _logger = Logger.getLogger(DefaultSchedulerMessageHandlerFactory.class);
+  private static Logger _logger = LoggerFactory.getLogger(DefaultSchedulerMessageHandlerFactory.class);
   HelixManager _manager;
 
   public DefaultSchedulerMessageHandlerFactory(HelixManager manager) {
@@ -213,7 +214,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
                 + partitionId + " " + task.getMsgId() + " to " + instanceName);
 
             if (_logger.isDebugEnabled()) {
-              _logger.debug(task.getRecord().getSimpleFields());
+              _logger.debug(task.getRecord().getSimpleFields().toString());
             }
           }
           _manager.getHelixDataAccessor().updateProperty(

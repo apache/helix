@@ -36,10 +36,11 @@ import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ClusterConstraints.ConstraintValue;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageThrottleStage extends AbstractBaseStage {
-  private static final Logger LOG = Logger.getLogger(MessageThrottleStage.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(MessageThrottleStage.class.getName());
 
   int valueOf(String valueStr) {
     int value = Integer.MAX_VALUE;

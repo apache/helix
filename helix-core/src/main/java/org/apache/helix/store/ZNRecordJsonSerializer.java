@@ -21,10 +21,11 @@ package org.apache.helix.store;
 
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZNRecordJsonSerializer implements PropertySerializer<ZNRecord> {
-  static private Logger LOG = Logger.getLogger(ZNRecordJsonSerializer.class);
+  static private Logger LOG = LoggerFactory.getLogger(ZNRecordJsonSerializer.class);
   private final ZNRecordSerializer _serializer = new ZNRecordSerializer();
 
   @Override

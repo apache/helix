@@ -45,7 +45,6 @@ public class ReadClusterDataStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    long startTime = System.currentTimeMillis();
     logger.info("START ReadClusterDataStage.process()");
 
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
@@ -105,9 +104,5 @@ public class ReadClusterDataStage extends AbstractBaseStage {
       });
     }
     event.addAttribute(AttributeName.ClusterDataCache.name(), _cache);
-
-    long endTime = System.currentTimeMillis();
-    logger.info("END " + GenericHelixController.getPipelineType(_cache.isTaskCache())
-        + " ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");
   }
 }

@@ -44,7 +44,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    long startTime = System.currentTimeMillis();
     logger.info("START Intermediate.process()");
 
     CurrentStateOutput currentStateOutput =
@@ -71,11 +70,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       validateMaxPartitionsPerInstance(event, cache, intermediateStateOutput,
           maxPartitionPerInstance);
     }
-
-    long endTime = System.currentTimeMillis();
-    logger.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
-        + " ImmediateStateCalcStage.process() for cluster " + cache.getClusterName() + ". took: "
-        + (endTime - startTime) + " ms");
   }
 
   private IntermediateStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,

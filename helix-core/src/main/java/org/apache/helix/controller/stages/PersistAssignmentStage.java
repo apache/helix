@@ -50,7 +50,6 @@ public class PersistAssignmentStage extends AbstractBaseStage {
 
   @Override public void process(ClusterEvent event) throws Exception {
     LOG.info("START PersistAssignmentStage.process()");
-    long startTime = System.currentTimeMillis();
 
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     ClusterConfig clusterConfig = cache.getClusterConfig();
@@ -131,11 +130,6 @@ public class PersistAssignmentStage extends AbstractBaseStage {
         }
       }
     }
-
-    long endTime = System.currentTimeMillis();
-    LOG.info(
-        "END PersistAssignmentStage.process() for cluster " + cache.getClusterName() + " took " + (
-            endTime - startTime) + " ms");
   }
 
   /**

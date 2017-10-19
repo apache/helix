@@ -47,7 +47,6 @@ public class TargetExteralViewCalcStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     LOG.info("START TargetExteralViewCalcStage.process()");
-    long startTime = System.currentTimeMillis();
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     ClusterConfig clusterConfig = cache.getClusterConfig();
 
@@ -99,11 +98,6 @@ public class TargetExteralViewCalcStage extends AbstractBaseStage {
       }
     }
     accessor.setChildren(keys, targetExternalViews);
-
-    long endTime = System.currentTimeMillis();
-    LOG.info(
-        "END TargetExteralViewCalcStage.process() for cluster " + cache.getClusterName() + " took " + (
-            endTime - startTime) + " ms");
   }
 
   private Map<String, Map<String, String>> convertToMapFields(

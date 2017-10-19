@@ -46,7 +46,6 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    long startTime = System.currentTimeMillis();
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     if (cache == null) {
       throw new StageException("Missing attributes in event:" + event + ". Requires DataCache");
@@ -160,11 +159,6 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceToRebalance);
-
-    long endTime = System.currentTimeMillis();
-    LOG.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
-        + " ResourceComputationStage.process() for cluster " + cache.getClusterName() + ". took: "
-        + (endTime - startTime) + " ms");
   }
 
   private void addResource(String resource, Map<String, Resource> resourceMap) {

@@ -57,7 +57,6 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    long startTime = System.currentTimeMillis();
     LOG.info("START ExternalViewComputeStage.process()");
 
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
@@ -184,11 +183,6 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
       }
     }
-
-    long endTime = System.currentTimeMillis();
-    LOG.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
-        + " ExternalViewComputeStage.process() for cluster " + cache.getClusterName() + ". took: "
-        + (endTime - startTime) + " ms");
   }
 
   private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager,

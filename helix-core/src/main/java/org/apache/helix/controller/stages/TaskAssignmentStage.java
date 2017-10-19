@@ -46,7 +46,6 @@ public class TaskAssignmentStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    long startTime = System.currentTimeMillis();
     logger.info("START TaskAssignmentStage.process()");
 
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
@@ -87,11 +86,6 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     cache.cacheMessages(outputMessages);
     long cacheEnd = System.currentTimeMillis();
     logger.debug("Caching messages took " + (cacheEnd - cacheStart) + " ms");
-
-    long endTime = System.currentTimeMillis();
-    logger.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
-        + " TaskAssignmentStage.process() for cluster " + cache.getClusterName() + ". took: " + (
-        endTime - startTime) + " ms");
   }
 
   List<Message> batchMessage(Builder keyBuilder, List<Message> messages,

@@ -38,6 +38,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
@@ -98,8 +99,11 @@ import static org.apache.helix.HelixConstants.ChangeType;
  */
 public class GenericHelixController implements IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
-    ControllerChangeListener, InstanceConfigChangeListener, ResourceConfigChangeListener {
-  private static final Logger logger = LoggerFactory.getLogger(GenericHelixController.class.getName());
+    ControllerChangeListener, InstanceConfigChangeListener, ResourceConfigChangeListener,
+    ClusterConfigChangeListener {
+  private static final Logger logger =
+      LoggerFactory.getLogger(GenericHelixController.class.getName());
+
   private static final long EVENT_THREAD_JOIN_TIMEOUT = 1000;
   private static final int ASYNC_TASKS_THREADPOOL_SIZE = 10;
   private final PipelineRegistry _registry;
@@ -562,6 +566,20 @@ public class GenericHelixController implements IdealStateChangeListener,
     logger
         .info("END: GenericClusterController.onResourceConfigChange() for cluster " + _clusterName);
   }
+
+  @Override
+  @PreFetch(enabled = false)
+  public void onClusterConfigChange(ClusterConfig clusterConfig,
+      NotificationContext context) {
+    logger.info(
+        "START: GenericClusterController.onClusterConfigChange() for cluster " + _clusterName);
+    notifyCaches(context, ChangeType.CLUSTER_CONFIG);
+    pushToEventQueues(ClusterEventType.ClusterConfigChange, context,
+        Collections.<String, Object>emptyMap());
+    logger
+        .info("END: GenericClusterController.onClusterConfigChange() for cluster " + _clusterName);
+  }
+
 
   private void notifyCaches(NotificationContext context, ChangeType changeType) {
     if (context == null || context.getType() != Type.CALLBACK) {

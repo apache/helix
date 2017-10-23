@@ -135,6 +135,7 @@ public class HelixControllerMain {
     try {
       manager.addInstanceConfigChangeListener(controller);
       manager.addResourceConfigChangeListener(controller);
+      manager.addClusterfigChangeListener(controller);
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);
       manager.addControllerListener(controller);

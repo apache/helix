@@ -192,13 +192,16 @@ public class MultiRoundCrushRebalanceStrategy implements RebalanceStrategy {
 
     // node to all its assigned partitions.
     Map<Node, List<String>> nodePartitionsMap = new HashMap<>();
+    Map<Node, List<String>> prevNodePartitionsMap = new HashMap<>();
 
     List<String> partitionsToAssign = new ArrayList<>(partitions);
     Map<Node, List<String>> toRemovedMap = new HashMap<>();
 
     int iteration = 0;
     Node root = zone;
-    while (iteration++ < MAX_ITERNATION) {
+    boolean noAssignmentFound = false;
+    while (iteration++ < MAX_ITERNATION && !noAssignmentFound) {
+      copyAssignment(nodePartitionsMap, prevNodePartitionsMap);
       for (Map.Entry<Node, List<String>> e : toRemovedMap.entrySet()) {
         List<String> curAssignedPartitions = nodePartitionsMap.get(e.getKey());
         List<String> toRemoved = e.getValue();
@@ -208,7 +211,14 @@ public class MultiRoundCrushRebalanceStrategy implements RebalanceStrategy {
 
       for (String p : partitionsToAssign) {
         long pData = p.hashCode();
-        List<Node> nodes = select(root, _clusterTopo.getEndNodeType(), pData, 1);
+        List<Node> nodes;
+        try {
+          nodes = select(root, _clusterTopo.getEndNodeType(), pData, 1);
+        } catch (IllegalStateException e) {
+          nodePartitionsMap = prevNodePartitionsMap;
+          noAssignmentFound = true;
+          break;
+        }
         for (Node n : nodes) {
           if (!nodePartitionsMap.containsKey(n)) {
             nodePartitionsMap.put(n, new ArrayList<String>());
@@ -231,6 +241,15 @@ public class MultiRoundCrushRebalanceStrategy implements RebalanceStrategy {
     }
 
     return partitionMap;
+  }
+
+  private void copyAssignment(Map<Node, List<String>> nodePartitionsMap,
+      Map<Node, List<String>> prevNodePartitionMap) {
+    if (nodePartitionsMap.size() > 0) {
+      for (Node node : nodePartitionsMap.keySet()) {
+        prevNodePartitionMap.put(node, new ArrayList<>(nodePartitionsMap.get(node)));
+      }
+    }
   }
 
   private Node recalculateWeight(Node zone, long totalWeight, int totalPartition,

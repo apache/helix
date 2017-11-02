@@ -19,17 +19,6 @@ package org.apache.helix;
  * under the License.
  */
 
-import static org.apache.helix.PropertyType.CONFIGS;
-import static org.apache.helix.PropertyType.CURRENTSTATES;
-import static org.apache.helix.PropertyType.EXTERNALVIEW;
-import static org.apache.helix.PropertyType.HISTORY;
-import static org.apache.helix.PropertyType.IDEALSTATES;
-import static org.apache.helix.PropertyType.LIVEINSTANCES;
-import static org.apache.helix.PropertyType.MESSAGES;
-import static org.apache.helix.PropertyType.PAUSE;
-import static org.apache.helix.PropertyType.STATEMODELDEFS;
-import static org.apache.helix.PropertyType.STATUSUPDATES;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,12 +31,15 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.helix.PropertyType.*;
 
 /**
  * Utility mapping properties to their Zookeeper locations
@@ -70,6 +62,7 @@ public class PropertyPathBuilder {
     typeToClassMapping.put(STATUSUPDATES, StatusUpdate.class);
     typeToClassMapping.put(HISTORY, LeaderHistory.class);
     typeToClassMapping.put(PAUSE, PauseSignal.class);
+    typeToClassMapping.put(MAINTENANCE, MaintenanceSignal.class);
 
     // @formatter:off
     addEntry(PropertyType.CONFIGS, 1, "/{clusterName}/CONFIGS");
@@ -132,6 +125,7 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.LEADER, 1, "/{clusterName}/CONTROLLER/LEADER");
     addEntry(PropertyType.HISTORY, 1, "/{clusterName}/CONTROLLER/HISTORY");
     addEntry(PropertyType.PAUSE, 1, "/{clusterName}/CONTROLLER/PAUSE");
+    addEntry(PropertyType.MAINTENANCE, 1, "/{clusterName}/CONTROLLER/MAINTENANCE");
     // @formatter:on
 
   }
@@ -353,5 +347,9 @@ public class PropertyPathBuilder {
 
   public static String pause(String clusterName) {
     return String.format("/%s/CONTROLLER/PAUSE", clusterName);
+  }
+
+  public static String maintenance(String clusterName) {
+    return String.format("/%s/CONTROLLER/MAINTENANCE", clusterName);
   }
 }

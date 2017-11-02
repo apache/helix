@@ -43,6 +43,7 @@ import org.apache.helix.ZNRecordAssembler;
 import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.ZNRecordUpdater;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
@@ -110,6 +111,13 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   public boolean createPause(PauseSignal pauseSignal) {
     return _baseDataAccessor.create(
         PropertyPathBuilder.pause(_clusterName), pauseSignal.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean createMaintenance(MaintenanceSignal maintenanceSignal) {
+    return _baseDataAccessor
+        .create(PropertyPathBuilder.maintenance(_clusterName), maintenanceSignal.getRecord(),
+            AccessOption.PERSISTENT);
   }
 
   @Override

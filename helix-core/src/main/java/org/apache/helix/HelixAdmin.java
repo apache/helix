@@ -259,6 +259,21 @@ public interface HelixAdmin {
   void enableCluster(String clusterName, boolean enabled, String reason);
 
   /**
+   * Enable or disable maintenance mode for a cluster
+   * @param clusterName
+   * @param enabled
+   */
+  void enableMaintenanceMode(String clusterName, boolean enabled);
+
+  /**
+   * Enable or disable maintenance mode for a cluster
+   * @param clusterName
+   * @param enabled
+   * @param reason
+   */
+  void enableMaintenanceMode(String clusterName, boolean enabled, String reason);
+
+  /**
    * Reset a list of partitions in error state for an instance
    * The partitions are assume to be in error state and reset will bring them from error
    * to initial state. An error to initial state transition is required for reset.

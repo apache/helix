@@ -67,6 +67,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
@@ -326,7 +327,33 @@ public class ZKHelixAdmin implements HelixAdmin {
       if (reason != null) {
         pauseSignal.setReason(reason);
       }
-      accessor.createPause(pauseSignal);
+      if (!accessor.createPause(pauseSignal)) {
+        throw new HelixException("Failed to create pause signal");
+      }
+    }
+  }
+
+  @Override
+  public void enableMaintenanceMode(String clusterName, boolean enabled) {
+    enableMaintenanceMode(clusterName, enabled, null);
+  }
+
+  @Override
+  public void enableMaintenanceMode(String clusterName, boolean enabled, String reason) {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    if (!enabled) {
+      accessor.removeProperty(keyBuilder.maintenance());
+    } else {
+      MaintenanceSignal maintenanceSignal = new MaintenanceSignal("maintenance");
+      if (reason != null) {
+        maintenanceSignal.setReason(reason);
+      }
+      if (!accessor.createMaintenance(maintenanceSignal)) {
+        throw new HelixException("Failed to create maintenance signal");
+      }
     }
   }
 

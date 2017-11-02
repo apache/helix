@@ -58,6 +58,7 @@ public enum PropertyType {
   LEADER(Type.CONTROLLER, false, false, true, true),
   HISTORY(Type.CONTROLLER, true, true, true),
   PAUSE(Type.CONTROLLER, true, false, true),
+  MAINTENANCE(Type.CONTROLLER, true, false, true),
   MESSAGES_CONTROLLER(Type.CONTROLLER, true, false, true),
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true),
   ERRORS_CONTROLLER(Type.CONTROLLER, true, true, true);

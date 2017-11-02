@@ -314,7 +314,7 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
    * Sorter for nodes that sorts according to the CurrentState of the partition. There are only two priorities:
    * (1) Top-state and second states have priority 0. (2) Other states(or no state) have priority 1.
    */
-  private static class TopStatePreferenceListComparator implements Comparator<String> {
+  protected static class TopStatePreferenceListComparator implements Comparator<String> {
     protected final Map<String, String> _currentStateMap;
     protected final StateModelDefinition _stateModelDef;
 
@@ -343,6 +343,39 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
       }
 
       return p1 - p2;
+    }
+  }
+
+  /**
+   * Sorter for nodes that sorts according to the CurrentState of the partition, based on the state priority defined
+   * in the state model definition.
+   * If the CurrentState doesn't exist, treat it as having lowest priority(Integer.MAX_VALUE).
+   */
+  protected static class PreferenceListNodeComparator implements Comparator<String> {
+    protected final Map<String, String> _currentStateMap;
+    protected final StateModelDefinition _stateModelDef;
+
+    public PreferenceListNodeComparator(Map<String, String> currentStateMap, StateModelDefinition stateModelDef) {
+      _currentStateMap = currentStateMap;
+      _stateModelDef = stateModelDef;
+    }
+
+    @Override
+    public int compare(String ins1, String ins2) {
+      Integer p1 = Integer.MAX_VALUE;
+      Integer p2 = Integer.MAX_VALUE;
+
+      Map<String, Integer> statesPriorityMap = _stateModelDef.getStatePriorityMap();
+      String state1 = _currentStateMap.get(ins1);
+      String state2 = _currentStateMap.get(ins2);
+      if (state1 != null && statesPriorityMap.containsKey(state1)) {
+        p1 = statesPriorityMap.get(state1);
+      }
+      if (state2 != null && statesPriorityMap.containsKey(state2)) {
+        p2 = statesPriorityMap.get(state2);
+      }
+
+      return p1.compareTo(p2);
     }
   }
 }

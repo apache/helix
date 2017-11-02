@@ -253,6 +253,14 @@ public class MockHelixAdmin implements HelixAdmin {
 
   }
 
+  @Override public void enableMaintenanceMode(String clusterName, boolean enabled) {
+
+  }
+
+  @Override public void enableMaintenanceMode(String clusterName, boolean enabled, String reason) {
+
+  }
+
   @Override public void resetPartition(String clusterName, String instanceName, String resourceName,
       List<String> partitionNames) {
 

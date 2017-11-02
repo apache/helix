@@ -27,6 +27,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.mock.MockBaseDataAccessor;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
@@ -64,6 +65,10 @@ public class MockAccessor implements HelixDataAccessor {
 
   @Override
   public boolean createPause(PauseSignal pauseSignal) {
+    return false;
+  }
+
+  @Override public boolean createMaintenance(MaintenanceSignal maintenanceSignal) {
     return false;
   }
 

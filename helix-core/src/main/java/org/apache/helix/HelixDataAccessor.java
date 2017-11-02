@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
@@ -38,6 +39,7 @@ public interface HelixDataAccessor {
   boolean createControllerMessage(Message message);
   boolean createControllerLeader(LiveInstance leader);
   boolean createPause(PauseSignal pauseSignal);
+  boolean createMaintenance(MaintenanceSignal maintenanceSignal);
 
   /**
    * Set a property, overwrite if it exists and creates if not exists. This api

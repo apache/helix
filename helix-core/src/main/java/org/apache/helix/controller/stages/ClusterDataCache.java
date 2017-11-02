@@ -45,6 +45,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.ResourceAssignment;
@@ -111,6 +112,7 @@ public class ClusterDataCache {
 
   boolean _updateInstanceOfflineTime = true;
   boolean _isTaskCache;
+  boolean _isMaintenanceModeEnabled;
 
   private String _clusterName;
 
@@ -203,6 +205,9 @@ public class ClusterDataCache {
       _idealStateRuleMap = Maps.newHashMap();
       LOG.warn("Cluster config is null!");
     }
+
+    MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
+    _isMaintenanceModeEnabled = (maintenanceSignal != null) ? true : false;
 
     long endTime = System.currentTimeMillis();
     LOG.info(
@@ -1006,6 +1011,10 @@ public class ClusterDataCache {
    */
   public boolean isTaskCache() {
     return _isTaskCache;
+  }
+
+  public boolean isMaintenanceModeEnabled() {
+    return _isMaintenanceModeEnabled;
   }
 
   /**

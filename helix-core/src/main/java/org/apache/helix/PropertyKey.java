@@ -32,6 +32,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.PauseSignal;
@@ -671,6 +672,14 @@ public class PropertyKey {
      */
     public PropertyKey pause() {
       return new PropertyKey(PAUSE, PauseSignal.class, _clusterName);
+    }
+
+    /**
+     * Get a property key associated with {@link MaintenanceSignal}
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey maintenance() {
+      return new PropertyKey(MAINTENANCE, MaintenanceSignal.class, _clusterName);
     }
 
     /**

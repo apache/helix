@@ -26,6 +26,7 @@ import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
 import org.apache.helix.controller.rebalancer.CustomRebalancer;
+import org.apache.helix.controller.rebalancer.MaintenanceRebalancer;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
@@ -211,7 +212,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       idealState.setStateModelDefRef(resource.getStateModelDefRef());
     }
 
-    Rebalancer rebalancer = getRebalancer(idealState, resourceName);
+    Rebalancer rebalancer =
+        getRebalancer(idealState, resourceName, cache.isMaintenanceModeEnabled());
     MappingCalculator mappingCalculator = getMappingCalculator(rebalancer, resourceName);
 
     if (rebalancer == null || mappingCalculator == null) {
@@ -289,7 +291,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
   }
 
-  private Rebalancer getRebalancer(IdealState idealState, String resourceName) {
+  private Rebalancer getRebalancer(IdealState idealState, String resourceName,
+      boolean isMaintenanceModeEnabled) {
     Rebalancer customizedRebalancer = null;
     String rebalancerClassName = idealState.getRebalancerClassName();
     if (rebalancerClassName != null) {
@@ -305,10 +308,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     Rebalancer rebalancer = null;
     switch (idealState.getRebalanceMode()) {
     case FULL_AUTO:
-      if (customizedRebalancer != null) {
-        rebalancer = customizedRebalancer;
+      if (isMaintenanceModeEnabled) {
+        rebalancer = new MaintenanceRebalancer();
       } else {
-        rebalancer = new AutoRebalancer();
+        if (customizedRebalancer != null) {
+          rebalancer = customizedRebalancer;
+        } else {
+          rebalancer = new AutoRebalancer();
+        }
       }
       break;
     case SEMI_AUTO:

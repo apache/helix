@@ -167,7 +167,7 @@ public class TaskDriver {
    * @param newWorkflowConfig
    */
   public void updateWorkflow(String workflow, WorkflowConfig newWorkflowConfig) {
-    if (newWorkflowConfig.getWorkflowId() == null) {
+    if (newWorkflowConfig.getWorkflowId() == null || newWorkflowConfig.getWorkflowId().isEmpty()) {
       newWorkflowConfig.getRecord()
           .setSimpleField(WorkflowConfig.WorkflowConfigProperty.WorkflowID.name(), workflow);
     }

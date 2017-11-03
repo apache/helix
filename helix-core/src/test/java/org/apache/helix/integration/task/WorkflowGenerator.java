@@ -76,4 +76,20 @@ public class WorkflowGenerator {
 
     return builder;
   }
+
+  public static Workflow.Builder generateDefaultRepeatedJobWorkflowBuilder(String workflowName, int jobCount) {
+    Workflow.Builder builder = new Workflow.Builder(workflowName);
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(DEFAULT_JOB_CONFIG);
+    jobBuilder.setJobCommandConfigMap(DEFAULT_COMMAND_CONFIG);
+
+    builder.addJob(JOB_NAME_1, jobBuilder);
+
+    for (int i = 0; i < jobCount - 1; i++) {
+      String jobName = JOB_NAME_2 + "-" + i;
+      builder.addParentChildDependency(JOB_NAME_1, jobName);
+      builder.addJob(jobName, jobBuilder);
+    }
+
+    return builder;
+  }
 }

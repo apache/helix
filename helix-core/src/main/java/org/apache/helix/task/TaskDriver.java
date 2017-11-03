@@ -19,23 +19,8 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.I0Itec.zkclient.DataUpdater;
-import org.apache.helix.AccessOption;
-import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.*;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -48,6 +33,8 @@ import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 /**
  * CLI for scheduling/canceling workflows
@@ -70,10 +57,22 @@ public class TaskDriver {
   /** Default time out for monitoring workflow or job state */
   private final static int _defaultTimeout = 3 * 60 * 1000; /* 3 mins */
 
+  // HELIX-619 This is a temporary solution for too many ZK nodes issue.
+  // Limit workflows/jobs creation to prevent the problem.
+  //
+  // Note this limitation should be smaller than ZK capacity. If current nodes count already exceeds
+  // the CAP, the verification method will not throw exception since the getChildNames() call will
+  // return empty list.
+  //
+  // TODO Implement or configure the limitation in ZK server.
+  private final static int DEFAULT_CONFIGS_LIMITATION = 10000;
+  protected int _configsLimitation = DEFAULT_CONFIGS_LIMITATION;
+
   private final HelixDataAccessor _accessor;
   private final HelixPropertyStore<ZNRecord> _propertyStore;
   private final HelixAdmin _admin;
   private final String _clusterName;
+
 
   public TaskDriver(HelixManager manager) {
     this(manager.getClusterManagmentTool(), manager.getHelixDataAccessor(),
@@ -113,6 +112,8 @@ public class TaskDriver {
     // TODO: check that namespace for workflow is available
     LOG.info("Starting workflow " + flow.getName());
     flow.validate();
+
+    validateZKNodeLimitation(flow.getJobConfigs().keySet().size() + 1);
 
     WorkflowConfig newWorkflowConfig =
         new WorkflowConfig.Builder(flow.getWorkflowConfig()).setWorkflowId(flow.getName()).build();
@@ -323,6 +324,8 @@ public class TaskDriver {
         throw new HelixException("Failed to enqueue a job, queue is full.");
       }
     }
+
+    validateZKNodeLimitation(1);
 
     // Create the job to ensure that it validates
     JobConfig jobConfig = jobBuilder.setWorkflow(queue).build();
@@ -785,5 +788,18 @@ public class TaskDriver {
   public TaskState pollForJobState(String workflowName, String jobName, TaskState... states)
       throws InterruptedException {
     return pollForJobState(workflowName, jobName, _defaultTimeout, states);
+  }
+
+  /**
+   * Throw Exception if children nodes will exceed limitation after adding newNodesCount children.
+   * @param newConfigNodeCount
+   */
+  private void validateZKNodeLimitation(int newConfigNodeCount) {
+    List<String> resourceConfigs =
+        _accessor.getChildNames(_accessor.keyBuilder().resourceConfigs());
+    if (resourceConfigs.size() + newConfigNodeCount > _configsLimitation) {
+      throw new HelixException(
+          "Cannot create more workflows or jobs because there are already too many items created in the path CONFIGS.");
+    }
   }
 }

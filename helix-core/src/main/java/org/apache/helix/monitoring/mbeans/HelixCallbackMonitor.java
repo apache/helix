@@ -19,6 +19,8 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.SlidingTimeWindowReservoir;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.InstanceType;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
@@ -28,6 +30,7 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
 import javax.management.JMException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.List;
 
 public class HelixCallbackMonitor extends DynamicMBeanProvider {
@@ -42,14 +45,11 @@ public class HelixCallbackMonitor extends DynamicMBeanProvider {
   private final String _clusterName;
   private final String _instanceName;
 
-  private SimpleDynamicMetric<Long> _counter = new SimpleDynamicMetric("Counter", 0l);
-  private SimpleDynamicMetric<Long> _unbatchedCounter =
-      new SimpleDynamicMetric("UnbatchedCounter", 0l);
-  private SimpleDynamicMetric<Long> _totalLatencyCounter =
-      new SimpleDynamicMetric("LatencyCounter", 0l);
+  private SimpleDynamicMetric<Long> _counter;
+  private SimpleDynamicMetric<Long> _unbatchedCounter;
+  private SimpleDynamicMetric<Long> _totalLatencyCounter;
 
-  private HistogramDynamicMetric _latencyGauge = new HistogramDynamicMetric("LatencyGauge",
-      _metricRegistry.histogram(getMetricName("LatencyGauge")));
+  private HistogramDynamicMetric _latencyGauge;
 
   public HelixCallbackMonitor(InstanceType type, String clusterName, String instanceName,
       HelixConstants.ChangeType changeType) throws JMException {
@@ -62,6 +62,12 @@ public class HelixCallbackMonitor extends DynamicMBeanProvider {
     _sensorName = String
         .format("%s.%s.%s.%s", MonitorDomainNames.HelixCallback.name(), type.name(), clusterName,
             changeType.name());
+
+    _latencyGauge = new HistogramDynamicMetric("LatencyGauge", new Histogram(
+        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    _totalLatencyCounter = new SimpleDynamicMetric("LatencyCounter", 0l);
+    _unbatchedCounter = new SimpleDynamicMetric("UnbatchedCounter", 0l);
+    _counter = new SimpleDynamicMetric("Counter", 0l);
   }
 
   @Override

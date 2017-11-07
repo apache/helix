@@ -19,6 +19,9 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.SlidingTimeWindowReservoir;
+import java.util.concurrent.TimeUnit;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -33,46 +36,27 @@ import javax.management.ObjectName;
 import java.util.*;
 
 public class ResourceMonitor extends DynamicMBeanProvider {
-  private static final long RESET_TIME_RANGE = 1000 * 60 * 60; // 1 hour
 
   // Gauges
-  private SimpleDynamicMetric<Integer> _numOfPartitions =
-      new SimpleDynamicMetric("PartitionGauge", 0);
-  private SimpleDynamicMetric<Integer> _numOfPartitionsInExternalView =
-      new SimpleDynamicMetric("ExternalViewPartitionGauge", 0);
-  private SimpleDynamicMetric<Integer> _numOfErrorPartitions =
-      new SimpleDynamicMetric("ErrorPartitionGauge", 0);
-  private SimpleDynamicMetric<Integer> _numNonTopStatePartitions =
-      new SimpleDynamicMetric("MissingTopStatePartitionGauge", 0);
-  private SimpleDynamicMetric<Long> _numLessMinActiveReplicaPartitions =
-      new SimpleDynamicMetric("MissingMinActiveReplicaPartitionGauge", 0l);
-  private SimpleDynamicMetric<Long> _numLessReplicaPartitions =
-      new SimpleDynamicMetric("MissingReplicaPartitionGauge", 0l);
-  private SimpleDynamicMetric<Long> _numPendingRecoveryRebalancePartitions =
-      new SimpleDynamicMetric("PendingRecoveryRebalancePartitionGauge", 0l);
-  private SimpleDynamicMetric<Long> _numPendingLoadRebalancePartitions =
-      new SimpleDynamicMetric("PendingLoadRebalancePartitionGauge", 0l);
-  private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledPartitions =
-      new SimpleDynamicMetric("RecoveryRebalanceThrottledPartitionGauge", 0l);
-  private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledPartitions =
-      new SimpleDynamicMetric("LoadRebalanceThrottledPartitionGauge", 0l);
-  private SimpleDynamicMetric<Integer> _externalViewIdealStateDiff =
-      new SimpleDynamicMetric("DifferenceWithIdealStateGauge", 0);
+  private SimpleDynamicMetric<Integer> _numOfPartitions;
+  private SimpleDynamicMetric<Integer> _numOfPartitionsInExternalView;
+  private SimpleDynamicMetric<Integer> _numOfErrorPartitions;
+  private SimpleDynamicMetric<Integer> _numNonTopStatePartitions;
+  private SimpleDynamicMetric<Long> _numLessMinActiveReplicaPartitions;
+  private SimpleDynamicMetric<Long> _numLessReplicaPartitions;
+  private SimpleDynamicMetric<Long> _numPendingRecoveryRebalancePartitions;
+  private SimpleDynamicMetric<Long> _numPendingLoadRebalancePartitions;
+  private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledPartitions;
+  private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledPartitions;
+  private SimpleDynamicMetric<Integer> _externalViewIdealStateDiff;
 
   // Counters
-  private SimpleDynamicMetric<Long> _successfulTopStateHandoffDurationCounter =
-      new SimpleDynamicMetric("SuccessfulTopStateHandoffDurationCounter", 0l);
-  private SimpleDynamicMetric<Long> _successTopStateHandoffCounter =
-      new SimpleDynamicMetric("SucceededTopStateHandoffCounter", 0l);
-  private SimpleDynamicMetric<Long> _failedTopStateHandoffCounter =
-      new SimpleDynamicMetric("FailedTopStateHandoffCounter", 0l);
-  private SimpleDynamicMetric<Long> _maxSinglePartitionTopStateHandoffDuration =
-      new SimpleDynamicMetric("MaxSinglePartitionTopStateHandoffDurationGauge", 0l);
-  private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge =
-      new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", _metricRegistry
-          .histogram(getMetricName("PartitionTopStateHandoffDurationGauge")));
-  private SimpleDynamicMetric<Long> _totalMessageReceived =
-      new SimpleDynamicMetric("TotalMessageReceived", 0l);
+  private SimpleDynamicMetric<Long> _successfulTopStateHandoffDurationCounter;
+  private SimpleDynamicMetric<Long> _successTopStateHandoffCounter;
+  private SimpleDynamicMetric<Long> _failedTopStateHandoffCounter;
+  private SimpleDynamicMetric<Long> _maxSinglePartitionTopStateHandoffDuration;
+  private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge;
+  private SimpleDynamicMetric<Long> _totalMessageReceived;
 
   private String _tag = ClusterStatusMonitor.DEFAULT_TAG;
   private long _lastResetTime;
@@ -114,6 +98,34 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _clusterName = clusterName;
     _resourceName = resourceName;
     _initObjectName = objectName;
+
+    _externalViewIdealStateDiff = new SimpleDynamicMetric("DifferenceWithIdealStateGauge", 0l);
+    _numLoadRebalanceThrottledPartitions =
+        new SimpleDynamicMetric("LoadRebalanceThrottledPartitionGauge", 0l);
+    _numRecoveryRebalanceThrottledPartitions =
+        new SimpleDynamicMetric("RecoveryRebalanceThrottledPartitionGauge", 0l);
+    _numPendingLoadRebalancePartitions =
+        new SimpleDynamicMetric("PendingLoadRebalancePartitionGauge", 0l);
+    _numPendingRecoveryRebalancePartitions =
+        new SimpleDynamicMetric("PendingRecoveryRebalancePartitionGauge", 0l);
+    _numLessReplicaPartitions = new SimpleDynamicMetric("MissingReplicaPartitionGauge", 0l);
+    _numLessMinActiveReplicaPartitions =
+        new SimpleDynamicMetric("MissingMinActiveReplicaPartitionGauge", 0l);
+    _numNonTopStatePartitions = new SimpleDynamicMetric("MissingTopStatePartitionGauge", 0l);
+    _numOfErrorPartitions = new SimpleDynamicMetric("ErrorPartitionGauge", 0l);
+    _numOfPartitionsInExternalView = new SimpleDynamicMetric("ExternalViewPartitionGauge", 0l);
+    _numOfPartitions = new SimpleDynamicMetric("PartitionGauge", 0l);
+
+    _partitionTopStateHandoffDurationGauge =
+        new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", new Histogram(
+            new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    _totalMessageReceived = new SimpleDynamicMetric("TotalMessageReceived", 0l);
+    _maxSinglePartitionTopStateHandoffDuration =
+        new SimpleDynamicMetric("MaxSinglePartitionTopStateHandoffDurationGauge", 0l);
+    _failedTopStateHandoffCounter = new SimpleDynamicMetric("FailedTopStateHandoffCounter", 0l);
+    _successTopStateHandoffCounter = new SimpleDynamicMetric("SucceededTopStateHandoffCounter", 0l);
+    _successfulTopStateHandoffDurationCounter =
+        new SimpleDynamicMetric("SuccessfulTopStateHandoffDurationCounter", 0l);
   }
 
   @Override
@@ -341,7 +353,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   }
 
   public void resetMaxTopStateHandoffGauge() {
-    if (_lastResetTime + RESET_TIME_RANGE <= System.currentTimeMillis()) {
+    if (_lastResetTime + DEFAULT_RESET_INTERVAL_MS <= System.currentTimeMillis()) {
       _maxSinglePartitionTopStateHandoffDuration.updateValue(0l);
       _lastResetTime = System.currentTimeMillis();
     }

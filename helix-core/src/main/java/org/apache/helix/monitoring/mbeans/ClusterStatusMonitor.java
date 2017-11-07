@@ -69,7 +69,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private final ConcurrentHashMap<String, InstanceMonitor> _instanceMbeanMap = new ConcurrentHashMap<>();
 
   // phaseName -> eventMonitor
-  private final ConcurrentHashMap<String, ClusterEventMonitor> _clusterEventMbeanMap =
+  protected final ConcurrentHashMap<String, ClusterEventMonitor> _clusterEventMbeanMap =
       new ConcurrentHashMap<>();
 
   /**

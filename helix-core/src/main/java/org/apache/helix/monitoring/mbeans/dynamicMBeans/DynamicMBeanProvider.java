@@ -19,9 +19,6 @@ package org.apache.helix.monitoring.mbeans.dynamicMBeans;
  * under the License.
  */
 
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricFilter;
-import com.codahale.metrics.MetricRegistry;
 import org.apache.helix.HelixException;
 import org.apache.helix.monitoring.SensorNameProvider;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
@@ -36,7 +33,7 @@ import java.util.*;
  */
 public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNameProvider {
   protected final Logger _logger = LoggerFactory.getLogger(getClass());
-  protected static final MetricRegistry _metricRegistry = new MetricRegistry();
+  protected static final long DEFAULT_RESET_INTERVAL_MS = 60 * 60 * 1000; // Reset time every hour
   private static String SENSOR_NAME_TAG = "SensorName";
   private static String DEFAULT_DESCRIPTION =
       "Information on the management interface of the MBean";
@@ -84,11 +81,6 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   protected synchronized void doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       ObjectName objectName) throws JMException {
     doRegister(dynamicMetrics, null, objectName);
-  }
-
-  protected String getMetricName(String metricName) {
-    return MetricRegistry
-        .name(getClass().getSimpleName(), Integer.toHexString(hashCode()), metricName);
   }
 
   /**
@@ -145,13 +137,6 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * After unregistered, the MBean can't be registered again, a new monitor has be to created.
    */
   public synchronized void unregister() {
-    final String metricNamePrefix = getMetricName(null);
-    _metricRegistry.removeMatching(new MetricFilter() {
-      @Override
-      public boolean matches(String name, Metric metric) {
-        return name.startsWith(metricNamePrefix);
-      }
-    });
     MBeanRegistrar.unregister(_objectName);
   }
 

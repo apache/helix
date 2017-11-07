@@ -19,6 +19,9 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.SlidingTimeWindowReservoir;
+import java.util.concurrent.TimeUnit;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
@@ -62,30 +65,19 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     }
   }
 
-  private SimpleDynamicMetric<Long> _readCounter = new SimpleDynamicMetric("ReadCounter", 0l);
-  private SimpleDynamicMetric<Long> _writeCounter = new SimpleDynamicMetric("WriteCounter", 0l);
-  private SimpleDynamicMetric<Long> _readBytesCounter =
-      new SimpleDynamicMetric("ReadBytesCounter", 0l);
-  private SimpleDynamicMetric<Long> _writeBytesCounter =
-      new SimpleDynamicMetric("WriteBytesCounter", 0l);
-  private SimpleDynamicMetric<Long> _readFailureCounter =
-      new SimpleDynamicMetric("ReadFailureCounter", 0l);
-  private SimpleDynamicMetric<Long> _writeFailureCounter =
-      new SimpleDynamicMetric("WriteFailureCounter", 0l);
-  private SimpleDynamicMetric<Long> _readTotalLatencyCounter =
-      new SimpleDynamicMetric("ReadTotalLatencyCounter", 0l);
-  private SimpleDynamicMetric<Long> _writeTotalLatencyCounter =
-      new SimpleDynamicMetric("WriteTotalLatencyCounter", 0l);
+  private SimpleDynamicMetric<Long> _readCounter;
+  private SimpleDynamicMetric<Long> _writeCounter;
+  private SimpleDynamicMetric<Long> _readBytesCounter;
+  private SimpleDynamicMetric<Long> _writeBytesCounter;
+  private SimpleDynamicMetric<Long> _readFailureCounter;
+  private SimpleDynamicMetric<Long> _writeFailureCounter;
+  private SimpleDynamicMetric<Long> _readTotalLatencyCounter;
+  private SimpleDynamicMetric<Long> _writeTotalLatencyCounter;
 
-  private HistogramDynamicMetric _readLatencyGauge = new HistogramDynamicMetric("ReadLatencyGauge",
-      _metricRegistry.histogram(getMetricName("ReadLatencyGauge")));
-  private HistogramDynamicMetric _writeLatencyGauge =
-      new HistogramDynamicMetric("WriteLatencyGauge",
-          _metricRegistry.histogram(getMetricName("WriteLatencyGauge")));
-  private HistogramDynamicMetric _readBytesGauge = new HistogramDynamicMetric("ReadBytesGauge",
-      _metricRegistry.histogram(getMetricName("ReadBytesGauge")));
-  private HistogramDynamicMetric _writeBytesGauge = new HistogramDynamicMetric("WriteBytesGauge",
-      _metricRegistry.histogram(getMetricName("WriteBytesGauge")));
+  private HistogramDynamicMetric _readLatencyGauge;
+  private HistogramDynamicMetric _writeLatencyGauge;
+  private HistogramDynamicMetric _readBytesGauge;
+  private HistogramDynamicMetric _writeBytesGauge;
 
   @Override
   public String getSensorName() {
@@ -101,6 +93,24 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     _sensorName = String
         .format("%s.%s.%s.%s", MonitorDomainNames.HelixZkClient.name(), monitorType, monitorKey,
             path.name());
+
+    _writeTotalLatencyCounter = new SimpleDynamicMetric("WriteTotalLatencyCounter", 0l);
+    _readTotalLatencyCounter = new SimpleDynamicMetric("ReadTotalLatencyCounter", 0l);
+    _writeFailureCounter = new SimpleDynamicMetric("WriteFailureCounter", 0l);
+    _readFailureCounter = new SimpleDynamicMetric("ReadFailureCounter", 0l);
+    _writeBytesCounter = new SimpleDynamicMetric("WriteBytesCounter", 0l);
+    _readBytesCounter = new SimpleDynamicMetric("ReadBytesCounter", 0l);
+    _writeCounter = new SimpleDynamicMetric("WriteCounter", 0l);
+    _readCounter = new SimpleDynamicMetric("ReadCounter", 0l);
+
+    _readLatencyGauge = new HistogramDynamicMetric("ReadLatencyGauge", new Histogram(
+        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    _writeLatencyGauge = new HistogramDynamicMetric("WriteLatencyGauge", new Histogram(
+        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    _readBytesGauge = new HistogramDynamicMetric("ReadBytesGauge", new Histogram(
+        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    _writeBytesGauge = new HistogramDynamicMetric("WriteBytesGauge", new Histogram(
+        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
   }
 
   public ZkClientPathMonitor register() throws JMException {

@@ -19,6 +19,9 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.SlidingTimeWindowReservoir;
+import java.util.concurrent.TimeUnit;
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
@@ -35,19 +38,20 @@ public class MessageLatencyMonitor extends DynamicMBeanProvider {
   private final String _domainName;
   private final String _participantName;
 
-  private SimpleDynamicMetric<Long> _totalMessageCount =
-      new SimpleDynamicMetric("TotalMessageCount", 0l);
-  private SimpleDynamicMetric<Long> _totalMessageLatency =
-      new SimpleDynamicMetric("TotalMessageLatency", 0l);
-  private HistogramDynamicMetric _messageLatencyGauge =
-      new HistogramDynamicMetric("MessageLatencyGauge",
-          _metricRegistry.histogram(getMetricName("MessageLatencyGauge")));
+  private SimpleDynamicMetric<Long> _totalMessageCount;
+  private SimpleDynamicMetric<Long> _totalMessageLatency;
+  private HistogramDynamicMetric _messageLatencyGauge;
 
   public MessageLatencyMonitor(String domainName, String participantName) throws JMException {
     _domainName = domainName;
     _participantName = participantName;
     _sensorName = String.format("%s.%s", ParticipantMessageMonitor.PARTICIPANT_STATUS_KEY,
         "MessageLatency");
+
+    _messageLatencyGauge = new HistogramDynamicMetric("MessagelatencyGauge", new Histogram(
+        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    _totalMessageLatency = new SimpleDynamicMetric("TotalMessageLatency", 0l);
+    _totalMessageCount = new SimpleDynamicMetric("TotalMessageCount", 0l);
   }
 
   @Override

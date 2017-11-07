@@ -19,6 +19,9 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.SlidingTimeWindowReservoir;
+import java.util.concurrent.TimeUnit;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
@@ -35,20 +38,16 @@ public class ClusterEventMonitor extends DynamicMBeanProvider {
     TotalProcessed
   }
 
-  private static final long RESET_INTERVAL = 1000 * 60 * 10; // 1 hour
   private static final String CLUSTEREVENT_DN_KEY = "ClusterEventStatus";
   private static final String EVENT_DN_KEY = "eventName";
   private static final String PHASE_DN_KEY = "phaseName";
 
   private final String _phaseName;
 
-  private SimpleDynamicMetric<Long> _totalDuration =
-      new SimpleDynamicMetric("TotalDurationCounter", 0l);
-  private SimpleDynamicMetric<Long> _maxDuration =
-      new SimpleDynamicMetric("MaxSingleDurationGauge", 0l);
-  private SimpleDynamicMetric<Long> _count = new SimpleDynamicMetric("EventCounter", 0l);
-  private HistogramDynamicMetric _duration = new HistogramDynamicMetric("DurationGauge",
-      _metricRegistry.histogram(getMetricName("DurationGauge")));
+  private SimpleDynamicMetric<Long> _totalDuration;
+  private SimpleDynamicMetric<Long> _maxDuration;
+  private SimpleDynamicMetric<Long> _count;
+  private HistogramDynamicMetric _duration;
 
   private long _lastResetTime;
   private ClusterStatusMonitor _clusterStatusMonitor;
@@ -56,13 +55,31 @@ public class ClusterEventMonitor extends DynamicMBeanProvider {
   public ClusterEventMonitor(ClusterStatusMonitor clusterStatusMonitor, String phaseName) {
     _phaseName = phaseName;
     _clusterStatusMonitor = clusterStatusMonitor;
+
+    _duration = new HistogramDynamicMetric("DurationGauge", new Histogram(
+        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    _count = new SimpleDynamicMetric("EventCounter", 0l);
+    _maxDuration = new SimpleDynamicMetric("MaxSingleDurationGauge", 0l);
+    _totalDuration = new SimpleDynamicMetric("TotalDurationCounter", 0l);
+  }
+
+  public ClusterEventMonitor(ClusterStatusMonitor clusterStatusMonitor, String phaseName,
+      int histogramTimeWindowMs) {
+    _phaseName = phaseName;
+    _clusterStatusMonitor = clusterStatusMonitor;
+
+    _duration = new HistogramDynamicMetric("DurationGauge", new Histogram(
+        new SlidingTimeWindowReservoir(histogramTimeWindowMs, TimeUnit.MILLISECONDS)));
+    _count = new SimpleDynamicMetric("EventCounter", 0l);
+    _maxDuration = new SimpleDynamicMetric("MaxSingleDurationGauge", 0l);
+    _totalDuration = new SimpleDynamicMetric("TotalDurationCounter", 0l);
   }
 
   public void reportDuration(long duration) {
     _totalDuration.updateValue(_totalDuration.getValue() + duration);
     _count.updateValue(_count.getValue() + 1);
     _duration.updateValue(duration);
-    if (_lastResetTime + RESET_INTERVAL <= System.currentTimeMillis() ||
+    if (_lastResetTime + DEFAULT_RESET_INTERVAL_MS <= System.currentTimeMillis() ||
         duration > _maxDuration.getValue()) {
       _maxDuration.updateValue(duration);
       _lastResetTime = System.currentTimeMillis();

@@ -22,7 +22,6 @@ package org.apache.helix.api.config;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectReader;
@@ -47,7 +46,9 @@ public class StateTransitionThrottleConfig {
 
   public enum RebalanceType {
     LOAD_BALANCE,
-    RECOVERY_BALANCE
+    RECOVERY_BALANCE,
+    ANY,
+    NONE
   }
 
   RebalanceType _rebalanceType;

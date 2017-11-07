@@ -36,7 +36,7 @@ import com.google.common.collect.Maps;
  */
 public class ClusterEventBlockingQueue {
   private static final Logger LOG = Logger.getLogger(ClusterEventBlockingQueue.class);
-  private final Map<String, ClusterEvent> _eventMap;
+  private final Map<ClusterEventType, ClusterEvent> _eventMap;
   private final Queue<ClusterEvent> _eventQueue;
 
   /**
@@ -60,7 +60,7 @@ public class ClusterEventBlockingQueue {
    * @param event ClusterEvent event to add
    */
   public synchronized void put(ClusterEvent event) {
-    if (!_eventMap.containsKey(event.getName())) {
+    if (!_eventMap.containsKey(event.getEventType())) {
       // only insert if there isn't a same-named event already present
       boolean result = _eventQueue.offer(event);
       if (!result) {
@@ -68,8 +68,8 @@ public class ClusterEventBlockingQueue {
       }
     }
     // always overwrite in case this is a FINALIZE
-    _eventMap.put(event.getName(), event);
-    LOG.debug("Putting event " + event.getName());
+    _eventMap.put(event.getEventType(), event);
+    LOG.debug("Putting event " + event.getEventType());
     LOG.debug("Event queue size: " + _eventQueue.size());
     notify();
   }
@@ -86,9 +86,9 @@ public class ClusterEventBlockingQueue {
     }
     ClusterEvent queuedEvent = _eventQueue.poll();
     if (queuedEvent != null) {
-      LOG.debug("Taking event " + queuedEvent.getName());
+      LOG.debug("Taking event " + queuedEvent.getEventType());
       LOG.debug("Event queue size: " + _eventQueue.size());
-      return _eventMap.remove(queuedEvent.getName());
+      return _eventMap.remove(queuedEvent.getEventType());
     }
     return null;
   }
@@ -100,7 +100,7 @@ public class ClusterEventBlockingQueue {
   public synchronized ClusterEvent peek() {
     ClusterEvent queuedEvent = _eventQueue.peek();
     if (queuedEvent != null) {
-      return _eventMap.get(queuedEvent.getName());
+      return _eventMap.get(queuedEvent.getEventType());
     }
     return queuedEvent;
   }

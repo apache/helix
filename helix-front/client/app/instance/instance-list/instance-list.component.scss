@@ -1,0 +1,13 @@
+@import '~@angular/material/theming';
+
+.info {
+  padding: 24px;
+}
+
+.status-healthy {
+  color: mat-color(mat-palette($mat-green));
+}
+
+.status-not-healthy {
+  color: mat-color(mat-palette($mat-red));
+}

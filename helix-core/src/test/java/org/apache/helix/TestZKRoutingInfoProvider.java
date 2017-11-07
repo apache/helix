@@ -42,10 +42,10 @@ public class TestZKRoutingInfoProvider {
         new TreeMap<String, Map<String, ZNRecord>>();
 
     Map<String, String> stateMaster = new TreeMap<String, String>();
-    stateMaster.put(CurrentStateProperty.CURRENT_STATE.toString(), "MASTER");
+    stateMaster.put(CurrentStateProperty.CURRENT_STATE.name(), "MASTER");
 
     Map<String, String> stateSlave = new TreeMap<String, String>();
-    stateSlave.put(CurrentStateProperty.CURRENT_STATE.toString(), "SLAVE");
+    stateSlave.put(CurrentStateProperty.CURRENT_STATE.name(), "SLAVE");
 
     for (int i = 0; i < nodeNames.length; i++) {
       currentStates.put(nodeNames[i], new ArrayList<ZNRecord>());
@@ -106,7 +106,7 @@ public class TestZKRoutingInfoProvider {
         Map<String, Map<String, String>> dbStateMap = dbState.getMapFields();
         for (String partitionName : dbStateMap.keySet()) {
           Map<String, String> stateMap = dbStateMap.get(partitionName);
-          String state = stateMap.get(CurrentStateProperty.CURRENT_STATE.toString());
+          String state = stateMap.get(CurrentStateProperty.CURRENT_STATE.name());
           AssertJUnit.assertTrue(routingMap.get(partitionName).get(state).contains(nodeName));
           counter1++;
         }

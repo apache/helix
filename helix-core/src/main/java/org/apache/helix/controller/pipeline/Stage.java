@@ -58,5 +58,5 @@ public interface Stage {
    * Get the name of the stage
    * @return
    */
-  public String getStageName();
+  String getStageName();
 }

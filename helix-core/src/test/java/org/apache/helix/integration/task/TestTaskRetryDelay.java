@@ -75,8 +75,8 @@ public class TestTaskRetryDelay extends TaskTestBase {
     long startTime = _driver.getWorkflowContext(jobResource).getStartTime();
     long finishedTime = _driver.getWorkflowContext(jobResource).getFinishTime();
 
-    // It should finished at less than 2.5 sec
-    Assert.assertTrue(finishedTime - startTime <= 2500L);
+    // It should finished at less than 2 sec
+    Assert.assertTrue(finishedTime - startTime <= 2000L);
   }
 }
 

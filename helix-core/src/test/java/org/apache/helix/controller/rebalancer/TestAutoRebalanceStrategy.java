@@ -35,12 +35,13 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.Mocks.MockAccessor;
+import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
@@ -221,13 +222,15 @@ public class TestAutoRebalanceStrategy {
         accessor.setProperty(keyBuilder.liveInstance(node), liveInstance);
       }
       cache.refresh(accessor);
+
+      IdealState is = new IdealState("resource");
       for (String partition : _partitions) {
         List<String> preferenceList = listResult.get(partition);
         Map<String, String> currentStateMap = _currentMapping.get(partition);
         Set<String> disabled = Collections.emptySet();
         Map<String, String> assignment = new AutoRebalancer()
-            .computeAutoBestStateForPartition(cache, _stateModelDef, preferenceList,
-                currentStateMap, disabled, true);
+            .computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), _stateModelDef, preferenceList,
+                currentStateMap, disabled, is);
         mapResult.put(partition, assignment);
       }
       return mapResult;
@@ -603,7 +606,7 @@ public class TestAutoRebalanceStrategy {
     // make sure that when the first node joins, a single replica is assigned fairly
     List<String> partitions = ImmutableList.copyOf(PARTITIONS);
     LinkedHashMap<String, Integer> stateCount =
-        StateModelDefinition.getStateCountMap(STATE_MODEL, liveNodes.size(), REPLICA_COUNT);
+        STATE_MODEL.getStateCountMap(liveNodes.size(), REPLICA_COUNT);
     ZNRecord znRecord =
         new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount)
             .computePartitionAssignment(allNodes, liveNodes, currentMapping, null);
@@ -618,7 +621,7 @@ public class TestAutoRebalanceStrategy {
     // now assign a replica to the first node in the current mapping, and add a second node
     allNodes.add(NODES[1]);
     liveNodes.add(NODES[1]);
-    stateCount = StateModelDefinition.getStateCountMap(STATE_MODEL, liveNodes.size(), REPLICA_COUNT);
+    stateCount = STATE_MODEL.getStateCountMap(liveNodes.size(), REPLICA_COUNT);
     for (String partition : PARTITIONS) {
       currentMapping.get(partition).put(NODES[0], "MASTER");
     }
@@ -657,7 +660,7 @@ public class TestAutoRebalanceStrategy {
     // new node is never the most preferred
     allNodes.add(NODES[2]);
     liveNodes.add(NODES[2]);
-    stateCount = StateModelDefinition.getStateCountMap(STATE_MODEL, liveNodes.size(), REPLICA_COUNT);
+    stateCount = STATE_MODEL.getStateCountMap(liveNodes.size(), REPLICA_COUNT);
 
     // recall that the other two partitions are [MASTER, SLAVE], which is fine, just reorder one
     currentMapping.get(PARTITIONS[1]).put(NODES[0], "SLAVE");
@@ -708,7 +711,7 @@ public class TestAutoRebalanceStrategy {
 
     // remove a node now, but use the current mapping with everything balanced just prior
     liveNodes.remove(0);
-    stateCount = StateModelDefinition.getStateCountMap(STATE_MODEL, liveNodes.size(), REPLICA_COUNT);
+    stateCount = STATE_MODEL.getStateCountMap(liveNodes.size(), REPLICA_COUNT);
 
     // remove all references of n0 from the mapping, keep everything else in a legal state
     for (String partition : PARTITIONS) {

@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.Stage;
@@ -38,8 +39,11 @@ import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
+import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
+import org.apache.helix.model.Message;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.ScheduleConfig;
@@ -87,6 +91,8 @@ public class TaskTestUtil {
 
   // 1. Different jobs in a same work flow is in RUNNING at the same time
   // 2. When disallow overlap assignment, no two jobs in the same work flow is in RUNNING at the same instance
+  // Use this method with caution because it assumes workflow doesn't finish too quickly and number of parallel running
+  // tasks can be counted.
   public static boolean pollForWorkflowParallelState(TaskDriver driver, String workflowName)
       throws InterruptedException {
 
@@ -191,7 +197,7 @@ public class TaskTestUtil {
 
   public static JobQueue.Builder buildRecurrentJobQueue(String jobQueueName, int delayStart,
       int recurrenInSeconds, TargetState targetState) {
-    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder();
+    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder(jobQueueName);
     workflowCfgBuilder.setExpiry(120000);
     if (targetState != null) {
       workflowCfgBuilder.setTargetState(TargetState.STOP);
@@ -213,7 +219,7 @@ public class TaskTestUtil {
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
       int failureThreshold, int capacity) {
-    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder();
+    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder(jobQueueName);
     workflowCfgBuilder.setExpiry(120000);
     workflowCfgBuilder.setCapacity(capacity);
 
@@ -246,6 +252,7 @@ public class TaskTestUtil {
       TaskState workflowState, Long startTime, TaskState... jobStates) {
     WorkflowContext workflowContext =
         new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
+    workflowContext.setName(workflowResource);
     workflowContext.setStartTime(startTime == null ? System.currentTimeMillis() : startTime);
     int jobId = 0;
     for (TaskState jobstate : jobStates) {
@@ -267,9 +274,11 @@ public class TaskTestUtil {
     return jobContext;
   }
 
-  public static ClusterDataCache buildClusterDataCache(HelixDataAccessor accessor) {
-    ClusterDataCache cache = new ClusterDataCache();
+  public static ClusterDataCache buildClusterDataCache(HelixDataAccessor accessor,
+      String clusterName) {
+    ClusterDataCache cache = new ClusterDataCache(clusterName);
     cache.refresh(accessor);
+    cache.setTaskCache(true);
     return cache;
   }
 
@@ -283,11 +292,12 @@ public class TaskTestUtil {
 
   public static BestPossibleStateOutput calculateBestPossibleState(ClusterDataCache cache,
       HelixManager manager) throws Exception {
-    ClusterEvent event = new ClusterEvent("event");
-    event.addAttribute("ClusterDataCache", cache);
-    event.addAttribute("helixmanager", manager);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     List<Stage> stages = new ArrayList<Stage>();
+    stages.add(new ReadClusterDataStage());
     stages.add(new ResourceComputationStage());
     stages.add(new CurrentStateComputationStage());
     stages.add(new BestPossibleStateCalcStage());
@@ -297,6 +307,36 @@ public class TaskTestUtil {
     }
 
     return event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
+  }
+
+  public static boolean pollForAllTasksBlock(HelixDataAccessor accessor, String instance, int numTask, long timeout)
+      throws InterruptedException {
+    PropertyKey propertyKey = accessor.keyBuilder().messages(instance);
+
+    long startTime = System.currentTimeMillis();
+    while (true) {
+      List<Message> messages = accessor.getChildValues(propertyKey);
+      if (allTasksBlock(messages, numTask)) {
+        return true;
+      } else if (startTime + timeout < System.currentTimeMillis()) {
+        return false;
+      } else {
+        Thread.sleep(100);
+      }
+    }
+  }
+
+  private static boolean allTasksBlock(List<Message> messages, int numTask) {
+    if (messages.size() != numTask) {
+      return false;
+    }
+    for (Message message : messages) {
+      if (!message.getFromState().equals(TaskPartitionState.INIT.name())
+          || !message.getToState().equals(TaskPartitionState.RUNNING.name())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

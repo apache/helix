@@ -1,0 +1,24 @@
+[
+  {
+    "comment": "Job fail normally, task states stay the same.",
+    "taskStates": [
+      "COMPLETED","TASK_ERROR"
+    ],
+    "expectedTaskEndingStates": [
+      "COMPLETED","TASK_ERROR"
+    ],
+    "expectedJobEndingStates" : "FAILED",
+    "expectedWorkflowEndingStates" : "FAILED"
+  },
+  {
+    "comment": "Job fail, running task aborted.",
+    "taskStates": [
+      "TASK_ERROR","RUNNING"
+    ],
+    "expectedTaskEndingStates": [
+      "TASK_ERROR","TASK_ABORTED"
+    ],
+    "expectedJobEndingStates" : "FAILED",
+    "expectedWorkflowEndingStates" : "FAILED"
+  }
+]

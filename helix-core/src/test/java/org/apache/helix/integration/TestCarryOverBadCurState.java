@@ -22,14 +22,14 @@ package org.apache.helix.integration;
 import java.util.Date;
 
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier.MasterNbInExtViewVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -52,9 +52,7 @@ public class TestCarryOverBadCurState extends ZkIntegrationTestBase {
 
     // add a bad current state
     ZNRecord badCurState = new ZNRecord("TestDB0");
-    String path =
-        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_12918",
-            "session_0", "TestDB0");
+    String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_12918", "session_0", "TestDB0");
     _gZkClient.createPersistent(path, true);
     _gZkClient.writeData(path, badCurState);
 

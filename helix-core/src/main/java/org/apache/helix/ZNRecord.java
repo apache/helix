@@ -515,7 +515,8 @@ public class ZNRecord {
    * Replace functionality is used to update this ZNRecord with the given ZNRecord. The value of a
    * field in this record will be replaced with the value of the same field in given record if it
    * presents. If there is new field in given ZNRecord but not in this record, add that field into
-   * this record. The list fields and map fields will be replaced as a single entry.
+   * this record.
+   * The list fields and map fields will be replaced as a single entry.
    *
    * @param record
    */
@@ -529,7 +530,6 @@ public class ZNRecord {
 
   /**
    * Merge in a {@link ZNRecordDelta} corresponding to its merge policy
-   *
    * @param delta
    */
   void merge(ZNRecordDelta delta) {

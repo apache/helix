@@ -19,13 +19,12 @@ package org.apache.helix.api.config;
  * under the License.
  */
 
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.task.TaskRebalancer;
 import org.apache.log4j.Logger;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Resource's rebalance configurations

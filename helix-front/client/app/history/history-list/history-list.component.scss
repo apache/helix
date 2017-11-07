@@ -1,0 +1,14 @@
+// Import theming functions
+@import '~@angular/material/theming';
+// Import custom theme
+@import 'client/theme.scss';
+
+hi-history-list {
+  .current {
+    color: mat-color($hi-primary);
+  }
+
+  .datatable-body-cell {
+    line-height: 40px !important;
+  }
+}

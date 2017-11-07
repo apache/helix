@@ -21,16 +21,14 @@ package org.apache.helix;
 
 import java.util.Date;
 
-import org.apache.helix.HelixConstants;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.NotificationContext;
-import org.apache.helix.Mocks.MockManager;
-import org.apache.helix.Mocks.MockStateModel;
-import org.apache.helix.Mocks.MockStateModelAnnotated;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.integration.TestEntropyFreeNodeBounce;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
 import org.apache.helix.messaging.handling.HelixTask;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
+import org.apache.helix.mock.MockManager;
+import org.apache.helix.mock.statemodel.MockMasterSlaveStateModel;
+import org.apache.helix.mock.statemodel.MockStateModelAnnotated;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
@@ -57,7 +55,7 @@ public class TestHelixTaskHandler {
     message.setTgtName("localhost");
     message.setStateModelDef("MasterSlave");
     message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
-    MockStateModel stateModel = new MockStateModel();
+    MockMasterSlaveStateModel stateModel = new MockMasterSlaveStateModel();
     NotificationContext context;
     MockManager manager = new MockManager("clusterName");
     HelixDataAccessor accessor = manager.getHelixDataAccessor();

@@ -40,14 +40,19 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-   _numDbs = 4;
+    _numDbs = 4;
     super.beforeClass();
   }
 
+  /**
+   * This test starts 4 jobs in job queue, the job all stuck, and verify that
+   * (1) the number of running job does not exceed configured max allowed parallel jobs
+   * (2) one instance can only be assigned to one job in the workflow
+   */
   @Test public void testWhenDisallowOverlapJobAssignment() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
-    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder();
+    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(queueName);
     cfgBuilder.setParallelJobs(PARALLEL_COUNT);
     cfgBuilder.setAllowOverlapJobAssignment(false);
 
@@ -72,6 +77,11 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));
   }
 
+  /**
+   * This test starts 4 jobs in job queue, the job all stuck, and verify that
+   * (1) the number of running job does not exceed configured max allowed parallel jobs
+   * (2) one instance can be assigned to multiple jobs in the workflow when allow overlap assignment
+   */
   @Test (dependsOnMethods = {"testWhenDisallowOverlapJobAssignment"})
   public void testWhenAllowOverlapJobAssignment() throws Exception {
     // Disable all participants except one to enforce all assignment to be on one host
@@ -84,7 +94,7 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
 
     String queueName = TestHelper.getTestMethodName();
 
-    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder();
+    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(queueName);
     cfgBuilder.setParallelJobs(PARALLEL_COUNT);
     cfgBuilder.setAllowOverlapJobAssignment(true);
 

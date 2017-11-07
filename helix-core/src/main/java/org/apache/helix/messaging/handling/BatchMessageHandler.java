@@ -114,7 +114,10 @@ public class BatchMessageHandler extends MessageHandler {
         // logger.info("updateCS: " + key);
         // System.out.println("\tupdateCS: " + key.getPath() + ", " +
         // curStateMap.get(key));
-        accessor.updateProperty(key, csUpdate.get(key));
+        if(!accessor.updateProperty(key, csUpdate.get(key))) {
+          LOG.error(
+              "Fails to persist current state to ZK for key " + key);
+        }
       }
     }
   }

@@ -26,16 +26,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.Mocks;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.mock.MockHelixAdmin;
+import org.apache.helix.mock.MockManager;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
@@ -45,9 +50,14 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
 public class BaseStageTest {
+  public final static String HOSTNAME_PREFIX = "localhost_";
+  public final static String SESSION_PREFIX = "session_";
+
+  protected String _clusterName;
   protected HelixManager manager;
   protected HelixDataAccessor accessor;
   protected ClusterEvent event;
+  protected HelixAdmin admin;
 
   @BeforeClass()
   public void beforeClass() {
@@ -65,37 +75,42 @@ public class BaseStageTest {
 
   @BeforeMethod()
   public void setup() {
-    String clusterName = "testCluster-" + UUID.randomUUID().toString();
-    manager = new Mocks.MockManager(clusterName);
+    _clusterName = "testCluster-" + UUID.randomUUID().toString();
+    manager = new MockManager(_clusterName);
     accessor = manager.getHelixDataAccessor();
-    event = new ClusterEvent("sampleEvent");
+    ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
+    setClusterConfig(clusterConfig);
+    admin = new MockHelixAdmin(manager);
+    event = new ClusterEvent(ClusterEventType.Unknown);
+    admin.addCluster(_clusterName);
   }
 
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
-      int replicas, RebalanceMode rebalanceMode) {
+      int replicas, RebalanceMode rebalanceMode, String stateModelName, String rebalanceClassName,
+      String rebalanceStrategyName) {
     List<IdealState> idealStates = new ArrayList<IdealState>();
-    List<String> instances = new ArrayList<String>();
-    for (int i = 0; i < nodes; i++) {
-      instances.add("localhost_" + i);
-    }
-
     for (int i = 0; i < resources.length; i++) {
       String resourceName = resources[i];
       ZNRecord record = new ZNRecord(resourceName);
       for (int p = 0; p < partitions; p++) {
         List<String> value = new ArrayList<String>();
         for (int r = 0; r < replicas; r++) {
-          value.add("localhost_" + (p + r + 1) % nodes);
+          value.add(HOSTNAME_PREFIX + (p + r + 1) % nodes);
         }
         record.setListField(resourceName + "_" + p, value);
       }
       IdealState idealState = new IdealState(record);
-      idealState.setStateModelDefRef("MasterSlave");
+      idealState.setStateModelDefRef(stateModelName);
+      if (rebalanceClassName != null) {
+        idealState.setRebalancerClassName(rebalanceClassName);
+      }
+      if (rebalanceStrategyName != null) {
+        idealState.setRebalanceStrategy(rebalanceStrategyName);
+      }
       idealState.setRebalanceMode(rebalanceMode);
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
-
-      // System.out.println(idealState);
+      idealState.setReplicas(String.valueOf(replicas));
 
       Builder keyBuilder = accessor.keyBuilder();
 
@@ -104,19 +119,65 @@ public class BaseStageTest {
     return idealStates;
   }
 
+  protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
+      int replicas, RebalanceMode rebalanceMode) {
+    return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode,
+        BuiltInStateModelDefinitions.MasterSlave.name(), null, null);
+  }
+
+  protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
+      int replicas, RebalanceMode rebalanceMode, String stateModelName) {
+    return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode,
+        stateModelName, null, null);
+  }
+
+  protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
+      int replicas, RebalanceMode rebalanceMode, String stateModelName, String rebalanceClassName) {
+    return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode,
+      stateModelName, rebalanceClassName, null);
+  }
+
   protected void setupLiveInstances(int numLiveInstances) {
-    // setup liveInstances
     for (int i = 0; i < numLiveInstances; i++) {
-      LiveInstance liveInstance = new LiveInstance("localhost_" + i);
-      liveInstance.setSessionId("session_" + i);
+      LiveInstance liveInstance = new LiveInstance(HOSTNAME_PREFIX + i);
+      liveInstance.setSessionId(SESSION_PREFIX + i);
 
       Builder keyBuilder = accessor.keyBuilder();
-      accessor.setProperty(keyBuilder.liveInstance("localhost_" + i), liveInstance);
+      accessor.setProperty(keyBuilder.liveInstance(HOSTNAME_PREFIX + i), liveInstance);
     }
   }
 
+  protected void setupInstances(int numInstances) {
+    // setup liveInstances
+    for (int i = 0; i < numInstances; i++) {
+      String instance = HOSTNAME_PREFIX + i;
+      InstanceConfig config = new InstanceConfig(instance);
+      config.setHostName(instance);
+      config.setPort("12134");
+      admin.addInstance(manager.getClusterName(), config);
+    }
+  }
+
+  protected void setupCurrentStates(Map<String, CurrentState> currentStates) {
+    Builder keyBuilder = accessor.keyBuilder();
+    for (String instanceName : currentStates.keySet()) {
+      accessor.setProperty(keyBuilder
+          .currentState(instanceName, currentStates.get(instanceName).getSessionId(),
+              currentStates.get(instanceName).getResourceName()), currentStates.get(instanceName));
+    }
+  }
+
+  protected void setClusterConfig(ClusterConfig clusterConfig) {
+    accessor.setProperty(accessor.keyBuilder().clusterConfig(), clusterConfig);
+  }
+
+  protected void setSingleIdealState(IdealState idealState) {
+    accessor
+        .setProperty(accessor.keyBuilder().idealStates(idealState.getResourceName()), idealState);
+  }
+
   protected void runStage(ClusterEvent event, Stage stage) {
-    event.addAttribute("helixmanager", manager);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
@@ -129,19 +190,19 @@ public class BaseStageTest {
   }
 
   protected void setupStateModel() {
-    ZNRecord masterSlave = new StateModelConfigGenerator().generateConfigForMasterSlave();
-
     Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), new StateModelDefinition(
-        masterSlave));
+
+    ZNRecord masterSlave = new StateModelConfigGenerator().generateConfigForMasterSlave();
+    accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()),
+        new StateModelDefinition(masterSlave));
 
     ZNRecord leaderStandby = new StateModelConfigGenerator().generateConfigForLeaderStandby();
-    accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), new StateModelDefinition(
-        leaderStandby));
+    accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()),
+        new StateModelDefinition(leaderStandby));
 
     ZNRecord onlineOffline = new StateModelConfigGenerator().generateConfigForOnlineOffline();
-    accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), new StateModelDefinition(
-        onlineOffline));
+    accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()),
+        new StateModelDefinition(onlineOffline));
   }
 
   protected Map<String, Resource> getResourceMap() {
@@ -154,6 +215,22 @@ public class BaseStageTest {
     testResource.addPartition("testResourceName_3");
     testResource.addPartition("testResourceName_4");
     resourceMap.put("testResourceName", testResource);
+
+    return resourceMap;
+  }
+
+  protected Map<String, Resource> getResourceMap(String[] resources, int partitions,
+      String stateModel) {
+    Map<String, Resource> resourceMap = new HashMap<String, Resource>();
+
+    for (String r : resources) {
+      Resource testResource = new Resource(r);
+      testResource.setStateModelDefRef(stateModel);
+      for (int i = 0; i < partitions; i++) {
+        testResource.addPartition(r + "_" + i);
+      }
+      resourceMap.put(r, testResource);
+    }
 
     return resourceMap;
   }

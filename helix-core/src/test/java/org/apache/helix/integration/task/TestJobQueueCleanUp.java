@@ -38,8 +38,7 @@ import com.google.common.collect.ImmutableMap;
 public class TestJobQueueCleanUp extends TaskTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
-    // TODO: Reenable this after Test Refactoring code checkin
-    // setSingleTestEnvironment();
+    setSingleTestEnvironment();
     super.beforeClass();
   }
 
@@ -71,7 +70,7 @@ public class TestJobQueueCleanUp extends TaskTestBase {
       builder.enqueueJob("JOB" + i, jobBuilder);
     }
     builder.enqueueJob("JOB" + 3,
-        jobBuilder.setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "1000000L")));
+        jobBuilder.setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "1000000")));
     builder.enqueueJob("JOB" + 4, jobBuilder);
     _driver.start(builder.build());
     _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + 3),
@@ -86,11 +85,11 @@ public class TestJobQueueCleanUp extends TaskTestBase {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName, capacity);
     WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(builder.getWorkflowConfig());
-    cfgBuilder.setJobPurgeInterval(500);
+    cfgBuilder.setJobPurgeInterval(1000);
     builder.setWorkflowConfig(cfgBuilder.build());
 
     JobConfig.Builder jobBuilder =
-        new JobConfig.Builder().setNumberOfTasks(1)
+        new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
             .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2).setJobCommandConfigMap(
             ImmutableMap.of(MockTask.SUCCESS_COUNT_BEFORE_FAIL, String.valueOf(capacity / 2)))
             .setExpiry(200L);

@@ -83,7 +83,7 @@ public class TestEspressoStorageClusterIdealState {
     masterKeepRatio = result[0];
     slaveKeepRatio = result[1];
     Assert.assertTrue(0.66 < masterKeepRatio && 0.67 > masterKeepRatio);
-    Assert.assertTrue(0.66 < slaveKeepRatio && 0.67 > slaveKeepRatio);
+    Assert.assertTrue(0.49 < slaveKeepRatio && 0.51 > slaveKeepRatio);
 
   }
 
@@ -120,7 +120,7 @@ public class TestEspressoStorageClusterIdealState {
     masterKeepRatio = result[0];
     slaveKeepRatio = result[1];
     Assert.assertTrue(0.66 < masterKeepRatio && 0.67 > masterKeepRatio);
-    Assert.assertTrue(0.66 < slaveKeepRatio && 0.67 > slaveKeepRatio);
+    Assert.assertTrue(0.49 < slaveKeepRatio && 0.51 > slaveKeepRatio);
   }
 
   public static void Verify(Map<String, Object> result, int partitions, int replicas) {

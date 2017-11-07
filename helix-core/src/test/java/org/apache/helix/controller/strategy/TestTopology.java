@@ -1,5 +1,6 @@
 package org.apache.helix.controller.strategy;
 
+import org.apache.helix.controller.rebalancer.TestAutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.model.ClusterConfig;
@@ -33,17 +34,16 @@ import java.util.Map;
  */
 
 public class TestTopology {
-  private static Logger logger = Logger.getLogger(TestTopology.class);
+  private static Logger logger = Logger.getLogger(TestAutoRebalanceStrategy.class);
 
   @Test
   public void testCreateClusterTopology() {
     ClusterConfig clusterConfig = new ClusterConfig("Test_Cluster");
 
     String topology = "/Rack/Sub-Rack/Host/Instance";
-    clusterConfig.getRecord().getSimpleFields()
-        .put(ClusterConfig.ClusterConfigProperty.TOPOLOGY.name(), topology);
-    clusterConfig.getRecord().getSimpleFields()
-        .put(ClusterConfig.ClusterConfigProperty.FAULT_ZONE_TYPE.name(), "Sub-Rack");
+    clusterConfig.setTopology(topology);
+    clusterConfig.setFaultZoneType("Sub-Rack");
+    clusterConfig.setTopologyAwareEnabled(true);
 
     List<String> allNodes = new ArrayList<String>();
     List<String> liveNodes = new ArrayList<String>();
@@ -115,6 +115,7 @@ public class TestTopology {
   @Test
   public void testCreateClusterTopologyWithDefaultTopology() {
     ClusterConfig clusterConfig = new ClusterConfig("Test_Cluster");
+    clusterConfig.setTopologyAwareEnabled(true);
 
     List<String> allNodes = new ArrayList<String>();
     List<String> liveNodes = new ArrayList<String>();
@@ -169,4 +170,3 @@ public class TestTopology {
     }
   }
 }
-

@@ -26,6 +26,11 @@ import org.apache.helix.ZNRecord;
  * Represent a pause in the cluster
  */
 public class PauseSignal extends HelixProperty {
+
+  public enum PauseSignalProperty {
+    REASON
+  }
+
   /**
    * Instantiate with an identifier
    * @param id pause signal identifier
@@ -40,6 +45,18 @@ public class PauseSignal extends HelixProperty {
    */
   public PauseSignal(ZNRecord record) {
     super(record);
+  }
+
+  /**
+   * Set the reason why the cluster is paused.
+   * @param reason
+   */
+  public void setReason(String reason) {
+    _record.setSimpleField(PauseSignalProperty.REASON.name(), reason);
+  }
+
+  public String getReason() {
+    return _record.getSimpleField(PauseSignalProperty.REASON.name());
   }
 
   @Override

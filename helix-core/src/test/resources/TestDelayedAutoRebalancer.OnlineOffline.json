@@ -1,0 +1,106 @@
+{
+  "statemodel": "OnlineOffline",
+  "inputs": [
+    {
+      "preferenceList": [
+        "localhost_2",
+        "localhost_3",
+        "localhost_4"
+      ],
+      "currentStates": {
+        "localhost_0": "ONLINE",
+        "localhost_1": "ONLINE",
+        "localhost_2": "ONLINE"
+      },
+      "bestPossibleStates": {
+        "localhost_2": "ONLINE",
+        "localhost_3": "ONLINE",
+        "localhost_4": "ONLINE",
+        "localhost_0": "ONLINE",
+        "localhost_1": "ONLINE"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_2",
+        "localhost_3",
+        "localhost_4"
+      ],
+      "currentStates": {
+        "localhost_0": "ONLINE",
+        "localhost_1": "ONLINE",
+        "localhost_2": "ONLINE",
+        "localhost_3": "ONLINE",
+        "localhost_4": "ONLINE"
+      },
+      "bestPossibleStates": {
+        "localhost_2": "ONLINE",
+        "localhost_3": "ONLINE",
+        "localhost_4": "ONLINE",
+        "localhost_0": "DROPPED",
+        "localhost_1": "DROPPED"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_2",
+        "localhost_3",
+        "localhost_4"
+      ],
+      "currentStates": {
+        "localhost_0": "ERROR",
+        "localhost_1": "ONLINE",
+        "localhost_2": "ONLINE",
+        "localhost_3": "ONLINE"
+      },
+      "bestPossibleStates": {
+        "localhost_2": "ONLINE",
+        "localhost_3": "ONLINE",
+        "localhost_4": "ONLINE",
+        "localhost_0": "DROPPED",
+        "localhost_1": "ONLINE"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_2",
+        "localhost_3",
+        "localhost_4"
+      ],
+      "currentStates": {
+        "localhost_1": "ONLINE",
+        "localhost_2": "ERROR",
+        "localhost_3": "ONLINE"
+      },
+      "bestPossibleStates": {
+        "localhost_2": "ERROR",
+        "localhost_3": "ONLINE",
+        "localhost_4": "ONLINE",
+        "localhost_1": "ONLINE"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_2",
+        "localhost_3",
+        "localhost_4"
+      ],
+      "currentStates": {
+        "localhost_2": "ERROR",
+        "localhost_3": "ONLINE",
+        "localhost_4": "ONLINE",
+        "localhost_0": "ONLINE",
+        "localhost_1": "ONLINE"
+      },
+      "bestPossibleStates": {
+        "localhost_3": "ONLINE",
+        "localhost_4": "ONLINE",
+        "localhost_0": "ONLINE",
+        "localhost_1": "ONLINE",
+        "localhost_2": "ERROR"
+      }
+    }
+  ]
+}
+
+

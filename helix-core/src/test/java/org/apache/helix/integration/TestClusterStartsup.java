@@ -26,6 +26,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.AssertJUnit;

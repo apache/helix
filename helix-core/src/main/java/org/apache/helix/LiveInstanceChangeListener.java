@@ -19,21 +19,13 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.util.List;
-
-import org.apache.helix.model.LiveInstance;
-
 /**
  * Interface to implement to listen for live instance changes.
+ *
+ * @deprecated
+ * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.LiveInstanceChangeListener}
  */
-public interface LiveInstanceChangeListener {
-
-  /**
-   * Invoked when live instance changes
-   * @param liveInstances
-   * @param changeContext
-   */
-  public void onLiveInstanceChange(List<LiveInstance> liveInstances,
-      NotificationContext changeContext);
-
+@Deprecated
+public interface LiveInstanceChangeListener extends
+    org.apache.helix.api.listeners.LiveInstanceChangeListener {
 }

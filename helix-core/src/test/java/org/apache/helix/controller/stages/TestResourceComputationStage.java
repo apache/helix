@@ -28,10 +28,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
@@ -69,7 +65,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, Resource> resource = event.getAttribute(AttributeName.RESOURCES.name());
+    Map<String, Resource> resource = event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     AssertJUnit.assertEquals(1, resource.size());
 
     AssertJUnit.assertEquals(resource.keySet().iterator().next(), resourceName);
@@ -91,7 +87,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     AssertJUnit.assertEquals(resources.length, resourceMap.size());
 
     for (int i = 0; i < resources.length; i++) {
@@ -186,7 +182,7 @@ public class TestResourceComputationStage extends BaseStageTest {
 
   @Test
   public void testNull() {
-    ClusterEvent event = new ClusterEvent("sampleEvent");
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     ResourceComputationStage stage = new ResourceComputationStage();
     StageContext context = new StageContext();
     stage.init(context);

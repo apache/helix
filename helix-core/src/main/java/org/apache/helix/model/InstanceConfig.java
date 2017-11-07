@@ -44,10 +44,12 @@ public class InstanceConfig extends HelixProperty {
     HELIX_PORT,
     HELIX_ZONE_ID,
     HELIX_ENABLED,
+    HELIX_ENABLED_TIMESTAMP,
     HELIX_DISABLED_PARTITION,
     TAG_LIST,
     INSTANCE_WEIGHT,
     DOMAIN,
+    DELAY_REBALANCE_ENABLED,
     MAX_CONCURRENT_TASK
   }
   public static final int WEIGHT_NOT_SET = -1;
@@ -217,19 +219,31 @@ public class InstanceConfig extends HelixProperty {
 
   /**
    * Set the enabled state of the instance
+   *
    * @param enabled true to enable, false to disable
    */
   public void setInstanceEnabled(boolean enabled) {
     _record.setBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), enabled);
+    _record.setLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(),
+        System.currentTimeMillis());
   }
 
   /**
-   * Check if this instance is enabled for a given partition
-   * This API is deprecated, and will be removed in next major release.
+   * Get the timestamp (milliseconds from epoch) when this instance was enabled/disabled last time.
    *
-   * @param partition the partition name to check
-   * @return true if the instance is enabled for the partition, false otherwise
+   * @return
    */
+  public long getInstanceEnabledTime() {
+    return _record.getLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(), -1);
+  }
+
+  /**
+  * Check if this instance is enabled for a given partition
+  * This API is deprecated, and will be removed in next major release.
+  *
+  * @param partition the partition name to check
+  * @return true if the instance is enabled for the partition, false otherwise
+  */
   @Deprecated
   public boolean getInstanceEnabledForPartition(String partition) {
     boolean enabled = true;
@@ -273,8 +287,9 @@ public class InstanceConfig extends HelixProperty {
   public List<String> getDisabledPartitions() {
     List<String> oldDisabled =
         _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
-    if (!_record.getMapFields().containsKey(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
-        && oldDisabled == null) {
+    Map<String, String> newDisabledMap =
+        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    if (newDisabledMap == null && oldDisabled == null) {
       return null;
     }
 
@@ -283,11 +298,11 @@ public class InstanceConfig extends HelixProperty {
       disabledPartitions.addAll(oldDisabled);
     }
 
-    for (String perResource : _record
-        .getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).values()) {
-      disabledPartitions.addAll(HelixUtil.deserializeByComma(perResource));
+    if (newDisabledMap != null) {
+      for (String perResource : newDisabledMap.values()) {
+        disabledPartitions.addAll(HelixUtil.deserializeByComma(perResource));
+      }
     }
-
     return new ArrayList<String>(disabledPartitions);
   }
 
@@ -300,9 +315,10 @@ public class InstanceConfig extends HelixProperty {
     // TODO: Remove this logic getting data from list field when getDisabledParition() removed.
     List<String> oldDisabled =
         _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
-    if ((!_record.getMapFields().containsKey(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
-        || !_record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
-        .containsKey(resourceName)) && oldDisabled == null) {
+    Map<String, String> newDisabledMap =
+        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    if ((newDisabledMap == null || !newDisabledMap.containsKey(resourceName))
+        && oldDisabled == null) {
       return null;
     }
 
@@ -311,18 +327,17 @@ public class InstanceConfig extends HelixProperty {
       disabledPartitions.addAll(oldDisabled);
     }
 
-    disabledPartitions.addAll(HelixUtil.deserializeByComma(
-        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
-            .get(resourceName)));
-
+    if (newDisabledMap != null) {
+      disabledPartitions.addAll(HelixUtil.deserializeByComma(newDisabledMap.get(resourceName)));
+    }
     return new ArrayList<String>(disabledPartitions);
   }
 
   /**
-  * Get a map that mapping resource name to disabled partitions
-  * @return A map of resource name mapping to disabled partitions. If no
-  *         resource/partitions disabled, return an empty map.
-  */
+   * Get a map that mapping resource name to disabled partitions
+   * @return A map of resource name mapping to disabled partitions. If no
+   *         resource/partitions disabled, return an empty map.
+   */
   public Map<String, List<String>> getDisabledPartitionsMap() {
     Map<String, String> disabledPartitionsRawMap =
         _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
@@ -337,8 +352,6 @@ public class InstanceConfig extends HelixProperty {
 
     return disabledPartitionsMap;
   }
-
-
 
   /**
    * Set the enabled state for a partition on this instance across all the resources
@@ -375,7 +388,7 @@ public class InstanceConfig extends HelixProperty {
 
     Map<String, String> currentDisabled =
         _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
-    Set<String> disabledPartitions = new HashSet<String>();
+    Set<String> disabledPartitions = new HashSet<>();
 
     if (currentDisabled != null && currentDisabled.containsKey(resourceName)) {
       disabledPartitions.addAll(HelixUtil.deserializeByComma(currentDisabled.get(resourceName)));
@@ -390,14 +403,16 @@ public class InstanceConfig extends HelixProperty {
       disabledPartitions.add(partitionName);
     }
 
-    List<String> disabledPartitionList = new ArrayList<String>(disabledPartitions);
+    List<String> disabledPartitionList = new ArrayList<>(disabledPartitions);
     Collections.sort(disabledPartitionList);
     if (currentDisabled == null) {
-      currentDisabled = new HashMap<String, String>();
+      currentDisabled = new HashMap<>();
     }
 
     if (disabledPartitionList != null) {
       currentDisabled.put(resourceName, HelixUtil.serializeByComma(disabledPartitionList));
+    } else {
+      currentDisabled.remove(resourceName);
     }
 
     if (!currentDisabled.isEmpty()) {
@@ -408,6 +423,28 @@ public class InstanceConfig extends HelixProperty {
       _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(),
           oldDisabledPartitions);
     }
+  }
+
+  /**
+   * Whether the delay rebalance is enabled for this instance.
+   * By default, it is enable if the field is not set.
+   *
+   * @return
+   */
+  public boolean isDelayRebalanceEnabled() {
+    return _record
+        .getBooleanField(ResourceConfig.ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(),
+            true);
+  }
+
+  /**
+   * Enable/Disable the delayed rebalance. By default it is enabled if not set.
+   *
+   * @param enabled
+   */
+  public void setDelayRebalanceEnabled(boolean enabled) {
+    _record.setBooleanField(ResourceConfig.ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(),
+        enabled);
   }
 
   /**

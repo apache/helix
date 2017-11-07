@@ -22,11 +22,7 @@ package org.apache.helix.controller.stages;
 import java.util.Date;
 import java.util.Map;
 
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -43,13 +39,20 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
     String[] resources = new String[] {
       "testResourceName"
     };
-    setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
+
+    int numPartition = 5;
+    int numReplica = 1;
+
+    setupIdealState(5, resources, numPartition, numReplica, RebalanceMode.SEMI_AUTO,
+        BuiltInStateModelDefinitions.MasterSlave.name());
     setupLiveInstances(5);
     setupStateModel();
 
-    Map<String, Resource> resourceMap = getResourceMap();
+    Map<String, Resource> resourceMap =
+        getResourceMap(resources, numPartition, BuiltInStateModelDefinitions.MasterSlave.name());
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();

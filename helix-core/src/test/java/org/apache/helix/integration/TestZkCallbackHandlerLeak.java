@@ -33,7 +33,7 @@ import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -90,7 +90,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
         // controller should have 5 + 2n + m + (m+2)n zk-watchers
         // where n is number of nodes and m is number of resources
-        return watchPaths.size() == (6 + 5 * n);
+        return watchPaths.size() == (7 + 5 * n);
       }
     }, 500);
     Assert.assertTrue(result, "Controller should have 6 + 5*n zk-watchers.");
@@ -115,8 +115,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     // printHandlers(participantManagerToExpire);
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManagerToExpire.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, 9,
-        "HelixController should have 9 (5+2n) callback handlers for 2 (n) participant");
+    Assert.assertEquals(controllerHandlerNb, 10,
+        "HelixController should have 10 (5+2n) callback handlers for 2 (n) participant");
     Assert.assertEquals(particHandlerNb, 1,
         "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handlers");
 
@@ -145,7 +145,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
         // controller should have 5 + 2n + m + (m+2)n zk-watchers
         // where n is number of nodes and m is number of resources
-        return watchPaths.size() == (6 + 5 * n);
+        return watchPaths.size() == (7 + 5 * n);
       }
     }, 500);
     Assert.assertTrue(result, "Controller should have 6 + 5*n zk-watchers after session expiry.");
@@ -226,13 +226,13 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     final MockParticipantManager participantManager = participants[0];
 
     // wait until we get all the listeners registered
-    result = TestHelper.verify(new TestHelper.Verifier() {
+    TestHelper.verify(new TestHelper.Verifier() {
 
       @Override
       public boolean verify() throws Exception {
         int controllerHandlerNb = controller.getHandlers().size();
         int particHandlerNb = participantManager.getHandlers().size();
-        if (controllerHandlerNb == 9 && particHandlerNb == 2)
+        if (controllerHandlerNb == 10 && particHandlerNb == 2)
           return true;
         else
           return false;
@@ -241,8 +241,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManager.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, 9,
-        "HelixController should have 9 (5+2n) callback handlers for 2 participant, but was "
+    Assert.assertEquals(controllerHandlerNb, 10,
+        "HelixController should have 10 (6+2n) callback handlers for 2 participant, but was "
             + controllerHandlerNb + ", " + printHandlers(controller));
     Assert.assertEquals(particHandlerNb, 1,
         "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handler, but was "
@@ -273,7 +273,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
         // controller should have 5 + 2n + m + (m+2)n zk-watchers
         // where n is number of nodes and m is number of resources
-        return watchPaths.size() == (6 + 5 * n);
+        return watchPaths.size() == (7 + 5 * n);
       }
     }, 500);
     Assert.assertTrue(result, "Controller should have 6 + 5*n zk-watchers after session expiry.");

@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -44,7 +43,7 @@ import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -257,7 +256,9 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     LOG.info("Flusing job-queue: " + queueName);
     _driver.flushQueue(queueName);
 
-    TimeUnit.MILLISECONDS.sleep(200);
+    // TODO: Use TestHelper.verify() instead of waiting here.
+    TimeUnit.MILLISECONDS.sleep(5000);
+
     // verify the cleanup
     for (int i = 0; i < currentJobNames.size(); i++) {
       String namedSpaceJobName = String.format("%s_%s", queueName, currentJobNames.get(i));
@@ -412,9 +413,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // Create a queue
     System.out.println("START " + queueName + " at " + new Date(System.currentTimeMillis()));
-    WorkflowConfig wfCfg
-        = new WorkflowConfig.Builder().setExpiry(2, TimeUnit.MINUTES)
-        .setScheduleConfig(ScheduleConfig.recurringFromNow(TimeUnit.MINUTES, 1)).build();
+    WorkflowConfig wfCfg = new WorkflowConfig.Builder(queueName).setExpiry(2, TimeUnit.MINUTES).build();
     JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
     _driver.createQueue(qCfg);
 
@@ -463,8 +462,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
             = Lists.newArrayList(keyBuilder.resourceConfigs().getPath(),
             keyBuilder.idealStates().getPath(),
             keyBuilder.externalViews().getPath(),
-            PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, CLUSTER_NAME)
-                + TaskConstants.REBALANCER_CONTEXT_ROOT);
+            PropertyPathBuilder.propertyStore(CLUSTER_NAME) + TaskConstants.REBALANCER_CONTEXT_ROOT);
 
         for (String path : paths) {
           List<String> childNames = accessor.getBaseDataAccessor().getChildNames(path, 0);
@@ -525,8 +523,8 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(jobName)));
-    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(jobName)));
+    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(jobName)), jobName + "'s idealstate has not been deleted!");
+    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(jobName)), jobName + "'s resourceConfig has not been deleted!");
     TaskTestUtil.pollForEmptyJobState(_driver, queueName, jobName);
   }
 

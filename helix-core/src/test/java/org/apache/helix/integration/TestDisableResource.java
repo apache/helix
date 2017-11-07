@@ -38,7 +38,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -230,7 +230,7 @@ public class TestDisableResource extends ZkUnitTestBase {
 
   /**
    * Check all partitions are in OFFLINE state
-   * @param accessor
+   * @param clusterName
    * @throws Exception
    */
   private void checkExternalView(String clusterName) throws Exception {

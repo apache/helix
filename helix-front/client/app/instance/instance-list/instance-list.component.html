@@ -1,0 +1,37 @@
+<section>
+  <ngx-datatable
+    #instancesTable
+    class="material"
+    [headerHeight]="rowHeight"
+    [rowHeight]="rowHeight"
+    columnMode="force"
+    [footerHeight]="rowHeight"
+    [rows]="instances"
+    [loadingIndicator]="isLoading"
+    selectionType="single"
+    [sorts]="sorts"
+    (select)="onSelect($event)">
+    <ngx-datatable-column
+      name="Status"
+      prop="healthy"
+      [width]="85"
+      [resizeable]="false"
+      [draggable]="false"
+      [canAutoResize]="false">
+      <ng-template let-row="row" ngx-datatable-cell-template>
+        <md-icon *ngIf="row.healthy" class="status-healthy">lens</md-icon>
+        <md-icon *ngIf="!row.healthy && row.enabled" class="status-not-healthy" mdTooltip="The instance is offline.">lens</md-icon>
+        <md-icon *ngIf="!row.healthy && row.liveInstance" class="status-not-healthy" mdTooltip="The instance is disabled.">lens</md-icon>
+        <md-icon *ngIf="!row.healthy && !row.enabled && !row.liveInstance" class="status-not-healthy" mdTooltip="The instance is offline and disabled.">lens</md-icon>
+      </ng-template>
+    </ngx-datatable-column>
+    <ngx-datatable-column name="Name">
+      <ng-template let-row="row" ngx-datatable-cell-template>
+        <section fxLayout="row" fxLayoutAlign="start center">
+          {{ row.name }}
+          <hi-disabled-label *ngIf="!row.enabled" text="DISABLED"></hi-disabled-label>
+        </section>
+      </ng-template>
+    </ngx-datatable-column>
+  </ngx-datatable>
+</section>

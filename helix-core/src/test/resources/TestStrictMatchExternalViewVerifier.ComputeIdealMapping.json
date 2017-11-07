@@ -1,0 +1,32 @@
+[
+  {
+    "comment": "MasterSlave: normal case, liveAndEnabledInstances doesn't matter",
+    "stateModel": "MasterSlave",
+    "preferenceList": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "liveAndEnabledInstances": [],
+    "expectedBestPossibleStateMap": {
+      "node_1": "MASTER",
+      "node_2": "SLAVE",
+      "node_3": "SLAVE"
+    }
+  },
+  {
+    "comment": "OnlineOffline: normal case, liveAndEnabledInstances doesn't matter",
+    "stateModel": "OnlineOffline",
+    "preferenceList": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "liveAndEnabledInstances": [],
+    "expectedBestPossibleStateMap": {
+      "node_1": "ONLINE",
+      "node_2": "ONLINE",
+      "node_3": "ONLINE"
+    }
+  }
+]

@@ -29,7 +29,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.webapp.resources.JsonParameters;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -71,7 +71,7 @@ public class TestResetResource extends AdminTestBase {
 
       if (i == 0) {
         participants[i] =
-            new MockParticipantManager(ZK_ADDR, clusterName, instanceName); 
+            new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errPartitions));
       } else {
         participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);

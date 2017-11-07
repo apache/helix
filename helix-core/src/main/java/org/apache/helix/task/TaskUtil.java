@@ -20,13 +20,12 @@ package org.apache.helix.task;
  */
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-
 import java.util.Set;
+
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -126,7 +125,7 @@ public class TaskUtil {
       return null;
     }
 
-   return new WorkflowConfig(workflowCfg);
+    return new WorkflowConfig(workflowCfg);
   }
 
   /**
@@ -248,13 +247,13 @@ public class TaskUtil {
    * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowContext();
    *
    * @param propertyStore    Property store of the cluster
-   * @param workflowResource The name of the workflow
+   * @param workflow The name of the workflow
    * @return the {@link WorkflowContext}, or null if none is available
    */
   protected static WorkflowContext getWorkflowContext(HelixPropertyStore<ZNRecord> propertyStore,
-      String workflowResource) {
+      String workflow) {
     ZNRecord r = propertyStore.get(
-        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowResource, CONTEXT_NODE),
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflow, CONTEXT_NODE),
         null, AccessOption.PERSISTENT);
     return r != null ? new WorkflowContext(r) : null;
   }
@@ -565,20 +564,20 @@ public class TaskUtil {
    * externalview and workflow contexts associated with this workflow, and all jobs information,
    * including their configs, context, IS and EV.
    *
-   * @param manager
+   * @param accessor
+   * @param propertyStore
    * @param workflow the workflow name.
    * @param jobs     all job names in this workflow.
    *
    * @return  True if remove success, otherwise false
    */
-  protected static boolean removeWorkflow(final HelixManager manager, String workflow,
-      Set<String> jobs) {
+  protected static boolean removeWorkflow(final HelixDataAccessor accessor, final HelixPropertyStore propertyStore,
+      String workflow, Set<String> jobs) {
     boolean success = true;
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
     // clean up all jobs
     for (String job : jobs) {
-      if (!removeJob(accessor, manager.getHelixPropertyStore(), job)) {
+      if (!removeJob(accessor, propertyStore, job)) {
         success = false;
       }
     }
@@ -594,7 +593,7 @@ public class TaskUtil {
           String.format("Error occurred while trying to remove workflow config for %s.", workflow));
       success = false;
     }
-    if (!removeWorkflowContext(manager, workflow)) {
+    if (!removeWorkflowContext(propertyStore, workflow)) {
       LOG.warn(String
           .format("Error occurred while trying to remove workflow context for %s.", workflow));
       success = false;
@@ -685,7 +684,7 @@ public class TaskUtil {
               job));
       success = false;
     }
-    if (!removeWorkflowJobConfig(accessor, job)) {
+    if (!removeJobConfig(accessor, job)) {
       LOG.warn(String.format("Error occurred while trying to remove job config for %s.", job));
       success = false;
     }
@@ -699,7 +698,6 @@ public class TaskUtil {
 
   /** Remove the job name from the DAG from the queue configuration */
   // Job name should be namespaced job name here.
-
   protected static boolean removeJobsFromDag(final HelixDataAccessor accessor, final String workflow,
       final Set<String> jobsToRemove, final boolean maintainDependency) {
     // Now atomically clear the DAG
@@ -743,6 +741,11 @@ public class TaskUtil {
       final String workflow, final Set<String> jobs) {
     String contextPath =
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflow, TaskUtil.CONTEXT_NODE);
+
+    // If the queue is not started, there is no JobState need to be removed.
+    if (!propertyStore.exists(contextPath, 0)) {
+      return true;
+    }
 
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override public ZNRecord update(ZNRecord currentData) {

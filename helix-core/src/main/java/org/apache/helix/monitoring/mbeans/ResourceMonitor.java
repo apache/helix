@@ -19,119 +19,247 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.log4j.Logger;
+import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
-import com.google.common.collect.Sets;
+import javax.management.JMException;
+import javax.management.ObjectName;
+import java.util.*;
 
-public class ResourceMonitor implements ResourceMonitorMBean {
-  private static final Logger LOG = Logger.getLogger(ResourceMonitor.class);
+public class ResourceMonitor extends DynamicMBeanProvider {
+  private static final long RESET_TIME_RANGE = 1000 * 60 * 60; // 1 hour
 
-  private int _numOfPartitions;
-  private int _numOfPartitionsInExternalView;
-  private int _numOfErrorPartitions;
-  private int _numNonTopStatePartitions;
-  private int _externalViewIdealStateDiff;
+  // Gauges
+  private SimpleDynamicMetric<Integer> _numOfPartitions =
+      new SimpleDynamicMetric("PartitionGauge", 0);
+  private SimpleDynamicMetric<Integer> _numOfPartitionsInExternalView =
+      new SimpleDynamicMetric("ExternalViewPartitionGauge", 0);
+  private SimpleDynamicMetric<Integer> _numOfErrorPartitions =
+      new SimpleDynamicMetric("ErrorPartitionGauge", 0);
+  private SimpleDynamicMetric<Integer> _numNonTopStatePartitions =
+      new SimpleDynamicMetric("MissingTopStatePartitionGauge", 0);
+  private SimpleDynamicMetric<Long> _numLessMinActiveReplicaPartitions =
+      new SimpleDynamicMetric("MissingMinActiveReplicaPartitionGauge", 0l);
+  private SimpleDynamicMetric<Long> _numLessReplicaPartitions =
+      new SimpleDynamicMetric("MissingReplicaPartitionGauge", 0l);
+  private SimpleDynamicMetric<Long> _numPendingRecoveryRebalancePartitions =
+      new SimpleDynamicMetric("PendingRecoveryRebalancePartitionGauge", 0l);
+  private SimpleDynamicMetric<Long> _numPendingLoadRebalancePartitions =
+      new SimpleDynamicMetric("PendingLoadRebalancePartitionGauge", 0l);
+  private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledPartitions =
+      new SimpleDynamicMetric("RecoveryRebalanceThrottledPartitionGauge", 0l);
+  private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledPartitions =
+      new SimpleDynamicMetric("LoadRebalanceThrottledPartitionGauge", 0l);
+  private SimpleDynamicMetric<Integer> _externalViewIdealStateDiff =
+      new SimpleDynamicMetric("DifferenceWithIdealStateGauge", 0);
+
+  // Counters
+  private SimpleDynamicMetric<Long> _successfulTopStateHandoffDurationCounter =
+      new SimpleDynamicMetric("SuccessfulTopStateHandoffDurationCounter", 0l);
+  private SimpleDynamicMetric<Long> _successTopStateHandoffCounter =
+      new SimpleDynamicMetric("SucceededTopStateHandoffCounter", 0l);
+  private SimpleDynamicMetric<Long> _failedTopStateHandoffCounter =
+      new SimpleDynamicMetric("FailedTopStateHandoffCounter", 0l);
+  private SimpleDynamicMetric<Long> _maxSinglePartitionTopStateHandoffDuration =
+      new SimpleDynamicMetric("MaxSinglePartitionTopStateHandoffDurationGauge", 0l);
+  private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge =
+      new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", _metricRegistry
+          .histogram(getMetricName("PartitionTopStateHandoffDurationGauge")));
+  private SimpleDynamicMetric<Long> _totalMessageReceived =
+      new SimpleDynamicMetric("TotalMessageReceived", 0l);
+
   private String _tag = ClusterStatusMonitor.DEFAULT_TAG;
-  private String _resourceName;
-  private String _clusterName;
+  private long _lastResetTime;
+  private final String _resourceName;
+  private final String _clusterName;
+  private final ObjectName _initObjectName;
 
-  public ResourceMonitor(String clusterName, String resourceName) {
+  @Override
+  public ResourceMonitor register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_numOfPartitions);
+    attributeList.add(_numOfPartitionsInExternalView);
+    attributeList.add(_numOfErrorPartitions);
+    attributeList.add(_numNonTopStatePartitions);
+    attributeList.add(_numLessMinActiveReplicaPartitions);
+    attributeList.add(_numLessReplicaPartitions);
+    attributeList.add(_numPendingRecoveryRebalancePartitions);
+    attributeList.add(_numPendingLoadRebalancePartitions);
+    attributeList.add(_numRecoveryRebalanceThrottledPartitions);
+    attributeList.add(_numLoadRebalanceThrottledPartitions);
+    attributeList.add(_externalViewIdealStateDiff);
+    attributeList.add(_successfulTopStateHandoffDurationCounter);
+    attributeList.add(_successTopStateHandoffCounter);
+    attributeList.add(_failedTopStateHandoffCounter);
+    attributeList.add(_maxSinglePartitionTopStateHandoffDuration);
+    attributeList.add(_partitionTopStateHandoffDurationGauge);
+    attributeList.add(_totalMessageReceived);
+    doRegister(attributeList, _initObjectName);
+
+    return this;
+  }
+
+  public enum MonitorState {
+    TOP_STATE
+  }
+
+  public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName)
+      throws JMException {
     _clusterName = clusterName;
     _resourceName = resourceName;
-  }
-
-  @Override
-  public long getPartitionGauge() {
-    return _numOfPartitions;
-  }
-
-  @Override
-  public long getErrorPartitionGauge() {
-    return _numOfErrorPartitions;
-  }
-
-  @Override
-  public long getMissingTopStatePartitionGauge() {
-    return _numNonTopStatePartitions;
-  }
-
-  @Override
-  public long getDifferenceWithIdealStateGauge() {
-    return _externalViewIdealStateDiff;
+    _initObjectName = objectName;
   }
 
   @Override
   public String getSensorName() {
-    return String.format("%s.%s.%s.%s", ClusterStatusMonitor.RESOURCE_STATUS_KEY, _clusterName,
-        _tag, _resourceName);
+    return String
+        .format("%s.%s.%s.%s", ClusterStatusMonitor.RESOURCE_STATUS_KEY, _clusterName, _tag,
+            _resourceName);
+  }
+
+  public long getPartitionGauge() {
+    return _numOfPartitions.getValue();
+  }
+
+  public long getErrorPartitionGauge() {
+    return _numOfErrorPartitions.getValue();
+  }
+
+  public long getMissingTopStatePartitionGauge() {
+    return _numNonTopStatePartitions.getValue();
+  }
+
+  public long getDifferenceWithIdealStateGauge() {
+    return _externalViewIdealStateDiff.getValue();
+  }
+
+  public long getSuccessfulTopStateHandoffDurationCounter() {
+    return _successfulTopStateHandoffDurationCounter.getValue();
+  }
+
+  public long getSucceededTopStateHandoffCounter() {
+    return _successTopStateHandoffCounter.getValue();
+  }
+
+  public long getMaxSinglePartitionTopStateHandoffDurationGauge() {
+    return _maxSinglePartitionTopStateHandoffDuration.getValue();
+  }
+
+  public long getFailedTopStateHandoffCounter() {
+    return _failedTopStateHandoffCounter.getValue();
+  }
+
+  public long getTotalMessageReceived() {
+    return _totalMessageReceived.getValue();
+  }
+
+  public synchronized void increaseMessageCount(long messageReceived) {
+    _totalMessageReceived.updateValue(_totalMessageReceived.getValue() + messageReceived);
   }
 
   public String getResourceName() {
     return _resourceName;
   }
 
-  public void updateResource(ExternalView externalView, IdealState idealState, String topState) {
+  public String getBeanName() {
+    return _clusterName + " " + _resourceName;
+  }
+
+  public void updateResource(ExternalView externalView, IdealState idealState,
+      StateModelDefinition stateModelDef) {
     if (externalView == null) {
-      LOG.warn("external view is null");
+      _logger.warn("External view is null");
       return;
     }
-    String resourceName = externalView.getId();
 
+    String topState = null;
+    if (stateModelDef != null) {
+      List<String> priorityList = stateModelDef.getStatesPriorityList();
+      if (!priorityList.isEmpty()) {
+        topState = priorityList.get(0);
+      }
+    }
+
+    resetGauges();
     if (idealState == null) {
-      LOG.warn("ideal state is null for " + resourceName);
-      _numOfErrorPartitions = 0;
-      _numNonTopStatePartitions = 0;
-      _externalViewIdealStateDiff = 0;
-      _numOfPartitionsInExternalView = 0;
+      _logger.warn("ideal state is null for " + _resourceName);
       return;
     }
 
-    assert (resourceName.equals(idealState.getId()));
+    assert (_resourceName.equals(idealState.getId()));
+    assert (_resourceName.equals(externalView.getId()));
 
     int numOfErrorPartitions = 0;
     int numOfDiff = 0;
-    Set<String> topStatePartitions = Sets.newHashSet();
+    int numOfPartitionWithTopState = 0;
 
-    if (_numOfPartitions == 0) {
-      _numOfPartitions = idealState.getRecord().getMapFields().size();
+    Set<String> partitions = idealState.getPartitionSet();
+
+    _numOfPartitions.updateValue(partitions.size());
+
+    int replica = -1;
+    try {
+      replica = Integer.valueOf(idealState.getReplicas());
+    } catch (NumberFormatException e) {
     }
 
-    // TODO fix this; IdealState shall have either map fields (CUSTOM mode)
-    // or list fields (AUTO mode)
-    for (String partitionName : idealState.getRecord().getMapFields().keySet()) {
-      Map<String, String> idealRecord = idealState.getInstanceStateMap(partitionName);
-      Map<String, String> externalViewRecord = externalView.getStateMap(partitionName);
+    int minActiveReplica = idealState.getMinActiveReplicas();
+    minActiveReplica = (minActiveReplica >= 0) ? minActiveReplica : replica;
 
+    for (String partition : partitions) {
+      Map<String, String> idealRecord = idealState.getInstanceStateMap(partition);
+      Map<String, String> externalViewRecord = externalView.getStateMap(partition);
+
+      if (idealRecord == null) {
+        idealRecord = Collections.emptyMap();
+      }
       if (externalViewRecord == null) {
-        numOfDiff += idealRecord.size();
-        continue;
+        externalViewRecord = Collections.emptyMap();
       }
-      for (String host : idealRecord.keySet()) {
-        if (!externalViewRecord.containsKey(host)
-            || !externalViewRecord.get(host).equals(idealRecord.get(host))) {
-          numOfDiff++;
-        }
+      if (!idealRecord.entrySet().equals(externalViewRecord.entrySet())) {
+        numOfDiff++;
       }
 
+      int activeReplicaCount = 0;
+      boolean hasTopState = false;
       for (String host : externalViewRecord.keySet()) {
-        if (externalViewRecord.get(host).equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
+        String currentState = externalViewRecord.get(host);
+        if (HelixDefinedState.ERROR.toString().equalsIgnoreCase(currentState)) {
           numOfErrorPartitions++;
         }
-        if (topState != null && externalViewRecord.get(host).equalsIgnoreCase(topState)) {
-          topStatePartitions.add(partitionName);
+        if (topState != null && topState.equalsIgnoreCase(currentState)) {
+          hasTopState = true;
+        }
+
+        Map<String, Integer> stateCount =
+            stateModelDef.getStateCountMap(idealRecord.size(), replica);
+        Set<String> activeStates = stateCount.keySet();
+        if (currentState != null && activeStates.contains(currentState)) {
+          activeReplicaCount++;
         }
       }
+      if (hasTopState) {
+        numOfPartitionWithTopState ++;
+      }
+      if (replica > 0 && activeReplicaCount < replica) {
+        _numLessReplicaPartitions.updateValue(_numLessReplicaPartitions.getValue() + 1);
+      }
+      if (minActiveReplica >= 0 && activeReplicaCount < minActiveReplica) {
+        _numLessMinActiveReplicaPartitions
+            .updateValue(_numLessMinActiveReplicaPartitions.getValue() + 1);
+      }
     }
-    _numOfErrorPartitions = numOfErrorPartitions;
-    _externalViewIdealStateDiff = numOfDiff;
-    _numOfPartitionsInExternalView = externalView.getPartitionSet().size();
-    _numNonTopStatePartitions = _numOfPartitions - topStatePartitions.size();
+    _numOfErrorPartitions.updateValue(numOfErrorPartitions);
+    _externalViewIdealStateDiff.updateValue(numOfDiff);
+    _numOfPartitionsInExternalView.updateValue(externalView.getPartitionSet().size());
+    _numNonTopStatePartitions.updateValue(_numOfPartitions.getValue() - numOfPartitionWithTopState);
+
     String tag = idealState.getInstanceGroupTag();
     if (tag == null || tag.equals("") || tag.equals("null")) {
       _tag = ClusterStatusMonitor.DEFAULT_TAG;
@@ -140,12 +268,82 @@ public class ResourceMonitor implements ResourceMonitorMBean {
     }
   }
 
-  @Override
-  public long getExternalViewPartitionGauge() {
-    return _numOfPartitionsInExternalView;
+  private void resetGauges() {
+    _numOfErrorPartitions.updateValue(0);
+    _numNonTopStatePartitions.updateValue(0);
+    _externalViewIdealStateDiff.updateValue(0);
+    _numOfPartitionsInExternalView.updateValue(0);
+    _numLessMinActiveReplicaPartitions.updateValue(0l);
+    _numLessReplicaPartitions.updateValue(0l);
+    _numPendingRecoveryRebalancePartitions.updateValue(0l);
+    _numPendingLoadRebalancePartitions.updateValue(0l);
+    _numRecoveryRebalanceThrottledPartitions.updateValue(0l);
+    _numLoadRebalanceThrottledPartitions.updateValue(0l);
   }
 
-  public String getBeanName() {
-    return _clusterName + " " + _resourceName;
+  public void updateStateHandoffStats(MonitorState monitorState, long duration, boolean succeeded) {
+    switch (monitorState) {
+    case TOP_STATE:
+      if (succeeded) {
+        _successTopStateHandoffCounter.updateValue(_successTopStateHandoffCounter.getValue() + 1);
+        _successfulTopStateHandoffDurationCounter
+            .updateValue(_successfulTopStateHandoffDurationCounter.getValue() + duration);
+        _partitionTopStateHandoffDurationGauge.updateValue(duration);
+        if (duration > _maxSinglePartitionTopStateHandoffDuration.getValue()) {
+          _maxSinglePartitionTopStateHandoffDuration.updateValue(duration);
+          _lastResetTime = System.currentTimeMillis();
+        }
+      } else {
+        _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
+      }
+      break;
+    default:
+      _logger.warn(
+          String.format("Wrong monitor state \"%s\" that not supported ", monitorState.name()));
+    }
+  }
+
+  public void updateRebalancerStat(long numPendingRecoveryRebalancePartitions,
+      long numPendingLoadRebalancePartitions, long numRecoveryRebalanceThrottledPartitions,
+      long numLoadRebalanceThrottledPartitions) {
+    _numPendingRecoveryRebalancePartitions.updateValue(numPendingRecoveryRebalancePartitions);
+    _numPendingLoadRebalancePartitions.updateValue(numPendingLoadRebalancePartitions);
+    _numRecoveryRebalanceThrottledPartitions.updateValue(numRecoveryRebalanceThrottledPartitions);
+    _numLoadRebalanceThrottledPartitions.updateValue(numLoadRebalanceThrottledPartitions);
+  }
+
+  public long getExternalViewPartitionGauge() {
+    return _numOfPartitionsInExternalView.getValue();
+  }
+
+  public long getMissingMinActiveReplicaPartitionGauge() {
+    return _numLessMinActiveReplicaPartitions.getValue();
+  }
+
+  public long getMissingReplicaPartitionGauge() {
+    return _numLessReplicaPartitions.getValue();
+  }
+
+  public long getPendingRecoveryRebalancePartitionGauge() {
+    return _numPendingRecoveryRebalancePartitions.getValue();
+  }
+
+  public long getPendingLoadRebalancePartitionGauge() {
+    return _numPendingLoadRebalancePartitions.getValue();
+  }
+
+  public long getRecoveryRebalanceThrottledPartitionGauge() {
+    return _numRecoveryRebalanceThrottledPartitions.getValue();
+  }
+
+  public long getLoadRebalanceThrottledPartitionGauge() {
+    return _numLoadRebalanceThrottledPartitions.getValue();
+  }
+
+  public void resetMaxTopStateHandoffGauge() {
+    if (_lastResetTime + RESET_TIME_RANGE <= System.currentTimeMillis()) {
+      _maxSinglePartitionTopStateHandoffDuration.updateValue(0l);
+      _lastResetTime = System.currentTimeMillis();
+    }
   }
 }

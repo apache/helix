@@ -24,9 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.task.TaskUtil;
-import org.apache.helix.util.HelixUtil;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -100,14 +97,6 @@ public class InstanceMonitor implements InstanceMonitorMBean {
     return _participantName;
   }
 
-  /**
-   * Helper for basic formatted view of this bean
-   * @return bean name
-   */
-  public String getBeanName() {
-    return _clusterName + " " + serializedTags() + " " + _participantName;
-  }
-
   private String serializedTags() {
     return Joiner.on('|').skipNulls().join(_tags).toString();
   }
@@ -119,7 +108,8 @@ public class InstanceMonitor implements InstanceMonitorMBean {
    * @param isLive true if running, false otherwise
    * @param isEnabled true if enabled, false if disabled
    */
-  public synchronized void updateInstance(Set<String> tags, Map<String, List<String>> disabledPartitions,
+  public synchronized void updateInstance(Set<String> tags,
+      Map<String, List<String>> disabledPartitions, List<String> oldDisabledPartitions,
       boolean isLive, boolean isEnabled) {
     if (tags == null || tags.isEmpty()) {
       _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
@@ -135,15 +125,19 @@ public class InstanceMonitor implements InstanceMonitorMBean {
         }
       }
     }
+    // TODO : Get rid of this when old API removed.
+    if (oldDisabledPartitions != null) {
+      _disabledPartitions += oldDisabledPartitions.size();
+    }
     _isUp = isLive;
     _isEnabled = isEnabled;
   }
 
   /**
-   * Update message received for this instance
+   * Increase message received for this instance
    * @param messageReceived received message numbers
    */
-  public synchronized void updateMessageCount(long messageReceived) {
+  public synchronized void increaseMessageCount(long messageReceived) {
     _totalMessageReceived += messageReceived;
   }
 

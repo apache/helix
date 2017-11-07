@@ -21,11 +21,10 @@ package org.apache.helix.messaging;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
-import org.apache.helix.Mocks;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.MessageHandler;
+import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.Message;
 import org.testng.annotations.Test;
 import org.testng.AssertJUnit;
@@ -37,7 +36,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class TestAsyncCallbackSvc {
-  class MockHelixManager extends Mocks.MockManager {
+  class MockHelixManager extends MockManager {
     public String getSessionId() {
       return "123";
     }

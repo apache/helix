@@ -83,9 +83,8 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
     ZkBaseDataAccessor<ZNRecord> extBaseAccessor = new ZkBaseDataAccessor<ZNRecord>(zkclient);
 
     // init zkCacheDataAccessor
-    String curStatePath =
-        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
-    String extViewPath = PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName);
+    String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
+    String extViewPath = PropertyPathBuilder.externalView(clusterName);
 
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 

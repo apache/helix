@@ -1,0 +1,12 @@
+<form (ngSubmit)="onCancel()" #inputForm="ngForm">
+  <h1 md-dialog-title>{{ title }}</h1>
+  <div md-dialog-content>
+    <section>
+      {{ message }}
+    </section>
+  </div>
+  <div md-dialog-actions>
+    <button md-button type="submit" color="primary" [disabled]="!inputForm.form.valid">Cancel</button>
+    <button md-button type="button" (click)="onConfirm()">Continue</button>
+  </div>
+</form>

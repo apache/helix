@@ -96,6 +96,19 @@ public class LeaderHistory extends HelixProperty {
     historyList.add(historyEntry.toString());
   }
 
+  /**
+   * Get history list
+   * @return
+   */
+  public List<String> getHistoryList() {
+    List<String> historyList = _record.getListField(ConfigProperty.HISTORY.name());
+    if (historyList == null) {
+      historyList = new ArrayList<String>();
+    }
+
+    return historyList;
+  }
+
   @Override
   public boolean isValid() {
     return true;

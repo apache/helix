@@ -22,14 +22,8 @@ package org.apache.helix;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.*;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.helix.model.ConstraintItem;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.StateModelDefinition;
 
 /*
  * Helix cluster management
@@ -57,15 +51,15 @@ public interface HelixAdmin {
   InstanceConfig getInstanceConfig(String clusterName, String instanceName);
 
   /**
-   * Set the instance config of an existing instance under the given cluster.
-   *
-   * @param clusterName    the name of the cluster to which this instance belongs.
-   * @param instanceName   the name of this instance.
-   * @param instanceConfig the new {@link InstanceConfig} that will replace the current one
-   *                       associated with this instance.
-   *
-   * @return true if the operation was successful; false otherwise.
-   */
+   +   * Set the instance config of an existing instance under the given cluster.
+   +   *
+   +   * @param clusterName    the name of the cluster to which this instance belongs.
+   +   * @param instanceName   the name of this instance.
+   +   * @param instanceConfig the new {@link InstanceConfig} that will replace the current one
+   +   *                       associated with this instance.
+   +   *
+   +   * @return true if the operation was successful; false otherwise.
+   +   */
   boolean setInstanceConfig(String clusterName, String instanceName, InstanceConfig instanceConfig);
 
   /**
@@ -246,6 +240,14 @@ public interface HelixAdmin {
    * @param enabled
    */
   void enableCluster(String clusterName, boolean enabled);
+
+  /**
+   * @param clusterName
+   * @param enabled
+   * @param reason      set additional string description on why the cluster is disabled when
+   *                    <code>enabled</code> is false.
+   */
+  void enableCluster(String clusterName, boolean enabled, String reason);
 
   /**
    * Reset a list of partitions in error state for an instance
@@ -458,6 +460,24 @@ public interface HelixAdmin {
   void removeInstanceTag(String clusterName, String instanceName, String tag);
 
   void setInstanceZoneId(String clusterName, String instanceName, String zoneId);
+
+  /**
+   * Enable/disable batch message mode for specified cluster.
+   * By default batch message mode is disabled.
+   *
+   * @param clusterName
+   * @param enabled
+   */
+  void enableBatchMessageMode(String clusterName, boolean enabled);
+
+  /**
+   * Enable/disable batch message mode for specified resource in a cluster
+   * By default batch message mode is disabled.
+   * @param clusterName
+   * @param resourceName
+   * @param enabled
+   */
+  void enableBatchMessageMode(String clusterName, String resourceName, boolean enabled);
 
   /**
    * Release resources

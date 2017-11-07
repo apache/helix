@@ -21,11 +21,11 @@ package org.apache.helix;
 
 /**
  * Interface to implement to respond to controller changes.
+ *
+ * @deprecated 
+ * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.ControllerChangeListener}
  */
-public interface ControllerChangeListener {
-  /**
-   * Invoked when controller changes
-   * @param changeContext description of the event and state
-   */
-  public void onControllerChange(NotificationContext changeContext);
+@Deprecated
+public interface ControllerChangeListener extends
+    org.apache.helix.api.listeners.ControllerChangeListener{
 }

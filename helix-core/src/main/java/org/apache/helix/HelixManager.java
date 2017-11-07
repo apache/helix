@@ -21,14 +21,26 @@ package org.apache.helix;
 
 import java.util.List;
 
+import org.apache.helix.api.listeners.ClusterConfigChangeListener;
+import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.helix.api.listeners.MessageListener;
+import org.apache.helix.api.listeners.ScopedConfigChangeListener;
+import org.apache.helix.api.listeners.IdealStateChangeListener;
+import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.ExternalViewChangeListener;
+import org.apache.helix.api.listeners.InstanceConfigChangeListener;
+import org.apache.helix.api.listeners.ConfigChangeListener;
+import org.apache.helix.api.listeners.ControllerChangeListener;
 
 /**
  * Class that represents the Helix Agent.
@@ -58,7 +70,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  */
 public interface HelixManager {
   @Deprecated
-  public static final String ALLOW_PARTICIPANT_AUTO_JOIN =
+  String ALLOW_PARTICIPANT_AUTO_JOIN =
       ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN;
 
   /**
@@ -93,10 +105,25 @@ public interface HelixManager {
   void addIdealStateChangeListener(IdealStateChangeListener listener) throws Exception;
 
   /**
+   * @see IdealStateChangeListener#onIdealStateChange(List, NotificationContext)
+   * @param listener
+   * @throws Exception
+   */
+  @Deprecated
+  void addIdealStateChangeListener(org.apache.helix.IdealStateChangeListener listener) throws Exception;
+
+  /**
    * @see LiveInstanceChangeListener#onLiveInstanceChange(List, NotificationContext)
    * @param listener
    */
   void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception;
+
+  /**
+   * @see LiveInstanceChangeListener#onLiveInstanceChange(List, NotificationContext)
+   * @param listener
+   */
+  @Deprecated
+  void addLiveInstanceChangeListener(org.apache.helix.LiveInstanceChangeListener listener) throws Exception;
 
   /**
    * @see ConfigChangeListener#onConfigChange(List, NotificationContext)
@@ -113,11 +140,39 @@ public interface HelixManager {
   void addInstanceConfigChangeListener(InstanceConfigChangeListener listener) throws Exception;
 
   /**
+   * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)
+   * @param listener
+   */
+  @Deprecated
+  void addInstanceConfigChangeListener(org.apache.helix.InstanceConfigChangeListener listener) throws Exception;
+
+  /**
+   * @see ResourceConfigChangeListener#onResourceConfigChange(List, NotificationContext)
+   * @param listener
+   */
+  void addResourceConfigChangeListener(ResourceConfigChangeListener listener) throws Exception;
+
+  /**
+   * @see ClusterConfigChangeListener#onClusterConfigChange(ClusterConfig, NotificationContext)
+   * @param listener
+   */
+  void addClusterfigChangeListener(ClusterConfigChangeListener listener) throws Exception;
+
+  /**
    * @see ScopedConfigChangeListener#onConfigChange(List, NotificationContext)
    * @param listener
    * @param scope
    */
   void addConfigChangeListener(ScopedConfigChangeListener listener, ConfigScopeProperty scope)
+      throws Exception;
+
+  /**
+   * @see ScopedConfigChangeListener#onConfigChange(List, NotificationContext)
+   * @param listener
+   * @param scope
+   */
+  @Deprecated
+  void addConfigChangeListener(org.apache.helix.ScopedConfigChangeListener listener, ConfigScopeProperty scope)
       throws Exception;
 
   /**
@@ -127,13 +182,31 @@ public interface HelixManager {
    */
   void addMessageListener(MessageListener listener, String instanceName) throws Exception;
 
+
+  /**
+   * @see MessageListener#onMessage(String, List, NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  @Deprecated
+  void addMessageListener(org.apache.helix.MessageListener listener, String instanceName)
+      throws Exception;
+
   /**
    * @see CurrentStateChangeListener#onStateChange(String, List, NotificationContext)
    * @param listener
    * @param instanceName
    */
-
   void addCurrentStateChangeListener(CurrentStateChangeListener listener, String instanceName,
+      String sessionId) throws Exception;
+
+  /**
+   * @see CurrentStateChangeListener#onStateChange(String, List, NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  @Deprecated
+  void addCurrentStateChangeListener(org.apache.helix.CurrentStateChangeListener listener, String instanceName,
       String sessionId) throws Exception;
 
   /**
@@ -143,16 +216,43 @@ public interface HelixManager {
   void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception;
 
   /**
+   * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)
+   * @param listener
+   */
+  void addTargetExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception;
+  /**
+   * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)
+   * @param listener
+   */
+  @Deprecated
+  void addExternalViewChangeListener(org.apache.helix.ExternalViewChangeListener listener)
+      throws Exception;
+
+  /**
    * Add listener for controller change
    * Used in distributed cluster controller
    */
   void addControllerListener(ControllerChangeListener listener);
 
   /**
+   * Add listener for controller change
+   * Used in distributed cluster controller
+   */
+  @Deprecated
+  void addControllerListener(org.apache.helix.ControllerChangeListener listener);
+
+  /**
    * Add message listener for controller
    * @param listener
    */
   void addControllerMessageListener(MessageListener listener);
+
+  /**
+   * Add message listener for controller
+   * @param listener
+   */
+  @Deprecated
+  void addControllerMessageListener(org.apache.helix.MessageListener listener);
 
   /**
    * Removes the listener. If the same listener was used for multiple changes,

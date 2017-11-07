@@ -1,0 +1,15 @@
+<md-card *ngFor="let group of keys(groups)">
+  <md-card-header>
+    <md-card-title>{{ group }}</md-card-title>
+  </md-card-header>
+  <md-card-content>
+    <section *ngFor="let section of groups[group]" class="section">
+      <a *ngFor="let helix of keys(section)"
+        md-button
+        [routerLink]="['/', group + '.' + helix]">
+        <md-icon>group_work</md-icon>
+        {{ helix }}
+      </a>
+    </section>
+  </md-card-content>
+</md-card>

@@ -22,9 +22,7 @@ package org.apache.helix.healthcheck;
 import java.util.Map;
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.Mocks.MockManager;
-import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
-import org.apache.helix.healthcheck.ParticipantHealthReportTask;
+import org.apache.helix.mock.MockManager;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 

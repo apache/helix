@@ -21,7 +21,6 @@ package org.apache.helix.api.config;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.helix.ZNRecord;
 
 public class StateTransitionTimeoutConfig {

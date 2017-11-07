@@ -35,6 +35,8 @@ import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
+import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import org.apache.helix.store.HelixPropertyListener;
@@ -88,7 +90,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     // TODO: need to make sure no overlap between wtCachePaths and zkCachePaths
     // TreeMap key is ordered by key string length, so more general (i.e. short) prefix
     // comes first
-    _cacheMap = new TreeMap<String, Cache<T>>(new Comparator<String>() {
+    _cacheMap = new TreeMap<>(new Comparator<String>() {
       @Override
       public int compare(String o1, String o2) {
         int len1 = o1.split("/").length;
@@ -102,11 +104,19 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths) {
-    _zkclient =
-        new ZkClient(zkAddress, ZkClient.DEFAULT_SESSION_TIMEOUT,
-            ZkClient.DEFAULT_CONNECTION_TIMEOUT, serializer);
+    this(zkAddress, serializer, chrootPath, wtCachePaths, zkCachePaths, null, null);
+  }
+
+  public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
+      List<String> wtCachePaths, List<String> zkCachePaths, String monitorType, String monitorkey) {
+    ZkClient.Builder zkClientBuilder = new ZkClient.Builder();
+    zkClientBuilder.setZkServer(zkAddress).setSessionTimeout(ZkClient.DEFAULT_SESSION_TIMEOUT)
+        .setConnectionTimeout(ZkClient.DEFAULT_CONNECTION_TIMEOUT).setZkSerializer(serializer)
+        .setMonitorType(monitorType).setMonitorKey(monitorkey);
+    _zkclient = zkClientBuilder.build();
+
     _zkclient.waitUntilConnected(ZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
-    _baseAccessor = new ZkBaseDataAccessor<T>(_zkclient);
+    _baseAccessor = new ZkBaseDataAccessor<>(_zkclient);
 
     if (chrootPath == null || chrootPath.equals("/")) {
       _chrootPath = null;
@@ -121,7 +131,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     // TODO: need to make sure no overlap between wtCachePaths and zkCachePaths
     // TreeMap key is ordered by key string length, so more general (i.e. short) prefix
     // comes first
-    _cacheMap = new TreeMap<String, Cache<T>>(new Comparator<String>() {
+    _cacheMap = new TreeMap<>(new Comparator<String>() {
       @Override
       public int compare(String o1, String o2) {
         int len1 = o1.split("/").length;

@@ -41,6 +41,7 @@ public enum PropertyType {
   INSTANCES(Type.CLUSTER, true, false),
   IDEALSTATES(Type.CLUSTER, true, false, false, false, true),
   EXTERNALVIEW(Type.CLUSTER, true, false),
+  TARGETEXTERNALVIEW(Type.CLUSTER, true, false),
   STATEMODELDEFS(Type.CLUSTER, true, false, false, false, true),
   CONTROLLER(Type.CLUSTER, true, false),
   PROPERTYSTORE(Type.CLUSTER, true, false),

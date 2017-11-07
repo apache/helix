@@ -31,7 +31,7 @@ import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -102,6 +102,6 @@ public class TestResetClusterMetrics extends ZkUnitTestBase {
   }
 
   private ObjectName objectName(String beanName) throws Exception {
-    return new ObjectName(ClusterStatusMonitor.CLUSTER_STATUS_KEY + ": " + beanName);
+    return new ObjectName(MonitorDomainNames.ClusterStatus.name() + ":" + beanName);
   }
 }

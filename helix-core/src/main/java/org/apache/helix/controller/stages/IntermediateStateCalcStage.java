@@ -179,7 +179,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
                 instance, maxPartitionPerInstance, cache.getClusterName());
             if (manager != null) {
               manager.getClusterManagmentTool()
-                  .enableCluster(manager.getClusterName(), false, errMsg);
+                  .enableMaintenanceMode(manager.getClusterName(), true, errMsg);
             } else {
               logger.error("Failed to pause cluster, HelixManager is not set!");
             }

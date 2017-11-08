@@ -180,7 +180,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
             "Offline Instances count %d greater than allowed count %d. Stop rebalance pipeline and pause the cluster %s",
             offlineCount, maxOfflineInstancesAllowed, cache.getClusterName());
         if (manager != null) {
-          manager.getClusterManagmentTool().enableCluster(manager.getClusterName(), false, errMsg);
+          manager.getClusterManagmentTool()
+              .enableMaintenanceMode(manager.getClusterName(), true, errMsg);
         } else {
           logger.error("Failed to pause cluster, HelixManager is not set!");
         }

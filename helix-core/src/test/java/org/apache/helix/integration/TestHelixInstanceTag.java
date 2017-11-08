@@ -27,7 +27,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

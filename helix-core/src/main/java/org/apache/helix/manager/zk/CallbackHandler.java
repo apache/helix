@@ -161,41 +161,41 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
     Class listenerClass = null;
     switch (_changeType) {
-      case IDEAL_STATE:
-        listenerClass = IdealStateChangeListener.class;
-        break;
-      case INSTANCE_CONFIG:
-        if (_listener instanceof ConfigChangeListener) {
-          listenerClass = ConfigChangeListener.class;
-        } else if (_listener instanceof InstanceConfigChangeListener) {
-          listenerClass = InstanceConfigChangeListener.class;
-        }
-        break;
-      case CLUSTER_CONFIG:
-        listenerClass = ClusterConfigChangeListener.class;
-        break;
-      case RESOURCE_CONFIG:
-        listenerClass = ResourceConfigChangeListener.class;
-        break;
-      case CONFIG:
+    case IDEAL_STATE:
+      listenerClass = IdealStateChangeListener.class;
+      break;
+    case INSTANCE_CONFIG:
+      if (_listener instanceof ConfigChangeListener) {
         listenerClass = ConfigChangeListener.class;
-        break;
-      case LIVE_INSTANCE:
-        listenerClass = LiveInstanceChangeListener.class;
-        break;
-      case CURRENT_STATE:
-        listenerClass = CurrentStateChangeListener.class;        ;
-        break;
-      case MESSAGE:
-      case MESSAGES_CONTROLLER:
-        listenerClass = MessageListener.class;
-        break;
-      case EXTERNAL_VIEW:
-      case TARGET_EXTERNAL_VIEW:
-        listenerClass = ExternalViewChangeListener.class;
-        break;
-      case CONTROLLER:
-        listenerClass = ControllerChangeListener.class;
+      } else if (_listener instanceof InstanceConfigChangeListener) {
+        listenerClass = InstanceConfigChangeListener.class;
+      }
+      break;
+    case CLUSTER_CONFIG:
+      listenerClass = ClusterConfigChangeListener.class;
+      break;
+    case RESOURCE_CONFIG:
+      listenerClass = ResourceConfigChangeListener.class;
+      break;
+    case CONFIG:
+      listenerClass = ConfigChangeListener.class;
+      break;
+    case LIVE_INSTANCE:
+      listenerClass = LiveInstanceChangeListener.class;
+      break;
+    case CURRENT_STATE:
+      listenerClass = CurrentStateChangeListener.class;        ;
+      break;
+    case MESSAGE:
+    case MESSAGES_CONTROLLER:
+      listenerClass = MessageListener.class;
+      break;
+    case EXTERNAL_VIEW:
+    case TARGET_EXTERNAL_VIEW:
+      listenerClass = ExternalViewChangeListener.class;
+      break;
+    case CONTROLLER:
+      listenerClass = ControllerChangeListener.class;
     }
 
     Method callbackMethod = listenerClass.getMethods()[0];
@@ -449,7 +449,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           case CURRENT_STATE:
           case IDEAL_STATE:
           case EXTERNAL_VIEW:
-            case TARGET_EXTERNAL_VIEW:{
+          case TARGET_EXTERNAL_VIEW:{
             // check if bucketized
             BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
             List<ZNRecord> records = baseAccessor.getChildren(path, null, 0);

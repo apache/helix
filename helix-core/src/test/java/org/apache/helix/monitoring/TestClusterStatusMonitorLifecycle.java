@@ -36,8 +36,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -187,7 +187,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     }
   }
 
-  @Test
+  @Test (enabled = false)
   public void testClusterStatusMonitorLifecycle() throws InstanceNotFoundException,
       MalformedObjectNameException, NullPointerException, IOException, InterruptedException {
     ParticipantMonitorListener listener =

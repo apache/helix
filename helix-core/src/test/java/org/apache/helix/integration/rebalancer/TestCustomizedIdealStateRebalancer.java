@@ -38,8 +38,8 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier.ZkVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

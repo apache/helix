@@ -21,7 +21,7 @@ package org.apache.helix.manager.zk;
 
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

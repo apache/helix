@@ -329,11 +329,6 @@ public class PropertyKey {
       return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName);
     }
 
-    public PropertyKey participantHistory(String instanceName) {
-      return new PropertyKey(INSTANCE_HISTORY, ParticipantHistory.class, _clusterName,
-          instanceName);
-    }
-
     /**
      * Get a property key associated with {@link Error} for an instance under a session
      * @param instanceName

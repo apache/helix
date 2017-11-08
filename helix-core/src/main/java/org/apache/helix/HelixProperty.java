@@ -152,15 +152,6 @@ public class HelixProperty {
   }
 
   /**
-   * Initialize the property with an existing ZNRecord with new record id
-   * @param record
-   * @param id
-   */
-  public HelixProperty(ZNRecord record, String id) {
-    _record = new ZNRecord(record, id);
-  }
-
-  /**
    * Get the property identifier
    * @return the property id
    */

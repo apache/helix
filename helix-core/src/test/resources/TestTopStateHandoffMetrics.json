@@ -1,0 +1,178 @@
+{
+  "succeeded" : [
+    {
+      "initialCurrentStates": {
+        "localhost_0" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "MASTER",
+          "StartTime" : "15000",
+          "EndTime" : "18000"
+        },
+        "localhost_1" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "OFFLINE",
+          "StartTime" : "8000",
+          "EndTime" : "10000"
+        },
+        "localhost_2" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "OFFLINE",
+          "StartTime" : "8000",
+          "EndTime" : "10000"
+        }
+      },
+      "handoffCurrentStates": {
+        "localhost_0" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "MASTER",
+          "StartTime" : "15000",
+          "EndTime" : "18000"
+        },
+        "localhost_1" : {
+          "CurrentState" : "MASTER",
+          "PreviousState" : "SLAVE",
+          "StartTime" : "20000",
+          "EndTime" : "22000"
+        },
+        "localhost_2" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "OFFLINE",
+          "StartTime" : "8000",
+          "EndTime" : "10000"
+        }
+      },
+      "expectedDuration" : "7000"
+    },
+    {
+    "initialCurrentStates": {
+      "localhost_0" : {
+        "CurrentState" : "SLAVE",
+        "PreviousState" : "MASTER",
+        "StartTime" : "1000",
+        "EndTime" : "2000"
+      },
+      "localhost_1" : {
+        "CurrentState" : "SLAVE",
+        "PreviousState" : "MASTER",
+        "StartTime" : "8000",
+        "EndTime" : "10000"
+      },
+      "localhost_2" : {
+        "CurrentState" : "SLAVE",
+        "PreviousState" : "OFFLINE",
+        "StartTime" : "8000",
+        "EndTime" : "10000"
+      }
+    },
+    "handoffCurrentStates": {
+      "localhost_0" : {
+        "CurrentState" : "SLAVE",
+        "PreviousState" : "MASTER",
+        "StartTime" : "1000",
+        "EndTime" : "2000"
+      },
+      "localhost_1" : {
+        "CurrentState" : "MASTER",
+        "PreviousState" : "SLAVE",
+        "StartTime" : "20000",
+        "EndTime" : "22000"
+      },
+      "localhost_2" : {
+        "CurrentState" : "ERROR",
+        "PreviousState" : "SLAVE",
+        "StartTime" : "8000",
+        "EndTime" : "10000"
+      }
+    },
+    "expectedDuration" : "14000"
+    }
+  ],
+  "failed" : [
+    {
+      "initialCurrentStates": {
+        "localhost_0" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "MASTER",
+          "StartTime" : "15000",
+          "EndTime" : "18000"
+        },
+        "localhost_1" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "OFFLINE",
+          "StartTime" : "8000",
+          "EndTime" : "10000"
+        },
+        "localhost_2" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "OFFLINE",
+          "StartTime" : "8000",
+          "EndTime" : "10000"
+        }
+      },
+      "handoffCurrentStates": {
+        "localhost_0" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "MASTER",
+          "StartTime" : "15000",
+          "EndTime" : "18000"
+        },
+        "localhost_1" : {
+          "CurrentState" : "MASTER",
+          "PreviousState" : "SLAVE",
+          "StartTime" : "20000",
+          "EndTime" : "22000"
+        },
+        "localhost_2" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "OFFLINE",
+          "StartTime" : "8000",
+          "EndTime" : "10000"
+        }
+      },
+      "expectedDuration" : "0"
+    },
+    {
+      "initialCurrentStates": {
+        "localhost_0" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "MASTER",
+          "StartTime" : "15000",
+          "EndTime" : "18000"
+        },
+        "localhost_1" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "OFFLINE",
+          "StartTime" : "8000",
+          "EndTime" : "10000"
+        },
+        "localhost_2" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "MASTER",
+          "StartTime" : "8000",
+          "EndTime" : "10000"
+        }
+      },
+      "handoffCurrentStates": {
+        "localhost_0" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "MASTER",
+          "StartTime" : "15000",
+          "EndTime" : "18000"
+        },
+        "localhost_1" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "OFFLINE",
+          "StartTime" : "20000",
+          "EndTime" : "22000"
+        },
+        "localhost_2" : {
+          "CurrentState" : "SLAVE",
+          "PreviousState" : "OFFLINE",
+          "StartTime" : "8000",
+          "EndTime" : "10000"
+        }
+      },
+      "expectedDuration" : "0"
+    }
+  ]
+}

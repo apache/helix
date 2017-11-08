@@ -53,7 +53,7 @@ public abstract class IdealStateBuilder {
   /**
    * Whether delay rebalance should be disabled.
    */
-  private Boolean delayRebalanceDisabled = null;
+  private Boolean delayRebalanceEnabled = null;
 
   /**
    * State model that is applicable for this resource
@@ -98,14 +98,21 @@ public abstract class IdealStateBuilder {
   private Boolean disableExternalView = null;
 
   /**
-   * Resource group name.
+   * Resource Group Name
    */
   private String resourceGroupName;
 
   /**
-   * Whether the resource group routing should be enabled in routingProvider.
+   * Whether enabling group routing.
    */
-  private Boolean enableGroupRouting;
+  private Boolean enableGroupRouting = null;
+
+
+  /**
+   * Resource Type
+   */
+  private String resourceType;
+
 
   protected ZNRecord _record;
 
@@ -143,14 +150,14 @@ public abstract class IdealStateBuilder {
    * Disable Delayed Rebalance.
    */
   public void disableDelayRebalance() {
-    delayRebalanceDisabled = true;
+    delayRebalanceEnabled = false;
   }
 
   /**
    * Disable Delayed Rebalance.
    */
   public void enableDelayRebalance() {
-    delayRebalanceDisabled = false;
+    delayRebalanceEnabled = true;
   }
 
   /**
@@ -194,10 +201,10 @@ public abstract class IdealStateBuilder {
   }
 
   /**
-   * @param disableExternalView
+   * Disable ExternalView for this resource
    */
-  public IdealStateBuilder setDisableExternalView(boolean disableExternalView) {
-    this.disableExternalView = disableExternalView;
+  public IdealStateBuilder disableExternalView() {
+    this.disableExternalView = true;
     return this;
   }
 
@@ -240,6 +247,15 @@ public abstract class IdealStateBuilder {
   }
 
   /**
+   * @param resourceType
+   * @return
+   */
+  public IdealStateBuilder setResourceType(String resourceType) {
+    this.resourceType = resourceType;
+    return this;
+  }
+
+  /**
    * Enable Group Routing for this resource.
    * @return
    */
@@ -258,10 +274,6 @@ public abstract class IdealStateBuilder {
     idealstate.setStateModelFactoryName(stateModelFactoryName);
     idealstate.setRebalanceMode(rebalancerMode);
     idealstate.setReplicas("" + numReplica);
-
-    if (maxPartitionsPerNode > 0) {
-      idealstate.setMaxPartitionsPerInstance(maxPartitionsPerNode);
-    }
 
     if (minActiveReplica >= 0) {
       idealstate.setMinActiveReplicas(minActiveReplica);
@@ -283,26 +295,30 @@ public abstract class IdealStateBuilder {
       idealstate.setDisableExternalView(disableExternalView);
     }
 
+    if (enableGroupRouting != null) {
+      idealstate.enableGroupRouting(enableGroupRouting);
+    }
+
     if (resourceGroupName != null) {
       idealstate.setResourceGroupName(resourceGroupName);
     }
 
-    if (enableGroupRouting != null) {
-      idealstate.enableGroupRouting(enableGroupRouting);
+    if (resourceType != null) {
+      idealstate.setResourceType(resourceType);
     }
 
     if (rebalanceDelayInMs >= 0) {
       idealstate.setRebalanceDelay(rebalanceDelayInMs);
     }
 
-    if (delayRebalanceDisabled != null) {
-      idealstate.setDelayRebalanceDisabled(delayRebalanceDisabled);
+    if (delayRebalanceEnabled != null) {
+      idealstate.setDelayRebalanceEnabled(delayRebalanceEnabled);
     }
 
     if (!idealstate.isValid()) {
       throw new HelixException("invalid ideal-state: " + idealstate);
     }
-
     return idealstate;
   }
+
 }

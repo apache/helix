@@ -20,6 +20,7 @@ package org.apache.helix.integration;
  */
 
 import org.apache.helix.TestHelper;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;

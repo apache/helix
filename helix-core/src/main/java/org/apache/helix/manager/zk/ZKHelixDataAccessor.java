@@ -57,7 +57,6 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   private final String _clusterName;
   private final Builder _propertyKeyBuilder;
   private final GroupCommit _groupCommit = new GroupCommit();
-  String _zkPropertyTransferSvcUrl = null;
 
   public ZKHelixDataAccessor(String clusterName, BaseDataAccessor<ZNRecord> baseDataAccessor) {
     this(clusterName, null, baseDataAccessor);
@@ -71,7 +70,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
   }
 
-  @Override public boolean createStateModelDef(StateModelDefinition stateModelDef) {
+  @Override
+  public boolean createStateModelDef(StateModelDefinition stateModelDef) {
     String path = PropertyPathBuilder.stateModelDef(_clusterName, stateModelDef.getId());
     HelixProperty property =
         getProperty(new PropertyKey.Builder(_clusterName).stateModelDef(stateModelDef.getId()));
@@ -94,7 +94,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
   @Override
   public boolean createControllerMessage(Message message) {
-    return _baseDataAccessor.create(PropertyPathBuilder.controllerMessage(_clusterName, message.getMsgId()),
+    return _baseDataAccessor.create(PropertyPathBuilder.controllerMessage(_clusterName,
+        message.getMsgId()),
         message.getRecord(), AccessOption.PERSISTENT);
   }
 
@@ -192,21 +193,28 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     List<T> childValues = new ArrayList<T>();
 
     // read all records
-    List<String> paths = new ArrayList<String>();
+    List<String> paths = new ArrayList<>();
+    List<Stat> stats = new ArrayList<>();
     for (PropertyKey key : keys) {
       paths.add(key.getPath());
+      stats.add(new Stat());
     }
-    List<ZNRecord> children = _baseDataAccessor.get(paths, null, 0);
+    List<ZNRecord> children = _baseDataAccessor.get(paths, stats, 0);
 
     // check if bucketized
     for (int i = 0; i < keys.size(); i++) {
       PropertyKey key = keys.get(i);
       ZNRecord record = children.get(i);
+      Stat stat = stats.get(i);
 
       PropertyType type = key.getType();
       String path = key.getPath();
       int options = constructOptions(type);
-      // ZNRecord record = null;
+      if (record != null) {
+        record.setCreationTime(stat.getCtime());
+        record.setModifiedTime(stat.getMtime());
+        record.setVersion(stat.getVersion());
+      }
 
       switch (type) {
       case CURRENTSTATES:
@@ -299,6 +307,49 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     @SuppressWarnings("unchecked")
     T t = (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
     return t;
+  }
+
+  @Override
+  public HelixProperty.Stat getPropertyStat(PropertyKey key) {
+    PropertyType type = key.getType();
+    String path = key.getPath();
+    int options = constructOptions(type);
+    try {
+      Stat stat = _baseDataAccessor.getStat(path, options);
+      if (stat != null) {
+        return new HelixProperty.Stat(stat.getVersion(), stat.getCtime(), stat.getMtime());
+      }
+    } catch (ZkNoNodeException e) {
+
+    }
+
+    return null;
+  }
+
+  @Override
+  public List<HelixProperty.Stat> getPropertyStats(List<PropertyKey> keys) {
+    if (keys == null || keys.size() == 0) {
+      return Collections.emptyList();
+    }
+
+    List<HelixProperty.Stat> propertyStats = new ArrayList<>(keys.size());
+    List<String> paths = new ArrayList<>(keys.size());
+    for (PropertyKey key : keys) {
+      paths.add(key.getPath());
+    }
+    Stat[] zkStats = _baseDataAccessor.getStats(paths, 0);
+
+    for (int i = 0; i < keys.size(); i++) {
+      Stat zkStat = zkStats[i];
+      HelixProperty.Stat propertyStat = null;
+      if (zkStat != null) {
+        propertyStat =
+            new HelixProperty.Stat(zkStat.getVersion(), zkStat.getCtime(), zkStat.getMtime());
+      }
+      propertyStats.add(propertyStat);
+    }
+
+    return propertyStats;
   }
 
   @Override

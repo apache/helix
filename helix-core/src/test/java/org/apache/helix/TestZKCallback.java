@@ -19,24 +19,17 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.ExternalViewChangeListener;
-import org.apache.helix.HelixConstants;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.IdealStateChangeListener;
-import org.apache.helix.InstanceType;
-import org.apache.helix.LiveInstanceChangeListener;
-import org.apache.helix.MessageListener;
-import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.listeners.MessageListener;
+import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.ConfigChangeListener;
+import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.ExternalViewChangeListener;
+import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
@@ -213,7 +206,7 @@ public class TestZKCallback extends ZkUnitTestBase {
   }
 
   @BeforeClass()
-  public void beforeClass() throws IOException, Exception {
+  public void beforeClass() throws Exception {
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists("/" + clusterName)) {

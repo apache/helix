@@ -31,6 +31,7 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.Rebalancer;
+import org.apache.helix.model.ResourceConfig.ResourceConfigProperty;
 import org.apache.helix.task.FixedTargetTaskRebalancer;
 import org.apache.helix.task.GenericTaskRebalancer;
 import org.apache.helix.task.JobRebalancer;
@@ -54,6 +55,7 @@ public class IdealState extends HelixProperty {
     REPLICAS,
     MIN_ACTIVE_REPLICAS,
     REBALANCE_DELAY,
+    @Deprecated
     DELAY_REBALANCE_DISABLED,
     @Deprecated
     IDEAL_STATE_MODE,
@@ -65,6 +67,7 @@ public class IdealState extends HelixProperty {
     INSTANCE_GROUP_TAG,
     HELIX_ENABLED,
     RESOURCE_GROUP_NAME,
+    RESOURCE_TYPE,
     GROUP_ROUTING_ENABLED,
     EXTERNAL_VIEW_DISABLED
   }
@@ -207,6 +210,22 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Set the resource type
+   * @param resourceType
+   */
+  public void setResourceType(String resourceType) {
+    _record.setSimpleField(IdealStateProperty.RESOURCE_TYPE.toString(), resourceType);
+  }
+
+  /**
+   * Get the resource type
+   * @return the resource type, or null if none is being set
+   */
+  public String getResourceType() {
+    return _record.getSimpleField(IdealStateProperty.RESOURCE_TYPE.toString());
+  }
+
+  /**
    * Set the delay time (in ms) that Helix should move the partition after an instance goes offline.
    * @param delayInMilliseconds
    */
@@ -223,19 +242,28 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * If disabled is true, the delayed rebalance time will be ignored.
-   * @param disabled
+   * Enable/Disable the delayed rebalance.
+   * By default it is enabled if not set.
+   *
+   * @param enabled
    */
-  public void setDelayRebalanceDisabled(boolean disabled) {
-    _record.setBooleanField(IdealStateProperty.DELAY_REBALANCE_DISABLED.name(), disabled);
+  public void setDelayRebalanceEnabled(boolean enabled) {
+    _record.setBooleanField(ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(), enabled);
   }
 
   /**
-   * Whether the delay rebalance is disabled.
+   * Whether the delay rebalance is enabled.
    * @return
    */
-  public boolean isDelayRebalanceDisabled() {
-    return _record.getBooleanField(IdealStateProperty.DELAY_REBALANCE_DISABLED.name(), false);
+  public boolean isDelayRebalanceEnabled() {
+    boolean disabled =
+        _record.getBooleanField(IdealStateProperty.DELAY_REBALANCE_DISABLED.name(), false);
+    boolean enabled =
+        _record.getBooleanField(ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(), true);
+    if (disabled) {
+      return false;
+    }
+    return enabled;
   }
 
   /**
@@ -391,20 +419,21 @@ public class IdealState extends HelixProperty {
     case TASK:
       List<String> prefList = _record.getListField(partitionName);
       if (prefList != null && !prefList.isEmpty()) {
-        return new TreeSet<>(prefList);
+        return new TreeSet<String>(prefList);
       } else {
         Map<String, String> stateMap = _record.getMapField(partitionName);
         if (stateMap != null && !stateMap.isEmpty()) {
-          return new TreeSet<>(stateMap.keySet());
+          return new TreeSet<String>(stateMap.keySet());
         } else {
           logger.warn(partitionName + " does NOT exist");
         }
       }
       break;
+
     case CUSTOMIZED:
       Map<String, String> stateMap = _record.getMapField(partitionName);
       if (stateMap != null) {
-        return new TreeSet<>(stateMap.keySet());
+        return new TreeSet<String>(stateMap.keySet());
       } else {
         logger.warn(partitionName + " does NOT exist");
       }
@@ -419,7 +448,23 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Get the preference list of a partition
+   * @param partitionName the name of the partition
+   * @return a list of instances that can serve replicas of the partition
+   */
+  public List<String> getPreferenceList(String partitionName) {
+    List<String> instanceStateList = _record.getListField(partitionName);
+
+    if (instanceStateList != null) {
+      return instanceStateList;
+    }
+
+    return null;
+  }
+
+  /**
    * Set the preference list of a partition
+   *
    * @param partitionName the name of the partition
    * @param instanceList the instance preference list
    */
@@ -443,23 +488,6 @@ public class IdealState extends HelixProperty {
    */
   public Map<String, List<String>> getPreferenceLists() {
     return _record.getListFields();
-  }
-
-
-  /**
-   * Get the preference list of a partition
-   * @param partitionName the name of the partition
-   * @return a list of instances that can serve replicas of the partition
-   */
-  public List<String> getPreferenceList(String partitionName) {
-    List<String> instanceStateList = _record.getListField(partitionName);
-
-    if (instanceStateList != null) {
-      return instanceStateList;
-    }
-    logger.warn("Resource: " + getResourceName() + " key:" + partitionName
-        + " does not have a pre-computed preference list.");
-    return null;
   }
 
   /**
@@ -571,6 +599,30 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Get the number of replicas for each partition of this resource
+   *
+   * @return number of replicas
+   */
+  public int getReplicaCount(int eligibleInstancesCount) {
+    String replicaStr = getReplicas();
+    int replica = 0;
+
+    try {
+      replica = Integer.parseInt(replicaStr);
+    } catch (NumberFormatException ex) {
+      if (replicaStr
+          .equalsIgnoreCase(ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.name())) {
+        replica = eligibleInstancesCount;
+      } else {
+        logger.error("Can not determine the replica count for resource " + getResourceName()
+                + ", set to 0.");
+      }
+    }
+
+    return replica;
+  }
+
+  /**
    * Set the state model factory associated with this resource
    * @param name state model factory name
    */
@@ -591,8 +643,8 @@ public class IdealState extends HelixProperty {
    * Set the frequency with which to rebalance
    * @return the rebalancing timer period
    */
-  public int getRebalanceTimerPeriod() {
-    return _record.getIntField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString(), -1);
+  public long getRebalanceTimerPeriod() {
+    return _record.getLongField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString(), -1);
   }
 
   @Override

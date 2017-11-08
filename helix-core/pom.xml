@@ -21,7 +21,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix</groupId>
     <artifactId>helix</artifactId>
-    <version>0.6.10-SNAPSHOT</version>
+    <version>0.6.9-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -144,11 +144,16 @@ under the License.
       <artifactId>guava</artifactId>
       <version>15.0</version>
     </dependency>
-      <dependency>
-        <groupId>org.yaml</groupId>
-        <artifactId>snakeyaml</artifactId>
-        <version>1.12</version>
-      </dependency>
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>1.12</version>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+      <version>3.2.3</version>
+    </dependency>
   </dependencies>
   <build>
     <resources>

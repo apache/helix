@@ -22,14 +22,14 @@ package org.apache.helix.integration;
 import java.util.Date;
 
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -55,8 +55,7 @@ public class TestNullReplica extends ZkIntegrationTestBase {
         3, // replicas
         "MasterSlave", true); // do rebalance
     // set replica in ideal state to null
-    String idealStatePath =
-        PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
+    String idealStatePath = PropertyPathBuilder.idealState(clusterName, "TestDB0");
     ZNRecord idealState = _gZkClient.readData(idealStatePath);
     idealState.getSimpleFields().remove(IdealState.IdealStateProperty.REPLICAS.toString());
     _gZkClient.writeData(idealStatePath, idealState);

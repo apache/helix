@@ -41,4 +41,9 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
    * @return
    */
   public long getInstanceMessageQueueBacklog();
+
+  /**
+   * @return 1 if cluster is enabled, otherwise 0
+   */
+  public long getEnabled();
 }

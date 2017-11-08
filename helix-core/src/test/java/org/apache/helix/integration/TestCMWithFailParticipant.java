@@ -21,6 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.testng.annotations.Test;
 
 public class TestCMWithFailParticipant extends ZkIntegrationTestBase {

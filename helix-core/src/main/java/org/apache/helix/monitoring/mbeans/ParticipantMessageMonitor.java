@@ -1,6 +1,8 @@
 package org.apache.helix.monitoring.mbeans;
 
 public class ParticipantMessageMonitor implements ParticipantMessageMonitorMBean {
+  public static final String PARTICIPANT_KEY = "ParticipantName";
+  public static final String PARTICIPANT_STATUS_KEY = "ParticipantMessageStatus";
 
   /**
    * The current processed state of the message
@@ -11,8 +13,6 @@ public class ParticipantMessageMonitor implements ParticipantMessageMonitorMBean
     COMPLETED
   }
 
-  private static final String PARTICIPANT_KEY = "ParticipantName";
-  private static final String PARTICIPANT_STATUS_KEY = "ParticipantMessageStatus";
   private final String _participantName;
   private long _receivedMessages = 0;
   private long _discardedMessages = 0;
@@ -79,7 +79,7 @@ public class ParticipantMessageMonitor implements ParticipantMessageMonitorMBean
 
   @Override
   public String getSensorName() {
-    return PARTICIPANT_STATUS_KEY + "." + "_participantName";
+    return PARTICIPANT_STATUS_KEY;
   }
 
 }

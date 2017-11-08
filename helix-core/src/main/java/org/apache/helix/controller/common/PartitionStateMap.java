@@ -36,7 +36,7 @@ public class PartitionStateMap {
 
   public PartitionStateMap(String resourceName) {
     _resourceName = resourceName;
-    _stateMap = new HashMap<Partition, Map<String, String>>();
+    _stateMap = new HashMap<>();
   }
 
   public PartitionStateMap(String resourceName,

@@ -112,7 +112,7 @@ public class MessageThrottleStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     MessageSelectionStageOutput msgSelectionOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());

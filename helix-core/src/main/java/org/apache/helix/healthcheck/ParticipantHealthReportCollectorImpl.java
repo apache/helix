@@ -32,7 +32,7 @@ import org.apache.log4j.Logger;
 public class ParticipantHealthReportCollectorImpl implements ParticipantHealthReportCollector {
   private final LinkedList<HealthReportProvider> _healthReportProviderList =
       new LinkedList<HealthReportProvider>();
-  private static final Logger _logger = Logger
+  private static final Logger LOG = Logger
       .getLogger(ParticipantHealthReportCollectorImpl.class);
   private final HelixManager _helixManager;
   String _instanceName;
@@ -49,11 +49,11 @@ public class ParticipantHealthReportCollectorImpl implements ParticipantHealthRe
         if (!_healthReportProviderList.contains(provider)) {
           _healthReportProviderList.add(provider);
         } else {
-          _logger.warn("Skipping a duplicated HealthCheckInfoProvider");
+          LOG.warn("Skipping a duplicated HealthCheckInfoProvider");
         }
       }
     } catch (Exception e) {
-      _logger.error(e);
+      LOG.error(e);
     }
   }
 
@@ -63,7 +63,7 @@ public class ParticipantHealthReportCollectorImpl implements ParticipantHealthRe
       if (_healthReportProviderList.contains(provider)) {
         _healthReportProviderList.remove(provider);
       } else {
-        _logger.warn("Skip removing a non-exist HealthCheckInfoProvider");
+        LOG.warn("Skip removing a non-exist HealthCheckInfoProvider");
       }
     }
   }
@@ -72,9 +72,10 @@ public class ParticipantHealthReportCollectorImpl implements ParticipantHealthRe
   public void reportHealthReportMessage(ZNRecord healthCheckInfoUpdate) {
     HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.healthReport(_instanceName, healthCheckInfoUpdate.getId()),
-        new HealthStat(healthCheckInfoUpdate));
-
+    if(!accessor.setProperty(keyBuilder.healthReport(_instanceName, healthCheckInfoUpdate.getId()),
+        new HealthStat(healthCheckInfoUpdate))) {
+      LOG.error("Failed to persist health report to zk!");
+    }
   }
 
   @Override
@@ -96,12 +97,14 @@ public class ParticipantHealthReportCollectorImpl implements ParticipantHealthRe
 
           HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
           Builder keyBuilder = accessor.keyBuilder();
-          accessor.setProperty(keyBuilder.healthReport(_instanceName, record.getId()),
-              new HealthStat(record));
+          if (!accessor.setProperty(keyBuilder.healthReport(_instanceName, record.getId()),
+              new HealthStat(record))) {
+            LOG.error("Failed to persist health report to zk!");
+          }
 
           provider.resetStats();
         } catch (Exception e) {
-          _logger.error("fail to transmit health report", e);
+          LOG.error("fail to transmit health report", e);
         }
       }
     }

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
@@ -36,7 +37,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.spectator.RoutingTableProvider;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -196,7 +197,7 @@ public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
     // disable a resource
     _gSetupTool.enableResource(CLUSTER_NAME, TEST_DB, "cluster_2", false);
 
-    Thread.sleep(500);
+    Thread.sleep(2000);
 
     Set<InstanceConfig> selectedNodes = _routingTableProvider
         .getInstancesForResourceGroup(TEST_DB, "ONLINE", Arrays.asList("cluster_2", "cluster_3"));
@@ -209,7 +210,7 @@ public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
 
     // enable a resource
     _gSetupTool.enableResource(CLUSTER_NAME, TEST_DB, "cluster_2", true);
-    Thread.sleep(500);
+    Thread.sleep(2000);
 
     selectedNodes = _routingTableProvider
         .getInstancesForResourceGroup(TEST_DB, "ONLINE", Arrays.asList("cluster_2", "cluster_3"));

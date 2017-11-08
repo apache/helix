@@ -19,6 +19,7 @@ package org.apache.helix.store.zk;
  * under the License.
  */
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -26,15 +27,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
+import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.helix.store.HelixPropertyListener;
-import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -368,4 +376,22 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     }
   }
 
+  @Test
+  public void testZkClientMonitor() throws JMException {
+    final String TEST_ROOT = "/test_root";
+
+    ZkHelixPropertyStore<ZNRecord> store =
+        new ZkHelixPropertyStore<ZNRecord>(ZK_ADDR, new SerializableSerializer(), TEST_ROOT);
+
+    ObjectName name = MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            ZkHelixPropertyStore.MONITOR_TYPE, ZkClientMonitor.MONITOR_KEY, TEST_ROOT,
+            ZkClientPathMonitor.MONITOR_PATH, "Root");
+    MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
+    Assert.assertTrue(beanServer.isRegistered(name));
+
+    store.getStat("/", AccessOption.PERSISTENT);
+
+    Assert.assertEquals((long) beanServer.getAttribute(name, "ReadCounter"), 1);
+  }
 }

@@ -188,8 +188,6 @@ public class DefaultIdealStateCalculator {
    * 4. Combine the i-th slave assignment maps together
    * @param instanceNames
    *          list of storage node instances
-   * @param weight
-   *          weight for the initial storage node (each node has the same weight)
    * @param partitions
    *          number of partitions
    * @param replicas
@@ -342,7 +340,7 @@ public class DefaultIdealStateCalculator {
     Map<String, Object> result = new TreeMap<String, Object>();
     result.put("MasterAssignmentMap", nodeMasterAssignmentMap);
     result.put("SlaveAssignmentMap", combinedNodeSlaveAssignmentMap);
-    result.put("replicas", new Integer(replicas));
+    result.put("replicas", new Integer(replicas + 1));
     result.put("partitions", new Integer(partitions));
     return result;
   }
@@ -352,7 +350,7 @@ public class DefaultIdealStateCalculator {
    * slave
    * assignment map based on the first level slave assignment map.
    * @param firstInstanceSlaveAssignmentMap the first slave assignment map for all instances
-   * @param order of the slave
+   * @param replicaOrder of the slave
    * @return the n-th slave assignment map for all the instances
    */
   static Map<String, Map<String, List<Integer>>> calculateNextSlaveAssignemntMap(
@@ -427,8 +425,6 @@ public class DefaultIdealStateCalculator {
    * 5.2 even-fy the slave assignment map
    * @param newInstances
    *          list of new added storage node instances
-   * @param weight
-   *          weight for the new storage nodes (each node has the same weight)
    * @param previousIdealState
    *          The previous ideal state
    * @return a map that contain the updated idealstate info
@@ -635,10 +631,8 @@ public class DefaultIdealStateCalculator {
    * In this way we can guarantee that all instances hosts almost same number of slave partitions,
    * also
    * slave partitions are evenly distributed.
-   * @param slaveAssignmentMap the local instance slave assignment map
-   * @param masterPartionsMoved the list of master partition ids that will be migrated away
-   * @param removedAssignmentMap keep track of the removed slave assignment info. The info can be
-   *          used by new added storage nodes.
+   * @param nodeSlaveAssignmentMap the local instance slave assignment map
+   * @param newInstances the list of master partition ids that will be migrated away
    */
   static int migrateSlaveAssignMapToNewInstances(Map<String, List<Integer>> nodeSlaveAssignmentMap,
       List<String> newInstances) {

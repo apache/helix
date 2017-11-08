@@ -101,6 +101,9 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // Verify the fromState and current state of the stateModel
     String state = _currentStateDelta.getState(partitionName);
 
+    // Set start time right before invoke client logic
+    _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
+
     if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
       String errorMessage =
           "Current state of stateModel does not match the fromState in Message"
@@ -136,7 +139,11 @@ public class HelixStateTransitionHandler extends MessageHandler {
       currStateUpdate.setDeltaList(deltaList);
 
       // Update the ZK current state of the node
-      accessor.updateProperty(key, currStateUpdate);
+      if (!accessor.updateProperty(key, currStateUpdate)) {
+        logger.error(
+            "Fails to persist current state back to ZK for resource " + resource + " partition: "
+                + partitionName);
+      }
     }
     catch (Exception e)
     {
@@ -178,8 +185,10 @@ public class HelixStateTransitionHandler extends MessageHandler {
       return;
     }
 
-    // Set the INFO property.
+    // Set the INFO property and mark the end time, previous state of the state transition
     _currentStateDelta.setInfo(partitionKey, taskResult.getInfo());
+    _currentStateDelta.setEndTime(partitionKey, System.currentTimeMillis());
+    _currentStateDelta.setPreviousState(partitionKey, _message.getFromState());
 
     if (taskResult.isSuccess()) {
       // String fromState = message.getFromState();
@@ -245,7 +254,11 @@ public class HelixStateTransitionHandler extends MessageHandler {
               bucketizer.getBucketName(partitionKey));
       if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
         // normal message
-        accessor.updateProperty(key, _currentStateDelta);
+        if (!accessor.updateProperty(key, _currentStateDelta)) {
+          throw new HelixException(
+              "Fails to persist current state back to ZK for resource " + resource + " partition: "
+                  + _message.getPartitionName());
+        }
       } else {
         // sub-message of a batch message
         ConcurrentHashMap<String, CurrentStateUpdate> csUpdateMap =
@@ -350,12 +363,20 @@ public class HelixStateTransitionHandler extends MessageHandler {
                                                        new Class[] { Message.class,
                                                            NotificationContext.class });
     if (methodToInvoke != null) {
-      logger.info(String.format("Instance %s, partition %s received state transition from %s to %s on session %s.",
+      logger.info(String.format("Instance %s, partition %s received state transition from %s to %s on session %s, message id: %s",
                                 message.getTgtName(),
                                 message.getPartitionName(),
                                 message.getFromState(),
                                 message.getToState(),
-                                message.getTgtSessionId()));
+                                message.getTgtSessionId(),
+                                message.getMsgId()));
+
+      if (_cancelled) {
+        throw new HelixRollbackException(String.format(
+            "Instance %s, partition %s state transition from %s to %s on session %s has been cancelled, message id: %s",
+            message.getTgtName(), message.getPartitionName(), message.getFromState(),
+            message.getToState(), message.getTgtSessionId(), message.getMsgId()));
+      }
 
       if (_cancelled) {
         throw new HelixRollbackException(String.format(
@@ -411,9 +432,13 @@ public class HelixStateTransitionHandler extends MessageHandler {
         if (_message.getFromState().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
           disablePartition();
         }
-        accessor.updateProperty(
+
+        if (!accessor.updateProperty(
             keyBuilder.currentState(instanceName, _message.getTgtSessionId(), resourceName),
-            currentStateDelta);
+            currentStateDelta)) {
+          logger.error("Fails to persist ERROR current state to ZK for resource " + resourceName
+                  + " partition: " + partition);
+        }
       }
     } finally {
       StateTransitionError error = new StateTransitionError(type, code, e);

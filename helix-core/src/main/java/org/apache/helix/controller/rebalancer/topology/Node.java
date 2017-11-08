@@ -20,8 +20,10 @@ package org.apache.helix.controller.rebalancer.topology;
  */
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Node implements Comparable<Node> {
   private String _name;

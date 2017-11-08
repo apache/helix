@@ -52,7 +52,7 @@ public class TestUnregisteredCommand extends TaskTestBase {
 
     _driver.start(builder.build());
 
-    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+    _driver.pollForWorkflowState(workflowName, TaskState.FAILED);
     Assert.assertEquals(_driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "JOB1"))
         .getPartitionState(0), TaskPartitionState.ERROR);
     Assert.assertEquals(_driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "JOB1"))

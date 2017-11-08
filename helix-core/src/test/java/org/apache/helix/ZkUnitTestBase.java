@@ -39,7 +39,6 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -48,7 +47,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier.ZkVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
@@ -85,7 +84,7 @@ public class ZkUnitTestBase {
   }
 
   @AfterSuite(alwaysRun = true)
-  public void afterTest() {
+  public void afterSuite() {
     _gZkClient.close();
     TestHelper.stopZkServer(_zkServer);
     _zkServer = null;
@@ -149,10 +148,8 @@ public class ZkUnitTestBase {
 
   public void verifyInstance(ZkClient zkClient, String clusterName, String instance,
       boolean wantExists) {
-    // String instanceConfigsPath = PropertyPathBuilder.getConfigPath(clusterName);
-    String instanceConfigsPath =
-        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
-            HelixConfigScope.ConfigScopeProperty.PARTICIPANT.toString());
+    // String instanceConfigsPath = HelixUtil.getConfigPath(clusterName);
+    String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
     String instanceConfigPath = instanceConfigsPath + "/" + instance;
     String instancePath = PropertyPathBuilder.instance(clusterName, instance);
     AssertJUnit.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
@@ -161,7 +158,7 @@ public class ZkUnitTestBase {
 
   public void verifyResource(ZkClient zkClient, String clusterName, String resource,
       boolean wantExists) {
-    String resourcePath = PropertyPathBuilder.idealState(clusterName) + "/" + resource;
+    String resourcePath = PropertyPathBuilder.idealState(clusterName, resource);
     AssertJUnit.assertEquals(wantExists, zkClient.exists(resourcePath));
   }
 

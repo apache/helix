@@ -30,17 +30,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import org.apache.log4j.Logger;
 
 /**
  * The history of participant.
  */
 public class ParticipantHistory extends HelixProperty {
-  private final static int HISTORY_SIZE = 10;
+  private static Logger LOG = Logger.getLogger(ParticipantHistory.class);
+
+  private final static int HISTORY_SIZE = 20;
   private enum ConfigProperty {
     TIME,
     DATE,
     SESSION,
     HISTORY,
+    OFFLINE,
     LAST_OFFLINE_TIME
   }
 
@@ -61,6 +65,7 @@ public class ParticipantHistory extends HelixProperty {
   public void reportOffline() {
     long time = System.currentTimeMillis();
     _record.setSimpleField(ConfigProperty.LAST_OFFLINE_TIME.name(), String.valueOf(time));
+    updateOfflineHistory(time);
   }
 
   /**
@@ -74,19 +79,23 @@ public class ParticipantHistory extends HelixProperty {
   }
 
   /**
-   * Get the time when this node goes offline last time (epoch time).
-   * If the node is currently online, return -1.
-   * If no offline time is record, return NULL.
+   * Get the time when this node goes offline last time (epoch time). If the node is currently
+   * online or if no offline time is recorded, return -1.
    *
    * @return
    */
-  public Long getLastOfflineTime() {
-    String time = _record.getSimpleField(ConfigProperty.LAST_OFFLINE_TIME.name());
-    if (time == null) {
-      return ONLINE;
+  public long getLastOfflineTime() {
+    long offlineTime = ONLINE;
+    String timeStr = _record.getSimpleField(ConfigProperty.LAST_OFFLINE_TIME.name());
+    if (timeStr != null) {
+      try {
+        offlineTime = Long.valueOf(timeStr);
+      } catch (NumberFormatException ex) {
+        LOG.warn("Failed to parse LAST_OFFLINE_TIME " + timeStr);
+      }
     }
 
-    return Long.valueOf(time);
+    return offlineTime;
   }
 
   /**
@@ -95,7 +104,7 @@ public class ParticipantHistory extends HelixProperty {
   private void updateSessionHistory(String sessionId) {
     List<String> list = _record.getListField(ConfigProperty.HISTORY.name());
     if (list == null) {
-      list = new ArrayList<String>();
+      list = new ArrayList<>();
       _record.setListField(ConfigProperty.HISTORY.name(), list);
     }
 
@@ -116,6 +125,24 @@ public class ParticipantHistory extends HelixProperty {
     sessionEntry.put(ConfigProperty.DATE.name(), dateTime);
 
     list.add(sessionEntry.toString());
+  }
+
+  private void updateOfflineHistory(long time) {
+    List<String> list = _record.getListField(ConfigProperty.OFFLINE.name());
+    if (list == null) {
+      list = new ArrayList<>();
+      _record.setListField(ConfigProperty.OFFLINE.name(), list);
+    }
+
+    if (list.size() == HISTORY_SIZE) {
+      list.remove(0);
+    }
+
+    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS");
+    df.setTimeZone(TimeZone.getTimeZone("UTC"));
+    String dateTime = df.format(new Date(time));
+
+    list.add(dateTime);
   }
 
   @Override

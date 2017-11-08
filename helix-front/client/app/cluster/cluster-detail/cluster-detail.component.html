@@ -1,0 +1,54 @@
+<section class="cluster-detail">
+  <section *ngIf="clusterName">
+    <md-toolbar class="mat-elevation-z1">
+      <hi-detail-header [cluster]="clusterName"></hi-detail-header>
+      <hi-disabled-label *ngIf="!cluster?.enabled" text="DISABLED"></hi-disabled-label>
+      <md-toolbar-row class="information">
+        <md-spinner *ngIf="isLoading"></md-spinner>
+        <h6 *ngIf="!isLoading">Controller:
+          <a md-button color="accent" routerLink="controller">{{ cluster.controller }}</a>
+        </h6>
+        <span fxFlex="1 1 auto"></span>
+        <button md-mini-fab *ngIf="can" [mdMenuTriggerFor]="menu">
+          <md-icon>menu</md-icon>
+        </button>
+        <md-menu #menu="mdMenu">
+          <button md-menu-item *ngIf="cluster?.controller == 'No Lead Controller!'" (click)="activateCluster()">
+            <md-icon>settings_input_antenna</md-icon>
+            <span>Activate this Cluster</span>
+          </button>
+          <button md-menu-item *ngIf="cluster?.enabled" (click)="disableCluster()">
+            <md-icon>not_interested</md-icon>
+            <span>Disable this Cluster</span>
+          </button>
+          <button md-menu-item *ngIf="!cluster?.enabled" (click)="enableCluster()">
+            <md-icon>play_circle_outline</md-icon>
+            <span>Enable this Cluster</span>
+          </button>
+          <button md-menu-item *ngIf="false" (click)="addResource()">
+            <md-icon>note_add</md-icon>
+            <span>Add a Resource</span>
+          </button>
+          <button md-menu-item (click)="addInstance()">
+            <md-icon>add_circle</md-icon>
+            <span>Add an Instance</span>
+          </button>
+          <button md-menu-item *ngIf="false" (click)="deleteCluster()" disabled>
+            <md-icon>delete</md-icon>
+            <span>DELETE this Cluster</span>
+          </button>
+        </md-menu>
+      </md-toolbar-row>
+    </md-toolbar>
+    <nav md-tab-nav-bar>
+      <a md-tab-link
+        *ngFor="let tabLink of tabLinks"
+        [routerLink]="tabLink.link"
+        routerLinkActive #rla="routerLinkActive"
+        [active]="rla.isActive">
+        {{ tabLink.label }}
+      </a>
+    </nav>
+    <router-outlet></router-outlet>
+  </section>
+</section>

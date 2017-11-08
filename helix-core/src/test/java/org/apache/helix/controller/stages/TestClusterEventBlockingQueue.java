@@ -43,24 +43,24 @@ public class TestClusterEventBlockingQueue {
     ClusterEventBlockingQueue queue = new ClusterEventBlockingQueue();
 
     // add an event
-    ClusterEvent event1 = new ClusterEvent("event1");
+    ClusterEvent event1 = new ClusterEvent(ClusterEventType.IdealStateChange);
     queue.put(event1);
     Assert.assertEquals(queue.size(), 1);
 
     // add an event with a different name
-    ClusterEvent event2 = new ClusterEvent("event2");
+    ClusterEvent event2 = new ClusterEvent(ClusterEventType.ConfigChange);
     queue.put(event2);
     Assert.assertEquals(queue.size(), 2);
 
-    // add an event with the same name as event1 (should not change queue size)
-    ClusterEvent newEvent1 = new ClusterEvent("event1");
+    // add an event with the same type as event1 (should not change queue size)
+    ClusterEvent newEvent1 = new ClusterEvent(ClusterEventType.IdealStateChange);
     newEvent1.addAttribute("attr", 1);
     queue.put(newEvent1);
     Assert.assertEquals(queue.size(), 2);
 
     // test peek
     ClusterEvent peeked = queue.peek();
-    Assert.assertEquals(peeked.getName(), "event1");
+    Assert.assertEquals(peeked.getEventType(), ClusterEventType.IdealStateChange);
     Assert.assertEquals(peeked.getAttribute("attr"), 1);
     Assert.assertEquals(queue.size(), 2);
 
@@ -68,13 +68,13 @@ public class TestClusterEventBlockingQueue {
     ListeningExecutorService service =
         MoreExecutors.listeningDecorator(Executors.newCachedThreadPool());
     ClusterEvent takenEvent1 = safeTake(queue, service);
-    Assert.assertEquals(takenEvent1.getName(), "event1");
+    Assert.assertEquals(takenEvent1.getEventType(), ClusterEventType.IdealStateChange);
     Assert.assertEquals(takenEvent1.getAttribute("attr"), 1);
     Assert.assertEquals(queue.size(), 1);
 
     // test take the tail
     ClusterEvent takenEvent2 = safeTake(queue, service);
-    Assert.assertEquals(takenEvent2.getName(), "event2");
+    Assert.assertEquals(takenEvent2.getEventType(), ClusterEventType.ConfigChange);
     Assert.assertEquals(queue.size(), 0);
   }
 

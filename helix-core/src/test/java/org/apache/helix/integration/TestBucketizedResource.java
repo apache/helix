@@ -30,15 +30,17 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.NotificationContext.Type;
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier.MasterNbInExtViewVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -102,10 +104,9 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
             .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+    HelixClusterVerifier _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(_clusterVerifier.verify());
 
     ExternalView ev = accessor.getProperty(evKey);
     int v1 = ev.getRecord().getVersion();
@@ -113,10 +114,7 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
     _gSetupTool.getClusterManagementTool().enableInstance(clusterName,
         participants[0].getInstanceName(), false);
     // wait for change in EV
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+    Assert.assertTrue(_clusterVerifier.verify());
 
     // read the version in EV
     ev = accessor.getProperty(evKey);
@@ -160,20 +158,16 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+    HelixClusterVerifier _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(_clusterVerifier.verify());
 
     // bounce
     participants[0].syncStop();
     participants[0] = new MockParticipantManager(ZK_ADDR, clusterName, instanceNames.get(0));
     participants[0].syncStart();
-
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+    
+    Assert.assertTrue(_clusterVerifier.verify());
 
     // make sure participants[0]'s current state is bucketzied correctly during carryover
     String path =
@@ -185,21 +179,17 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
     // disable the bucketize resource
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.enableResource(clusterName, dbName, false);
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+
+    Assert.assertTrue(_clusterVerifier.verify());
 
     // drop the bucketize resource
     _gSetupTool.dropResourceFromCluster(clusterName, dbName);
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+
+    Assert.assertTrue(_clusterVerifier.verify());
 
     // make sure external-view is cleaned up
     path = keyBuilder.externalView(dbName).getPath();
-    result = _baseAccessor.exists(path, 0);
+    boolean result = _baseAccessor.exists(path, 0);
     Assert.assertFalse(result);
 
     // clean up
@@ -251,10 +241,9 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+    HelixClusterVerifier _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(_clusterVerifier.verify());
 
     // add an external view listener
     TestExternalViewListener listener = new TestExternalViewListener();
@@ -262,10 +251,8 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
 
     // remove "TestDB0"
     _gSetupTool.dropResourceFromCluster(clusterName, dbName);
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+    Assert.assertTrue(_clusterVerifier.verify());
+
     // wait callback to finish
     int waitTime =0;
     do {
@@ -289,11 +276,10 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
     idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
     idealState.setReplicas(Integer.toString(r));
     accessor.setProperty(keyBuilder.idealStates(newDbName), idealState);
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
-    Thread.sleep(2000);
+
+    Assert.assertTrue(_clusterVerifier.verify());
+
+    Thread.sleep(200);
     Assert.assertTrue(listener.cbCnt > 0);
 
     // clean up

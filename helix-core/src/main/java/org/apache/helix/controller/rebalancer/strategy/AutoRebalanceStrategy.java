@@ -138,7 +138,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
 
     // compute orphaned replicas that are not assigned to any node
     _orphaned = computeOrphaned();
-    if (logger.isInfoEnabled()) {
+    if (_orphaned.size() > 0 && logger.isInfoEnabled()) {
       logger.info("orphan = " + _orphaned);
     }
 
@@ -197,7 +197,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
       // first find if it preferred node still has capacity
       Node preferred = _preferredAssignment.get(replica);
       if (preferred.capacity > preferred.currentlyAssigned && preferred.canAdd(replica)) {
-        preferred.currentlyAssigned++;
+        preferred.currentlyAssigned ++;
         preferred.preferred.add(replica);
         preferred.newReplicas.add(replica);
         added = true;
@@ -226,29 +226,6 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
     if (_orphaned.size() > 0 && logger.isInfoEnabled()) {
       logger.warn("could not assign nodes to partitions: " + _orphaned);
     }
-  }
-
-  /**
-   * Try to add a replica to a node.  Return true if the node can take the replica, otherwise return false.
-   *
-   * @param node
-   * @param replica
-   * @param preferred whether the given node is the replica's preferred node.
-   * @return true if replica can be added into the node, false otherwise.
-   */
-  private boolean tryAddReplica(Node node, Replica replica, boolean preferred) {
-    if (node.capacity > node.currentlyAssigned && node.canAdd(replica)) {
-      node.currentlyAssigned++;
-      if (preferred) {
-        node.preferred.add(replica);
-      } else {
-        node.nonPreferred.add(replica);
-      }
-      node.newReplicas.add(replica);
-      return true;
-    }
-
-    return false;
   }
 
   /**
@@ -299,9 +276,9 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
           for (int index = startIndex; index < startIndex + _liveNodesList.size(); index++) {
             Node receiver = _liveNodesList.get(index % _liveNodesList.size());
             if (receiver.canAdd(replica)) {
-              receiver.currentlyAssigned = receiver.currentlyAssigned + 1;
+              receiver.currentlyAssigned ++;
               receiver.nonPreferred.add(replica);
-              donor.currentlyAssigned = donor.currentlyAssigned - 1;
+              donor.currentlyAssigned --;
               it.remove();
               break;
             }
@@ -311,7 +288,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
           }
         }
         if (donor.capacity < donor.currentlyAssigned) {
-          logger.warn("Could not take partitions out of node:" + donor.id);
+          logger.debug("Could not take partitions out of node:" + donor.id);
         }
       }
     }
@@ -511,8 +488,8 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
           Replica replica = new Replica(partition, replicaId);
           if (!_preferredAssignment.containsKey(replica)) {
 
-            logger.info("partitions: " + _partitions);
-            logger.info("currentMapping.keySet: " + currentMapping.keySet());
+            logger.warn("partitions: " + _partitions);
+            logger.warn("currentMapping.keySet: " + currentMapping.keySet());
             throw new IllegalArgumentException("partition: " + replica + " is in currentMapping but not in partitions");
           }
 

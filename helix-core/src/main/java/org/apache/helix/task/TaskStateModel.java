@@ -39,12 +39,19 @@ public class TaskStateModel extends StateModel {
   private final Map<String, TaskFactory> _taskFactoryRegistry;
   private ScheduledFuture timeout_task;
   private TaskRunner _taskRunner;
+  private final ScheduledExecutorService _timeoutTaskExecutor;
 
   public TaskStateModel(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
       ScheduledExecutorService taskExecutor) {
+    this(manager, taskFactoryRegistry, taskExecutor, taskExecutor);
+  }
+
+  public TaskStateModel(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
+      ScheduledExecutorService taskExecutor, ScheduledExecutorService timerTaskExecutor) {
     _manager = manager;
     _taskFactoryRegistry = taskFactoryRegistry;
     _taskExecutor = taskExecutor;
+    _timeoutTaskExecutor = timerTaskExecutor;
   }
 
   public boolean isShutdown() {
@@ -154,8 +161,9 @@ public class TaskStateModel extends StateModel {
           "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
+    _taskRunner.cancel();
     TaskResult r = _taskRunner.waitTillDone();
-    if (r.getStatus() != TaskResult.Status.FATAL_FAILED) {
+    if (r.getStatus() != TaskResult.Status.FATAL_FAILED && r.getStatus() != TaskResult.Status.CANCELED) {
       throw new IllegalStateException(String.format(
           "Partition %s received a state transition to %s but the result status code is %s.",
           msg.getPartitionName(), msg.getToState(), r.getStatus()));
@@ -299,7 +307,7 @@ public class TaskStateModel extends StateModel {
     // Create a task instance with this command
     if (command == null || _taskFactoryRegistry == null
         || !_taskFactoryRegistry.containsKey(command)) {
-      throw new IllegalStateException("No callback implemented for task " + command);
+      throw new IllegalStateException("No callback implemented(or not registered) for task " + command);
     }
     TaskFactory taskFactory = _taskFactoryRegistry.get(command);
     Task task = taskFactory.createNewTask(callbackContext);
@@ -317,7 +325,7 @@ public class TaskStateModel extends StateModel {
 
     // Set up a timer to cancel the task when its time out expires.
 
-    timeout_task = _taskExecutor.schedule(new TimerTask() {
+    timeout_task = _timeoutTaskExecutor.schedule(new TimerTask() {
       @Override
       public void run() {
         if (_taskRunner != null) {

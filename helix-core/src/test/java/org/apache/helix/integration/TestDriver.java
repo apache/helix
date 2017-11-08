@@ -28,8 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -39,7 +39,9 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.store.PropertyJsonSerializer;
 import org.apache.helix.store.PropertyStoreException;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.tools.TestCommand;
 import org.apache.helix.tools.TestExecutor;
@@ -161,7 +163,7 @@ public class TestDriver {
 
   /**
    * starting a dummy participant with a given id
-   * @param uniqueTestName
+   * @param uniqClusterName
    * @param instanceId
    */
   public static void startDummyParticipant(String uniqClusterName, int instanceId) throws Exception {
@@ -237,10 +239,10 @@ public class TestDriver {
     TestInfo testInfo = _testInfoMap.get(uniqClusterName);
     String clusterName = testInfo._clusterName;
 
-    boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName), timeout);
-    Assert.assertTrue(result);
+    HelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verify());
+
   }
 
   public static void stopCluster(String uniqClusterName) throws Exception {
@@ -354,8 +356,7 @@ public class TestDriver {
           + ", walk " + step + " steps(" + percentage + "%)");
       nextIS = nextIdealState(initIS, destIS, step);
       // testInfo._idealStateMap.put(dbName, nextIS);
-      String idealStatePath =
-          PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, TEST_DB_PREFIX + i);
+      String idealStatePath = PropertyPathBuilder.idealState(clusterName, TEST_DB_PREFIX + i);
       ZnodeOpArg arg = new ZnodeOpArg(idealStatePath, ZnodePropertyType.ZNODE, "+", nextIS);
       TestCommand command = new TestCommand(CommandType.MODIFY, new TestTrigger(beginTime), arg);
       commandList.add(command);

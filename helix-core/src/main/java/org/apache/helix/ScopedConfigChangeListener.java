@@ -19,16 +19,12 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.util.List;
-
 /**
  * Interface to implement to listen for changes to any specified scope.
+ *
+ * @deprecated
+ * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.ScopedConfigChangeListener}
  */
-public interface ScopedConfigChangeListener {
-  /**
-   * Invoked when configs of a scope (cluster, participant, or resource) change
-   * @param configs
-   * @param context
-   */
-  public void onConfigChange(List<HelixProperty> configs, NotificationContext context);
+@Deprecated public interface ScopedConfigChangeListener
+    extends org.apache.helix.api.listeners.ScopedConfigChangeListener {
 }

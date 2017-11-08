@@ -155,7 +155,7 @@ public class JobConfig extends ResourceConfig {
   }
 
   //Default property values
-  public static final long DEFAULT_TIMEOUT = Long.MAX_VALUE;
+  public static final long DEFAULT_TIMEOUT_NEVER = -1; // never timeout
   public static final long DEFAULT_TIMEOUT_PER_TASK = 60 * 60 * 1000; // 1 hr.
   public static final long DEFAULT_TASK_RETRY_DELAY = -1; // no delay
   public static final int DEFAULT_MAX_ATTEMPTS_PER_TASK = 10;
@@ -226,7 +226,9 @@ public class JobConfig extends ResourceConfig {
     if (executionStart > 0) {
       getRecord().setLongField(JobConfigProperty.StartTime.name(), executionStart);
     }
-    getRecord().setLongField(JobConfigProperty.Timeout.name(), timeout);
+    if (timeout > DEFAULT_TIMEOUT_NEVER) {
+      getRecord().setLongField(JobConfigProperty.Timeout.name(), timeout);
+    }
     getRecord().setLongField(JobConfigProperty.TimeoutPerPartition.name(), timeoutPerTask);
     getRecord().setIntField(JobConfigProperty.MaxAttemptsPerTask.name(), maxAttemptsPerTask);
     getRecord().setIntField(JobConfigProperty.MaxForcedReassignmentsPerTask.name(),
@@ -296,7 +298,7 @@ public class JobConfig extends ResourceConfig {
   }
 
   public long getTimeout() {
-    return getRecord().getLongField(JobConfigProperty.Timeout.name(), DEFAULT_TIMEOUT);
+    return getRecord().getLongField(JobConfigProperty.Timeout.name(), DEFAULT_TIMEOUT_NEVER);
   }
 
   public long getTimeoutPerTask() {
@@ -399,7 +401,7 @@ public class JobConfig extends ResourceConfig {
     private String _command;
     private Map<String, String> _commandConfig;
     private Map<String, TaskConfig> _taskConfigMap = Maps.newHashMap();
-    private long _timeout = DEFAULT_TIMEOUT;
+    private long _timeout = DEFAULT_TIMEOUT_NEVER;
     private long _timeoutPerTask = DEFAULT_TIMEOUT_PER_TASK;
     private int _numConcurrentTasksPerInstance = DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE;
     private int _maxAttemptsPerTask = DEFAULT_MAX_ATTEMPTS_PER_TASK;
@@ -679,7 +681,7 @@ public class JobConfig extends ResourceConfig {
           }
         }
       }
-      if (_timeout < 0) {
+      if (_timeout < DEFAULT_TIMEOUT_NEVER) {
         throw new IllegalArgumentException(String
             .format("%s has invalid value %s", JobConfigProperty.Timeout, _timeout));
       }

@@ -22,14 +22,12 @@ package org.apache.helix;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.GroupCommit;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.mock.MockBaseDataAccessor;
 
 public class TestGroupCommit {
   // @Test
   public void testGroupCommit() throws InterruptedException {
-    final BaseDataAccessor<ZNRecord> accessor = new Mocks.MockBaseDataAccessor();
+    final BaseDataAccessor<ZNRecord> accessor = new MockBaseDataAccessor();
     final GroupCommit commit = new GroupCommit();
     ExecutorService newFixedThreadPool = Executors.newFixedThreadPool(400);
     for (int i = 0; i < 2400; i++) {

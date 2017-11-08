@@ -18,23 +18,12 @@ package org.apache.helix;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import java.util.List;
-
-import org.apache.helix.model.Message;
-
 /**
- * Interface to implement when there is a change to messages
+ * Interface to implement when there is a change to messages.
+ *
+ * @deprecated
+ * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.MessageListener}
  */
-public interface MessageListener {
-
-  /**
-   * Invoked when message changes
-   * @param instanceName
-   * @param messages
-   * @param changeContext
-   */
-  public void onMessage(String instanceName, List<Message> messages,
-      NotificationContext changeContext);
-
+@Deprecated
+public interface MessageListener extends org.apache.helix.api.listeners.MessageListener {
 }

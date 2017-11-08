@@ -20,8 +20,8 @@ package org.apache.helix.tools.ClusterVerifiers;
  */
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
@@ -29,6 +29,7 @@ import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZkClient;
@@ -179,7 +180,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   @Override
-  protected boolean verifyState() {
+  protected synchronized boolean verifyState() {
     try {
       PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
       // read cluster once and do verification
@@ -205,6 +206,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       if (_expectLiveInstances != null && !_expectLiveInstances.isEmpty()) {
         Set<String> actualLiveNodes = cache.getLiveInstances().keySet();
         if (!_expectLiveInstances.equals(actualLiveNodes)) {
+          LOG.warn("Live instances are not as expected. Actual live nodes: " + actualLiveNodes.toString());
           return false;
         }
       }
@@ -224,7 +226,10 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       // add empty idealState for the resource
       for (String resource : extViews.keySet()) {
         if (!idealStates.containsKey(resource)) {
-          idealStates.put(resource, new IdealState(resource));
+          ExternalView ev = extViews.get(resource);
+          IdealState is = new IdealState(resource);
+          is.getRecord().setSimpleFields(ev.getRecord().getSimpleFields());
+          idealStates.put(resource, is);
         }
       }
 
@@ -260,26 +265,32 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
           if (is.isExternalViewDisabled()) {
             continue;
           } else {
-            LOG.debug("externalView for " + resourceName + " is not available");
+            LOG.error("externalView for " + resourceName + " is not available");
             return false;
           }
         }
 
         // step 0: remove empty map and DROPPED state from best possible state
-        Map<Partition, Map<String, String>> bpStateMap =
-            bestPossOutput.getResourceMap(resourceName);
+        PartitionStateMap bpStateMap =
+            bestPossOutput.getPartitionStateMap(resourceName);
 
         StateModelDefinition stateModelDef = cache.getStateModelDef(is.getStateModelDefRef());
         if (stateModelDef == null) {
-          throw new HelixException(
+          LOG.error(
               "State model definition " + is.getStateModelDefRef() + " for resource not found!" + is
                   .getResourceName());
+          return false;
         }
 
-        boolean result = verifyExternalView(is, extView, bpStateMap, stateModelDef);
+        boolean result = verifyExternalView(extView, bpStateMap, stateModelDef);
         if (!result) {
-          LOG.debug("verifyExternalView fails! ExternalView: " + extView + " BestPossibleState: "
-              + bpStateMap);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("verifyExternalView fails for " + resourceName + "! ExternalView: " + extView
+                + " BestPossibleState: " + bpStateMap);
+          } else {
+            LOG.warn("verifyExternalView fails for " + resourceName
+                + "! ExternalView does not match BestPossibleState");
+          }
           return false;
         }
       }
@@ -290,13 +301,14 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     }
   }
 
-  private boolean verifyExternalView(IdealState idealState, ExternalView externalView,
-      Map<Partition, Map<String, String>> bestPossibleState, StateModelDefinition stateModelDef) {
-    Set<String> ignoreStaes = new HashSet<String>(
+  private boolean verifyExternalView(ExternalView externalView,
+      PartitionStateMap bestPossibleState, StateModelDefinition stateModelDef) {
+    Set<String> ignoreStaes = new HashSet<>(
         Arrays.asList(stateModelDef.getInitialState(), HelixDefinedState.DROPPED.toString()));
 
     Map<String, Map<String, String>> bestPossibleStateMap =
         convertBestPossibleState(bestPossibleState);
+
     removeEntryWithIgnoredStates(bestPossibleStateMap.entrySet().iterator(), ignoreStaes);
 
     Map<String, Map<String, String>> externalViewMap = externalView.getRecord().getMapFields();
@@ -327,10 +339,10 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   private Map<String, Map<String, String>> convertBestPossibleState(
-      Map<Partition, Map<String, String>> bestPossibleState) {
+      PartitionStateMap bestPossibleState) {
     Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>();
-    for (Partition partition : bestPossibleState.keySet()) {
-      result.put(partition.getPartitionName(), bestPossibleState.get(partition));
+    for (Partition partition : bestPossibleState.getStateMap().keySet()) {
+      result.put(partition.getPartitionName(), bestPossibleState.getPartitionMap(partition));
     }
     return result;
   }
@@ -344,8 +356,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
    * @throws Exception
    */
   private BestPossibleStateOutput calcBestPossState(ClusterDataCache cache) throws Exception {
-    ClusterEvent event = new ClusterEvent("sampleEvent");
-    event.addAttribute("ClusterDataCache", cache);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.StateVerifier);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     runStage(event, new ResourceComputationStage());
     runStage(event, new CurrentStateComputationStage());

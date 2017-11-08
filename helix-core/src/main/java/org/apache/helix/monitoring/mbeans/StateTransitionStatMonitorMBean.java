@@ -19,7 +19,9 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-public interface StateTransitionStatMonitorMBean {
+import org.apache.helix.monitoring.SensorNameProvider;
+
+public interface StateTransitionStatMonitorMBean extends SensorNameProvider {
   long getTotalStateTransitionGauge();
 
   long getTotalFailedTransitionGauge();

@@ -21,11 +21,19 @@ package org.apache.helix.controller.stages;
 
 public enum AttributeName {
   RESOURCES,
+  RESOURCES_TO_REBALANCE,
   BEST_POSSIBLE_STATE,
   CURRENT_STATE,
   INTERMEDIATE_STATE,
   MESSAGES_ALL,
   MESSAGES_SELECTED,
   MESSAGES_THROTTLE,
-  LOCAL_STATE
+  LOCAL_STATE,
+  EVENT_CREATE_TIME,
+  ClusterDataCache,
+  helixmanager,
+  clusterStatusMonitor,
+  changeContext,
+  instanceName,
+  eventData
 }

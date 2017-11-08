@@ -21,31 +21,34 @@ package org.apache.helix.participant;
 
 import java.util.UUID;
 
+import org.apache.helix.api.listeners.ClusterConfigChangeListener;
+import org.apache.helix.api.listeners.MessageListener;
+import org.apache.helix.api.listeners.ResourceConfigChangeListener;
+import org.apache.helix.api.listeners.ScopedConfigChangeListener;
+import org.apache.helix.api.listeners.IdealStateChangeListener;
+import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.ExternalViewChangeListener;
+import org.apache.helix.api.listeners.InstanceConfigChangeListener;
+import org.apache.helix.api.listeners.ConfigChangeListener;
+import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.ControllerChangeListener;
-import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
-import org.apache.helix.IdealStateChangeListener;
-import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.InstanceType;
-import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.LiveInstanceInfoProvider;
-import org.apache.helix.MessageListener;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.messaging.DefaultMessagingService;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
@@ -88,7 +91,31 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
+  public void addIdealStateChangeListener(org.apache.helix.IdealStateChangeListener listener) throws Exception {
+
+  }
+
+  @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addLiveInstanceChangeListener(org.apache.helix.LiveInstanceChangeListener listener) throws Exception {
+
+  }
+
+  @Override
+  public void addResourceConfigChangeListener(ResourceConfigChangeListener listener)
+      throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addClusterfigChangeListener(ClusterConfigChangeListener listener)
+      throws Exception {
     // TODO Auto-generated method stub
 
   }
@@ -106,6 +133,11 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
+  public void addMessageListener(org.apache.helix.MessageListener listener, String instanceName) throws Exception {
+
+  }
+
+  @Override
   public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
       String instanceName, String sessionId) throws Exception {
     // TODO Auto-generated method stub
@@ -113,8 +145,24 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
+  public void addCurrentStateChangeListener(org.apache.helix.CurrentStateChangeListener listener, String instanceName,
+      String sessionId) throws Exception {
+
+  }
+
+  @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addTargetExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
+    // TODO Auto-generated method stub
+  }
+
+  @Override
+  public void addExternalViewChangeListener(org.apache.helix.ExternalViewChangeListener listener) throws Exception {
 
   }
 
@@ -154,6 +202,11 @@ public class MockZKHelixManager implements HelixManager {
   @Override
   public void addControllerListener(ControllerChangeListener listener) {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addControllerListener(org.apache.helix.ControllerChangeListener listener) {
 
   }
 
@@ -229,9 +282,20 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
+  public void addInstanceConfigChangeListener(org.apache.helix.InstanceConfigChangeListener listener) throws Exception {
+
+  }
+
+  @Override
   public void addConfigChangeListener(ScopedConfigChangeListener listener, ConfigScopeProperty scope)
       throws Exception {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addConfigChangeListener(org.apache.helix.ScopedConfigChangeListener listener, ConfigScopeProperty scope)
+      throws Exception {
 
   }
 
@@ -250,6 +314,11 @@ public class MockZKHelixManager implements HelixManager {
   @Override
   public void addControllerMessageListener(MessageListener listener) {
     // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addControllerMessageListener(org.apache.helix.MessageListener listener) {
 
   }
 

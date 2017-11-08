@@ -48,10 +48,12 @@ import org.apache.log4j.Logger;
 public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculator {
   private static final Logger LOG = Logger.getLogger(FixedTargetTaskAssignmentCalculator.class);
 
-  @Override public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
+  @Override
+  public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
       Map<String, IdealState> idealStateMap) {
-    return getAllTaskPartitions(getTgtIdealState(jobCfg, idealStateMap), jobCfg, jobCtx);
+    IdealState tgtIs = idealStateMap.get(jobCfg.getTargetResource());
+    return getAllTaskPartitions(tgtIs, jobCfg, jobCtx);
   }
 
   @Override
@@ -59,26 +61,13 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
       ResourceAssignment prevAssignment, Collection<String> instances, JobConfig jobCfg,
       JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
       Set<Integer> partitionSet, Map<String, IdealState> idealStateMap) {
-    IdealState tgtIs = getTgtIdealState(jobCfg, idealStateMap);
+    IdealState tgtIs = idealStateMap.get(jobCfg.getTargetResource());
     if (tgtIs == null) {
       LOG.warn("Missing target resource for the scheduled job!");
       return Collections.emptyMap();
     }
     Set<String> tgtStates = jobCfg.getTargetPartitionStates();
-    return getTgtPartitionAssignment(currStateOutput, instances, tgtIs, tgtStates, partitionSet,
-        jobContext);
-  }
-
-  /**
-   * Gets the ideal state of the target resource of this job
-   * @param jobCfg job config containing target resource id
-   * @param idealStateMap the map of resource name map to ideal state
-   * @return target resource ideal state, or null
-   */
-  private static IdealState getTgtIdealState(JobConfig jobCfg,
-      Map<String, IdealState> idealStateMap) {
-    String tgtResourceId = jobCfg.getTargetResource();
-    return idealStateMap.get(tgtResourceId);
+    return getTgtPartitionAssignment(currStateOutput, instances, tgtIs, tgtStates, partitionSet, jobContext);
   }
 
   /**
@@ -102,8 +91,8 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
     }
 
     Set<Integer> taskPartitions = Sets.newTreeSet();
-    for (String pName : targetPartitions) {
-      taskPartitions.addAll(getPartitionsForTargetPartition(pName, currentTargets, taskCtx));
+    for (String targetPartition : targetPartitions) {
+      taskPartitions.addAll(getPartitionsForTargetPartition(targetPartition, currentTargets, taskCtx));
     }
     return taskPartitions;
   }
@@ -147,16 +136,13 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
       int pId = partitions.get(0);
       if (includeSet.contains(pId)) {
         for (String instance : instances) {
-          Message pendingMessage =
-              currStateOutput.getPendingState(tgtIs.getResourceName(), new Partition(pName),
+          Message pendingMessage = currStateOutput.getPendingState(tgtIs.getResourceName(), new Partition(pName),
                   instance);
           if (pendingMessage != null) {
             continue;
           }
 
-          String s =
-              currStateOutput.getCurrentState(tgtIs.getResourceName(), new Partition(pName),
-                  instance);
+          String s = currStateOutput.getCurrentState(tgtIs.getResourceName(), new Partition(pName), instance);
           if (s != null && (tgtStates == null || tgtStates.contains(s))) {
             result.get(instance).add(pId);
           }

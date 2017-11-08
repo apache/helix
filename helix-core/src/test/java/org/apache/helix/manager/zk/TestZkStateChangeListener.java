@@ -20,8 +20,7 @@ package org.apache.helix.manager.zk;
  */
 
 import org.testng.Assert;
-import org.testng.annotations.Test;
-import org.apache.helix.integration.ZkStandAloneCMTestBase;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 public class TestZkStateChangeListener extends ZkStandAloneCMTestBase {

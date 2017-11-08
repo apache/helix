@@ -434,8 +434,8 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     Assert.assertNull(accessor.getProperty(keyBuilder.instanceConfig("localhost_12918")),
         "Instance config should be dropped");
-    Assert.assertFalse(_gZkClient.exists(PropertyPathBuilder.getPath(PropertyType.INSTANCES,
-        clusterName, "localhost_12918")), "Instance/host should be dropped");
+    Assert.assertFalse(_gZkClient.exists(PropertyPathBuilder.instance(clusterName, "localhost_12918")),
+        "Instance/host should be dropped");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 

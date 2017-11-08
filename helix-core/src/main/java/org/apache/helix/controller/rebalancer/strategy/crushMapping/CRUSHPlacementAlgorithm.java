@@ -81,7 +81,7 @@ public class CRUSHPlacementAlgorithm {
       Predicate<Node> nodePredicate) {
     int childCount = parent.getChildrenCount(type);
     if (childCount < count) {
-      throw new IllegalArgumentException(count + " nodes of type " + type +
+      logger.error(count + " nodes of type " + type +
           " were requested but the tree has only " + childCount + " nodes!");
     }
 
@@ -189,6 +189,9 @@ public class CRUSHPlacementAlgorithm {
 
 
   private boolean nodeIsOut(Node node) {
+    if (node.getWeight() == 0) {
+      return true;
+    }
     if (node.isLeaf() && node.isFailed()) {
       return true;
     }

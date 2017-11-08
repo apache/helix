@@ -1,0 +1,20 @@
+<md-toolbar class="mat-elevation-z1">
+  <hi-detail-header [cluster]="clusterName" [workflow]="workflow?.name"></hi-detail-header>
+  <md-toolbar-row class="information">
+    <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
+    <hi-key-value-pairs [obj]="workflow">
+      <hi-key-value-pair name="Capacity" prop="config.capacity"></hi-key-value-pair>
+      <hi-key-value-pair name="Target State" prop="config.TargetState"></hi-key-value-pair>
+      <hi-key-value-pair name="Terminable" prop="config.Terminable"></hi-key-value-pair>
+      <hi-key-value-pair name="Parallel Jobs" prop="config.ParallelJobs"></hi-key-value-pair>
+      <hi-key-value-pair name="Failure Threshold" prop="config.FailureThreshold"></hi-key-value-pair>
+      <hi-key-value-pair name="Expiry" prop="config.Expiry"></hi-key-value-pair>
+    </hi-key-value-pairs>
+  </md-toolbar-row>
+</md-toolbar>
+<section fxLayout="column" fxLayoutAlign="center center">
+  <md-spinner *ngIf="isLoading"></md-spinner>
+  <section class="content" fxFlexFill>
+    <ngx-json-viewer [json]="workflow"></ngx-json-viewer>
+  </section>
+</section>

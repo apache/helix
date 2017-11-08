@@ -230,7 +230,7 @@ public class TestDisableResource extends ZkUnitTestBase {
 
   /**
    * Check all partitions are in OFFLINE state
-   * @param accessor
+   * @param clusterName
    * @throws Exception
    */
   private void checkExternalView(String clusterName) throws Exception {

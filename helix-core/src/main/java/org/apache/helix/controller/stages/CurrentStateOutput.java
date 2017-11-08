@@ -197,6 +197,7 @@ public class CurrentStateOutput {
    * @param instanceName
    * @return pending message
    */
+  // TODO: this should return toState, not pending message, create a separate method
   public Message getPendingState(String resourceName, Partition partition, String instanceName) {
     return getStateMessage(resourceName, partition, instanceName, _pendingStateMap);
   }
@@ -223,6 +224,18 @@ public class CurrentStateOutput {
       }
     }
     return null;
+  }
+
+  /**
+   * Given resource, returns current state map (parition -> instance -> currentState)
+   * @param resourceName
+   * @return
+   */
+  public Map<Partition, Map<String, String>> getCurrentStateMap(String resourceName) {
+    if (_currentStateMap.containsKey(resourceName)) {
+      return  _currentStateMap.get(resourceName);
+    }
+    return Collections.emptyMap();
   }
 
   /**

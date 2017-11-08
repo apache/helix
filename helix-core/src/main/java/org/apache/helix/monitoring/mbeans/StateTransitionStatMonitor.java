@@ -30,19 +30,17 @@ public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBe
   public enum LATENCY_TYPE {
     TOTAL,
     EXECUTION
-  };
+  }
 
-  private static final int DEFAULT_WINDOW_SIZE = 4000;
   private long _numDataPoints;
   private long _successCount;
-  private TimeUnit _unit;
 
   private ConcurrentHashMap<LATENCY_TYPE, StatCollector> _monitorMap =
       new ConcurrentHashMap<LATENCY_TYPE, StatCollector>();
 
   StateTransitionContext _context;
 
-  public StateTransitionStatMonitor(StateTransitionContext context, TimeUnit unit) {
+  public StateTransitionStatMonitor(StateTransitionContext context) {
     _context = context;
     _monitorMap.put(LATENCY_TYPE.TOTAL, new StatCollector());
     _monitorMap.put(LATENCY_TYPE.EXECUTION, new StatCollector());
@@ -53,9 +51,9 @@ public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBe
     return _context;
   }
 
-  public String getBeanName() {
-    return _context.getClusterName() + " " + _context.getResourceName() + " "
-        + _context.getTransition();
+  public String getSensorName() {
+    return String.format("StateTransitionStat.%s.%s.%s", _context.getClusterName(),
+        _context.getResourceName(), _context.getTransition());
   }
 
   public void addDataPoint(StateTransitionDataPoint data) {
@@ -63,7 +61,6 @@ public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBe
     if (data.getSuccess()) {
       _successCount++;
     }
-    // should we count only the transition time for successful transitions?
     addLatency(LATENCY_TYPE.TOTAL, data.getTotalDelay());
     addLatency(LATENCY_TYPE.EXECUTION, data.getExecutionDelay());
   }

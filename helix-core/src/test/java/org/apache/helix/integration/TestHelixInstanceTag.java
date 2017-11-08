@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;

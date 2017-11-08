@@ -19,6 +19,9 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.HelixDataAccessor;
@@ -46,6 +49,13 @@ public abstract class ZkHelixClusterVerifier
   protected final HelixDataAccessor _accessor;
   protected final PropertyKey.Builder _keyBuilder;
   private CountDownLatch _countdown;
+
+  private ExecutorService _verifyTaskThreadPool =
+      Executors.newSingleThreadExecutor(new ThreadFactory() {
+        @Override public Thread newThread(Runnable r) {
+          return new Thread(r, "ZkHelixClusterVerifier-verify_thread");
+        }
+      });
 
   protected static class ClusterVerifyTrigger {
     final PropertyKey _triggerKey;
@@ -190,7 +200,6 @@ public abstract class ZkHelixClusterVerifier
     try {
       success = verifyState();
       if (!success) {
-
         success = _countdown.await(timeout, TimeUnit.MILLISECONDS);
         if (!success) {
           // make a final try if timeout
@@ -203,6 +212,7 @@ public abstract class ZkHelixClusterVerifier
 
     // clean up
     _zkClient.unsubscribeAll();
+    _verifyTaskThreadPool.shutdownNow();
 
     return success;
   }
@@ -233,17 +243,32 @@ public abstract class ZkHelixClusterVerifier
    */
   protected abstract boolean verifyState() throws Exception;
 
+  class VerifyStateCallbackTask implements Runnable {
+    @Override public void run() {
+      try {
+        boolean success = verifyState();
+        if (success) {
+          _countdown.countDown();
+        }
+      } catch (Exception ex) {
+        LOG.info("verifyState() throws exception: " + ex);
+      }
+    }
+  }
+
   @Override
   public void handleDataChange(String dataPath, Object data) throws Exception {
-    boolean success = verifyState();
-    if (success) {
-      _countdown.countDown();
+    if (!_verifyTaskThreadPool.isShutdown()) {
+      _verifyTaskThreadPool.submit(new VerifyStateCallbackTask());
     }
   }
 
   @Override
   public void handleDataDeleted(String dataPath) throws Exception {
     _zkClient.unsubscribeDataChanges(dataPath, this);
+    if (!_verifyTaskThreadPool.isShutdown()) {
+      _verifyTaskThreadPool.submit(new VerifyStateCallbackTask());
+    }
   }
 
   @Override
@@ -252,10 +277,8 @@ public abstract class ZkHelixClusterVerifier
       String childPath = String.format("%s/%s", parentPath, child);
       _zkClient.subscribeDataChanges(childPath, this);
     }
-
-    boolean success = verifyState();
-    if (success) {
-      _countdown.countDown();
+    if (!_verifyTaskThreadPool.isShutdown()) {
+      _verifyTaskThreadPool.submit(new VerifyStateCallbackTask());
     }
   }
 

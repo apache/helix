@@ -145,7 +145,6 @@ public class TestRecurringJobQueue extends TaskTestBase {
 
     LOG.info("Resuming job-queue: " + queueName);
     _driver.resume(queueName);
-    Thread.sleep(2000);
 
     // Ensure the jobs left are successful completed in the correct order
     currentJobNames.remove(deletedJob1);
@@ -244,7 +243,6 @@ public class TestRecurringJobQueue extends TaskTestBase {
   @Test
   public void testDeletingRecurrentQueueWithHistory() throws Exception {
     final String queueName = TestHelper.getTestMethodName();
-    int intervalSeconds = 3;
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
@@ -256,53 +254,43 @@ public class TestRecurringJobQueue extends TaskTestBase {
     WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queueName);
     Assert.assertEquals(workflowConfig.getTargetState(), TargetState.STOP);
 
-    // reset interval to a smaller number so as to accelerate test
-    workflowConfig.putSimpleConfig(WorkflowConfig.WorkflowConfigProperty.RecurrenceInterval.name(),
-        "" + intervalSeconds);
-    _driver.updateWorkflow(queueName, workflowConfig);
-
     _driver.resume(queueName);
 
     WorkflowContext wCtx;
     // wait until at least 2 workflows are scheduled based on template queue
     do {
-      Thread.sleep(intervalSeconds);
+      Thread.sleep(60000);
       wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
     } while (wCtx.getScheduledWorkflows().size() < 2);
 
     // Stop recurring workflow
     _driver.stop(queueName);
+    _driver.pollForWorkflowState(queueName, TaskState.STOPPED);
 
     // Record all scheduled workflows
     wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
-    final List<String> scheduledWorkflows = new ArrayList<>(wCtx.getScheduledWorkflows());
-    Assert.assertFalse(scheduledWorkflows.size() > 2);
+    List<String> scheduledWorkflows = new ArrayList<String>(wCtx.getScheduledWorkflows());
+    final String lastScheduledWorkflow = wCtx.getLastScheduledSingleWorkflow();
 
     // Delete recurrent workflow
     _driver.delete(queueName);
 
-    // Wait until everything are cleaned up
+    // Wait until recurrent workflow and the last scheduled workflow are cleaned up
     boolean result = TestHelper.verify(new TestHelper.Verifier() {
       @Override public boolean verify() throws Exception {
-        WorkflowContext currentQueueCtx = _driver.getWorkflowContext(queueName);
-        if (currentQueueCtx == null) {
-          // Queue is removed. Check the recorded scheduledWorkflows.
-          for (String workflow : scheduledWorkflows) {
-            if (_driver.getWorkflowContext(workflow) != null) {
-              return false;
-            }
-          }
-          return true;
-        } else {
-          // Queue is not removed yet, there might be update on the queue.
-          // Update the workflow list.
-          scheduledWorkflows.clear();
-          scheduledWorkflows.addAll(currentQueueCtx.getScheduledWorkflows());
-        }
-        return false;
+        WorkflowContext wCtx = _driver.getWorkflowContext(queueName);
+        WorkflowContext lastWfCtx = _driver.getWorkflowContext(lastScheduledWorkflow);
+        return (wCtx == null && lastWfCtx == null);
       }
     }, 5 * 1000);
     Assert.assertTrue(result);
+
+    for (String scheduledWorkflow : scheduledWorkflows) {
+      WorkflowContext scheduledWorkflowCtx = _driver.getWorkflowContext(scheduledWorkflow);
+      WorkflowConfig scheduledWorkflowCfg = _driver.getWorkflowConfig(scheduledWorkflow);
+      Assert.assertNull(scheduledWorkflowCtx);
+      Assert.assertNull(scheduledWorkflowCfg);
+    }
   }
 
   @Test

@@ -36,8 +36,8 @@ public class CompatibilityCheckStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    HelixManager manager = event.getAttribute("helixmanager");
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     if (manager == null || cache == null) {
       throw new StageException("Missing attributes in event:" + event
           + ". Requires HelixManager | DataCache");

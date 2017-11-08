@@ -55,12 +55,21 @@ public class CustomRebalancer extends AbstractRebalancer {
   @Override
   public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
+    // Looking for cached BestPossible mapping for this resource, if it is already there, do not recompute it again.
+    // The cached mapping will be cleared in ClusterDataCache if there is anything changed in cluster state that can
+    // cause the potential changes in BestPossible state.
+    ResourceAssignment partitionMapping =
+        cache.getCachedResourceAssignment(resource.getResourceName());
+    if (partitionMapping != null) {
+      return partitionMapping;
+    }
+
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
-    ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
+    partitionMapping = new ResourceAssignment(resource.getResourceName());
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
@@ -73,6 +82,9 @@ public class CustomRebalancer extends AbstractRebalancer {
               currentStateMap, disabledInstancesForPartition, idealState.isEnabled());
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
+
+    cache.setCachedResourceAssignment(resource.getResourceName(), partitionMapping);
+
     return partitionMapping;
   }
 

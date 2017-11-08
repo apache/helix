@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.ConfigAccessor;
@@ -42,14 +43,14 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
-import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.listeners.MessageListener;
+import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.controller.GenericHelixController;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -58,7 +59,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.monitoring.ParticipantStatusMonitor;
+import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
@@ -66,6 +67,9 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
+
+import java.util.*;
+import java.util.concurrent.*;
 
 public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   /**
@@ -103,7 +107,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
   public static final int DEFAULT_PARALLEL_TASKS = 40;
-  public static final int DEFAULT_CANCELLATION_THREADPOOL_SIZE = 40;
   // TODO: create per-task type threadpool with customizable pool size
   protected final Map<String, MessageTaskInfo> _taskMap;
   private final Object _lock;
@@ -123,44 +126,48 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   final ConcurrentHashMap<String, ExecutorService> _executorMap;
 
+  final ExecutorService _batchMessageExecutorService;
+
   final ConcurrentHashMap<String, String> _messageTaskMap;
-  private ExecutorService _cancellationExcutorService;
 
-  /**
-   * separate executor for executing batch messages
-   */
-  ExecutorService _batchMessageExecutorService;
-
+  final Set<String> _knownMessageIds;
 
   /* Resources whose configuration for dedicate thread pool has been checked.*/
   final Set<String> _resourcesThreadpoolChecked;
-  boolean _batchMessageThreadpoolChecked;
+  final Set<String> _transitionTypeThreadpoolChecked;
 
   // timer for schedule timeout tasks
   final Timer _timer;
 
+  private boolean _isShuttingDown;
 
   public HelixTaskExecutor() {
     this(new ParticipantStatusMonitor(false, null));
   }
 
   public HelixTaskExecutor(ParticipantStatusMonitor participantStatusMonitor) {
-    _taskMap = new ConcurrentHashMap<String, MessageTaskInfo>();
+    _monitor = participantStatusMonitor;
+    _taskMap = new ConcurrentHashMap<>();
 
-    _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
-    _executorMap = new ConcurrentHashMap<String, ExecutorService>();
-    _messageTaskMap = new ConcurrentHashMap<String, String>();
-    _cancellationExcutorService = Executors.newFixedThreadPool(DEFAULT_CANCELLATION_THREADPOOL_SIZE);
-    _batchMessageExecutorService = Executors.newFixedThreadPool(DEFAULT_PARALLEL_TASKS);
-    _batchMessageThreadpoolChecked = false;
+    _hdlrFtyRegistry = new ConcurrentHashMap<>();
+    _executorMap = new ConcurrentHashMap<>();
+    _messageTaskMap = new ConcurrentHashMap<>();
+    _knownMessageIds = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    _batchMessageExecutorService = Executors.newCachedThreadPool();
+    _monitor.createExecutorMonitor("BatchMessageExecutor", _batchMessageExecutorService);
+
     _resourcesThreadpoolChecked =
+        Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    _transitionTypeThreadpoolChecked =
         Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
-    _monitor = participantStatusMonitor;
+
 
     _timer = new Timer(true); // created as a daemon timer thread to handle task timeout
+
+    _isShuttingDown = false;
 
     startMonitorThread();
   }
@@ -178,17 +185,25 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           + factory.getMessageTypes());
     }
 
+    _isShuttingDown = false;
+
     MsgHandlerFactoryRegistryItem newItem =
         new MsgHandlerFactoryRegistryItem(factory, threadpoolSize);
     MsgHandlerFactoryRegistryItem prevItem = _hdlrFtyRegistry.putIfAbsent(type, newItem);
     if (prevItem == null) {
-      ExecutorService newPool = Executors.newFixedThreadPool(threadpoolSize);
+      ExecutorService newPool = Executors.newFixedThreadPool(threadpoolSize, new ThreadFactory() {
+        @Override public Thread newThread(Runnable r) {
+          return new Thread(r, "HelixTaskExecutor-message_handle_thread");
+        }
+      });
       ExecutorService prevExecutor = _executorMap.putIfAbsent(type, newPool);
       if (prevExecutor != null) {
         LOG.warn("Skip creating a new thread pool for type: " + type + ", already existing pool: "
             + prevExecutor + ", isShutdown: " + prevExecutor.isShutdown());
         newPool.shutdown();
         newPool = null;
+      } else {
+        _monitor.createExecutorMonitor(type, newPool);
       }
       LOG.info("Registered message handler factory for type: " + type + ", poolSize: "
           + threadpoolSize + ", factory: " + factory + ", pool: " + _executorMap.get(type));
@@ -220,19 +235,35 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       return;
     }
 
-    if (!_batchMessageThreadpoolChecked) {
-      HelixDataAccessor accessor = manager.getHelixDataAccessor();
-      ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
-      if (clusterConfig != null && clusterConfig.getBatchStateTransitionMaxThreads() > 0) {
-        LOG.info("Customize batch message thread pool with size : " + clusterConfig
-            .getBatchStateTransitionMaxThreads());
-        _batchMessageExecutorService =
-            Executors.newFixedThreadPool(clusterConfig.getBatchStateTransitionMaxThreads());
+    String resourceName = message.getResourceName();
+    String factoryName = message.getStateModelFactoryName();
+    String stateModelName = message.getStateModelDef();
+
+    if (factoryName == null) {
+      factoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
+    }
+    StateModelFactory<? extends StateModel> stateModelFactory =
+        manager.getStateMachineEngine().getStateModelFactory(stateModelName, factoryName);
+
+    String perStateTransitionTypeKey =
+        getStateTransitionType(getPerResourceStateTransitionPoolName(resourceName),
+            message.getFromState(), message.getToState());
+    if (perStateTransitionTypeKey != null && stateModelFactory != null
+        && !_transitionTypeThreadpoolChecked.contains(perStateTransitionTypeKey)) {
+      ExecutorService perStateTransitionTypeExecutor = stateModelFactory
+          .getExecutorService(resourceName, message.getFromState(), message.getToState());
+      _transitionTypeThreadpoolChecked.add(perStateTransitionTypeKey);
+
+      if (perStateTransitionTypeExecutor != null) {
+        _executorMap.put(perStateTransitionTypeKey, perStateTransitionTypeExecutor);
+        LOG.info(String
+            .format("Added client specified dedicate threadpool for resource %s from %s to %s",
+                getPerResourceStateTransitionPoolName(resourceName), message.getFromState(),
+                message.getToState()));
+        return;
       }
-      _batchMessageThreadpoolChecked = true;
     }
 
-    String resourceName = message.getResourceName();
     if (!_resourcesThreadpoolChecked.contains(resourceName)) {
       int threadpoolSize = -1;
       ConfigAccessor configAccessor = manager.getConfigAccessor();
@@ -252,22 +283,18 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
               "Failed to parse ThreadPoolSize from resourceConfig for resource" + resourceName, e);
         }
       }
-      String key = MessageType.STATE_TRANSITION.name() + "." + resourceName;
+      final String key = getPerResourceStateTransitionPoolName(resourceName);
       if (threadpoolSize > 0) {
-        _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
+        _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize, new ThreadFactory() {
+          @Override public Thread newThread(Runnable r) {
+            return new Thread(r, "GerenricHelixController-message_handle_" + key);
+          }
+        }));
         LOG.info("Added dedicate threadpool for resource: " + resourceName + " with size: "
             + threadpoolSize);
       } else {
         // if threadpool is not configured
         // check whether client specifies customized threadpool.
-        String factoryName = message.getStateModelFactoryName();
-        String stateModelName = message.getStateModelDef();
-        if (factoryName == null) {
-          factoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
-        }
-
-        StateModelFactory<? extends StateModel> stateModelFactory =
-            manager.getStateMachineEngine().getStateModelFactory(stateModelName, factoryName);
         if (stateModelFactory != null) {
           ExecutorService executor = stateModelFactory.getExecutorService(resourceName);
           if (executor != null) {
@@ -293,13 +320,17 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())) {
       if(message.getBatchMessageMode() == true) {
         executorService = _batchMessageExecutorService;
-      } else if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
-        executorService = _cancellationExcutorService;
       } else {
         String resourceName = message.getResourceName();
         if (resourceName != null) {
-          String key = message.getMsgType() + "." + resourceName;
-          if (_executorMap.containsKey(key)) {
+          String key = getPerResourceStateTransitionPoolName(resourceName);
+          String perStateTransitionTypeKey =
+              getStateTransitionType(key, message.getFromState(), message.getToState());
+          if (perStateTransitionTypeKey != null && _executorMap.containsKey(perStateTransitionTypeKey)) {
+            LOG.info(String.format("Find per state transition type thread pool for resource %s from %s to %s",
+                message.getResourceName(), message.getFromState(), message.getToState()));
+            executorService = _executorMap.get(perStateTransitionTypeKey);
+          } else if (_executorMap.containsKey(key)) {
             LOG.info("Find per-resource thread pool with key: " + key);
             executorService = _executorMap.get(key);
           }
@@ -377,8 +408,16 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         if (!_taskMap.containsKey(taskId)) {
           ExecutorService exeSvc = findExecutorServiceForMsg(message);
 
+          if (exeSvc == null) {
+            LOG.warn(String
+                .format("Threadpool is null for type %s of message %s", message.getMsgType(),
+                    message.getMsgId()));
+            return false;
+          }
+
           LOG.info("Submit task: " + taskId + " to pool: " + exeSvc);
           Future<HelixTaskResult> future = exeSvc.submit(task);
+
           _messageTaskMap
               .putIfAbsent(getMessageTarget(message.getResourceName(), message.getPartitionName()),
                   taskId);
@@ -477,9 +516,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private void updateMessageState(List<Message> readMsgs, HelixDataAccessor accessor,
       String instanceName) {
     Builder keyBuilder = accessor.keyBuilder();
-    List<PropertyKey> readMsgKeys = new ArrayList<PropertyKey>();
+    List<PropertyKey> readMsgKeys = new ArrayList<>();
     for (Message msg : readMsgs) {
       readMsgKeys.add(msg.getKey(keyBuilder, instanceName));
+      _knownMessageIds.add(msg.getId());
     }
     accessor.setChildren(readMsgKeys, readMsgs);
   }
@@ -513,6 +553,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   void unregisterMessageHandlerFactory(String type) {
     MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.remove(type);
     ExecutorService pool = _executorMap.remove(type);
+    _monitor.removeExecutorMonitor(type);
 
     LOG.info("Unregistering message handler factory for type: " + type + ", factory: "
         + item.factory() + ", pool: " + pool);
@@ -540,6 +581,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     for (String msgType : _hdlrFtyRegistry.keySet()) {
       // don't un-register factories, just shutdown all executors
       ExecutorService pool = _executorMap.remove(msgType);
+      _monitor.removeExecutorMonitor(msgType);
       if (pool != null) {
         LOG.info("Reset exectuor for msgType: " + msgType + ", pool: " + pool);
         shutdownAndAwaitTermination(pool);
@@ -551,15 +593,19 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       }
     }
 
+    StringBuilder sb = new StringBuilder();
     // Log all tasks that fail to terminate
     for (String taskId : _taskMap.keySet()) {
       MessageTaskInfo info = _taskMap.get(taskId);
-      LOG.warn("Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage());
+      sb.append("Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage() + "\n");
     }
+
+    LOG.info(sb.toString());
     _taskMap.clear();
 
-    shutdownAndAwaitTermination(_cancellationExcutorService);
     _messageTaskMap.clear();
+
+    _knownMessageIds.clear();
 
     _lastSessionSyncTime = null;
   }
@@ -571,17 +617,25 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       _messageQueueMonitor.init();
     }
 
+    _isShuttingDown = false;
+
     // Re-init all existing factories
-    for (String msgType : _hdlrFtyRegistry.keySet()) {
+    for (final String msgType : _hdlrFtyRegistry.keySet()) {
       MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
-      ExecutorService newPool = Executors.newFixedThreadPool(item.threadPoolSize());
+      ExecutorService newPool =
+          Executors.newFixedThreadPool(item.threadPoolSize(), new ThreadFactory() {
+            @Override public Thread newThread(Runnable r) {
+              return new Thread(r, "HelixTaskExecutor-message_handle_" + msgType);
+            }
+          });
       ExecutorService prevPool = _executorMap.putIfAbsent(msgType, newPool);
       if (prevPool != null) {
         // Will happen if we register and call init
         LOG.info("Skip init a new thread pool for type: " + msgType + ", already existing pool: "
             + prevPool + ", isShutdown: " + prevPool.isShutdown());
         newPool.shutdown();
-        newPool = null;
+      } else {
+        _monitor.createExecutorMonitor(msgType, newPool);
       }
     }
   }
@@ -609,7 +663,47 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
   }
 
+  private List<Message> readNewMessagesFromZK(HelixManager manager, String instanceName,
+      HelixConstants.ChangeType changeType) {
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+
+    Set<String> messageIds = new HashSet<>();
+    if (changeType.equals(HelixConstants.ChangeType.MESSAGE)) {
+      messageIds.addAll(accessor.getChildNames(keyBuilder.messages(instanceName)));
+    } else if (changeType.equals(HelixConstants.ChangeType.MESSAGES_CONTROLLER)) {
+      messageIds.addAll(accessor.getChildNames(keyBuilder.controllerMessages()));
+    } else {
+      LOG.warn("Unexpected ChangeType for Message Change CallbackHandler: " + changeType);
+      return Collections.emptyList();
+    }
+
+    // In case the cache contains any deleted message Id, clean up
+    _knownMessageIds.retainAll(messageIds);
+
+    messageIds.removeAll(_knownMessageIds);
+    List<PropertyKey> keys = new ArrayList<>();
+    for (String messageId : messageIds) {
+      if (changeType.equals(HelixConstants.ChangeType.MESSAGE)) {
+        keys.add(keyBuilder.message(instanceName, messageId));
+      } else if (changeType.equals(HelixConstants.ChangeType.MESSAGES_CONTROLLER)) {
+        keys.add(keyBuilder.controllerMessage(messageId));
+      }
+    }
+
+    List<Message> newMessages = accessor.getProperty(keys);
+    // Message may be removed before get read, clean up null messages.
+    Iterator<Message> messageIterator = newMessages.iterator();
+    while(messageIterator.hasNext()) {
+      if (messageIterator.next() == null) {
+        messageIterator.remove();
+      }
+    }
+    return newMessages;
+  }
+
   @Override
+  @PreFetch(enabled = false)
   public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext) {
 
@@ -632,6 +726,20 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       // continue to process messages
     }
 
+    if (messages == null || messages.isEmpty()) {
+      // If no messages are given, check and read all new messages.
+      messages = readNewMessagesFromZK(manager, instanceName, changeContext.getChangeType());
+    }
+
+    if (_isShuttingDown) {
+      StringBuilder sb = new StringBuilder();
+      for (Message message : messages) {
+        sb.append(message.getMsgId() + ",");
+      }
+      LOG.info("Helix task executor is shutting down, discard unprocessed messages : " + sb.toString());
+      return;
+    }
+
     if (messages == null || messages.size() == 0) {
       LOG.info("No Messages to process");
       return;
@@ -639,7 +747,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     // Update message count
     _messageQueueMonitor.setMessageQueueBacklog(messages.size());
-    _monitor.reportReceivedMessages(messages);
 
     // sort message by creation timestamp, so message created earlier is processed first
     Collections.sort(messages, Message.CREATE_TIME_COMPARATOR);
@@ -648,18 +755,18 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     Builder keyBuilder = accessor.keyBuilder();
 
     // message handlers created
-    Map<String, MessageHandler> stateTransitionHandlers = new HashMap<String, MessageHandler>();
-    List<MessageHandler> nonStateTransitionHandlers = new ArrayList<MessageHandler>();
+    Map<String, MessageHandler> stateTransitionHandlers = new HashMap<>();
+    List<MessageHandler> nonStateTransitionHandlers = new ArrayList<>();
 
     // message read
-    List<Message> readMsgs = new ArrayList<Message>();
+    List<Message> readMsgs = new ArrayList<>();
 
     String sessionId = manager.getSessionId();
     List<String> curResourceNames =
         accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
-    List<PropertyKey> createCurStateKeys = new ArrayList<PropertyKey>();
-    List<CurrentState> metaCurStates = new ArrayList<CurrentState>();
-    Set<String> createCurStateNames = new HashSet<String>();
+    List<PropertyKey> createCurStateKeys = new ArrayList<>();
+    List<CurrentState> metaCurStates = new ArrayList<>();
+    Set<String> createCurStateNames = new HashSet<>();
 
     for (Message message : messages) {
       // nop messages are simply removed. It is used to trigger onMessage() in
@@ -667,8 +774,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString())) {
         LOG.info("Dropping NO-OP message. mid: " + message.getId() + ", from: "
             + message.getMsgSrc());
-        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
-        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+        removeMessageFromZk(accessor, message, instanceName);
         continue;
       }
 
@@ -681,7 +787,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
                 + ", tgtSessionId in message: " + tgtSessionId + ", messageId: "
                 + message.getMsgId();
         LOG.warn(warningMessage);
-        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        removeMessageFromZk(accessor, message, instanceName);
         _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage, accessor);
 
         // Proactively send a session sync message from participant to controller
@@ -692,6 +798,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             syncSessionToController(manager);
           }
         }
+        _monitor.reportReceivedMessage(message);
         _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
@@ -702,7 +809,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         PropertyKey key = new Builder(manager.getClusterName()).liveInstances();
         List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
         _controller.onLiveInstanceChange(liveInstances, changeContext);
-        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        removeMessageFromZk(accessor, message, instanceName);
+        _monitor.reportReceivedMessage(message);
         _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
         continue;
       }
@@ -716,57 +824,64 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         if (LOG.isTraceEnabled()) {
           LOG.trace("Message already read. msgId: " + message.getMsgId());
         }
-        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
+
+      _monitor.reportReceivedMessage(message);
 
       // State Transition Cancellation
       // Three Types of Cancellation: 1. Message arrived with previous state transition
       //                              2. Message handled but task not started
       //                              3. Message handled and task already started
       if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
-        String messageTarget =
+        String targetMessageName =
             getMessageTarget(message.getResourceName(), message.getPartitionName());
         // State transition message and cancel message are in same batch
-        if (stateTransitionHandlers.containsKey(messageTarget)) {
-          if (!isCancelingSameStateTransition(
-              stateTransitionHandlers.get(messageTarget).getMessage(), message)) {
+        if (stateTransitionHandlers.containsKey(targetMessageName)) {
+          Message targetMessage = stateTransitionHandlers.get(targetMessageName).getMessage();
+          if (!isCancelingSameStateTransition(targetMessage, message)) {
             removeMessageFromZk(accessor, message, instanceName);
+            _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
             continue;
           }
 
-          markReadMessage(message, changeContext, accessor);
-          readMsgs.add(message);
+          removeMessageFromZk(accessor, message, instanceName);
           _monitor.reportProcessedMessage(message,
               ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
-          removeMessageFromZk(accessor, message, instanceName);
-          removeMessageFromZk(accessor, stateTransitionHandlers.get(messageTarget).getMessage(),
-              instanceName);
-          stateTransitionHandlers.remove(messageTarget);
+
+          removeMessageFromZk(accessor, targetMessage, instanceName);
+          _monitor
+              .reportProcessedMessage(targetMessage, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+          stateTransitionHandlers.remove(targetMessageName);
           continue;
         } else {
-          if (_messageTaskMap.containsKey(messageTarget)) {
+          if (_messageTaskMap.containsKey(targetMessageName)) {
             // Lock the task object to avoid race condition between cancel and start tasks.
             // Cancel the from future without interrupt ->  Cancel the task future without
             // interruptting the state transition that is already started.  If the state transition
             // is already started, we should call cancel in the state model.
-            String taskId = _messageTaskMap.get(messageTarget);
+            String taskId = _messageTaskMap.get(targetMessageName);
             HelixTask task = (HelixTask) _taskMap.get(taskId).getTask();
             Future<HelixTaskResult> future = _taskMap.get(taskId).getFuture();
 
             if (!isCancelingSameStateTransition(task.getMessage(), message)) {
               removeMessageFromZk(accessor, message, instanceName);
+              _monitor
+                  .reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
               continue;
             }
 
             if (task.cancel()) {
               Message stateTransitionMessage = task.getMessage();
               future.cancel(false);
-              _monitor.reportProcessedMessage(message,
-                  ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
+              _messageTaskMap.remove(targetMessageName);
+              _taskMap.remove(taskId);
               removeMessageFromZk(accessor, message, instanceName);
-              removeMessageFromZk(accessor, stateTransitionMessage,
-                  instanceName);
+              removeMessageFromZk(accessor, stateTransitionMessage, instanceName);
+              _monitor
+                  .reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
+              _monitor.reportProcessedMessage(stateTransitionMessage,
+                  ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
               continue;
             }
           }
@@ -777,7 +892,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       try {
         MessageHandler createHandler = createMessageHandler(message, changeContext);
         if (createHandler == null) {
-          _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
           continue;
         }
         if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name()) || message.getMsgType()
@@ -796,16 +910,13 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e, error, accessor);
 
         message.setMsgState(MessageState.UNPROCESSABLE);
-        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        removeMessageFromZk(accessor, message, instanceName);
         LOG.error("Message cannot be processed: " + message.getRecord(), e);
         _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
 
       markReadMessage(message, changeContext, accessor);
-
-      _statusUpdateUtil.logInfo(message, HelixStateMachineEngine.class, "New Message", accessor);
-
       readMsgs.add(message);
 
       // batch creation of all current state meta data
@@ -872,16 +983,16 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     String msgType = message.getMsgType().toString();
 
     MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
-    MessageHandlerFactory handlerFactory = item.factory();
 
     // Fail to find a MessageHandlerFactory for the message
     // we will keep the message and the message will be handled when
     // the corresponding MessageHandlerFactory is registered
-    if (handlerFactory == null) {
+    if (item == null) {
       LOG.warn("Fail to find message handler factory for type: " + msgType + " msgId: "
           + message.getMsgId());
       return null;
     }
+    MessageHandlerFactory handlerFactory = item.factory();
 
     // pass the executor to msg-handler since batch-msg-handler needs task-executor to schedule
     // sub-msgs
@@ -890,6 +1001,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   }
 
   private void removeMessageFromTaskAndFutureMap(Message message) {
+    _knownMessageIds.remove(message.getId());
     String messageTarget = getMessageTarget(message.getResourceName(), message.getPartitionName());
     if (_messageTaskMap.containsKey(messageTarget)) {
       _messageTaskMap.remove(messageTarget);
@@ -906,20 +1018,26 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     return String.format("%s_%s", resourceName, partitionName);
   }
 
+  private String getStateTransitionType(String prefix, String fromState, String toState){
+    if (prefix == null || fromState == null || toState == null) {
+      return null;
+    }
+    return String.format("%s.%s.%s", prefix, fromState, toState);
+  }
+
+  private String getPerResourceStateTransitionPoolName(String resourceName) {
+    return MessageType.STATE_TRANSITION.name() + "." + resourceName;
+  }
+
   private void removeMessageFromZk(HelixDataAccessor accessor, Message message,
       String instanceName) {
-    Builder keyBuilder = accessor.keyBuilder();
-    if (message.getTgtName().equalsIgnoreCase("controller")) {
-      // TODO: removeProperty returns boolean
-      accessor.removeProperty(keyBuilder.controllerMessage(message.getMsgId()));
-    } else {
-      accessor.removeProperty(keyBuilder.message(instanceName, message.getMsgId()));
-    }
+    accessor.removeProperty(message.getKey(accessor.keyBuilder(), instanceName));
   }
 
   @Override
   public void shutdown() {
     LOG.info("Shutting down HelixTaskExecutor");
+    _isShuttingDown = true;
     _timer.cancel();
 
     reset();

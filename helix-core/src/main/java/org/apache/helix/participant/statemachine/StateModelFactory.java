@@ -232,11 +232,32 @@ public abstract class StateModelFactory<T extends StateModel> {
   /**
    * Get the customized thread pool to handle all state transition messages for the given resource.
    * If this method return null, Helix will use the shared thread pool to handle all messages.
+   * This method may be called only once for per transition type per resource, it will NOT be called
+   * during each state transition.
    *
    * @param resourceName
    * @return
    */
   public ExecutorService getExecutorService(String resourceName) {
+    return null;
+  }
+
+  /**
+   *Get thread pool to handle the given state transition (fromState->toState) callback for given
+   * resource.
+   *
+   * If this method return null, the threadpool returned from
+   * {\ref StateModelFactory.getExecutorService(String resourceName)} will be used. If that method
+   * return null too, then the default shared threadpool will be used. This method may be called
+   * only once for per transition type per resource, it will NOT be called during each state transition.
+   *
+   *
+   * @param resourceName
+   * @param fromState
+   * @param toState
+   * @return
+   */
+  public ExecutorService getExecutorService(String resourceName, String fromState, String toState) {
     return null;
   }
 }

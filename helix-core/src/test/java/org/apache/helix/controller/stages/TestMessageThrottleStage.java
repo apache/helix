@@ -32,13 +32,6 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.pipeline.Pipeline;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.MessageSelectionStageOutput;
-import org.apache.helix.controller.stages.MessageThrottleStage;
-import org.apache.helix.controller.stages.MessageThrottleStageOutput;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConstraints;
@@ -77,8 +70,8 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     });
     setupStateModel(clusterName);
 
-    ClusterEvent event = new ClusterEvent("testEvent");
-    event.addAttribute("helixmanager", manager);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     MessageThrottleStage throttleStage = new MessageThrottleStage();
     try {
@@ -264,8 +257,8 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     Assert.assertTrue(containsConstraint(matches, constraint3));
 
     // test messageThrottleStage
-    ClusterEvent event = new ClusterEvent("testEvent");
-    event.addAttribute("helixmanager", manager);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
 
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());

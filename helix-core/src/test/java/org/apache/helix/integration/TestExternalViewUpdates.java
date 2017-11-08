@@ -26,6 +26,7 @@ import java.util.List;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -53,10 +54,6 @@ public class TestExternalViewUpdates extends ZkIntegrationTestBase {
         1, // replicas
         "MasterSlave", true); // do rebalance
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
-    controller.syncStart();
-
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
@@ -64,6 +61,11 @@ public class TestExternalViewUpdates extends ZkIntegrationTestBase {
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
+
+    // start controller after participants to trigger rebalance immediate after the controller is ready
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    controller.syncStart();
 
     boolean result =
         ClusterStateVerifier

@@ -194,6 +194,15 @@ public class ConfigAccessor {
     return map;
   }
 
+  private ZNRecord getConfigZnRecord(HelixConfigScope scope) {
+    String clusterName = scope.getClusterName();
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+      throw new HelixException("fail to get configs. cluster " + clusterName + " is not setup yet");
+    }
+
+    return zkClient.readData(scope.getZkPath(), true);
+  }
+
   /**
    * Set config, create if not exist
    * @deprecated replaced by {@link #set(HelixConfigScope, String, String)}
@@ -256,8 +265,7 @@ public class ConfigAccessor {
         update.getMapField(splits[1]).put(key, value);
       }
     }
-    ZKUtil.createOrUpdate(zkClient, splits[0], update, true, true);
-    return;
+    ZKUtil.createOrMerge(zkClient, splits[0], update, true, true);
   }
 
   /**
@@ -308,8 +316,7 @@ public class ConfigAccessor {
       update.setMapField(mapKey, keyValueMap);
     }
 
-    ZKUtil.createOrUpdate(zkClient, zkPath, update, true, true);
-    return;
+    ZKUtil.createOrMerge(zkClient, zkPath, update, true, true);
   }
 
   /**
@@ -362,7 +369,6 @@ public class ConfigAccessor {
     }
 
     ZKUtil.subtract(zkClient, splits[0], update);
-    return;
   }
 
   /**
@@ -410,7 +416,28 @@ public class ConfigAccessor {
     }
 
     ZKUtil.subtract(zkClient, zkPath, update);
-    return;
+  }
+
+  /**
+   * Remove multiple configs
+   *
+   * @param scope          scope specification of the entity set to query (e.g. cluster, resource,
+   *                       participant, etc.)
+   * @param recordToRemove the ZNRecord that holds the entries that needs to be removed
+   */
+  public void remove(HelixConfigScope scope, ZNRecord recordToRemove) {
+    if (scope == null || scope.getType() == null || !scope.isFullKey()) {
+      LOG.error("fail to remove. invalid scope: " + scope);
+      return;
+    }
+
+    String clusterName = scope.getClusterName();
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+      throw new HelixException("fail to remove. cluster " + clusterName + " is not setup yet");
+    }
+
+    String zkPath = scope.getZkPath();
+    ZKUtil.subtract(zkClient, zkPath, recordToRemove);
   }
 
   /**
@@ -507,15 +534,6 @@ public class ConfigAccessor {
       Collections.sort(retKeys);
     }
     return retKeys;
-  }
-
-  private ZNRecord getConfigZnRecord(HelixConfigScope scope) {
-    String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
-      throw new HelixException("fail to get configs. cluster " + clusterName + " is not setup yet");
-    }
-
-    return zkClient.readData(scope.getZkPath(), true);
   }
 
   /**
@@ -615,7 +633,6 @@ public class ConfigAccessor {
   }
 
   /**
-<<<<<<< HEAD
    * Set config of the given resource.
    * The current Resource config will be replaced with the given clusterConfig.
    *

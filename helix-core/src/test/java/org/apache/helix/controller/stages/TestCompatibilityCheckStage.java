@@ -22,12 +22,10 @@ package org.apache.helix.controller.stages;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.helix.Mocks;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.stages.CompatibilityCheckStage;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
+import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
@@ -68,14 +66,14 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
     accessor.setProperty(keyBuilder.liveInstance("localhost_0"), liveInstance);
 
     if (controllerVersion != null) {
-      ((Mocks.MockManager) manager).setVersion(controllerVersion);
+      ((MockManager) manager).setVersion(controllerVersion);
     }
 
     if (minSupportedParticipantVersion != null) {
       manager.getProperties().getProperties()
           .put("minimum_supported_version.participant", minSupportedParticipantVersion);
     }
-    event.addAttribute("helixmanager", manager);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
     runStage(event, new ReadClusterDataStage());
   }
 

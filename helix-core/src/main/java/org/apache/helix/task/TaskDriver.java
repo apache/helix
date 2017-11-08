@@ -18,6 +18,7 @@ package org.apache.helix.task;
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -51,6 +52,7 @@ import org.apache.log4j.Logger;
  * CLI for scheduling/canceling workflows
  */
 public class TaskDriver {
+
   public enum DriverCommand {
     start,
     stop,
@@ -83,7 +85,7 @@ public class TaskDriver {
 
   public TaskDriver(ZkClient client, ZkBaseDataAccessor<ZNRecord> baseAccessor, String clusterName) {
     this(new ZKHelixAdmin(client), new ZKHelixDataAccessor(clusterName, baseAccessor),
-        new ZkHelixPropertyStore<>(baseAccessor,
+        new ZkHelixPropertyStore<ZNRecord>(baseAccessor,
             PropertyPathBuilder.propertyStore(clusterName), null), clusterName);
   }
 
@@ -164,6 +166,16 @@ public class TaskDriver {
    * @param newWorkflowConfig
    */
   public void updateWorkflow(String workflow, WorkflowConfig newWorkflowConfig) {
+    if (newWorkflowConfig.getWorkflowId() == null) {
+      newWorkflowConfig.getRecord()
+          .setSimpleField(WorkflowConfig.WorkflowConfigProperty.WorkflowID.name(), workflow);
+    }
+    if (workflow == null || !workflow.equals(newWorkflowConfig.getWorkflowId())) {
+      throw new HelixException(String
+          .format("Workflow name {%s} does not match the workflow Id from WorkflowConfig {%s}",
+              workflow, newWorkflowConfig.getWorkflowId()));
+    }
+
     WorkflowConfig currentConfig =
         TaskUtil.getWorkflowConfig(_accessor, workflow);
     if (currentConfig == null) {
@@ -239,8 +251,16 @@ public class TaskDriver {
         }
       }
     }
+
     deleteJobFromQueue(queue, job);
   }
+
+    /**
+     * delete a job from a scheduled (non-recurrent) queue.
+     *
+     * @param queue
+     * @param job
+     */
 
   private void deleteJobFromQueue(final String queue, final String job) {
     WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_propertyStore, queue);
@@ -435,8 +455,9 @@ public class TaskDriver {
 
   private IdealState buildWorkflowIdealState(String workflow) {
     CustomModeISBuilder IsBuilder = new CustomModeISBuilder(workflow);
-    IsBuilder.setRebalancerMode(IdealState.RebalanceMode.TASK).setNumReplica(1).setNumPartitions(1)
-        .setStateModel(TaskConstants.STATE_MODEL_NAME).setDisableExternalView(true);
+    IsBuilder.setRebalancerMode(IdealState.RebalanceMode.TASK).setNumReplica(1)
+        .setNumPartitions(1).setStateModel(TaskConstants.STATE_MODEL_NAME).disableExternalView();
+
     IdealState is = IsBuilder.build();
     is.getRecord().setListField(workflow, new ArrayList<String>());
     is.getRecord().setMapField(workflow, new HashMap<String, String>());
@@ -525,7 +546,13 @@ public class TaskDriver {
       for (String scheduledWorkflow : wCtx.getScheduledWorkflows()) {
         WorkflowContext scheduledWorkflowCtx = TaskUtil.getWorkflowContext(_propertyStore, scheduledWorkflow);
         if (scheduledWorkflowCtx != null && scheduledWorkflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
-          setWorkflowTargetState(scheduledWorkflow, TargetState.DELETE);
+          Set<String> jobSet = new HashSet<String>();
+          // Note that even WorkflowConfig is null, if WorkflowContext exists, still need to remove workflow
+          WorkflowConfig wCfg = TaskUtil.getWorkflowConfig(_accessor, scheduledWorkflow);
+          if (wCfg != null) {
+            jobSet.addAll(wCfg.getJobDag().getAllNodes());
+          }
+          TaskUtil.removeWorkflow(_accessor, _propertyStore, scheduledWorkflow, jobSet);
         }
       }
     }
@@ -561,9 +588,7 @@ public class TaskDriver {
 
     WorkflowContext workflowContext = TaskUtil.getWorkflowContext(_propertyStore, workflow);
     if (state != TargetState.DELETE && workflowContext != null &&
-        (workflowContext.getFinishTime() != WorkflowContext.UNFINISHED
-        || workflowContext.getWorkflowState() == TaskState.COMPLETED
-        || workflowContext.getWorkflowState() == TaskState.FAILED)) {
+        workflowContext.getFinishTime() != WorkflowContext.UNFINISHED) {
       // Should not update target state for completed workflow
       LOG.info("Workflow " + workflow + " is already completed, skip to update its target state "
           + state);
@@ -713,7 +738,7 @@ public class TaskDriver {
       throw new HelixException(String.format("Workflow \"%s\" does not exists!", workflowName));
     }
 
-    long timeToSleep = timeout > 100L ? 100L : timeout;
+    long timeToSleep = timeout > 50L ? 50L : timeout;
 
     WorkflowContext ctx;
     if (workflowConfig.isRecurring()) {
@@ -725,10 +750,9 @@ public class TaskDriver {
 
       jobName = jobName.substring(workflowName.length() + 1);
       workflowName = ctx.getLastScheduledSingleWorkflow();
-      jobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
     }
 
-    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(states));
+    Set<TaskState> allowedStates = new HashSet<>(Arrays.asList(states));
     // Wait for state
     long st = System.currentTimeMillis();
     do {
@@ -739,7 +763,8 @@ public class TaskDriver {
 
     if (ctx == null || !allowedStates.contains(ctx.getJobState(jobName))) {
       throw new HelixException(
-          String.format("Job \"%s\" context is null or not in states: \"%s\"", jobName, states));
+          String.format("Workflow \"%s\" context is null or job \"%s\" is not in states: %s",
+              workflowName, jobName, allowedStates));
     }
 
     return ctx.getJobState(jobName);

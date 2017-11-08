@@ -1,0 +1,165 @@
+{
+  "Partition" : [
+    {
+      "Resource" : "TestResource2",
+      "PreferenceList" : [
+        "localhost_0",
+        "localhost_1",
+        "localhost_2",
+        "localhost_3"
+      ],
+      "BestPossibleMap" : {
+        "Partition_0" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE",
+          "localhost_3" : "SLAVE"
+        },
+        "Partition_1" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE",
+          "localhost_3" : "SLAVE"
+        },
+        "Partition_2" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE",
+          "localhost_3" : "SLAVE"
+        },
+        "Partition_3" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE",
+          "localhost_3" : "SLAVE"
+        },
+        "Partition_4" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE",
+          "localhost_3" : "SLAVE"
+        }
+      },
+      "CurrentStateMap" : {
+        "Partition_0" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "OFFLINE",
+          "localhost_2" : "SLAVE",
+          "localhost_3" : "SLAVE"
+        },
+        "Partition_1" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "OFFLINE",
+          "localhost_3" : "OFFLINE"
+        },
+        "Partition_2" : {
+          "localhost_0" : "SLAVE",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE",
+          "localhost_3" : "SLAVE"
+
+        },
+        "Partition_3" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "OFFLINE",
+          "localhost_2" : "OFFLINE",
+          "localhost_3" : "OFFLINE"
+        },
+        "Partition_4" : {
+          "localhost_0" : "SLAVE",
+          "localhost_1" : "MASTER",
+          "localhost_2" : "SLAVE",
+          "localhost_3" : "SLAVE"
+        }
+      },
+      "ExpectedPriority" : [
+        "Partition_2",
+        "Partition_3",
+        "Partition_1",
+        "Partition_4",
+        "Partition_0"
+      ]
+    },
+    {
+      "Resource" : "TestResource",
+      "PreferenceList" : [
+        "localhost_0",
+        "localhost_1",
+        "localhost_2"
+      ],
+      "BestPossibleMap" : {
+        "Partition_0" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE"
+        },
+        "Partition_1" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE"
+        },
+        "Partition_2" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE"
+        },
+        "Partition_3" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE"
+        },
+        "Partition_4" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE"
+        },
+        "Partition_5" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE"
+        }
+      },
+      "CurrentStateMap" : {
+        "Partition_0" : {
+          "localhost_0" : "SLAVE",
+          "localhost_1" : "OFFLINE",
+          "localhost_2" : "SLAVE"
+        },
+        "Partition_1" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "OFFLINE"
+        },
+        "Partition_2" : {
+          "localhost_0" : "MASTER",
+          "localhost_1" : "OFFLINE",
+          "localhost_2" : "OFFLINE"
+        },
+        "Partition_3" : {
+          "localhost_0" : "SLAVE",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "SLAVE"
+        },
+        "Partition_4" : {
+          "localhost_0" : "SLAVE",
+          "localhost_1" : "OFFLINE",
+          "localhost_2" : "MASTER"
+        },
+        "Partition_5" : {
+          "localhost_0" : "SLAVE",
+          "localhost_1" : "SLAVE",
+          "localhost_2" : "MASTER"
+        }
+      },
+      "ExpectedPriority" : [
+        "Partition_0",
+        "Partition_3",
+        "Partition_2",
+        "Partition_1",
+        "Partition_4",
+        "Partition_5"
+      ]
+    }
+  ]
+}

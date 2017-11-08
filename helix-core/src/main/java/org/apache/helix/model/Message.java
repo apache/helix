@@ -31,8 +31,8 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 
 /**
  * Messages sent internally among nodes in the system to respond to changes in state.
@@ -102,9 +102,7 @@ public class Message extends HelixProperty {
   public static final Comparator<Message> CREATE_TIME_COMPARATOR = new Comparator<Message>() {
     @Override
     public int compare(Message m1, Message m2) {
-      // long t1 = m1.getCreateTimeStamp();
-      // long t2 = m2.getCreateTimeStamp();
-      return (int) (m1.getCreateTimeStamp() - m2.getCreateTimeStamp());
+      return new Long(m1.getCreateTimeStamp()).compareTo(new Long(m2.getCreateTimeStamp()));
     }
   };
 

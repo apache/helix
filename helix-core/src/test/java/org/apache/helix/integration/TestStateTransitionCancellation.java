@@ -55,11 +55,11 @@ public class TestStateTransitionCancellation extends TaskTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    _participants = new MockParticipantManager[_numNodes];
     _numDbs = 1;
     _numParitions = 20;
     _numNodes = 2;
     _numReplicas = 2;
-    _participants = new MockParticipantManager[_numNodes];
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursive(namespace);
@@ -173,8 +173,9 @@ public class TestStateTransitionCancellation extends TaskTestBase {
       participant.syncStop();
     }
 
-    // Only partial of state transition has been cancelled
-    Assert.assertTrue((numOfMasters > 0 && numOfMasters < _numParitions));
+    // Either partial of state transitions have been cancelled or all the Slave -> Master
+    // reassigned to other cluster
+    Assert.assertTrue((numOfMasters > 0 && numOfMasters <= _numParitions));
   }
 
   private void stateCleanUp() {

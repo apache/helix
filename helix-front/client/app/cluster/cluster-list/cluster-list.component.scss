@@ -1,0 +1,22 @@
+@import 'client/theme.scss';
+
+.cluster-list-item-selected h4 {
+  font-weight: 500;
+  color: mat-color($hi-primary);
+}
+
+.error-message {
+  padding: 10px;
+}
+
+.mat-mini-fab {
+  position: fixed;
+  right: 16px;
+  top: 16px;
+}
+
+.empty {
+  font-size: 14px;
+  // font-style: italic;
+  padding: 10px;
+}

@@ -31,7 +31,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.Mocks.MockAccessor;
+import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
@@ -49,14 +49,14 @@ public class TestRoutingTable {
     final String[] array = new String[] {
         "localhost_8900", "localhost_8901"
     };
-    HelixManager manager = new Mocks.MockManager() {
+    HelixManager manager = new MockManager() {
       private MockAccessor _mockAccessor;
 
       @Override
       // public DataAccessor getDataAccessor()
       public HelixDataAccessor getHelixDataAccessor() {
         if (_mockAccessor == null) {
-          _mockAccessor = new Mocks.MockAccessor() {
+          _mockAccessor = new MockAccessor() {
             @SuppressWarnings("unchecked")
             @Override
             public <T extends HelixProperty> List<T> getChildValues(PropertyKey key)

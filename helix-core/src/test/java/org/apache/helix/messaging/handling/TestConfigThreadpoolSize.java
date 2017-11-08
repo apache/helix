@@ -24,16 +24,13 @@ import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.integration.ZkStandAloneCMTestBase;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.messaging.DefaultMessagingService;
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -132,38 +129,5 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
       }
       Assert.assertEquals(HelixTaskExecutor.DEFAULT_PARALLEL_TASKS, executor2.getMaximumPoolSize());
     }
-  }
-
-  @Test
-  public void testBatchMessageStateTransitionThreadPoolSize() throws InterruptedException {
-    int customizedThreads = 123;
-    for (MockParticipantManager participantManager : _participants) {
-      participantManager.syncStop();
-    }
-
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
-    clusterConfig.setBatchStateTransitionMaxThreads(customizedThreads);
-    accessor.setProperty(accessor.keyBuilder().clusterConfig(), clusterConfig);
-
-    // Since old participants already checked the threadpool, shutdown all of others
-    _setupTool.addInstanceToCluster(CLUSTER_NAME, "TestParticipant");
-    MockParticipantManager newParticipant =
-        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, "TestParticipant");
-    newParticipant.syncStart();
-
-    // Let messsage trigger update thread pool
-    String dbName = "TestDBSubMessageThreadPool";
-    _setupTool.addResourceToCluster(CLUSTER_NAME, dbName, 5, "OnlineOffline");
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
-
-    Thread.sleep(1000);
-
-    DefaultMessagingService svc = (DefaultMessagingService) (newParticipant.getMessagingService());
-    HelixTaskExecutor helixExecutor = svc.getExecutor();
-    Assert.assertEquals(
-        ((ThreadPoolExecutor) helixExecutor._batchMessageExecutorService).getMaximumPoolSize(),
-        customizedThreads);
-
   }
 }

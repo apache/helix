@@ -29,11 +29,10 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.ZkIntegrationTestBase;
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -41,8 +40,8 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -237,8 +236,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     // assert interrupt exception error in old session
     String errPath =
-        PropertyPathBuilder.getPath(PropertyType.ERRORS, clusterName, "localhost_12918",
-            oldSessionId, "TestDB0", "TestDB0_0");
+        PropertyPathBuilder.instanceError(clusterName, "localhost_12918", oldSessionId, "TestDB0", "TestDB0_0");
     ZNRecord error = _gZkClient.readData(errPath);
     Assert
         .assertNotNull(

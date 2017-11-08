@@ -30,6 +30,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.LiveInstance;
@@ -47,11 +48,12 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     long startTime = System.currentTimeMillis();
     logger.info("START TaskAssignmentStage.process()");
 
-    HelixManager manager = event.getAttribute("helixmanager");
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     MessageThrottleStageOutput messageOutput =
         event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
 
     if (manager == null || resourceMap == null || messageOutput == null || cache == null
@@ -74,18 +76,21 @@ public class TaskAssignmentStage extends AbstractBaseStage {
         batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveInstanceMap,
             manager.getProperties());
     sendMessages(dataAccessor, outputMessages);
-    ClusterStatusMonitor clusterStatusMonitor =
-        (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
-    clusterStatusMonitor.increaseMessagePerInstance(outputMessages);
-
+    // TODO: Need also count messages from task rebalancer
+    if (!cache.isTaskCache()) {
+      ClusterStatusMonitor clusterStatusMonitor =
+          event.getAttribute(AttributeName.clusterStatusMonitor.name());
+      clusterStatusMonitor.increaseMessageReceived(outputMessages);
+    }
     long cacheStart = System.currentTimeMillis();
     cache.cacheMessages(outputMessages);
     long cacheEnd = System.currentTimeMillis();
     logger.debug("Caching messages took " + (cacheEnd - cacheStart) + " ms");
 
     long endTime = System.currentTimeMillis();
-    logger.info("END TaskAssignmentStage.process(). took: " + (endTime - startTime) + " ms");
-
+    logger.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
+        + " TaskAssignmentStage.process() for cluster " + cache.getClusterName() + ". took: " + (
+        endTime - startTime) + " ms");
   }
 
   List<Message> batchMessage(Builder keyBuilder, List<Message> messages,
@@ -149,6 +154,6 @@ public class TaskAssignmentStage extends AbstractBaseStage {
       keys.add(keyBuilder.message(message.getTgtName(), message.getId()));
     }
 
-    dataAccessor.createChildren(keys, new ArrayList<Message>(messages));
+    dataAccessor.createChildren(keys, new ArrayList<>(messages));
   }
 }

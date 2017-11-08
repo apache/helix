@@ -87,7 +87,7 @@ public class TestTaskRebalancer extends TaskTestBase {
 
     // Wait for job to finish and expire
     _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
-    Thread.sleep(expiry + 2000);
+    Thread.sleep(expiry + 100);
 
     // Ensure workflow config and context were cleaned up by now
     Assert.assertFalse(_manager.getHelixPropertyStore().exists(workflowPropStoreKey,
@@ -191,13 +191,19 @@ public class TestTaskRebalancer extends TaskTestBase {
     // Check that all partitions timed out up to maxAttempts
     JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
     int maxAttempts = 0;
+    boolean sawTimedoutTask = false;
     for (int i = 0; i < _numParitions; i++) {
       TaskPartitionState state = ctx.getPartitionState(i);
       if (state != null) {
-        Assert.assertEquals(state, TaskPartitionState.TIMED_OUT);
+        if (state == TaskPartitionState.TIMED_OUT) {
+          sawTimedoutTask = true;
+        }
+        // At least one task timed out, other might be aborted due to job failure.
+        Assert.assertTrue(state == TaskPartitionState.TIMED_OUT || state == TaskPartitionState.TASK_ABORTED);
         maxAttempts = Math.max(maxAttempts, ctx.getPartitionNumAttempts(i));
       }
     }
+    Assert.assertTrue(sawTimedoutTask);
     Assert.assertEquals(maxAttempts, 2);
   }
 

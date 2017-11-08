@@ -61,7 +61,7 @@ fi
 echo "bump up helix-admin-webapp/pom.xml"
 sed -i "s/${version}/${new_version}/g" helix-admin-webapp/pom.xml
 grep -C 1 "$new_version" helix-admin-webapp/pom.xml
-# git diff helix-core/pom.xml
+# git diff helix-admin-webapp/pom.xml
 
 ivy_file="helix-admin-webapp-"$version".ivy"
 new_ivy_file="helix-admin-webapp-"$new_version".ivy"
@@ -73,6 +73,23 @@ if [ -f helix-admin-webapp/$ivy_file ]; then
   grep -C 1 "$new_version" "helix-admin-webapp/$new_ivy_file"
 else
   echo "helix-admin-webapp/$ivy_file not exist"
+fi
+
+echo "bump up helix-rest/pom.xml"
+sed -i "s/${version}/${new_version}/g" helix-rest/pom.xml
+grep -C 1 "$new_version" helix-rest/pom.xml
+# git diff helix-rest/pom.xml
+
+ivy_file="helix-rest-"$version".ivy"
+new_ivy_file="helix-rest-"$new_version".ivy"
+# echo "$ivy_file"
+if [ -f helix-rest/$ivy_file ]; then
+  echo "bump up helix-rest/$ivy_file"
+  git mv "helix-rest/$ivy_file" "helix-rest/$new_ivy_file"
+  sed -i "s/${version}/${new_version}/g" "helix-rest/$new_ivy_file"
+  grep -C 1 "$new_version" "helix-rest/$new_ivy_file"
+else
+  echo "helix-rest/$ivy_file not exist"
 fi
 
 for POM in helix-agent/pom.xml recipes/task-execution/pom.xml recipes/pom.xml recipes/distributed-lock-manager/pom.xml recipes/rsync-replicated-file-system/pom.xml recipes/rabbitmq-consumer-group/pom.xml recipes/service-discovery/pom.xml

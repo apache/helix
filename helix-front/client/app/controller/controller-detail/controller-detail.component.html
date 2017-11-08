@@ -1,0 +1,23 @@
+<section>
+  <md-toolbar class="mat-elevation-z1">
+    <hi-detail-header [cluster]="clusterName" [controller]="controller?.name"></hi-detail-header>
+    <md-toolbar-row class="information" fxLayout="row">
+      <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
+      <md-spinner *ngIf="isLoading"></md-spinner>
+      <hi-key-value-pairs *ngIf="!isLoading" [obj]="controller">
+        <hi-key-value-pair name="Instance" prop="liveInstance"></hi-key-value-pair>
+        <hi-key-value-pair name="Session ID" prop="sessionId"></hi-key-value-pair>
+        <hi-key-value-pair name="Helix Version" prop="helixVersion"></hi-key-value-pair>
+      </hi-key-value-pairs>
+    </md-toolbar-row>
+  </md-toolbar>
+  <nav md-tab-nav-bar>
+    <a md-tab-link
+      routerLink="history"
+      routerLinkActive #rla="routerLinkActive"
+      [active]="rla.isActive">
+      History
+    </a>
+  </nav>
+  <router-outlet></router-outlet>
+</section>

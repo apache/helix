@@ -1,0 +1,29 @@
+<form (ngSubmit)="onSubmit()" #inputForm="ngForm">
+  <h1 md-dialog-title>{{ title }}</h1>
+  <div md-dialog-content>
+    <section>
+      {{ message }}
+    </section>
+    <section *ngFor="let name of getKeys(values)">
+      <section *ngIf="values[name].type === 'boolean'">
+        {{ values[name].label }}:
+        <md-slide-toggle
+          [name]="name"
+          [(ngModel)]="values[name].value">
+          {{ values[name].value ? 'True' : 'False' }}
+        </md-slide-toggle>
+      </section>
+      <md-input-container *ngIf="values[name].type !== 'boolean'">
+        <input mdInput
+          [name]="name"
+          [(ngModel)]="values[name].value"
+          [placeholder]="values[name].label"
+          required>
+      </md-input-container>
+    </section>
+  </div>
+  <div md-dialog-actions>
+    <button md-button type="submit" color="primary" [disabled]="!inputForm.form.valid">OK</button>
+    <button md-button type="button" (click)="onCancel()">Cancel</button>
+  </div>
+</form>

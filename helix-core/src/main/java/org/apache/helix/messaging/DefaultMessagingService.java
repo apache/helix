@@ -42,7 +42,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
-import org.apache.helix.monitoring.ParticipantStatusMonitor;
+import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.log4j.Logger;
 
 public class DefaultMessagingService implements ClusterMessagingService {

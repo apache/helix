@@ -19,16 +19,31 @@ package org.apache.helix.tools;
  * under the License.
  */
 
-import java.util.List;
 import org.apache.helix.manager.zk.ZkClient;
 
+import java.util.Collections;
+import java.util.List;
 
 /**
- * This class is moved to org.apache.helix.tools.ClusterVerifiers.
+ * Please use the class is in tools.ClusterVerifiers.
  */
 @Deprecated
-public class ClusterLiveNodesVerifier extends org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier {
-  public ClusterLiveNodesVerifier(ZkClient zkclient, String clusterName, List<String> expectLiveNodes) {
-    super(zkclient, clusterName, expectLiveNodes);
+public class ClusterLiveNodesVerifier extends ClusterVerifier {
+
+  final List<String> _expectSortedLiveNodes; // always sorted
+
+  public ClusterLiveNodesVerifier(ZkClient zkclient, String clusterName,
+      List<String> expectLiveNodes) {
+    super(zkclient, clusterName);
+    _expectSortedLiveNodes = expectLiveNodes;
+    Collections.sort(_expectSortedLiveNodes);
   }
+
+  @Override
+  public boolean verify() throws Exception {
+    List<String> actualLiveNodes = _accessor.getChildNames(_keyBuilder.liveInstances());
+    Collections.sort(actualLiveNodes);
+    return _expectSortedLiveNodes.equals(actualLiveNodes);
+  }
+
 }

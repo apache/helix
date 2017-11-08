@@ -29,10 +29,13 @@ public interface HelixConstants {
     IDEAL_STATE,
     CONFIG,
     INSTANCE_CONFIG,
+    RESOURCE_CONFIG,
+    CLUSTER_CONFIG,
     LIVE_INSTANCE,
     CURRENT_STATE,
     MESSAGE,
     EXTERNAL_VIEW,
+    TARGET_EXTERNAL_VIEW,
     CONTROLLER,
     MESSAGES_CONTROLLER,
     HEALTH
@@ -48,11 +51,12 @@ public interface HelixConstants {
   }
 
   /**
-   * Replaced by ClusterConfig.ClusterConfigProperty.
+   * Please use ClusterConfig instead
    */
   @Deprecated
   enum ClusterConfigType {
     HELIX_DISABLE_PIPELINE_TRIGGERS,
+    PERSIST_BEST_POSSIBLE_ASSIGNMENT
   }
 
   String DEFAULT_STATE_MODEL_FACTORY = "DEFAULT";

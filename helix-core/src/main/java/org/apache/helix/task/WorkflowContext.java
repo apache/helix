@@ -19,8 +19,9 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import java.util.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -44,8 +45,9 @@ public class WorkflowContext extends HelixProperty {
     LAST_SCHEDULED_WORKFLOW,
     SCHEDULED_WORKFLOWS,
     LAST_PURGE_TIME,
-    StartTime
-  }
+    StartTime, // TODO this should be named JOB_SCHEDULED_START_TIME, it's not the actual start time of the job
+    NAME
+    }
 
   public static final int UNSTARTED = -1;
   public static final int UNFINISHED = -1;
@@ -76,10 +78,18 @@ public class WorkflowContext extends HelixProperty {
   public void setJobState(String job, TaskState s) {
     Map<String, String> states = _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
     if (states == null) {
-      states = new TreeMap<>();
+      states = new TreeMap<String, String>();
       _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
     }
     states.put(job, s.name());
+  }
+
+  protected void removeJobStates(Set<String> jobs) {
+    Map<String, String> states = _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
+    if (states != null) {
+      states.keySet().removeAll(jobs);
+      _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
+    }
   }
 
   public TaskState getJobState(String job) {
@@ -96,19 +106,11 @@ public class WorkflowContext extends HelixProperty {
     return TaskState.valueOf(s);
   }
 
-  protected void removeJobStates(Set<String> jobs) {
-    Map<String, String> states = _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
-    if (states != null) {
-      states.keySet().removeAll(jobs);
-      _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
-    }
-  }
-
   protected void setJobStartTime(String job, long time) {
     Map<String, String> startTimes =
         _record.getMapField(WorkflowContextProperties.StartTime.name());
     if (startTimes == null) {
-      startTimes = new HashMap<>();
+      startTimes = new HashMap<String, String>();
       _record.setMapField(WorkflowContextProperties.StartTime.name(), startTimes);
     }
     startTimes.put(job, String.valueOf(time));
@@ -145,7 +147,7 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public Map<String, Long> getJobStartTimes() {
-    Map<String, Long> startTimes = new HashMap<>();
+    Map<String, Long> startTimes = new HashMap<String, Long>();
     Map<String, String> startTimesMap =
         _record.getMapField(WorkflowContextProperties.StartTime.name());
     if (startTimesMap != null) {
@@ -158,7 +160,7 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public Map<String, TaskState> getJobStates() {
-    Map<String, TaskState> jobStates = new HashMap<>();
+    Map<String, TaskState> jobStates = new HashMap<String, TaskState>();
     Map<String, String> stateFieldMap =
         _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
     if (stateFieldMap != null) {
@@ -201,10 +203,10 @@ public class WorkflowContext extends HelixProperty {
     // Record scheduled workflow into the history list as well
     List<String> workflows = getScheduledWorkflows();
     if (workflows == null) {
-      workflows = new ArrayList<>();
+      workflows = new ArrayList<String>();
+      _record.setListField(WorkflowContextProperties.SCHEDULED_WORKFLOWS.name(), workflows);
     }
     workflows.add(workflow);
-    _record.setListField(WorkflowContextProperties.SCHEDULED_WORKFLOWS.name(), workflows);
   }
 
   public String getLastScheduledSingleWorkflow() {
@@ -222,5 +224,13 @@ public class WorkflowContext extends HelixProperty {
 
   public List<String> getScheduledWorkflows() {
     return _record.getListField(WorkflowContextProperties.SCHEDULED_WORKFLOWS.name());
+  }
+
+  public void setName(String name) {
+    _record.setSimpleField(WorkflowContextProperties.NAME.name(), name);
+  }
+
+  public String getName() {
+    return _record.getSimpleField(WorkflowContextProperties.NAME.name());
   }
 }

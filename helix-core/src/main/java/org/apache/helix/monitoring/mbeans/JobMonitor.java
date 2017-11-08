@@ -20,12 +20,13 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.WorkflowConfig;
-import org.apache.helix.task.WorkflowContext;
+import org.apache.log4j.Logger;
+
 
 public class JobMonitor implements JobMonitorMBean {
 
   private static final String JOB_KEY = "Job";
+  private static final Logger LOG = Logger.getLogger(JobMonitor.class);
 
   private String _clusterName;
   private String _jobType;
@@ -92,7 +93,8 @@ public class JobMonitor implements JobMonitorMBean {
    * @param to The to state of job, cleaned by ZK when it is null
    */
   public void updateJobCounters(TaskState to) {
-    if (to.equals(TaskState.FAILED)) {
+    // TODO maybe use separate TIMED_OUT counter later
+    if (to.equals(TaskState.FAILED) || to.equals(TaskState.TIMED_OUT)) {
       _failedJobCount++;
     } else if (to.equals(TaskState.COMPLETED)) {
       _successfullJobCount++;

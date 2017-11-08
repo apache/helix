@@ -1,0 +1,188 @@
+<section class="node-viewer" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="10px">
+  <md-progress-bar *ngIf="loadingIndicator" mode="indeterminate"></md-progress-bar>
+  <md-button-toggle-group #group="mdButtonToggleGroup" value="table">
+    <md-button-toggle value="table">
+      Table View
+    </md-button-toggle>
+    <md-button-toggle value="json">
+      JSON View
+    </md-button-toggle>
+  </md-button-toggle-group>
+  <section class="viewer" [ngSwitch]="group.value" fxFlexFill>
+    <ngx-json-viewer *ngSwitchCase="'json'" [json]="obj"></ngx-json-viewer>
+    <section *ngSwitchCase="'table'">
+
+      <!-- TODO vxu: use md-simple-table when it's available -->
+
+      <section fxLayout="row" fxLayoutAlign="center center">
+        <span fxFlex="1 1 auto"></span>
+        <md-icon>search</md-icon>
+        <md-input-container>
+          <input mdInput
+            placeholder="Type to filter the fields..."
+            (keyup)="updateFilter($event)"/>
+        </md-input-container>
+        <span fxFlex="1 1 auto"></span>
+        <button md-button
+          *ngIf="unlockable"
+          (click)="editable = !editable"
+          [mdTooltip]="editable ? 'Click to prevent further changes' : 'Click to make changes'">
+          <md-icon>{{ editable ? 'lock_open' : 'lock' }}</md-icon>
+          {{ editable ? 'Unlocked' : 'Locked' }}
+        </button>
+      </section>
+
+      <md-card>
+        <md-card-header>
+          <md-card-title>
+            Simple Fields
+            <span *ngIf="simpleConfigs.length == 0">is empty.</span>
+            <span *ngIf="keyword" class="primary">(filtered)</span>
+          </md-card-title>
+        </md-card-header>
+        <md-card-content>
+          <hi-data-table
+            *ngIf="simpleConfigs.length || editable"
+            [rows]="simpleConfigs"
+            [sorts]="sorts"
+            [columns]="columns.simpleConfigs"
+            [deletable]="editable"
+            [insertable]="editable"
+            (update)="edited('simple', $event)"
+            (create)="created('simple', $event)"
+            (delete)="onDelete('simple', $event.row)">
+          </hi-data-table>
+        </md-card-content>
+      </md-card>
+
+      <md-card>
+        <md-card-header>
+          <md-card-title>
+            List Fields
+            <span *ngIf="listConfigs.length == 0">is empty.</span>
+            <span *ngIf="keyword" class="primary">(filtered)</span>
+          </md-card-title>
+        </md-card-header>
+        <md-card-content>
+          <ngx-datatable
+            *ngIf="listConfigs.length || editable"
+            #listTable
+            class="material"
+            [headerHeight]="rowHeight"
+            rowHeight="auto"
+            [footerHeight]="rowHeight"
+            columnMode="force"
+            [rows]="listConfigs"
+            [sorts]="sorts"
+            [limit]="10">
+            <ngx-datatable-column
+              *ngIf="editable"
+              [width]="40"
+              [resizeable]="false"
+              [draggable]="false"
+              [canAutoResize]="false">
+              <ng-template let-row="row" ngx-datatable-cell-template>
+                <button md-icon-button class="delete-button" mdTooltip="Click to delete" (click)="beforeDelete('list', row)">
+                  <md-icon>delete_forever</md-icon>
+                </button>
+              </ng-template>
+            </ngx-datatable-column>
+            <ngx-datatable-column name="Name" [width]="80" [cellClass]="getNameCellClass"></ngx-datatable-column>
+            <ngx-datatable-column name="Value" [width]="400">
+              <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+                <hi-data-table
+                  [rows]="value"
+                  [sorts]="sorts"
+                  [columns]="columns.listConfigs"
+                  [deletable]="editable"
+                  [insertable]="editable"
+                  (update)="edited('list', $event, row.name)"
+                  (create)="created('list', $event, row.name)"
+                  (delete)="edited('list', $event, row.name, true)">
+                </hi-data-table>
+              </ng-template>
+            </ngx-datatable-column>
+            <ngx-datatable-footer>
+              <ng-template ngx-datatable-footer-template let-rowCount="rowCount">
+                <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
+                  <button md-button *ngIf="editable" (click)="onCreate('list')">
+                    <md-icon>add</md-icon>
+                    Add new entry
+                  </button>
+                  <section>
+                    {{ rowCount }} total
+                  </section>
+                </section>
+              </ng-template>
+            </ngx-datatable-footer>
+          </ngx-datatable>
+        </md-card-content>
+      </md-card>
+
+      <md-card>
+        <md-card-header>
+          <md-card-title>
+            Map Fields
+            <span *ngIf="mapConfigs.length == 0">is empty.</span>
+            <span *ngIf="keyword" class="primary">(filtered)</span>
+          </md-card-title>
+        </md-card-header>
+        <md-card-content>
+          <ngx-datatable
+            *ngIf="mapConfigs.length || editable"
+            #mapTable
+            class="material"
+            [headerHeight]="rowHeight"
+            rowHeight="auto"
+            [footerHeight]="rowHeight"
+            columnMode="force"
+            [rows]="mapConfigs"
+            [sorts]="sorts"
+            [limit]="10">
+            <ngx-datatable-column
+              *ngIf="editable"
+              [width]="40"
+              [resizeable]="false"
+              [draggable]="false"
+              [canAutoResize]="false">
+              <ng-template let-row="row" ngx-datatable-cell-template>
+                <button md-icon-button class="delete-button" mdTooltip="Click to delete" (click)="beforeDelete('map', row)">
+                  <md-icon>delete_forever</md-icon>
+                </button>
+              </ng-template>
+            </ngx-datatable-column>
+            <ngx-datatable-column name="Name" [width]="80" [cellClass]="getNameCellClass"></ngx-datatable-column>
+            <ngx-datatable-column name="Value" [width]="500">
+              <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+                <hi-data-table
+                  [rows]="value"
+                  [sorts]="sorts"
+                  [columns]="columns.simpleConfigs"
+                  [deletable]="editable"
+                  [insertable]="editable"
+                  (update)="edited('map', $event, row.name)"
+                  (create)="created('map', $event, row.name)"
+                  (delete)="edited('map', $event, row.name, true)">
+                </hi-data-table>
+              </ng-template>
+            </ngx-datatable-column>
+            <ngx-datatable-footer>
+              <ng-template ngx-datatable-footer-template let-rowCount="rowCount">
+                <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
+                  <button md-button *ngIf="editable" (click)="onCreate('map')">
+                    <md-icon>add</md-icon>
+                    Add new entry
+                  </button>
+                  <section>
+                    {{ rowCount }} total
+                  </section>
+                </section>
+              </ng-template>
+            </ngx-datatable-footer>
+          </ngx-datatable>
+        </md-card-content>
+      </md-card>
+
+    </section>
+  </section>
+</section>

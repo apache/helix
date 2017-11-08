@@ -21,21 +21,14 @@ package org.apache.helix.integration.task;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.MasterSlaveSMD;
-import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
-import org.apache.helix.task.Task;
-import org.apache.helix.task.TaskCallbackContext;
-import org.apache.helix.task.TaskFactory;
-import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskSynchronizedTestBase;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
@@ -43,7 +36,6 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -59,12 +51,12 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    _participants =  new MockParticipantManager[_numNodes];
     _numNodes = 2;
     _numParitions = 2;
     _numReplicas = 1; // only Master, no Slave
     _numDbs = 1;
 
-    _participants =  new MockParticipantManager[_numNodes];
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursive(namespace);
@@ -140,7 +132,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
     JobConfig.Builder jobBuilder = new JobConfig.Builder()
         .setWorkflow(WORKFLOW)
         .setNumberOfTasks(10) // should be enough for consistent hashing to place tasks on
-                              // different instances
+        // different instances
         .setNumConcurrentTasksPerInstance(100)
         .setCommand(MockTask.TASK_COMMAND)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "99999999")); // task stuck

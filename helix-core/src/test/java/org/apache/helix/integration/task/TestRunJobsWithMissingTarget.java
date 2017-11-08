@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
-import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
@@ -81,8 +80,8 @@ public class TestRunJobsWithMissingTarget extends TaskTestBase {
 
     // Create a workflow
     LOG.info("Starting job-queue: " + workflowName);
-    Workflow.Builder builder = new Workflow.Builder(workflowName)
-        .setWorkflowConfig(new WorkflowConfig.Builder().setFailureThreshold(10).build());
+    Workflow.Builder builder = new Workflow.Builder(workflowName).setWorkflowConfig(
+        new WorkflowConfig.Builder(workflowName).setFailureThreshold(10).build());
     // Create and add jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < _numDbs; i++) {
@@ -138,3 +137,4 @@ public class TestRunJobsWithMissingTarget extends TaskTestBase {
     _driver.delete(workflowName);
   }
 }
+

@@ -1,0 +1,33 @@
+<section>
+  <ngx-datatable
+    #historyTable
+    class="material"
+    [loadingIndicator]="isLoading"
+    [headerHeight]="rowHeight"
+    rowHeight="auto"
+    columnMode="force"
+    [rows]="rows"
+    [sorts]="sorts">
+    <ngx-datatable-column name="Date (GMT)" prop="date" [width]="240" [canAutoResize]="false"></ngx-datatable-column>
+    <ngx-datatable-column name="Epoch Time" prop="time" [width]="200" [canAutoResize]="false">
+      <ng-template let-value="value" ngx-datatable-cell-template>
+        <span mdTooltip="Local time: {{ value | date: 'yMMMdjms' }}">
+          {{ value }}
+        </span>
+        <button md-icon-button
+          mdTooltip="Copy to clipboard"
+          ngxClipboard [cbContent]="value">
+          <md-icon>content_copy</md-icon>
+        </button>
+      </ng-template>
+    </ngx-datatable-column>
+    <ngx-datatable-column name="Controller"
+      *ngIf="isController"
+      [cellClass]="bindFunc(getControllerCellClass, this)">
+    </ngx-datatable-column>
+    <ngx-datatable-column name="Session"
+      *ngIf="!isController"
+      [cellClass]="bindFunc(getSessionCellClass, this)">
+    </ngx-datatable-column>
+  </ngx-datatable>
+</section>

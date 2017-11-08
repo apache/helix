@@ -31,6 +31,10 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.controller.rebalancer.AutoRebalancer;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -38,9 +42,10 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.Lists;
@@ -89,8 +94,14 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase {
 
   }
 
-  @Test
-  public void testDisableFullAuto() throws Exception {
+
+  @DataProvider(name = "rebalancer")
+  public static String[][] rebalancers() {
+    return new String[][] { { AutoRebalancer.class.getName() }, { DelayedAutoRebalancer.class.getName() } };
+  }
+
+  @Test(dataProvider = "rebalancer", enabled = true)
+  public void testDisableFullAuto(String rebalancerName) throws Exception {
     final int NUM_PARTITIONS = 8;
     final int NUM_PARTICIPANTS = 2;
     final int NUM_REPLICAS = 1;
@@ -143,6 +154,7 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase {
 
     // Switch to full auto
     idealState.setRebalanceMode(RebalanceMode.FULL_AUTO);
+    idealState.setRebalancerClassName(rebalancerName);
     for (int i = 0; i < NUM_PARTITIONS; i++) {
       List<String> emptyList = Collections.emptyList();
       idealState.getRecord().setListField(resourceName + '_' + i, emptyList);

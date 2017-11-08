@@ -1,0 +1,35 @@
+<section>
+  <md-spinner *ngIf="isLoading"></md-spinner>
+  <section *ngIf="!isLoading">
+    <a md-button
+      color="accent"
+      [routerLink]="['../../..', 'resources', resourceName]">
+      Other Partitions
+    </a>
+
+    <hi-key-value-pairs *ngIf="!isLoading" [obj]="resourceOnInstance">
+      <hi-key-value-pair name="Session ID" prop="sessionId"></hi-key-value-pair>
+      <hi-key-value-pair name="State Model" prop="stateModelDef"></hi-key-value-pair>
+      <hi-key-value-pair name="State Model Factory Name" prop="stateModelFactoryName"></hi-key-value-pair>
+      <hi-key-value-pair name="Bucket Size" prop="bucketSize"></hi-key-value-pair>
+    </hi-key-value-pairs>
+
+    <ngx-datatable
+      #partitionsTable
+      class="material"
+      [headerHeight]="rowHeight"
+      rowHeight="auto"
+      columnMode="force"
+      [rows]="resourceOnInstance.partitions"
+      [sorts]="sorts">
+      <ngx-datatable-column name="Partition" prop="name"></ngx-datatable-column>
+      <ngx-datatable-column name="Current State" [width]="120" [canAutoResize]="false">
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          <span [mdTooltip]="row.info">
+            <hi-state-label [state]="row.currentState"></hi-state-label>
+          </span>
+        </ng-template>
+      </ngx-datatable-column>
+    </ngx-datatable>
+  </section>
+</section>

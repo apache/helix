@@ -354,6 +354,7 @@ public class Workflow {
       if (_workflowConfigBuilder == null) {
         _workflowConfigBuilder = new WorkflowConfig.Builder();
       }
+      _workflowConfigBuilder.setWorkflowId(_name);
       _workflowConfigBuilder.setJobDag(_dag);
     }
   }

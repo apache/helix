@@ -20,12 +20,15 @@ package org.apache.helix.model;
  */
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import java.util.TreeMap;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.helix.api.config.RebalanceConfig;
+import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.log4j.Logger;
 
 /**
@@ -48,7 +51,8 @@ public class ResourceConfig extends HelixProperty {
     RESOURCE_GROUP_NAME,
     RESOURCE_TYPE,
     GROUP_ROUTING_ENABLED,
-    EXTERNAL_VIEW_DISABLED
+    EXTERNAL_VIEW_DISABLED,
+    DELAY_REBALANCE_ENABLED
   }
 
   public enum ResourceConfigConstants {
@@ -89,18 +93,29 @@ public class ResourceConfig extends HelixProperty {
       int minActiveReplica, int maxPartitionsPerInstance, String instanceGroupTag,
       Boolean helixEnabled, String resourceGroupName, String resourceType,
       Boolean groupRoutingEnabled, Boolean externalViewDisabled,
-      RebalanceConfig rebalanceConfig) {
+      RebalanceConfig rebalanceConfig, StateTransitionTimeoutConfig stateTransitionTimeoutConfig,
+      Map<String, List<String>> listFields, Map<String, Map<String, String>> mapFields) {
     super(resourceId);
 
     if (monitorDisabled != null) {
       _record.setBooleanField(ResourceConfigProperty.MONITORING_DISABLED.name(), monitorDisabled);
     }
-    _record.setIntField(ResourceConfigProperty.NUM_PARTITIONS.name(), numPartitions);
-    _record.setSimpleField(ResourceConfigProperty.STATE_MODEL_DEF_REF.name(), stateModelDefRef);
+
+    if (numPartitions > 0) {
+      _record.setIntField(ResourceConfigProperty.NUM_PARTITIONS.name(), numPartitions);
+    }
+
+    if (stateModelDefRef != null) {
+      _record.setSimpleField(ResourceConfigProperty.STATE_MODEL_DEF_REF.name(), stateModelDefRef);
+    }
+
     if (stateModelFactoryName != null) {
       _record.setSimpleField(ResourceConfigProperty.STATE_MODEL_FACTORY_NAME.name(), stateModelFactoryName);
     }
-    _record.setSimpleField(ResourceConfigProperty.REPLICAS.name(), numReplica);
+
+    if (numReplica != null) {
+      _record.setSimpleField(ResourceConfigProperty.REPLICAS.name(), numReplica);
+    }
 
     if (minActiveReplica >= 0) {
       _record.setIntField(ResourceConfigProperty.MIN_ACTIVE_REPLICAS.name(), minActiveReplica);
@@ -132,11 +147,25 @@ public class ResourceConfig extends HelixProperty {
     }
 
     if (externalViewDisabled != null) {
-      _record.setBooleanField(ResourceConfigProperty.EXTERNAL_VIEW_DISABLED.name(), externalViewDisabled);
+      _record.setBooleanField(ResourceConfigProperty.EXTERNAL_VIEW_DISABLED.name(),
+          externalViewDisabled);
     }
 
     if (rebalanceConfig != null) {
       putSimpleConfigs(rebalanceConfig.getConfigsMap());
+    }
+
+    if (stateTransitionTimeoutConfig != null) {
+      putMapConfig(StateTransitionTimeoutConfig.StateTransitionTimeoutProperty.TIMEOUT.name(),
+          stateTransitionTimeoutConfig.getTimeoutMap());
+    }
+
+    if (listFields != null) {
+      _record.setListFields(listFields);
+    }
+
+    if (mapFields != null) {
+      _record.setMapFields(mapFields);
     }
   }
 
@@ -268,15 +297,42 @@ public class ResourceConfig extends HelixProperty {
     return rebalanceConfig;
   }
 
-  // TODO: Move it to constructor and Builder when the logic merged in
-  public void setStateTransitionTimeoutConfig(
-      StateTransitionTimeoutConfig stateTransitionTimeoutConfig) {
-    putMapConfig(StateTransitionTimeoutConfig.StateTransitionTimeoutProperty.TIMEOUT.name(),
-        stateTransitionTimeoutConfig.getTimeoutMap());
-  }
-
   public StateTransitionTimeoutConfig getStateTransitionTimeoutConfig() {
     return StateTransitionTimeoutConfig.fromRecord(_record);
+  }
+
+
+  /**
+   * Get the user-specified preference lists for all partitions
+   *
+   * @return map of lists of instances for all partitions in this resource.
+   */
+  public Map<String, List<String>> getPreferenceLists() {
+    return _record.getListFields();
+  }
+
+  /**
+   * Get the user-specified preference list of a partition
+   * @param partitionName the name of the partition
+   * @return a list of instances that can serve replicas of the partition
+   */
+  public List<String> getPreferenceList(String partitionName) {
+    List<String> instanceStateList = _record.getListField(partitionName);
+
+    if (instanceStateList != null) {
+      return instanceStateList;
+    }
+
+    return null;
+  }
+
+  /**
+   * Set the user-specified preference lists for all partitions in this resource.
+   *
+   * @param instanceLists the map of instance preference lists.N
+   */
+  public void setPreferenceLists(Map<String, List<String>> instanceLists) {
+    _record.setListFields(instanceLists);
   }
 
   /**
@@ -386,7 +442,7 @@ public class ResourceConfig extends HelixProperty {
   }
 
 
-  public class Builder {
+  public static class Builder {
     private String _resourceId;
     private Boolean _monitorDisabled;
     private int _numPartitions;
@@ -402,6 +458,9 @@ public class ResourceConfig extends HelixProperty {
     private Boolean _groupRoutingEnabled;
     private Boolean _externalViewDisabled;
     private RebalanceConfig _rebalanceConfig;
+    private StateTransitionTimeoutConfig _stateTransitionTimeoutConfig;
+    private Map<String, List<String>> _preferenceLists;
+    private Map<String, Map<String, String>> _mapFields;
 
     public Builder(String resourceId) {
       _resourceId = resourceId;
@@ -541,6 +600,61 @@ public class ResourceConfig extends HelixProperty {
       return _rebalanceConfig;
     }
 
+    public Builder setStateTransitionTimeoutConfig(
+        StateTransitionTimeoutConfig stateTransitionTimeoutConfig) {
+      _stateTransitionTimeoutConfig = stateTransitionTimeoutConfig;
+      return this;
+    }
+
+    public StateTransitionTimeoutConfig getStateTransitionTimeoutConfig() {
+      return _stateTransitionTimeoutConfig;
+    }
+
+    /**
+     * Set the user-specified preference list of a partition
+     *
+     * @param partitionName the name of the partition
+     * @param instanceList the instance preference list
+     */
+    public Builder setPreferenceList(String partitionName, List<String> instanceList) {
+      if (_preferenceLists == null) {
+        _preferenceLists = new TreeMap<>();
+      }
+      _preferenceLists.put(partitionName, instanceList);
+      return this;
+    }
+
+    /**
+     * Set the user-specified preference lists for all partitions in this resource.
+     *
+     * @param instanceLists the map of instance preference lists.N
+     */
+    public Builder setPreferenceLists(Map<String, List<String>> instanceLists) {
+      _preferenceLists = new TreeMap<>(instanceLists);
+      return this;
+    }
+
+    public Map<String, List<String>> getPreferenceLists() {
+      return _preferenceLists;
+    }
+
+    public Builder setMapField(String key, Map<String, String> fields) {
+      if (_mapFields == null) {
+        _mapFields = new TreeMap<>();
+      }
+      _mapFields.put(key, fields);
+      return this;
+    }
+
+    public Builder setMapFields(Map<String, Map<String, String>> mapFields) {
+      _mapFields = mapFields;
+      return this;
+    }
+
+    public Map<String, Map<String, String>> getMapFields() {
+      return _mapFields;
+    }
+
     private void validate() {
       if (_rebalanceConfig == null) {
         throw new IllegalArgumentException("RebalanceConfig not set!");
@@ -577,7 +691,9 @@ public class ResourceConfig extends HelixProperty {
       return new ResourceConfig(_resourceId, _monitorDisabled, _numPartitions, _stateModelDefRef,
           _stateModelFactoryName, _numReplica, _minActiveReplica, _maxPartitionsPerInstance,
           _instanceGroupTag, _helixEnabled, _resourceGroupName, _resourceType, _groupRoutingEnabled,
-          _externalViewDisabled, _rebalanceConfig);
+          _externalViewDisabled, _rebalanceConfig, _stateTransitionTimeoutConfig, _preferenceLists,
+          _mapFields);
     }
   }
 }
+

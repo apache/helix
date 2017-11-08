@@ -23,7 +23,7 @@ import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
-import org.apache.helix.Mocks;
+import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
@@ -43,7 +43,7 @@ public class TestResourceValidationStage {
 
   @Test
   public void testIdealStateValidity() throws Exception {
-    Mocks.MockAccessor accessor = new Mocks.MockAccessor();
+    MockAccessor accessor = new MockAccessor();
 
     // create some ideal states
     String masterSlaveCustomResource = "masterSlaveCustomResource";
@@ -63,21 +63,23 @@ public class TestResourceValidationStage {
     addStateModels(accessor);
 
     // refresh the cache
-    ClusterEvent event = new ClusterEvent("testEvent");
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);
-    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     // run resource computation
     new ResourceComputationStage().process(event);
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     Assert.assertTrue(resourceMap.containsKey(masterSlaveCustomResource));
     Assert.assertTrue(resourceMap.containsKey(onlineOfflineFullAutoResource));
     Assert.assertTrue(resourceMap.containsKey(masterSlaveSemiAutoInvalidResource));
 
     // run resource validation
     new ResourceValidationStage().process(event);
-    Map<String, Resource> finalResourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    Map<String, Resource> finalResourceMap =
+        event.getAttribute(AttributeName.RESOURCES.name());
     Assert.assertTrue(finalResourceMap.containsKey(masterSlaveCustomResource));
     Assert.assertTrue(finalResourceMap.containsKey(onlineOfflineFullAutoResource));
     Assert.assertFalse(finalResourceMap.containsKey(masterSlaveSemiAutoInvalidResource));
@@ -85,7 +87,7 @@ public class TestResourceValidationStage {
 
   @Test
   public void testNoSpec() throws Exception {
-    Mocks.MockAccessor accessor = new Mocks.MockAccessor();
+    MockAccessor accessor = new MockAccessor();
 
     // create an ideal state and no spec
     String masterSlaveCustomResource = "masterSlaveCustomResource";
@@ -95,10 +97,10 @@ public class TestResourceValidationStage {
     addStateModels(accessor);
 
     // refresh the cache
-    ClusterEvent event = new ClusterEvent("testEvent");
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);
-    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     // run resource computation
     new ResourceComputationStage().process(event);
@@ -113,7 +115,7 @@ public class TestResourceValidationStage {
 
   @Test
   public void testMissingStateModel() throws Exception {
-    Mocks.MockAccessor accessor = new Mocks.MockAccessor();
+    MockAccessor accessor = new MockAccessor();
 
     // create an ideal state and no spec
     String masterSlaveCustomResource = "masterSlaveCustomResource";
@@ -125,10 +127,10 @@ public class TestResourceValidationStage {
     addStateModels(accessor);
 
     // refresh the cache
-    ClusterEvent event = new ClusterEvent("testEvent");
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);
-    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     // run resource computation
     new ResourceComputationStage().process(event);

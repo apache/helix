@@ -28,7 +28,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
 
-
 /**
  * Interface used to interact with Helix Data Types like IdealState, Config,
  * LiveInstance, Message, ExternalView etc PropertyKey represent the HelixData
@@ -82,7 +81,7 @@ public interface HelixDataAccessor {
    * @param keys
    * @return
    */
-  public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys);
+  <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys);
 
   /**
    * Removes the property
@@ -91,6 +90,20 @@ public interface HelixDataAccessor {
    *         node existed and failed to remove it
    */
   boolean removeProperty(PropertyKey key);
+
+  /**
+   * Return the metadata (HelixProperty.Stat) of the given property
+   * @param key
+   * @return
+   */
+  HelixProperty.Stat getPropertyStat(PropertyKey key);
+
+  /**
+   * Return a list of property stats, each of which must refer to a single Helix property.
+   * @param keys
+   * @return
+   */
+  List<HelixProperty.Stat> getPropertyStats(List<PropertyKey> keys);
 
   /**
    * Return the child names for a property. PropertyKey needs to refer to a

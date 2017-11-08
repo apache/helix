@@ -1,0 +1,13 @@
+@import '~@angular/material/theming';
+
+div.message {
+  padding: 20px;
+}
+
+.status-ready {
+  color: mat-color(mat-palette($mat-green));
+}
+
+.status-not-ready {
+  color: mat-color(mat-palette($mat-orange), darker);
+}

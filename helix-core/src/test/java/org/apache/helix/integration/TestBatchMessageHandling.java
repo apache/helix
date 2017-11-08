@@ -21,6 +21,7 @@ package org.apache.helix.integration;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.mock.participant.MockMSStateModel;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -71,8 +72,8 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
       }
     }
 
-    Assert.assertTrue(numOfErrors >= 3);
-    Assert.assertTrue(numOfOnlines <= 7);
+    Assert.assertEquals(numOfErrors, 4);
+    Assert.assertEquals(numOfOnlines, 6);
   }
 
   public static class TestOnlineOfflineStateModelFactory extends

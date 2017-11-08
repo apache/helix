@@ -26,12 +26,23 @@ import org.apache.log4j.Logger;
 
 public class ClusterEvent {
   private static final Logger logger = Logger.getLogger(ClusterEvent.class.getName());
-  private final String _eventName;
+  private final ClusterEventType _eventType;
   private final Map<String, Object> _eventAttributeMap;
+  private long _creationTime;
+  private String _clusterName;
 
-  public ClusterEvent(String name) {
-    _eventName = name;
-    _eventAttributeMap = new HashMap<String, Object>();
+  @Deprecated
+  public ClusterEvent(ClusterEventType eventType) {
+    _eventType = eventType;
+    _eventAttributeMap = new HashMap<>();
+    _creationTime = System.currentTimeMillis();
+  }
+
+  public ClusterEvent(String clusterName, ClusterEventType eventType) {
+    _clusterName = clusterName;
+    _eventType = eventType;
+    _eventAttributeMap = new HashMap<>();
+    _creationTime = System.currentTimeMillis();
   }
 
   public void addAttribute(String attrName, Object attrValue) {
@@ -43,8 +54,22 @@ public class ClusterEvent {
     _eventAttributeMap.put(attrName, attrValue);
   }
 
-  public String getName() {
-    return _eventName;
+  public ClusterEventType getEventType() { return _eventType; }
+
+  public long getCreationTime() {
+    return _creationTime;
+  }
+
+  public void setCreationTime(long creationTime) {
+    _creationTime = creationTime;
+  }
+
+  public String getClusterName() {
+    return _clusterName;
+  }
+
+  public void setClusterName(String clusterName) {
+    _clusterName = clusterName;
   }
 
   @SuppressWarnings("unchecked")
@@ -59,10 +84,19 @@ public class ClusterEvent {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("name:" + _eventName).append("\n");
+    sb.append("name:" + _eventType.name()).append("\n");
     for (String key : _eventAttributeMap.keySet()) {
       sb.append(key).append(":").append(_eventAttributeMap.get(key)).append("\n");
     }
     return sb.toString();
+  }
+
+  public ClusterEvent clone() {
+    ClusterEvent newEvent = new ClusterEvent(_clusterName, _eventType);
+    newEvent.setCreationTime(_creationTime);
+    for (String attributeName : _eventAttributeMap.keySet()) {
+      newEvent.addAttribute(attributeName, _eventAttributeMap.get(attributeName));
+    }
+    return newEvent;
   }
 }

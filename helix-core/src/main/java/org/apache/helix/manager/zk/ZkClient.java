@@ -37,10 +37,14 @@ import org.apache.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
+import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
+
+import javax.management.JMException;
 
 /**
  * ZKClient does not provide some functionalities, this will be used for quick fixes if
@@ -56,17 +60,41 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   // public static String sessionPassword;
 
   private PathBasedZkSerializer _zkSerializer;
+  private ZkClientMonitor _monitor;
 
-  public ZkClient(IZkConnection connection, int connectionTimeout,
-      PathBasedZkSerializer zkSerializer) {
-    super(connection, connectionTimeout, new ByteArraySerializer());
-    init(zkSerializer);
+  private ZkClient(IZkConnection connection, int connectionTimeout, long operationRetryTimeout,
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      String monitorInstanceName, boolean monitorRootPathOnly) {
+    super(connection, connectionTimeout, new ByteArraySerializer(), operationRetryTimeout);
+    init(zkSerializer, monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
-      PathBasedZkSerializer zkSerializer, long operationRetryTimeout) {
-    super(connection, connectionTimeout, new ByteArraySerializer(), operationRetryTimeout);
-    init(zkSerializer);
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      long operationRetryTimeout) {
+    this(connection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
+        monitorKey, null, true);
+  }
+
+  public ZkClient(IZkConnection connection, int connectionTimeout,
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
+    this(connection, connectionTimeout, zkSerializer, monitorType, monitorKey, -1);
+  }
+
+  public ZkClient(String zkServers, String monitorType, String monitorKey) {
+    this(new ZkConnection(zkServers), Integer.MAX_VALUE,
+        new BasicZkSerializer(new SerializableSerializer()), monitorType, monitorKey);
+  }
+
+  public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
+    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer, monitorType,
+        monitorKey);
+  }
+
+  public ZkClient(IZkConnection connection, int connectionTimeout,
+      PathBasedZkSerializer zkSerializer) {
+    this(connection, connectionTimeout, zkSerializer, null, null);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout, ZkSerializer zkSerializer) {
@@ -101,14 +129,26 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   }
 
   public ZkClient(String zkServers) {
-    this(new ZkConnection(zkServers), Integer.MAX_VALUE, new SerializableSerializer());
+    this(zkServers, null, null);
   }
 
-  protected void init(PathBasedZkSerializer zkSerializer) {
+  protected void init(PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      String monitorInstanceName, boolean monitorRootPathOnly) {
     _zkSerializer = zkSerializer;
     if (LOG.isTraceEnabled()) {
       StackTraceElement[] calls = Thread.currentThread().getStackTrace();
       LOG.trace("created a zkclient. callstack: " + Arrays.asList(calls));
+    }
+    try {
+      if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null && !monitorType
+          .isEmpty()) {
+        _monitor =
+            new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly);
+      } else {
+        LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
+      }
+    } catch (JMException e) {
+      LOG.error("Error in creating ZkClientMonitor", e);
     }
   }
 
@@ -166,13 +206,19 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
       }
     } finally {
       getEventLock().unlock();
+      if (_monitor != null) {
+        _monitor.unregister();
+      }
       LOG.info("Closed zkclient");
     }
   }
 
-  public Stat getStat(final String path) {
-    long startT = System.nanoTime();
+  public boolean isClosed() {
+    return (_connection == null || !_connection.getZookeeperState().isAlive());
+  }
 
+  public Stat getStat(final String path) {
+    long startT = System.currentTimeMillis();
     try {
       Stat stat = retryUntilConnected(new Callable<Stat>() {
 
@@ -182,12 +228,15 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
           return stat;
         }
       });
-
+      recordRead(path, null, startT);
       return stat;
+    } catch (Exception e) {
+      recordReadFailure(path);
+      throw e;
     } finally {
-      long endT = System.nanoTime();
+      long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("exists, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("exists, path: " + path + ", time: " + (endT - startT) + " ms");
       }
     }
   }
@@ -195,19 +244,23 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   // override exists(path, watch), so we can record all exists requests
   @Override
   protected boolean exists(final String path, final boolean watch) {
-    long startT = System.nanoTime();
-
+    long startT = System.currentTimeMillis();
     try {
-      return retryUntilConnected(new Callable<Boolean>() {
+      boolean exists = retryUntilConnected(new Callable<Boolean>() {
         @Override
         public Boolean call() throws Exception {
           return _connection.exists(path, watch);
         }
       });
+      recordRead(path, null, startT);
+      return exists;
+    } catch (Exception e) {
+      recordReadFailure(path);
+      throw e;
     } finally {
-      long endT = System.nanoTime();
+      long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("exists, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("exists, path: " + path + ", time: " + (endT - startT) + " ms");
       }
     }
   }
@@ -215,19 +268,23 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   // override getChildren(path, watch), so we can record all getChildren requests
   @Override
   protected List<String> getChildren(final String path, final boolean watch) {
-    long startT = System.nanoTime();
-
+    long startT = System.currentTimeMillis();
     try {
-      return retryUntilConnected(new Callable<List<String>>() {
+      List<String> children = retryUntilConnected(new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {
           return _connection.getChildren(path, watch);
         }
       });
+      recordRead(path, null, startT);
+      return children;
+    } catch (Exception e) {
+      recordReadFailure(path);
+      throw e;
     } finally {
-      long endT = System.nanoTime();
+      long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("getChildren, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("getChildren, path: " + path + ", time: " + (endT - startT) + " ms");
       }
     }
   }
@@ -244,20 +301,25 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   @Override
   @SuppressWarnings("unchecked")
   protected <T extends Object> T readData(final String path, final Stat stat, final boolean watch) {
-    long startT = System.nanoTime();
+    long startT = System.currentTimeMillis();
+    byte[] data = null;
     try {
-      byte[] data = retryUntilConnected(new Callable<byte[]>() {
+      data = retryUntilConnected(new Callable<byte[]>() {
 
         @Override
         public byte[] call() throws Exception {
           return _connection.readData(path, stat, watch);
         }
       });
+      recordRead(path, data, startT);
       return (T) deserialize(data, path);
+    } catch (Exception e) {
+      recordReadFailure(path);
+      throw e;
     } finally {
-      long endT = System.nanoTime();
+      long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("getData, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("getData, path: " + path + ", time: " + (endT - startT) + " ms");
       }
     }
   }
@@ -267,7 +329,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
       boolean returnNullIfPathNotExists) {
     T data = null;
     try {
-      data = (T) super.readData(path, stat);
+      data = readData(path, stat);
     } catch (ZkNoNodeException e) {
       if (!returnNullIfPathNotExists) {
         throw e;
@@ -286,77 +348,88 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
 
   @Override
   public void writeData(final String path, Object datat, final int expectedVersion) {
-    long startT = System.nanoTime();
+    long startT = System.currentTimeMillis();
     try {
       final byte[] data = serialize(datat, path);
       checkDataSizeLimit(data);
       retryUntilConnected(new Callable<Object>() {
 
-        @Override
-        public Object call() throws Exception {
+        @Override public Object call() throws Exception {
           _connection.writeData(path, data, expectedVersion);
           return null;
         }
       });
+      recordWrite(path, data, startT);
+    } catch (Exception e) {
+      recordWriteFailure(path);
+      throw e;
     } finally {
-      long endT = System.nanoTime();
+      long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("setData, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("setData, path: " + path + ", time: " + (endT - startT) + " ms");
       }
     }
   }
 
   public Stat writeDataGetStat(final String path, Object datat, final int expectedVersion)
       throws InterruptedException {
-    long start = System.nanoTime();
+    long startT = System.currentTimeMillis();
     try {
       final byte[] data = _zkSerializer.serialize(datat, path);
       checkDataSizeLimit(data);
-      return retryUntilConnected(new Callable<Stat>() {
+      Stat stat = retryUntilConnected(new Callable<Stat>() {
 
-        @Override
-        public Stat call() throws Exception {
-          return ((ZkConnection) _connection).getZookeeper().setData(path, data, expectedVersion);
+        @Override public Stat call() throws Exception {
+          return ((ZkConnection) _connection).getZookeeper()
+              .setData(path, data, expectedVersion);
         }
       });
+      recordWrite(path, data, startT);
+      return stat;
+    } catch (Exception e) {
+      recordWriteFailure(path);
+      throw e;
     } finally {
-      long end = System.nanoTime();
+      long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("setData, path: " + path + ", time: " + (end - start) + " ns");
+        LOG.trace("setData, path: " + path + ", time: " + (endT - startT) + " ms");
       }
     }
   }
 
   @Override
   public String create(final String path, Object datat, final CreateMode mode)
-      throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
+      throws IllegalArgumentException, ZkException {
     if (path == null) {
       throw new NullPointerException("path must not be null.");
     }
-
-    long startT = System.nanoTime();
+    long startT = System.currentTimeMillis();
     try {
       final byte[] data = datat == null ? null : serialize(datat, path);
       checkDataSizeLimit(data);
-
-      return retryUntilConnected(new Callable<String>() {
-
+      String actualPath = retryUntilConnected(new Callable<String>() {
         @Override
         public String call() throws Exception {
           return _connection.create(path, data, mode);
         }
       });
+      recordWrite(path, data, startT);
+      return actualPath;
+    } catch (Exception e) {
+      recordWriteFailure(path);
+      throw e;
     } finally {
-      long endT = System.nanoTime();
+      long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("create, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("create, path: " + path + ", time: " + (endT - startT) + " ms");
       }
     }
   }
 
   @Override
   public boolean delete(final String path) {
-    long startT = System.nanoTime();
+    long startT = System.currentTimeMillis();
+    boolean isDeleted;
     try {
       try {
         retryUntilConnected(new Callable<Object>() {
@@ -367,28 +440,34 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
             return null;
           }
         });
-
-        return true;
+        isDeleted = true;
       } catch (ZkNoNodeException e) {
-        return false;
+        isDeleted = false;
+        LOG.error("Failed to delete path " + path + ", znode does not exist!");
       }
+      recordWrite(path, null, startT);
+    } catch (Exception e) {
+      recordWriteFailure(path);
+      throw e;
     } finally {
-      long endT = System.nanoTime();
+      long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("delete, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("delete, path: " + path + ", time: " + (endT - startT) + " ms");
       }
     }
+    return isDeleted;
   }
 
   public void asyncCreate(final String path, Object datat, final CreateMode mode,
       final CreateCallbackHandler cb) {
+    final long startT = System.currentTimeMillis();
     final byte[] data = (datat == null ? null : serialize(datat, path));
-
     retryUntilConnected(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        ((ZkConnection) _connection).getZookeeper().create(path, data, Ids.OPEN_ACL_UNSAFE, // Arrays.asList(DEFAULT_ACL),
-            mode, cb, null);
+      @Override public Object call() throws Exception {
+        ((ZkConnection) _connection).getZookeeper().create(path, data, Ids.OPEN_ACL_UNSAFE,
+            // Arrays.asList(DEFAULT_ACL),
+            mode, cb, new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
+                data == null ? 0 : data.length, false));
         return null;
       }
     });
@@ -396,46 +475,46 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
 
   public void asyncSetData(final String path, Object datat, final int version,
       final SetDataCallbackHandler cb) {
+    final long startT = System.currentTimeMillis();
     final byte[] data = serialize(datat, path);
     retryUntilConnected(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-
-        ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb, null);
+      @Override public Object call() throws Exception {
+        ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb,
+            new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
+                data == null ? 0 : data.length, false));
         return null;
       }
     });
-
   }
 
   public void asyncGetData(final String path, final GetDataCallbackHandler cb) {
+    final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        ((ZkConnection) _connection).getZookeeper().getData(path, null, cb, null);
+      @Override public Object call() throws Exception {
+        ((ZkConnection) _connection).getZookeeper().getData(path, null, cb,
+            new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, true));
         return null;
       }
     });
   }
 
   public void asyncExists(final String path, final ExistsCallbackHandler cb) {
+    final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-
-        ((ZkConnection) _connection).getZookeeper().exists(path, null, cb, null);
+      @Override public Object call() throws Exception {
+        ((ZkConnection) _connection).getZookeeper().exists(path, null, cb,
+            new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, true));
         return null;
       }
     });
-
   }
 
   public void asyncDelete(final String path, final DeleteCallbackHandler cb) {
+    final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-
-        ((ZkConnection) _connection).getZookeeper().delete(path, -1, cb, null);
+      @Override public Object call() throws Exception {
+        ((ZkConnection) _connection).getZookeeper().delete(path, -1, cb,
+            new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, false));
         return null;
       }
     });
@@ -461,6 +540,163 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
       LOG.error("Data size larger than 1M, will not write to zk. Data (first 1k): "
           + new String(data).substring(0, 1024));
       throw new HelixException("Data size larger than 1M");
+    }
+  }
+
+  @Override public void process(WatchedEvent event) {
+    boolean stateChanged = event.getPath() == null;
+    boolean dataChanged = event.getType() == Event.EventType.NodeDataChanged
+        || event.getType() == Event.EventType.NodeDeleted
+        || event.getType() == Event.EventType.NodeCreated
+        || event.getType() == Event.EventType.NodeChildrenChanged;
+
+    if (_monitor != null) {
+      if (stateChanged) {
+        _monitor.increaseStateChangeEventCounter();
+      }
+      if (dataChanged) {
+        _monitor.increaseDataChangeEventCounter();
+      }
+    }
+
+    super.process(event);
+  }
+
+  private void recordRead(String path, byte[] data, long startTimeMilliSec) {
+    if (_monitor != null) {
+      int dataSize = 0;
+      if (data != null) {
+        dataSize = data.length;
+      }
+      _monitor.recordRead(path, dataSize, startTimeMilliSec);
+    }
+  }
+
+  private void recordWrite(String path, byte[] data, long startTimeMilliSec) {
+    if (_monitor != null) {
+      int dataSize = 0;
+      if (data != null) {
+        dataSize = data.length;
+      }
+      _monitor.recordWrite(path, dataSize, startTimeMilliSec);
+    }
+  }
+
+  private void recordReadFailure(String path) {
+    if (_monitor != null) {
+      _monitor.recordReadFailure(path);
+    }
+  }
+
+  private void recordWriteFailure(String path) {
+    if (_monitor != null) {
+      _monitor.recordWriteFailure(path);
+    }
+  }
+
+  public static class Builder {
+    IZkConnection _connection;
+    String _zkServer;
+    Integer _sessionTimeout;
+
+    PathBasedZkSerializer _zkSerializer;
+
+    long _operationRetryTimeout = -1L;
+    int _connectionTimeout = Integer.MAX_VALUE;
+
+    String _monitorType;
+    String _monitorKey;
+    String _monitorInstanceName = null;
+    boolean _monitorRootPathOnly = true;
+
+    public Builder setConnection(IZkConnection connection) {
+      this._connection = connection;
+      return this;
+    }
+
+    public Builder setConnectionTimeout(Integer connectionTimeout) {
+      this._connectionTimeout = connectionTimeout;
+      return this;
+    }
+
+    public Builder setZkSerializer(PathBasedZkSerializer zkSerializer) {
+      this._zkSerializer = zkSerializer;
+      return this;
+    }
+
+    public Builder setZkSerializer(ZkSerializer zkSerializer) {
+      this._zkSerializer = new BasicZkSerializer(zkSerializer);
+      return this;
+    }
+
+    /**
+     * Used as part of the MBean ObjectName. This item is required for enabling monitoring.
+     * @param monitorType
+     */
+    public Builder setMonitorType(String monitorType) {
+      this._monitorType = monitorType;
+      return this;
+    }
+
+    /**
+     * Used as part of the MBean ObjectName. This item is required for enabling monitoring.
+     * @param monitorKey
+     */
+    public Builder setMonitorKey(String monitorKey) {
+      this._monitorKey = monitorKey;
+      return this;
+    }
+
+    /**
+     * Used as part of the MBean ObjectName. This item is optional.
+     * @param instanceName
+     */
+    public Builder setMonitorInstanceName(String instanceName) {
+      this._monitorInstanceName = instanceName;
+      return this;
+    }
+
+
+    public Builder setMonitorRootPathOnly(Boolean monitorRootPathOnly) {
+      this._monitorRootPathOnly = monitorRootPathOnly;
+      return this;
+    }
+
+    public Builder setZkServer(String zkServer) {
+      this._zkServer = zkServer;
+      return this;
+    }
+
+    public Builder setSessionTimeout(Integer sessionTimeout) {
+      this._sessionTimeout = sessionTimeout;
+      return this;
+    }
+
+    public Builder setOperationRetryTimeout(Long operationRetryTimeout) {
+      this._operationRetryTimeout = operationRetryTimeout;
+      return this;
+    }
+
+    public ZkClient build() {
+      if (_connection == null) {
+        if (_zkServer == null) {
+          throw new HelixException(
+              "Failed to build ZkClient since no connection or ZK server address is specified.");
+        } else {
+          if (_sessionTimeout == null) {
+            _connection = new ZkConnection(_zkServer);
+          } else {
+            _connection = new ZkConnection(_zkServer, _sessionTimeout);
+          }
+        }
+      }
+
+      if (_zkSerializer == null) {
+        _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
+      }
+
+      return new ZkClient(_connection, _connectionTimeout, _operationRetryTimeout, _zkSerializer,
+          _monitorType, _monitorKey, _monitorInstanceName, _monitorRootPathOnly);
     }
   }
 }

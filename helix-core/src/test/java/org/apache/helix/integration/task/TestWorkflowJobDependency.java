@@ -22,7 +22,6 @@ package org.apache.helix.integration.task;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
-import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
@@ -95,7 +94,7 @@ public class TestWorkflowJobDependency extends TaskTestBase {
     final int PARALLEL_NUM = 2;
     // Workflow setup
     WorkflowConfig.Builder workflowcfgBuilder =
-        new WorkflowConfig.Builder().setParallelJobs(PARALLEL_NUM);
+        new WorkflowConfig.Builder().setWorkflowId(workflowName).setParallelJobs(PARALLEL_NUM);
     Workflow.Builder builder = new Workflow.Builder(workflowName);
     builder.setWorkflowConfig(workflowcfgBuilder.build());
 

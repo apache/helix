@@ -114,7 +114,7 @@ public class ExternalViewGenerator {
             partitionStatus = new ZNRecord(resourceName);
             resultRoutingTable.put(resourceName, partitionStatus);
           }
-          String currentStateKey = CurrentStateProperty.CURRENT_STATE.toString();
+          String currentStateKey = CurrentStateProperty.CURRENT_STATE.name();
 
           if (!partitionStatus.getMapFields().containsKey(stateUnitKey)) {
             partitionStatus.setMapField(stateUnitKey, new TreeMap<String, String>());

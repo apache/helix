@@ -54,6 +54,7 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     Map<String, Resource> resourceMap = getResourceMap();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();
@@ -87,6 +88,7 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     Map<String, Resource> resourceMap = getResourceMap();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();

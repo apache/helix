@@ -19,20 +19,24 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
 import java.util.Set;
 import org.I0Itec.zkclient.DataUpdater;
-
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.log4j.Logger;
@@ -47,7 +51,7 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     LOG.info("START PersistAssignmentStage.process()");
     long startTime = System.currentTimeMillis();
 
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     ClusterConfig clusterConfig = cache.getClusterConfig();
 
     if (!clusterConfig.isPersistBestPossibleAssignment() && !clusterConfig
@@ -58,7 +62,7 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     BestPossibleStateOutput bestPossibleAssignment =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
 
-    HelixManager helixManager = event.getAttribute("helixmanager");
+    HelixManager helixManager = event.getAttribute(AttributeName.helixmanager.name());
     HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
@@ -88,15 +92,18 @@ public class PersistAssignmentStage extends AbstractBaseStage {
             needPersist = true;
           }
         }
+
         PartitionStateMap partitionStateMap =
             bestPossibleAssignment.getPartitionStateMap(resourceId);
         if (clusterConfig.isPersistIntermediateAssignment()) {
-          IntermediateStateOutput intermediateAssignment =
-              event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+          IntermediateStateOutput intermediateAssignment = event.getAttribute(
+              AttributeName.INTERMEDIATE_STATE.name());
           partitionStateMap = intermediateAssignment.getPartitionStateMap(resourceId);
         }
 
-        Map<Partition, Map<String, String>> assignmentToPersist = partitionStateMap.getStateMap();
+        //TODO: temporary solution for Espresso/Dbus backcompatible, should remove this.
+        Map<Partition, Map<String, String>> assignmentToPersist =
+            convertAssignmentPersisted(resource, idealState, partitionStateMap.getStateMap());
 
         if (assignmentToPersist != null && hasInstanceMapChanged(assignmentToPersist, idealState)) {
           for (Partition partition : assignmentToPersist.keySet()) {
@@ -109,7 +116,8 @@ public class PersistAssignmentStage extends AbstractBaseStage {
         if (needPersist) {
           // Update instead of set to ensure any intermediate changes that the controller does not update are kept.
           accessor.updateProperty(keyBuilder.idealStates(resourceId), new DataUpdater<ZNRecord>() {
-            @Override public ZNRecord update(ZNRecord current) {
+            @Override
+            public ZNRecord update(ZNRecord current) {
               if (current != null) {
                 // Overwrite MapFields and ListFields items with the same key.
                 // Note that default merge will keep old values in the maps or lists unchanged, which is not desired.
@@ -124,7 +132,9 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     }
 
     long endTime = System.currentTimeMillis();
-    LOG.info("END PersistAssignmentStage.process() took " + (endTime - startTime) + " ms");
+    LOG.info(
+        "END PersistAssignmentStage.process() for cluster " + cache.getClusterName() + " took " + (
+            endTime - startTime) + " ms");
   }
 
   /**
@@ -173,5 +183,58 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     }
 
     return false;
+  }
+
+  /**
+   * TODO: This is a temporary hacky for back-compatible support of Espresso and Databus, we should
+   * get rid of this conversion as soon as possible. --- Lei, 2016/9/9.
+   */
+  private Map<Partition, Map<String, String>> convertAssignmentPersisted(Resource resource,
+      IdealState idealState, Map<Partition, Map<String, String>> assignments) {
+    String stateModelDef = idealState.getStateModelDefRef();
+    /** Only convert for MasterSlave resources */
+    if (!stateModelDef.equals(BuiltInStateModelDefinitions.MasterSlave.name()) || idealState
+        .getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)) {
+      return assignments;
+    }
+
+    Map<Partition, Map<String, String>> assignmentToPersist =
+        new HashMap<Partition, Map<String, String>>();
+
+    for (Partition partition : resource.getPartitions()) {
+      Map<String, String> instanceMap = new HashMap<String, String>();
+      Map<String, String> assignment = assignments.get(partition);
+      if (assignment != null) {
+        instanceMap.putAll(assignment);
+      }
+
+      List<String> preferenceList = idealState.getPreferenceList(partition.getPartitionName());
+      if (preferenceList == null) {
+        preferenceList = Collections.emptyList();
+      }
+      Set<String> nodeList = new HashSet<String>(preferenceList);
+      nodeList.addAll(assignment.keySet());
+      boolean hasMaster = false;
+      for (String ins : nodeList) {
+        String state = instanceMap.get(ins);
+        if (state == null || (!state.equals(MasterSlaveSMD.States.SLAVE.name()) && !state
+            .equals(MasterSlaveSMD.States.MASTER.name()))) {
+          instanceMap.put(ins, MasterSlaveSMD.States.SLAVE.name());
+        }
+
+        if (state != null && state.equals(MasterSlaveSMD.States.MASTER.name())) {
+          hasMaster = true;
+        }
+      }
+
+      // if no master, just pick the first node in the preference list as the master.
+      if (!hasMaster && preferenceList.size() > 0) {
+        instanceMap.put(preferenceList.get(0), MasterSlaveSMD.States.MASTER.name());
+      }
+
+      assignmentToPersist.put(partition, instanceMap);
+    }
+
+    return assignmentToPersist;
   }
 }

@@ -23,14 +23,14 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -65,8 +65,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
             ZK_ADDR, clusterName));
     Assert.assertTrue(result);
-    String msgPath =
-        PropertyPathBuilder.getPath(PropertyType.MESSAGES, clusterName, "localhost_12918");
+    String msgPath = PropertyPathBuilder.instanceMessage(clusterName, "localhost_12918");
     result = checkHandlers(controller.getHandlers(), msgPath);
     Assert.assertTrue(result);
 
@@ -79,7 +78,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
             ZK_ADDR, clusterName));
     Assert.assertTrue(result);
-    msgPath = PropertyPathBuilder.getPath(PropertyType.MESSAGES, clusterName, "localhost_12922");
+    msgPath = PropertyPathBuilder.instanceMessage(clusterName, "localhost_12922");
     result = checkHandlers(controller.getHandlers(), msgPath);
     Assert.assertTrue(result);
 
@@ -139,8 +138,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase {
     Assert.assertTrue(result);
 
     // check if controller_0 has message listener for localhost_12918
-    String msgPath =
-        PropertyPathBuilder.getPath(PropertyType.MESSAGES, clusterName, "localhost_12918");
+    String msgPath = PropertyPathBuilder.instanceMessage(clusterName, "localhost_12918");
     int numberOfListeners = ZkTestHelper.numberOfListeners(ZK_ADDR, msgPath);
     // System.out.println("numberOfListeners(" + msgPath + "): " + numberOfListeners);
     Assert.assertEquals(numberOfListeners, 2); // 1 of participant, and 1 of controller
@@ -155,7 +153,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase {
             ZK_ADDR, clusterName));
     Assert.assertTrue(result);
     // check if controller_0 has message listener for localhost_12919
-    msgPath = PropertyPathBuilder.getPath(PropertyType.MESSAGES, clusterName, "localhost_12919");
+    msgPath = PropertyPathBuilder.instanceMessage(clusterName, "localhost_12919");
     numberOfListeners = ZkTestHelper.numberOfListeners(ZK_ADDR, msgPath);
     // System.out.println("numberOfListeners(" + msgPath + "): " + numberOfListeners);
     Assert.assertEquals(numberOfListeners, 2); // 1 of participant, and 1 of controller

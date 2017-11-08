@@ -39,4 +39,9 @@ public class TaskConstants {
    * The root property store path at which the {@link TaskRebalancer} stores context information.
    */
   public static final String REBALANCER_CONTEXT_ROOT = "/TaskRebalancer";
+  /**
+   * The context node for workflow and job
+   */
+  public static final String CONTEXT_NODE = "Context";
+
 }

@@ -19,15 +19,20 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+
 import java.util.Map;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.log4j.Logger;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
@@ -41,7 +46,7 @@ public class TestZKUtil extends ZkUnitTestBase {
   ZkClient _zkClient;
 
   @BeforeClass()
-  public void beforeClass() throws Exception {
+  public void beforeClass() throws IOException, Exception {
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists("/" + clusterName)) {
@@ -100,7 +105,7 @@ public class TestZKUtil extends ZkUnitTestBase {
     _zkClient.createPersistent(path);
     ZKUtil.updateIfExists(_zkClient, path, record, false);
     AssertJUnit.assertTrue(_zkClient.exists(path));
-    record = _zkClient.readData(path);
+    record = _zkClient.<ZNRecord> readData(path);
     AssertJUnit.assertEquals("id4", record.getId());
   }
 
@@ -111,7 +116,7 @@ public class TestZKUtil extends ZkUnitTestBase {
     record.setSimpleField("key1", "value1");
     _zkClient.createPersistent(path, record);
     ZKUtil.subtract(_zkClient, path, record);
-    record = _zkClient.readData(path);
+    record = _zkClient.<ZNRecord> readData(path);
     AssertJUnit.assertNull(record.getSimpleField("key1"));
   }
 
@@ -160,11 +165,11 @@ public class TestZKUtil extends ZkUnitTestBase {
     String path = PropertyPathBuilder.instanceConfig(clusterName, "id8");
     ZNRecord record = new ZNRecord("id8");
     ZKUtil.createOrReplace(_zkClient, path, record, true);
-    record = _zkClient.readData(path);
+    record = _zkClient.<ZNRecord> readData(path);
     AssertJUnit.assertEquals("id8", record.getId());
     record = new ZNRecord("id9");
     ZKUtil.createOrReplace(_zkClient, path, record, true);
-    record = _zkClient.readData(path);
+    record = _zkClient.<ZNRecord> readData(path);
     AssertJUnit.assertEquals("id9", record.getId());
   }
 

@@ -1,0 +1,22 @@
+<section class="app" fxLayout="column" fxFill>
+  <md-toolbar *ngIf="headerEnabled" class="header mat-elevation-z7" color="primary">
+    <button md-icon-button
+      *ngIf="isNarrowView"
+      (click)="sidenav.open()">
+      <md-icon>menu</md-icon>
+    </button>
+    <h2 routerLink="/">Helix</h2>
+    <span fxFlex="1 1 auto"></span>
+    <a md-button>
+      <md-icon>person</md-icon>
+      {{ currentUser | async }}
+    </a>
+  </md-toolbar>
+  <md-progress-bar *ngIf="isLoading" mode="indeterminate" [ngClass]="{'no-header': !headerEnabled}"></md-progress-bar>
+  <section class="main-container" [ngClass]="{'no-header': !headerEnabled}">
+    <router-outlet></router-outlet>
+  </section>
+  <section *ngIf="footerEnabled" class="footer mat-elevation-z7" fxLayout="row" fxLayoutAlign="center center">
+    <span>&copy; 2017 Helix. All rights reserved.</span>
+  </section>
+</section>

@@ -1,0 +1,27 @@
+<section class="cluster-list">
+  <section *ngIf="isLoading" fxLayout="row" fxLayoutAlign="center center">
+    <md-spinner>
+      Loading all clusters ...
+    </md-spinner>
+  </section>
+  <md-nav-list *ngIf="!isLoading && !errorMessage">
+    <button md-mini-fab *ngIf="can" (click)="createCluster()">
+      <md-icon>add</md-icon>
+    </button>
+    <h3 md-subheader>Clusters</h3>
+    <a *ngFor="let cluster of clusters"
+      md-list-item
+      [routerLink]="[cluster.name]"
+      routerLinkActive="cluster-list-item-selected">
+      <md-icon md-list-icon>blur_circular</md-icon>
+      <h4 md-line>{{ cluster.name }}</h4>
+    </a>
+    <div *ngIf="clusters.length == 0" class="empty">
+      There's no cluster here.
+      <a md-button (click)="createCluster()">Create one?</a>
+    </div>
+  </md-nav-list>
+  <section class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </section>
+</section>

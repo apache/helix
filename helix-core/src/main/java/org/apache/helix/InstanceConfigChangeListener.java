@@ -19,19 +19,13 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.util.List;
-
-import org.apache.helix.model.InstanceConfig;
-
 /**
  * Interface to implement to listen for changes to instance configurations.
+ *
+ * @deprecated
+ * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.InstanceConfigChangeListener}
  */
-public interface InstanceConfigChangeListener {
-  /**
-   * Invoked when participant config changes
-   * @param configs
-   * @param changeContext
-   */
-  public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
-      NotificationContext context);
+@Deprecated
+public interface InstanceConfigChangeListener extends
+    org.apache.helix.api.listeners.InstanceConfigChangeListener {
 }

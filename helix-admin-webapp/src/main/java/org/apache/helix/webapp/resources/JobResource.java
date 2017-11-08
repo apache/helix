@@ -114,6 +114,7 @@ public class JobResource extends ServerResource {
     // Get job queue config
     String namespacedJobName = TaskUtil.getNamespacedJobName(jobQueueName, jobName);
     HelixProperty jobConfig = accessor.getProperty(keyBuilder.resourceConfig(namespacedJobName));
+
     TaskDriver taskDriver = new TaskDriver(zkClient, clusterName);
 
     // Get job queue context

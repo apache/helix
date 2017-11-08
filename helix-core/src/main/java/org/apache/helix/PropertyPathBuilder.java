@@ -83,6 +83,8 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.IDEALSTATES, 2, "/{clusterName}/IDEALSTATES/{resourceName}");
     addEntry(PropertyType.EXTERNALVIEW, 1, "/{clusterName}/EXTERNALVIEW");
     addEntry(PropertyType.EXTERNALVIEW, 2, "/{clusterName}/EXTERNALVIEW/{resourceName}");
+    addEntry(PropertyType.TARGETEXTERNALVIEW, 1, "/{clusterName}/TARGETEXTERNALVIEW");
+    addEntry(PropertyType.TARGETEXTERNALVIEW, 2, "/{clusterName}/TARGETEXTERNALVIEW/{resourceName}");
     addEntry(PropertyType.STATEMODELDEFS, 1, "/{clusterName}/STATEMODELDEFS");
     addEntry(PropertyType.STATEMODELDEFS, 2, "/{clusterName}/STATEMODELDEFS/{stateModelName}");
     addEntry(PropertyType.CONTROLLER, 1, "/{clusterName}/CONTROLLER");
@@ -228,6 +230,14 @@ public class PropertyPathBuilder {
     return String.format("/%s/EXTERNALVIEW/%s", clusterName, resourceName);
   }
 
+  public static String targetExternalView(String clusterName) {
+    return String.format("/%s/TARGETEXTERNALVIEW", clusterName);
+  }
+
+  public static String targetExternalView(String clusterName, String resourceName) {
+    return String.format("/%s/TARGETEXTERNALVIEW/%s", clusterName, resourceName);
+  }
+
   public static String liveInstance(String clusterName) {
     return String.format("/%s/LIVEINSTANCES", clusterName);
   }
@@ -265,6 +275,11 @@ public class PropertyPathBuilder {
     return String.format("/%s/INSTANCES/%s/CURRENTSTATES/%s", clusterName, instanceName, sessionId);
   }
 
+  public static String instanceCurrentState(
+      String clusterName, String instanceName, String sessionId, String resourceName) {
+    return String.format("/%s/INSTANCES/%s/CURRENTSTATES/%s/%s", clusterName, instanceName, sessionId, resourceName);
+  }
+
   public static String instanceError(String clusterName, String instanceName) {
     return String.format("/%s/INSTANCES/%s/ERRORS", clusterName, instanceName);
   }
@@ -287,12 +302,20 @@ public class PropertyPathBuilder {
     return String.format("/%s/PROPERTYSTORE", clusterName);
   }
 
+  public static String clusterConfig(String clusterName) {
+    return String.format("/%s/CONFIGS/CLUSTER/%s", clusterName, clusterName);
+  }
+
   public static String instanceConfig(String clusterName) {
     return String.format("/%s/CONFIGS/PARTICIPANT", clusterName);
   }
 
   public static String instanceConfig(String clusterName, String instanceName) {
     return String.format("/%s/CONFIGS/PARTICIPANT/%s", clusterName, instanceName);
+  }
+
+  public static String resourceConfig(String clusterName) {
+    return String.format("/%s/CONFIGS/RESOURCE", clusterName);
   }
 
   public static String controller(String clusterName) {
@@ -321,6 +344,10 @@ public class PropertyPathBuilder {
 
   public static String controllerError(String clusterName) {
     return String.format("/%s/CONTROLLER/ERRORS", clusterName);
+  }
+
+  public static String controllerHistory(String clusterName) {
+    return String.format("/%s/CONTROLLER/HISTORY", clusterName);
   }
 
   public static String pause(String clusterName) {

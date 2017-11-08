@@ -72,57 +72,21 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
       ResourceAssignment prevAssignment, Collection<String> instances, JobConfig jobCfg,
       final JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
       Set<Integer> partitionSet, Map<String, IdealState> idealStateMap) {
-    // Gather input to the full auto rebalancing algorithm
-    LinkedHashMap<String, Integer> states = new LinkedHashMap<String, Integer>();
-    states.put("ONLINE", 1);
 
-    // Only map partitions whose assignment we care about
-    final Set<TaskPartitionState> honoredStates =
-        Sets.newHashSet(TaskPartitionState.INIT, TaskPartitionState.RUNNING,
-            TaskPartitionState.STOPPED);
-    Set<Integer> filteredPartitionSet = Sets.newHashSet();
-    for (Integer p : partitionSet) {
-      TaskPartitionState state = (jobContext == null) ? null : jobContext.getPartitionState(p);
-      if (state == null || honoredStates.contains(state)) {
-        filteredPartitionSet.add(p);
-      }
-    }
-
-    // Transform from partition id to fully qualified partition name
-    List<Integer> partitionNums = Lists.newArrayList(partitionSet);
-    Collections.sort(partitionNums);
-    String resourceId = prevAssignment.getResourceName();
-
-    // Compute the current assignment
-    Map<String, Map<String, String>> currentMapping = Maps.newHashMap();
-    for (Partition partition : currStateOutput.getCurrentStateMappedPartitions(resourceId)) {
-      if (!filteredPartitionSet.contains(TaskUtil.getPartitionId(partition.getPartitionName()))) {
-        // not computing old partitions
-        continue;
-      }
-      Map<String, String> allPreviousDecisionMap = Maps.newHashMap();
-      if (prevAssignment != null) {
-        allPreviousDecisionMap.putAll(prevAssignment.getReplicaMap(partition));
-      }
-      allPreviousDecisionMap.putAll(currStateOutput.getCurrentStateMap(resourceId, partition));
-      allPreviousDecisionMap.putAll(currStateOutput.getPendingStateMap(resourceId, partition));
-      currentMapping.put(partition.getPartitionName(), allPreviousDecisionMap);
-    }
-
-    // Get the assignment keyed on partition
     if (jobCfg.getTargetResource() != null) {
       LOG.error(
           "Target resource is not null, should call FixedTaskAssignmentCalculator, target resource : "
               + jobCfg.getTargetResource());
-      return new HashMap<String, SortedSet<Integer>>();
+      return new HashMap<>();
     }
+
+    List<Integer> partitionNums = Lists.newArrayList(partitionSet);
+    Collections.sort(partitionNums);
+    String resourceId = jobCfg.getJobId();
 
     List<String> allNodes = Lists.newArrayList(instances);
     ConsistentHashingPlacement placement = new ConsistentHashingPlacement(allNodes);
-    Map<String, SortedSet<Integer>> taskAssignment =
-        placement.computeMapping(jobCfg, jobContext, partitionNums, resourceId);
-
-    return taskAssignment;
+    return placement.computeMapping(jobCfg, jobContext, partitionNums, resourceId);
   }
 
   private class ConsistentHashingPlacement {

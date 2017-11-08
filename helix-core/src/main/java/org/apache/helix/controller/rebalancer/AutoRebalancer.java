@@ -21,12 +21,15 @@ package org.apache.helix.controller.rebalancer;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixDefinedState;
+import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -49,17 +52,22 @@ import org.apache.log4j.Logger;
 public class AutoRebalancer extends AbstractRebalancer {
   private static final Logger LOG = Logger.getLogger(AutoRebalancer.class);
 
-  @Override public IdealState computeNewIdealState(String resourceName,
+  @Override
+  public IdealState computeNewIdealState(String resourceName,
       IdealState currentIdealState, CurrentStateOutput currentStateOutput,
       ClusterDataCache clusterData) {
     List<String> partitions = new ArrayList<String>(currentIdealState.getPartitionSet());
     String stateModelName = currentIdealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
+    if (stateModelDef == null) {
+      LOG.error("State Model Definition null for resource: " + resourceName);
+      throw new HelixException("State Model Definition null for resource: " + resourceName);
+    }
     Map<String, LiveInstance> liveInstance = clusterData.getLiveInstances();
     String replicas = currentIdealState.getReplicas();
 
-    LinkedHashMap<String, Integer> stateCountMap = StateModelDefinition
-        .getStateCountMap(stateModelDef, liveInstance.size(), Integer.parseInt(replicas));
+    LinkedHashMap<String, Integer> stateCountMap = stateModelDef
+        .getStateCountMap(liveInstance.size(), Integer.parseInt(replicas));
     List<String> liveNodes = new ArrayList<String>(liveInstance.keySet());
     List<String> allNodes = new ArrayList<String>(clusterData.getInstanceConfigMap().keySet());
     allNodes.removeAll(clusterData.getDisabledInstances());
@@ -125,6 +133,7 @@ public class AutoRebalancer extends AbstractRebalancer {
     newIdealState.getRecord().setSimpleFields(currentIdealState.getRecord().getSimpleFields());
     newIdealState.setRebalanceMode(RebalanceMode.FULL_AUTO);
     newIdealState.getRecord().setListFields(newMapping.getListFields());
+
     return newIdealState;
   }
 }

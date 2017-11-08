@@ -1,0 +1,63 @@
+<section>
+  <ngx-datatable
+    *ngIf="canAnalyse()"
+    #partitionsTable
+    class="material"
+    [headerHeight]="rowHeight"
+    rowHeight="auto"
+    columnMode="force"
+    [footerHeight]="rowHeight"
+    [rows]="partitions"
+    [sorts]="sorts"
+    selectionType="single"
+    (select)="onSelect($event)">
+    <ngx-datatable-column
+     [width]="50"
+     [resizeable]="false"
+     [sortable]="false"
+     [draggable]="false"
+     [canAutoResize]="false">
+     <ng-template let-row="row" ngx-datatable-cell-template>
+       <md-icon>{{ row.$$expanded ? 'expand_more' : 'chevron_right' }}</md-icon>
+     </ng-template>
+    </ngx-datatable-column>
+    <ngx-datatable-column
+      name="Status"
+      prop="isReady"
+      [width]="85"
+      [resizeable]="false"
+      [draggable]="false"
+      [canAutoResize]="false">
+      <ng-template let-value="value" ngx-datatable-cell-template>
+        <md-icon [ngClass]="value ? 'status-ready' : 'status-not-ready'">lens</md-icon>
+      </ng-template>
+    </ngx-datatable-column>
+    <ngx-datatable-column name="Name"></ngx-datatable-column>
+    <ngx-datatable-column
+      name="Replicas"
+      [width]="100 * partitions[0].replicas.length"
+      [resizeable]="false"
+      [canAutoResize]="false">
+      <ng-template let-value="value" ngx-datatable-cell-template>
+        <span *ngFor="let replica of value" [mdTooltip]="replica.instanceName">
+          <hi-state-label [state]="replica.externalView" [isReady]="replica.externalView && replica.externalView == replica.idealState"></hi-state-label>
+        </span>
+      </ng-template>
+    </ngx-datatable-column>
+    <ngx-datatable-row-detail rowHeight="auto">
+      <ng-template let-row="row" ngx-datatable-row-detail-template>
+        <hi-partition-detail [clusterName]="resource.cluster" [partition]="row"></hi-partition-detail>
+      </ng-template>
+    </ngx-datatable-row-detail>
+  </ngx-datatable>
+  <div *ngIf="!canAnalyse()" class="message" fxLayout="column" fxLayoutAlign="center center">
+    <md-spinner *ngIf="isLoading"></md-spinner>
+    <section *ngIf="!isLoading && !resource.online" fxFlexFill>
+      The resource is OFFLINE and does not have partition information available.
+    </section>
+    <section *ngIf="!isLoading && resource.online" fxFlexFill>
+      <div>Sorry, we do not support this kind of partition information yet. Detailed debugging information:</div>
+      <ngx-json-viewer [json]="resource"></ngx-json-viewer>
+    </section>
+  </div>
+</section>

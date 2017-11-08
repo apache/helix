@@ -1,12 +1,12 @@
 package org.apache.helix.controller.stages;
 
-import java.util.Set;
-import org.apache.helix.api.config.StateTransitionThrottleConfig;
-import org.apache.helix.model.ClusterConfig;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.apache.helix.api.config.StateTransitionThrottleConfig;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.log4j.Logger;
 
 /**
@@ -98,6 +98,10 @@ class StateTransitionThrottleController {
    */
   protected boolean throttleforCluster(
       StateTransitionThrottleConfig.RebalanceType rebalanceType) {
+    if (throttleForANYType(_pendingTransitionAllowedInCluster)) {
+      return true;
+    }
+
     Long clusterThrottle = _pendingTransitionAllowedInCluster.get(rebalanceType);
     if (clusterThrottle != null) {
       if (clusterThrottle <= 0) {
@@ -114,10 +118,11 @@ class StateTransitionThrottleController {
       return true;
     }
 
-    Long resouceThrottle;
+    Long resourceThrottle;
     if (_pendingTransitionAllowedPerResource.containsKey(resourceName)) {
-      resouceThrottle = _pendingTransitionAllowedPerResource.get(resourceName).get(rebalanceType);
-      if (resouceThrottle != null && resouceThrottle <= 0) {
+      resourceThrottle = _pendingTransitionAllowedPerResource.get(resourceName).get(rebalanceType);
+      if (throttleForANYType(_pendingTransitionAllowedPerResource.get(resourceName)) || (
+          resourceThrottle != null && resourceThrottle <= 0)) {
         return true;
       }
     }
@@ -134,7 +139,8 @@ class StateTransitionThrottleController {
     Long instanceThrottle;
     if (_pendingTransitionAllowedPerInstance.containsKey(instanceName)) {
       instanceThrottle = _pendingTransitionAllowedPerInstance.get(instanceName).get(rebalanceType);
-      if (instanceThrottle != null && instanceThrottle <= 0) {
+      if (throttleForANYType(_pendingTransitionAllowedPerInstance.get(instanceName)) || (
+          instanceThrottle != null && instanceThrottle <= 0)) {
         return true;
       }
     }
@@ -145,6 +151,7 @@ class StateTransitionThrottleController {
   protected void chargeCluster(StateTransitionThrottleConfig.RebalanceType rebalanceType) {
     if (_pendingTransitionAllowedInCluster.containsKey(rebalanceType)) {
       Long clusterThrottle = _pendingTransitionAllowedInCluster.get(rebalanceType);
+      chargeANYType(_pendingTransitionAllowedInCluster);
       if (clusterThrottle > 0) {
         _pendingTransitionAllowedInCluster.put(rebalanceType, clusterThrottle - 1);
       }
@@ -155,9 +162,10 @@ class StateTransitionThrottleController {
       String resource) {
     if (_pendingTransitionAllowedPerResource.containsKey(resource)
         && _pendingTransitionAllowedPerResource.get(resource).containsKey(rebalanceType)) {
-      Long resouceThrottle = _pendingTransitionAllowedPerResource.get(resource).get(rebalanceType);
-      if (resouceThrottle > 0) {
-        _pendingTransitionAllowedPerResource.get(resource).put(rebalanceType, resouceThrottle - 1);
+      chargeANYType(_pendingTransitionAllowedPerResource.get(resource));
+      Long resourceThrottle = _pendingTransitionAllowedPerResource.get(resource).get(rebalanceType);
+      if (resourceThrottle > 0) {
+        _pendingTransitionAllowedPerResource.get(resource).put(rebalanceType, resourceThrottle - 1);
       }
     }
   }
@@ -166,9 +174,34 @@ class StateTransitionThrottleController {
       String instance) {
     if (_pendingTransitionAllowedPerInstance.containsKey(instance)
         && _pendingTransitionAllowedPerInstance.get(instance).containsKey(rebalanceType)) {
+      chargeANYType(_pendingTransitionAllowedPerInstance.get(instance));
       Long instanceThrottle = _pendingTransitionAllowedPerInstance.get(instance).get(rebalanceType);
       if (instanceThrottle > 0) {
         _pendingTransitionAllowedPerInstance.get(instance).put(rebalanceType, instanceThrottle - 1);
+      }
+    }
+  }
+
+  private boolean throttleForANYType(
+      Map<StateTransitionThrottleConfig.RebalanceType, Long> pendingTransitionAllowed) {
+    if (pendingTransitionAllowed.containsKey(StateTransitionThrottleConfig.RebalanceType.ANY)) {
+      Long anyTypeThrottle =
+          pendingTransitionAllowed.get(StateTransitionThrottleConfig.RebalanceType.ANY);
+      if (anyTypeThrottle != null && anyTypeThrottle <= 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void chargeANYType(
+      Map<StateTransitionThrottleConfig.RebalanceType, Long> pendingTransitionAllowed) {
+    if (pendingTransitionAllowed.containsKey(StateTransitionThrottleConfig.RebalanceType.ANY)) {
+      Long anyTypeThrottle =
+          pendingTransitionAllowed.get(StateTransitionThrottleConfig.RebalanceType.ANY);
+      if (anyTypeThrottle > 0) {
+        pendingTransitionAllowed
+            .put(StateTransitionThrottleConfig.RebalanceType.ANY, anyTypeThrottle - 1);
       }
     }
   }

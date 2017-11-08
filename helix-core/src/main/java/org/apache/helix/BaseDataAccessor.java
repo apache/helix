@@ -107,7 +107,7 @@ public interface BaseDataAccessor<T> {
   /**
    * Can update multiple nodes using async api for better performance. If a child does not
    * exist it will create it.
-   * @param paths the paths to the children ZNodes
+   * @param paths paths to the children ZNodes
    * @param updaters List of update routines for records to update
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return For each child, true if the data is updated successfully, false otherwise

@@ -1,0 +1,20 @@
+.inline-edit {
+  text-decoration: none;
+  border-bottom: dashed 1px #009090;
+  cursor: pointer;
+  line-height: 2;
+  margin: 0;
+}
+
+.error {
+  color: #a94442;
+}
+
+.empty-value {
+  color: gray;
+  font-style: italic;
+}
+
+.full-width {
+  width: 100%;
+}

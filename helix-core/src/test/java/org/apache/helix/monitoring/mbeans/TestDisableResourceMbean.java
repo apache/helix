@@ -104,6 +104,6 @@ public class TestDisableResourceMbean extends ZkUnitTestBase {
     String resourceBeanName = String
         .format("%s,%s=%s", clusterBeanName, ClusterStatusMonitor.RESOURCE_DN_KEY, resourceName);
     return new ObjectName(
-        String.format("%s: %s", ClusterStatusMonitor.CLUSTER_STATUS_KEY, resourceBeanName));
+        String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), resourceBeanName));
   }
 }

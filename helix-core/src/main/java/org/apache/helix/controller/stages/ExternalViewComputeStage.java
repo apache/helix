@@ -35,6 +35,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordDelta;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
@@ -58,9 +59,9 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     long startTime = System.currentTimeMillis();
     LOG.info("START ExternalViewComputeStage.process()");
 
-    HelixManager manager = event.getAttribute("helixmanager");
+    HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
 
     if (manager == null || resourceMap == null || cache == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -105,24 +106,26 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         }
       }
       // Update cluster status monitor mbean
-      ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
-      IdealState idealState = cache._idealStateMap.get(resourceName);
-      ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
-      if (idealState != null && (resourceConfig == null || !resourceConfig
-          .isMonitoringDisabled())) {
-        if (clusterStatusMonitor != null && !idealState.getStateModelDefRef()
-            .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-          StateModelDefinition stateModelDef =
-              cache.getStateModelDef(idealState.getStateModelDefRef());
-          clusterStatusMonitor
-              .setResourceStatus(view, cache._idealStateMap.get(view.getResourceName()),
-                  stateModelDef);
+      IdealState idealState = cache.getIdealState(resourceName);
+      if (!cache.isTaskCache()) {
+        ClusterStatusMonitor clusterStatusMonitor =
+            event.getAttribute(AttributeName.clusterStatusMonitor.name());
+        ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
+        if (idealState != null && (resourceConfig == null || !resourceConfig
+            .isMonitoringDisabled())) {
+          if (clusterStatusMonitor != null && !idealState.getStateModelDefRef()
+              .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+            StateModelDefinition stateModelDef =
+                cache.getStateModelDef(idealState.getStateModelDefRef());
+            clusterStatusMonitor
+                .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
+                    stateModelDef);
+          }
+        } else {
+          // Drop the metrics if the resource is dropped, or the MonitorDisabled is changed to true.
+          clusterStatusMonitor.unregisterResource(view.getResourceName());
         }
-      } else {
-        // Drop the metrics if the resource is dropped, or the MonitorDisabled is changed to true.
-        clusterStatusMonitor.unregisterResource(view.getResourceName());
       }
-
       ExternalView curExtView = curExtViews.get(resourceName);
       // copy simplefields from IS, in cases where IS is deleted copy it from existing ExternalView
       if (idealState != null) {
@@ -155,7 +158,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     for(Iterator<ExternalView> it = newExtViews.iterator(); it.hasNext(); ) {
       ExternalView view = it.next();
       String resourceName = view.getResourceName();
-      IdealState idealState = cache._idealStateMap.get(resourceName);
+      IdealState idealState = cache.getIdealState(resourceName);
       if (idealState != null && idealState.isExternalViewDisabled()) {
         it.remove();
         // remove the external view if the external view exists
@@ -182,7 +185,9 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     }
 
     long endTime = System.currentTimeMillis();
-    LOG.info("END ExternalViewComputeStage.process(). took: " + (endTime - startTime) + " ms");
+    LOG.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
+        + " ExternalViewComputeStage.process() for cluster " + cache.getClusterName() + ". took: "
+        + (endTime - startTime) + " ms");
   }
 
   private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager,

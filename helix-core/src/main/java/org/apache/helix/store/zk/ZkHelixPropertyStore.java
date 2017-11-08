@@ -26,6 +26,8 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkCacheBaseDataAccessor;
 
 public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T> {
+  public static final String MONITOR_TYPE = "HelixPropertyStore";
+
   public ZkHelixPropertyStore(ZkBaseDataAccessor<T> accessor, String root,
       List<String> subscribedPaths) {
     super(accessor, root, null, subscribedPaths);
@@ -33,10 +35,10 @@ public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T> {
 
   public ZkHelixPropertyStore(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> zkCachePaths) {
-    super(zkAddress, serializer, chrootPath, null, zkCachePaths);
+    super(zkAddress, serializer, chrootPath, null, zkCachePaths, MONITOR_TYPE, chrootPath);
   }
 
   public ZkHelixPropertyStore(String zkAddress, ZkSerializer serializer, String chrootPath) {
-    super(zkAddress, serializer, chrootPath, null, null);
+    super(zkAddress, serializer, chrootPath, null, null, MONITOR_TYPE, chrootPath);
   }
 }

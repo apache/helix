@@ -62,10 +62,10 @@ public class  WorkflowConfig extends ResourceConfig {
     WorkflowType,
     JobTypes,
     IsJobQueue,
+    JobPurgeInterval,
     /* Allow multiple jobs in this workflow to be assigned to a same instance or not */
-    AllowOverlapJobAssignment,
-    JobPurgeInterval
-  }
+    AllowOverlapJobAssignment
+    }
 
   /* Default values */
   public static final long DEFAULT_EXPIRY = 24 * 60 * 60 * 1000;
@@ -79,6 +79,8 @@ public class  WorkflowConfig extends ResourceConfig {
   public static final boolean DEFAULT_MONITOR_DISABLE = true;
   public static final boolean DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT = false;
   protected static final long DEFAULT_JOB_PURGE_INTERVAL = 30 * 60 * 1000; //default 30 minutes
+  private JobDag _jobDag;
+
 
   public WorkflowConfig(HelixProperty property) {
     super(property.getRecord());
@@ -87,7 +89,8 @@ public class  WorkflowConfig extends ResourceConfig {
   public WorkflowConfig(WorkflowConfig cfg, String workflowId) {
     this(workflowId, cfg.getJobDag(), cfg.getParallelJobs(), cfg.getTargetState(), cfg.getExpiry(),
         cfg.getFailureThreshold(), cfg.isTerminable(), cfg.getScheduleConfig(), cfg.getCapacity(),
-        cfg.getWorkflowType(), cfg.isJobQueue(), cfg.getJobTypes(), cfg.isAllowOverlapJobAssignment(),cfg.getJobPurgeInterval());
+        cfg.getWorkflowType(), cfg.isJobQueue(), cfg.getJobTypes(), cfg.getJobPurgeInterval(),
+        cfg.isAllowOverlapJobAssignment());
   }
 
   /* Member variables */
@@ -96,7 +99,7 @@ public class  WorkflowConfig extends ResourceConfig {
   protected WorkflowConfig(String workflowId, JobDag jobDag, int parallelJobs,
       TargetState targetState, long expiry, int failureThreshold, boolean terminable,
       ScheduleConfig scheduleConfig, int capacity, String workflowType, boolean isJobQueue,
-      Map<String, String> jobTypes, boolean allowOverlapJobAssignment, long purgeInterval) {
+      Map<String, String> jobTypes, long purgeInterval, boolean allowOverlapJobAssignment) {
     super(workflowId);
 
     putSimpleConfig(WorkflowConfigProperty.WorkflowID.name(), workflowId);
@@ -110,9 +113,10 @@ public class  WorkflowConfig extends ResourceConfig {
     putSimpleConfig(WorkflowConfigProperty.TargetState.name(), targetState.name());
     putSimpleConfig(WorkflowConfigProperty.Terminable.name(), String.valueOf(terminable));
     putSimpleConfig(WorkflowConfigProperty.IsJobQueue.name(), String.valueOf(isJobQueue));
-    putSimpleConfig(WorkflowConfigProperty.FailureThreshold.name(), String.valueOf(failureThreshold));
-    putSimpleConfig(WorkflowConfigProperty.AllowOverlapJobAssignment.name(), String.valueOf(allowOverlapJobAssignment));
+    putSimpleConfig(WorkflowConfigProperty.FailureThreshold.name(),
+        String.valueOf(failureThreshold));
     putSimpleConfig(WorkflowConfigProperty.JobPurgeInterval.name(), String.valueOf(purgeInterval));
+    putSimpleConfig(WorkflowConfigProperty.AllowOverlapJobAssignment.name(), String.valueOf(allowOverlapJobAssignment));
 
     if (capacity > 0) {
       putSimpleConfig(WorkflowConfigProperty.capacity.name(), String.valueOf(capacity));
@@ -148,8 +152,11 @@ public class  WorkflowConfig extends ResourceConfig {
   }
 
   public JobDag getJobDag() {
-    return simpleConfigContains(WorkflowConfigProperty.Dag.name()) ? JobDag
-        .fromJson(getSimpleConfig(WorkflowConfigProperty.Dag.name())) : DEFAULT_JOB_DAG;
+    if (_jobDag == null) {
+      _jobDag = simpleConfigContains(WorkflowConfigProperty.Dag.name()) ? JobDag
+          .fromJson(getSimpleConfig(WorkflowConfigProperty.Dag.name())) : DEFAULT_JOB_DAG;
+    }
+    return _jobDag;
   }
 
   protected void setJobDag(JobDag jobDag) {
@@ -303,11 +310,11 @@ public class  WorkflowConfig extends ResourceConfig {
       throw new IllegalArgumentException(
           String.format("%s is an invalid WorkflowConfig", property.getId()));
     }
-    return Builder.fromMap(configs).build();
+    return Builder.fromMap(configs).setWorkflowId(property.getId()).build();
   }
 
   public static class Builder {
-    private String _workflowId = "";
+    private String _workflowId = null;
     private JobDag _taskDag = DEFAULT_JOB_DAG;
     private int _parallelJobs = DEFAULT_PARALLEL_JOBS;
     private TargetState _targetState = DEFAULT_TARGET_STATE;
@@ -319,18 +326,22 @@ public class  WorkflowConfig extends ResourceConfig {
     private String _workflowType;
     private boolean _isJobQueue = DEFAULT_JOB_QUEUE;
     private Map<String, String> _jobTypes;
-    private boolean _allowOverlapJobAssignment = DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT;
     private long _jobPurgeInterval = DEFAULT_JOB_PURGE_INTERVAL;
+    private boolean _allowOverlapJobAssignment = DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT;
 
     public WorkflowConfig build() {
       validate();
 
       return new WorkflowConfig(_workflowId, _taskDag, _parallelJobs, _targetState, _expiry,
           _failureThreshold, _isTerminable, _scheduleConfig, _capacity, _workflowType, _isJobQueue,
-          _jobTypes, _allowOverlapJobAssignment, _jobPurgeInterval);
+          _jobTypes, _jobPurgeInterval, _allowOverlapJobAssignment);
     }
 
     public Builder() {}
+
+    public Builder(String workflowId) {
+      _workflowId = workflowId;
+    }
 
     public Builder(WorkflowConfig workflowConfig) {
       _workflowId = workflowConfig.getWorkflowId();
@@ -345,8 +356,8 @@ public class  WorkflowConfig extends ResourceConfig {
       _workflowType = workflowConfig.getWorkflowType();
       _isJobQueue = workflowConfig.isJobQueue();
       _jobTypes = workflowConfig.getJobTypes();
-      _allowOverlapJobAssignment = workflowConfig.isAllowOverlapJobAssignment();
       _jobPurgeInterval = workflowConfig.getJobPurgeInterval();
+      _allowOverlapJobAssignment = workflowConfig.isAllowOverlapJobAssignment();
     }
 
     public Builder setWorkflowId(String v) {
@@ -467,14 +478,20 @@ public class  WorkflowConfig extends ResourceConfig {
       return this;
     }
 
+    @Deprecated
     public static Builder fromMap(Map<String, String> cfg) {
       Builder builder = new Builder();
       builder.setConfigMap(cfg);
       return builder;
     }
 
+    // TODO: Add user customized simple field clone.
     // TODO: Add API to set map fields. This API only set simple fields
     public Builder setConfigMap(Map<String, String> cfg) {
+      if (cfg.containsKey(WorkflowConfigProperty.WorkflowID.name())) {
+        setWorkflowId(cfg.get(WorkflowConfigProperty.WorkflowID.name()));
+      }
+
       if (cfg.containsKey(WorkflowConfigProperty.Expiry.name())) {
         setExpiry(Long.parseLong(cfg.get(WorkflowConfigProperty.Expiry.name())));
       }
@@ -591,11 +608,13 @@ public class  WorkflowConfig extends ResourceConfig {
     }
 
     private void validate() {
+      _taskDag.validate();
+
       if (_expiry < 0) {
-        throw new IllegalArgumentException(String
+        throw new HelixException(String
             .format("%s has invalid value %s", WorkflowConfigProperty.Expiry.name(), _expiry));
       } else if (_scheduleConfig != null && !_scheduleConfig.isValid()) {
-        throw new IllegalArgumentException(
+        throw new HelixException(
             "Scheduler configuration is invalid. The configuration must have a start time if it is "
                 + "one-time, and it must have a positive interval magnitude if it is recurring");
       }

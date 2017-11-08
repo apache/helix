@@ -77,11 +77,10 @@ public class ControllerManagerHelper {
       /**
        * setup generic-controller
        */
-      _manager.addConfigChangeListener(controller);
+      _manager.addInstanceConfigChangeListener(controller);
+      _manager.addResourceConfigChangeListener(controller);
       _manager.addLiveInstanceChangeListener(controller);
       _manager.addIdealStateChangeListener(controller);
-      // no need for controller to listen on external-view
-      // _manager.addExternalViewChangeListener(controller);
       _manager.addControllerListener(controller);
     } catch (ZkInterruptedException e) {
       LOG.warn("zk connection is interrupted during HelixManagerMain.addListenersToController(). "
@@ -97,6 +96,7 @@ public class ControllerManagerHelper {
      * reset generic-controller
      */
     _manager.removeListener(keyBuilder.instanceConfigs(), controller);
+    _manager.removeListener(keyBuilder.resourceConfigs(), controller);
     _manager.removeListener(keyBuilder.liveInstances(), controller);
     _manager.removeListener(keyBuilder.idealStates(), controller);
     _manager.removeListener(keyBuilder.controller(), controller);

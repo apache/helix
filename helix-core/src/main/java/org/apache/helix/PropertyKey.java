@@ -86,12 +86,40 @@ public class PropertyKey {
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    int result = (_type != null ? _type.hashCode() : 0);
+    result = 31 * result + Arrays.hashCode(_params);
+    result = 31 * result + (_typeClazz != null ? _typeClazz.hashCode() : 0);
+    result = 31 * result + (_configScope != null ? _configScope.hashCode() : 0);
+    return result;
   }
 
   @Override
   public String toString() {
     return getPath();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || !(o instanceof PropertyKey)) {
+      return false;
+    }
+
+    PropertyKey key = (PropertyKey) o;
+
+    if (_type != key._type) {
+      return false;
+    }
+    // Probably incorrect - comparing Object[] arrays with Arrays.equals
+    if (!Arrays.equals(_params, key._params)) {
+      return false;
+    }
+    if (!_typeClazz.equals(key._typeClazz)) {
+      return false;
+    }
+    return _configScope == key._configScope;
   }
 
   /**
@@ -301,6 +329,30 @@ public class PropertyKey {
       return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName);
     }
 
+    /**
+     * Get a property key associated with {@link Error} for an instance under a session
+     * @param instanceName
+     * @param sessionId
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey errors(String instanceName, String sessionId) {
+      return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName, sessionId);
+    }
+
+
+    /**
+     * Get a property key associated with {@link Error} for an instance under a session of
+     * specified resource
+     * @param instanceName
+     * @param sessionId
+     * @param resourceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey errors(String instanceName, String sessionId, String resourceName) {
+      return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName, sessionId,
+          resourceName);
+    }
+
     public PropertyKey participantHistory(String instanceName) {
       return new PropertyKey(INSTANCE_HISTORY, ParticipantHistory.class, _clusterName,
           instanceName);
@@ -499,6 +551,23 @@ public class PropertyKey {
      */
     public PropertyKey externalView(String resourceName) {
       return new PropertyKey(EXTERNALVIEW, ExternalView.class, _clusterName, resourceName);
+    }
+
+    /**
+     * Get a property key associated with all target external view
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey targetExternalViews() {
+      return new PropertyKey(TARGETEXTERNALVIEW, ExternalView.class, _clusterName);
+    }
+
+    /**
+     * Get a property key associated with an target external view of a resource
+     * @param resourceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey targetExternalView(String resourceName) {
+      return new PropertyKey(TARGETEXTERNALVIEW, ExternalView.class, _clusterName, resourceName);
     }
 
     /**

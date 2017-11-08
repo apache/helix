@@ -46,7 +46,8 @@ public class JobContext extends HelixProperty {
     TASK_ID,
     ASSIGNED_PARTICIPANT,
     NEXT_RETRY_TIME,
-    INFO
+    INFO,
+    NAME
   }
 
   public JobContext(ZNRecord record) {
@@ -261,6 +262,14 @@ public class JobContext extends HelixProperty {
       return -1;
     }
     return Long.parseLong(tStr);
+  }
+
+  public void setName(String name) {
+    _record.setSimpleField(ContextProperties.NAME.name(), name);
+  }
+
+  public String getName() {
+    return _record.getSimpleField(ContextProperties.NAME.name());
   }
 
   /**

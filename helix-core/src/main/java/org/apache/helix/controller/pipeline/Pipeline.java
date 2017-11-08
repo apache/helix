@@ -22,15 +22,23 @@ package org.apache.helix.controller.pipeline;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 public class Pipeline {
   private static final Logger logger = Logger.getLogger(Pipeline.class.getName());
+  private final String _pipelineType;
   List<Stage> _stages;
 
   public Pipeline() {
-    _stages = new ArrayList<Stage>();
+    this("");
+  }
+
+  public Pipeline(String pipelineType) {
+    _stages = new ArrayList<>();
+    _pipelineType = pipelineType;
   }
 
   public void addStage(Stage stage) {
@@ -44,9 +52,26 @@ public class Pipeline {
       return;
     }
     for (Stage stage : _stages) {
+      long startTime = System.currentTimeMillis();
+      logger.info(String
+          .format("START %s for %s pipeline for cluster %s", stage.getStageName(), _pipelineType,
+              event.getClusterName()));
+
       stage.preProcess();
       stage.process(event);
       stage.postProcess();
+
+      long endTime = System.currentTimeMillis();
+      long duration = endTime - startTime;
+      logger.info(String
+          .format("END %s for %s pipeline cluster %s. took: %d ms ", stage.getStageName(),
+              _pipelineType, event.getClusterName(), duration));
+
+      ClusterStatusMonitor clusterStatusMonitor =
+          event.getAttribute(AttributeName.clusterStatusMonitor.name());
+      if (clusterStatusMonitor != null) {
+        clusterStatusMonitor.updateClusterEventDuration(stage.getStageName(), duration);
+      }
     }
   }
 

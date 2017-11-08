@@ -352,7 +352,9 @@ public class ParticipantManager {
 
   private void persistHistory(ParticipantHistory history) {
     PropertyKey propertyKey = _keyBuilder.participantHistory(_instanceName);
-    _dataAccessor.setProperty(propertyKey, history);
+    if (!_dataAccessor.setProperty(propertyKey, history)) {
+      LOG.error("Failed to persist participant history to zk!");
+    }
   }
 
   public void reset() {

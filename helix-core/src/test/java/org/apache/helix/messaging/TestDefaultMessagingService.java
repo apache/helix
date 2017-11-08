@@ -29,7 +29,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
-import org.apache.helix.Mocks;
+import org.apache.helix.MockAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
@@ -37,6 +37,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.helix.model.Message;
@@ -48,8 +49,8 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableList;
 
 public class TestDefaultMessagingService {
-  class MockHelixManager extends Mocks.MockManager {
-    class MockDataAccessor extends Mocks.MockAccessor {
+  class MockHelixManager extends MockManager {
+    class MockDataAccessor extends MockAccessor {
 
       @Override
       public <T extends HelixProperty> T getProperty(PropertyKey key) {
@@ -288,7 +289,7 @@ public class TestDefaultMessagingService {
   }
 
   @Test public void testMultipleMessageTypeRegisteration() {
-    HelixManager manager = new Mocks.MockManager();
+    HelixManager manager = new MockManager();
     MockDefaultMessagingService svc = new MockDefaultMessagingService(manager);
     TestStateTransitionHandlerFactory factory = new TestStateTransitionHandlerFactory();
     svc.registerMessageHandlerFactory(factory.getMessageTypes(), factory);

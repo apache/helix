@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -66,7 +67,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
   }
 
-  @Test
+  @Test()
   public void testZkHelixAdmin() {
     //TODO refactor this test into small test cases and use @before annotations
     System.out.println("START testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
@@ -98,12 +99,19 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       // OK
     }
 
-    InstanceConfig config = new InstanceConfig("host1_9999");
-    config.setHostName("host1");
-    config.setPort("9999");
+    String hostname = "host1";
+    String port = "9999";
+    String instanceName = hostname + "_" + port;
+    InstanceConfig config = new InstanceConfig(instanceName);
+    config.setHostName(hostname);
+    config.setPort(port);
+    List<String> dummyList = new ArrayList<String>();
+    dummyList.add("foo");
+    dummyList.add("bar");
+    config.getRecord().setListField("dummy", dummyList);
     tool.addInstance(clusterName, config);
-    tool.enableInstance(clusterName, "host1_9999", true);
-    String path = PropertyPathBuilder.instance(clusterName, "host1_9999");
+    tool.enableInstance(clusterName, instanceName, true);
+    String path = PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName, instanceName);
     AssertJUnit.assertTrue(_gZkClient.exists(path));
 
     try {
@@ -112,8 +120,42 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     } catch (HelixException e) {
       // OK
     }
+
+    config = tool.getInstanceConfig(clusterName, instanceName);
+    AssertJUnit.assertEquals(config.getId(), instanceName);
+
+    // test setInstanceConfig()
+    config = tool.getInstanceConfig(clusterName, instanceName);
+    config.setHostName("host2");
+    try {
+      // different host
+      tool.setInstanceConfig(clusterName, instanceName, config);
+      Assert.fail("should fail if hostname is different from the current one");
+    } catch (HelixException e) {
+      // OK
+    }
+
+    config = tool.getInstanceConfig(clusterName, instanceName);
+    config.setPort("7777");
+    try {
+      // different port
+      tool.setInstanceConfig(clusterName, instanceName, config);
+      Assert.fail("should fail if port is different from the current one");
+    } catch (HelixException e) {
+      // OK
+    }
+
+    dummyList.remove("bar");
+    dummyList.add("baz");
+    config = tool.getInstanceConfig(clusterName, instanceName);
+    config.getRecord().setListField("dummy", dummyList);
+    AssertJUnit.assertTrue(tool.setInstanceConfig(clusterName, "host1_9999", config));
     config = tool.getInstanceConfig(clusterName, "host1_9999");
-    AssertJUnit.assertEquals(config.getId(), "host1_9999");
+    dummyList = config.getRecord().getListField("dummy");
+    AssertJUnit.assertTrue(dummyList.contains("foo"));
+    AssertJUnit.assertTrue(dummyList.contains("baz"));
+    AssertJUnit.assertFalse(dummyList.contains("bar"));
+    AssertJUnit.assertEquals(2, dummyList.size());
 
     // test: should not drop instance when it is still alive
     HelixManager manager = initializeHelixManager(clusterName, config.getInstanceName(), ZK_ADDR, "id1");
@@ -229,9 +271,10 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
   }
 
   private HelixManager initializeHelixManager(String clusterName, String instanceName, String zkAddress,
-      String stateModelName) {
-    HelixManager manager =
-        HelixManagerFactory.getZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddress);
+      String stateModelName)
+  {
+    HelixManager manager = HelixManagerFactory.getZKHelixManager(clusterName, instanceName,
+        InstanceType.PARTICIPANT, zkAddress);
 
     MasterSlaveStateModelFactory stateModelFactory = new MasterSlaveStateModelFactory(instanceName);
 
@@ -253,13 +296,13 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     tool.addCluster(clusterName, true);
     Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
 
-    tool.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
+    tool.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
+        StateModelConfigGenerator.generateConfigForMasterSlave()));
     tool.addResource(clusterName, "test-db", 4, "MasterSlave");
     Map<String, String> resourceConfig = new HashMap<String, String>();
     resourceConfig.put("key1", "value1");
-    tool.setConfig(new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(clusterName)
-        .forResource("test-db")
-        .build(), resourceConfig);
+    tool.setConfig(new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE)
+        .forCluster(clusterName).forResource("test-db").build(), resourceConfig);
 
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     Assert.assertTrue(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()),
@@ -290,7 +333,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
 
     // test admin.getMessageConstraints()
-    ClusterConstraints constraints = tool.getConstraints(clusterName, ConstraintType.MESSAGE_CONSTRAINT);
+    ClusterConstraints constraints =
+        tool.getConstraints(clusterName, ConstraintType.MESSAGE_CONSTRAINT);
     Assert.assertNull(constraints, "message-constraint should NOT exist for cluster: " + className);
 
     // remove non-exist constraint
@@ -305,11 +349,14 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     ConstraintItemBuilder builder = new ConstraintItemBuilder();
     builder.addConstraintAttribute(ConstraintAttribute.RESOURCE.toString(), "MyDB")
         .addConstraintAttribute(ConstraintAttribute.CONSTRAINT_VALUE.toString(), "1");
-    tool.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1", builder.build());
+    tool.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1",
+        builder.build());
 
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    constraints = accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
+    constraints =
+        accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
     Assert.assertNotNull(constraints, "message-constraint should exist");
     ConstraintItem item = constraints.getConstraintItem("constraint1");
     Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
@@ -326,7 +373,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     // remove a exist message-constraint
     tool.removeConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1");
-    constraints = accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
+    constraints =
+        accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
     Assert.assertNotNull(constraints, "message-constraint should exist");
     item = constraints.getConstraintItem("constraint1");
     Assert.assertNull(item, "message-constraint for constraint1 should NOT exist");
@@ -344,7 +392,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     admin.addCluster(clusterName, true);
     Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
     String resourceName = "TestDB";
-    admin.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
+    admin.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
+        StateModelConfigGenerator.generateConfigForMasterSlave()));
     admin.addResource(clusterName, resourceName, 4, "MasterSlave");
     admin.enableResource(clusterName, resourceName, false);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
@@ -386,7 +435,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       }
       tool.addInstance(clusterName, config);
       tool.enableInstance(clusterName, instanceName, true);
-      String path = PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName, instanceName);
+      String path = PropertyPathBuilder.instance(clusterName, instanceName);
       AssertJUnit.assertTrue(_gZkClient.exists(path));
     }
 
@@ -443,18 +492,20 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     String instanceName = "TestInstanceLegacy";
     String testResourcePrefix = "TestResourceLegacy";
     ZNRecord record = new ZNRecord(instanceName);
-    List<String> disabledPartitions = new ArrayList<String>(Arrays.asList(new String[]{"1", "2", "3"}));
-    record.setListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(), disabledPartitions);
+    List<String> disabledPartitions =
+        new ArrayList<String>(Arrays.asList(new String[] { "1", "2", "3" }));
+    record.setListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(),
+        disabledPartitions);
     InstanceConfig instanceConfig = new InstanceConfig(record);
     instanceConfig.setInstanceEnabledForPartition(testResourcePrefix, "2", false);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix).size(), 3);
     Assert.assertEquals(instanceConfig.getRecord()
-        .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
-        .size(), 3);
+            .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
+        3);
     instanceConfig.setInstanceEnabledForPartition(testResourcePrefix, "2", true);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix).size(), 2);
     Assert.assertEquals(instanceConfig.getRecord()
-        .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
-        .size(), 2);
+            .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
+        2);
   }
 }

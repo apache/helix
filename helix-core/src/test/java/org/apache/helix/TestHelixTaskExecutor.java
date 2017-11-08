@@ -19,9 +19,9 @@ package org.apache.helix;
  * under the License.
  */
 
-import org.apache.helix.Mocks.MockHelixTaskExecutor;
-import org.apache.helix.Mocks.MockManager;
-import org.apache.helix.Mocks.MockStateModel;
+import org.apache.helix.mock.MockManager;
+import org.apache.helix.mock.participant.MockHelixTaskExecutor;
+import org.apache.helix.mock.statemodel.MockMasterSlaveStateModel;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
@@ -61,7 +61,7 @@ public class TestHelixTaskExecutor {
     accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
 
     MockHelixTaskExecutor executor = new MockHelixTaskExecutor();
-    MockStateModel stateModel = new MockStateModel();
+    MockMasterSlaveStateModel stateModel = new MockMasterSlaveStateModel();
     executor.registerMessageHandlerFactory(MessageType.TASK_REPLY.name(),
         new AsyncCallbackService());
 
@@ -69,12 +69,12 @@ public class TestHelixTaskExecutor {
     CurrentState currentStateDelta = new CurrentState("TestDB");
     currentStateDelta.setState("TestDB_0", "OFFLINE");
 
-    StateModelFactory<MockStateModel> stateModelFactory = new StateModelFactory<MockStateModel>() {
+    StateModelFactory<MockMasterSlaveStateModel> stateModelFactory = new StateModelFactory<MockMasterSlaveStateModel>() {
 
       @Override
-      public MockStateModel createNewStateModel(String resource, String partitionName) {
+      public MockMasterSlaveStateModel createNewStateModel(String resource, String partitionName) {
         // TODO Auto-generated method stub
-        return new MockStateModel();
+        return new MockMasterSlaveStateModel();
       }
 
     };

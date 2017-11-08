@@ -55,5 +55,15 @@ public enum TaskState {
    * The allowed execution time for the job.
    * TODO: also use this for the task
    */
-  TIMED_OUT
+  TIMED_OUT,
+  /**
+   * The job is in the process to be TIMED_OUT.
+   * Usually this means some tasks are still being aborted.
+   */
+  TIMING_OUT,
+  /**
+   * The job is in the process to be FAILED.
+   * Unfinished tasks are being aborted.
+   */
+  FAILING
 }

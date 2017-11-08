@@ -21,6 +21,7 @@ package org.apache.helix.integration.common;
 
 import java.lang.reflect.Method;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -48,6 +49,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
@@ -215,6 +217,43 @@ public class ZkIntegrationTestBase {
         _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
 
     return idealState;
+  }
+
+  protected IdealState createIdealState(String resourceGroupName, String instanceGroupTag,
+      List<String> instanceNames, int numPartition, int replica, String rebalanceMode,
+      String stateModelDef) {
+    IdealState is = _gSetupTool
+        .createIdealStateForResourceGroup(resourceGroupName, instanceGroupTag, numPartition,
+            replica, rebalanceMode, stateModelDef);
+
+    // setup initial partition->instance mapping.
+    int nodeIdx = 0;
+    int numNode = instanceNames.size();
+    assert (numNode >= replica);
+    for (int i = 0; i < numPartition; i++) {
+      String partitionName = resourceGroupName + "_" + i;
+      for (int j = 0; j < replica; j++) {
+        is.setPartitionState(partitionName, instanceNames.get((nodeIdx + j) % numNode),
+            OnlineOfflineSMD.States.ONLINE.toString());
+      }
+      nodeIdx++;
+    }
+
+    return is;
+  }
+
+  protected void createDBInSemiAuto(ClusterSetup clusterSetup, String clusterName, String dbName,
+      List<String> preferenceList, String stateModelDef, int numPartition, int replica) {
+    clusterSetup.addResourceToCluster(clusterName, dbName, numPartition, stateModelDef,
+        IdealState.RebalanceMode.SEMI_AUTO.toString());
+    clusterSetup.rebalanceStorageCluster(clusterName, dbName, replica);
+
+    IdealState is =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, dbName);
+    for (String p : is.getPartitionSet()) {
+      is.setPreferenceList(p, preferenceList);
+    }
+    clusterSetup.getClusterManagementTool().setResourceIdealState(clusterName, dbName, is);
   }
 
   /**

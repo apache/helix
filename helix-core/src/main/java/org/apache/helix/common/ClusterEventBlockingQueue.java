@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.common;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
+import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

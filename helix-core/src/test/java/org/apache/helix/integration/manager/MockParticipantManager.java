@@ -40,9 +40,9 @@ import org.slf4j.LoggerFactory;
 public class MockParticipantManager extends ZKHelixManager implements Runnable, ZkTestManager {
   private static Logger LOG = LoggerFactory.getLogger(MockParticipantManager.class);
 
-  private CountDownLatch _startCountDown = new CountDownLatch(1);
-  private CountDownLatch _stopCountDown = new CountDownLatch(1);
-  private CountDownLatch _waitStopCompleteCountDown = new CountDownLatch(1);
+  protected CountDownLatch _startCountDown = new CountDownLatch(1);
+  protected CountDownLatch _stopCountDown = new CountDownLatch(1);
+  protected CountDownLatch _waitStopCompleteCountDown = new CountDownLatch(1);
 
   protected MockMSModelFactory _msModelFactory = new MockMSModelFactory(null);
   protected DummyLeaderStandbyStateModelFactory _lsModelFactory =

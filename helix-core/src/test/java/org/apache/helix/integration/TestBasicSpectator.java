@@ -52,6 +52,7 @@ public class TestBasicSpectator extends ZkStandAloneCMTestBase implements
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
             ZK_ADDR, CLUSTER_NAME));
+
     Assert.assertTrue(result);
 
     Assert.assertTrue(_externalViewChanges.containsKey("NextDB"));

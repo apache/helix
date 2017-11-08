@@ -33,6 +33,7 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.mock.participant.DummyProcess;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.OnlineOfflineSMD;
@@ -90,9 +91,9 @@ public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
 
     for (String tag : instanceGroupTags) {
       List<String> instances = _admin.getInstancesInClusterWithTag(CLUSTER_NAME, tag);
-      IdealState idealState =
-          createIdealState(TEST_DB, tag, instances, PARTITIONS, _replica,
-              IdealState.RebalanceMode.CUSTOMIZED.toString());
+      IdealState idealState = createIdealState(TEST_DB, tag, instances, PARTITIONS, _replica,
+          IdealState.RebalanceMode.CUSTOMIZED.toString(),
+          BuiltInStateModelDefinitions.OnlineOffline.name());
       _gSetupTool.addResourceToCluster(CLUSTER_NAME, idealState.getResourceName(), idealState);
     }
 
@@ -138,28 +139,6 @@ public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
 
     _controller.syncStop();
     _spectator.disconnect();
-  }
-
-  public IdealState createIdealState(String resourceGroupName, String instanceGroupTag,
-      List<String> instanceNames, int numPartition, int replica, String rebalanceMode) {
-    IdealState is =
-        _gSetupTool.createIdealStateForResourceGroup(resourceGroupName, instanceGroupTag,
-            numPartition, replica, rebalanceMode, "OnlineOffline");
-
-    // setup initial partition->instance mapping.
-    int nodeIdx = 0;
-    int numNode = instanceNames.size();
-    assert (numNode >= replica);
-    for (int i = 0; i < numPartition; i++) {
-      String partitionName = resourceGroupName + "_" + i;
-      for (int j = 0; j < replica; j++) {
-        is.setPartitionState(partitionName, instanceNames.get((nodeIdx + j) % numNode),
-            OnlineOfflineSMD.States.ONLINE.toString());
-      }
-      nodeIdx++;
-    }
-
-    return is;
   }
 
   private void addInstanceGroup(String clusterName, String instanceTag, int numInstance) {

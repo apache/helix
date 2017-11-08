@@ -95,8 +95,10 @@ public class TestP2PMessageSemiAuto extends ZkIntegrationTestBase {
       _participants.add(participant);
     }
 
-    createDBInSemiAuto(DB_NAME_1, _instances);
-    createDBInSemiAuto(DB_NAME_2, _instances);
+    createDBInSemiAuto(_gSetupTool, CLUSTER_NAME, DB_NAME_1, _instances,
+        BuiltInStateModelDefinitions.MasterSlave.name(), PARTITION_NUMBER, REPLICA_NUMBER);
+    createDBInSemiAuto(_gSetupTool, CLUSTER_NAME, DB_NAME_2, _instances,
+        BuiltInStateModelDefinitions.MasterSlave.name(), PARTITION_NUMBER, REPLICA_NUMBER);
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
@@ -108,18 +110,6 @@ public class TestP2PMessageSemiAuto extends ZkIntegrationTestBase {
 
     _configAccessor = new ConfigAccessor(_gZkClient);
     _accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-  }
-
-  private void createDBInSemiAuto(String dbName, List<String> preferenceList) {
-    _gSetupTool.addResourceToCluster(CLUSTER_NAME, dbName, PARTITION_NUMBER,
-        BuiltInStateModelDefinitions.MasterSlave.name(), IdealState.RebalanceMode.SEMI_AUTO.toString());
-    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, REPLICA_NUMBER);
-
-    IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
-    for (String p : is.getPartitionSet()) {
-      is.setPreferenceList(p, preferenceList);
-    }
-    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, dbName, is);
   }
 
   @Test

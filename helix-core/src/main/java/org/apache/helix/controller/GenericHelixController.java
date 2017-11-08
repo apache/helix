@@ -53,7 +53,7 @@ import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.ClusterEventBlockingQueue;
+import org.apache.helix.common.ClusterEventBlockingQueue;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CompatibilityCheckStage;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
@@ -581,7 +581,6 @@ public class GenericHelixController implements IdealStateChangeListener,
         .info("END: GenericClusterController.onClusterConfigChange() for cluster " + _clusterName);
   }
 
-
   private void notifyCaches(NotificationContext context, ChangeType changeType) {
     if (context == null || context.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
@@ -759,13 +758,15 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
   }
 
+
+  // TODO: refactor this to use common/ClusterEventProcessor.
   private class ClusterEventProcessor extends Thread {
     private final ClusterDataCache _cache;
     private final ClusterEventBlockingQueue _eventBlockingQueue;
 
     public ClusterEventProcessor(ClusterDataCache cache,
         ClusterEventBlockingQueue eventBlockingQueue) {
-      super("GerenricHelixController-event_process");
+      super("GenericHelixController-event_process");
       _cache = cache;
       _eventBlockingQueue = eventBlockingQueue;
     }

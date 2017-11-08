@@ -19,34 +19,60 @@ package org.apache.helix.spectator;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.ExternalViewChangeListener;
+import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
+import org.apache.helix.api.listeners.ConfigChangeListener;
+import org.apache.helix.api.listeners.InstanceConfigChangeListener;
+import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.PreFetch;
+import org.apache.helix.common.ClusterEventProcessor;
+import org.apache.helix.controller.stages.AttributeName;
+import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RoutingTableProvider implements ExternalViewChangeListener, ConfigChangeListener {
+public class RoutingTableProvider implements ExternalViewChangeListener, InstanceConfigChangeListener,
+    ConfigChangeListener, LiveInstanceChangeListener {
   private static final Logger logger = LoggerFactory.getLogger(RoutingTableProvider.class);
   private final AtomicReference<RoutingTable> _routingTableRef;
+  private final HelixManager _helixManager;
+  private final RouterUpdater _routerUpdater;
 
   public RoutingTableProvider() {
-    _routingTableRef = new AtomicReference<RoutingTableProvider.RoutingTable>(new RoutingTable());
+    this(null);
+  }
 
+  public RoutingTableProvider(HelixManager helixManager) throws HelixException {
+    _routingTableRef = new AtomicReference<>(new RoutingTable());
+    _helixManager = helixManager;
+    String clusterName = null;
+    if (_helixManager != null) {
+      clusterName = _helixManager.getClusterName();
+      try {
+        _helixManager.addExternalViewChangeListener(this);
+        _helixManager.addInstanceConfigChangeListener(this);
+        _helixManager.addLiveInstanceChangeListener(this);
+      } catch (Exception e) {
+        logger.error("Failed to attach listeners to HelixManager!");
+        throw new HelixException("Failed to attach listeners to HelixManager!", e);
+      }
+    }
+    _routerUpdater = new RouterUpdater(clusterName);
+    _routerUpdater.start();
   }
 
   /**
@@ -75,19 +101,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, ConfigC
    * @return empty list if there is no instance in a given state
    */
   public List<InstanceConfig> getInstancesForResource(String resourceName, String partitionName, String state) {
-    List<InstanceConfig> instanceList = null;
-    RoutingTable _routingTable = _routingTableRef.get();
-    ResourceInfo resourceInfo = _routingTable.get(resourceName);
-    if (resourceInfo != null) {
-      PartitionInfo keyInfo = resourceInfo.get(partitionName);
-      if (keyInfo != null) {
-        instanceList = keyInfo.get(state);
-      }
-    }
-    if (instanceList == null) {
-      instanceList = Collections.emptyList();
-    }
-    return instanceList;
+    return _routingTableRef.get().getInstancesForResource(resourceName, partitionName, state);
   }
 
   /**
@@ -105,19 +119,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, ConfigC
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
       String partitionName, String state) {
-    List<InstanceConfig> instanceList = null;
-    RoutingTable _routingTable = _routingTableRef.get();
-    ResourceGroupInfo resourceGroupInfo = _routingTable.getResourceGroup(resourceGroupName);
-    if (resourceGroupInfo != null) {
-      PartitionInfo keyInfo = resourceGroupInfo.get(partitionName);
-      if (keyInfo != null) {
-        instanceList = keyInfo.get(state);
-      }
-    }
-    if (instanceList == null) {
-      instanceList = Collections.emptyList();
-    }
-    return instanceList;
+    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, partitionName, state);
   }
 
   /**
@@ -134,25 +136,10 @@ public class RoutingTableProvider implements ExternalViewChangeListener, ConfigC
    *
    * @return empty list if there is no instance in a given state
    */
-  public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String partitionName,
-      String state, List<String> resourceTags) {
-    RoutingTable _routingTable = _routingTableRef.get();
-    ResourceGroupInfo resourceGroupInfo = _routingTable.getResourceGroup(resourceGroupName);
-    List<InstanceConfig> instanceList = null;
-    if (resourceGroupInfo != null) {
-      instanceList = new ArrayList<InstanceConfig>();
-      for (String tag : resourceTags) {
-        PartitionInfo keyInfo = resourceGroupInfo.get(partitionName, tag);
-        if (keyInfo != null && keyInfo.containsState(state)) {
-          instanceList.addAll(keyInfo.get(state));
-        }
-      }
-    }
-    if (instanceList == null) {
-      return Collections.emptyList();
-    }
-
-    return instanceList;
+  public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
+      String partitionName, String state, List<String> resourceTags) {
+    return _routingTableRef.get()
+        .getInstancesForResourceGroup(resourceGroupName, partitionName, state, resourceTags);
   }
 
   /**
@@ -175,16 +162,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, ConfigC
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResource(String resourceName, String state) {
-    Set<InstanceConfig> instanceSet = null;
-    RoutingTable routingTable = _routingTableRef.get();
-    ResourceInfo resourceInfo = routingTable.get(resourceName);
-    if (resourceInfo != null) {
-      instanceSet = resourceInfo.getInstances(state);
-    }
-    if (instanceSet == null) {
-      instanceSet = Collections.emptySet();
-    }
-    return instanceSet;
+    return _routingTableRef.get().getInstancesForResource(resourceName, state);
   }
 
   /**
@@ -196,16 +174,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, ConfigC
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state) {
-    Set<InstanceConfig> instanceSet = null;
-    RoutingTable _routingTable = _routingTableRef.get();
-    ResourceGroupInfo resourceGroupInfo = _routingTable.getResourceGroup(resourceGroupName);
-    if (resourceGroupInfo != null) {
-      instanceSet = resourceGroupInfo.getInstances(state);
-    }
-    if (instanceSet == null) {
-      instanceSet = Collections.emptySet();
-    }
-    return instanceSet;
+    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, state);
   }
 
   /**
@@ -219,274 +188,122 @@ public class RoutingTableProvider implements ExternalViewChangeListener, ConfigC
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
       List<String> resourceTags) {
-    Set<InstanceConfig> instanceSet = null;
-    RoutingTable _routingTable = _routingTableRef.get();
-    ResourceGroupInfo resourceGroupInfo = _routingTable.getResourceGroup(resourceGroupName);
-    if (resourceGroupInfo != null) {
-      instanceSet = new HashSet<InstanceConfig>();
-      for (String tag : resourceTags) {
-        Set<InstanceConfig> instances = resourceGroupInfo.getInstances(state, tag);
-        if (instances != null) {
-          instanceSet.addAll(resourceGroupInfo.getInstances(state, tag));
-        }
-      }
-    }
-    if (instanceSet == null) {
-      return Collections.emptySet();
-    }
-    return instanceSet;
+    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, state, resourceTags);
+  }
+
+  /**
+   * Return all liveInstances in the cluster now.
+   * @return
+   */
+  public Collection<LiveInstance> getLiveInstances() {
+    return _routingTableRef.get().getLiveInstances();
+  }
+
+  /**
+   * Return all instance's config in this cluster.
+   * @return
+   */
+  public Collection<InstanceConfig> getInstanceConfigs() {
+    return _routingTableRef.get().getInstanceConfigs();
   }
 
   @Override
+  @PreFetch(enabled = false)
   public void onExternalViewChange(List<ExternalView> externalViewList,
       NotificationContext changeContext) {
-    // session has expired clean up the routing table
-    if (changeContext.getType() == NotificationContext.Type.FINALIZE) {
-      logger.info("Resetting the routing table. ");
-      RoutingTable newRoutingTable = new RoutingTable();
-      _routingTableRef.set(newRoutingTable);
-      return;
+    // Refresh with full list of external view.
+    // keep this here for back-compatibility
+    if (externalViewList != null && externalViewList.size() > 0) {
+      refresh(externalViewList, changeContext);
+    } else {
+      _routerUpdater.queueEvent(changeContext, ClusterEventType.ExternalViewChange,
+          HelixConstants.ChangeType.EXTERNAL_VIEW);
     }
-    refresh(externalViewList, changeContext);
   }
 
   @Override
-  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
-    // session has expired clean up the routing table
-    if (changeContext.getType() == NotificationContext.Type.FINALIZE) {
-      logger.info("Resetting the routing table. ");
-      RoutingTable newRoutingTable = new RoutingTable();
-      _routingTableRef.set(newRoutingTable);
-      return;
-    }
-
-    HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
-    List<ExternalView> externalViewList = accessor.getChildValues(keyBuilder.externalViews());
-    refresh(externalViewList, changeContext);
+  @PreFetch(enabled = false)
+  public void onInstanceConfigChange(List<InstanceConfig> configs,
+      NotificationContext changeContext) {
+    _routerUpdater.queueEvent(changeContext, ClusterEventType.InstanceConfigChange,
+        HelixConstants.ChangeType.INSTANCE_CONFIG);
   }
 
-  private void refresh(List<ExternalView> externalViewList, NotificationContext changeContext) {
-    HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
+  @Override
+  @PreFetch(enabled = false)
+  public void onConfigChange(List<InstanceConfig> configs,
+      NotificationContext changeContext) {
+    onInstanceConfigChange(configs, changeContext);
+  }
 
-    List<InstanceConfig> configList = accessor.getChildValues(keyBuilder.instanceConfigs());
-    Map<String, InstanceConfig> instanceConfigMap = new HashMap<String, InstanceConfig>();
-    for (InstanceConfig config : configList) {
-      instanceConfigMap.put(config.getId(), config);
-    }
+  @Override
+  @PreFetch(enabled = false)
+  public void onLiveInstanceChange(List<LiveInstance> liveInstances,
+      NotificationContext changeContext) {
+    _routerUpdater.queueEvent(changeContext, ClusterEventType.LiveInstanceChange,
+        HelixConstants.ChangeType.LIVE_INSTANCE);
+  }
+
+  private void reset() {
+    logger.info("Resetting the routing table.");
     RoutingTable newRoutingTable = new RoutingTable();
-    if (externalViewList != null) {
-      for (ExternalView extView : externalViewList) {
-        String resourceName = extView.getId();
-        for (String partitionName : extView.getPartitionSet()) {
-          Map<String, String> stateMap = extView.getStateMap(partitionName);
-          for (String instanceName : stateMap.keySet()) {
-            String currentState = stateMap.get(instanceName);
-            if (instanceConfigMap.containsKey(instanceName)) {
-              InstanceConfig instanceConfig = instanceConfigMap.get(instanceName);
-              if (extView.isGroupRoutingEnabled()) {
-                newRoutingTable.addEntry(resourceName, extView.getResourceGroupName(),
-                    extView.getInstanceGroupTag(), partitionName, currentState, instanceConfig);
-              } else {
-                newRoutingTable.addEntry(resourceName, partitionName, currentState, instanceConfig);
-              }
-            } else {
-              logger.error("Invalid instance name." + instanceName
-                  + " .Not found in /cluster/configs/. instanceName: ");
-            }
-          }
-        }
-      }
-    }
     _routingTableRef.set(newRoutingTable);
   }
 
-  class RoutingTable {
-    // mapping a resourceName to the ResourceInfo
-    private final Map<String, ResourceInfo> resourceInfoMap;
+  public void refresh(List<ExternalView> externalViewList, NotificationContext changeContext) {
+    HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    // mapping a resource group name to a resourceGroupInfo
-    private final Map<String, ResourceGroupInfo> resourceGroupInfoMap;
-
-    public RoutingTable() {
-      resourceInfoMap = new HashMap<String, ResourceInfo>();
-      resourceGroupInfoMap = new HashMap<String, ResourceGroupInfo>();
-    }
-
-    public void addEntry(String resourceName, String partitionName, String state,
-        InstanceConfig config) {
-      if (!resourceInfoMap.containsKey(resourceName)) {
-        resourceInfoMap.put(resourceName, new ResourceInfo());
-      }
-      ResourceInfo resourceInfo = resourceInfoMap.get(resourceName);
-      resourceInfo.addEntry(partitionName, state, config);
-    }
-
-    /**
-     * add an entry with a resource with resourceGrouping enabled.
-     */
-    public void addEntry(String resourceName, String resourceGroupName, String resourceTag,
-        String partitionName, String state, InstanceConfig config) {
-      addEntry(resourceName, partitionName, state, config);
-
-      if (!resourceGroupInfoMap.containsKey(resourceGroupName)) {
-        resourceGroupInfoMap.put(resourceGroupName, new ResourceGroupInfo());
-      }
-
-      ResourceGroupInfo resourceGroupInfo = resourceGroupInfoMap.get(resourceGroupName);
-      resourceGroupInfo.addEntry(resourceTag, partitionName, state, config);
-    }
-
-    ResourceInfo get(String resourceName) {
-      return resourceInfoMap.get(resourceName);
-    }
-
-    ResourceGroupInfo getResourceGroup(String resourceGroupName) {
-      return resourceGroupInfoMap.get(resourceGroupName);
-    }
+    List<InstanceConfig> configList = accessor.getChildValues(keyBuilder.instanceConfigs());
+    List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances());
+    refresh(externalViewList, configList, liveInstances);
   }
 
-  private static Comparator<InstanceConfig> INSTANCE_CONFIG_COMPARATOR =
-      new Comparator<InstanceConfig>() {
-        @Override
-        public int compare(InstanceConfig o1, InstanceConfig o2) {
-          if (o1 == o2) {
-            return 0;
-          }
-          if (o1 == null) {
-            return -1;
-          }
-          if (o2 == null) {
-            return 1;
-          }
+  public void refresh(Collection<ExternalView> externalViews,
+      Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
+    RoutingTable newRoutingTable = new RoutingTable(externalViews, instanceConfigs, liveInstances);
+    _routingTableRef.set(newRoutingTable);
+  }
 
-          int compareTo = o1.getHostName().compareTo(o2.getHostName());
-          if (compareTo == 0) {
-            return o1.getPort().compareTo(o2.getPort());
-          } else {
-            return compareTo;
-          }
+  private class RouterUpdater extends ClusterEventProcessor {
+    private final RoutingDataCache _dataCache;
 
+    public RouterUpdater(String clusterName) {
+      super("Helix-RouterUpdater-event_process");
+      _dataCache = new RoutingDataCache(clusterName);
+    }
+
+    @Override
+    protected void handleEvent(ClusterEvent event) {
+      NotificationContext changeContext = event.getAttribute(AttributeName.changeContext.name());
+      // session has expired clean up the routing table
+      if (changeContext.getType() == NotificationContext.Type.FINALIZE) {
+        reset();
+      } else {
+        // refresh routing table.
+        HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
+        if (manager == null) {
+          logger.error("HelixManager is null for router update event : " + event);
+          throw new HelixException("HelixManager is null for router update event.");
         }
-      };
-
-  /**
-   * Class to store instances, partitions and their states for each resource.
-   */
-  class ResourceInfo {
-    // store PartitionInfo for each partition
-    Map<String, PartitionInfo> partitionInfoMap;
-    // stores the Set of Instances in a given state
-    Map<String, Set<InstanceConfig>> stateInfoMap;
-
-    public ResourceInfo() {
-      partitionInfoMap = new HashMap<String, RoutingTableProvider.PartitionInfo>();
-      stateInfoMap = new HashMap<String, Set<InstanceConfig>>();
-    }
-
-    public void addEntry(String stateUnitKey, String state, InstanceConfig config) {
-      // add
-      if (!stateInfoMap.containsKey(state)) {
-        stateInfoMap.put(state, new TreeSet<InstanceConfig>(INSTANCE_CONFIG_COMPARATOR));
+        _dataCache.refresh(manager.getHelixDataAccessor());
+        refresh(_dataCache.getExternalViews().values(), _dataCache.getInstanceConfigMap().values(),
+            _dataCache.getLiveInstances().values());
       }
-      Set<InstanceConfig> set = stateInfoMap.get(state);
-      set.add(config);
-
-      if (!partitionInfoMap.containsKey(stateUnitKey)) {
-        partitionInfoMap.put(stateUnitKey, new PartitionInfo());
-      }
-      PartitionInfo stateUnitKeyInfo = partitionInfoMap.get(stateUnitKey);
-      stateUnitKeyInfo.addEntry(state, config);
     }
 
-    public Set<InstanceConfig> getInstances(String state) {
-      Set<InstanceConfig> instanceSet = stateInfoMap.get(state);
-      return instanceSet;
-    }
-
-    PartitionInfo get(String stateUnitKey) {
-      return partitionInfoMap.get(stateUnitKey);
-    }
-  }
-
-  /**
-   * Class to store instances, partitions and their states for each resource group.
-   */
-  class ResourceGroupInfo {
-    // aggregated partitions and instances info for all resources in the resource group.
-    ResourceInfo aggregatedResourceInfo;
-
-    // <ResourceTag, ResourceInfo> maps resource tag to the resource with the tag
-    // in this resource group.
-    // Each ResourceInfo saves only partitions and instances for that resource.
-    Map<String, ResourceInfo> tagToResourceMap;
-
-    public ResourceGroupInfo() {
-      aggregatedResourceInfo = new ResourceInfo();
-      tagToResourceMap = new HashMap<String, ResourceInfo>();
-    }
-
-    public void addEntry(String resourceTag, String stateUnitKey, String state, InstanceConfig config) {
-      // add the new entry to the aggregated resource info
-      aggregatedResourceInfo.addEntry(stateUnitKey, state, config);
-
-      // add the entry to the resourceInfo with given tag
-      if (!tagToResourceMap.containsKey(resourceTag)) {
-        tagToResourceMap.put(resourceTag, new ResourceInfo());
-      }
-      ResourceInfo resourceInfo = tagToResourceMap.get(resourceTag);
-      resourceInfo.addEntry(stateUnitKey, state, config);
-    }
-
-    public Set<InstanceConfig> getInstances(String state) {
-      return aggregatedResourceInfo.getInstances(state);
-    }
-
-    public Set<InstanceConfig> getInstances(String state, String resourceTag) {
-      ResourceInfo resourceInfo = tagToResourceMap.get(resourceTag);
-      if (resourceInfo != null) {
-        return resourceInfo.getInstances(state);
+    public void queueEvent(NotificationContext context, ClusterEventType eventType,
+        HelixConstants.ChangeType changeType) {
+      ClusterEvent event = new ClusterEvent(_clusterName, eventType);
+      if (context == null || context.getType() != NotificationContext.Type.CALLBACK) {
+        _dataCache.requireFullRefresh();
+      } else {
+        _dataCache.notifyDataChange(changeType, context.getPathChanged());
       }
 
-      return null;
-    }
-
-    PartitionInfo get(String stateUnitKey) {
-      return aggregatedResourceInfo.get(stateUnitKey);
-    }
-
-    PartitionInfo get(String stateUnitKey, String resourceTag) {
-      ResourceInfo resourceInfo = tagToResourceMap.get(resourceTag);
-      if (resourceInfo == null) {
-        return null;
-      }
-
-      return resourceInfo.get(stateUnitKey);
-    }
-  }
-
-  class PartitionInfo {
-    Map<String, List<InstanceConfig>> stateInfoMap;
-
-    public PartitionInfo() {
-      stateInfoMap = new HashMap<String, List<InstanceConfig>>();
-    }
-
-    public void addEntry(String state, InstanceConfig config) {
-      if (!stateInfoMap.containsKey(state)) {
-        stateInfoMap.put(state, new ArrayList<InstanceConfig>());
-      }
-      List<InstanceConfig> list = stateInfoMap.get(state);
-      list.add(config);
-    }
-
-    List<InstanceConfig> get(String state) {
-      return stateInfoMap.get(state);
-    }
-
-    boolean containsState(String state) {
-      return stateInfoMap.containsKey(state);
+      event.addAttribute(AttributeName.helixmanager.name(), context.getManager());
+      event.addAttribute(AttributeName.changeContext.name(), context);
+      queueEvent(event);
     }
   }
 }

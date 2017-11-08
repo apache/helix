@@ -106,7 +106,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     accessor.removeProperty(errorNodeKey);
   }
 
-  @Test
+  @Test (enabled = false)
   public void testParticipantUnavailable() {
     _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
@@ -145,7 +145,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test
+  @Test (enabled = false)
   public void testTagSetIncorrect() {
     _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
@@ -164,7 +164,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     _setupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
   }
 
-  @Test
+  @Test (enabled = false)
   public void testWithDomainId() throws InterruptedException {
     int replicas = 2;
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);

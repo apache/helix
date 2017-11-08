@@ -148,11 +148,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       @Override
       public Object call() {
         try {
+          // TODO re-enable logging error after ticket HELIX-631 is resolved
+          /*
           if (hasFailure && _statusUpdateUtil != null) {
             _statusUpdateUtil
                 .logError(StatusUpdateUtil.ErrorType.RebalanceResourceFailure, this.getClass(),
                     errorMessage, helixManager);
           }
+          */
           if (clusterStatusMonitor != null) {
             clusterStatusMonitor.setRebalanceFailureGauge(hasFailure);
           }

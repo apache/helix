@@ -29,6 +29,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.zookeeper.data.Stat;
 
@@ -178,6 +179,12 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
       }
     }
     return children;
+  }
+
+  @Override
+  public List<ZNRecord> getChildren(String parentPath, List<Stat> stats, int options,
+      int retryCount, int retryInterval) throws HelixException {
+    return getChildren(parentPath, stats, options);
   }
 
   @Override

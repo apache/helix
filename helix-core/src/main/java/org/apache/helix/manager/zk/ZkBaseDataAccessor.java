@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
@@ -34,6 +33,7 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
@@ -42,12 +42,12 @@ import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   enum RetCode {
@@ -331,13 +331,13 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     boolean[] needRead = new boolean[paths.size()];
     Arrays.fill(needRead, true);
 
-    return get(paths, stats, needRead);
+    return get(paths, stats, needRead, false);
   }
 
   /**
    * async get
    */
-  List<T> get(List<String> paths, List<Stat> stats, boolean[] needRead) {
+  List<T> get(List<String> paths, List<Stat> stats, boolean[] needRead, boolean throwException) {
     if (paths == null || paths.size() == 0) {
       return Collections.emptyList();
     }
@@ -373,7 +373,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
       // construct return results
       List<T> records = new ArrayList<T>(Collections.<T> nCopies(paths.size(), null));
-
+      StringBuilder nodeFailToRead = new StringBuilder();
       for (int i = 0; i < paths.size(); i++) {
         if (!needRead[i])
           continue;
@@ -386,9 +386,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           if (stats != null) {
             stats.set(i, cb._stat);
           }
+        } else if (Code.get(cb.getRc()) != Code.NONODE && throwException) {
+          throw new HelixException(String.format("Failed to read node %s", paths.get(i)));
+        } else {
+          nodeFailToRead.append(paths + ",");
         }
       }
-
+      LOG.warn(String.format("Fail to read nodes for paths : %s",
+          nodeFailToRead.toString().substring(nodeFailToRead.length() - 1)));
       return records;
     } finally {
       long endT = System.nanoTime();
@@ -401,9 +406,42 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
   /**
    * asyn getChildren
+   * The retryCount and retryInterval will be ignored.
    */
+  // TODO: Change the behavior of getChildren when Helix starts migrating API.
   @Override
   public List<T> getChildren(String parentPath, List<Stat> stats, int options) {
+    return getChildren(parentPath, stats, options, false);
+  }
+
+
+  @Override
+  public List<T> getChildren(String parentPath, List<Stat> stats, int options, int retryCount,
+      int retryInterval) throws HelixException {
+    int readCount = retryCount + 1;
+    while (readCount > 0) {
+      try {
+        readCount--;
+        List<T> records = getChildren(parentPath, stats, options, true);
+        return records;
+      } catch (HelixException e) {
+        if (readCount == 0) {
+          throw new HelixException(String.format("Failed to get full list of %s", parentPath), e);
+        }
+        try {
+          Thread.sleep(retryInterval);
+        } catch (InterruptedException interruptedException) {
+          throw new HelixException("Fail to interrupt the sleep", interruptedException);
+        }
+      }
+    }
+
+    // Impossible to reach end
+    return null;
+  }
+
+  private List<T> getChildren(String parentPath, List<Stat> stats, int options,
+      boolean throwException) {
     try {
       // prepare child paths
       List<String> childNames = getChildNames(parentPath, options);
@@ -411,15 +449,17 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         return Collections.emptyList();
       }
 
-      List<String> paths = new ArrayList<String>();
+      List<String> paths = new ArrayList<>();
       for (String childName : childNames) {
         String path = parentPath + "/" + childName;
         paths.add(path);
       }
 
       // remove null record
-      List<Stat> curStats = new ArrayList<Stat>(paths.size());
-      List<T> records = get(paths, curStats, options);
+      List<Stat> curStats = new ArrayList<>(paths.size());
+      boolean[] needRead = new boolean[paths.size()];
+      Arrays.fill(needRead, true);
+      List<T> records = get(paths, curStats, needRead, throwException);
       Iterator<T> recordIter = records.iterator();
       Iterator<Stat> statIter = curStats.iterator();
       while (statIter.hasNext()) {
@@ -806,7 +846,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
         // asycn read all data
         List<Stat> curStats = new ArrayList<Stat>();
-        List<T> curDataList = get(paths, curStats, Arrays.copyOf(needUpdate, needUpdate.length));
+        List<T> curDataList =
+            get(paths, curStats, Arrays.copyOf(needUpdate, needUpdate.length), false);
 
         // async update
         List<T> newDataList = new ArrayList<T>();

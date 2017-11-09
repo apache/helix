@@ -36,6 +36,7 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
@@ -600,7 +601,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       if (needRead) {
         cache.lockWrite();
         try {
-          List<T> readRecords = _baseAccessor.get(serverPaths, readStats, needReads);
+          List<T> readRecords = _baseAccessor.get(serverPaths, readStats, needReads, false);
           for (int i = 0; i < size; i++) {
             if (needReads[i]) {
               records.set(i, readRecords.get(i));
@@ -672,13 +673,19 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       return null;
     }
 
-    List<String> paths = new ArrayList<String>();
+    List<String> paths = new ArrayList<>();
     for (String childName : childNames) {
       String path = parentPath.equals("/") ? "/" + childName : parentPath + "/" + childName;
       paths.add(path);
     }
 
     return get(paths, stats, options);
+  }
+
+  @Override
+  public List<T> getChildren(String parentPath, List<Stat> stats, int options,
+      int retryCount, int retryInterval) throws HelixException {
+    return getChildren(parentPath, stats, options);
   }
 
   @Override

@@ -142,12 +142,33 @@ public interface BaseDataAccessor<T> {
 
   /**
    * Get the children under a parent path using async api
+   *
+   * For this API, if some of child node is failed to read, Helix will return the data of read
+   * nodes. So user may get partial data. No exception will be thrown even if it is failed to read
+   * all the data.
+   *
    * @param parentPath path to the immediate parent ZNode
    * @param stats Zookeeper Stat objects corresponding to each child
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return A list of children of the parent ZNode
    */
   List<T> getChildren(String parentPath, List<Stat> stats, int options);
+
+  /**
+   * Get the children under a parent path using async api
+   *
+   * If some of child node is failed to read, Helix will do the retry within retry count. If the
+   * result still cannot be retrieved completely, Helix will throw an HelixException.
+   *
+   * @param parentPath path to the immediate parent ZNode
+   * @param stats Zookeeper Stat objects corresponding to each child
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
+   * @param retryCount The number of retries that data is not completed read
+   * @param retryInterval The interval between two retries
+   * @return A list of children of the parent ZNode
+   */
+  List<T> getChildren(String parentPath, List<Stat> stats, int options, int retryCount,
+      int retryInterval) throws HelixException;
 
   /**
    * Returns the child names given a parent path

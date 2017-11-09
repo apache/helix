@@ -19,43 +19,21 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import javax.management.JMException;
-
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
-import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.ClusterMessagingService;
-import org.apache.helix.ConfigAccessor;
-import org.apache.helix.api.listeners.ClusterConfigChangeListener;
+import org.apache.helix.*;
+import org.apache.helix.HelixConstants.ChangeType;
+import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.listeners.*;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
-import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixConstants.ChangeType;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerProperties;
-import org.apache.helix.HelixTimerTask;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
-import org.apache.helix.InstanceType;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
-import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.api.listeners.MessageListener;
-import org.apache.helix.PreConnectCallback;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
-import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
@@ -70,11 +48,17 @@ import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.AutoFallbackPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper.States;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.management.JMException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 
 public class ZKHelixManager implements HelixManager, IZkStateListener {
@@ -90,10 +74,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private final String _clusterName;
   private final String _instanceName;
   private final InstanceType _instanceType;
-  private final int _sessionTimeout;
-  private final int _clientConnectionTimeout;
-  private final int _connectionRetryTimeout;
-  private final int _waitForConnectedTimeout;
+  private final int _waitForConnectedTimeout; // wait time for testing connect
+  private final int _sessionTimeout; // client side session timeout, will be overridden by server timeout. Disconnect after timeout
+  private final int _connectionInitTimeout; // client timeout to init connect
+  private final int _connectionRetryTimeout; // retry when connect being re-established
   private final List<PreConnectCallback> _preConnectCallbacks;
   protected final List<CallbackHandler> _handlers;
   private final HelixManagerProperties _properties;
@@ -241,7 +225,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     _sessionTimeout = getSystemPropertyAsInt("zk.session.timeout", ZkClient.DEFAULT_SESSION_TIMEOUT);
 
-    _clientConnectionTimeout = getSystemPropertyAsInt("zk.connection.timeout", ZkClient.DEFAULT_CONNECTION_TIMEOUT);
+    _connectionInitTimeout = getSystemPropertyAsInt("zk.connection.timeout", ZkClient.DEFAULT_CONNECTION_TIMEOUT);
 
     _connectionRetryTimeout = getSystemPropertyAsInt("zk.connectionReEstablishment.timeout",
         DEFAULT_CONNECTION_ESTABLISHMENT_RETRY_TIMEOUT);
@@ -309,7 +293,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         + _clusterName + " by instance: " + _instanceName);
 
     synchronized (this) {
-      List<CallbackHandler> toRemove = new ArrayList<CallbackHandler>();
+      List<CallbackHandler> toRemove = new ArrayList<>();
       for (CallbackHandler handler : _handlers) {
         // compare property-key path and listener reference
         if (handler.getPath().equals(key.getPath()) && handler.getListener().equals(listener)) {
@@ -346,13 +330,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     boolean isConnected = isConnected();
     if (!isConnected && timeout > 0) {
-      LOG.warn("zkClient to " + _zkAddress + " is not connected, wait for " + timeout + "ms.");
-      isConnected = _zkclient.waitUntilConnected(timeout, TimeUnit.MILLISECONDS);
+      LOG.warn(
+          "zkClient to " + _zkAddress + " is not connected, wait for " + _waitForConnectedTimeout
+              + "ms.");
+      isConnected = _zkclient.waitUntilConnected(_waitForConnectedTimeout, TimeUnit.MILLISECONDS);
     }
 
     if (!isConnected) {
-      LOG.error("zkClient is not connected after waiting " +
-          timeout + "ms." + ", clusterName: " + _clusterName + ", zkAddress: " + _zkAddress);
+      LOG.error("zkClient is not connected after waiting " + timeout + "ms."
+          + ", clusterName: " + _clusterName + ", zkAddress: " + _zkAddress);
       throw new HelixException(
           "HelixManager is not connected within retry timeout for cluster " + _clusterName);
     }
@@ -589,7 +575,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   BaseDataAccessor<ZNRecord> createBaseDataAccessor() {
-    ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
+    ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(_zkclient);
 
     return baseDataAccessor;
   }
@@ -610,7 +596,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     ZkClient.Builder zkClientBuilder = new ZkClient.Builder();
     zkClientBuilder.setZkServer(_zkAddress).setSessionTimeout(_sessionTimeout)
-        .setConnectionTimeout(_clientConnectionTimeout).setZkSerializer(zkSerializer)
+        .setConnectionTimeout(_connectionInitTimeout).setZkSerializer(zkSerializer)
         .setMonitorType(_instanceType.name())
         .setMonitorKey(_clusterName)
         .setMonitorInstanceName(_instanceName)
@@ -633,7 +619,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _zkclient.subscribeStateChanges(this);
     while (retryCount < 3) {
       try {
-        _zkclient.waitUntilConnected(_sessionTimeout, TimeUnit.MILLISECONDS);
+        _zkclient.waitUntilConnected(_connectionInitTimeout, TimeUnit.MILLISECONDS);
         handleStateChanged(KeeperState.SyncConnected);
         handleNewSession();
         break;

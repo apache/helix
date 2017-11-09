@@ -19,10 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.Callable;
-
 import org.I0Itec.zkclient.IZkConnection;
 import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.exception.ZkException;
@@ -32,20 +28,19 @@ import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
+import org.apache.helix.manager.zk.ZkAsyncCallbacks.*;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.management.JMException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * ZKClient does not provide some functionalities, this will be used for quick fixes if
@@ -57,8 +52,6 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
   public static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   public static final int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
-  // public static String sessionId;
-  // public static String sessionPassword;
 
   private PathBasedZkSerializer _zkSerializer;
   private ZkClientMonitor _monitor;
@@ -83,7 +76,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   }
 
   public ZkClient(String zkServers, String monitorType, String monitorKey) {
-    this(new ZkConnection(zkServers), Integer.MAX_VALUE,
+    this(new ZkConnection(zkServers, DEFAULT_SESSION_TIMEOUT), Integer.MAX_VALUE,
         new BasicZkSerializer(new SerializableSerializer()), monitorType, monitorKey);
   }
 
@@ -126,7 +119,8 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   }
 
   public ZkClient(String zkServers, int connectionTimeout) {
-    this(new ZkConnection(zkServers), connectionTimeout, new SerializableSerializer());
+    this(new ZkConnection(zkServers, DEFAULT_SESSION_TIMEOUT), connectionTimeout,
+        new SerializableSerializer());
   }
 
   public ZkClient(String zkServers) {
@@ -598,12 +592,12 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   public static class Builder {
     IZkConnection _connection;
     String _zkServer;
-    Integer _sessionTimeout;
 
     PathBasedZkSerializer _zkSerializer;
 
     long _operationRetryTimeout = -1L;
-    int _connectionTimeout = Integer.MAX_VALUE;
+    int _connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
     String _monitorType;
     String _monitorKey;
@@ -684,11 +678,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
           throw new HelixException(
               "Failed to build ZkClient since no connection or ZK server address is specified.");
         } else {
-          if (_sessionTimeout == null) {
-            _connection = new ZkConnection(_zkServer);
-          } else {
-            _connection = new ZkConnection(_zkServer, _sessionTimeout);
-          }
+          _connection = new ZkConnection(_zkServer, _sessionTimeout);
         }
       }
 

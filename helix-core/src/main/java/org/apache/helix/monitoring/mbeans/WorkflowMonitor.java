@@ -29,6 +29,7 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
 
   private long _successfulWorkflowCount;
   private long _failedWorkflowCount;
+  private long _failedWorkflowGauge;
   private long _existingWorkflowGauge;
   private long _queuedWorkflowGauge;
   private long _runningWorkflowGauge;
@@ -39,6 +40,7 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
     _workflowType = workflowType;
     _successfulWorkflowCount = 0L;
     _failedWorkflowCount = 0L;
+    _failedWorkflowGauge = 0L;
     _existingWorkflowGauge = 0L;
     _queuedWorkflowGauge = 0L;
     _runningWorkflowGauge = 0L;
@@ -52,6 +54,11 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
   @Override
   public long getFailedWorkflowCount() {
     return _failedWorkflowCount;
+  }
+
+  @Override
+  public long getFailedWorkflowGauge() {
+    return _failedWorkflowGauge;
   }
 
   @Override
@@ -93,6 +100,7 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
    * Reset gauges
    */
   public void resetGauges() {
+    _failedWorkflowGauge = 0L;
     _existingWorkflowGauge = 0L;
     _runningWorkflowGauge = 0L;
     _queuedWorkflowGauge = 0L;
@@ -107,6 +115,8 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
       _queuedWorkflowGauge++;
     } else if (current.equals(TaskState.IN_PROGRESS)) {
       _runningWorkflowGauge++;
+    } else if (current.equals(TaskState.FAILED)) {
+      _failedWorkflowGauge++;
     }
     _existingWorkflowGauge++;
   }

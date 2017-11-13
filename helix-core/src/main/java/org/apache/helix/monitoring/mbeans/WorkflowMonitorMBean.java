@@ -39,6 +39,11 @@ public interface WorkflowMonitorMBean extends SensorNameProvider {
   public long getFailedWorkflowCount();
 
   /**
+   * Get number of current failed workflows
+   */
+  public long getFailedWorkflowGauge();
+
+  /**
    * Get number of current existing workflows
    * @return
    */

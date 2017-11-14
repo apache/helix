@@ -62,7 +62,7 @@ under the License.
     <dependency org="com.google.guava" name="guava" rev="15.0" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.yaml" name="snakeyaml" rev="1.12" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="commons-logging" name="commons-logging-api" rev="1.1" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-    <dependency org="io.dropwizard.metrics" name="metrics-core" rev="3.1.2" conf="compile->compile(default);runtime->runtime(default);default->default"/>
+    <dependency org="io.dropwizard.metrics" name="metrics-core" rev="3.2.3" conf="compile->compile(default);runtime->runtime(default);default->default"/>
 	</dependencies>
 </ivy-module>
 

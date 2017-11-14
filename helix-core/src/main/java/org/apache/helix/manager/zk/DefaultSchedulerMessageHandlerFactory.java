@@ -80,7 +80,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
           + _timeout + " Ms");
 
       _statusUpdateUtil.logError(_originalMessage, SchedulerAsyncCallback.class, "Task timeout",
-          _manager.getHelixDataAccessor());
+          _manager);
       addSummary(_resultSummaryMap, _originalMessage, _manager, true);
     }
 
@@ -94,7 +94,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
       if (this.isDone()) {
         _logger.info("Scheduler msg " + _originalMessage.getMsgId() + " completed");
         _statusUpdateUtil.logInfo(_originalMessage, SchedulerAsyncCallback.class,
-            "Scheduler task completed", _manager.getHelixDataAccessor());
+            "Scheduler task completed", _manager);
         addSummary(_resultSummaryMap, _originalMessage, _manager, false);
       }
     }

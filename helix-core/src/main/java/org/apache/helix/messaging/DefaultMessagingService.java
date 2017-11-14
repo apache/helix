@@ -204,7 +204,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
     Message newMessage = new Message(message.getRecord(), id);
     newMessage.setMsgId(id);
     newMessage.setSrcName(_manager.getInstanceName());
-    newMessage.setTgtName("Controller");
+    newMessage.setTgtName(InstanceType.CONTROLLER.name());
     messages.add(newMessage);
     return messages;
   }
@@ -298,7 +298,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
 
       if (_manager.getInstanceType() == InstanceType.CONTROLLER
           || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
-        nopMsg.setTgtName("Controller");
+        nopMsg.setTgtName(InstanceType.CONTROLLER.name());
         accessor.setProperty(keyBuilder.controllerMessage(nopMsg.getId()), nopMsg);
       }
 

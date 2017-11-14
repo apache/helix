@@ -32,13 +32,17 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.helix.*;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixProperty;
+import org.apache.helix.InstanceType;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StatusUpdate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -310,6 +314,18 @@ public class StatusUpdateUtil {
     return String.format("%4s %26s ", level.toString(), time) + recordId;
   }
 
+  @Deprecated
+  public void logMessageStatusUpdateRecord(Message message, Level level, Class classInfo,
+      String additionalInfo, HelixDataAccessor accessor) {
+    try {
+      ZNRecord record = createMessageStatusUpdateRecord(message, level, classInfo, additionalInfo);
+      publishStatusUpdateRecord(record, message, level, accessor,
+          message.getTgtName().equalsIgnoreCase(InstanceType.CONTROLLER.name()));
+    } catch (Exception e) {
+      _logger.error("Exception while logging status update", e);
+    }
+  }
+
   /**
    * Create a statusupdate that is related to a cluster manager message, then record it to
    * the zookeeper store.
@@ -321,14 +337,16 @@ public class StatusUpdateUtil {
    *          class info about the class that reports the status update
    * @param additionalInfo
    *          info the additional debug information
-   * @param accessor
-   *          the zookeeper data accessor that writes the status update to zookeeper
+   * @param manager
+   *          the HelixManager that writes the status update to zookeeper
    */
   public void logMessageStatusUpdateRecord(Message message, Level level, Class classInfo,
-      String additionalInfo, HelixDataAccessor accessor) {
+      String additionalInfo, HelixManager manager) {
     try {
       ZNRecord record = createMessageStatusUpdateRecord(message, level, classInfo, additionalInfo);
-      publishStatusUpdateRecord(record, message, level, accessor);
+      publishStatusUpdateRecord(record, message, level, manager.getHelixDataAccessor(),
+          manager.getInstanceType().equals(InstanceType.CONTROLLER) || manager.getInstanceType()
+              .equals(InstanceType.CONTROLLER_PARTICIPANT));
     } catch (Exception e) {
       _logger.error("Exception while logging status update", e);
     }
@@ -338,39 +356,67 @@ public class StatusUpdateUtil {
     RebalanceResourceFailure,
   }
 
-  public void logError(ErrorType errorType, Class classInfo, String additionalInfo,
-      HelixManager helixManager) {
+  public void logError(ErrorType errorType, Class classInfo, String additionalInfo, HelixManager helixManager) {
     if (helixManager != null) {
-      logError(errorType, "ErrorInfo", helixManager.getInstanceName(), helixManager.getSessionId(),
-          additionalInfo, classInfo, helixManager.getHelixDataAccessor());
+      logError(errorType, "ErrorInfo", helixManager.getInstanceName(), helixManager.getSessionId(), additionalInfo,
+          classInfo, helixManager.getHelixDataAccessor(),
+          helixManager.getInstanceType().equals(InstanceType.CONTROLLER) || helixManager.getInstanceType()
+              .equals(InstanceType.CONTROLLER_PARTICIPANT));
     } else {
       _logger.error("Exception while logging error. HelixManager is null.");
     }
   }
 
   private void logError(ErrorType errorType, String updateKey, String instanceName,
-      String sessionId, String additionalInfo, Class classInfo, HelixDataAccessor accessor) {
+      String sessionId, String additionalInfo, Class classInfo, HelixDataAccessor accessor,
+      boolean isController) {
     try {
       ZNRecord record = createEmptyStatusUpdateRecord(sessionId + "__" + instanceName);
 
-      Map<String, String> contentMap = new TreeMap<String, String>();
+      Map<String, String> contentMap = new TreeMap<>();
       contentMap.put("AdditionalInfo", additionalInfo);
       contentMap.put("Class", classInfo.toString());
       contentMap.put("SessionId", sessionId);
 
       record.setMapField(generateMapFieldId(Level.HELIX_ERROR, updateKey), contentMap);
 
-      publishErrorRecord(record, instanceName, errorType.name(), updateKey, sessionId, accessor);
+      publishErrorRecord(record, instanceName, errorType.name(), updateKey, sessionId, accessor,
+          isController);
     } catch (Exception e) {
       _logger.error("Exception while logging error", e);
     }
   }
 
+  public void logError(Message message, Class classInfo, String additionalInfo, HelixManager manager) {
+    logMessageStatusUpdateRecord(message, Level.HELIX_ERROR, classInfo, additionalInfo, manager);
+  }
+
+  public void logError(Message message, Class classInfo, Exception e, String additionalInfo,
+      HelixManager manager) {
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    e.printStackTrace(pw);
+    logMessageStatusUpdateRecord(message, Level.HELIX_ERROR, classInfo,
+        additionalInfo + sw.toString(), manager);
+  }
+
+  public void logInfo(Message message, Class classInfo, String additionalInfo,
+      HelixManager manager) {
+    logMessageStatusUpdateRecord(message, Level.HELIX_INFO, classInfo, additionalInfo, manager);
+  }
+
+  public void logWarning(Message message, Class classInfo, String additionalInfo,
+      HelixManager manager) {
+    logMessageStatusUpdateRecord(message, Level.HELIX_WARNING, classInfo, additionalInfo, manager);
+  }
+
+  @Deprecated
   public void logError(Message message, Class classInfo, String additionalInfo,
       HelixDataAccessor accessor) {
     logMessageStatusUpdateRecord(message, Level.HELIX_ERROR, classInfo, additionalInfo, accessor);
   }
 
+  @Deprecated
   public void logError(Message message, Class classInfo, Exception e, String additionalInfo,
       HelixDataAccessor accessor) {
     StringWriter sw = new StringWriter();
@@ -380,14 +426,40 @@ public class StatusUpdateUtil {
         additionalInfo + sw.toString(), accessor);
   }
 
+  @Deprecated
   public void logInfo(Message message, Class classInfo, String additionalInfo,
       HelixDataAccessor accessor) {
     logMessageStatusUpdateRecord(message, Level.HELIX_INFO, classInfo, additionalInfo, accessor);
   }
 
+  @Deprecated
   public void logWarning(Message message, Class classInfo, String additionalInfo,
       HelixDataAccessor accessor) {
     logMessageStatusUpdateRecord(message, Level.HELIX_WARNING, classInfo, additionalInfo, accessor);
+  }
+
+  private String getStatusUpdateKey(Message message) {
+    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.name())) {
+      return message.getPartitionName();
+    }
+    return message.getMsgId();
+  }
+
+  /**
+   * Generate the sub-path under STATUSUPDATE or ERROR path for a status update
+   */
+  String getStatusUpdateSubPath(Message message) {
+    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.name())) {
+      return message.getResourceName();
+    }
+    return message.getMsgType();
+  }
+
+  String getStatusUpdateRecordName(Message message) {
+    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.name())) {
+      return message.getTgtSessionId() + "__" + message.getResourceName();
+    }
+    return message.getMsgId();
   }
 
   /**
@@ -400,9 +472,11 @@ public class StatusUpdateUtil {
    *          the error level of the message update
    * @param accessor
    *          the zookeeper data accessor that writes the status update to zookeeper
+   * @param isController
+   *          if the update is for a controller instance or not
    */
   void publishStatusUpdateRecord(ZNRecord record, Message message, Level level,
-      HelixDataAccessor accessor) {
+      HelixDataAccessor accessor, boolean isController) {
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     String statusUpdateKey = getStatusUpdateKey(message);
@@ -416,11 +490,10 @@ public class StatusUpdateUtil {
 
     Builder keyBuilder = accessor.keyBuilder();
     if (!_recordedMessages.containsKey(message.getMsgId())) {
-      // TODO instanceName of a controller might be any string
-      if (instanceName.equalsIgnoreCase("Controller")) {
-        accessor.updateProperty(
-            keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey),
-            new StatusUpdate(createMessageLogRecord(message)));
+      if (isController) {
+        accessor
+            .updateProperty(keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey),
+                new StatusUpdate(createMessageLogRecord(message)));
 
       } else {
 
@@ -442,7 +515,7 @@ public class StatusUpdateUtil {
       _recordedMessages.put(message.getMsgId(), message.getMsgId());
     }
 
-    if (instanceName.equalsIgnoreCase("Controller")) {
+    if (isController) {
       accessor.updateProperty(
           keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey), new StatusUpdate(
               record));
@@ -462,33 +535,8 @@ public class StatusUpdateUtil {
     // If the error level is ERROR, also write the record to "ERROR" ZNode
     if (Level.HELIX_ERROR == level) {
       publishErrorRecord(record, instanceName, statusUpdateSubPath, statusUpdateKey, sessionId,
-          accessor);
+          accessor, isController);
     }
-  }
-
-  private String getStatusUpdateKey(Message message) {
-    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.name())) {
-      return message.getPartitionName();
-    }
-    return message.getMsgId();
-  }
-
-  /**
-   * Generate the sub-path under STATUSUPDATE or ERROR path for a status update
-   */
-  String getStatusUpdateSubPath(Message message) {
-    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.name())) {
-      return message.getResourceName();
-    } else {
-      return message.getMsgType();
-    }
-  }
-
-  String getStatusUpdateRecordName(Message message) {
-    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.name())) {
-      return message.getTgtSessionId() + "__" + message.getResourceName();
-    }
-    return message.getMsgId();
   }
 
   /**
@@ -505,12 +553,13 @@ public class StatusUpdateUtil {
    *          the session id
    * @param accessor
    *          the zookeeper data accessor that writes the status update to zookeeper
+   * @param isController
+   *          if the error log is for a controller instance or not
    */
   void publishErrorRecord(ZNRecord record, String instanceName, String updateSubPath,
-      String updateKey, String sessionId, HelixDataAccessor accessor) {
+      String updateKey, String sessionId, HelixDataAccessor accessor, boolean isController) {
     Builder keyBuilder = accessor.keyBuilder();
-    // TODO remove the hard code: "controller"
-    if (instanceName.toLowerCase().startsWith("controller")) {
+    if (isController) {
       // TODO need to fix: ERRORS_CONTROLLER doesn't have a form of
       // ../{sessionId}/{subPath}
       accessor.setProperty(keyBuilder.controllerTaskError(updateSubPath), new Error(record));

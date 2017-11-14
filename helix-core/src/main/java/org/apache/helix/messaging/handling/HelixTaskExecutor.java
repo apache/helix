@@ -398,10 +398,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     String taskId = task.getTaskId();
     Message message = task.getMessage();
     NotificationContext notificationContext = task.getNotificationContext();
+    HelixManager manager = notificationContext.getManager();
 
     try {
       // Check to see if dedicate thread pool for handling state transition messages is configured or provided.
-      updateStateTransitionMessageThreadPool(message, notificationContext.getManager());
+      updateStateTransitionMessageThreadPool(message, manager);
 
       LOG.info("Scheduling message: " + taskId);
       // System.out.println("sched msg: " + message.getPartitionName() + "-"
@@ -409,8 +410,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       // + message.getToState());
 
       _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class,
-          "Message handling task scheduled", notificationContext.getManager()
-              .getHelixDataAccessor());
+          "Message handling task scheduled", manager);
 
       // this sync guarantees that ExecutorService.submit() task and put taskInfo into map are
       // sync'ed
@@ -441,23 +441,19 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           } else {
             LOG.debug("Message does not have timeout. MsgId: " + task.getTaskId());
           }
-
           _taskMap.put(taskId, new MessageTaskInfo(task, future, timerTask));
 
           LOG.info("Message: " + taskId + " handling task scheduled");
-
           return true;
         } else {
           _statusUpdateUtil.logWarning(message, HelixTaskExecutor.class,
-              "Message handling task already sheduled for " + taskId, notificationContext
-                  .getManager().getHelixDataAccessor());
+              "Message handling task already sheduled for " + taskId, manager);
         }
       }
     } catch (Exception e) {
       LOG.error("Error while executing task. " + message, e);
-
       _statusUpdateUtil.logError(message, HelixTaskExecutor.class, e, "Error while executing task "
-          + e, notificationContext.getManager().getHelixDataAccessor());
+          + e, manager);
     }
     return false;
   }
@@ -480,25 +476,25 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         Future<HelixTaskResult> future = taskInfo.getFuture();
         removeMessageFromTaskAndFutureMap(message);
         _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class, "Canceling task: " + taskId,
-            notificationContext.getManager().getHelixDataAccessor());
+            notificationContext.getManager());
 
         // If the thread is still running it will be interrupted if cancel(true)
         // is called. So state transition callbacks should implement logic to
         // return if it is interrupted.
         if (future.cancel(true)) {
           _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class, "Canceled task: " + taskId,
-              notificationContext.getManager().getHelixDataAccessor());
+              notificationContext.getManager());
           _taskMap.remove(taskId);
           return true;
         } else {
           _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class,
               "fail to cancel task: " + taskId,
-              notificationContext.getManager().getHelixDataAccessor());
+              notificationContext.getManager());
         }
       } else {
         _statusUpdateUtil.logWarning(message, HelixTaskExecutor.class,
             "fail to cancel task: " + taskId + ", future not found",
-            notificationContext.getManager().getHelixDataAccessor());
+            notificationContext.getManager());
       }
     }
     return false;
@@ -807,7 +803,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
                 + message.getMsgId();
         LOG.warn(warningMessage);
         reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.DISCARDED);
-        _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage, accessor);
+        _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage, manager);
 
         // Proactively send a session sync message from participant to controller
         // upon session mismatch after a new session is established
@@ -873,7 +869,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         String error =
             "Failed to create message handler for " + message.getMsgId() + ", exception: " + e;
 
-        _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e, error, accessor);
+        _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e, error, manager);
 
         message.setMsgState(MessageState.UNPROCESSABLE);
         removeMessageFromZK(accessor, message, instanceName);
@@ -882,7 +878,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         continue;
       }
 
-      markReadMessage(message, changeContext, accessor);
+      markReadMessage(message, changeContext, manager);
       readMsgs.add(message);
 
       // batch creation of all current state meta data
@@ -1003,12 +999,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   }
 
   private void markReadMessage(Message message, NotificationContext context,
-      HelixDataAccessor accessor) {
+      HelixManager manager) {
     message.setMsgState(MessageState.READ);
     message.setReadTimeStamp(new Date().getTime());
     message.setExecuteSessionId(context.getManager().getSessionId());
 
-    _statusUpdateUtil.logInfo(message, HelixStateMachineEngine.class, "New Message", accessor);
+    _statusUpdateUtil.logInfo(message, HelixStateMachineEngine.class, "New Message", manager);
   }
 
   public MessageHandler createMessageHandler(Message message, NotificationContext changeContext) {

@@ -79,7 +79,7 @@ public class HelixTask implements MessageTask {
     logger.info("handling task: " + getTaskId() + " begin, at: " + start);
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     _statusUpdateUtil.logInfo(_message, HelixTask.class, "Message handling task begin execute",
-        accessor);
+        _manager);
     _message.setExecuteStartTimeStamp(new Date().getTime());
 
     // add a concurrent map to hold currentStateUpdates for sub-messages of a batch-message
@@ -99,7 +99,7 @@ public class HelixTask implements MessageTask {
       taskResult.setInterrupted(true);
 
       _statusUpdateUtil.logError(_message, HelixTask.class, e,
-          "State transition interrupted, timeout:" + _isTimeout, accessor);
+          "State transition interrupted, timeout:" + _isTimeout, _manager);
       logger.info("Message " + _message.getMsgId() + " is interrupted");
     } catch (Exception e) {
       taskResult = new HelixTaskResult();
@@ -110,7 +110,7 @@ public class HelixTask implements MessageTask {
           "Exception while executing a message. " + e + " msgId: " + _message.getMsgId()
               + " type: " + _message.getMsgType();
       logger.error(errorMessage, e);
-      _statusUpdateUtil.logError(_message, HelixTask.class, e, errorMessage, accessor);
+      _statusUpdateUtil.logError(_message, HelixTask.class, e, errorMessage, _manager);
     }
 
     // cancel timeout task
@@ -120,7 +120,7 @@ public class HelixTask implements MessageTask {
     try {
       if (taskResult.isSuccess()) {
         _statusUpdateUtil
-            .logInfo(_message, _handler.getClass(), "Message handling task completed successfully", accessor);
+            .logInfo(_message, _handler.getClass(), "Message handling task completed successfully", _manager);
         logger.info("Message " + _message.getMsgId() + " completed.");
         _executor.getParticipantMonitor().reportProcessedMessage(_message, ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
       } else {
@@ -134,7 +134,7 @@ public class HelixTask implements MessageTask {
             logger.info("Message timeout, retry count: " + retryCount + " msgId:"
                 + _message.getMsgId());
             _statusUpdateUtil.logInfo(_message, _handler.getClass(),
-                "Message handling task timeout, retryCount:" + retryCount, accessor);
+                "Message handling task timeout, retryCount:" + retryCount, _manager);
             // Notify the handler that timeout happens, and the number of retries left
             // In case timeout happens (time out and also interrupted)
             // we should retry the execution of the message by re-schedule it in
@@ -151,7 +151,7 @@ public class HelixTask implements MessageTask {
           type = null;
           _statusUpdateUtil
               .logInfo(_message, _handler.getClass(), "Cancellation completed successfully",
-                  accessor);
+                  _manager);
           _executor.getParticipantMonitor().reportProcessedMessage(
               _message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         } else {// logging for errors
@@ -160,7 +160,7 @@ public class HelixTask implements MessageTask {
               "Message execution failed. msgId: " + getTaskId() + ", errorMsg: "
                   + taskResult.getMessage();
           logger.error(errorMsg);
-          _statusUpdateUtil.logError(_message, _handler.getClass(), errorMsg, accessor);
+          _statusUpdateUtil.logError(_message, _handler.getClass(), errorMsg, _manager);
           _executor.getParticipantMonitor().reportProcessedMessage(
               _message, ParticipantMessageMonitor.ProcessedMessageState.FAILED);
         }
@@ -185,7 +185,7 @@ public class HelixTask implements MessageTask {
       String errorMessage =
           "Exception after executing a message, msgId: " + _message.getMsgId() + e;
       logger.error(errorMessage, e);
-      _statusUpdateUtil.logError(_message, HelixTask.class, errorMessage, accessor);
+      _statusUpdateUtil.logError(_message, HelixTask.class, errorMessage, _manager);
     } finally {
       long end = System.currentTimeMillis();
       logger.info("msg: " + _message.getMsgId() + " handling task completed, results:"
@@ -206,7 +206,7 @@ public class HelixTask implements MessageTask {
   private void removeMessageFromZk(HelixDataAccessor accessor, Message message) {
     Builder keyBuilder = accessor.keyBuilder();
     PropertyKey msgKey;
-    if (message.getTgtName().equalsIgnoreCase("controller")) {
+    if (message.getTgtName().equalsIgnoreCase(InstanceType.CONTROLLER.name())) {
       msgKey = keyBuilder.controllerMessage(message.getMsgId());
     } else {
       msgKey = keyBuilder.message(_manager.getInstanceName(), message.getMsgId());
@@ -259,7 +259,7 @@ public class HelixTask implements MessageTask {
     if (_message.getCorrelationId() != null
         && !message.getMsgType().equals(MessageType.TASK_REPLY.name())) {
       logger.info("Sending reply for message " + message.getCorrelationId());
-      _statusUpdateUtil.logInfo(message, HelixTask.class, "Sending reply", accessor);
+      _statusUpdateUtil.logInfo(message, HelixTask.class, "Sending reply", _manager);
 
       taskResult.getTaskResultMap().put("SUCCESS", "" + taskResult.isSuccess());
       taskResult.getTaskResultMap().put("INTERRUPTED", "" + taskResult.isInterrupted());
@@ -280,7 +280,7 @@ public class HelixTask implements MessageTask {
         accessor.setProperty(keyBuilder.controllerMessage(replyMessage.getMsgId()), replyMessage);
       }
       _statusUpdateUtil.logInfo(message, HelixTask.class,
-          "1 msg replied to " + replyMessage.getTgtName(), accessor);
+          "1 msg replied to " + replyMessage.getTgtName(), _manager);
     }
   }
 

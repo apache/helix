@@ -127,7 +127,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
 
         if (_manager.getInstanceType() == InstanceType.CONTROLLER
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
-          nopMsg.setTgtName("Controller");
+          nopMsg.setTgtName(InstanceType.CONTROLLER.name());
           accessor.setProperty(keyBuilder.controllerMessage(nopMsg.getId()), nopMsg);
         }
 

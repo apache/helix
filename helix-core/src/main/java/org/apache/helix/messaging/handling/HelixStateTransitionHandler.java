@@ -89,7 +89,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
               + Arrays.toString(Message.Attributes.values());
 
       _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, errorMessage,
-          _manager.getHelixDataAccessor());
+          _manager);
       logger.error(errorMessage);
       throw new HelixException(errorMessage);
     }
@@ -119,7 +119,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
               + _message.getTgtName();
 
       _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, errorMessage,
-          accessor);
+          _manager);
       logger.error(errorMessage);
       throw new HelixStateMismatchException(errorMessage);
     }
@@ -162,7 +162,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
                                  HelixStateTransitionHandler.class,
                                  e,
                                  "Error when removing " + CurrentState.CurrentStateProperty.REQUESTED_STATE.name() +  " from current state.",
-                                 accessor);
+                                 _manager);
     }
   }
 
@@ -286,7 +286,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
           new StateTransitionError(ErrorType.FRAMEWORK, ErrorCode.ERROR, e);
       _stateModel.rollbackOnError(_message, _notificationContext, error);
       _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, e,
-          "Error when update current-state ", accessor);
+          "Error when update current-state ", _manager);
     }
   }
 
@@ -311,15 +311,14 @@ public class HelixStateTransitionHandler extends MessageHandler {
     synchronized (_stateModel) {
       HelixTaskResult taskResult = new HelixTaskResult();
       HelixManager manager = context.getManager();
-      HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
       _statusUpdateUtil.logInfo(message, HelixStateTransitionHandler.class,
-          "Message handling task begin execute", accessor);
+          "Message handling task begin execute", manager);
       message.setExecuteStartTimeStamp(new Date().getTime());
 
       try {
         preHandleMessage();
-        invoke(accessor, context, taskResult, message);
+        invoke(manager, context, taskResult, message);
       } catch (HelixStateMismatchException e) {
         // Simply log error and return from here if State mismatch.
         // The current state of the state model is intact.
@@ -344,7 +343,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
           taskResult.setCancelled(true);
         } else {
           _statusUpdateUtil
-              .logError(message, HelixStateTransitionHandler.class, e, errorMessage, accessor);
+              .logError(message, HelixStateTransitionHandler.class, e, errorMessage, manager);
           taskResult.setSuccess(false);
           taskResult.setMessage(e.toString());
           taskResult.setException(e);
@@ -361,11 +360,11 @@ public class HelixStateTransitionHandler extends MessageHandler {
     }
   }
 
-  private void invoke(HelixDataAccessor accessor, NotificationContext context,
+  private void invoke(HelixManager manager, NotificationContext context,
       HelixTaskResult taskResult, Message message) throws IllegalAccessException,
       InvocationTargetException, InterruptedException, HelixRollbackException {
     _statusUpdateUtil.logInfo(message, HelixStateTransitionHandler.class,
-        "Message handling invoking", accessor);
+        "Message handling invoking", manager);
 
     // by default, we invoke state transition function in state model
     Method methodToInvoke = null;
@@ -417,7 +416,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
       taskResult.setSuccess(false);
 
       _statusUpdateUtil
-          .logError(message, HelixStateTransitionHandler.class, errorMessage, accessor);
+          .logError(message, HelixStateTransitionHandler.class, errorMessage, manager);
     }
   }
 

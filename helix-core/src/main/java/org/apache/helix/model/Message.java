@@ -644,7 +644,7 @@ public class Message extends HelixProperty {
     replyMessage.setMsgState(MessageState.NEW);
     replyMessage.setSrcName(instanceName);
     if (srcMessage.getSrcInstanceType() == InstanceType.CONTROLLER) {
-      replyMessage.setTgtName("Controller");
+      replyMessage.setTgtName(InstanceType.CONTROLLER.name());
     } else {
       replyMessage.setTgtName(srcMessage.getMsgSrc());
     }
@@ -849,7 +849,7 @@ public class Message extends HelixProperty {
    * @return true if this is a controller message, false otherwise
    */
   public boolean isControlerMsg() {
-    return getTgtName().equalsIgnoreCase("controller");
+    return getTgtName().equalsIgnoreCase(InstanceType.CONTROLLER.name());
   }
 
   /**

@@ -20,7 +20,7 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import java.util.concurrent.TimeUnit;
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
@@ -49,7 +49,7 @@ public class MessageLatencyMonitor extends DynamicMBeanProvider {
         "MessageLatency");
 
     _messageLatencyGauge = new HistogramDynamicMetric("MessagelatencyGauge", new Histogram(
-        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
     _totalMessageLatency = new SimpleDynamicMetric("TotalMessageLatency", 0l);
     _totalMessageCount = new SimpleDynamicMetric("TotalMessageCount", 0l);
   }

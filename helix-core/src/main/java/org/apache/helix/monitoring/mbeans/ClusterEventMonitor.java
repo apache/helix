@@ -20,7 +20,7 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import java.util.concurrent.TimeUnit;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
@@ -57,7 +57,7 @@ public class ClusterEventMonitor extends DynamicMBeanProvider {
     _clusterStatusMonitor = clusterStatusMonitor;
 
     _duration = new HistogramDynamicMetric("DurationGauge", new Histogram(
-        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
     _count = new SimpleDynamicMetric("EventCounter", 0l);
     _maxDuration = new SimpleDynamicMetric("MaxSingleDurationGauge", 0l);
     _totalDuration = new SimpleDynamicMetric("TotalDurationCounter", 0l);
@@ -69,7 +69,7 @@ public class ClusterEventMonitor extends DynamicMBeanProvider {
     _clusterStatusMonitor = clusterStatusMonitor;
 
     _duration = new HistogramDynamicMetric("DurationGauge", new Histogram(
-        new SlidingTimeWindowReservoir(histogramTimeWindowMs, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(histogramTimeWindowMs, TimeUnit.MILLISECONDS)));
     _count = new SimpleDynamicMetric("EventCounter", 0l);
     _maxDuration = new SimpleDynamicMetric("MaxSingleDurationGauge", 0l);
     _totalDuration = new SimpleDynamicMetric("TotalDurationCounter", 0l);

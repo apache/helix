@@ -20,7 +20,7 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import java.util.concurrent.TimeUnit;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
@@ -104,13 +104,13 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     _readCounter = new SimpleDynamicMetric("ReadCounter", 0l);
 
     _readLatencyGauge = new HistogramDynamicMetric("ReadLatencyGauge", new Histogram(
-        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
     _writeLatencyGauge = new HistogramDynamicMetric("WriteLatencyGauge", new Histogram(
-        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
     _readBytesGauge = new HistogramDynamicMetric("ReadBytesGauge", new Histogram(
-        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
     _writeBytesGauge = new HistogramDynamicMetric("WriteBytesGauge", new Histogram(
-        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
   }
 
   public ZkClientPathMonitor register() throws JMException {

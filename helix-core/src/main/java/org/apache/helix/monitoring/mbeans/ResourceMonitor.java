@@ -20,7 +20,7 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import java.util.concurrent.TimeUnit;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.ExternalView;
@@ -118,7 +118,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
     _partitionTopStateHandoffDurationGauge =
         new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", new Histogram(
-            new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
     _totalMessageReceived = new SimpleDynamicMetric("TotalMessageReceived", 0l);
     _maxSinglePartitionTopStateHandoffDuration =
         new SimpleDynamicMetric("MaxSinglePartitionTopStateHandoffDurationGauge", 0l);

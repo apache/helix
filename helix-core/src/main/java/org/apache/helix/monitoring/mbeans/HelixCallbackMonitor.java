@@ -20,7 +20,7 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.InstanceType;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
@@ -64,7 +64,7 @@ public class HelixCallbackMonitor extends DynamicMBeanProvider {
             changeType.name());
 
     _latencyGauge = new HistogramDynamicMetric("LatencyGauge", new Histogram(
-        new SlidingTimeWindowReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
     _totalLatencyCounter = new SimpleDynamicMetric("LatencyCounter", 0l);
     _unbatchedCounter = new SimpleDynamicMetric("UnbatchedCounter", 0l);
     _counter = new SimpleDynamicMetric("Counter", 0l);

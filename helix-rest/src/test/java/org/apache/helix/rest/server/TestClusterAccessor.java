@@ -31,11 +31,14 @@ import java.util.Set;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.resources.AbstractResource.Command;
 import org.apache.helix.rest.server.resources.ClusterAccessor;
@@ -234,6 +237,24 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(response.getStatus(), Response.Status.NOT_FOUND.getStatusCode());
     String cluster = _clusters.iterator().next();
     getClusterConfigFromRest(cluster);
+  }
+
+  @Test(dependsOnMethods = "testGetClusterConfig")
+  public void testEnableDisableMaintenanceMode() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    String reason = "Test reason";
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+    post("clusters/" + cluster, ImmutableMap.of("command", "enableMaintenanceMode"),
+        Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+    MaintenanceSignal signal = accessor.getProperty(accessor.keyBuilder().maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(reason, signal.getReason());
+    post("clusters/" + cluster, ImmutableMap.of("command", "disableMaintenanceMode"),
+        Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+    Assert.assertNull(accessor.getProperty(accessor.keyBuilder().maintenance()));
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {

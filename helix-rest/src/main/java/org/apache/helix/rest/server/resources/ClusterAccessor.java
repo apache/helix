@@ -62,6 +62,7 @@ public class ClusterAccessor extends AbstractResource {
     liveInstances,
     resources,
     paused,
+    maintenance,
     messages,
     stateModelDefinitions,
     clusters
@@ -100,6 +101,9 @@ public class ClusterAccessor extends AbstractResource {
 
     boolean paused = (dataAccessor.getProperty(keyBuilder.pause()) == null ? false : true);
     clusterInfo.put(ClusterProperties.paused.name(), paused);
+    boolean maintenance =
+        (dataAccessor.getProperty(keyBuilder.maintenance()) == null ? false : true);
+    clusterInfo.put(ClusterProperties.maintenance.name(), maintenance);
 
     List<String> idealStates = dataAccessor.getChildNames(keyBuilder.idealStates());
     clusterInfo.put(ClusterProperties.resources.name(), idealStates);
@@ -151,7 +155,8 @@ public class ClusterAccessor extends AbstractResource {
   @POST
   @Path("{clusterId}")
   public Response updateCluster(@PathParam("clusterId") String clusterId,
-      @QueryParam("command") String commandStr, @QueryParam("superCluster") String superCluster) {
+      @QueryParam("command") String commandStr, @QueryParam("superCluster") String superCluster,
+      String content) {
     Command command;
     try {
       command = getCommand(commandStr);
@@ -201,7 +206,22 @@ public class ClusterAccessor extends AbstractResource {
         return serverError(ex);
       }
       break;
-
+    case enableMaintenanceMode:
+      try {
+        helixAdmin.enableMaintenanceMode(clusterId, true, content);
+      } catch (Exception ex) {
+        _logger.error("Failed to enable maintenance mode " + clusterId);
+        return serverError(ex);
+      }
+      break;
+    case disableMaintenanceMode:
+      try {
+        helixAdmin.enableMaintenanceMode(clusterId, false);
+      } catch (Exception ex) {
+        _logger.error("Failed to disable maintenance mode " + clusterId);
+        return serverError(ex);
+      }
+      break;
     default:
       return badRequest("Unsupported command " + command);
     }

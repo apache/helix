@@ -65,6 +65,8 @@ public class AbstractResource {
     expand,
     enable,
     disable,
+    enableMaintenanceMode,
+    disableMaintenanceMode,
     update,
     delete,
     rebalance,

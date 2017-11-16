@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.ws.rs.client.Entity;
@@ -30,6 +32,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.InstanceAccessor;
@@ -133,5 +136,31 @@ public class TestInstanceAccessor extends AbstractTestClass {
         Response.Status.OK.getStatusCode());
     Assert.assertEquals(_configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getTags(),
         ImmutableList.of("tag2"));
+
+    // Batch disable instances
+    List<String> instancesToDisable = Arrays.asList(
+        new String[] { CLUSTER_NAME + "localhost_12918", CLUSTER_NAME + "localhost_12919",
+            CLUSTER_NAME + "localhost_12920"
+        });
+    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(
+        ImmutableMap.of(InstanceAccessor.InstanceProperties.instances.name(), instancesToDisable)),
+        MediaType.APPLICATION_JSON_TYPE);
+    post("clusters/" + CLUSTER_NAME + "/instances", ImmutableMap.of("command", "disable"), entity,
+        Response.Status.OK.getStatusCode());
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
+        new HashSet<>(instancesToDisable));
+
+    instancesToDisable = Arrays
+        .asList(new String[] { CLUSTER_NAME + "localhost_12918", CLUSTER_NAME + "localhost_12920"
+        });
+    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(
+        ImmutableMap.of(InstanceAccessor.InstanceProperties.instances.name(), instancesToDisable)),
+        MediaType.APPLICATION_JSON_TYPE);
+    post("clusters/" + CLUSTER_NAME + "/instances", ImmutableMap.of("command", "enable"), entity,
+        Response.Status.OK.getStatusCode());
+    clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
+        new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
   }
 }

@@ -112,6 +112,47 @@ public class InstanceAccessor extends AbstractResource {
     return JSONRepresentation(root);
   }
 
+  @POST
+  public Response updateInstances(@PathParam("clusterId") String clusterId,
+      @QueryParam("command") String command, String content) {
+    Command cmd;
+    try {
+      cmd = Command.valueOf(command);
+    } catch (Exception e) {
+      return badRequest("Invalid command : " + command);
+    }
+
+    HelixAdmin admin = getHelixAdmin();
+    try {
+      JsonNode node = null;
+      if (content.length() != 0) {
+        node = OBJECT_MAPPER.readTree(content);
+      }
+      if (node == null) {
+        return badRequest("Invalid input for content : " + content);
+      }
+      List<String> enableInstances = OBJECT_MAPPER
+          .readValue(node.get(InstanceProperties.instances.name()).toString(),
+              OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
+      switch (cmd) {
+      case enable:
+        admin.enableInstance(clusterId, enableInstances, true);
+
+        break;
+      case disable:
+        admin.enableInstance(clusterId, enableInstances, false);
+        break;
+      default:
+        _logger.error("Unsupported command :" + command);
+        return badRequest("Unsupported command :" + command);
+      }
+    } catch (Exception e) {
+      _logger.error("Failed in updating instances : " + content, e);
+      return badRequest(e.getMessage());
+    }
+    return OK();
+  }
+
   @GET
   @Path("{instanceName}")
   public Response getInstance(@PathParam("clusterId") String clusterId,

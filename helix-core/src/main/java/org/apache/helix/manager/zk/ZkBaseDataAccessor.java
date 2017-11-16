@@ -392,8 +392,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           nodeFailToRead.append(paths + ",");
         }
       }
-      LOG.warn(String.format("Fail to read nodes for paths : %s",
-          nodeFailToRead.toString().substring(nodeFailToRead.length() - 1)));
+      if (nodeFailToRead.length() > 0) {
+        LOG.warn(String.format("Fail to read nodes for paths : %s",
+            nodeFailToRead.toString().substring(nodeFailToRead.length() - 1)));
+      }
       return records;
     } finally {
       long endT = System.nanoTime();

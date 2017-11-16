@@ -300,6 +300,29 @@ public class InstanceAccessor extends AbstractResource {
     return notFound();
   }
 
+  @PUT
+  @Path("{instanceName}/configs")
+  public Response updateInstanceConfig(@PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName, String content) throws IOException {
+    HelixAdmin admin = getHelixAdmin();
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      return badRequest("Input is not a vaild ZNRecord!");
+    }
+
+    try {
+      admin.setInstanceConfig(clusterId, instanceName, new InstanceConfig(record));
+    } catch (Exception ex) {
+      _logger.error("Error in update instance config: " + instanceName, ex);
+      return serverError(ex);
+    }
+
+    return OK();
+  }
+
   @GET
   @Path("{instanceName}/resources")
   public Response getResourcesOnInstance(@PathParam("clusterId") String clusterId,

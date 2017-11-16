@@ -32,6 +32,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.server.resources.AbstractResource;
@@ -162,5 +163,28 @@ public class TestInstanceAccessor extends AbstractTestClass {
     clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
+  }
+
+  @Test(dependsOnMethods = "updateInstance")
+  public void updateInstanceConfig() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String instanceName = CLUSTER_NAME + "localhost_12918";
+    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName);
+    ZNRecord record = instanceConfig.getRecord();
+    record.getSimpleFields().put("TestSimple", "value");
+    record.getMapFields().put("TestMap", ImmutableMap.of("key", "value"));
+    record.getListFields().put("TestList", Arrays.asList("e1", "e2", "e3"));
+
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
+    put("clusters/" + CLUSTER_NAME + "/instances/" + instanceName + "/configs", null, entity,
+        Response.Status.OK.getStatusCode());
+    Assert.assertEquals(record.getSimpleFields(),
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord()
+            .getSimpleFields());
+    Assert.assertEquals(record.getListFields(),
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord().getListFields());
+    Assert.assertEquals(record.getMapFields(),
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord().getMapFields());
   }
 }

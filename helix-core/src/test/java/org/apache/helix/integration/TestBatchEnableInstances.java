@@ -25,7 +25,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
     _accessor = new ConfigAccessor(_gZkClient);
   }
 
-  @Test
+  @Test (enabled = false)
   public void testOldEnableDisable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool()
         .enableInstance(CLUSTER_NAME, _participants[0].getInstanceName(), false);
@@ -41,7 +41,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
         .enableInstance(CLUSTER_NAME, _participants[0].getInstanceName(), true);
   }
 
-  @Test
+  @Test (enabled = false)
   public void testBatchEnableDisable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),
@@ -60,7 +60,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
         true);
   }
 
-  @Test
+  @Test (enabled = false)
   public void testOldDisableBatchEnable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool()
         .enableInstance(CLUSTER_NAME, _participants[0].getInstanceName(), false);
@@ -83,7 +83,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
         .enableInstance(CLUSTER_NAME, _participants[0].getInstanceName(), true);
   }
 
-  @Test
+  @Test (enabled = false)
   public void testBatchDisableOldEnable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),

@@ -195,13 +195,18 @@ public class ZKHelixAdmin implements HelixAdmin {
       final boolean enabled) {
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     enableSingleInstance(clusterName, instanceName, enabled, baseAccessor);
-    enableBatchInstances(clusterName, Collections.singletonList(instanceName), enabled,
-        baseAccessor);
+    // TODO: Reenable this after storage node bug fixed.
+    // enableBatchInstances(clusterName, Collections.singletonList(instanceName), enabled, baseAccessor);
+
   }
 
   @Override
   public void enableInstance(String clusterName, List<String> instances,
       boolean enabled) {
+    // TODO: Reenable this after storage node bug fixed.
+    if (true) {
+      throw new HelixException("Current batch enable/disable instances are temporarily disabled!");
+    }
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     if (enabled) {
       for (String instance : instances) {
@@ -1296,6 +1301,11 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   private void enableBatchInstances(final String clusterName, final List<String> instances,
       final boolean enabled, BaseDataAccessor<ZNRecord> baseAccessor) {
+    // TODO : Due to Espresso storage node depends on map field. Current disable the feature now
+    // include tests.
+    if (true) {
+      throw new HelixException("Current batch enable/disable instances are temporarily disabled!");
+    }
 
     String path = PropertyPathBuilder.clusterConfig(clusterName);
 

@@ -34,7 +34,7 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
@@ -50,7 +50,8 @@ import javax.management.ObjectName;
 import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.CLUSTER_DN_KEY;
 import static org.apache.helix.util.StatusUpdateUtil.ErrorType.RebalanceResourceFailure;
 
-public class TestPauseClusterWhenReachingOfflineInstancesLimit extends ZkIntegrationTestBase {
+public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit
+    extends ZkIntegrationTestBase {
   static final int NUM_NODE = 10;
   static final int START_PORT = 12918;
   static final int _PARTITIONS = 5;
@@ -113,8 +114,9 @@ public class TestPauseClusterWhenReachingOfflineInstancesLimit extends ZkIntegra
 
   @Test
   public void testWithDisabledInstancesLimit() throws Exception {
-    PauseSignal pauseSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().pause());
-    Assert.assertNull(pauseSignal);
+    MaintenanceSignal maintenanceSignal =
+        _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+    Assert.assertNull(maintenanceSignal);
 
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
 
@@ -127,29 +129,30 @@ public class TestPauseClusterWhenReachingOfflineInstancesLimit extends ZkIntegra
 
     Thread.sleep(500);
 
-    pauseSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().pause());
-    Assert.assertNull(pauseSignal);
+    maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+    Assert.assertNull(maintenanceSignal);
 
     String instance = _participants.get(i).getInstanceName();
     admin.enableInstance(CLUSTER_NAME, instance, false);
 
     Thread.sleep(500);
-    pauseSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().pause());
-    Assert.assertNotNull(pauseSignal);
-    Assert.assertNotNull(pauseSignal.getReason());
+    maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+    Assert.assertNotNull(maintenanceSignal);
+    Assert.assertNotNull(maintenanceSignal.getReason());
 
     for (i = 2; i < 2 + _maxOfflineInstancesAllowed + 1; i++) {
       instance = _participants.get(i).getInstanceName();
       admin.enableInstance(CLUSTER_NAME, instance, true);
     }
-    admin.enableCluster(CLUSTER_NAME, true);
+    admin.enableMaintenanceMode(CLUSTER_NAME, false);
   }
 
 
   @Test (dependsOnMethods = "testWithDisabledInstancesLimit")
   public void testWithOfflineInstancesLimit() throws Exception {
-    PauseSignal pauseSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().pause());
-    Assert.assertNull(pauseSignal);
+    MaintenanceSignal maintenanceSignal =
+        _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+    Assert.assertNull(maintenanceSignal);
     int i;
     for (i = 2; i < 2 + _maxOfflineInstancesAllowed; i++) {
       _participants.get(i).syncStop();
@@ -157,15 +160,15 @@ public class TestPauseClusterWhenReachingOfflineInstancesLimit extends ZkIntegra
 
     Thread.sleep(500);
 
-    pauseSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().pause());
-    Assert.assertNull(pauseSignal);
+    maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+    Assert.assertNull(maintenanceSignal);
 
     _participants.get(i).syncStop();
 
     Thread.sleep(500);
-    pauseSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().pause());
-    Assert.assertNotNull(pauseSignal);
-    Assert.assertNotNull(pauseSignal.getReason());
+    maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+    Assert.assertNotNull(maintenanceSignal);
+    Assert.assertNotNull(maintenanceSignal.getReason());
 
     // TODO re-enable the check after HELIX-631 is fixed
     /*

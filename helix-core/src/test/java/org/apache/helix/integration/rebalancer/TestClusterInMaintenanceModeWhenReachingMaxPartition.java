@@ -30,6 +30,7 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
@@ -38,7 +39,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestPauseClusterWhenReachingMaxPartition extends ZkIntegrationTestBase {
+public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkIntegrationTestBase {
   final int NUM_NODE = 5;
   protected static final int START_PORT = 12918;
   protected static final int _PARTITIONS = 5;
@@ -109,17 +110,17 @@ public class TestPauseClusterWhenReachingMaxPartition extends ZkIntegrationTestB
     Thread.sleep(100);
     Assert.assertTrue(_clusterVerifier.verify());
 
-    PauseSignal pauseSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().pause());
-    Assert.assertNull(pauseSignal);
+    MaintenanceSignal maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+    Assert.assertNull(maintenanceSignal);
 
     for (i = 2; i < NUM_NODE; i++) {
       _participants.get(i).syncStop();
     }
 
     Thread.sleep(500);
-    pauseSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().pause());
-    Assert.assertNotNull(pauseSignal);
-    Assert.assertNotNull(pauseSignal.getReason());
+    maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+    Assert.assertNotNull(maintenanceSignal);
+    Assert.assertNotNull(maintenanceSignal.getReason());
   }
 
   @AfterClass

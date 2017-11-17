@@ -137,10 +137,10 @@ public class TestInstanceAccessor extends AbstractTestClass {
         Response.Status.OK.getStatusCode());
     Assert.assertEquals(_configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getTags(),
         ImmutableList.of("tag2"));
-
-    // TODO (JK): Reenable this after storage node bug fixed.
-    /*
+    
+    // TODO: Reenable the test after storage node fix the problem
     // Batch disable instances
+    /*
     List<String> instancesToDisable = Arrays.asList(
         new String[] { CLUSTER_NAME + "localhost_12918", CLUSTER_NAME + "localhost_12919",
             CLUSTER_NAME + "localhost_12920"
@@ -166,6 +166,40 @@ public class TestInstanceAccessor extends AbstractTestClass {
     Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
     */
+
+    // Test enable disable partitions
+    String dbName = "_db_0_";
+    List<String> partitionsToDisable = Arrays.asList(
+        new String[] { CLUSTER_NAME + dbName + "0", CLUSTER_NAME + dbName + "1",
+            CLUSTER_NAME + dbName + "3"
+        });
+
+    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
+            .of(AbstractResource.Properties.id.name(), INSTANCE_NAME,
+                InstanceAccessor.InstanceProperties.resource.name(),
+                CLUSTER_NAME + dbName.substring(0, dbName.length() - 1),
+                InstanceAccessor.InstanceProperties.partitions.name(), partitionsToDisable)),
+        MediaType.APPLICATION_JSON_TYPE);
+    post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME,
+        ImmutableMap.of("command", "disablePartitions"), entity,
+        Response.Status.OK.getStatusCode());
+    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
+    Assert.assertEquals(new HashSet<>(instanceConfig.getDisabledPartitionsMap()
+            .get(CLUSTER_NAME + dbName.substring(0, dbName.length() - 1))),
+        new HashSet<>(partitionsToDisable));
+    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
+        .of(AbstractResource.Properties.id.name(), INSTANCE_NAME,
+            InstanceAccessor.InstanceProperties.resource.name(),
+            CLUSTER_NAME + dbName.substring(0, dbName.length() - 1),
+            InstanceAccessor.InstanceProperties.partitions.name(),
+            ImmutableList.of(CLUSTER_NAME + dbName + "1"))), MediaType.APPLICATION_JSON_TYPE);
+
+    post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME,
+        ImmutableMap.of("command", "enablePartitions"), entity, Response.Status.OK.getStatusCode());
+    instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
+    Assert.assertEquals(new HashSet<>(instanceConfig.getDisabledPartitionsMap()
+            .get(CLUSTER_NAME + dbName.substring(0, dbName.length() - 1))),
+        new HashSet<>(Arrays.asList(CLUSTER_NAME + dbName + "0", CLUSTER_NAME + dbName + "3")));
   }
 
   @Test(dependsOnMethods = "updateInstance")

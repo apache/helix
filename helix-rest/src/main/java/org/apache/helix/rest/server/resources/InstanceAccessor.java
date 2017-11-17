@@ -259,6 +259,21 @@ public class InstanceAccessor extends AbstractResource {
           admin.removeInstanceTag(clusterId, instanceName, tag);
         }
         break;
+      case enablePartitions:
+        admin.enablePartition(true, clusterId, instanceName,
+            node.get(InstanceProperties.resource.name()).getTextValue(),
+            (List<String>) OBJECT_MAPPER
+                .readValue(node.get(InstanceProperties.partitions.name()).toString(),
+                    OBJECT_MAPPER.getTypeFactory()
+                        .constructCollectionType(List.class, String.class)));
+        break;
+      case disablePartitions:
+        admin.enablePartition(false, clusterId, instanceName,
+            node.get(InstanceProperties.resource.name()).getTextValue(),
+            (List<String>) OBJECT_MAPPER
+                .readValue(node.get(InstanceProperties.partitions.name()).toString(),
+                    OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class)));
+        break;
       default:
         _logger.error("Unsupported command :" + command);
         return badRequest("Unsupported command :" + command);

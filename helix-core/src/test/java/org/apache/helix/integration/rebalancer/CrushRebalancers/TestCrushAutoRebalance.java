@@ -26,8 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
-import org.apache.helix.controller.rebalancer.strategy.MultiRoundCrushRebalanceStrategy;
+
+import org.apache.helix.controller.rebalancer.strategy.*;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -111,7 +111,8 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
   @DataProvider(name = "rebalanceStrategies")
   public static Object [][] rebalanceStrategies() {
     return new String[][] { {"CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName()},
-        {"MultiRoundCrushRebalanceStrategy", MultiRoundCrushRebalanceStrategy.class.getName()}
+        {"MultiRoundCrushRebalanceStrategy", MultiRoundCrushRebalanceStrategy.class.getName()},
+        {"CrushEdRebalanceStrategy", CrushEdRebalanceStrategy.class.getName()}
     };
   }
 

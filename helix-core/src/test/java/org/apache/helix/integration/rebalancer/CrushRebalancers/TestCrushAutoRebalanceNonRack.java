@@ -19,32 +19,24 @@ package org.apache.helix.integration.rebalancer.CrushRebalancers;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.model.BuiltInStateModelDefinitions;
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
+import org.apache.helix.model.*;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
+import java.util.*;
 
 public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
   final int NUM_NODE = 6;
@@ -59,7 +51,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
   List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
   Map<String, String> _nodeToTagMap = new HashMap<String, String>();
   List<String> _nodes = new ArrayList<String>();
-  Set<String> _allDBs = new HashSet<String>();
+  Set<String> _allDBs = new HashSet<>();
   int _replica = 3;
 
   private static String[] _testModels = { BuiltInStateModelDefinitions.OnlineOffline.name(),
@@ -91,7 +83,8 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
       String tag = "tag-" + i % 2;
       _setupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, storageNodeName, tag);
       _nodeToTagMap.put(storageNodeName, tag);
-      InstanceConfig instanceConfig = configAccessor.getInstanceConfig(CLUSTER_NAME, storageNodeName);
+      InstanceConfig instanceConfig =
+          configAccessor.getInstanceConfig(CLUSTER_NAME, storageNodeName);
       instanceConfig.setDomain("instance=" + storageNodeName);
       configAccessor.setInstanceConfig(CLUSTER_NAME, storageNodeName, instanceConfig);
     }
@@ -112,13 +105,15 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     //enableTopologyAwareRebalance(_gZkClient, CLUSTER_NAME, true);
   }
 
-  @DataProvider(name = "rebalanceStrategies") public static String[][] rebalanceStrategies() {
-    return new String[][] { { "CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName() } };
+  @DataProvider(name = "rebalanceStrategies")
+  public static String[][] rebalanceStrategies() {
+    return new String[][] { { "CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName() },
+        {"CrushEdRebalanceStrategy", CrushEdRebalanceStrategy.class.getName()}
+    };
   }
 
   @Test(dataProvider = "rebalanceStrategies", enabled = true)
-  public void test(String rebalanceStrategyName, String rebalanceStrategyClass)
-      throws Exception {
+  public void test(String rebalanceStrategyName, String rebalanceStrategyClass) throws Exception {
     System.out.println("Test " + rebalanceStrategyName);
     int i = 0;
     for (String stateModel : _testModels) {
@@ -131,10 +126,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     Thread.sleep(300);
 
     HelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
-
     for (String db : _allDBs) {
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
@@ -161,8 +155,8 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     }
     Thread.sleep(300);
 
-      HelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+    HelixClusterVerifier _clusterVerifier =
+        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
     for (String db : _allDBs) {
@@ -173,11 +167,12 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test(dataProvider = "rebalanceStrategies", enabled = true, dependsOnMethods = { "test",
-      "testWithInstanceTag"})
+  @Test(dataProvider = "rebalanceStrategies", enabled = true, dependsOnMethods = {
+      "testWithInstanceTag"
+  })
   public void testLackEnoughLiveInstances(String rebalanceStrategyName,
       String rebalanceStrategyClass) throws Exception {
-    System.out.println("TestLackEnoughInstances " + rebalanceStrategyName);
+    System.out.println("TestLackEnoughLiveInstances " + rebalanceStrategyName);
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     // shutdown participants, keep only two left
@@ -185,9 +180,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
       _participants.get(i).syncStop();
     }
 
-    int i = 0;
+    int j = 0;
     for (String stateModel : _testModels) {
-      String db = "Test-DB-" + rebalanceStrategyName + "-" + i++;
+      String db = "Test-DB-" + rebalanceStrategyName + "-" + j++;
       _setupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS, stateModel,
           RebalanceMode.FULL_AUTO + "", rebalanceStrategyClass);
       _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
@@ -196,22 +191,26 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     Thread.sleep(300);
 
     HelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
-
     for (String db : _allDBs) {
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, 2);
     }
+
+    for (int i = 2; i < _participants.size(); i++) {
+      _participants.get(i).syncStart();
+    }
   }
 
-  @Test(dataProvider = "rebalanceStrategies", enabled = true, dependsOnMethods = { "test",
-      "testWithInstanceTag"})
-  public void testLackEnoughInstances(String rebalanceStrategyName,
-      String rebalanceStrategyClass) throws Exception {
+  @Test(dataProvider = "rebalanceStrategies", enabled = true, dependsOnMethods = {
+      "testLackEnoughLiveInstances"
+  })
+  public void testLackEnoughInstances(String rebalanceStrategyName, String rebalanceStrategyClass)
+      throws Exception {
     System.out.println("TestLackEnoughInstances " + rebalanceStrategyName);
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
@@ -225,26 +224,41 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
       _setupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
     }
 
-    int i = 0;
+    int j = 0;
     for (String stateModel : _testModels) {
-      String db = "Test-DB-" + rebalanceStrategyName + "-" + i++;
+      String db = "Test-DB-" + rebalanceStrategyName + "-" + j++;
       _setupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS, stateModel,
           RebalanceMode.FULL_AUTO + "", rebalanceStrategyClass);
       _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
     Thread.sleep(300);
-
     HelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify());
-
     for (String db : _allDBs) {
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, 2);
+    }
+
+    // recover test environment
+    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    for (int i = 2; i < _participants.size(); i++) {
+      String storageNodeName = _participants.get(i).getInstanceName();
+      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+
+      InstanceConfig instanceConfig =
+          configAccessor.getInstanceConfig(CLUSTER_NAME, storageNodeName);
+      instanceConfig.setDomain("instance=" + storageNodeName);
+      configAccessor.setInstanceConfig(CLUSTER_NAME, storageNodeName, instanceConfig);
+
+      MockParticipantManager participant =
+          new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, storageNodeName);
+      participant.syncStart();
+      _participants.set(i, participant);
     }
   }
 
@@ -267,7 +281,8 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     }
   }
 
-  @AfterMethod public void afterMethod() throws Exception {
+  @AfterMethod
+  public void afterMethod() throws Exception {
     for (String db : _allDBs) {
       _setupTool.dropResourceFromCluster(CLUSTER_NAME, db);
     }

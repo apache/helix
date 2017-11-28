@@ -116,6 +116,18 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
   @Override
   protected Application configure() {
+    // start zk
+    try {
+      if (_zkServer == null) {
+        _zkServer = TestHelper.startZkServer(ZK_ADDR);
+        Assert.assertTrue(_zkServer != null);
+        ZKClientPool.reset();
+      }
+    } catch (Exception e) {
+      Assert.assertTrue(false, String.format("Failed to start ZK server: %s", e.toString()));
+    }
+
+    // Configure server context
     ResourceConfig resourceConfig = new ResourceConfig();
     resourceConfig.packages(AbstractResource.class.getPackage().getName());
     ServerContext serverContext = new ServerContext(ZK_ADDR);
@@ -169,11 +181,6 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       // TODO: use logging.properties file to config java.util.logging.Logger levels
       java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
       topJavaLogger.setLevel(Level.WARNING);
-
-      // start zk
-      _zkServer = TestHelper.startZkServer(ZK_ADDR);
-      Assert.assertTrue(_zkServer != null);
-      ZKClientPool.reset();
 
       _gZkClient = new ZkClient(ZK_ADDR, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
           ZkClient.DEFAULT_SESSION_TIMEOUT, new ZNRecordSerializer());

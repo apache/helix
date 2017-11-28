@@ -150,6 +150,12 @@ public class ClusterSetup {
     _admin = new ZKHelixAdmin(_zkClient);
   }
 
+  public ClusterSetup(ZkClient zkClient, HelixAdmin zkHelixAdmin) {
+    _zkServerAddress = zkClient.getServers();
+    _zkClient = zkClient;
+    _admin = zkHelixAdmin;
+  }
+
   public void addCluster(String clusterName, boolean overwritePrevious) {
     _admin.addCluster(clusterName, overwritePrevious);
 

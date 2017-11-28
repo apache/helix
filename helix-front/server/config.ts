@@ -4,6 +4,8 @@ export const HELIX_ENDPOINTS = {
   }]
 };
 
+export const SESSION_STORE = undefined;
+
 export const SSL = {
   port: 0,
   keyfile: '',
@@ -12,6 +14,6 @@ export const SSL = {
   cafiles: []
 };
 
-export function IsAdmin(username: string) {
-  return username === 'root';
+export function CheckAdmin(username: string, callback: (boolean) => void) {
+  callback(username === 'root');
 }

@@ -2,7 +2,7 @@ import { Request, Response, Router } from 'express';
 
 import * as request from 'request';
 
-import { IsAdmin } from '../config';
+import { CheckAdmin } from '../config';
 
 export class UserCtrl {
 
@@ -16,11 +16,15 @@ export class UserCtrl {
   protected authorize(req: Request, res: Response) {
     if (req.query.name) {
       req.session.username = req.query.name;
-      if (req.query.url) {
-        res.redirect(req.query.url);
-      } else {
-        res.redirect('/');
-      }
+      CheckAdmin(req.session.username, (isAdmin: boolean) => {
+        req.session.isAdmin = isAdmin;
+
+        if (req.query.url) {
+          res.redirect(req.query.url);
+        } else {
+          res.redirect('/');
+        }
+      });
     } else {
       res.status(401).send('Unauthorized');
     }
@@ -31,6 +35,6 @@ export class UserCtrl {
   }
 
   protected can(req: Request, res: Response) {
-    res.json(IsAdmin(req.session.username));
+    res.json(req.session.isAdmin ? true : false);
   }
 }

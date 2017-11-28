@@ -2,7 +2,7 @@ import { Request, Response, Router } from 'express';
 
 import * as request from 'request';
 
-import { HELIX_ENDPOINTS, IsAdmin } from '../config';
+import { HELIX_ENDPOINTS } from '../config';
 
 export class HelixCtrl {
 
@@ -25,7 +25,7 @@ export class HelixCtrl {
 
     const user = req.session.username;
     const method = req.method.toLowerCase();
-    if (method != 'get' && !IsAdmin(user)) {
+    if (method != 'get' && !req.session.isAdmin) {
       res.status(403).send('Forbidden');
       return;
     }
@@ -58,11 +58,6 @@ export class HelixCtrl {
     } else {
       res.status(404).send('Not found');
     }
-
-    process.on('uncaughtException', function(err){
-      console.error('uncaughtException: ' + err.message);
-      console.error(err.stack);
-    });
   }
 
   protected list(req: Request, res: Response) {

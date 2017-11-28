@@ -8,7 +8,7 @@ import * as http from 'http';
 import * as https from 'https';
 import * as session from 'express-session';
 
-import { SSL } from './config';
+import { SSL, SESSION_STORE } from './config';
 import setRoutes from './routes';
 
 const app = express();
@@ -21,6 +21,7 @@ app.use('/', express.static(path.join(__dirname, '../public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
+  store: SESSION_STORE,
   secret: 'helix',
   resave: true,
   saveUninitialized: true,
@@ -37,6 +38,11 @@ app.get('/*', function(req, res) {
 
 server.listen(app.get('port'), () => {
   console.log(`App is listening on port ${ app.get('port') } as HTTP`);
+});
+
+process.on('uncaughtException', function(err){
+  console.error('uncaughtException: ' + err.message);
+  console.error(err.stack);
 });
 
 // setup SSL

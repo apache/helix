@@ -381,8 +381,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
 
     logger.info(String
-        .format("needRecovery: %d, recoverybalanceThrottled: %d", partitionsNeedRecovery.size(),
-            partitionRecoveryBalanceThrottled.size()));
+        .format("%s: needRecovery: %d, recoverybalanceThrottled: %d", resource.getResourceName(),
+            partitionsNeedRecovery.size(), partitionRecoveryBalanceThrottled.size()));
     return partitionRecoveryBalanceThrottled;
   }
 
@@ -418,7 +418,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
 
     logger.info(String
-        .format("loadbalanceNeeded: %d, loadbalanceThrottled: %d", partitionsNeedLoadbalance.size(),
+        .format("%s: loadbalanceNeeded: %d, loadbalanceThrottled: %d", resource.getResourceName(), partitionsNeedLoadbalance.size(),
             partitionsLoadbalanceThrottled.size()));
 
     if (logger.isDebugEnabled()) {

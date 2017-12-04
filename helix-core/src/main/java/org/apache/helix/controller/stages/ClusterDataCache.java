@@ -101,7 +101,12 @@ public class ClusterDataCache {
   private Map<PropertyKey, CurrentState> _currentStateCache = Maps.newHashMap();
 
   // maintain a cache of bestPossible assignment across pipeline runs
+  // TODO: this is only for customRebalancer, remove it and merge it with _idealMappingCache.
   private Map<String, ResourceAssignment>  _resourceAssignmentCache = Maps.newHashMap();
+
+
+  // maintain a cache of idealmapping (preference list) for full-auto resource across pipeline runs
+  private Map<String, ZNRecord>  _idealMappingCache = Maps.newHashMap();
 
   private Map<ChangeType, Boolean> _propertyDataChangedMap;
 
@@ -985,8 +990,41 @@ public class ClusterDataCache {
   }
 
 
+  /**
+   * Get cached resourceAssignment (ideal mapping) for a resource
+   *
+   * @param resource
+   *
+   * @return
+   */
+  public ZNRecord getCachedIdealMapping(String resource) {
+    return _idealMappingCache.get(resource);
+  }
+
+  /**
+   * Get cached idealmapping
+   *
+   * @return
+   */
+  public Map<String, ZNRecord> getCachedIdealMapping() {
+    return Collections.unmodifiableMap(_idealMappingCache);
+  }
+
+  /**
+   * Cache resourceAssignment (ideal mapping) for a resource
+   *
+   * @param resource
+   *
+   * @return
+   */
+  public void setCachedIdealMapping(String resource, ZNRecord mapping) {
+    _idealMappingCache.put(resource, mapping);
+  }
+
+
   public void clearCachedResourceAssignments() {
     _resourceAssignmentCache.clear();
+    _idealMappingCache.clear();
   }
 
   /**

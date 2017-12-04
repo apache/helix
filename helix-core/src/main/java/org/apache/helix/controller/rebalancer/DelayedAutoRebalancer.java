@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -57,7 +58,22 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   public IdealState computeNewIdealState(String resourceName,
       IdealState currentIdealState, CurrentStateOutput currentStateOutput,
       ClusterDataCache clusterData) {
-    List<String> allPartitions = new ArrayList<String>(currentIdealState.getPartitionSet());
+
+    // Looking for cached ideal mapping for this resource, if it is already there, do not recompute it again.
+    // The cached mapping will be cleared in ClusterDataCache if there is anything changed in cluster state that can
+    // cause the potential changes in ideal state.
+    // this will avoid flip-flop issue we saw in AutoRebalanceStrategy.
+    ZNRecord znRecord = clusterData.getCachedIdealMapping(resourceName);
+    if (znRecord != null) {
+      // TODO: only apply to legacy Auto-RebalanceStrategy at this time, need to apply to any strategy in future.
+      if (currentIdealState.getRebalanceStrategy().equals(AutoRebalanceStrategy.class.getName())) {
+        LOG.info("Use cached idealstate for " + resourceName);
+        IdealState idealState = new IdealState(znRecord);
+        return idealState;
+      }
+    }
+
+    List<String> allPartitions = new ArrayList<>(currentIdealState.getPartitionSet());
     if (allPartitions.size() == 0) {
       LOG.info("Partition count is 0 for resource " + resourceName
           + ", stop calculate ideal mapping for the resource.");
@@ -181,7 +197,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       LOG.debug("finalMapping: " + finalMapping);
     }
 
-    return generateNewIdealState(resourceName, currentIdealState, finalMapping);
+    IdealState idealState = generateNewIdealState(resourceName, currentIdealState, finalMapping);
+    clusterData.setCachedIdealMapping(resourceName, idealState.getRecord());
+    return idealState;
   }
 
   private IdealState generateNewIdealState(String resourceName, IdealState currentIdealState,

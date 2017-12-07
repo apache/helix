@@ -205,7 +205,6 @@ public class HelixControllerMain {
     controllerName = cmd.getOptionValue(name);
 
     // Espresso_driver.py will consume this
-    System.out.println("HARRY_DEBUG: starting HelixControllerMain");
     logger.info("Cluster manager started, zkServer: " + zkConnectString + ", clusterName:"
         + clusterName + ", controllerName:" + controllerName + ", mode:" + controllerMode);
 

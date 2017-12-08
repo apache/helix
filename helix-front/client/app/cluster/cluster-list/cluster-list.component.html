@@ -5,10 +5,13 @@
     </md-spinner>
   </section>
   <md-nav-list *ngIf="!isLoading && !errorMessage">
+    <button md-button routerLink="/">
+      <md-icon>arrow_back</md-icon> Back to Index
+    </button>
     <button md-mini-fab *ngIf="can" (click)="createCluster()">
       <md-icon>add</md-icon>
     </button>
-    <h3 md-subheader>Clusters</h3>
+    <h3 md-subheader>Clusters ({{ clusters.length }})</h3>
     <a *ngFor="let cluster of clusters"
       md-list-item
       [routerLink]="[cluster.name]"
@@ -18,7 +21,7 @@
     </a>
     <div *ngIf="clusters.length == 0" class="empty">
       There's no cluster here.
-      <a md-button (click)="createCluster()">Create one?</a>
+      <a md-button *ngIf="can" (click)="createCluster()">Create one?</a>
     </div>
   </md-nav-list>
   <section class="error-message" *ngIf="errorMessage">

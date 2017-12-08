@@ -25,6 +25,7 @@
 
 .main-container {
   height: calc(100vh - 64px - 50px);
+  overflow-y: scroll;
 
   &.no-header {
     height: 100vh;

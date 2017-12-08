@@ -39,6 +39,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.MaintenanceSignal;
+import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.resources.AbstractResource.Command;
 import org.apache.helix.rest.server.resources.ClusterAccessor;
@@ -315,6 +316,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertNotNull(auditLog.getClientHostPort());
     Assert.assertNotNull(auditLog.getCompleteTime());
     Assert.assertNotNull(auditLog.getStartTime());
+    Assert.assertEquals(auditLog.getNamespace(), HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
     Assert.assertEquals(auditLog.getRequestPath(), requestPath);
     Assert.assertEquals(auditLog.getResponseCode(), statusCode);
     Assert.assertEquals(auditLog.getResponseEntity(), responseEntity);

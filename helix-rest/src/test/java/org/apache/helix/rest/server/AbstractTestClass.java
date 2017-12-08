@@ -33,7 +33,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Response;
-
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -48,6 +47,7 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
+import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.filters.AuditLogFilter;
@@ -88,6 +88,13 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   protected static boolean _init = false;
 
+  // For testing namespaced access
+  protected static ZkServer _zkServerTestNS;
+  protected static final String _zkAddrTestNS = "localhost:2124";
+  protected static final String TEST_NAMESPACE = "test-namespace";
+  protected static ZkClient _gZkClientTestNS;
+  protected static BaseDataAccessor<ZNRecord> _baseAccessorTestNS;
+
   protected static Set<String> _clusters;
   protected static String _superCluster = "superCluster";
   protected static Map<String, Set<String>> _instancesMap = new HashMap<>();
@@ -121,6 +128,12 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       if (_zkServer == null) {
         _zkServer = TestHelper.startZkServer(ZK_ADDR);
         Assert.assertTrue(_zkServer != null);
+        ZKClientPool.reset();
+      }
+
+      if (_zkServerTestNS == null) {
+        _zkServerTestNS = TestHelper.startZkServer(_zkAddrTestNS);
+        Assert.assertTrue(_zkServerTestNS != null);
         ZKClientPool.reset();
       }
     } catch (Exception e) {
@@ -157,15 +170,21 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
           @Override
           public void start() {
+            // Create namespace manifest map
+            List<HelixRestNamespace> namespaces = new ArrayList<>();
+            // Add test namespace
+            namespaces.add(new HelixRestNamespace(TEST_NAMESPACE, HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER,
+                _zkAddrTestNS, false));
+            // Add default namesapce
+            namespaces.add(new HelixRestNamespace(ZK_ADDR));
             try {
-              _helixRestServer = new HelixRestServer(ZK_ADDR, baseUri.getPort(), baseUri.getPath(),
+              _helixRestServer = new HelixRestServer(namespaces, baseUri.getPort(), baseUri.getPath(),
                   Arrays.<AuditLogger>asList(_auditLogger));
               _helixRestServer.start();
             } catch (Exception ex) {
               throw new TestContainerException(ex);
             }
           }
-
           @Override
           public void stop() {
             _helixRestServer.shutdown();
@@ -184,9 +203,12 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
       _gZkClient = new ZkClient(ZK_ADDR, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
           ZkClient.DEFAULT_SESSION_TIMEOUT, new ZNRecordSerializer());
+      _gZkClientTestNS = new ZkClient(_zkAddrTestNS, ZkClient.DEFAULT_CONNECTION_TIMEOUT, ZkClient.DEFAULT_SESSION_TIMEOUT,
+          new ZNRecordSerializer());
       _gSetupTool = new ClusterSetup(_gZkClient);
       _configAccessor = new ConfigAccessor(_gZkClient);
       _baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
+      _baseAccessorTestNS = new ZkBaseDataAccessor<>(_gZkClientTestNS);
 
       // wait for the web service to start
       Thread.sleep(100);
@@ -207,6 +229,15 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     if (_zkServer != null) {
       TestHelper.stopZkServer(_zkServer);
       _zkServer = null;
+    }
+
+    if (_gZkClientTestNS != null) {
+      _gZkClientTestNS.close();
+      _gZkClientTestNS = null;
+    }
+    if (_zkServerTestNS != null) {
+      TestHelper.stopZkServer(_zkServerTestNS);
+      _zkServerTestNS = null;
     }
   }
 
@@ -342,7 +373,13 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected String get(String uri, int expectedReturnStatus, boolean expectBodyReturned) {
     final Response response = target(uri).request().get();
     Assert.assertEquals(response.getStatus(), expectedReturnStatus);
-    Assert.assertEquals(response.getMediaType().getType(), "application");
+
+    // NOT_FOUND will throw text based html
+    if (expectedReturnStatus != Response.Status.NOT_FOUND.getStatusCode()) {
+      Assert.assertEquals(response.getMediaType().getType(), "application");
+    } else {
+      Assert.assertEquals(response.getMediaType().getType(), "text");
+    }
 
     String body = response.readEntity(String.class);
     if (expectBodyReturned) {

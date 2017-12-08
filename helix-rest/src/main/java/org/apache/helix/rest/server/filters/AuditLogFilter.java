@@ -37,6 +37,7 @@ import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
+import org.apache.helix.rest.common.HelixRestUtils;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.slf4j.Logger;
@@ -59,9 +60,14 @@ public class AuditLogFilter implements ContainerRequestFilter, ContainerResponse
   @Override
   public void filter(ContainerRequestContext request) throws IOException {
     AuditLog.Builder auditLogBuilder = new AuditLog.Builder();
-    auditLogBuilder.requestPath(request.getUriInfo().getPath()).httpMethod(request.getMethod())
-        .startTime(new Date()).requestHeaders(getHeaders(request.getHeaders()))
-        .principal(_servletRequest.getUserPrincipal()).clientIP(_servletRequest.getRemoteAddr())
+
+    auditLogBuilder.namespace(getNamespace())
+        .requestPath(request.getUriInfo().getPath())
+        .httpMethod(request.getMethod())
+        .startTime(new Date())
+        .requestHeaders(getHeaders(request.getHeaders()))
+        .principal(_servletRequest.getUserPrincipal())
+        .clientIP(_servletRequest.getRemoteAddr())
         .clientHostPort(_servletRequest.getRemoteHost() + ":" + _servletRequest.getRemotePort());
 
     String entity = getEntity(request.getEntityStream());
@@ -115,4 +121,10 @@ public class AuditLogFilter implements ContainerRequestFilter, ContainerResponse
     }
     return null;
   }
+
+  private String getNamespace() {
+    String servletPath = _servletRequest.getServletPath();
+    return HelixRestUtils.getNamespaceFromServletPath(servletPath);
+  }
+
 }

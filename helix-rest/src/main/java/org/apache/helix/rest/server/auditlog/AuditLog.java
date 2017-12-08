@@ -35,6 +35,7 @@ public class AuditLog {
   private Principal _principal;
   private String _clientIP;
   private String _clientHostPort;
+  private String _namespace;
   private String _requestPath;
   private String _httpMethod;
   private List<String> _requestHeaders;
@@ -46,7 +47,7 @@ public class AuditLog {
   private String _additionalInfo;
 
   public AuditLog(Date startTime, Date completeTime, Principal principal, String clientIP,
-      String clientHostPort, String requestPath, String httpMethod, List<String> requestHeaders,
+      String clientHostPort, String namespace, String requestPath, String httpMethod, List<String> requestHeaders,
       String requestEntity, int responseCode, String responseEntity,
       String additionalInfo, List<Exception> exceptions) {
     _startTime = startTime;
@@ -54,6 +55,7 @@ public class AuditLog {
     _principal = principal;
     _clientIP = clientIP;
     _clientHostPort = clientHostPort;
+    _namespace = namespace;
     _requestPath = requestPath;
     _httpMethod = httpMethod;
     _requestHeaders = requestHeaders;
@@ -72,6 +74,7 @@ public class AuditLog {
         ", _principal=" + _principal +
         ", _clientIP='" + _clientIP + '\'' +
         ", _clientHostPort='" + _clientHostPort + '\'' +
+        ", _namespace='" + _namespace + '\'' +
         ", _requestPath='" + _requestPath + '\'' +
         ", _httpMethod='" + _httpMethod + '\'' +
         ", _requestHeaders=" + _requestHeaders +
@@ -101,6 +104,10 @@ public class AuditLog {
 
   public String getClientHostPort() {
     return _clientHostPort;
+  }
+
+  public String getNamespace() {
+    return _namespace;
   }
 
   public String getRequestPath() {
@@ -141,6 +148,7 @@ public class AuditLog {
     private Principal _principal;
     private String _clientIP;
     private String _clientHostPort;
+    private String _namespace;
     private String _requestPath;
     private String _httpMethod;
     private List<String> _requestHeaders;
@@ -193,6 +201,15 @@ public class AuditLog {
 
     public Builder clientHostPort(String clientHostPort) {
       _clientHostPort = clientHostPort;
+      return this;
+    }
+
+    public String getNamespace() {
+      return _namespace;
+    }
+
+    public Builder namespace(String namespace) {
+      _namespace = namespace;
       return this;
     }
 
@@ -278,7 +295,7 @@ public class AuditLog {
 
     public AuditLog build() {
       return new AuditLog(_startTime, _completeTime, _principal, _clientIP, _clientHostPort,
-          _requestPath, _httpMethod, _requestHeaders, _requestEntity, _responseCode,
+          _namespace, _requestPath, _httpMethod, _requestHeaders, _requestEntity, _responseCode,
           _responseEntity, _additionalInfo, _exceptions);
     }
   }

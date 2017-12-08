@@ -19,7 +19,13 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -29,15 +35,18 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixException;
+import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.auditlog.auditloggers.FileBasedAuditLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
 public class HelixRestMain {
   private static Logger LOG = LoggerFactory.getLogger(HelixRestServer.class);
   private static final String HELP = "help";
   private static final String ZKSERVERADDRESS = "zkSvr";
+  private static final String NAMESPACE_MANIFEST_FILE = "namespace-manifest-file";
   private static final String PORT = "port";
   private static final int DEFAULT_PORT = 8100;
   private static final String URI_PREFIX = "/admin/v2";
@@ -62,6 +71,13 @@ public class HelixRestMain {
     zkServerOption.setRequired(true);
     zkServerOption.setArgName("ZookeeperServerAddress(Required)");
 
+    Option helixRestNamespaceOption = OptionBuilder.withLongOpt(NAMESPACE_MANIFEST_FILE)
+        .withDescription("A yaml file describing helix namespace")
+        .create();
+    helixRestNamespaceOption.setArgs(1);
+    helixRestNamespaceOption.setRequired(false);
+    helixRestNamespaceOption.setArgName("NamespaceManifestFile(Optional)");
+
     Option portOption =
         OptionBuilder.withLongOpt(PORT).withDescription("Provide web service port").create();
     portOption.setArgs(1);
@@ -72,11 +88,12 @@ public class HelixRestMain {
     options.addOption(helpOption);
     options.addOption(zkServerOption);
     options.addOption(portOption);
+    options.addOption(helixRestNamespaceOption);
 
     return options;
   }
 
-  public static void processCommandLineArgs(String[] cliArgs) throws Exception {
+  private static void processCommandLineArgs(String[] cliArgs) throws Exception {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
     CommandLine cmd = null;
@@ -90,6 +107,7 @@ public class HelixRestMain {
     }
     int port = DEFAULT_PORT;
     String zkAddr;
+    List<HelixRestNamespace> namespaces = new ArrayList<>();
     if (cmd.hasOption(HELP)) {
       printUsage(cliOptions);
       return;
@@ -98,9 +116,13 @@ public class HelixRestMain {
         port = Integer.parseInt(cmd.getOptionValue(PORT));
       }
       zkAddr = String.valueOf(cmd.getOptionValue(ZKSERVERADDRESS));
+      namespaces.add(new HelixRestNamespace(zkAddr));
+      if (cmd.hasOption(NAMESPACE_MANIFEST_FILE)) {
+        constructNamespaceFromConfigFile(String.valueOf(cmd.getOptionValue(NAMESPACE_MANIFEST_FILE)), namespaces);
+      }
     }
 
-    final HelixRestServer restServer = new HelixRestServer(zkAddr, port, URI_PREFIX,
+    final HelixRestServer restServer = new HelixRestServer(namespaces, port, URI_PREFIX,
         Arrays.<AuditLogger>asList(new FileBasedAuditLogger()));
 
     try {
@@ -110,6 +132,23 @@ public class HelixRestMain {
       LOG.error("Failed to start Helix rest server, " + ex);
     } finally {
       restServer.shutdown();
+    }
+  }
+
+  private static void constructNamespaceFromConfigFile(String filePath, List<HelixRestNamespace> namespaces)
+      throws IOException {
+    Yaml yaml = new Yaml();
+    @SuppressWarnings("unchecked")
+    ArrayList<Map<String, String>> configs =
+        (ArrayList<Map<String, String>>) yaml.load(new FileInputStream(new File(filePath)));
+    for (Map<String, String> config : configs) {
+      // Currently we don't support adding default namespace through yaml manifest so all
+      // namespaces created here will not be default
+      // TODO: support specifying default namespace from config file
+      namespaces.add(new HelixRestNamespace(config.get(HelixRestNamespace.HelixRestNamespaceProperty.NAME.name()),
+          HelixRestNamespace.HelixMetadataStoreType.valueOf(
+              config.get(HelixRestNamespace.HelixRestNamespaceProperty.METADATA_STORE_TYPE.name())),
+          config.get(HelixRestNamespace.HelixRestNamespaceProperty.METADATA_STORE_ADDRESS.name()), false));
     }
   }
 

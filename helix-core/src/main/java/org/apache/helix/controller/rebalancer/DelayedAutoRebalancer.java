@@ -66,7 +66,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     ZNRecord znRecord = clusterData.getCachedIdealMapping(resourceName);
     if (znRecord != null) {
       // TODO: only apply to legacy Auto-RebalanceStrategy at this time, need to apply to any strategy in future.
-      if (currentIdealState.getRebalanceStrategy().equals(AutoRebalanceStrategy.class.getName())) {
+      if (AutoRebalanceStrategy.class.getName().equals(currentIdealState.getRebalanceStrategy())) {
         LOG.info("Use cached idealstate for " + resourceName);
         IdealState idealState = new IdealState(znRecord);
         return idealState;

@@ -214,6 +214,8 @@ public class HelixTask implements MessageTask {
     boolean success = accessor.removeProperty(msgKey);
     if (!success) {
       logger.warn("Failed to delete message " + message.getId() + " from zk!");
+    } else {
+      logger.info("Delete message " + message.getId() + " from zk!");
     }
   }
 
@@ -225,6 +227,9 @@ public class HelixTask implements MessageTask {
 
       // Ignore all relay messages if participant's session has changed.
       if (!_manager.getSessionId().equals(message.getTgtSessionId())) {
+        logger.info(
+            "Session id has been changed, ignore all relay messages attached with " + message
+                .getId());
         return;
       }
 
@@ -234,7 +239,7 @@ public class HelixTask implements MessageTask {
           msg.setRelayTime(taskCompletionTime);
           if (msg.isExpired()) {
             logger.info(
-                "Relay message expired, ignore it! " + msg.getId() + " to instance " + instance);
+                "Relay message expired, ignore " + msg.getId() + " to instance " + instance);
             continue;
           }
           PropertyKey msgKey = keyBuilder.message(instance, msg.getId());
@@ -242,6 +247,8 @@ public class HelixTask implements MessageTask {
               .create(msgKey.getPath(), msg.getRecord(), AccessOption.PERSISTENT);
           if (!success) {
             logger.warn("Failed to send relay message " + msg.getId() + " to " + instance);
+          } else {
+            logger.info("Send relay message " + message.getId() + " to " + instance);
           }
         }
       }

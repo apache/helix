@@ -89,7 +89,7 @@ under the License.
         <artifact name="slf4j-api" ext="jar"/>
     </dependency>
     <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.7.14" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
-        <artifact name="slf4j-log4j12" ext="ivy"/>
+        <artifact name="slf4j-log4j12" ext="jar"/>
     </dependency>
 		<override org="org.mockito" module="mockito-all" matcher="exact" rev="1.9.5"/>
 		<override org="org.apache.helix" module="helix-core" matcher="exact" rev="0.6.10-SNAPSHOT"/>

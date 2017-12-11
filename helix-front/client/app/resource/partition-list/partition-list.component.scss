@@ -11,3 +11,8 @@ div.message {
 .status-not-ready {
   color: mat-color(mat-palette($mat-orange), darker);
 }
+
+.footer {
+  width: 100%;
+  padding: 0 20px;
+}

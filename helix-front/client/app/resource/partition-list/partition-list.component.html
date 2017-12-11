@@ -9,6 +9,7 @@
     [footerHeight]="rowHeight"
     [rows]="partitions"
     [sorts]="sorts"
+    [limit]="20"
     selectionType="single"
     (select)="onSelect($event)">
     <ngx-datatable-column
@@ -49,6 +50,32 @@
         <hi-partition-detail [clusterName]="resource.cluster" [partition]="row"></hi-partition-detail>
       </ng-template>
     </ngx-datatable-row-detail>
+    <ngx-datatable-footer>
+      <ng-template
+        ngx-datatable-footer-template
+        let-rowCount="rowCount"
+        let-pageSize="pageSize"
+        let-curPage="curPage">
+        <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
+          <section>
+            {{ rowCount }} total
+          </section>
+          <section>
+            <datatable-pager
+              [pagerLeftArrowIcon]="'datatable-icon-left'"
+              [pagerRightArrowIcon]="'datatable-icon-right'"
+              [pagerPreviousIcon]="'datatable-icon-prev'"
+              [pagerNextIcon]="'datatable-icon-skip'"
+              [page]="curPage"
+              [size]="pageSize"
+              [count]="rowCount"
+              [hidden]="!((rowCount / pageSize) > 1)"
+              (change)="partitionsTable.onFooterPage($event)">
+            </datatable-pager>
+          </section>
+        </section>
+      </ng-template>
+    </ngx-datatable-footer>
   </ngx-datatable>
   <div *ngIf="!canAnalyse()" class="message" fxLayout="column" fxLayoutAlign="center center">
     <md-spinner *ngIf="isLoading"></md-spinner>

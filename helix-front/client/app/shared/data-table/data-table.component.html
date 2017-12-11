@@ -1,4 +1,5 @@
 <ngx-datatable
+  #dataTable
   class="material"
   [headerHeight]="rowHeight"
   rowHeight="auto"
@@ -37,7 +38,11 @@
     </ng-template>
   </ngx-datatable-column>
   <ngx-datatable-footer>
-    <ng-template ngx-datatable-footer-template let-rowCount="rowCount">
+    <ng-template
+      ngx-datatable-footer-template
+      let-rowCount="rowCount"
+      let-pageSize="pageSize"
+      let-curPage="curPage">
       <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
         <button md-button *ngIf="insertable" (click)="onCreate()">
           <md-icon>add</md-icon>
@@ -45,6 +50,19 @@
         </button>
         <section>
           {{ rowCount }} total
+        </section>
+        <section>
+          <datatable-pager
+            [pagerLeftArrowIcon]="'datatable-icon-left'"
+            [pagerRightArrowIcon]="'datatable-icon-right'"
+            [pagerPreviousIcon]="'datatable-icon-prev'"
+            [pagerNextIcon]="'datatable-icon-skip'"
+            [page]="curPage"
+            [size]="pageSize"
+            [count]="rowCount"
+            [hidden]="!((rowCount / pageSize) > 1)"
+            (change)="dataTable.onFooterPage($event)">
+          </datatable-pager>
         </section>
       </section>
     </ng-template>

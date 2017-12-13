@@ -48,8 +48,9 @@ import java.util.concurrent.Callable;
  * ZkClient jar Ideally we should commit the changes we do here to ZKClient.
  */
 
-public class ZkClient extends org.I0Itec.zkclient.ZkClient {
+public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
+
   public static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   public static final int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 

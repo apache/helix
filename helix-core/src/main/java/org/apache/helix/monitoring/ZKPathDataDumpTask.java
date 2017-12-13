@@ -138,16 +138,18 @@ public class ZKPathDataDumpTask extends TimerTask {
       }
     }
 
-    // dump
-    LOG.info("Dump statusUpdates and errors records for pahts: " + dumpPaths);
-    List<ZNRecord> dumpRecords = accessor.get(dumpPaths, null, 0);
-    for (ZNRecord record : dumpRecords) {
-      if (record != null) {
-        LOG.info(new String(_jsonSerializer.serialize(record)));
+    if (!dumpPaths.isEmpty()) {
+      LOG.info("Dump statusUpdates and errors records for paths: " + dumpPaths);
+      List<ZNRecord> dumpRecords = accessor.get(dumpPaths, null, 0);
+      for (ZNRecord record : dumpRecords) {
+        if (record != null) {
+          LOG.info(new String(_jsonSerializer.serialize(record)));
+        }
       }
-    }
 
-    // clean up
-    accessor.remove(dumpPaths, 0);
+      // clean up
+      accessor.remove(dumpPaths, 0);
+      LOG.info("Remove statusUpdates and errors records for paths: " + dumpPaths);
+    }
   }
 }

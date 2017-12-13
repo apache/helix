@@ -145,7 +145,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       long period = 15 * 60 * 1000;
       long timeThresholdNoChangeForStatusUpdates = 15 * 60 * 1000; // 15 minutes
       long timeThresholdNoChangeForErrors = 24 * 60 * 60 * 1000; // 1 day
-      int maximumNumberOfLeafNodesAllowed = 10000;
+      int maximumNumberOfLeafNodesAllowed = 100;
 
       if (_timer == null) {
         LOG.info("Start StatusDumpTask");

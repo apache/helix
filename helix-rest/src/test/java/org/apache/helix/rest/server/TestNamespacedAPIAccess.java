@@ -21,15 +21,22 @@ package org.apache.helix.rest.server;
 
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.rest.common.HelixRestNamespace;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestNamespacedAPIAccess extends AbstractTestClass {
+  ObjectMapper _mapper = new ObjectMapper();
+
   @Test
   public void testDefaultNamespaceCompatibility() {
     String testClusterName1 = "testClusterForDefaultNamespaceCompatibility1";
@@ -79,6 +86,54 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     get(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName),
         Response.Status.NOT_FOUND.getStatusCode(), false);
     get(String.format("/clusters/%s", testClusterName), Response.Status.OK.getStatusCode(), false);
+  }
+
+  @Test
+  public void testNamespaceServer() throws IOException {
+    // Default endpoints should not have any namespace information returned
+    get("/", Response.Status.NOT_FOUND.getStatusCode(), false);
+
+    // Get invalid namespace should return not found
+    get("/namespaces/invalid-namespace", Response.Status.NOT_FOUND.getStatusCode(), false);
+
+    // list namespace should return a list of all namespaces
+    String body = get("/namespaces", Response.Status.OK.getStatusCode(), true);
+    List<Map<String, String>> namespaceMaps = _mapper
+        .readValue(body, _mapper.getTypeFactory().constructCollectionType(List.class, Map.class));
+    Assert.assertEquals(namespaceMaps.size(), 2);
+
+    Set<String> expectedNamespaceNames = new HashSet<>();
+    expectedNamespaceNames.add(HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+    expectedNamespaceNames.add(TEST_NAMESPACE);
+
+    for (Map<String, String> namespaceMap : namespaceMaps) {
+      String name = namespaceMap.get(HelixRestNamespace.HelixRestNamespaceProperty.NAME.name());
+      boolean isDefault = Boolean.parseBoolean(
+          namespaceMap.get(HelixRestNamespace.HelixRestNamespaceProperty.IS_DEFAULT.name()));
+      switch (name) {
+      case HelixRestNamespace.DEFAULT_NAMESPACE_NAME:
+        Assert.assertTrue(isDefault);
+        break;
+      case TEST_NAMESPACE:
+        Assert.assertFalse(isDefault);
+        break;
+      default:
+        Assert.assertFalse(true, "Namespace " + name + " is not expected");
+        break;
+      }
+      expectedNamespaceNames.remove(name);
+    }
+    Assert.assertTrue(expectedNamespaceNames.isEmpty());
+
+    // Accessing root of namespaced API endpoint shall return information of that namespace
+    body = get(String.format("/namespaces/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME),
+        Response.Status.OK.getStatusCode(), true);
+    Map<String, String> namespace = _mapper.readValue(body,
+        _mapper.getTypeFactory().constructMapType(Map.class, String.class, String.class));
+    Assert.assertEquals(namespace.get(HelixRestNamespace.HelixRestNamespaceProperty.NAME.name()),
+        HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+    Assert.assertTrue(Boolean.parseBoolean(
+        namespace.get(HelixRestNamespace.HelixRestNamespaceProperty.IS_DEFAULT.name())));
   }
 
 }

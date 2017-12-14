@@ -30,7 +30,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
-import org.apache.helix.rest.server.resources.ResourceAccessor;
+import org.apache.helix.rest.server.resources.helix.ResourceAccessor;
 import org.codehaus.jackson.JsonNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;

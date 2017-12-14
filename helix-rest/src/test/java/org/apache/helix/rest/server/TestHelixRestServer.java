@@ -57,8 +57,7 @@ public class TestHelixRestServer extends AbstractTestClass {
     try {
       List<HelixRestNamespace> invalidManifest3 = new ArrayList<>();
       invalidManifest3.add(
-          new HelixRestNamespace("DuplicatedName", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR,
-              true));
+          new HelixRestNamespace("DuplicatedName", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR, true));
       invalidManifest3.add(
           new HelixRestNamespace("DuplicatedName", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR,
               false));
@@ -77,7 +76,7 @@ public class TestHelixRestServer extends AbstractTestClass {
           new HelixRestNamespace("test4-2", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR, true));
       HelixRestServer svr = new HelixRestServer(invalidManifest4, 10250, "/", Collections.<AuditLogger>emptyList());
       Assert.assertFalse(true, "InvalidManifest4 test failed");
-    } catch (IllegalArgumentException e) {
+    } catch (IllegalStateException e) {
       // OK
     }
   }

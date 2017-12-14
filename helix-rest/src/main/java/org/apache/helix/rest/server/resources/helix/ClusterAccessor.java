@@ -1,4 +1,4 @@
-package org.apache.helix.rest.server.resources;
+package org.apache.helix.rest.server.resources.helix;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -53,7 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Path("/clusters")
-public class ClusterAccessor extends AbstractResource {
+public class ClusterAccessor extends AbstractHelixResource {
   private static Logger _logger = LoggerFactory.getLogger(ClusterAccessor.class.getName());
 
   public enum ClusterProperties {

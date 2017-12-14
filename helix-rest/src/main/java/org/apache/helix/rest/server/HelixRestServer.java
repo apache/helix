@@ -27,11 +27,10 @@ import java.util.Map;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
-import org.apache.helix.rest.common.HelixRestUtils;
+import org.apache.helix.rest.common.ServletType;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.filters.AuditLogFilter;
 import org.apache.helix.rest.server.filters.CORSFilter;
-import org.apache.helix.rest.server.resources.AbstractResource;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -53,17 +52,12 @@ public class HelixRestServer {
   private int _port;
   private String _urlPrefix;
   private Server _server;
+  private List<HelixRestNamespace> _helixNamespaces;
   private ServletContextHandler _servletContextHandler;
   private List<AuditLogger> _auditLoggers;
 
   // Key is name of namespace, value of the resource config of that namespace
   private Map<String, ResourceConfig> _resourceConfigMap;
-
-  // In additional to regular servlets serving namespaced API endpoints, We have a default servlet
-  // serving un-namespaced API (/admin/v2/clusters/...) for default namespace as well. We use this
-  // literal as a key in _resourceConfigMap to keep records for default servlet.
-  // TODO: try to find a way to serve 2 sets of endpoints of default namespace in 1 servlet
-  private static final String DEFAULT_SERVLET_KEY = "DefaultServlet";
 
   public HelixRestServer(String zkAddr, int port, String urlPrefix) {
     this(zkAddr, port, urlPrefix, Collections.<AuditLogger>emptyList());
@@ -77,7 +71,8 @@ public class HelixRestServer {
     init(namespaces, port, urlPrefix, auditLoggers);
   }
 
-  public HelixRestServer(List<HelixRestNamespace> namespaces, int port, String urlPrefix, List<AuditLogger> auditLoggers) {
+  public HelixRestServer(List<HelixRestNamespace> namespaces, int port, String urlPrefix,
+      List<AuditLogger> auditLoggers) {
     init(namespaces, port, urlPrefix, auditLoggers);
   }
 
@@ -93,32 +88,16 @@ public class HelixRestServer {
     _auditLoggers = auditLoggers;
     _resourceConfigMap = new HashMap<>();
     _servletContextHandler = new ServletContextHandler(_server, _urlPrefix);
+    _helixNamespaces = namespaces;
 
     // Initialize all namespaces
     try {
-      for (HelixRestNamespace namespace : namespaces) {
+      for (HelixRestNamespace namespace : _helixNamespaces) {
         LOG.info("Initializing namespace " + namespace.getName());
-        if (_resourceConfigMap.containsKey(namespace.getName())) {
-          throw new IllegalArgumentException(String.format("Duplicated namespace name \"%s\"", namespace.getName()));
-        }
-
-        // Create resource and context for namespaced servlet
-        _resourceConfigMap.put(namespace.getName(),
-            makeResourceConfig(namespace, AbstractResource.class.getPackage().getName()));
-        LOG.info("Initializing servlet for namespace " + namespace.getName());
-        initServlet(_resourceConfigMap.get(namespace.getName()),
-            HelixRestUtils.makeServletPathSpec(namespace.getName(), false));
-
-        // Create special resource and context for default namespace servlet
+        prepareServlet(namespace, ServletType.COMMON_SERVLET);
         if (namespace.isDefault()) {
-          if (_resourceConfigMap.containsKey(DEFAULT_SERVLET_KEY)) {
-            throw new IllegalArgumentException("More than 1 default namespaces are provided");
-          }
-          LOG.info("Creating special servlet for default namespace");
-          _resourceConfigMap.put(DEFAULT_SERVLET_KEY,
-              makeResourceConfig(namespace, AbstractResource.class.getPackage().getName()));
-          initServlet(_resourceConfigMap.get(DEFAULT_SERVLET_KEY),
-              HelixRestUtils.makeServletPathSpec(namespace.getName(), true));
+          LOG.info("Creating default servlet for default namespace");
+          prepareServlet(namespace, ServletType.DEFAULT_SERVLET);
         }
       }
     } catch (Exception e) {
@@ -135,12 +114,39 @@ public class HelixRestServer {
     }));
   }
 
-  private ResourceConfig makeResourceConfig(HelixRestNamespace ns, String... packages) {
+  private void prepareServlet(HelixRestNamespace namespace, ServletType type) {
+    String resourceConfigMapKey = getResourceConfigMapKey(type, namespace);
+    if (_resourceConfigMap.containsKey(resourceConfigMapKey)) {
+      throw new IllegalArgumentException(
+          String.format("Duplicated namespace name \"%s\"", namespace.getName()));
+    }
+
+    // Prepare resource config
+    ResourceConfig config = getResourceConfig(namespace, type);
+    _resourceConfigMap.put(resourceConfigMapKey, config);
+
+    // Initialize servlet
+    initServlet(config, String.format(type.getServletPathSpecTemplate(), namespace.getName()));
+  }
+
+  private String getResourceConfigMapKey(ServletType type, HelixRestNamespace namespace) {
+    return String.format("%s_%s", type.name(), namespace.getName());
+  }
+
+  private ResourceConfig getResourceConfig(HelixRestNamespace namespace, ServletType type) {
     ResourceConfig cfg = new ResourceConfig();
-    cfg.packages(packages)
-        .property(ContextPropertyKeys.SERVER_CONTEXT.name(), new ServerContext(ns.getMetadataStoreAddress()))
-        .register(new CORSFilter())
-        .register(new AuditLogFilter(_auditLoggers));
+    cfg.packages(type.getServletPackageArray());
+
+    cfg.property(ContextPropertyKeys.SERVER_CONTEXT.name(),
+        new ServerContext(namespace.getMetadataStoreAddress()));
+    if (type == ServletType.DEFAULT_SERVLET) {
+      cfg.property(ContextPropertyKeys.ALL_NAMESPACES.name(), _helixNamespaces);
+    } else {
+      cfg.property(ContextPropertyKeys.METADATA.name(), namespace);
+    }
+
+    cfg.register(new CORSFilter());
+    cfg.register(new AuditLogFilter(_auditLoggers));
     return cfg;
   }
 
@@ -186,7 +192,7 @@ public class HelixRestServer {
     for (Map.Entry<String, ResourceConfig> e : _resourceConfigMap.entrySet()) {
       ServerContext ctx = (ServerContext) e.getValue().getProperty(ContextPropertyKeys.SERVER_CONTEXT.name());
       if (ctx == null) {
-        LOG.warn("Server context for servlet " + e.getKey() + " is null.");
+        LOG.info("Server context for servlet " + e.getKey() + " is null.");
       } else {
         LOG.info("Closing context for servlet " + e.getKey());
         ctx.close();

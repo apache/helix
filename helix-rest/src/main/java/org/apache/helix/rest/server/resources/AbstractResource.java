@@ -83,42 +83,6 @@ public class AbstractResource {
   protected HttpServletRequest _servletRequest;
   protected AuditLog.Builder _auditLogBuilder;
 
-  public ZkClient getZkClient() {
-    ServerContext serverContext = (ServerContext) _application.getProperties()
-          .get(ContextPropertyKeys.SERVER_CONTEXT.name());
-    return serverContext.getZkClient();
-  }
-
-  public HelixAdmin getHelixAdmin() {
-    ServerContext serverContext = (ServerContext) _application.getProperties()
-        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
-    return serverContext.getHelixAdmin();
-  }
-
-  public ClusterSetup getClusterSetup() {
-    ServerContext serverContext = (ServerContext) _application.getProperties()
-        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
-    return serverContext.getClusterSetup();
-  }
-
-  public TaskDriver getTaskDriver(String clusterName) {
-    ServerContext serverContext = (ServerContext) _application.getProperties()
-        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
-    return serverContext.getTaskDriver(clusterName);
-  }
-
-  public ConfigAccessor getConfigAccessor() {
-    ServerContext serverContext = (ServerContext) _application.getProperties()
-        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
-    return serverContext.getConfigAccessor();
-  }
-
-  public HelixDataAccessor getDataAccssor(String clusterName) {
-    ServerContext serverContext = (ServerContext) _application.getProperties()
-        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
-    return serverContext.getDataAccssor(clusterName);
-  }
-
   protected void addExceptionToAuditLog(Exception ex) {
     if (_auditLogBuilder == null) {
       _auditLogBuilder =
@@ -194,10 +158,6 @@ public class AbstractResource {
     sw.append('\n');
 
     return sw.toString();
-  }
-
-  protected static ZNRecord toZNRecord(String data) throws IOException {
-    return OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
   }
 
   protected Command getCommand(String commandStr) throws HelixException {

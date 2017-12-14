@@ -21,5 +21,6 @@ package org.apache.helix.rest.common;
 
 public enum ContextPropertyKeys {
   SERVER_CONTEXT,
-  NAMESPACE
+  METADATA,
+  ALL_NAMESPACES
 }

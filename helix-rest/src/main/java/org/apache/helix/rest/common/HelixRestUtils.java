@@ -21,17 +21,6 @@ package org.apache.helix.rest.common;
 
 public class HelixRestUtils {
   /**
-   * Generate servlet path spec for a given namespace.
-   * @param namespace Name of the namespace
-   * @param isDefaultServlet mark this as true to get path spec for the special servlet for default namespace
-   * @return servlet path spec
-   */
-  public static String makeServletPathSpec(String namespace, boolean isDefaultServlet) {
-    return isDefaultServlet ? HelixRestNamespace.DEFAULT_NAMESPACE_PATH_SPEC
-        : String.format("/namespaces/%s/*", namespace);
-  }
-
-  /**
    * Extract namespace information from servlet path. There are 3 cases:
    *  1. /namespaces/namespaceName  ->  return namespaceName
    *  2. /namespaces                ->  return ""
@@ -40,7 +29,7 @@ public class HelixRestUtils {
    * @return Namespace name retrieved from servlet spec.
    */
   public static String getNamespaceFromServletPath(String servletPath) {
-    if (isDefaultNamespaceServlet(servletPath)) {
+    if (isDefaultServlet(servletPath)) {
       return HelixRestNamespace.DEFAULT_NAMESPACE_NAME;
     }
 
@@ -52,7 +41,7 @@ public class HelixRestUtils {
     }
   }
 
-  private static boolean isDefaultNamespaceServlet(String servletPath) {
+  public static boolean isDefaultServlet(String servletPath) {
     // Special servlet for default namespace has path spec "/*", so servletPath is empty
     return servletPath == null || servletPath.isEmpty();
   }

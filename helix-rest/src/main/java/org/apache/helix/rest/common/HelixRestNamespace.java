@@ -19,10 +19,15 @@ package org.apache.helix.rest.common;
  * under the License.
  */
 
+import java.util.HashMap;
+import java.util.Map;
+
+
 public class HelixRestNamespace {
 
   public enum HelixMetadataStoreType {
-    ZOOKEEPER
+    ZOOKEEPER,
+    NO_METADATA_STORE
   }
 
   public enum HelixRestNamespaceProperty {
@@ -78,7 +83,8 @@ public class HelixRestNamespace {
     if (_name == null || _name.length() == 0) {
       throw new IllegalArgumentException("Name of namespace not provided");
     }
-    if (_metadataStoreAddress == null || _metadataStoreAddress.isEmpty()) {
+    if (_metadataStoreType != HelixMetadataStoreType.NO_METADATA_STORE && (_metadataStoreAddress == null
+        || _metadataStoreAddress.isEmpty())) {
       throw new IllegalArgumentException(
           String.format("Metadata store address \"%s\" is not valid for namespace %s", _metadataStoreAddress, _name));
     }
@@ -96,4 +102,11 @@ public class HelixRestNamespace {
     return _metadataStoreAddress;
   }
 
+  public Map<String, String> getRestInfo() {
+    // In REST APIs we currently don't expose metadata store information
+    Map<String, String> ret = new HashMap<>();
+    ret.put(HelixRestNamespaceProperty.NAME.name(), _name);
+    ret.put(HelixRestNamespaceProperty.IS_DEFAULT.name(), String.valueOf(_isDefault));
+    return ret;
+  }
 }

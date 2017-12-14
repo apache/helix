@@ -1,4 +1,4 @@
-package org.apache.helix.rest.server.resources;
+package org.apache.helix.rest.server.resources.helix;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -52,7 +52,7 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
 @Path("/clusters/{clusterId}/instances")
-public class InstanceAccessor extends AbstractResource {
+public class InstanceAccessor extends AbstractHelixResource {
   private final static Logger _logger = LoggerFactory.getLogger(InstanceAccessor.class);
 
   public enum InstanceProperties {

@@ -1,4 +1,4 @@
-package org.apache.helix.rest.server.resources;
+package org.apache.helix.rest.server.resources.helix;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -53,7 +53,7 @@ import org.codehaus.jackson.node.ObjectNode;
 import org.codehaus.jackson.node.TextNode;
 
 @Path("/clusters/{clusterId}/workflows")
-public class WorkflowAccessor extends AbstractResource {
+public class WorkflowAccessor extends AbstractHelixResource {
   private static Logger _logger = LoggerFactory.getLogger(WorkflowAccessor.class.getName());
 
   public enum WorkflowProperties {

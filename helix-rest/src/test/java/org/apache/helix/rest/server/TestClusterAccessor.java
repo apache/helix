@@ -42,7 +42,7 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.resources.AbstractResource.Command;
-import org.apache.helix.rest.server.resources.ClusterAccessor;
+import org.apache.helix.rest.server.resources.helix.ClusterAccessor;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;

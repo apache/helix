@@ -8,7 +8,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.rest.server.resources.WorkflowAccessor;
+import org.apache.helix.rest.server.resources.helix.WorkflowAccessor;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TargetState;
 import org.apache.helix.task.TaskDriver;

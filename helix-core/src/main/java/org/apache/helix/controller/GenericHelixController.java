@@ -73,6 +73,7 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
@@ -128,6 +129,7 @@ public class GenericHelixController implements IdealStateChangeListener,
    * will be no-op. Other event handling logic keeps the same when the flag is set.
    */
   private boolean _paused;
+  private boolean _inMaintenanceMode;
 
   /**
    * The timer that can periodically run the rebalancing pipeline. The timer will start if there is
@@ -632,23 +634,10 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
 
     PauseSignal pauseSignal = accessor.getProperty(keyBuilder.pause());
-    if (pauseSignal != null) {
-      if (!_paused) {
-        _paused = true;
-        logger.info("controller is now paused");
-      }
-    } else {
-      if (_paused) {
-        _paused = false;
-        logger.info("controller is now resumed");
-        ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.Resume);
-        event.addAttribute(AttributeName.changeContext.name(), changeContext);
-        event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
-        event.addAttribute(AttributeName.eventData.name(), pauseSignal);
-        _eventQueue.put(event);
-        _taskEventQueue.put(event.clone());
-      }
-    }
+    MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
+    _paused = updateControllerState(changeContext, pauseSignal, _paused);
+    _inMaintenanceMode = updateControllerState(changeContext, maintenanceSignal, _inMaintenanceMode);
+
     synchronized (this) {
       if (_clusterStatusMonitor == null) {
         _clusterStatusMonitor = new ClusterStatusMonitor(changeContext.getManager().getClusterName());
@@ -756,6 +745,30 @@ public class GenericHelixController implements IdealStateChangeListener,
       thread.interrupt();
       thread.join(EVENT_THREAD_JOIN_TIMEOUT);
     }
+  }
+
+  private boolean updateControllerState(NotificationContext changeContext, PauseSignal signal,
+      boolean statusFlag) {
+    if (signal != null) {
+      // This logic is used for recording first time entering PAUSE/MAINTENCE mode
+      if (!statusFlag) {
+        statusFlag = true;
+        logger.info(String.format("controller is now %s",
+            (signal instanceof MaintenanceSignal) ? "in maintenance mode" : "paused"));
+      }
+    } else {
+      if (statusFlag) {
+        statusFlag = false;
+        logger.info("controller is now resumed from paused state");
+        ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.Resume);
+        event.addAttribute(AttributeName.changeContext.name(), changeContext);
+        event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
+        event.addAttribute(AttributeName.eventData.name(), signal);
+        _eventQueue.put(event);
+        _taskEventQueue.put(event.clone());
+      }
+    }
+    return statusFlag;
   }
 
 

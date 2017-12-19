@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.ws.rs.client.Entity;
@@ -135,7 +136,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
         Response.Status.OK.getStatusCode());
     Assert.assertEquals(_configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getTags(),
         ImmutableList.of("tag2"));
-    
+
     // TODO: Reenable the test after storage node fix the problem
     // Batch disable instances
     /*

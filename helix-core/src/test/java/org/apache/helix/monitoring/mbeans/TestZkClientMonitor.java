@@ -98,18 +98,20 @@ public class TestZkClientMonitor {
     long eventCount = (long) _beanServer.getAttribute(name, "DataChangeEventCounter");
     Assert.assertEquals(eventCount, 1);
 
-    monitor.recordRead("TEST/IDEALSTATES/myResource", 0, System.currentTimeMillis() - 10);
+    monitor.record("TEST/IDEALSTATES/myResource", 0, System.currentTimeMillis() - 10,
+        ZkClientMonitor.AccessType.READ);
     Assert.assertEquals((long) _beanServer.getAttribute(rootName, "ReadCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(idealStateName, "ReadCounter"), 1);
     Assert.assertTrue((long) _beanServer.getAttribute(rootName, "ReadLatencyGauge.Max") >= 10);
-    monitor.recordRead("TEST/INSTANCES/testDB0", 0, System.currentTimeMillis() - 15);
+    monitor.record("TEST/INSTANCES/testDB0", 0, System.currentTimeMillis() - 15,
+        ZkClientMonitor.AccessType.READ);
     Assert.assertEquals((long) _beanServer.getAttribute(rootName, "ReadCounter"), 2);
     Assert.assertEquals((long) _beanServer.getAttribute(instancesName, "ReadCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(idealStateName, "ReadCounter"), 1);
     Assert.assertTrue((long) _beanServer.getAttribute(rootName, "ReadTotalLatencyCounter") >= 25);
 
-    monitor.recordWrite("TEST/INSTANCES/node_1/CURRENTSTATES/session_1/Resource", 5,
-        System.currentTimeMillis() - 10);
+    monitor.record("TEST/INSTANCES/node_1/CURRENTSTATES/session_1/Resource", 5,
+        System.currentTimeMillis() - 10, ZkClientMonitor.AccessType.WRITE);
     Assert.assertEquals((long) _beanServer.getAttribute(rootName, "WriteCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(currentStateName, "WriteCounter"), 1);
     Assert.assertEquals((long) _beanServer.getAttribute(currentStateName, "WriteBytesCounter"), 5);

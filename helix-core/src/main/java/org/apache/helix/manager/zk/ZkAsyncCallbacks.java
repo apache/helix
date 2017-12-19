@@ -136,9 +136,11 @@ public class ZkAsyncCallbacks {
         ZkAsyncCallContext zkCtx = (ZkAsyncCallContext) ctx;
         if (zkCtx._monitor != null) {
           if (zkCtx._isRead) {
-            zkCtx._monitor.recordRead(path, zkCtx._bytes, zkCtx._startTimeMilliSec);
+            zkCtx._monitor.record(path, zkCtx._bytes, zkCtx._startTimeMilliSec,
+                ZkClientMonitor.AccessType.READ);
           } else {
-            zkCtx._monitor.recordWrite(path, zkCtx._bytes, zkCtx._startTimeMilliSec);
+            zkCtx._monitor.record(path, zkCtx._bytes, zkCtx._startTimeMilliSec,
+                ZkClientMonitor.AccessType.WRITE);
           }
         }
       }

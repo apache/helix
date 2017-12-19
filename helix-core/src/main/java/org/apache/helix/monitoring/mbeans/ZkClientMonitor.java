@@ -31,6 +31,11 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   public static final String MONITOR_TYPE = "Type";
   public static final String MONITOR_KEY = "Key";
 
+  public enum AccessType {
+    READ,
+    WRITE
+  }
+
   private ObjectName _objectName;
   private String _sensorName;
 
@@ -117,19 +122,30 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     }
   }
 
-  public void recordReadFailure(String path) {
-    record(path, 0, 0, true, true);
+  public void record(String path, int dataSize, long startTimeMilliSec, AccessType accessType) {
+    switch (accessType) {
+    case READ:
+      record(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, true);
+      return;
+    case WRITE:
+      record(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, false);
+      return;
+
+    default:
+      return;
+    }
   }
 
-  public void recordRead(String path, int dataSize, long startTimeMilliSec) {
-    record(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, true);
-  }
-
-  public void recordWriteFailure(String path) {
-    record(path, 0, 0, true, false);
-  }
-
-  public void recordWrite(String path, int dataSize, long startTimeMilliSec) {
-    record(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, false);
+  public void recordFailure(String path, AccessType accessType) {
+    switch (accessType) {
+    case READ:
+      record(path, 0, 0, true, true);
+      return;
+    case WRITE:
+      record(path, 0, 0, true, false);
+      return;
+    default:
+      return;
+    }
   }
 }

@@ -43,6 +43,7 @@ under the License.
     <module>0.6.9</module>
     <module>0.7.0-incubating</module>
     <module>0.7.1</module>
+    <module>0.8.0</module>
   </modules>
 
   <properties>

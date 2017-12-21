@@ -2,6 +2,9 @@
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 @import url('https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic');
 
+// ngx-vis styles (vis styles)
+@import '~vis/dist/vis-network.min.css';
+
 // ngx-datatable styles
 @import '~@swimlane/ngx-datatable/release/index.css';
 @import '~@swimlane/ngx-datatable/release/themes/material.css';

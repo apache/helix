@@ -1,0 +1,43 @@
+:host {
+  width: 100%;
+  height: 100%;
+}
+
+.cluster-dashboard {
+  width: 800px;
+  height: 600px;
+}
+
+.info {
+  font-size: 12px;
+  height: 36px;
+  background-color: #fff;
+  border-bottom: 1px solid #ccc;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 24px;
+}
+
+.oval {
+  width: 80px;
+  height: 24px;
+  background-color: #7FCAC3;
+  border: 1px solid #65A19C;
+  -moz-border-radius: 80px / 24px;
+  -webkit-border-radius: 80px / 24px;
+  border-raius: 80px / 24px;
+}
+
+.rectangle {
+  width: 80px;
+  height: 24px;
+  background-color: #90CAF9;
+  border: 1px solid #73A1C7;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-raius: 5px;
+}
+
+.hint {
+  color: gray;
+}

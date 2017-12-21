@@ -1,0 +1,29 @@
+<section fxLayout="column" fxFlex>
+  <section class="info" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+    <div class="oval">Resource</div>
+    <div class="rectangle">Instance</div>
+    <div class="hint">
+      (Scroll to zoom; Drag to move; Click for details)
+    </div>
+    <span fxFlex="1 1 auto"></span>
+    <button mat-button (click)="updateResources()">
+      <mat-icon>refresh</mat-icon>
+      Refresh Status
+    </button>
+    <button
+      mat-button
+      *ngIf="selectedResource || selectedInstance"
+      color="accent"
+      [routerLink]="['../', selectedResource ? 'resources' : 'instances', selectedResource || selectedInstance]">
+      {{ selectedResource || selectedInstance }}
+      <mat-icon>arrow_forward</mat-icon>
+    </button>
+  </section>
+  <section
+    class="cluster-dashboard"
+    [visNetwork]="visNetwork"
+    [visNetworkData]="visNetworkData"
+    [visNetworkOptions]="visNetworkOptions"
+    (initialized)="networkInitialized()">
+  </section>
+</section>

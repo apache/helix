@@ -16,6 +16,7 @@ import { InstanceDetailComponent } from './instance/instance-detail/instance-det
 import { WorkflowListComponent } from './workflow/workflow-list/workflow-list.component';
 import { WorkflowDetailComponent } from './workflow/workflow-detail/workflow-detail.component';
 import { HelixListComponent } from './chooser/helix-list/helix-list.component';
+import { DashboardComponent } from './dashboard/dashboard.component';
 
 const HELIX_ROUTES: Routes = [
   {
@@ -55,6 +56,10 @@ const HELIX_ROUTES: Routes = [
           {
             path: 'workflows',
             component: WorkflowListComponent
+          },
+          {
+            path: 'dashboard',
+            component: DashboardComponent
           }
         ]
       },

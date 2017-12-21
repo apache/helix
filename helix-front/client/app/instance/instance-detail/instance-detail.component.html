@@ -1,38 +1,40 @@
 <section>
-  <md-toolbar class="mat-elevation-z1">
-    <hi-detail-header [cluster]="clusterName" [instance]="instanceName"></hi-detail-header>
-    <hi-disabled-label *ngIf="!isLoading && !instance.liveInstance" text="OFFLINE"></hi-disabled-label>
-    <hi-disabled-label *ngIf="!isLoading && !instance.enabled" text="DISABLED"></hi-disabled-label>
-    <md-toolbar-row class="information">
-      <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
-      <md-spinner *ngIf="isLoading"></md-spinner>
+  <mat-toolbar class="mat-elevation-z1">
+    <mat-toolbar-row>
+      <hi-detail-header [cluster]="clusterName" [instance]="instanceName"></hi-detail-header>
+      <hi-disabled-label *ngIf="!isLoading && !instance.liveInstance" text="OFFLINE"></hi-disabled-label>
+      <hi-disabled-label *ngIf="!isLoading && !instance.enabled" text="DISABLED"></hi-disabled-label>
+    </mat-toolbar-row>
+    <mat-toolbar-row class="information">
+      <a mat-mini-fab routerLink="../"><mat-icon>arrow_back</mat-icon></a>
+      <mat-spinner *ngIf="isLoading" diameter="30"></mat-spinner>
       <hi-key-value-pairs *ngIf="!isLoading" [obj]="instance">
         <hi-key-value-pair name="Instance" prop="liveInstance"></hi-key-value-pair>
         <hi-key-value-pair name="Session ID" prop="sessionId"></hi-key-value-pair>
         <hi-key-value-pair name="Helix Version" prop="helixVersion"></hi-key-value-pair>
       </hi-key-value-pairs>
       <span fxFlex="1 1 auto"></span>
-      <button md-mini-fab *ngIf="can" [mdMenuTriggerFor]="menu">
-        <md-icon>menu</md-icon>
+      <button mat-mini-fab *ngIf="can" [matMenuTriggerFor]="menu">
+        <mat-icon>menu</mat-icon>
       </button>
-      <md-menu #menu="mdMenu">
-        <button md-menu-item *ngIf="instance && instance.enabled" (click)="disableInstance()">
-          <md-icon>not_interested</md-icon>
+      <mat-menu #menu="matMenu">
+        <button mat-menu-item *ngIf="instance && instance.enabled" (click)="disableInstance()">
+          <mat-icon>not_interested</mat-icon>
           <span>Disable this Instance</span>
         </button>
-        <button md-menu-item *ngIf="instance && !instance.enabled" (click)="enableInstance()">
-          <md-icon>play_circle_outline</md-icon>
+        <button mat-menu-item *ngIf="instance && !instance.enabled" (click)="enableInstance()">
+          <mat-icon>play_circle_outline</mat-icon>
           <span>Enable this Instance</span>
         </button>
-        <button md-menu-item (click)="removeInstance()">
-          <md-icon>delete</md-icon>
+        <button mat-menu-item (click)="removeInstance()">
+          <mat-icon>delete</mat-icon>
           <span>REMOVE this Instance</span>
         </button>
-      </md-menu>
-    </md-toolbar-row>
-  </md-toolbar>
-  <nav md-tab-nav-bar>
-    <a md-tab-link
+      </mat-menu>
+    </mat-toolbar-row>
+  </mat-toolbar>
+  <nav mat-tab-nav-bar>
+    <a mat-tab-link
       *ngFor="let tabLink of tabLinks"
       [routerLink]="tabLink.link"
       routerLinkActive #rla="routerLinkActive"

@@ -1,11 +1,11 @@
-<h4>
+<h4 fxLayout="row" fxLayoutAlign="center center">
   <span [ngClass]="{'secondary': isSecondary()}">{{ cluster }}</span>
-  <md-icon *ngIf="isSecondary()" class="secondary">navigate_next</md-icon>
+  <mat-icon *ngIf="isSecondary()" class="secondary">navigate_next</mat-icon>
   <span *ngIf="controller">{{ controller }}</span>
   <span *ngIf="instance">{{ instance }}</span>
   <span *ngIf="resource">{{ resource }}</span>
   <span *ngIf="workflow">{{ workflow }}</span>
-  <span class="tag">
+  <span class="tag" fxLayout="row" fxLayoutAlign="center center">
     <span [ngClass]="getTag()">{{ getTag() }}</span>
     <!-- for testing purpose only
     <span class="cluster">Cluster</span>

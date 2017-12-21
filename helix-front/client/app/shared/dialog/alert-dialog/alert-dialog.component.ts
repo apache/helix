@@ -1,5 +1,5 @@
 import { Component, OnInit, Inject } from '@angular/core';
-import { MD_DIALOG_DATA } from '@angular/material';
+import { MAT_DIALOG_DATA } from '@angular/material';
 
 @Component({
   selector: 'hi-alert-dialog',
@@ -12,7 +12,7 @@ export class AlertDialogComponent implements OnInit {
   message: string;
 
   constructor(
-    @Inject(MD_DIALOG_DATA) protected data: any
+    @Inject(MAT_DIALOG_DATA) protected data: any
   ) { }
 
   ngOnInit() {

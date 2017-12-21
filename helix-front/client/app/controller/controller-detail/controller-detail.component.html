@@ -1,18 +1,20 @@
 <section>
-  <md-toolbar class="mat-elevation-z1">
-    <hi-detail-header [cluster]="clusterName" [controller]="controller?.name"></hi-detail-header>
-    <md-toolbar-row class="information" fxLayout="row">
-      <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
-      <md-spinner *ngIf="isLoading"></md-spinner>
+  <mat-toolbar class="mat-elevation-z1">
+    <mat-toolbar-row>
+      <hi-detail-header [cluster]="clusterName" [controller]="controller?.name"></hi-detail-header>
+    </mat-toolbar-row>
+    <mat-toolbar-row class="information" fxLayout="row">
+      <a mat-mini-fab routerLink="../"><mat-icon>arrow_back</mat-icon></a>
+      <mat-spinner *ngIf="isLoading" diameter="30"></mat-spinner>
       <hi-key-value-pairs *ngIf="!isLoading" [obj]="controller">
         <hi-key-value-pair name="Instance" prop="liveInstance"></hi-key-value-pair>
         <hi-key-value-pair name="Session ID" prop="sessionId"></hi-key-value-pair>
         <hi-key-value-pair name="Helix Version" prop="helixVersion"></hi-key-value-pair>
       </hi-key-value-pairs>
-    </md-toolbar-row>
-  </md-toolbar>
-  <nav md-tab-nav-bar>
-    <a md-tab-link
+    </mat-toolbar-row>
+  </mat-toolbar>
+  <nav mat-tab-nav-bar>
+    <a mat-tab-link
       routerLink="history"
       routerLinkActive #rla="routerLinkActive"
       [active]="rla.isActive">

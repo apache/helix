@@ -1,12 +1,14 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Observable } from 'rxjs/Rx';
 
+import * as _ from 'lodash';
+
+import { Settings } from '../../core/settings';
 import { Resource } from '../shared/resource.model';
 import { ResourceService } from '../shared/resource.service';
 import { WorkflowService } from '../../workflow/shared/workflow.service';
 import { HelperService } from '../../shared/helper.service';
-import { Observable } from 'rxjs/Rx';
-import * as _ from 'lodash';
 
 @Component({
   selector: 'hi-resource-list',
@@ -20,7 +22,8 @@ export class ResourceListComponent implements OnInit {
   table: any;
 
   isForInstance = false;
-  rowHeight = 40;
+  headerHeight = Settings.tableHeaderHeight;
+  rowHeight = Settings.tableRowHeight;
   resources: Resource[];
   isLoading = true;
   clusterName: string;

@@ -1,54 +1,56 @@
-<section class="cluster-detail">
-  <section *ngIf="clusterName">
-    <md-toolbar class="mat-elevation-z1">
+<section *ngIf="clusterName" class="cluster-detail" fxLayout="column" fxFill>
+  <mat-toolbar class="mat-elevation-z1" fxFlex="none">
+    <mat-toolbar-row>
       <hi-detail-header [cluster]="clusterName"></hi-detail-header>
       <hi-disabled-label *ngIf="!cluster?.enabled" text="DISABLED"></hi-disabled-label>
-      <md-toolbar-row class="information">
-        <md-spinner *ngIf="isLoading"></md-spinner>
-        <h6 *ngIf="!isLoading">Controller:
-          <a md-button color="accent" routerLink="controller">{{ cluster.controller }}</a>
-        </h6>
-        <span fxFlex="1 1 auto"></span>
-        <button md-mini-fab *ngIf="can" [mdMenuTriggerFor]="menu">
-          <md-icon>menu</md-icon>
+    </mat-toolbar-row>
+    <mat-toolbar-row class="information">
+      <mat-spinner *ngIf="isLoading" diameter="30"></mat-spinner>
+      <h6 *ngIf="!isLoading">Controller:
+        <a mat-button color="accent" routerLink="controller">{{ cluster.controller }}</a>
+      </h6>
+      <span fxFlex="1 1 auto"></span>
+      <button mat-mini-fab *ngIf="can" [matMenuTriggerFor]="menu">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <mat-menu #menu="matMenu">
+        <button mat-menu-item *ngIf="cluster?.controller == 'No Lead Controller!'" (click)="activateCluster()">
+          <mat-icon>settings_input_antenna</mat-icon>
+          <span>Activate this Cluster</span>
         </button>
-        <md-menu #menu="mdMenu">
-          <button md-menu-item *ngIf="cluster?.controller == 'No Lead Controller!'" (click)="activateCluster()">
-            <md-icon>settings_input_antenna</md-icon>
-            <span>Activate this Cluster</span>
-          </button>
-          <button md-menu-item *ngIf="cluster?.enabled" (click)="disableCluster()">
-            <md-icon>not_interested</md-icon>
-            <span>Disable this Cluster</span>
-          </button>
-          <button md-menu-item *ngIf="!cluster?.enabled" (click)="enableCluster()">
-            <md-icon>play_circle_outline</md-icon>
-            <span>Enable this Cluster</span>
-          </button>
-          <button md-menu-item *ngIf="false" (click)="addResource()">
-            <md-icon>note_add</md-icon>
-            <span>Add a Resource</span>
-          </button>
-          <button md-menu-item (click)="addInstance()">
-            <md-icon>add_circle</md-icon>
-            <span>Add an Instance</span>
-          </button>
-          <button md-menu-item *ngIf="false" (click)="deleteCluster()" disabled>
-            <md-icon>delete</md-icon>
-            <span>DELETE this Cluster</span>
-          </button>
-        </md-menu>
-      </md-toolbar-row>
-    </md-toolbar>
-    <nav md-tab-nav-bar>
-      <a md-tab-link
-        *ngFor="let tabLink of tabLinks"
-        [routerLink]="tabLink.link"
-        routerLinkActive #rla="routerLinkActive"
-        [active]="rla.isActive">
-        {{ tabLink.label }}
-      </a>
-    </nav>
+        <button mat-menu-item *ngIf="cluster?.enabled" (click)="disableCluster()">
+          <mat-icon>not_interested</mat-icon>
+          <span>Disable this Cluster</span>
+        </button>
+        <button mat-menu-item *ngIf="!cluster?.enabled" (click)="enableCluster()">
+          <mat-icon>play_circle_outline</mat-icon>
+          <span>Enable this Cluster</span>
+        </button>
+        <button mat-menu-item *ngIf="false" (click)="addResource()">
+          <mat-icon>note_add</mat-icon>
+          <span>Add a Resource</span>
+        </button>
+        <button mat-menu-item (click)="addInstance()">
+          <mat-icon>add_circle</mat-icon>
+          <span>Add an Instance</span>
+        </button>
+        <button mat-menu-item *ngIf="false" (click)="deleteCluster()" disabled>
+          <mat-icon>delete</mat-icon>
+          <span>DELETE this Cluster</span>
+        </button>
+      </mat-menu>
+    </mat-toolbar-row>
+  </mat-toolbar>
+  <nav mat-tab-nav-bar>
+    <a mat-tab-link
+      *ngFor="let tabLink of tabLinks"
+      [routerLink]="tabLink.link"
+      routerLinkActive #rla="routerLinkActive"
+      [active]="rla.isActive">
+      {{ tabLink.label }}
+    </a>
+  </nav>
+  <section fxFlex>
     <router-outlet></router-outlet>
   </section>
 </section>

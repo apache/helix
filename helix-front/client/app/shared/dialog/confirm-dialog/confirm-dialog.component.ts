@@ -1,6 +1,6 @@
 import { Component, OnInit, Inject } from '@angular/core';
-import { MdDialogRef } from '@angular/material';
-import { MD_DIALOG_DATA } from '@angular/material';
+import { MatDialogRef } from '@angular/material';
+import { MAT_DIALOG_DATA } from '@angular/material';
 
 @Component({
   selector: 'hi-confirm-dialog',
@@ -13,8 +13,8 @@ export class ConfirmDialogComponent implements OnInit {
   message: string;
 
   constructor(
-    @Inject(MD_DIALOG_DATA) protected data: any,
-    protected dialogRef: MdDialogRef<ConfirmDialogComponent>
+    @Inject(MAT_DIALOG_DATA) protected data: any,
+    protected dialogRef: MatDialogRef<ConfirmDialogComponent>
   ) { }
 
   ngOnInit() {

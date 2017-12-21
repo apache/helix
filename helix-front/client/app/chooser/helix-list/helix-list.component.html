@@ -1,15 +1,15 @@
-<md-card *ngFor="let group of keys(groups)">
-  <md-card-header>
-    <md-card-title>{{ group }}</md-card-title>
-  </md-card-header>
-  <md-card-content>
+<mat-card *ngFor="let group of keys(groups)">
+  <mat-card-header>
+    <mat-card-title>{{ group }}</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
     <section *ngFor="let section of groups[group]" class="section">
       <a *ngFor="let helix of keys(section)"
-        md-button
+        mat-button
         [routerLink]="['/', group + '.' + helix]">
-        <md-icon>group_work</md-icon>
+        <mat-icon>group_work</mat-icon>
         {{ helix }}
       </a>
     </section>
-  </md-card-content>
-</md-card>
+  </mat-card-content>
+</mat-card>

@@ -1,5 +1,6 @@
 import { Component, OnInit, Input, ViewEncapsulation } from '@angular/core';
 
+import { Settings } from '../../core/settings';
 import { Partition, IReplica } from '../shared/resource.model';
 
 @Component({
@@ -13,7 +14,8 @@ export class PartitionDetailComponent implements OnInit {
   @Input() clusterName: string;
   @Input() partition: Partition;
 
-  rowHeight = 40;
+  headerHeight = Settings.tableHeaderHeight;
+  rowHeight = Settings.tableRowHeight;
 
   constructor() { }
 

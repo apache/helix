@@ -1,46 +1,46 @@
 <section class="node-viewer" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="10px">
-  <md-progress-bar *ngIf="loadingIndicator" mode="indeterminate"></md-progress-bar>
-  <md-button-toggle-group #group="mdButtonToggleGroup" value="table">
-    <md-button-toggle value="table">
+  <mat-progress-bar *ngIf="loadingIndicator" mode="indeterminate"></mat-progress-bar>
+  <mat-button-toggle-group #group="matButtonToggleGroup" value="table">
+    <mat-button-toggle value="table">
       Table View
-    </md-button-toggle>
-    <md-button-toggle value="json">
+    </mat-button-toggle>
+    <mat-button-toggle value="json">
       JSON View
-    </md-button-toggle>
-  </md-button-toggle-group>
+    </mat-button-toggle>
+  </mat-button-toggle-group>
   <section class="viewer" [ngSwitch]="group.value" fxFlexFill>
     <ngx-json-viewer *ngSwitchCase="'json'" [json]="obj"></ngx-json-viewer>
     <section *ngSwitchCase="'table'">
 
-      <!-- TODO vxu: use md-simple-table when it's available -->
+      <!-- TODO vxu: use mat-simple-table when it's available -->
 
       <section fxLayout="row" fxLayoutAlign="center center">
         <span fxFlex="1 1 auto"></span>
-        <md-icon>search</md-icon>
-        <md-input-container>
-          <input mdInput
+        <mat-icon>search</mat-icon>
+        <mat-form-field class="search-form-field">
+          <input matInput
             placeholder="Type to filter the fields..."
             (keyup)="updateFilter($event)"/>
-        </md-input-container>
+        </mat-form-field>
         <span fxFlex="1 1 auto"></span>
-        <button md-button
+        <button mat-button
           *ngIf="unlockable"
           (click)="editable = !editable"
-          [mdTooltip]="editable ? 'Click to prevent further changes' : 'Click to make changes'">
-          <md-icon>{{ editable ? 'lock_open' : 'lock' }}</md-icon>
+          [matTooltip]="editable ? 'Click to prevent further changes' : 'Click to make changes'">
+          <mat-icon>{{ editable ? 'lock_open' : 'lock' }}</mat-icon>
           {{ editable ? 'Unlocked' : 'Locked' }}
         </button>
       </section>
 
-      <md-card>
-        <md-card-header>
-          <md-card-title>
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
             Simple Fields
             <span *ngIf="simpleConfigs.length == 0">is empty.</span>
             <span *ngIf="keyword" class="primary">(filtered)</span>
-          </md-card-title>
-        </md-card-header>
-        <md-card-content>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
           <hi-data-table
             *ngIf="simpleConfigs.length || editable"
             [rows]="simpleConfigs"
@@ -52,25 +52,25 @@
             (create)="created('simple', $event)"
             (delete)="onDelete('simple', $event.row)">
           </hi-data-table>
-        </md-card-content>
-      </md-card>
+        </mat-card-content>
+      </mat-card>
 
-      <md-card>
-        <md-card-header>
-          <md-card-title>
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
             List Fields
             <span *ngIf="listConfigs.length == 0">is empty.</span>
             <span *ngIf="keyword" class="primary">(filtered)</span>
-          </md-card-title>
-        </md-card-header>
-        <md-card-content>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
           <ngx-datatable
             *ngIf="listConfigs.length || editable"
             #listTable
             class="material"
-            [headerHeight]="rowHeight"
+            [headerHeight]="headerHeight"
             rowHeight="auto"
-            [footerHeight]="rowHeight"
+            [footerHeight]="headerHeight"
             columnMode="force"
             [rows]="listConfigs"
             [sorts]="sorts"
@@ -82,8 +82,8 @@
               [draggable]="false"
               [canAutoResize]="false">
               <ng-template let-row="row" ngx-datatable-cell-template>
-                <button md-icon-button class="delete-button" mdTooltip="Click to delete" (click)="beforeDelete('list', row)">
-                  <md-icon>delete_forever</md-icon>
+                <button mat-icon-button class="delete-button" matTooltip="Click to delete" (click)="beforeDelete('list', row)">
+                  <mat-icon>delete_forever</mat-icon>
                 </button>
               </ng-template>
             </ngx-datatable-column>
@@ -109,8 +109,8 @@
                 let-pageSize="pageSize"
                 let-curPage="curPage">
                 <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
-                  <button md-button *ngIf="editable" (click)="onCreate('list')">
-                    <md-icon>add</md-icon>
+                  <button mat-button *ngIf="editable" (click)="onCreate('list')">
+                    <mat-icon>add</mat-icon>
                     Add new entry
                   </button>
                   <section>
@@ -133,25 +133,25 @@
               </ng-template>
             </ngx-datatable-footer>
           </ngx-datatable>
-        </md-card-content>
-      </md-card>
+        </mat-card-content>
+      </mat-card>
 
-      <md-card>
-        <md-card-header>
-          <md-card-title>
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
             Map Fields
             <span *ngIf="mapConfigs.length == 0">is empty.</span>
             <span *ngIf="keyword" class="primary">(filtered)</span>
-          </md-card-title>
-        </md-card-header>
-        <md-card-content>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
           <ngx-datatable
             *ngIf="mapConfigs.length || editable"
             #mapTable
             class="material"
-            [headerHeight]="rowHeight"
+            [headerHeight]="headerHeight"
             rowHeight="auto"
-            [footerHeight]="rowHeight"
+            [footerHeight]="headerHeight"
             columnMode="force"
             [rows]="mapConfigs"
             [sorts]="sorts"
@@ -163,8 +163,8 @@
               [draggable]="false"
               [canAutoResize]="false">
               <ng-template let-row="row" ngx-datatable-cell-template>
-                <button md-icon-button class="delete-button" mdTooltip="Click to delete" (click)="beforeDelete('map', row)">
-                  <md-icon>delete_forever</md-icon>
+                <button mat-icon-button class="delete-button" matTooltip="Click to delete" (click)="beforeDelete('map', row)">
+                  <mat-icon>delete_forever</mat-icon>
                 </button>
               </ng-template>
             </ngx-datatable-column>
@@ -190,8 +190,8 @@
                 let-pageSize="pageSize"
                 let-curPage="curPage">
                 <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
-                  <button md-button *ngIf="editable" (click)="onCreate('map')">
-                    <md-icon>add</md-icon>
+                  <button mat-button *ngIf="editable" (click)="onCreate('map')">
+                    <mat-icon>add</mat-icon>
                     Add new entry
                   </button>
                   <section>
@@ -214,8 +214,8 @@
               </ng-template>
             </ngx-datatable-footer>
           </ngx-datatable>
-        </md-card-content>
-      </md-card>
+        </mat-card-content>
+      </mat-card>
 
     </section>
   </section>

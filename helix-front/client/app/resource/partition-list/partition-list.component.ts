@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
+import { Settings } from '../../core/settings';
 import { Partition, IReplica, Resource } from '../shared/resource.model';
 import { HelperService } from '../../shared/helper.service';
 import { ResourceService } from '../shared/resource.service';
@@ -19,7 +20,8 @@ export class PartitionListComponent implements OnInit {
   clusterName: string;
   resource: Resource;
   partitions: Partition[];
-  rowHeight = 40;
+  headerHeight = Settings.tableHeaderHeight;
+  rowHeight = Settings.tableRowHeight;
   sorts = [
     { prop: 'isReady', dir: 'asc'},
     { prop: 'name', dir: 'asc'}

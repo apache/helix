@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { MdDialog, MdSnackBar } from '@angular/material';
+import { MatDialog, MatSnackBar } from '@angular/material';
 
 import { ClusterService } from '../shared/cluster.service';
 import { Cluster } from '../shared/cluster.model';
@@ -20,8 +20,8 @@ export class ClusterListComponent implements OnInit {
 
   constructor(
     protected clusterService: ClusterService,
-    protected dialog: MdDialog,
-    protected snackBar: MdSnackBar
+    protected dialog: MatDialog,
+    protected snackBar: MatSnackBar
   ) { }
 
   ngOnInit() {

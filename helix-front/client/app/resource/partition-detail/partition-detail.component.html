@@ -1,7 +1,7 @@
 <ngx-datatable
   class="material"
-  [headerHeight]="rowHeight"
-  rowHeight="auto"
+  [headerHeight]="headerHeight"
+  [rowHeight]="rowHeight"
   columnMode="force"
   [rows]="partition?.replicas">
   <ngx-datatable-column
@@ -9,8 +9,8 @@
     [width]="80"
     [resizeable]="false"
     [canAutoResize]="false">
-    <ng-template let-row="row" ngx-datatable-cell-template>
-      <strong>#{{ row.$$index + 1 }}</strong>
+    <ng-template let-row="row" let-rowIndex="rowIndex" ngx-datatable-cell-template>
+      <strong>#{{ rowIndex + 1 }}</strong>
     </ng-template>
   </ngx-datatable-column>
   <ngx-datatable-column
@@ -18,10 +18,10 @@
     prop="instanceName">
     <ng-template let-value="value" ngx-datatable-cell-template>
       {{ value }}
-      <a md-icon-button
+      <a mat-icon-button
         color="accent"
         [routerLink]="['../../..', 'instances', value, 'resources']">
-        <md-icon>arrow_forward</md-icon>
+        <mat-icon>arrow_forward</mat-icon>
       </a>
     </ng-template>
   </ngx-datatable-column>

@@ -1,7 +1,8 @@
 import { NgModule } from '@angular/core';
 import { HttpModule } from '@angular/http';
-import { MaterialModule } from '@angular/material';
+import { MaterialModule } from '../app/shared/material.module';
 import { RouterTestingModule } from '@angular/router/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { HelperService } from '../app/shared/helper.service';
 import { HelperServiceStub } from './stubs';
@@ -10,7 +11,8 @@ import { HelperServiceStub } from './stubs';
   imports: [
     HttpModule,
     MaterialModule,
-    RouterTestingModule
+    RouterTestingModule,
+    NoopAnimationsModule
   ],
   providers: [
     {
@@ -21,7 +23,8 @@ import { HelperServiceStub } from './stubs';
   exports: [
     HttpModule,
     MaterialModule,
-    RouterTestingModule
+    RouterTestingModule,
+    NoopAnimationsModule
   ]
 })
 export class TestingModule { }

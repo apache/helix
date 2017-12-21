@@ -1,13 +1,13 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MaterialModule } from '@angular/material';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { FormsModule } from '@angular/forms';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
+import { MaterialModule } from './material.module';
 import { HelperService } from './helper.service';
 import { InputDialogComponent } from './dialog/input-dialog/input-dialog.component';
 import { DetailHeaderComponent } from './detail-header/detail-header.component';

@@ -1,8 +1,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { MaterialModule } from '@angular/material';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { RouterTestingModule } from '@angular/router/testing';
+import { TestingModule } from '../../../testing/testing.module';
 
 import { NodeViewerComponent } from './node-viewer.component';
 
@@ -13,9 +11,7 @@ describe('NodeViewerComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        MaterialModule,
-        NoopAnimationsModule,
-        RouterTestingModule
+        TestingModule
       ],
       declarations: [ NodeViewerComponent ],
       schemas: [

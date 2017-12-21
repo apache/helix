@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { MdDialog } from '@angular/material';
+import { MatDialog } from '@angular/material';
 
 import { Settings } from '../../core/settings';
 import { InputDialogComponent } from '../dialog/input-dialog/input-dialog.component';
@@ -25,7 +25,7 @@ export class DataTableComponent implements OnInit {
   rowHeight = Settings.tableRowHeight;
 
   constructor(
-    protected dialog: MdDialog
+    protected dialog: MatDialog
   ) { }
 
   ngOnInit() {

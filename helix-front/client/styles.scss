@@ -18,6 +18,10 @@
       &.active,
       &.active .datatable-row-group {
         background-color: #0077B5 !important;
+
+        .datatable-body-cell {
+          color: #FFF !important;
+        }
       }
     }
   }

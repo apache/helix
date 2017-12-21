@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MdDialog } from '@angular/material';
+import { MatDialog } from '@angular/material';
 
 import { Cluster } from '../shared/cluster.model';
 import { HelperService } from '../../shared/helper.service';
@@ -32,7 +32,7 @@ export class ClusterDetailComponent implements OnInit {
   constructor(
     protected route: ActivatedRoute,
     protected router: Router,
-    protected dialog: MdDialog,
+    protected dialog: MatDialog,
     protected helperService: HelperService,
     protected clusterService: ClusterService,
     protected instanceService: InstanceService

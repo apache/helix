@@ -1,29 +1,29 @@
 <form (ngSubmit)="onSubmit()" #inputForm="ngForm">
-  <h1 md-dialog-title>{{ title }}</h1>
-  <div md-dialog-content>
+  <h1 mat-dialog-title>{{ title }}</h1>
+  <div mat-dialog-content>
     <section>
       {{ message }}
     </section>
     <section *ngFor="let name of getKeys(values)">
       <section *ngIf="values[name].type === 'boolean'">
         {{ values[name].label }}:
-        <md-slide-toggle
+        <mat-slide-toggle
           [name]="name"
           [(ngModel)]="values[name].value">
           {{ values[name].value ? 'True' : 'False' }}
-        </md-slide-toggle>
+        </mat-slide-toggle>
       </section>
-      <md-input-container *ngIf="values[name].type !== 'boolean'">
-        <input mdInput
+      <mat-form-field *ngIf="values[name].type !== 'boolean'">
+        <input matInput
           [name]="name"
           [(ngModel)]="values[name].value"
           [placeholder]="values[name].label"
           required>
-      </md-input-container>
+      </mat-form-field>
     </section>
   </div>
-  <div md-dialog-actions>
-    <button md-button type="submit" color="primary" [disabled]="!inputForm.form.valid">OK</button>
-    <button md-button type="button" (click)="onCancel()">Cancel</button>
+  <div mat-dialog-actions>
+    <button mat-button type="submit" color="primary" [disabled]="!inputForm.form.valid">OK</button>
+    <button mat-button type="button" (click)="onCancel()">Cancel</button>
   </div>
 </form>

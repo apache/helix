@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 
+import { Settings } from '../../core/settings';
 import { InstanceService } from '../shared/instance.service';
 import { HelperService } from '../../shared/helper.service';
 
@@ -14,7 +15,8 @@ export class InstanceListComponent implements OnInit {
   isLoading = true;
   clusterName: string;
   instances: any[];
-  rowHeight = 40;
+  rowHeight = Settings.tableRowHeight;
+  headerHeight = Settings.tableHeaderHeight;
   sorts = [
     { prop: 'liveInstance', dir: 'asc'},
     { prop: 'name', dir: 'asc'}

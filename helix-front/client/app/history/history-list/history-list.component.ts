@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 
 import * as _ from 'lodash';
 
+import { Settings } from '../../core/settings';
 import { HistoryService } from '../shared/history.service';
 import { History } from '../shared/history.model';
 
@@ -17,7 +18,8 @@ import { History } from '../shared/history.model';
 export class HistoryListComponent implements OnInit {
 
   rows: History[];
-  rowHeight = 40;
+  rowHeight = Settings.tableRowHeight;
+  headerHeight = Settings.tableHeaderHeight;
   isController: boolean;
   isLoading = true;
   sorts = [

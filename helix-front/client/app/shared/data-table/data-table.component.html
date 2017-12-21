@@ -15,8 +15,8 @@
     [draggable]="false"
     [canAutoResize]="false">
     <ng-template let-row="row" ngx-datatable-cell-template>
-      <button md-icon-button mdTooltip="Click to delete" (click)="onDelete(row)">
-        <md-icon>delete_forever</md-icon>
+      <button mat-icon-button matTooltip="Click to delete" (click)="onDelete(row)">
+        <mat-icon>delete_forever</mat-icon>
       </button>
     </ng-template>
   </ngx-datatable-column>
@@ -44,8 +44,8 @@
       let-pageSize="pageSize"
       let-curPage="curPage">
       <section class="footer" fxLayout="row" fxLayoutAlign="space-between center">
-        <button md-button *ngIf="insertable" (click)="onCreate()">
-          <md-icon>add</md-icon>
+        <button mat-button *ngIf="insertable" (click)="onCreate()">
+          <mat-icon>add</mat-icon>
           Add new entry
         </button>
         <section>

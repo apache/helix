@@ -1,7 +1,5 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { MaterialModule } from '@angular/material';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
@@ -19,8 +17,6 @@ import { ResourceNodeViewerComponent } from './resource-node-viewer/resource-nod
 @NgModule({
   imports: [
     CommonModule,
-    RouterModule,
-    MaterialModule,
     NgxDatatableModule,
     NgxJsonViewerModule,
     SharedModule

@@ -2,8 +2,6 @@ import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpModule } from '@angular/http';
-import { FlexLayoutModule } from '@angular/flex-layout';
-import { MaterialModule } from '@angular/material';
 
 import { Angulartics2Module, Angulartics2Piwik } from 'angulartics2';
 
@@ -32,8 +30,6 @@ import { ChooserModule } from './chooser/chooser.module';
     Angulartics2Module.forRoot([ Angulartics2Piwik ]),
     CoreModule,
     SharedModule,
-    FlexLayoutModule,
-    MaterialModule,
     ClusterModule,
     ConfigurationModule,
     InstanceModule,

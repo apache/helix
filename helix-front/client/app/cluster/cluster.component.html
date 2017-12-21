@@ -1,11 +1,13 @@
-<md-sidenav-container fxFill>
-  <md-sidenav
+<mat-sidenav-container fxFill>
+  <mat-sidenav
     #sidenav
     [mode]="isNarrowView ? 'over' : 'side'"
     [opened]="!isNarrowView"
     [disableClose]="!isNarrowView"
     class="mat-elevation-z4">
     <hi-cluster-list></hi-cluster-list>
-  </md-sidenav>
-  <router-outlet></router-outlet>
-</md-sidenav-container>
+  </mat-sidenav>
+  <section fxFill>
+    <router-outlet></router-outlet>
+  </section>
+</mat-sidenav-container>

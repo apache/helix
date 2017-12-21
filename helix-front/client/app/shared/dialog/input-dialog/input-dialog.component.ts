@@ -1,6 +1,6 @@
 import { Component, OnInit, Inject } from '@angular/core';
-import { MdDialogRef } from '@angular/material';
-import { MD_DIALOG_DATA } from '@angular/material';
+import { MatDialogRef } from '@angular/material';
+import { MAT_DIALOG_DATA } from '@angular/material';
 
 @Component({
   selector: 'hi-input-dialog',
@@ -14,8 +14,8 @@ export class InputDialogComponent implements OnInit {
   values: any[];
 
   constructor(
-    @Inject(MD_DIALOG_DATA) protected data: any,
-    protected dialogRef: MdDialogRef<InputDialogComponent>
+    @Inject(MAT_DIALOG_DATA) protected data: any,
+    protected dialogRef: MatDialogRef<InputDialogComponent>
   ) { }
 
   ngOnInit() {

@@ -1,9 +1,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { MaterialModule } from '@angular/material';
-import { RouterTestingModule } from '@angular/router/testing';
-import { HttpModule } from '@angular/http';
 
+import { TestingModule } from '../../../testing/testing.module';
 import { HelixListComponent } from './helix-list.component';
 import { ChooserService } from '../shared/chooser.service';
 
@@ -14,9 +12,7 @@ describe('HelixListComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        MaterialModule,
-        RouterTestingModule,
-        HttpModule
+        TestingModule
       ],
       declarations: [ HelixListComponent ],
       providers: [ ChooserService ],

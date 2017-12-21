@@ -8,14 +8,13 @@
   padding-left: 10px;
 
   span {
-    display: inline-block;
     color: #fff;
     font-size: 12px;
+    line-height: 12px;
     text-transform: uppercase;
     font-weight: normal;
     border-radius: 24px;
-    padding: 4px 8px;
-    vertical-align: text-bottom;; // ?
+    padding: 6px 8px;
   }
 
   .cluster {

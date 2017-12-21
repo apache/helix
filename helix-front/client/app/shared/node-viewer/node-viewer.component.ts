@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, ViewChild, ViewEncapsulation, EventEmitter } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { MdDialog } from '@angular/material';
+import { MatDialog } from '@angular/material';
 
 import * as _ from 'lodash';
 
@@ -63,6 +63,7 @@ export class NodeViewerComponent implements OnInit {
   protected _obj: any;
   protected node: Node;
 
+  headerHeight = Settings.tableHeaderHeight;
   rowHeight = Settings.tableRowHeight;
   sorts = [
     { prop: 'name', dir: 'asc'}
@@ -117,7 +118,7 @@ export class NodeViewerComponent implements OnInit {
   }
 
   constructor(
-    protected dialog: MdDialog,
+    protected dialog: MatDialog,
     protected route: ActivatedRoute
   ) { }
 

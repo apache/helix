@@ -8,7 +8,7 @@ hi-history-list {
     color: mat-color($hi-primary);
   }
 
-  .datatable-body-cell {
-    line-height: 40px !important;
+  .mat-icon {
+    @include md-icon-size(20px);
   }
 }

@@ -2,7 +2,7 @@
   <ngx-datatable
     #instancesTable
     class="material"
-    [headerHeight]="rowHeight"
+    [headerHeight]="headerHeight"
     [rowHeight]="rowHeight"
     columnMode="force"
     [footerHeight]="rowHeight"
@@ -19,10 +19,10 @@
       [draggable]="false"
       [canAutoResize]="false">
       <ng-template let-row="row" ngx-datatable-cell-template>
-        <md-icon *ngIf="row.healthy" class="status-healthy">lens</md-icon>
-        <md-icon *ngIf="!row.healthy && row.enabled" class="status-not-healthy" mdTooltip="The instance is offline.">lens</md-icon>
-        <md-icon *ngIf="!row.healthy && row.liveInstance" class="status-not-healthy" mdTooltip="The instance is disabled.">lens</md-icon>
-        <md-icon *ngIf="!row.healthy && !row.enabled && !row.liveInstance" class="status-not-healthy" mdTooltip="The instance is offline and disabled.">lens</md-icon>
+        <mat-icon *ngIf="row.healthy" class="status-healthy">lens</mat-icon>
+        <mat-icon *ngIf="!row.healthy && row.enabled" class="status-not-healthy" matTooltip="The instance is offline.">lens</mat-icon>
+        <mat-icon *ngIf="!row.healthy && row.liveInstance" class="status-not-healthy" matTooltip="The instance is disabled.">lens</mat-icon>
+        <mat-icon *ngIf="!row.healthy && !row.enabled && !row.liveInstance" class="status-not-healthy" matTooltip="The instance is offline and disabled.">lens</mat-icon>
       </ng-template>
     </ngx-datatable-column>
     <ngx-datatable-column name="Name">

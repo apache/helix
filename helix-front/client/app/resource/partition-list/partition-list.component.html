@@ -3,8 +3,8 @@
     *ngIf="canAnalyse()"
     #partitionsTable
     class="material"
-    [headerHeight]="rowHeight"
-    rowHeight="auto"
+    [headerHeight]="headerHeight"
+    [rowHeight]="rowHeight"
     columnMode="force"
     [footerHeight]="rowHeight"
     [rows]="partitions"
@@ -18,8 +18,8 @@
      [sortable]="false"
      [draggable]="false"
      [canAutoResize]="false">
-     <ng-template let-row="row" ngx-datatable-cell-template>
-       <md-icon>{{ row.$$expanded ? 'expand_more' : 'chevron_right' }}</md-icon>
+     <ng-template let-expanded="expanded" ngx-datatable-cell-template>
+       <mat-icon>{{ expanded ? 'expand_more' : 'chevron_right' }}</mat-icon>
      </ng-template>
     </ngx-datatable-column>
     <ngx-datatable-column
@@ -30,7 +30,7 @@
       [draggable]="false"
       [canAutoResize]="false">
       <ng-template let-value="value" ngx-datatable-cell-template>
-        <md-icon [ngClass]="value ? 'status-ready' : 'status-not-ready'">lens</md-icon>
+        <mat-icon [ngClass]="value ? 'status-ready' : 'status-not-ready'">lens</mat-icon>
       </ng-template>
     </ngx-datatable-column>
     <ngx-datatable-column name="Name"></ngx-datatable-column>
@@ -40,7 +40,7 @@
       [resizeable]="false"
       [canAutoResize]="false">
       <ng-template let-value="value" ngx-datatable-cell-template>
-        <span *ngFor="let replica of value" [mdTooltip]="replica.instanceName">
+        <span *ngFor="let replica of value" [matTooltip]="replica.instanceName">
           <hi-state-label [state]="replica.externalView" [isReady]="replica.externalView && replica.externalView == replica.idealState"></hi-state-label>
         </span>
       </ng-template>
@@ -78,7 +78,7 @@
     </ngx-datatable-footer>
   </ngx-datatable>
   <div *ngIf="!canAnalyse()" class="message" fxLayout="column" fxLayoutAlign="center center">
-    <md-spinner *ngIf="isLoading"></md-spinner>
+    <mat-spinner *ngIf="isLoading"></mat-spinner>
     <section *ngIf="!isLoading && getReasonWhyCannotAnalyse()" fxFlexFill>
       {{ getReasonWhyCannotAnalyse() }}
     </section>

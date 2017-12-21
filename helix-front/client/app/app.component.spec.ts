@@ -39,10 +39,10 @@ describe('AppComponent', () => {
     expect(app.footerEnabled).toBeDefined();
   }));
 
-  xit('should render title in a md-toolbar', async(() => {
+  xit('should render title in a mat-toolbar', async(() => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.debugElement.nativeElement;
-    expect(compiled.querySelector('md-toolbar').textContent).toContain('Helix');
+    expect(compiled.querySelector('mat-toolbar').textContent).toContain('Helix');
   }));
 });

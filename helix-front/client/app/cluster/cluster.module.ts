@@ -1,8 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpModule } from '@angular/http';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import 'hammerjs';
 
 import { SharedModule } from '../shared/shared.module';
 import { ClusterService } from './shared/cluster.service';
@@ -15,7 +13,6 @@ import { ClusterComponent } from './cluster.component';
   imports: [
     CommonModule,
     HttpModule,
-    BrowserAnimationsModule,
     SharedModule
   ],
   declarations: [

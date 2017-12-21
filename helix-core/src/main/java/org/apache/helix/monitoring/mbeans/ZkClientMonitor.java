@@ -26,6 +26,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.helix.manager.zk.zookeeper.ZkEventThread;
 
 public class ZkClientMonitor implements ZkClientMonitorMBean {
   public static final String MONITOR_TYPE = "Type";
@@ -41,6 +42,7 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
 
   private long _stateChangeEventCounter;
   private long _dataChangeEventCounter;
+  private ZkEventThread _zkEventThread;
 
   private Map<ZkClientPathMonitor.PredefinedPath, ZkClientPathMonitor> _zkClientPathMonitorMap =
       new ConcurrentHashMap<>();
@@ -66,6 +68,10 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
             new ZkClientPathMonitor(path, monitorType, monitorKey, monitorInstanceName).register());
       }
     }
+  }
+
+  public void setZkEventThread(ZkEventThread zkEventThread) {
+    _zkEventThread = zkEventThread;
   }
 
   protected static ObjectName getObjectName(String monitorType, String monitorKey,
@@ -107,6 +113,15 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   @Override
   public long getDataChangeEventCounter() {
     return _dataChangeEventCounter;
+  }
+
+  @Override
+  public long getPendingCallbackGauge() {
+    if (_zkEventThread != null) {
+      return _zkEventThread.getPendingEventsCount();
+    }
+
+    return -1;
   }
 
   private void record(String path, int bytes, long latencyMilliSec, boolean isFailure,

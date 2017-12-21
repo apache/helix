@@ -35,7 +35,6 @@ import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.I0Itec.zkclient.exception.ZkTimeoutException;
-import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
@@ -102,6 +101,7 @@ public class ZkClient implements Watcher {
           .isEmpty()) {
         _monitor =
             new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly);
+        _monitor.setZkEventThread(_eventThread);
       } else {
         LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
       }

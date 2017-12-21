@@ -26,10 +26,10 @@ import org.slf4j.LoggerFactory;
  * it is waiting for something). {@link ZkClient} would then for instance not be able to maintain it's connection state
  * anymore.
  */
-class ZkEventThread extends Thread {
+public class ZkEventThread extends Thread {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
 
-  private BlockingQueue<ZkEvent> _events = new LinkedBlockingQueue<ZkEvent>();
+  private BlockingQueue<ZkEvent> _events = new LinkedBlockingQueue<>();
 
   private static AtomicInteger _eventId = new AtomicInteger(0);
 
@@ -81,5 +81,9 @@ class ZkEventThread extends Thread {
       LOG.debug("New event: " + event);
       _events.add(event);
     }
+  }
+
+  public int getPendingEventsCount() {
+    return _events.size();
   }
 }

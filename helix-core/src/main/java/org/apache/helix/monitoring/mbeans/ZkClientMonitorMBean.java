@@ -24,4 +24,5 @@ import org.apache.helix.monitoring.SensorNameProvider;
 public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getStateChangeEventCounter();
   long getDataChangeEventCounter();
+  long getPendingCallbackGauge();
 }

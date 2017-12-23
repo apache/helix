@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Abstract class of Forced Even Assignment Patched Algorithm.
@@ -65,80 +66,81 @@ public abstract class AbstractEvenDistributionRebalanceStrategy implements Rebal
   public ZNRecord computePartitionAssignment(final List<String> allNodes,
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
       ClusterDataCache clusterData) throws HelixException {
-    boolean continueNextStep = true;
     // Round 1: Calculate mapping using the base strategy.
     // Note to use all nodes for minimizing the influence of live node changes to mapping.
     ZNRecord origAssignment = getBaseRebalanceStrategy()
         .computePartitionAssignment(allNodes, allNodes, currentMapping, clusterData);
     Map<String, List<String>> origPartitionMap = origAssignment.getListFields();
-    // If the original calculation contains no assignment, skip patching
-    if (origPartitionMap.isEmpty()) {
-      continueNextStep = false;
-    }
 
-    // Transform current assignment to instance->partitions map, and get total partitions
-    Map<String, List<String>> nodeToPartitionMap = convertMap(origPartitionMap);
+    // Try to re-assign if the original map is not empty
+    if (!origPartitionMap.isEmpty()) {
+      // Transform current assignment to instance->partitions map, and get total partitions
+      Map<String, List<String>> nodeToPartitionMap = convertMap(origPartitionMap);
 
-    if (continueNextStep) {
+      Map<String, List<String>> finalPartitionMap = null;
+
       // Round 2: Rebalance mapping using card dealing algorithm. For ensuring evenness distribution.
       Topology allNodeTopo = new Topology(allNodes, allNodes, clusterData.getInstanceConfigMap(),
           clusterData.getClusterConfig());
       CardDealingAdjustmentAlgorithm cardDealer =
           new CardDealingAdjustmentAlgorithm(allNodeTopo, _replica);
-      continueNextStep = cardDealer.computeMapping(nodeToPartitionMap, _resourceName.hashCode());
-    }
-
-    // Round 3: Reorder preference Lists to ensure participants' orders (so as the states) are uniform.
-    Map<String, List<String>> partitionMap = shufflePreferenceList(nodeToPartitionMap);
-
-    // Round 4: Re-mapping the partitions on non-live nodes using consistent hashing for reducing movement.
-    if (continueNextStep && !liveNodes.containsAll(allNodes)) {
-      Topology liveNodeTopo = new Topology(allNodes, liveNodes, clusterData.getInstanceConfigMap(),
-          clusterData.getClusterConfig());
-      ConsistentHashingAdjustmentAlgorithm hashPlacement =
-          new ConsistentHashingAdjustmentAlgorithm(liveNodeTopo);
-      if (hashPlacement.computeMapping(nodeToPartitionMap, _resourceName.hashCode())) {
-        // Since mapping is changed by hashPlacement, need to adjust nodes order.
-        Map<String, List<String>> adjustedPartitionMap = convertMap(nodeToPartitionMap);
-        for (String partition : adjustedPartitionMap.keySet()) {
-          List<String> preSelectedList = partitionMap.get(partition);
-          Set<String> adjustedNodeList = new HashSet<>(adjustedPartitionMap.get(partition));
-          List<String> finalNodeList = adjustedPartitionMap.get(partition);
-          int index = 0;
-          // 1. Add the ones in pre-selected node list first, in order
-          for (String node : preSelectedList) {
-            if (adjustedNodeList.remove(node)) {
-              finalNodeList.set(index++, node);
+      if (cardDealer.computeMapping(nodeToPartitionMap, _resourceName.hashCode())) {
+        // Round 3: Reorder preference Lists to ensure participants' orders (so as the states) are uniform.
+        finalPartitionMap = shufflePreferenceList(nodeToPartitionMap);
+        if (!liveNodes.containsAll(allNodes)) {
+          try {
+            // Round 4: Re-mapping the partitions on non-live nodes using consistent hashing for reducing movement.
+            ConsistentHashingAdjustmentAlgorithm hashPlacement =
+                new ConsistentHashingAdjustmentAlgorithm(allNodeTopo, liveNodes);
+            if (hashPlacement.computeMapping(nodeToPartitionMap, _resourceName.hashCode())) {
+              // Since mapping is changed by hashPlacement, need to adjust nodes order.
+              Map<String, List<String>> adjustedPartitionMap = convertMap(nodeToPartitionMap);
+              for (String partition : adjustedPartitionMap.keySet()) {
+                List<String> preSelectedList = finalPartitionMap.get(partition);
+                Set<String> adjustedNodeList = new HashSet<>(adjustedPartitionMap.get(partition));
+                List<String> finalNodeList = adjustedPartitionMap.get(partition);
+                int index = 0;
+                // 1. Add the ones in pre-selected node list first, in order
+                for (String node : preSelectedList) {
+                  if (adjustedNodeList.remove(node)) {
+                    finalNodeList.set(index++, node);
+                  }
+                }
+                // 2. Add the rest of nodes to the map
+                for (String node : adjustedNodeList) {
+                  finalNodeList.set(index++, node);
+                }
+              }
+              finalPartitionMap = adjustedPartitionMap;
+            } else {
+              // Adjustment failed, the final partition map is not valid
+              finalPartitionMap = null;
             }
-          }
-          // 2. Add the rest of nodes to the map
-          for (String node : adjustedNodeList) {
-            finalNodeList.set(index++, node);
+          } catch (ExecutionException e) {
+            _logger.error("Failed to perform consistent hashing partition assigner.", e);
+            finalPartitionMap = null;
           }
         }
-        partitionMap = adjustedPartitionMap;
-      } else {
-        continueNextStep = false;
+      }
+
+      if (null != finalPartitionMap) {
+        ZNRecord result = new ZNRecord(_resourceName);
+        result.setListFields(finalPartitionMap);
+        return result;
       }
     }
 
-    if (continueNextStep) {
-      ZNRecord result = new ZNRecord(_resourceName);
-      result.setListFields(partitionMap);
-      return result;
+    // Force even is not possible, fallback to use default strategy
+    if (_logger.isDebugEnabled()) {
+      _logger.debug("Force even distribution is not possible, using the default strategy: "
+          + getBaseRebalanceStrategy().getClass().getSimpleName());
+    }
+    if (liveNodes.equals(allNodes)) {
+      return origAssignment;
     } else {
-      if (_logger.isDebugEnabled()) {
-        _logger.debug("Force even distribution is not possible, using the default strategy: "
-            + getBaseRebalanceStrategy().getClass().getSimpleName());
-      }
-      // Force even is not possible, fallback to use default strategy
-      if (liveNodes.equals(allNodes)) {
-        return origAssignment;
-      } else {
-        // need to re-calculate since node list is different.
-        return getBaseRebalanceStrategy()
-            .computePartitionAssignment(allNodes, liveNodes, currentMapping, clusterData);
-      }
+      // need to re-calculate since node list is different.
+      return getBaseRebalanceStrategy()
+          .computePartitionAssignment(allNodes, liveNodes, currentMapping, clusterData);
     }
   }
 

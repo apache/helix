@@ -1,29 +1,46 @@
 package org.apache.helix.controller.rebalancer.strategy.crushMapping;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.util.JenkinsHash;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class ConsistentHashingAdjustmentAlgorithm {
+  private static final int MAX_SELETOR_CACHE_SIZE = 1000;
+  private static final int SELETOR_CACHE_EXPIRE = 3;
+
   private JenkinsHash _hashFunction;
   private ConsistentHashSelector _selector;
-  Set<String> _liveInstances = new HashSet<>();
+  Set<String> _activeInstances = new HashSet<>();
+
   // Instance -> FaultZone Tag
   private Map<String, String> _faultZoneMap = new HashMap<>();
   // Record existing partitions that are assigned to a fault zone
   private Map<String, Set<String>> _faultZonePartitionMap = new HashMap<>();
 
-  public ConsistentHashingAdjustmentAlgorithm(Topology topology) {
+  // Cache records all known topology.
+  private final static LoadingCache<Set<String>, ConsistentHashSelector> _selectorCache =
+      CacheBuilder.newBuilder().maximumSize(MAX_SELETOR_CACHE_SIZE)
+          .expireAfterAccess(SELETOR_CACHE_EXPIRE, TimeUnit.MINUTES)
+          .build(new CacheLoader<Set<String>, ConsistentHashSelector>() {
+            public ConsistentHashSelector load(Set<String> allInstances) {
+              return new ConsistentHashSelector(allInstances);
+            }
+          });
+
+  public ConsistentHashingAdjustmentAlgorithm(Topology topology, Collection<String> activeInstances)
+      throws ExecutionException {
     _hashFunction = new JenkinsHash();
-    List<String> allInstances = new ArrayList<>();
+    Set<String> allInstances = new HashSet<>();
     // Get all instance related information.
     for (Node zone : topology.getFaultZones()) {
       for (Node instance : Topology.getAllLeafNodes(zone)) {
-        if (!instance.isFailed()) {
-          _liveInstances.add(instance.getName());
-        }
         allInstances.add(instance.getName());
         _faultZoneMap.put(instance.getName(), zone.getName());
         if (!_faultZonePartitionMap.containsKey(zone.getName())) {
@@ -31,11 +48,12 @@ public class ConsistentHashingAdjustmentAlgorithm {
         }
       }
     }
-    _selector = new ConsistentHashSelector(allInstances);
+    _selector = _selectorCache.get(allInstances);
+    _activeInstances.addAll(activeInstances);
   }
 
   public boolean computeMapping(Map<String, List<String>> nodeToPartitionMap, int randomSeed) {
-    if (_liveInstances.isEmpty()) {
+    if (_activeInstances.isEmpty()) {
       return false;
     }
 
@@ -46,7 +64,7 @@ public class ConsistentHashingAdjustmentAlgorithm {
     while (nodeIter.hasNext()) {
       String instance = nodeIter.next();
       List<String> partitions = nodeToPartitionMap.get(instance);
-      if (!_liveInstances.contains(instance)) {
+      if (!_activeInstances.contains(instance)) {
         inactiveInstances.add(instance);
         addToReAssignPartition(toBeReassigned, partitions);
         partitions.clear();
@@ -60,11 +78,13 @@ public class ConsistentHashingAdjustmentAlgorithm {
       int remainReplicas = toBeReassigned.get(partition);
       Set<String> conflictInstance = new HashSet<>();
       for (int index = 0; index < toBeReassigned.get(partition); index++) {
-        Iterable<String> sortedInstances = _selector.getCircle(_hashFunction.hash(randomSeed, partition.hashCode(), index));
+        Iterable<String> sortedInstances =
+            _selector.getCircle(_hashFunction.hash(randomSeed, partition.hashCode(), index));
         Iterator<String> instanceItr = sortedInstances.iterator();
-        while (instanceItr.hasNext() && conflictInstance.size() + inactiveInstances.size() != _selector.instanceSize) {
+        while (instanceItr.hasNext()
+            && conflictInstance.size() + inactiveInstances.size() != _selector.instanceSize) {
           String instance = instanceItr.next();
-          if (!_liveInstances.contains(instance)) {
+          if (!_activeInstances.contains(instance)) {
             inactiveInstances.add(instance);
           }
           if (inactiveInstances.contains(instance) || conflictInstance.contains(instance)) {
@@ -105,32 +125,33 @@ public class ConsistentHashingAdjustmentAlgorithm {
       }
     }
   }
+}
 
-  private class ConsistentHashSelector {
-    private final static int DEFAULT_TOKENS_PER_INSTANCE = 1000;
-    private final SortedMap<Long, String> circle = new TreeMap<Long, String>();
-    protected int instanceSize = 0;
+class ConsistentHashSelector {
+  private final static int DEFAULT_TOKENS_PER_INSTANCE = 1000;
+  private final static JenkinsHash _hashFunction = new JenkinsHash();
+  private final SortedMap<Long, String> circle = new TreeMap<>();
+  protected int instanceSize = 0;
 
-    public ConsistentHashSelector(List<String> instances) {
-      for (String instance : instances) {
-        long tokenCount = DEFAULT_TOKENS_PER_INSTANCE;
-        add(instance, tokenCount);
-        instanceSize++;
-      }
+  public ConsistentHashSelector(Set<String> instances) {
+    for (String instance : instances) {
+      add(instance, DEFAULT_TOKENS_PER_INSTANCE);
+      instanceSize++;
     }
+  }
 
-    private void add(String instance, long numberOfReplicas) {
-      for (int i = 0; i < numberOfReplicas; i++) {
-        circle.put(_hashFunction.hash(instance.hashCode(), i), instance);
-      }
+  private void add(String instance, long numberOfReplicas) {
+    int instanceHashCode = instance.hashCode();
+    for (int i = 0; i < numberOfReplicas; i++) {
+      circle.put(_hashFunction.hash(instanceHashCode, i), instance);
     }
+  }
 
-    public Iterable<String> getCircle(long data) {
-      if (circle.isEmpty()) {
-        return null;
-      }
-      long hash = _hashFunction.hash(data);
-      return circle.tailMap(hash).values();
+  public Iterable<String> getCircle(long data) {
+    if (circle.isEmpty()) {
+      return null;
     }
+    long hash = _hashFunction.hash(data);
+    return circle.tailMap(hash).values();
   }
 }

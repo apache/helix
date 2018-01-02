@@ -61,4 +61,16 @@ public interface JobMonitorMBean extends SensorNameProvider {
    * @return
    */
   public long getRunningJobGauge();
+
+  /**
+   * Get maximum latency of jobs running time. It will be cleared every hour
+   * @return
+   */
+  public long getMaximumJobLatencyGauge();
+
+  /**
+   * Get job latency counter.
+   * @return
+   */
+  public long getJobLatencyCount();
 }

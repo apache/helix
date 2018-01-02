@@ -432,7 +432,8 @@ public class JobRebalancer extends TaskRebalancer {
     if (isJobComplete(jobCtx, allPartitions, jobCfg)) {
       markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx,
           cache.getJobConfigMap());
-      _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.COMPLETED);
+      _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.COMPLETED,
+          jobCtx.getFinishTime() - jobCtx.getStartTime());
       _rebalanceScheduler.removeScheduledRebalance(jobResource);
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
       return buildEmptyAssignment(jobResource, currStateOutput);
@@ -620,8 +621,7 @@ public class JobRebalancer extends TaskRebalancer {
         jobContext.setPartitionState(pId, TaskPartitionState.TASK_ABORTED);
       }
     }
-    _clusterStatusMonitor
-        .updateJobCounters(jobConfigMap.get(jobName), TaskState.FAILED);
+    _clusterStatusMonitor.updateJobCounters(jobConfigMap.get(jobName), TaskState.FAILED);
     _rebalanceScheduler.removeScheduledRebalance(jobName);
     TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
   }

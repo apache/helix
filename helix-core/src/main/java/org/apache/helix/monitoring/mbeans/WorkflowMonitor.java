@@ -23,6 +23,7 @@ import org.apache.helix.task.TaskState;
 
 public class WorkflowMonitor implements WorkflowMonitorMBean {
   private static final String WORKFLOW_KEY = "Workflow";
+  private static final long DEFAULT_RESET_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
   private String _clusterName;
   private String _workflowType;
@@ -33,6 +34,9 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
   private long _existingWorkflowGauge;
   private long _queuedWorkflowGauge;
   private long _runningWorkflowGauge;
+  private long _totalWorkflowLatencyCount;
+  private long _maximumWorkflowLatencyGauge;
+  private long _lastResetTime;
 
 
   public WorkflowMonitor(String clusterName, String workflowType) {
@@ -44,6 +48,9 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
     _existingWorkflowGauge = 0L;
     _queuedWorkflowGauge = 0L;
     _runningWorkflowGauge = 0L;
+    _totalWorkflowLatencyCount = 0L;
+    _maximumWorkflowLatencyGauge = 0L;
+    _lastResetTime = System.currentTimeMillis();
   }
 
   @Override
@@ -76,6 +83,16 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
     return _runningWorkflowGauge;
   }
 
+  @Override
+  public long getWorkflowLatencyCount() {
+    return _totalWorkflowLatencyCount;
+  }
+
+  @Override
+  public long getMaximumWorkflowLatencyGauge() {
+    return _maximumWorkflowLatencyGauge;
+  }
+
   @Override public String getSensorName() {
     return String.format("%s.%s.%s", _clusterName, WORKFLOW_KEY, _workflowType);
   }
@@ -88,11 +105,20 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
    * Update workflow with transition state
    * @param to The to state of a workflow
    */
+
   public void updateWorkflowCounters(TaskState to) {
-   if (to.equals(TaskState.FAILED)) {
+    updateWorkflowCounters(to, 0);
+  }
+
+  public void updateWorkflowCounters(TaskState to, long latency) {
+    if (to.equals(TaskState.FAILED)) {
       _failedWorkflowCount++;
     } else if (to.equals(TaskState.COMPLETED)) {
       _successfulWorkflowCount++;
+
+      // Only record latency larger than 0 and succeeded workflows
+      _maximumWorkflowLatencyGauge = Math.max(_maximumWorkflowLatencyGauge, latency);
+      _totalWorkflowLatencyCount += latency > 0 ? latency : 0;
     }
   }
 
@@ -104,6 +130,10 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
     _existingWorkflowGauge = 0L;
     _runningWorkflowGauge = 0L;
     _queuedWorkflowGauge = 0L;
+    if (_lastResetTime + DEFAULT_RESET_INTERVAL_MS < System.currentTimeMillis()) {
+      _lastResetTime = System.currentTimeMillis();
+      _maximumWorkflowLatencyGauge = 0;
+    }
   }
 
   /**

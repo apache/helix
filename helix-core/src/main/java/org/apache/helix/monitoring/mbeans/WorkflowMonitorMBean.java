@@ -60,4 +60,16 @@ public interface WorkflowMonitorMBean extends SensorNameProvider {
    * @return
    */
   public long getRunningWorkflowGauge();
+
+  /**
+   * Get workflow latency count
+   * @return
+   */
+  public long getWorkflowLatencyCount();
+
+  /**
+   * Get maximum workflow latency gauge. It will be reset in 1 hour.
+   * @return
+   */
+  public long getMaximumWorkflowLatencyGauge();
 }

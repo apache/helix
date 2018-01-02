@@ -515,11 +515,14 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       updateWorkflowGauges(workflowConfigMap.get(workflow), currentState);
     }
   }
-
   public void updateWorkflowCounters(WorkflowConfig workflowConfig, TaskState to) {
+    updateWorkflowCounters(workflowConfig, to, -1L);
+  }
+
+  public void updateWorkflowCounters(WorkflowConfig workflowConfig, TaskState to, long latency) {
     String workflowType = workflowConfig.getWorkflowType();
     workflowType = preProcessWorkflow(workflowType);
-    _perTypeWorkflowMonitorMap.get(workflowType).updateWorkflowCounters(to);
+    _perTypeWorkflowMonitorMap.get(workflowType).updateWorkflowCounters(to, latency);
   }
 
   private void updateWorkflowGauges(WorkflowConfig workflowConfig, TaskState current) {
@@ -568,9 +571,13 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   public void updateJobCounters(JobConfig jobConfig, TaskState to) {
+    updateJobCounters(jobConfig, to, -1L);
+  }
+
+  public void updateJobCounters(JobConfig jobConfig, TaskState to, long latency) {
     String jobType = jobConfig.getJobType();
     jobType = preProcessJobMonitor(jobType);
-    _perTypeJobMonitorMap.get(jobType).updateJobCounters(to);
+    _perTypeJobMonitorMap.get(jobType).updateJobCounters(to, latency);
   }
 
   private void updateJobGauges(String jobType, TaskState current) {

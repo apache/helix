@@ -28,6 +28,7 @@ public class JobMonitor implements JobMonitorMBean {
 
   private static final String JOB_KEY = "Job";
   private static final Logger LOG = LoggerFactory.getLogger(JobMonitor.class);
+  private static final long DEFAULT_RESET_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
   private String _clusterName;
   private String _jobType;
@@ -38,6 +39,9 @@ public class JobMonitor implements JobMonitorMBean {
   private long _existingJobGauge;
   private long _queuedJobGauge;
   private long _runningJobGauge;
+  private long _maximumJobLatencyGauge;
+  private long _jobLatencyCount;
+  private long _lastResetTime;
 
   public JobMonitor(String clusterName, String jobType) {
     _clusterName = clusterName;
@@ -48,6 +52,9 @@ public class JobMonitor implements JobMonitorMBean {
     _existingJobGauge = 0L;
     _queuedJobGauge = 0L;
     _runningJobGauge = 0L;
+    _lastResetTime = System.currentTimeMillis();
+    _jobLatencyCount = 0L;
+    _maximumJobLatencyGauge = 0L;
   }
 
   @Override
@@ -81,6 +88,16 @@ public class JobMonitor implements JobMonitorMBean {
   }
 
   @Override
+  public long getMaximumJobLatencyGauge() {
+    return _maximumJobLatencyGauge;
+  }
+
+  @Override
+  public long getJobLatencyCount() {
+    return _jobLatencyCount;
+  }
+
+  @Override
   public String getSensorName() {
     return String.format("%s.%s.%s", _clusterName, JOB_KEY, _jobType);
   }
@@ -93,15 +110,26 @@ public class JobMonitor implements JobMonitorMBean {
    * Update job counters with transition state
    * @param to The to state of job, cleaned by ZK when it is null
    */
+
   public void updateJobCounters(TaskState to) {
+    updateJobCounters(to, 0);
+  }
+
+  public void updateJobCounters(TaskState to, long latency) {
     // TODO maybe use separate TIMED_OUT counter later
     if (to.equals(TaskState.FAILED) || to.equals(TaskState.TIMED_OUT)) {
       _failedJobCount++;
     } else if (to.equals(TaskState.COMPLETED)) {
       _successfullJobCount++;
+
+      // Only count succeeded jobs
+      _maximumJobLatencyGauge = Math.max(_maximumJobLatencyGauge, latency);
+      _jobLatencyCount += latency > 0 ? latency : 0;
     } else if (to.equals(TaskState.ABORTED)) {
       _abortedJobCount++;
     }
+
+
   }
 
   /**
@@ -111,6 +139,10 @@ public class JobMonitor implements JobMonitorMBean {
     _queuedJobGauge = 0L;
     _existingJobGauge = 0L;
     _runningJobGauge = 0L;
+    if (_lastResetTime + DEFAULT_RESET_INTERVAL_MS < System.currentTimeMillis()) {
+      _lastResetTime = System.currentTimeMillis();
+      _maximumJobLatencyGauge = 0L;
+    }
   }
 
   /**

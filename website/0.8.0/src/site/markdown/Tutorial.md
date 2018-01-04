@@ -50,6 +50,7 @@ Convention: we first cover the _basic_ approach, which is the easiest to impleme
 12. [YAML Cluster Setup](./tutorial_yaml.html)
 13. [Helix Agent (for non-JVM systems)](./tutorial_agent.html)
 14. [Task Framework](./tutorial_task_framework.html)
+15. [Helix REST Service 2.0](./tutorial_rest_service.html)
 
 ### Preliminaries
 

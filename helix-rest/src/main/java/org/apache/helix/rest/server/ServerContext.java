@@ -37,10 +37,10 @@ import org.apache.helix.tools.ClusterSetup;
 
 public class ServerContext {
   private final String _zkAddr;
-  private final ZkClient _zkClient;
-  private final ZKHelixAdmin _zkHelixAdmin;
-  private final ClusterSetup _clusterSetup;
-  private final ConfigAccessor _configAccessor;
+  private ZkClient _zkClient;
+  private ZKHelixAdmin _zkHelixAdmin;
+  private ClusterSetup _clusterSetup;
+  private ConfigAccessor _configAccessor;
 
   // 1 Cluster name will correspond to 1 helix data accessor
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;
@@ -50,28 +50,34 @@ public class ServerContext {
 
   public ServerContext(String zkAddr) {
     _zkAddr = zkAddr;
-    _zkClient = new ZkClient(_zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
-        ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
 
-    // Accessors
-    _configAccessor = new ConfigAccessor(getZkClient());
+    // We should NOT initiate _zkClient and anything that depends on _zkClient in
+    // constructor, as it is reasonable to start up HelixRestServer first and then
+    // ZooKeeper. In this case, initializing _zkClient will fail and HelixRestServer
+    // cannot be started correctly.
     _helixDataAccessorPool = new HashMap<>();
     _taskDriverPool = new HashMap<>();
-
-    // High level interfaces
-    _zkHelixAdmin = new ZKHelixAdmin(getZkClient());
-    _clusterSetup = new ClusterSetup(getZkClient(), getHelixAdmin());
   }
 
   public ZkClient getZkClient() {
+    if (_zkClient == null) {
+      _zkClient = new ZkClient(_zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
+          ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+    }
     return _zkClient;
   }
 
   public HelixAdmin getHelixAdmin() {
+    if (_zkHelixAdmin == null) {
+      _zkHelixAdmin = new ZKHelixAdmin(getZkClient());
+    }
     return _zkHelixAdmin;
   }
 
   public ClusterSetup getClusterSetup() {
+    if (_clusterSetup == null) {
+      _clusterSetup = new ClusterSetup(getZkClient(), getHelixAdmin());
+    }
     return _clusterSetup;
   }
 
@@ -85,6 +91,9 @@ public class ServerContext {
   }
 
   public ConfigAccessor getConfigAccessor() {
+    if (_configAccessor == null) {
+      _configAccessor = new ConfigAccessor(getZkClient());
+    }
     return _configAccessor;
   }
 

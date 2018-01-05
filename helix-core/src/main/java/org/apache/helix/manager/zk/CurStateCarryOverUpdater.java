@@ -19,6 +19,8 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.util.Map;
+
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CurrentState;
@@ -32,16 +34,14 @@ import org.apache.helix.model.CurrentState;
  */
 class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
   final String _curSessionId;
-  final String _initState;
   final CurrentState _lastCurState;
 
-  public CurStateCarryOverUpdater(String curSessionId, String initState, CurrentState lastCurState) {
-    if (curSessionId == null || initState == null || lastCurState == null) {
+  public CurStateCarryOverUpdater(String curSessionId, CurrentState lastCurState) {
+    if (curSessionId == null || lastCurState == null) {
       throw new IllegalArgumentException(
           "missing curSessionId|initState|lastCurState for carry-over");
     }
     _curSessionId = curSessionId;
-    _initState = initState;
     _lastCurState = lastCurState;
   }
 
@@ -57,10 +57,11 @@ class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
       curState = new CurrentState(currentData);
     }
 
-    for (String partitionName : _lastCurState.getPartitionStateMap().keySet()) {
+    Map <String, String> lastCurStatePartitionMap =  _lastCurState.getPartitionStateMap();
+    for (String partitionName : lastCurStatePartitionMap.keySet()) {
       // carry-over only when current-state not exist
       if (curState.getState(partitionName) == null) {
-        curState.setState(partitionName, _initState);
+        curState.setState(partitionName, lastCurStatePartitionMap.get(partitionName));
       }
     }
     return curState.getRecord();

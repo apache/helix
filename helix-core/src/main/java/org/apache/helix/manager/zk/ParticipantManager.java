@@ -289,7 +289,7 @@ public class ParticipantManager {
           ZNRecord metaRecord = new ZNRecord(lastCurState.getId());
           metaRecord.setSimpleFields(lastCurState.getRecord().getSimpleFields());
           DataUpdater<ZNRecord> metaRecordUpdater =
-              new CurStateCarryOverUpdater(_sessionId, initState, new CurrentState(metaRecord));
+              new CurStateCarryOverUpdater(_sessionId, new CurrentState(metaRecord));
           boolean success =
               baseAccessor.update(curStatePath, metaRecordUpdater, AccessOption.PERSISTENT);
           if (success) {
@@ -301,7 +301,7 @@ public class ParticipantManager {
             List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
             for (String bucketName : map.keySet()) {
               paths.add(curStatePath + "/" + bucketName);
-              updaters.add(new CurStateCarryOverUpdater(_sessionId, initState, new CurrentState(map
+              updaters.add(new CurStateCarryOverUpdater(_sessionId, new CurrentState(map
                   .get(bucketName))));
             }
 
@@ -310,7 +310,7 @@ public class ParticipantManager {
 
         } else {
           _dataAccessor.getBaseDataAccessor().update(curStatePath,
-              new CurStateCarryOverUpdater(_sessionId, initState, lastCurState),
+              new CurStateCarryOverUpdater(_sessionId, lastCurState),
               AccessOption.PERSISTENT);
         }
       }

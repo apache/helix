@@ -34,3 +34,7 @@ available for Helix:
 ### Python
 
 * `pyhelix` - https://github.com/kanakb/pyhelix
+
+### Golang
+
+* `go-helix` - https://github.com/uber-go/go-helix

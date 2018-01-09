@@ -19,6 +19,8 @@ package org.apache.helix.messaging;
  * under the License.
  */
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,9 +56,19 @@ public class CriteriaEvaluator {
     List<HelixProperty> properties;
     DataSource dataSource = recipientCriteria.getDataSource();
     if (dataSource == DataSource.EXTERNALVIEW) {
-      properties = accessor.getChildValues(keyBuilder.externalViews());
+      String resourceName = recipientCriteria.getResource();
+      if (Strings.isNullOrEmpty(resourceName)) {
+        properties = accessor.getChildValues(keyBuilder.externalViews());
+      } else {
+        properties = Collections.singletonList(accessor.getProperty(keyBuilder.externalView(resourceName)));
+      }
     } else if (dataSource == DataSource.IDEALSTATES) {
-      properties = accessor.getChildValues(keyBuilder.idealStates());
+      String resourceName = recipientCriteria.getResource();
+      if (Strings.isNullOrEmpty(resourceName)) {
+        properties = accessor.getChildValues(keyBuilder.idealStates());
+      } else {
+        properties = Collections.singletonList(accessor.getProperty(keyBuilder.idealStates(resourceName)));
+      }
     } else if (dataSource == DataSource.LIVEINSTANCES) {
       properties = accessor.getChildValues(keyBuilder.liveInstances());
     } else if (dataSource == DataSource.INSTANCES) {

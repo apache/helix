@@ -19,6 +19,7 @@ package org.apache.helix.messaging;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import java.util.regex.Pattern;
 import org.apache.helix.Criteria;
 import org.apache.helix.Criteria.DataSource;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
@@ -54,9 +56,29 @@ public class CriteriaEvaluator {
     List<HelixProperty> properties;
     DataSource dataSource = recipientCriteria.getDataSource();
     if (dataSource == DataSource.EXTERNALVIEW) {
-      properties = accessor.getChildValues(keyBuilder.externalViews());
+      String resourceName = recipientCriteria.getResource();
+      if (Strings.isNullOrEmpty(resourceName)) {
+        properties = accessor.getChildValues(keyBuilder.externalViews());
+      } else {
+        HelixProperty data = accessor.getProperty(keyBuilder.externalView(resourceName));
+        if (data == null) {
+          throw new HelixException(
+              String.format("Specified resource %s externalView is not found!", resourceName));
+        }
+        properties = Collections.singletonList(data);
+      }
     } else if (dataSource == DataSource.IDEALSTATES) {
-      properties = accessor.getChildValues(keyBuilder.idealStates());
+      String resourceName = recipientCriteria.getResource();
+      if (Strings.isNullOrEmpty(resourceName)) {
+        properties = accessor.getChildValues(keyBuilder.idealStates());
+      } else {
+        HelixProperty data = accessor.getProperty(keyBuilder.idealStates(resourceName));
+        if (data == null) {
+          throw new HelixException(
+              String.format("Specified resource %s idealState is not found!", resourceName));
+        }
+        properties = Collections.singletonList(data);
+      }
     } else if (dataSource == DataSource.LIVEINSTANCES) {
       properties = accessor.getChildValues(keyBuilder.liveInstances());
     } else if (dataSource == DataSource.INSTANCES) {

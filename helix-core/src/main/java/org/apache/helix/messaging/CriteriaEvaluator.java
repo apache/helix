@@ -41,6 +41,7 @@ import com.google.common.collect.Sets;
 
 public class CriteriaEvaluator {
   private static Logger logger = Logger.getLogger(CriteriaEvaluator.class);
+  public static final String MATCH_ALL_SYM = "%";
 
   /**
    * Examine persisted data to match wildcards in {@link Criteria}
@@ -55,38 +56,29 @@ public class CriteriaEvaluator {
 
     List<HelixProperty> properties;
     DataSource dataSource = recipientCriteria.getDataSource();
-    if (dataSource == DataSource.EXTERNALVIEW) {
-      String resourceName = recipientCriteria.getResource();
-      if (Strings.isNullOrEmpty(resourceName)) {
-        properties = accessor.getChildValues(keyBuilder.externalViews());
-      } else {
-        HelixProperty data = accessor.getProperty(keyBuilder.externalView(resourceName));
-        if (data == null) {
-          throw new HelixException(
-              String.format("Specified resource %s externalView is not found!", resourceName));
-        }
-        properties = Collections.singletonList(data);
-      }
-    } else if (dataSource == DataSource.IDEALSTATES) {
-      String resourceName = recipientCriteria.getResource();
-      if (Strings.isNullOrEmpty(resourceName)) {
-        properties = accessor.getChildValues(keyBuilder.idealStates());
-      } else {
-        HelixProperty data = accessor.getProperty(keyBuilder.idealStates(resourceName));
-        if (data == null) {
-          throw new HelixException(
-              String.format("Specified resource %s idealState is not found!", resourceName));
-        }
-        properties = Collections.singletonList(data);
-      }
-    } else if (dataSource == DataSource.LIVEINSTANCES) {
-      properties = accessor.getChildValues(keyBuilder.liveInstances());
-    } else if (dataSource == DataSource.INSTANCES) {
-      properties = accessor.getChildValues(keyBuilder.instances());
-    } else {
+    String resourceName = recipientCriteria.getResource();
+    String instanceName = recipientCriteria.getInstanceName();
+
+    switch (dataSource) {
+    case EXTERNALVIEW:
+      properties = getProperty(accessor, resourceName, keyBuilder.externalViews(),
+          keyBuilder.externalView(resourceName), DataSource.EXTERNALVIEW.name());
+      break;
+    case IDEALSTATES:
+      properties = getProperty(accessor, resourceName, keyBuilder.idealStates(),
+          keyBuilder.idealStates(resourceName), DataSource.IDEALSTATES.name());
+      break;
+    case LIVEINSTANCES:
+      properties = getProperty(accessor, instanceName, keyBuilder.liveInstances(),
+          keyBuilder.liveInstance(instanceName), DataSource.LIVEINSTANCES.name());
+      break;
+    case INSTANCES:
+      properties = getProperty(accessor, instanceName, keyBuilder.instances(),
+          keyBuilder.instance(instanceName), DataSource.INSTANCES.name());
+      break;
+    default:
       return Lists.newArrayList();
     }
-
     // flatten the data
     List<ZNRecordRow> allRows = ZNRecordRow.flatten(HelixProperty.convertToList(properties));
 
@@ -171,5 +163,21 @@ public class CriteriaEvaluator {
   private boolean stringMatches(String pattern, String value) {
     Pattern p = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     return p.matcher(value).matches();
+  }
+
+  private List<HelixProperty> getProperty(HelixDataAccessor accessor, String dataSpec,
+      PropertyKey propertyKeys, PropertyKey propertyKey, String dataType) {
+    List<HelixProperty> properties;
+    if (Strings.isNullOrEmpty(dataSpec) || dataSpec.equals(MATCH_ALL_SYM)) {
+      properties = accessor.getChildValues(propertyKeys);
+    } else {
+      HelixProperty data = accessor.getProperty(propertyKey);
+      if (data == null) {
+        throw new HelixException(
+            String.format("Specified %s %s is not found!", dataType, dataSpec));
+      }
+      properties = Collections.singletonList(data);
+    }
+    return properties;
   }
 }

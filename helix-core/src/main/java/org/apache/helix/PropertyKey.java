@@ -310,6 +310,14 @@ public class PropertyKey {
     public PropertyKey instances() {
       return new PropertyKey(PropertyType.INSTANCES, null, _clusterName);
     }
+    
+    /**
+     * Get a property key associated with specified instance
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey instance(String instanceName) {
+      return new PropertyKey(PropertyType.INSTANCES, null, _clusterName, instanceName);
+    }
 
     /**
      * Get a property key associated with {@link Message} for an instance

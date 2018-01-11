@@ -41,7 +41,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class CriteriaEvaluator {
-  private static Logger logger = Logger.getLogger(CriteriaEvaluator.class);
+  private static Logger logger = LoggerFactory.getLogger(CriteriaEvaluator.class);
   public static final String MATCH_ALL_SYM = "%";
 
   /**

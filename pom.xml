@@ -275,6 +275,7 @@
     <module>helix-admin-webapp</module>
     <module>helix-rest</module>
     <module>helix-lock</module>
+    <module>helix-view-aggregator</module>
     <module>helix-agent</module>
     <!--<module>helix-front</module>-->
     <module>recipes</module>

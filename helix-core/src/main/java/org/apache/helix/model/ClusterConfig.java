@@ -36,6 +36,7 @@ import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.api.config.ViewClusterSourceConfig;
 
 /**
  * Cluster configurations

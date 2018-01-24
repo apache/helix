@@ -20,6 +20,7 @@ package org.apache.helix.view.dataprovider;
  */
 
 import java.util.List;
+import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -102,7 +103,11 @@ public class SourceClusterDataProvider extends BasicClusterDataCache
       clearCache(changeType);
     }
     if (_helixManager != null && _helixManager.isConnected()) {
-      _helixManager.disconnect();
+      try {
+        _helixManager.disconnect();
+      } catch (ZkInterruptedException e) {
+        // OK
+      }
     }
   }
 

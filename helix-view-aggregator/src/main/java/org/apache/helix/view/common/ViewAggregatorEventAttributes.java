@@ -20,5 +20,5 @@ package org.apache.helix.view.common;
  */
 
 public enum ViewAggregatorEventAttributes {
-  ViewClusterForceRefresh,
+  EventProcessBackoff,
 }

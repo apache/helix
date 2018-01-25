@@ -24,7 +24,6 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType;
-import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -44,8 +43,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    logger.info("START Intermediate.process()");
-
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
 

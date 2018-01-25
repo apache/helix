@@ -33,7 +33,6 @@ import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.slf4j.Logger;
@@ -46,7 +45,6 @@ public class TargetExteralViewCalcStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    LOG.info("START TargetExteralViewCalcStage.process()");
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     ClusterConfig clusterConfig = cache.getClusterConfig();
 

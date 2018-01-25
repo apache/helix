@@ -26,7 +26,6 @@ import java.util.concurrent.Callable;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.ClusterConfig;
@@ -46,8 +45,6 @@ public class ReadClusterDataStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    logger.info("START ReadClusterDataStage.process()");
-
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     if (manager == null) {
       throw new StageException("HelixManager attribute value is null");

@@ -57,8 +57,6 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    LOG.info("START ExternalViewComputeStage.process()");
-
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());

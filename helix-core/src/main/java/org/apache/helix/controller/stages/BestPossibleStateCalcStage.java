@@ -19,9 +19,7 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
-import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
@@ -51,9 +49,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    long startTime = System.currentTimeMillis();
-    logger.info("START BestPossibleStateCalcStage.process()");
-
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
     final Map<String, Resource> resourceMap =
@@ -98,11 +93,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         }
       });
     }
-
-    long endTime = System.currentTimeMillis();
-    logger.info("END " + GenericHelixController.getPipelineType(cache.isTaskCache())
-        + " BestPossibleStateCalcStage.process() for cluster " + cache.getClusterName() + ". took: "
-        + (endTime - startTime) + " ms");
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,

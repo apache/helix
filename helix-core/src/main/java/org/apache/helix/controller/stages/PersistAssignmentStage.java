@@ -49,8 +49,6 @@ public class PersistAssignmentStage extends AbstractBaseStage {
   private static final Logger LOG = LoggerFactory.getLogger(PersistAssignmentStage.class);
 
   @Override public void process(ClusterEvent event) throws Exception {
-    LOG.info("START PersistAssignmentStage.process()");
-
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     ClusterConfig clusterConfig = cache.getClusterConfig();
 

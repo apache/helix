@@ -52,7 +52,7 @@ under the License.
     <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.7.14" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
         <artifact name="slf4j-log4j12" ext="jar"/>
     </dependency>
-    <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.4.9" conf="compile->compile(default);runtime->runtime(default);default->default"/>
+    <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.4.11" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.codehaus.jackson" name="jackson-core-asl" rev="1.8.5" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="1.8.5" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="commons-io" name="commons-io" rev="1.4" conf="compile->compile(default);runtime->runtime(default);default->default"/>

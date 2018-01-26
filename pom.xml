@@ -229,7 +229,7 @@ under the License.
     <helix.release.arguments>-Papache-release -DskipTests</helix.release.arguments>
 
     <!-- for release changelog and download pages -->
-    <currentRelease>0.6.4</currentRelease>
+    <currentRelease>0.8.0</currentRelease>
 
     <!-- OSGi Properties -->
     <osgi.import />

@@ -46,18 +46,166 @@ Release Notes for Apache Helix 0.8.0
 
 * Detailed Changes
 
-** Feature
+** New Features
 
-    * TODO
+    * Added new and improved helix rest layer, Helix Restful v2.0
+
+    * Initial release of Helix UI
+
+    * Added Crush-ed rebalancer algorithm that provides minimal partition movement and even partition distribution
+
+    * Added P2P (Participant-to-Participant) state-transition message support in Helix controller.
+
+    * Added new Batch APIs in Helix rest
+
+    * Added new topology-aware rebalance strategy, based on CRUSH algorithm. Added MultiRoundCrush that sacrifices partition movement and computation time for more even distribution
+
+    * Added State transition cancellation support
+
+    * Added Delayed rebalancing support
 
 
-** Bug
+** Bug Fixes
 
-    * TODO
+    * Fixed NPE if rebalance strategy is not specified in IS.
 
-** Improvement
+    * Fixed a minor issue when updating a workflowConfig with empty workflowId.
 
-    * TODO
+    * Fixed MultiRound CRUSH that cannot select any node from second round
+
+    * Fixed a bug in caching bestpossible states in ClusterDataCache.
+
+    * Fixed MissingTopStatePartitionGauge reports negative number issue.
+
+    * Fixed TaskStateModel thread leaking issue, and name all thread-pool created in Helix.
+
+    * Fixed no master replica when all of replica in new instances turn to ERROR state when migrating existing replicas to all new instances in DelayedAutoRebalancer.
+
+    * Fixed NPE in clusterstatusmonitor.
+
+    * Fixed build the workflowconfig by fromHelixProperty
+
+    * Fixed comparison method violating the contract
+
+    * Fixed NPEs for HelixTask Executors
+
+    * Fixed WorkflowConfig.Builder.fromMap() to copy WorkflowID
+
+    * Fixed a bug where context could not be read due to missing NAME field
+
+    * Fixed deadlock in GenericHelixController
+
+    * Fixed active MBean domain names for different instance types.
+
+    * Fixed duplication of HelixCallBackMonitors
+
+    * Fixed a bug when deleting a job from queue without context
+
+    * Fixed a NPE in DelayedAutoRebalancer, adding more debug logs.
+
+    * Fixed unexpected idealstate overwrite when persist assignment is on.
+
+    * Fixed disconnected zkConnection issue.
+
+    * Fixed Resource json format issue.
+
+    * Fixed ClusterConfig record output
+
+    * Fixed resource config set path
+
+    * Fixed rest JSON methods for restful service.
+
+    * Fixed NPE for get disabled partitions
+
+    * Fixed enable/disable partition in instances for specified resources
+
+    * Fixed deleteJob from a recurrent job queue
+
+    * Fixed a bug in AutoRebalanceStrategy, that assigned orphan replicas to its preferred nodes instead of random nodes.
+
+    * Fixed a bug in BestPossibleExternalViewVerifier
+
+    * Fixed Validation logic in JobConfig
+
+    * Fixed Target Resource conflicts with number of tasks setting
+
+    * Fixed JobQueue ignoring FailedThreshold
+
+    * Fixed NPE when first time call WorkflowRebalancer
+
+    * Fixed java 6 compatibility issue in AutoRebalancer.
+
+    * Fixes for using 1.8 feature in 1.6 environment
+
+    * Fixed BestPossibleExternalViewVerifier toString NPE
+
+    * Fixed Task State Model INIT priority number
+
+    * Fixed task assignment in instance group tag check
+
+    * Do not set MaxPartitionPerNode in IdealState if it is not greater than 0.
+
+    * Fixed missing workflowtype assignment in builder
+
+    * Fixed NPE in ClusterStateVerifier
+
+    * Fixed thread leaking problems in TaskStateModel. Using shared thread pool for all tasks and timeout tasks among all taskStateModels.
+
+    * Fixed jobConfig to expose number_of_concurrent_task_per_instance to znode.
+
+    * Fixed the bug when job expiry time is shorter than job schedule interval in recurring job queue. Add more debug log in TaskRebalancer.
+
+
+** Improvements
+
+    * Job scheduling should fail if the target resource does not exist anymore at the time of scheduling.
+
+    * Improved Integration test run speed
+
+    * Added periodic rebalance to Helix controller
+
+    * Upgraded Zookeeper dependency and fixed various zk connection and data update issues
+
+    * Made various improvements to MultiRoundCrush rebalancer
+
+    * Made various performance optimizations to helix controller
+
+    * Refactored the monitoring framework to simplify interfaces
+
+    * Added monitor to ZkClient to monitor the pending callbacks
+
+    * Improve the data load in Helix Spectator (RoutingTableProvider), which includes: 1) Put event callback handler in a spearate thread so other ZK event callbacks won't be blocked. 2) Deduplicate the callbacks from same event type, always keep just one latest copy of event callback in the event queue. 3) Add methods to return all instances and liveInstances in the cluster
+
+    * Add cluster config to tolerate ERROR Partition when trying to schedule load balance transition
+
+    * Optimize ClusterDataCache's data refresh strategy by: 1) cacheing CurrentStates locally and update only these that have been changed from zk. 2) Controller listens on ResourceConfig changes 3) Cache resource configs locally and update them all if there is any changes to resource configs
+
+    * SSL Support for Helix Rest
+
+    * Avoid cascading failure by automatically disabling the cluster when too many partitions are crammed into an instance
+
+    * Allow user to define a preference list for a partition in FULL-AUTO rebalance mode
+
+    * Allow each individual change listener to selectively enable/disable PreFetch and BatchMode during the callback handling.
+
+    * Added Cluster level state transition timeout
+
+    * Persist participant's offline timestamp in ParticipantHistory
+
+    * Added Serialization for HelixProperty
+
+    * Added partition level priority support
+
+    * Optimize partition movement when autorebalancing using the default strategy
+
+    * Add support for flexible hirerachy representation of a cluster topology
+
+    * Add StrictMatchExternalViewVerifier that verifies whether the ExternalViews of given resources (or all resources in the cluster) match exactly as its ideal mapping (in idealstate)
+
+    * Improved Task Retry support
+
+    * Generate Idealstate for a job resource only when it starts to run and remove it once the job is completed.
+
 
 []
 

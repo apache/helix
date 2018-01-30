@@ -80,6 +80,7 @@ Helix Release Process
   <!-- ... -->
 </settings>
 +-------------
+   Before release please make sure <<maven-release-plugin version>> in <pom.xml> is <<2.5.1>> or <<newer>>.
 
    Run the release
 

@@ -219,10 +219,17 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     try {
       replica = Integer.valueOf(idealState.getReplicas());
     } catch (NumberFormatException e) {
+      _logger.error("Invalid replica count for " + _resourceName + ", failed to update its ResourceMonitor Mbean!");
+      return;
     }
 
     int minActiveReplica = idealState.getMinActiveReplicas();
     minActiveReplica = (minActiveReplica >= 0) ? minActiveReplica : replica;
+
+    Set<String> activeStates = new HashSet<>(stateModelDef.getStatesPriorityList());
+    activeStates.remove(stateModelDef.getInitialState());
+    activeStates.remove(HelixDefinedState.DROPPED.name());
+    activeStates.remove(HelixDefinedState.ERROR.name());
 
     for (String partition : partitions) {
       Map<String, String> idealRecord = idealState.getInstanceStateMap(partition);
@@ -248,10 +255,6 @@ public class ResourceMonitor extends DynamicMBeanProvider {
         if (topState != null && topState.equalsIgnoreCase(currentState)) {
           hasTopState = true;
         }
-
-        Map<String, Integer> stateCount =
-            stateModelDef.getStateCountMap(idealRecord.size(), replica);
-        Set<String> activeStates = stateCount.keySet();
         if (currentState != null && activeStates.contains(currentState)) {
           activeReplicaCount++;
         }

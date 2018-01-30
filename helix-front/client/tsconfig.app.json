@@ -9,9 +9,5 @@
   "exclude": [
     "test.ts",
     "**/*.spec.ts"
-  ],
-  "include": [
-    "**/*",
-    "../node_modules/ngx-json-viewer/index.ts"
   ]
 }

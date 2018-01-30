@@ -1,3 +1,17 @@
+@import '~@angular/material/theming';
+
 .content {
   padding: 20px;
+}
+
+.state-default {
+  color: mat-color(mat-palette($mat-deep-orange));
+}
+
+.state-COMPLETED {
+  color: mat-color(mat-palette($mat-green));
+}
+
+.state-PENDING {
+  color: mat-color(mat-palette($mat-grey));
 }

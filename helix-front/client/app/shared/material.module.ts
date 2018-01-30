@@ -17,7 +17,8 @@ import {
   MatSidenavModule,
   MatListModule,
   MatMenuModule,
-  MatTabsModule
+  MatTabsModule,
+  MatExpansionModule
 } from '@angular/material';
 import 'hammerjs';
 
@@ -40,7 +41,8 @@ import 'hammerjs';
     MatSidenavModule,
     MatListModule,
     MatMenuModule,
-    MatTabsModule
+    MatTabsModule,
+    MatExpansionModule
   ],
   exports: [
     BrowserAnimationsModule,
@@ -60,7 +62,8 @@ import 'hammerjs';
     MatSidenavModule,
     MatListModule,
     MatMenuModule,
-    MatTabsModule
+    MatTabsModule,
+    MatExpansionModule
   ]
 })
 export class MaterialModule { }

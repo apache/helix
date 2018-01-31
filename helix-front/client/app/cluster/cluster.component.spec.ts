@@ -2,6 +2,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { FlexLayoutModule } from '@angular/flex-layout';
 
+import { TestingModule } from '../../testing/testing.module';
 import { ClusterComponent } from './cluster.component';
 
 describe('ClusterComponent', () => {
@@ -10,7 +11,10 @@ describe('ClusterComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      imports: [ FlexLayoutModule ],
+      imports: [
+        FlexLayoutModule,
+        TestingModule
+      ],
       declarations: [ ClusterComponent ],
       schemas: [
         /* avoid importing modules */

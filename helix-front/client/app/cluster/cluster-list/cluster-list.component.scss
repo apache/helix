@@ -1,5 +1,9 @@
 @import 'client/theme.scss';
 
+.mat-spinner {
+  margin: 20px;
+}
+
 .cluster-list-item-selected h4 {
   font-weight: 500;
   color: mat-color($hi-primary);

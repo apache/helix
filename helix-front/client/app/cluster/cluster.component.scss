@@ -1,4 +1,22 @@
-mat-sidenav {
+@import '~@angular/material/theming';
+
+.mat-sidenav {
   width: 25vw;
   min-width: 200px;
+}
+
+.toggle-button {
+  position: fixed;
+  top: 50%;
+  z-index: 3;
+  transition: $swift-ease-out;
+  cursor: pointer;
+
+  &.open {
+    left: calc(25vw - 20px);
+  }
+
+  &.close {
+    left: -15px;
+  }
 }

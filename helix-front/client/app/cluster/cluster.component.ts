@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { MediaChange, ObservableMedia } from '@angular/flex-layout';
 
 @Component({
@@ -8,7 +8,9 @@ import { MediaChange, ObservableMedia } from '@angular/flex-layout';
 })
 export class ClusterComponent implements OnInit {
 
-  isNarrowView:boolean;
+  @ViewChild('sidenav') sidenav;
+
+  isNarrowView: boolean;
 
   constructor(
     protected media: ObservableMedia
@@ -16,10 +18,15 @@ export class ClusterComponent implements OnInit {
 
   ngOnInit() {
     // auto adjust side nav only if not embed
-    this.isNarrowView = /*this.headerEnabled &&*/ (this.media.isActive('xs') || this.media.isActive('sm'));
+    this.isNarrowView = (this.media.isActive('xs') || this.media.isActive('sm'));
+
     this.media.subscribe((change: MediaChange) => {
-      this.isNarrowView = /*this.headerEnabled &&*/ (change.mqAlias === 'xs' || change.mqAlias === 'sm');
+      this.isNarrowView = (change.mqAlias === 'xs' || change.mqAlias === 'sm');
     });
+  }
+
+  toggleSidenav() {
+    this.sidenav.opened ? this.sidenav.close() : this.sidenav.open();
   }
 
 }

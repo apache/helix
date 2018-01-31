@@ -1,11 +1,9 @@
 <section class="app" fxLayout="column" fxFill>
   <mat-toolbar *ngIf="headerEnabled" class="header mat-elevation-z7" color="primary">
-    <button mat-icon-button
-      *ngIf="isNarrowView"
-      (click)="sidenav.open()">
-      <mat-icon>menu</mat-icon>
-    </button>
-    <h2 routerLink="/">Helix</h2>
+    <a mat-button routerLink="/">
+      <img class="helix-logo" src="assets/logo.png" />
+      <span class="helix-title">Helix</span>
+    </a>
     <span fxFlex="1 1 auto"></span>
     <a mat-button>
       <mat-icon>person</mat-icon>

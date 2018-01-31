@@ -1,9 +1,16 @@
 {
   "name": "helix-front",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "Vivo Xu <vxu@linkedin.com>",
   "license": "Apache-2.0",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/helix.git"
+  },
+  "keywords": [
+    "helix",
+    "ui"
+  ],
   "scripts": {
     "ng": "ng",
     "build": "rm -rf dist && mkdir dist && ng build -aot -prod && tsc -p server",

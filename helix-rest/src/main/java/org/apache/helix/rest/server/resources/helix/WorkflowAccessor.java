@@ -108,7 +108,7 @@ public class WorkflowAccessor extends AbstractHelixResource {
 
     JobDag jobDag = workflowConfig.getJobDag();
     ArrayNode jobs = OBJECT_MAPPER.valueToTree(jobDag.getAllNodes());
-    ObjectNode parentJobs = OBJECT_MAPPER.valueToTree(jobDag.getParentsToChildren());
+    ObjectNode parentJobs = OBJECT_MAPPER.valueToTree(jobDag.getChildrenToParents());
     root.put(WorkflowProperties.Jobs.name(), jobs);
     root.put(WorkflowProperties.ParentJobs.name(), parentJobs);
 

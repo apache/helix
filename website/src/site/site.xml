@@ -65,8 +65,9 @@
     </menu>
 
     <menu name="Documentation">
-      <item name="0.6.9 (stable)" href="./0.6.9-docs/index.html"/>
+      <item name="0.8.0 (stable)" href="./0.8.0-docs/index.html"/>
       <item name="0.7.1 (beta)" href="./0.7.1-docs/index.html"/>
+      <item name="0.6.9" href="./0.6.9-docs/index.html"/>
       <item name="0.6.8" href="./0.6.8-docs/index.html"/>
       <item name="0.6.7" href="./0.6.7-docs/index.html"/>
       <item name="0.6.6" href="./0.6.6-docs/index.html"/>
@@ -79,11 +80,11 @@
       <item name="trunk" href="./trunk-docs/index.html"/>
     </menu>
 
-    <menu name="Helix 0.6.9">
-      <item name="Documentation" href="./0.6.9-docs/index.html"/>
-      <item name="Quick Start" href="./0.6.9-docs/Quickstart.html"/>
-      <item name="Tutorial" href="./0.6.9-docs/Tutorial.html"/>
-      <item name="Download" href="./0.6.9-docs/download.html"/>
+    <menu name="Helix 0.8.0">
+      <item name="Documentation" href="./0.8.0-docs/index.html"/>
+      <item name="Quick Start" href="./0.8.0-docs/Quickstart.html"/>
+      <item name="Tutorial" href="./0.8.0-docs/Tutorial.html"/>
+      <item name="Download" href="./0.8.0-docs/download.html"/>
     </menu>
 
     <menu name="Helix 0.7.1 (beta)">
@@ -148,7 +149,7 @@
       <slogan>A cluster management framework for partitioned and replicated distributed resources</slogan>
       <bottomNav>
         <column>Learn</column>
-        <column>Documentation|Helix 0.6.9|Helix 0.7.1 (beta)</column>
+        <column>Documentation|Helix 0.8.0|Helix 0.7.1 (beta)</column>
         <column>Get Involved</column>
         <column>ASF</column>
       </bottomNav>

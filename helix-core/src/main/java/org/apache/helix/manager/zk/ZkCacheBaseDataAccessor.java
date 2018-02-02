@@ -32,6 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
+import org.I0Itec.zkclient.exception.ZkBadVersionException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
@@ -257,25 +258,26 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     String serverPath = prependChroot(clientPath);
 
     Cache<T> cache = getCache(serverPath);
-    if (cache != null) {
-      try {
+    boolean success = false;
+    try {
+      if (cache != null) {
         cache.lockWrite();
         ZkBaseDataAccessor<T>.AccessResult result =
             _baseAccessor.doSet(serverPath, data, expectVersion, options);
-        boolean success = result._retCode == RetCode.OK;
+        success = result._retCode == RetCode.OK;
 
         updateCache(cache, result._pathCreated, success, serverPath, data, result._stat);
-
-        return success;
-      } catch (Exception e) {
-        return false;
-      } finally {
+      } else {
+        // no cache
+        success = _baseAccessor.set(serverPath, data, expectVersion, options);
+      }
+    } catch (Exception e) {
+    } finally {
+      if (cache != null) {
         cache.unlockWrite();
       }
     }
-
-    // no cache
-    return _baseAccessor.set(serverPath, data, expectVersion, options);
+    return success;
   }
 
   @Override

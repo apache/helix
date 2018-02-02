@@ -238,12 +238,18 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       }
     }
 
-    logger.info(
-        "recovery balance needed for " + resourceName + " partitions: " + partitionsNeedRecovery);
-    logger.info(
-        "load balance needed for " + resourceName + " partitions: " + partitionsNeedLoadbalance);
-    logger.info("partition currently has ERROR replica in " + resourceName + " partitions: "
-        + partitionshaveErrorStateReplica);
+    if (!partitionsNeedRecovery.isEmpty()) {
+      logger.info(
+          "recovery balance needed for " + resourceName + " partitions: " + partitionsNeedRecovery);
+    }
+    if (!partitionsNeedLoadbalance.isEmpty()) {
+      logger.info(
+          "load balance needed for " + resourceName + " partitions: " + partitionsNeedLoadbalance);
+    }
+    if (!partitionshaveErrorStateReplica.isEmpty()) {
+      logger.info("partition currently has ERROR replica in " + resourceName + " partitions: "
+          + partitionshaveErrorStateReplica);
+    }
 
     chargePendingTransition(resource, currentStateOutput, throttleController,
         partitionsNeedRecovery, partitionsNeedLoadbalance);

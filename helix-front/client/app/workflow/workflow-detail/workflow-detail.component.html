@@ -18,69 +18,68 @@
 <section fxLayout="column" fxLayoutAlign="center center">
   <mat-spinner *ngIf="isLoading"></mat-spinner>
   <section *ngIf="!isLoading" class="content" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="10px" fxFlexFill>
-    <mat-button-toggle-group #group="matButtonToggleGroup" value="queue">
-      <mat-button-toggle value="queue">
-        Queue View
+    <mat-button-toggle-group #group="matButtonToggleGroup" [value]="workflow.isJobQueue ? 'list' : 'graph'">
+      <mat-button-toggle *ngIf="!workflow.isJobQueue" value="graph">
+        Graph View
+      </mat-button-toggle>
+      <mat-button-toggle value="list">
+        List View
       </mat-button-toggle>
       <mat-button-toggle value="json">
         JSON View
       </mat-button-toggle>
     </mat-button-toggle-group>
-    <section class="viewer" [ngSwitch]="group.value" fxFlexFill>
-      <section *ngSwitchCase="'queue'">
-        <section *ngIf="workflow.isJobQueue">
-          <ngx-datatable
-            #jobsTable
-            class="material"
-            [headerHeight]="headerHeight"
-            [rowHeight]="rowHeight"
-            columnMode="force"
-            [footerHeight]="rowHeight"
-            [rows]="workflow.jobs"
-            selectionType="single"
-            [sorts]="sorts"
-            (select)="onSelect($event)"
-            [messages]="messages">
-            <ngx-datatable-column
-              name="Start Time"
-              [width]="200"
-              [resizeable]="false"
-              [draggable]="false"
-              [canAutoResize]="false">
-              <ng-template let-value="value" ngx-datatable-cell-template>
-                <span *ngIf="value" [matTooltip]="value | date:'medium'">
-                  {{ parseTime(value) }}
-                </span>
-                <span *ngIf="!value">-</span>
-              </ng-template>
-            </ngx-datatable-column>
-            <ngx-datatable-column name="Job Name" prop="name">
-              <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
-                <span [matTooltip]="row.rawName">
-                  ...{{ value }}
-                </span>
-              </ng-template>
-            </ngx-datatable-column>
-            <ngx-datatable-column
-              name="State"
-              [width]="120"
-              [resizeable]="false"
-              [draggable]="false"
-              [canAutoResize]="false">
-              <ng-template let-value="value" ngx-datatable-cell-template>
-                <span *ngIf="value" class="state-default state-{{ value }}">
-                  {{ value }}
-                </span>
-                <span *ngIf="!value" class="state-PENDING">PENDING</span>
-              </ng-template>
-            </ngx-datatable-column>
-          </ngx-datatable>
-        </section>
-        <section *ngIf="!workflow.isJobQueue">
-          {{ workflow | json }}
-        </section>
-      </section>
-      <ngx-json-viewer *ngSwitchCase="'json'" [json]="workflow"></ngx-json-viewer>
+    <section class="viewer" [ngSwitch]="group.value" fxLayout="column" fxLayoutAlign="center center" fxFill>
+      <hi-workflow-dag *ngSwitchCase="'graph'" [workflow]="workflow"></hi-workflow-dag>
+      <ngx-datatable
+        *ngSwitchCase="'list'"
+        #jobsTable
+        class="material"
+        [headerHeight]="headerHeight"
+        [rowHeight]="rowHeight"
+        columnMode="force"
+        [footerHeight]="rowHeight"
+        [rows]="workflow.jobs"
+        selectionType="single"
+        [sorts]="sorts"
+        (select)="onSelect($event)"
+        [messages]="messages"
+        fxFill>
+        <ngx-datatable-column
+          name="Start Time"
+          [width]="200"
+          [resizeable]="false"
+          [draggable]="false"
+          [canAutoResize]="false">
+          <ng-template let-value="value" ngx-datatable-cell-template>
+            <span *ngIf="value" [matTooltip]="value | date:'medium'">
+              {{ parseTime(value) }}
+            </span>
+            <span *ngIf="!value">-</span>
+          </ng-template>
+        </ngx-datatable-column>
+        <ngx-datatable-column name="Job Name" prop="name">
+          <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+            <span [matTooltip]="row.rawName">
+              ...{{ value }}
+            </span>
+          </ng-template>
+        </ngx-datatable-column>
+        <ngx-datatable-column
+          name="State"
+          [width]="120"
+          [resizeable]="false"
+          [draggable]="false"
+          [canAutoResize]="false">
+          <ng-template let-value="value" ngx-datatable-cell-template>
+            <span *ngIf="value" class="state-default state-{{ value }}">
+              {{ value }}
+            </span>
+            <span *ngIf="!value" class="state-PENDING">PENDING</span>
+          </ng-template>
+        </ngx-datatable-column>
+      </ngx-datatable>
+      <ngx-json-viewer *ngSwitchCase="'json'" [json]="workflow.json" fxFill></ngx-json-viewer>
     </section>
   </section>
 </section>

@@ -2,9 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import * as moment from 'moment';
+import * as shape from 'd3-shape';
+import * as _ from 'lodash';
 
 import { Settings } from '../../core/settings';
-import { Workflow } from '../shared/workflow.model';
+import { Workflow, Job } from '../shared/workflow.model';
 import { WorkflowService } from '../shared/workflow.service';
 
 @Component({
@@ -25,7 +27,7 @@ export class WorkflowDetailComponent implements OnInit {
     { prop: 'name', dir: 'asc'}
   ];
   messages = {
-    emptyMessage: 'The queue is empty.',
+    emptyMessage: 'The list is empty.',
     totalMessage: 'total',
     selectedMessage: 'selected'
   };
@@ -58,5 +60,4 @@ export class WorkflowDetailComponent implements OnInit {
     const row = selected[0];
     // this.table.rowDetail.toggleExpandRow(row);
   }
-
 }

@@ -9,18 +9,22 @@ export class Job {
   readonly rawName: string;
   readonly startTime: string;
   readonly state: string;
+  readonly parents: string[];
 
   constructor(
     rawName: string,
     workflowName: string,
     startTime: string,
-    state: string
+    state: string,
+    parents: string[]
   ) {
     this.rawName = rawName;
     // try to reduce the name
     this.name = _.replace(rawName, workflowName + '_', '');
     this.startTime = startTime;
     this.state = state;
+    // try to reduce parent names
+    this.parents = _.map(parents, parent => _.replace(parent, workflowName + '_', ''));
   }
 }
 
@@ -28,9 +32,8 @@ export class Workflow {
   readonly name: string;
   readonly config: any;
   readonly jobs: Job[];
-  // TODO vxu: will use a better structure for this
-  readonly parentJobs: any[];
   readonly context: any;
+  readonly json: any;
 
   get isJobQueue(): boolean {
     return this.config && this.config.IsJobQueue.toLowerCase() == 'true';
@@ -41,14 +44,14 @@ export class Workflow {
   }
 
   constructor(obj: any) {
+    this.json = obj;
     this.name = obj.id;
     this.config = obj.WorkflowConfig;
     this.context = obj.WorkflowContext;
-    this.jobs = this.parseJobs(obj.Jobs);
-    this.parentJobs = obj.ParentJobs;
+    this.jobs = this.parseJobs(obj.Jobs, obj.ParentJobs);
   }
 
-  protected parseJobs(list: string[]): Job[] {
+  protected parseJobs(list: string[], parents: any): Job[] {
     let result: Job[] = [];
 
     _.forEach(list, jobName => {
@@ -56,7 +59,8 @@ export class Workflow {
         jobName,
         this.name,
         _.get(this.context, ['StartTime', jobName]),
-        _.get(this.context, ['JOB_STATES', jobName])
+        _.get(this.context, ['JOB_STATES', jobName]),
+        parents[jobName]
       ));
     });
 

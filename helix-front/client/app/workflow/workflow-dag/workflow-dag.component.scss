@@ -1,0 +1,13 @@
+@import '~@angular/material/theming';
+
+.state-default {
+  fill: mat-color(mat-palette($mat-deep-orange));
+}
+
+.state-COMPLETED {
+  fill: mat-color(mat-palette($mat-green));
+}
+
+.state-PENDING {
+  fill: mat-color(mat-palette($mat-grey));
+}

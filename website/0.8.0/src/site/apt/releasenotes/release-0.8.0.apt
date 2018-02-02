@@ -48,22 +48,43 @@ Release Notes for Apache Helix 0.8.0
 
 ** New Features
 
-    * Added new and improved helix rest layer, Helix Restful v2.0
+    * Helix REST 2.0 
 
-    * Initial release of Helix UI
+        * All admin operations are exposed via restful API 
 
-    * Added Crush-ed rebalancer algorithm that provides minimal partition movement and even partition distribution
+        * Support all task framework API 
 
-    * Added P2P (Participant-to-Participant) state-transition message support in Helix controller.
+        * Helix Rest 2.0 uses standard HTTP methods if possible, instead of customized command as in HelixAdminWeb 
 
-    * Added new Batch APIs in Helix rest
+        * Access log can be enabled for both read and write access 
 
-    * Added new topology-aware rebalance strategy, based on CRUSH algorithm. Added MultiRoundCrush that sacrifices partition movement and computation time for more even distribution
+    * New Helix UI (helix-front) which allows you to : 
 
-    * Added State transition cancellation support
+        * View detailed cluster information 
 
-    * Added Delayed rebalancing support
+        * View resources / instances in a Helix cluster 
 
+        * View partition placement and health status in a resource 
+
+        * Create new Helix clusters 
+
+        * Enable / Disable a cluster / resource / instance 
+
+        * Add an instance into a Helix cluster 
+
+    * New Full-auto rebalancer featured with : 
+
+        * CRUSH-based rack-aware partition placement algorithm 
+
+        * Delayed rebalance which minimizes re-shuffle of the resident partitions on an instance during short-period outage, while still maintaining minimal active replicas for application's availability need 
+
+        * Throttled partition movements that allows maximum number of pending state transitions to be set at cluster, resource or instance level 
+
+        * New P2P (Participant-to-participant) state-transition message to allow much faster mastership handoff 
+
+    * Helix Cluster Maintenance Mode 
+
+        * Application can put a cluster into maintenance mode. When a cluster in maintenance mode, no new partitions will be bootstrapped, however, existing partitions will still be maintained 
 
 ** Bug Fixes
 
@@ -158,17 +179,33 @@ Release Notes for Apache Helix 0.8.0
 
 ** Improvements
 
-    * Job scheduling should fail if the target resource does not exist anymore at the time of scheduling.
+    * Performance Improvement 
+
+        * Task framework rebalance pipeline was separated from resource management pipeline in the controller 
+
+        * Reads and writes to ZK are batched during controller's rebalance pipeline to decrease the latency 
+
+        * Optimized the rebalance pipeline with cached data to avoid redundant calculation 
+
+        * New P2P (Participant-to-participant) state-transition message to allow much faster mastership handoff 
+
+        * New target external view to allow spectators to  have a speculative view of ongoing rebalancing 
+
+    * Monitor Improvement 
+
+        * A set of new MBeans to monitor traffic and latency between controller/participant and Zookeeper 
+
+        * More MBeans to monitor performance of controller's rebalance pipeline 
+
+        * More MBeans to monitor running and queued workflows and jobs 
+
+    * Job scheduling should fail if the target resource does not exist anymore at the time of scheduling
 
     * Improved Integration test run speed
 
     * Added periodic rebalance to Helix controller
 
     * Upgraded Zookeeper dependency and fixed various zk connection and data update issues
-
-    * Made various improvements to MultiRoundCrush rebalancer
-
-    * Made various performance optimizations to helix controller
 
     * Refactored the monitoring framework to simplify interfaces
 
@@ -179,8 +216,6 @@ Release Notes for Apache Helix 0.8.0
     * Add cluster config to tolerate ERROR Partition when trying to schedule load balance transition
 
     * Optimize ClusterDataCache's data refresh strategy by: 1) cacheing CurrentStates locally and update only these that have been changed from zk. 2) Controller listens on ResourceConfig changes 3) Cache resource configs locally and update them all if there is any changes to resource configs
-
-    * SSL Support for Helix Rest
 
     * Avoid cascading failure by automatically disabling the cluster when too many partitions are crammed into an instance
 

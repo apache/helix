@@ -1,0 +1,62 @@
+<ngx-datatable
+  #jobsTable
+  class="material"
+  [headerHeight]="headerHeight"
+  [rowHeight]="rowHeight"
+  columnMode="force"
+  [footerHeight]="rowHeight"
+  [rows]="jobs"
+  selectionType="single"
+  [sorts]="sorts"
+  (select)="onSelect($event)"
+  [messages]="messages"
+  fxFill>
+  <ngx-datatable-column
+   [width]="50"
+   [resizeable]="false"
+   [sortable]="false"
+   [draggable]="false"
+   [canAutoResize]="false">
+   <ng-template let-expanded="expanded" ngx-datatable-cell-template>
+     <mat-icon>{{ expanded ? 'expand_more' : 'chevron_right' }}</mat-icon>
+   </ng-template>
+  </ngx-datatable-column>
+  <ngx-datatable-column
+    name="Start Time"
+    [width]="200"
+    [resizeable]="false"
+    [draggable]="false"
+    [canAutoResize]="false">
+    <ng-template let-value="value" ngx-datatable-cell-template>
+      <span *ngIf="value" [matTooltip]="value | date:'medium'">
+        {{ parseTime(value) }}
+      </span>
+      <span *ngIf="!value">-</span>
+    </ng-template>
+  </ngx-datatable-column>
+  <ngx-datatable-column name="Job Name" prop="name">
+    <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+      <span [matTooltip]="row.rawName">
+        ...{{ value }}
+      </span>
+    </ng-template>
+  </ngx-datatable-column>
+  <ngx-datatable-column
+    name="State"
+    [width]="120"
+    [resizeable]="false"
+    [draggable]="false"
+    [canAutoResize]="false">
+    <ng-template let-value="value" ngx-datatable-cell-template>
+      <span *ngIf="value" class="state-default state-{{ value }}">
+        {{ value }}
+      </span>
+      <span *ngIf="!value" class="state-PENDING">PENDING</span>
+    </ng-template>
+  </ngx-datatable-column>
+  <ngx-datatable-row-detail rowHeight="auto">
+    <ng-template let-row="row" ngx-datatable-row-detail-template>
+      <hi-job-detail [job]="row"></hi-job-detail>
+    </ng-template>
+  </ngx-datatable-row-detail>
+</ngx-datatable>

@@ -11,9 +11,17 @@ export class Job {
   readonly state: string;
   readonly parents: string[];
 
+  readonly workflowName: string;
+  readonly clusterName: string;
+
+  // will load later
+  config: any;
+  context: any;
+
   constructor(
     rawName: string,
     workflowName: string,
+    clusterName: string,
     startTime: string,
     state: string,
     parents: string[]
@@ -21,6 +29,8 @@ export class Job {
     this.rawName = rawName;
     // try to reduce the name
     this.name = _.replace(rawName, workflowName + '_', '');
+    this.workflowName = workflowName;
+    this.clusterName = clusterName;
     this.startTime = startTime;
     this.state = state;
     // try to reduce parent names
@@ -30,22 +40,24 @@ export class Job {
 
 export class Workflow {
   readonly name: string;
+  readonly clusterName: string;
   readonly config: any;
   readonly jobs: Job[];
   readonly context: any;
   readonly json: any;
 
   get isJobQueue(): boolean {
-    return this.config && this.config.IsJobQueue.toLowerCase() == 'true';
+    return this.config && this.config.IsJobQueue && this.config.IsJobQueue.toLowerCase() == 'true';
   }
 
   get state(): string {
     return this.context.STATE || 'NOT STARTED';
   }
 
-  constructor(obj: any) {
+  constructor(obj: any, clusterName: string) {
     this.json = obj;
     this.name = obj.id;
+    this.clusterName = clusterName;
     this.config = obj.WorkflowConfig;
     this.context = obj.WorkflowContext;
     this.jobs = this.parseJobs(obj.Jobs, obj.ParentJobs);
@@ -58,6 +70,7 @@ export class Workflow {
       result.push(new Job(
         jobName,
         this.name,
+        this.clusterName,
         _.get(this.context, ['StartTime', jobName]),
         _.get(this.context, ['JOB_STATES', jobName]),
         parents[jobName]

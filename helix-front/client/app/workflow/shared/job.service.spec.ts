@@ -2,17 +2,17 @@ import { TestBed, inject } from '@angular/core/testing';
 
 import { TestingModule } from '../../../testing/testing.module';
 
-import { WorkflowService } from './workflow.service';
+import { JobService } from './job.service';
 
-describe('WorkflowService', () => {
+describe('JobService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TestingModule],
-      providers: [WorkflowService]
+      providers: [JobService]
     });
   });
 
-  it('should be created', inject([WorkflowService], (service: WorkflowService) => {
+  it('should be created', inject([JobService], (service: JobService) => {
     expect(service).toBeTruthy();
   }));
 });

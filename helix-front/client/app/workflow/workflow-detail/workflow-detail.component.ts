@@ -1,13 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import * as moment from 'moment';
-import * as shape from 'd3-shape';
-import * as _ from 'lodash';
-
-import { Settings } from '../../core/settings';
-import { Workflow, Job } from '../shared/workflow.model';
+import { Workflow } from '../shared/workflow.model';
 import { WorkflowService } from '../shared/workflow.service';
+import { HelperService } from '../../shared/helper.service';
 
 @Component({
   selector: 'hi-workflow-detail',
@@ -20,21 +16,10 @@ export class WorkflowDetailComponent implements OnInit {
   workflow: Workflow;
   clusterName: string;
 
-  rowHeight = Settings.tableRowHeight;
-  headerHeight = Settings.tableHeaderHeight;
-  sorts = [
-    { prop: 'startTime', dir: 'desc'},
-    { prop: 'name', dir: 'asc'}
-  ];
-  messages = {
-    emptyMessage: 'The list is empty.',
-    totalMessage: 'total',
-    selectedMessage: 'selected'
-  };
-
   constructor(
-    private route: ActivatedRoute,
-    private service: WorkflowService
+    protected route: ActivatedRoute,
+    protected service: WorkflowService,
+    protected helper: HelperService
   ) { }
 
   ngOnInit() {
@@ -47,17 +32,8 @@ export class WorkflowDetailComponent implements OnInit {
       )
       .subscribe(
         workflow => this.workflow = workflow,
-        error => console.log(error),
+        error => this.helper.showError(error),
         () => this.isLoading = false
       );
-  }
-
-  parseTime(rawTime: string): string {
-    return moment(parseInt(rawTime)).fromNow();
-  }
-
-  onSelect({ selected }) {
-    const row = selected[0];
-    // this.table.rowDetail.toggleExpandRow(row);
   }
 }

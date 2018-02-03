@@ -1,0 +1,10 @@
+<mat-tab-group>
+  <mat-tab label="Job Config">
+    <mat-spinner *ngIf="isLoading"></mat-spinner>
+    <ngx-json-viewer [json]="job?.config"></ngx-json-viewer>
+  </mat-tab>
+  <mat-tab label="Job Context">
+    <mat-spinner *ngIf="isLoading"></mat-spinner>
+    <ngx-json-viewer [json]="job?.context"></ngx-json-viewer>
+  </mat-tab>
+</mat-tab-group>

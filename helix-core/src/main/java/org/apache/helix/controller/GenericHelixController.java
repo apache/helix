@@ -607,6 +607,8 @@ public class GenericHelixController implements IdealStateChangeListener,
       enableClusterStatusMonitor(true);
       _clusterStatusMonitor.setEnabled(!_paused);
     } else {
+      _eventQueue.clear();
+      _taskEventQueue.clear();
       enableClusterStatusMonitor(false);
     }
 
@@ -694,6 +696,9 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     terminateEventThread(_eventThread);
     terminateEventThread(_taskEventThread);
+
+    _eventQueue.clear();
+    _taskEventQueue.clear();
 
     // shutdown asycTasksThreadpool and wait for terminate.
     _asyncTasksThreadPool.shutdownNow();

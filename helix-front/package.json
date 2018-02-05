@@ -18,7 +18,8 @@
     "prod": "npm run build && node dist/server/app.js",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "smoke": "ng lint && ng test -sr && npm run build"
   },
   "dependencies": {
     "@angular/animations": "^5.1.1",

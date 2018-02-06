@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyType;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
@@ -51,19 +52,41 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
   private final AtomicReference<RoutingTable> _routingTableRef;
   private final HelixManager _helixManager;
   private final RouterUpdater _routerUpdater;
+  private final PropertyType _sourceDataType;
 
   public RoutingTableProvider() {
     this(null);
   }
 
   public RoutingTableProvider(HelixManager helixManager) throws HelixException {
+    this(helixManager, PropertyType.EXTERNALVIEW);
+  }
+
+  public RoutingTableProvider(HelixManager helixManager, PropertyType sourceDataType) throws HelixException {
     _routingTableRef = new AtomicReference<>(new RoutingTable());
     _helixManager = helixManager;
-    String clusterName = null;
+    _sourceDataType = sourceDataType;
+    String clusterName = _helixManager != null ? _helixManager.getClusterName() : null;
+    _routerUpdater = new RouterUpdater(clusterName, _sourceDataType);
+    _routerUpdater.start();
     if (_helixManager != null) {
-      clusterName = _helixManager.getClusterName();
       try {
-        _helixManager.addExternalViewChangeListener(this);
+        switch (_sourceDataType) {
+        case EXTERNALVIEW:
+          _helixManager.addExternalViewChangeListener(this);
+          break;
+        case TARGETEXTERNALVIEW:
+          // Check whether target external has been enabled or not
+          if (!_helixManager.getHelixDataAccessor().getBaseDataAccessor().exists(
+              _helixManager.getHelixDataAccessor().keyBuilder().targetExternalViews().getPath(),
+              0)) {
+            throw new HelixException("Target External View is not enabled!");
+          }
+          _helixManager.addTargetExternalViewChangeListener(this);
+          break;
+        default:
+          throw new HelixException("Unsupported source data type: " + sourceDataType);
+        }
         _helixManager.addInstanceConfigChangeListener(this);
         _helixManager.addLiveInstanceChangeListener(this);
       } catch (Exception e) {
@@ -71,8 +94,6 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
         throw new HelixException("Failed to attach listeners to HelixManager!", e);
       }
     }
-    _routerUpdater = new RouterUpdater(clusterName);
-    _routerUpdater.start();
   }
 
   /**
@@ -188,7 +209,8 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
       List<String> resourceTags) {
-    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, state, resourceTags);
+    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, state,
+        resourceTags);
   }
 
   /**
@@ -211,6 +233,12 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
   @PreFetch(enabled = false)
   public void onExternalViewChange(List<ExternalView> externalViewList,
       NotificationContext changeContext) {
+    HelixConstants.ChangeType changeType = changeContext.getChangeType();
+    if (changeType != null && !changeType.getPropertyType().equals(_sourceDataType)) {
+      logger.warn("onExternalViewChange called with dis-matched change types. Source data type "
+          + _sourceDataType + ", changed data type: " + changeType);
+      return;
+    }
     // Refresh with full list of external view.
     // keep this here for back-compatibility
     if (externalViewList != null && externalViewList.size() > 0) {
@@ -268,9 +296,9 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
   private class RouterUpdater extends ClusterEventProcessor {
     private final RoutingDataCache _dataCache;
 
-    public RouterUpdater(String clusterName) {
+    public RouterUpdater(String clusterName, PropertyType sourceDataType) {
       super("Helix-RouterUpdater-event_process");
-      _dataCache = new RoutingDataCache(clusterName);
+      _dataCache = new RoutingDataCache(clusterName, sourceDataType);
     }
 
     @Override

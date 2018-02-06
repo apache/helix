@@ -25,7 +25,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyType;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -41,16 +43,23 @@ public class BasicClusterDataCache {
   private Map<String, LiveInstance> _liveInstanceMap;
   private Map<String, InstanceConfig> _instanceConfigMap;
   private Map<String, ExternalView> _externalViewMap;
+  private final PropertyType _sourceDataType;
+
   protected String _clusterName;
 
   protected Map<HelixConstants.ChangeType, Boolean> _propertyDataChangedMap;
 
   public BasicClusterDataCache(String clusterName) {
+    this(clusterName, PropertyType.EXTERNALVIEW);
+  }
+
+  public BasicClusterDataCache(String clusterName, PropertyType sourceDataType) {
     _propertyDataChangedMap = new ConcurrentHashMap<>();
     _liveInstanceMap = new HashMap<>();
     _instanceConfigMap = new HashMap<>();
     _externalViewMap = new HashMap<>();
     _clusterName = clusterName;
+    _sourceDataType = sourceDataType;
   }
 
   /**
@@ -68,7 +77,16 @@ public class BasicClusterDataCache {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW)) {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.EXTERNAL_VIEW, Boolean.valueOf(false));
-      _externalViewMap = accessor.getChildValuesMap(keyBuilder.externalViews());
+      switch (_sourceDataType) {
+        case EXTERNALVIEW:
+          _externalViewMap = accessor.getChildValuesMap(keyBuilder.externalViews());
+          break;
+        case TARGETEXTERNALVIEW:
+          _externalViewMap = accessor.getChildValuesMap(keyBuilder.targetExternalViews());
+          break;
+        default:
+          break;
+      }
       if (LOG.isDebugEnabled()) {
         LOG.debug("Reload ExternalViews: " + _externalViewMap.keySet() + ". Takes " + (
             System.currentTimeMillis() - start) + " ms");

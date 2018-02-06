@@ -20,15 +20,15 @@ package org.apache.helix.spectator;
  */
 
 import org.apache.helix.HelixConstants;
+import org.apache.helix.PropertyType;
 import org.apache.helix.common.BasicClusterDataCache;
 
 /**
  * Cache the cluster data that are needed by RoutingTableProvider.
  */
 public class RoutingDataCache extends BasicClusterDataCache {
-
-  public RoutingDataCache(String clusterName) {
-    super(clusterName);
+  public RoutingDataCache(String clusterName, PropertyType sourceDataType) {
+    super(clusterName, sourceDataType);
     requireFullRefresh();
   }
 

@@ -26,20 +26,30 @@ public interface HelixConstants {
   // TODO: ChangeType and PropertyType are duplicated, consider unifying
   enum ChangeType {
     // @formatter:off
-    IDEAL_STATE,
-    CONFIG,
-    INSTANCE_CONFIG,
-    RESOURCE_CONFIG,
-    CLUSTER_CONFIG,
-    LIVE_INSTANCE,
-    CURRENT_STATE,
-    MESSAGE,
-    EXTERNAL_VIEW,
-    TARGET_EXTERNAL_VIEW,
-    CONTROLLER,
-    MESSAGES_CONTROLLER,
-    HEALTH
+    IDEAL_STATE (PropertyType.IDEALSTATES),
+    CONFIG (PropertyType.CONFIGS),
+    INSTANCE_CONFIG (PropertyType.CONFIGS),
+    RESOURCE_CONFIG (PropertyType.CONFIGS),
+    CLUSTER_CONFIG (PropertyType.CONFIGS),
+    LIVE_INSTANCE (PropertyType.LIVEINSTANCES),
+    CURRENT_STATE (PropertyType.CURRENTSTATES),
+    MESSAGE (PropertyType.MESSAGES),
+    EXTERNAL_VIEW (PropertyType.EXTERNALVIEW),
+    TARGET_EXTERNAL_VIEW (PropertyType.TARGETEXTERNALVIEW),
+    CONTROLLER (PropertyType.CONTROLLER),
+    MESSAGES_CONTROLLER (PropertyType.MESSAGES_CONTROLLER),
+    HEALTH (PropertyType.HEALTHREPORT);
     // @formatter:on
+
+    private final PropertyType _propertyType;
+
+    ChangeType(PropertyType propertyType) {
+      _propertyType = propertyType;
+    }
+
+    public PropertyType getPropertyType() {
+      return _propertyType;
+    }
   }
 
   /**

@@ -46,6 +46,10 @@ public class BasicClusterDataCache implements ControlContextProvider {
   protected PropertyCache<LiveInstance> _liveInstancePropertyCache;
   protected PropertyCache<InstanceConfig> _instanceConfigPropertyCache;
   protected ExternalViewCache _externalViewCache;
+  protected Map<String, LiveInstance> _liveInstanceMap;
+  protected Map<String, InstanceConfig> _instanceConfigMap;
+  protected Map<String, ExternalView> _externalViewMap;
+  private final PropertyType _sourceDataType;
 
   protected String _clusterName;
 

@@ -52,9 +52,9 @@ public class SourceClusterDataProvider extends BasicClusterDataCache
     implements InstanceConfigChangeListener, LiveInstanceChangeListener,
     ExternalViewChangeListener {
   private final HelixManager _helixManager;
-  private final ViewClusterSourceConfig _sourceClusterConfig;
   private final ClusterEventProcessor _eventProcessor;
 
+  protected ViewClusterSourceConfig _sourceClusterConfig;
   private HelixDataAccessor _dataAccessor;
   private PropertyKey.Builder _propertyKeyBuilder;
 

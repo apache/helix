@@ -21,7 +21,7 @@ package org.apache.helix.spectator;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.PropertyType;
-import org.apache.helix.common.BasicClusterDataCache;
+import org.apache.helix.common.caches.BasicClusterDataCache;
 
 /**
  * Cache the cluster data that are needed by RoutingTableProvider.

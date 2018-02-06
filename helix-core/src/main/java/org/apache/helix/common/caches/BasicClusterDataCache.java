@@ -1,4 +1,4 @@
-package org.apache.helix.common;
+package org.apache.helix.common.caches;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.model.ExternalView;
@@ -35,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Cache the cluster data
+ * Cache the basic cluster data, including LiveInstances, InstanceConfigs and ExternalViews.
  */
 public class BasicClusterDataCache {
   protected final Logger LOG = LoggerFactory.getLogger(this.getClass().getName());
@@ -153,6 +152,26 @@ public class BasicClusterDataCache {
    */
   public synchronized void notifyDataChange(HelixConstants.ChangeType changeType) {
     _propertyDataChangedMap.put(changeType, Boolean.valueOf(true));
+  }
+
+  /**
+   * Clear the corresponding cache based on change type
+   * @param changeType
+   */
+  public synchronized void clearCache(HelixConstants.ChangeType changeType) {
+    switch (changeType) {
+    case LIVE_INSTANCE:
+      _liveInstanceMap.clear();
+      break;
+    case INSTANCE_CONFIG:
+      _instanceConfigMap.clear();
+      break;
+    case EXTERNAL_VIEW:
+      _externalViewMap.clear();
+      break;
+    default:
+      break;
+    }
   }
 
   /**

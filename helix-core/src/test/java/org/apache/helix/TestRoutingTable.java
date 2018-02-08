@@ -20,8 +20,10 @@ package org.apache.helix;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +38,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.spectator.RoutingTableProvider;
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -60,7 +63,6 @@ public class TestRoutingTable {
             @SuppressWarnings("unchecked")
             @Override
             public <T extends HelixProperty> List<T> getChildValues(PropertyKey key)
-            // public List<ZNRecord> getChildValues(PropertyType type, String... keys)
             {
               PropertyType type = key.getType();
               String[] keys = key.getParams();
@@ -104,7 +106,7 @@ public class TestRoutingTable {
 
     // one master
     add(record, "TESTDB_0", "localhost_8900", "MASTER");
-    List<ExternalView> externalViewList = new ArrayList<ExternalView>();
+    List<ExternalView> externalViewList = new ArrayList<>();
     externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
 
@@ -119,6 +121,7 @@ public class TestRoutingTable {
     externalViewList = new ArrayList<ExternalView>();
     externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
+
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
     AssertJUnit.assertNotNull(instances);
     AssertJUnit.assertEquals(instances.size(), 2);
@@ -129,12 +132,35 @@ public class TestRoutingTable {
 
     // updates
     add(record, "TESTDB_0", "localhost_8901", "SLAVE");
-    externalViewList = new ArrayList<ExternalView>();
+    externalViewList = new ArrayList<>();
     externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "SLAVE");
     AssertJUnit.assertNotNull(instances);
     AssertJUnit.assertEquals(instances.size(), 1);
+  }
+
+
+  @Test()
+  public void testGetResources() {
+    RoutingTableProvider routingTable = new RoutingTableProvider();
+    List<ExternalView> externalViewList = new ArrayList<>();
+    Set<String> databases = new HashSet<>();
+
+    for (int i = 0; i < 5; i++) {
+      String db = "TESTDB" + i;
+      ZNRecord record = new ZNRecord(db);
+      // one master
+      add(record, db+"_0", "localhost_8900", "MASTER");
+      add(record, db+"_1", "localhost_8901", "SLAVE");
+      externalViewList.add(new ExternalView(record));
+      databases.add(db);
+    }
+
+    routingTable.onExternalViewChange(externalViewList, changeContext);
+    Collection<String> resources = routingTable.getResources();
+    Assert.assertEquals(databases.size(), externalViewList.size());
+    Assert.assertEquals(databases, new HashSet<>(resources));
   }
 
   @Test()
@@ -207,7 +233,7 @@ public class TestRoutingTable {
   @Test()
   public void testMultiThread() throws Exception {
     final RoutingTableProvider routingTable = new RoutingTableProvider();
-    List<ExternalView> externalViewList = new ArrayList<ExternalView>();
+    List<ExternalView> externalViewList = new ArrayList<>();
     ZNRecord record = new ZNRecord("TESTDB");
     for (int i = 0; i < 1000; i++) {
       add(record, "TESTDB_" + i, "localhost_8900", "MASTER");
@@ -258,7 +284,7 @@ public class TestRoutingTable {
   private void add(ZNRecord record, String stateUnitKey, String instanceName, String state) {
     Map<String, String> stateUnitKeyMap = record.getMapField(stateUnitKey);
     if (stateUnitKeyMap == null) {
-      stateUnitKeyMap = new HashMap<String, String>();
+      stateUnitKeyMap = new HashMap<>();
       record.setMapField(stateUnitKey, stateUnitKeyMap);
     }
     stateUnitKeyMap.put(instanceName, state);

@@ -2,6 +2,7 @@ package org.apache.helix.integration.Spectator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -112,6 +113,9 @@ public class TestRoutingTableProvider extends ZkIntegrationTestBase {
         Sets.newSet(_instances.get(1), _instances.get(2)));
     validateRoutingTable(_routingTableProvider2, Sets.newSet(_instances.get(0)),
         Sets.newSet(_instances.get(1), _instances.get(2)));
+
+    Collection<String> databases = _routingTableProvider.getResources();
+    Assert.assertEquals(databases.size(), 1);
   }
 
   @Test(dependsOnMethods = { "testRoutingTable" })

@@ -20,6 +20,7 @@ package org.apache.helix.spectator;
  */
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -140,7 +141,8 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
       String partitionName, String state) {
-    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, partitionName, state);
+    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, partitionName,
+        state);
   }
 
   /**
@@ -227,6 +229,13 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
    */
   public Collection<InstanceConfig> getInstanceConfigs() {
     return _routingTableRef.get().getInstanceConfigs();
+  }
+
+  /**
+   * Return names of all resources (shown in ExternalView) in this cluster.
+   */
+  public Collection<String> getResources() {
+    return _routingTableRef.get().getResources();
   }
 
   @Override

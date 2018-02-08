@@ -211,7 +211,7 @@ class RoutingTable {
     if (instanceList == null) {
       instanceList = Collections.emptyList();
     }
-    return instanceList;
+    return Collections.unmodifiableList(instanceList);
   }
 
   /**
@@ -219,7 +219,7 @@ class RoutingTable {
    * @return
    */
   protected Collection<LiveInstance> getLiveInstances() {
-    return _liveInstances;
+    return Collections.unmodifiableCollection(_liveInstances);
   }
 
   /**
@@ -227,7 +227,14 @@ class RoutingTable {
    * @return
    */
   protected Collection<InstanceConfig> getInstanceConfigs() {
-    return _instanceConfigs;
+    return Collections.unmodifiableCollection(_instanceConfigs);
+  }
+
+  /**
+   * Return names of all resources (shown in ExternalView) in this cluster.
+   */
+  protected Collection<String> getResources() {
+    return Collections.unmodifiableCollection(_resourceInfoMap.keySet());
   }
 
   /**
@@ -261,7 +268,7 @@ class RoutingTable {
       return Collections.emptyList();
     }
 
-    return instanceList;
+    return Collections.unmodifiableList(instanceList);
   }
 
   private void refresh(Collection<ExternalView> externalViewList,

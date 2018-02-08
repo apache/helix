@@ -189,6 +189,7 @@ under the License.
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>appassembler-maven-plugin</artifactId>
         <configuration>
+          <extraJvmArguments>-Dlog4j.configuration=file://"$BASEDIR"/conf/log4j.properties</extraJvmArguments>
           <programs>
             <program>
               <mainClass>org.apache.helix.controller.HelixControllerMain</mainClass>

@@ -44,4 +44,6 @@ public class TaskConstants {
    */
   public static final String CONTEXT_NODE = "Context";
 
+  public static final long DEFAULT_NEVER_TIMEOUT = -1; // never timeout
+
 }

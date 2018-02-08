@@ -270,6 +270,40 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     return (startTime == null || startTime.getTime() <= System.currentTimeMillis());
   }
 
+  /**
+   * Basic function to check task framework resources, workflow and job, are timeout
+   * @param startTime       Resources start time
+   * @param timeoutPeriod   Resources timeout period. Will be -1 if it is not set.
+   * @return
+   */
+  protected boolean isTimeout(long startTime, long timeoutPeriod) {
+    long nextTimeout = getTimeoutTime(startTime, timeoutPeriod);
+    return nextTimeout != TaskConstants.DEFAULT_NEVER_TIMEOUT && nextTimeout <= System
+        .currentTimeMillis();
+  }
+
+  /**
+   * Schedule the rebalancer timer for task framework elements
+   * @param resourceId       The resource id
+   * @param startTime        The resource start time
+   * @param timeoutPeriod    The resource timeout period. Will be -1 if it is not set.
+   */
+  protected void scheduleRebalanceForTimeout(String resourceId, long startTime,
+      long timeoutPeriod) {
+    long nextTimeout = getTimeoutTime(startTime, timeoutPeriod);
+    long nextRebalanceTime = _rebalanceScheduler.getRebalanceTime(resourceId);
+    if (nextRebalanceTime == TaskConstants.DEFAULT_NEVER_TIMEOUT
+        || nextTimeout < nextRebalanceTime) {
+      _rebalanceScheduler.scheduleRebalance(_manager, resourceId, nextTimeout);
+    }
+  }
+
+  private long getTimeoutTime(long startTime, long timeoutPeriod) {
+    return (timeoutPeriod == TaskConstants.DEFAULT_NEVER_TIMEOUT
+        || timeoutPeriod > Long.MAX_VALUE - startTime) // check long overflow
+        ? TaskConstants.DEFAULT_NEVER_TIMEOUT : startTime + timeoutPeriod;
+  }
+
   @Override
   public IdealState computeNewIdealState(String resourceName,
       IdealState currentIdealState, CurrentStateOutput currentStateOutput,
@@ -278,6 +312,8 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // so this part can just be a no-op.
     return currentIdealState;
   }
+
+
 
   /**
    * Set the ClusterStatusMonitor for metrics update

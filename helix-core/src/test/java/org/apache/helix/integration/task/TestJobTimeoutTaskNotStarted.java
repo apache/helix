@@ -56,12 +56,11 @@ public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    _participants =  new MockParticipantManager[_numNodes];
     _numDbs = 1;
     _numNodes = 1;
     _numParitions = 50;
     _numReplicas = 1;
-
+    _participants =  new MockParticipantManager[_numNodes];
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursively(namespace);

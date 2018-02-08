@@ -132,7 +132,9 @@ public class JobRebalancer extends TaskRebalancer {
       workflowCtx.setJobState(jobName, TaskState.IN_PROGRESS);
     }
 
-    scheduleRebalanceForJobTimeout(jobCfg, jobCtx);
+    if (!TaskState.TIMED_OUT.equals(workflowCtx.getJobState(jobName))) {
+      scheduleRebalanceForTimeout(jobCfg.getJobId(), jobCtx.getStartTime(), jobCfg.getTimeout());
+    }
 
     // Grab the old assignment, or an empty one if it doesn't exist
     ResourceAssignment prevAssignment = getPrevResourceAssignment(jobName);
@@ -212,7 +214,8 @@ public class JobRebalancer extends TaskRebalancer {
     TargetState jobTgtState = workflowConfig.getTargetState();
     TaskState jobState = workflowCtx.getJobState(jobResource);
 
-    if (jobState == TaskState.IN_PROGRESS && isJobTimeout(jobCtx, jobCfg)) {
+    if (jobState == TaskState.IN_PROGRESS && isTimeout(jobCtx.getStartTime(),
+        jobCfg.getTimeout())) {
       jobState = TaskState.TIMING_OUT;
       workflowCtx.setJobState(jobResource, TaskState.TIMING_OUT);
     } else if (jobState != TaskState.TIMING_OUT && jobState != TaskState.FAILING) {
@@ -626,12 +629,6 @@ public class JobRebalancer extends TaskRebalancer {
     TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
   }
 
-  private boolean isJobTimeout(JobContext jobContext, JobConfig jobConfig) {
-    long jobTimeoutTime = computeJobTimeoutTime(jobContext, jobConfig);
-    return jobTimeoutTime != jobConfig.DEFAULT_TIMEOUT_NEVER && jobTimeoutTime <= System
-        .currentTimeMillis();
-  }
-
   private boolean isJobFinished(JobContext jobContext, String jobResource,
       CurrentStateOutput currentStateOutput) {
     for (int pId : jobContext.getPartitionSet()) {
@@ -646,15 +643,6 @@ public class JobRebalancer extends TaskRebalancer {
       }
     }
     return true;
-  }
-
-  // Return jobConfig.DEFAULT_TIMEOUT_NEVER if job should never timeout.
-  // job start time can't be -1 before calling this method.
-  private long computeJobTimeoutTime(JobContext jobContext, JobConfig jobConfig) {
-    return (jobConfig.getTimeout() == JobConfig.DEFAULT_TIMEOUT_NEVER
-        || jobConfig.getTimeout() > Long.MAX_VALUE - jobContext.getStartTime()) // check long overflow
-        ? jobConfig.DEFAULT_TIMEOUT_NEVER
-        : jobContext.getStartTime() + jobConfig.getTimeout();
   }
 
   private void markJobComplete(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
@@ -690,18 +678,6 @@ public class JobRebalancer extends TaskRebalancer {
       long scheduledTime = _rebalanceScheduler.getRebalanceTime(job);
       if (scheduledTime == -1 || earliestTime < scheduledTime) {
         _rebalanceScheduler.scheduleRebalance(_manager, job, earliestTime);
-      }
-    }
-  }
-
-  // Set job timeout rebalance, if the time is earlier than the current scheduled rebalance time
-  // This needs to run for every rebalance because the scheduled rebalance could be removed in other places.
-  private void scheduleRebalanceForJobTimeout(JobConfig jobCfg, JobContext jobCtx) {
-    long jobTimeoutTime = computeJobTimeoutTime(jobCtx, jobCfg);
-    if (jobTimeoutTime != JobConfig.DEFAULT_TIMEOUT_NEVER && jobTimeoutTime > System.currentTimeMillis()) {
-      long nextRebalanceTime = _rebalanceScheduler.getRebalanceTime(jobCfg.getJobId());
-      if (nextRebalanceTime == JobConfig.DEFAULT_TIMEOUT_NEVER || jobTimeoutTime < nextRebalanceTime) {
-        _rebalanceScheduler.scheduleRebalance(_manager, jobCfg.getJobId(), jobTimeoutTime);
       }
     }
   }

@@ -32,6 +32,7 @@ import java.util.Set;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
@@ -103,10 +104,26 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     return partitionMapping;
   }
 
+  /**
+   * Looking for cached ideal mapping for this resource, if it is already there, do not recompute it
+   * again. The cached mapping will be cleared in ClusterDataCache if there is anything changed in
+   * cluster state that can cause the potential changes in ideal state. This will avoid flip-flop
+   * issue we saw in AutoRebalanceStrategy, and also improve the performance by avoiding recompute
+   * IS everytime.
+   */
+  protected IdealState getCachedIdealState(String resourceName, ClusterDataCache clusterData) {
+    ZNRecord cachedIdealMapping = clusterData.getCachedIdealMapping(resourceName);
+    if (cachedIdealMapping != null) {
+      return new IdealState(cachedIdealMapping);
+    }
+
+    return null;
+  }
+
   protected Map<String, Map<String, String>> currentMapping(CurrentStateOutput currentStateOutput,
       String resourceName, List<String> partitions, Map<String, Integer> stateCountMap) {
 
-    Map<String, Map<String, String>> map = new HashMap<String, Map<String, String>>();
+    Map<String, Map<String, String>> map = new HashMap<>();
 
     for (String partition : partitions) {
       Map<String, String> curStateMap =

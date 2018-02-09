@@ -65,6 +65,8 @@ public class CustomRebalancer extends AbstractRebalancer {
       return partitionMapping;
     }
 
+    LOG.info("Computing BestPossibleMapping for " + resource);
+
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
     if (LOG.isDebugEnabled()) {

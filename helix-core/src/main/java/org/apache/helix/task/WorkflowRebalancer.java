@@ -76,6 +76,19 @@ public class WorkflowRebalancer extends TaskRebalancer {
       LOG.debug("Workflow context is created for " + workflow);
     }
 
+    // Only generic workflow get timeouted and schedule rebalance for timeout. Will skip the set if
+    // the workflow already got timeouted. Job Queue will ignore the setup.
+    if (!workflowCfg.isJobQueue() && !TaskState.TIMED_OUT.equals(workflowCtx.getWorkflowState())) {
+      // If timeout point has already been passed, it will not be scheduled
+      scheduleRebalanceForTimeout(workflow, workflowCtx.getStartTime(), workflowCfg.getTimeout());
+
+      if (isTimeout(workflowCtx.getStartTime(), workflowCfg.getTimeout())) {
+        workflowCtx.setWorkflowState(TaskState.TIMED_OUT);
+        clusterData.updateWorkflowContext(workflow, workflowCtx, _manager.getHelixDataAccessor());
+        return buildEmptyAssignment(workflow, currStateOutput);
+      }
+    }
+
     // Clean up if workflow marked for deletion
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {

@@ -213,9 +213,10 @@ public class JobRebalancer extends TaskRebalancer {
       ClusterDataCache cache) {
     TargetState jobTgtState = workflowConfig.getTargetState();
     TaskState jobState = workflowCtx.getJobState(jobResource);
+    TaskState workflowState = workflowCtx.getWorkflowState();
 
-    if (jobState == TaskState.IN_PROGRESS && isTimeout(jobCtx.getStartTime(),
-        jobCfg.getTimeout())) {
+    if (jobState == TaskState.IN_PROGRESS && (isTimeout(jobCtx.getStartTime(), jobCfg.getTimeout())
+        || TaskState.TIMED_OUT.equals(workflowState))) {
       jobState = TaskState.TIMING_OUT;
       workflowCtx.setJobState(jobResource, TaskState.TIMING_OUT);
     } else if (jobState != TaskState.TIMING_OUT && jobState != TaskState.FAILING) {

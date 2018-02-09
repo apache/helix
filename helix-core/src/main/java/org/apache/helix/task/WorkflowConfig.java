@@ -65,7 +65,8 @@ public class  WorkflowConfig extends ResourceConfig {
     IsJobQueue,
     JobPurgeInterval,
     /* Allow multiple jobs in this workflow to be assigned to a same instance or not */
-    AllowOverlapJobAssignment
+    AllowOverlapJobAssignment,
+    Timeout
     }
 
   /* Default values */
@@ -91,7 +92,7 @@ public class  WorkflowConfig extends ResourceConfig {
     this(workflowId, cfg.getJobDag(), cfg.getParallelJobs(), cfg.getTargetState(), cfg.getExpiry(),
         cfg.getFailureThreshold(), cfg.isTerminable(), cfg.getScheduleConfig(), cfg.getCapacity(),
         cfg.getWorkflowType(), cfg.isJobQueue(), cfg.getJobTypes(), cfg.getJobPurgeInterval(),
-        cfg.isAllowOverlapJobAssignment());
+        cfg.isAllowOverlapJobAssignment(), cfg.getTimeout());
   }
 
   /* Member variables */
@@ -100,7 +101,8 @@ public class  WorkflowConfig extends ResourceConfig {
   protected WorkflowConfig(String workflowId, JobDag jobDag, int parallelJobs,
       TargetState targetState, long expiry, int failureThreshold, boolean terminable,
       ScheduleConfig scheduleConfig, int capacity, String workflowType, boolean isJobQueue,
-      Map<String, String> jobTypes, long purgeInterval, boolean allowOverlapJobAssignment) {
+      Map<String, String> jobTypes, long purgeInterval, boolean allowOverlapJobAssignment,
+      long timeout) {
     super(workflowId);
 
     putSimpleConfig(WorkflowConfigProperty.WorkflowID.name(), workflowId);
@@ -121,6 +123,10 @@ public class  WorkflowConfig extends ResourceConfig {
 
     if (capacity > 0) {
       putSimpleConfig(WorkflowConfigProperty.capacity.name(), String.valueOf(capacity));
+    }
+
+    if (timeout != TaskConstants.DEFAULT_NEVER_TIMEOUT) {
+      putSimpleConfig(WorkflowConfigProperty.Timeout.name(), String.valueOf(timeout));
     }
 
     // Populate schedule if present
@@ -242,6 +248,11 @@ public class  WorkflowConfig extends ResourceConfig {
         DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT);
   }
 
+  public long getTimeout() {
+    return _record
+        .getLongField(WorkflowConfigProperty.Timeout.name(), TaskConstants.DEFAULT_NEVER_TIMEOUT);
+  }
+
   public static SimpleDateFormat getDefaultDateFormat() {
     SimpleDateFormat defaultDateFormat = new SimpleDateFormat(
         "MM-dd-yyyy HH:mm:ss");
@@ -329,13 +340,14 @@ public class  WorkflowConfig extends ResourceConfig {
     private Map<String, String> _jobTypes;
     private long _jobPurgeInterval = DEFAULT_JOB_PURGE_INTERVAL;
     private boolean _allowOverlapJobAssignment = DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT;
+    private long _timeout = TaskConstants.DEFAULT_NEVER_TIMEOUT;
 
     public WorkflowConfig build() {
       validate();
 
       return new WorkflowConfig(_workflowId, _taskDag, _parallelJobs, _targetState, _expiry,
           _failureThreshold, _isTerminable, _scheduleConfig, _capacity, _workflowType, _isJobQueue,
-          _jobTypes, _jobPurgeInterval, _allowOverlapJobAssignment);
+          _jobTypes, _jobPurgeInterval, _allowOverlapJobAssignment, _timeout);
     }
 
     public Builder() {}
@@ -359,6 +371,7 @@ public class  WorkflowConfig extends ResourceConfig {
       _jobTypes = workflowConfig.getJobTypes();
       _jobPurgeInterval = workflowConfig.getJobPurgeInterval();
       _allowOverlapJobAssignment = workflowConfig.isAllowOverlapJobAssignment();
+      _timeout = workflowConfig.getTimeout();
     }
 
     public Builder setWorkflowId(String v) {
@@ -469,6 +482,16 @@ public class  WorkflowConfig extends ResourceConfig {
     }
 
     /**
+     * ONLY generic workflow can be timeouted. JobQueue does not allow to be timeouted.
+     * @param timeout  The timeout period
+     * @return
+     */
+    public Builder setTimeout(long timeout) {
+      _timeout = timeout;
+      return this;
+    }
+
+    /**
      * Set if allow multiple jobs in one workflow to be assigned on one instance.
      * If not set, default configuration is false.
      * @param allowOverlapJobAssignment true if allow overlap assignment
@@ -559,6 +582,10 @@ public class  WorkflowConfig extends ResourceConfig {
             Boolean.parseBoolean(cfg.get(WorkflowConfigProperty.AllowOverlapJobAssignment.name())));
       }
 
+      if (cfg.containsKey(WorkflowConfigProperty.Timeout.name())) {
+        setTimeout(Long.parseLong(cfg.get(WorkflowConfigProperty.Timeout.name())));
+      }
+
       return this;
     }
 
@@ -596,6 +623,10 @@ public class  WorkflowConfig extends ResourceConfig {
 
     public boolean isJobQueue() {
       return _isJobQueue;
+    }
+
+    public long getTimeout() {
+      return _timeout;
     }
 
     public static Builder from(WorkflowBean workflowBean) {

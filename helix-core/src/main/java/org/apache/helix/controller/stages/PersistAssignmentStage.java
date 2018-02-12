@@ -119,7 +119,9 @@ public class PersistAssignmentStage extends AbstractBaseStage {
               if (current != null) {
                 // Overwrite MapFields and ListFields items with the same key.
                 // Note that default merge will keep old values in the maps or lists unchanged, which is not desired.
+                current.getMapFields().clear();
                 current.getMapFields().putAll(idealState.getRecord().getMapFields());
+                current.getListFields().clear();
                 current.getListFields().putAll(idealState.getRecord().getListFields());
               }
               return current;

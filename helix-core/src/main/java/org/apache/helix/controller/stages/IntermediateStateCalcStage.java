@@ -220,6 +220,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       RebalanceType rebalanceType =
           getRebalanceType(cache, bestPossibleMap, preferenceList, stateModelDef, currentStateMap,
               idealState);
+
+      // TODO refine getRebalanceType to return more accurate rebalance types.
+      // So following logic doesn't need to check for more details.
+      boolean rebalanceNeeded = false;
       if (rebalanceType.equals(RebalanceType.RECOVERY_BALANCE)) {
         // Check if any error exist
         if (currentStateMap.values().contains(HelixDefinedState.ERROR.name())) {
@@ -228,10 +232,14 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         // Check if recovery is needed for this partition
         if (!currentStateMap.equals(bestPossibleMap)) {
           partitionsNeedRecovery.add(partition);
-        }
-      } else if (rebalanceType.equals(RebalanceType.LOAD_BALANCE)){
+          rebalanceNeeded = true;
+        } // else, if currentState == bestPossibleState, no rebalance needed
+      } else if (rebalanceType.equals(RebalanceType.LOAD_BALANCE)) {
         partitionsNeedLoadbalance.add(partition);
-      } else {
+        rebalanceNeeded = true;
+      }
+
+      if (!rebalanceNeeded) {
         // no rebalance needed.
         Map<String, String> intermediateMap = new HashMap<>(bestPossibleMap);
         intermediatePartitionStateMap.setState(partition, intermediateMap);

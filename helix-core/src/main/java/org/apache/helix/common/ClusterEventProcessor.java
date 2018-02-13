@@ -42,4 +42,9 @@ public abstract class ClusterEventProcessor
   public void queueEvent(ClusterEvent event) {
     _eventQueue.put(event.getEventType(), event);
   }
+
+  public void shutdown() {
+    _eventQueue.clear();
+    this.interrupt();
+  }
 }

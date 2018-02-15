@@ -163,7 +163,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   private void validateOfflineInstancesLimit(final ClusterDataCache cache,
       final HelixManager manager, final ClusterStatusMonitor clusterStatusMonitor) {
     int maxOfflineInstancesAllowed = cache.getClusterConfig().getMaxOfflineInstancesAllowed();
-    if (maxOfflineInstancesAllowed > 0) {
+    if (maxOfflineInstancesAllowed >= 0) {
       int offlineCount = cache.getAllInstances().size() - cache.getEnabledLiveInstances().size();
       if (offlineCount > maxOfflineInstancesAllowed) {
         String errMsg = String.format(

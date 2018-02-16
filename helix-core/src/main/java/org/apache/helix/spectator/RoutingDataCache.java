@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Cache the cluster data that are needed by RoutingTableProvider.
  */
-public class RoutingDataCache extends BasicClusterDataCache {
+class RoutingDataCache extends BasicClusterDataCache {
   private static Logger LOG = LoggerFactory.getLogger(RoutingDataCache.class.getName());
 
   private final PropertyType _sourceDataType;

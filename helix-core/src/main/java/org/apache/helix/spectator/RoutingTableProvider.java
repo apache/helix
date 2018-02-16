@@ -152,6 +152,16 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
   }
 
   /**
+   * Get an snapshot of current RoutingTable information. The snapshot is immutable, it reflects the
+   * routing table information at the time this method is called.
+   *
+   * @return snapshot of current routing table.
+   */
+  public RoutingTableSnapshot getRoutingTableSnapshot() {
+    return new RoutingTableSnapshot(_routingTableRef.get());
+  }
+
+  /**
    * returns the instances for {resource,partition} pair that are in a specific
    * {state}
    *

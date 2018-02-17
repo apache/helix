@@ -46,6 +46,7 @@ public class ParticipantHistory extends HelixProperty {
     SESSION,
     HISTORY,
     OFFLINE,
+    VERSION,
     LAST_OFFLINE_TIME
   }
 
@@ -74,8 +75,8 @@ public class ParticipantHistory extends HelixProperty {
    *
    * @return
    */
-  public void reportOnline(String sessionId) {
-    updateSessionHistory(sessionId);
+  public void reportOnline(String sessionId, String version) {
+    updateSessionHistory(sessionId, version);
     _record.setSimpleField(ConfigProperty.LAST_OFFLINE_TIME.name(), String.valueOf(ONLINE));
   }
 
@@ -102,7 +103,7 @@ public class ParticipantHistory extends HelixProperty {
   /**
    * Add record to session online history list
    */
-  private void updateSessionHistory(String sessionId) {
+  private void updateSessionHistory(String sessionId, String version) {
     List<String> list = _record.getListField(ConfigProperty.HISTORY.name());
     if (list == null) {
       list = new ArrayList<>();
@@ -124,6 +125,7 @@ public class ParticipantHistory extends HelixProperty {
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     String dateTime = df.format(new Date(timeMillis));
     sessionEntry.put(ConfigProperty.DATE.name(), dateTime);
+    sessionEntry.put(ConfigProperty.VERSION.name(), version);
 
     list.add(sessionEntry.toString());
   }

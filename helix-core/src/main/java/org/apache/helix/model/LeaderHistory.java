@@ -41,6 +41,7 @@ public class LeaderHistory extends HelixProperty {
     HISTORY,
     TIME,
     DATE,
+    VERSION,
     CONTROLLER
   }
 
@@ -57,7 +58,7 @@ public class LeaderHistory extends HelixProperty {
    * @param clusterName the cluster the instance leads
    * @param instanceName the name of the leader instance
    */
-  public void updateHistory(String clusterName, String instanceName) {
+  public void updateHistory(String clusterName, String instanceName, String version) {
     /* keep this for back-compatible */
     // TODO: remove this in future when we confirmed no one consumes it
     List<String> list = _record.getListField(clusterName);
@@ -92,6 +93,7 @@ public class LeaderHistory extends HelixProperty {
     historyEntry.put(ConfigProperty.CONTROLLER.name(), instanceName);
     historyEntry.put(ConfigProperty.TIME.name(), String.valueOf(currentTime));
     historyEntry.put(ConfigProperty.DATE.name(), dateTime);
+    historyEntry.put(ConfigProperty.VERSION.name(), version);
 
     historyList.add(historyEntry.toString());
   }

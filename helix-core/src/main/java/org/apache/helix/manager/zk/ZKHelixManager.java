@@ -938,7 +938,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     switch (state) {
     case SyncConnected:
       ZkConnection zkConnection = (ZkConnection) _zkclient.getConnection();
-      LOG.info("KeeperState: " + state + ", zookeeper:" + zkConnection.getZookeeper());
+      LOG.info("KeeperState: " + state + ", instance: "
+          + _instanceName + ", type: " + _instanceType + ", zookeeper:" + zkConnection.getZookeeper());
       break;
     case Disconnected:
       LOG.info("KeeperState:" + state + ", disconnectedSessionId: " + _sessionId + ", instance: "
@@ -978,6 +979,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public void handleNewSession() throws Exception {
+    LOG.info(
+        "Handle new session, sessionId: " + _sessionId + ", instance: " + _instanceName + ", type: " + _instanceType);
     waitUntilConnected();
 
     /**

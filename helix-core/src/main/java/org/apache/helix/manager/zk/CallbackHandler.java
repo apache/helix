@@ -530,7 +530,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleDataChange(String dataPath, Object data) {
-    logger.debug("Data change callback: paths changed: " + dataPath);
+    logger.info("Data change callback: paths changed: " + dataPath);
 
     try {
       updateNotificationTime(System.nanoTime());
@@ -548,10 +548,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   @Override public void handleDataDeleted(String dataPath) {
-    logger.debug("Data change callback: path deleted: " + dataPath);
-    if (_changeType == IDEAL_STATE || _changeType == LIVE_INSTANCE) {
-      logger.info("Data deleted callback, deleted path: " + dataPath);
-    }
+    logger.info("Data change callback: path deleted: " + dataPath);
 
     try {
       updateNotificationTime(System.nanoTime());
@@ -576,8 +573,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleChildChange(String parentPath, List<String> currentChilds) {
-    logger.debug("Data change callback: child changed, path: " + parentPath + ", current childs: "
-        + currentChilds);
+    logger.info("Data change callback: child changed, path: " + parentPath + ", current child count: "
+        + currentChilds.size());
 
     try {
       updateNotificationTime(System.nanoTime());

@@ -19,7 +19,6 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -192,7 +191,7 @@ public class ClusterDataCache {
     _instanceMessagesCache
         .refresh(accessor, _liveInstanceMap);
     _currentStateCache.refresh(accessor, _liveInstanceMap);
-    
+
     // current state must be refreshed before refreshing relay messages
     // because we need to use current state to validate all relay messages.
     _instanceMessagesCache

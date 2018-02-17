@@ -22,8 +22,10 @@ package org.apache.helix.manager.zk;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
@@ -373,7 +375,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
       // construct return results
       List<T> records = new ArrayList<T>(Collections.<T> nCopies(paths.size(), null));
-      StringBuilder nodeFailToRead = new StringBuilder();
+      Map<String, Integer> pathFailToRead = new HashMap<>();
       for (int i = 0; i < paths.size(); i++) {
         if (!needRead[i])
           continue;
@@ -389,12 +391,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         } else if (Code.get(cb.getRc()) != Code.NONODE && throwException) {
           throw new HelixException(String.format("Failed to read node %s", paths.get(i)));
         } else {
-          nodeFailToRead.append(paths + ",");
+          pathFailToRead.put(paths.get(i), cb.getRc());
         }
       }
-      if (nodeFailToRead.length() > 0) {
-        LOG.warn(String.format("Fail to read nodes for paths : %s",
-            nodeFailToRead.toString().substring(nodeFailToRead.length() - 1)));
+      if (pathFailToRead.size() > 0) {
+        LOG.warn("Fail to read record for paths: " + pathFailToRead);
       }
       return records;
     } finally {

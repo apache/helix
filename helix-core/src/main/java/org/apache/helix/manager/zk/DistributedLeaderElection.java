@@ -155,7 +155,7 @@ public class DistributedLeaderElection implements ControllerChangeListener {
     if (history == null) {
       history = new LeaderHistory(PropertyType.HISTORY.toString());
     }
-    history.updateHistory(manager.getClusterName(), manager.getInstanceName());
+    history.updateHistory(manager.getClusterName(), manager.getInstanceName(), manager.getVersion());
     if(!accessor.setProperty(keyBuilder.controllerLeaderHistory(), history)) {
       LOG.error("Failed to persist leader history to ZK!");
     }

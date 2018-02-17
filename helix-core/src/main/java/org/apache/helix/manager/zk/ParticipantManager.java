@@ -181,6 +181,7 @@ public class ParticipantManager {
       retry = false;
       try {
         _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
+        LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getSessionId());
       } catch (ZkNodeExistsException e) {
         LOG.warn("found another instance with same instanceName: " + _instanceName + " in cluster "
             + _clusterName);
@@ -238,6 +239,7 @@ public class ParticipantManager {
     if (retry) {
       try {
         _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
+        LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getSessionId());
       } catch (Exception e) {
         String errorMessage =
             "instance: " + _instanceName + " already has a live-instance in cluster "
@@ -248,7 +250,7 @@ public class ParticipantManager {
     }
 
     ParticipantHistory history = getHistory();
-    history.reportOnline(_sessionId);
+    history.reportOnline(_sessionId, _manager.getVersion());
     persistHistory(history);
   }
 

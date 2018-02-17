@@ -138,7 +138,7 @@ public class CurrentStateCache {
           reloadKeys.add(key);
         }
       } else {
-        LOG.debug("stat is null for key: " + key);
+        LOG.warn("stat is null for key: " + key);
         reloadKeys.add(key);
       }
     }
@@ -150,18 +150,16 @@ public class CurrentStateCache {
       if (currentState != null) {
         currentStatesMap.put(key, currentState);
       } else {
-        LOG.debug("CurrentState null for key: " + key);
+        LOG.warn("CurrentState null for key: " + key);
       }
     }
 
     _currentStateCache = Collections.unmodifiableMap(currentStatesMap);
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("# of CurrentState paths read from ZooKeeper " + reloadKeys.size());
-      LOG.debug("# of CurrentState paths skipped reading from ZK: " + (currentStateKeys.size()
-          - reloadKeys.size()));
-    }
-    LOG.info("Takes " + (System.currentTimeMillis() - start) + " ms to reload new current states!");
+    LOG.info("# of CurrentStates reload: " + reloadKeys.size() + ", skipped:" + (currentStateKeys.size()
+        - reloadKeys.size()));
+    LOG.info("Takes " + (System.currentTimeMillis() - start) + " ms to reload new current states for cluster: "
+        + _clusterName);
   }
 
   /**

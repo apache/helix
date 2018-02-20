@@ -284,6 +284,8 @@ export class NodeViewerComponent implements OnInit {
         if (key) {
           // have to fetch all other configs under this key
           const entry = _.find(this.node.mapFields, {'name': key});
+          newNode.mapFields =  [{ name: key, value: [] }];
+
           _.forEach(entry.value, (item: any) => {
             if (item.name === row.name) {
               if (!isDeleting) {

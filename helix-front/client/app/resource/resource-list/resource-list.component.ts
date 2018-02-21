@@ -71,38 +71,29 @@ export class ResourceListComponent implements OnInit {
   // since resource list contains also workflows and jobs
   // need to subtract them from original resource list
   // to obtain all jobs list, need to go through every workflow
-  // and perform get request for each
+  // and perform get request for each.
+  // However, it has huge performance issue when there are thousands of
+  // workflows. We are using a smart way here: to remove resources whose
+  // prefix is a workflow name
   protected fetchResources() {
-    let jobs = [];
-
     this.isLoading = true;
     this.resources = null;
 
     this.workflowService
       .getAll(this.clusterName)
-      .concatMap(workflows => Observable.from(workflows))
-      .mergeMap(workflow => {
-        const name = workflow as string;
-        jobs.push(name);
-        return this.workflowService.get(this.clusterName, name);
-      })
-      .map(workflow => workflow.jobs)
       .subscribe(
-        list => {
-          jobs = jobs.concat(list);
-        },
-        error => this.helper.showError(error),
-        () => {
+        workflows => {
           this.service
             .getAll(this.clusterName)
             .subscribe(
               result => {
-                this.resources = _.differenceWith(result, jobs, (resource: Resource, name) => resource.name === name);
+                this.resources = _.differenceWith(result, workflows, (resource: Resource, prefix: string) => _.startsWith(resource.name, prefix));
               },
               error => this.helper.showError(error),
               () => this.isLoading = false
             );
-        }
+        },
+        error => this.helper.showError(error)
       );
   }
 

@@ -215,11 +215,14 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
     _numOfPartitions.updateValue(partitions.size());
 
-    int replica = -1;
+    int replica;
     try {
       replica = Integer.valueOf(idealState.getReplicas());
     } catch (NumberFormatException e) {
-      _logger.error("Invalid replica count for " + _resourceName + ", failed to update its ResourceMonitor Mbean!");
+      _logger.info("Unspecified replica count for " + _resourceName + ", skip updating the ResourceMonitor Mbean: " + idealState.getReplicas());
+      return;
+    } catch (Exception ex) {
+      _logger.warn("Failed to get replica count for " + _resourceName + ", cannot update the ResourceMonitor Mbean.");
       return;
     }
 

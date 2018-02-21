@@ -48,4 +48,17 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
    * @return 1 if cluster is enabled, otherwise 0
    */
   public long getEnabled();
+
+  /**
+   *
+   * @return 1 if cluster is in maintenance mode, otherwise 0
+   */
+  public long getMaintenance();
+
+
+  /**
+   *
+   * @return 1 if cluster is paused, otherwise 0
+   */
+  public long getPaused();
 }

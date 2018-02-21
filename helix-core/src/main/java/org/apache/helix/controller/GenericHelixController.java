@@ -606,6 +606,8 @@ public class GenericHelixController implements IdealStateChangeListener,
           updateControllerState(changeContext, maintenanceSignal, _inMaintenanceMode);
       enableClusterStatusMonitor(true);
       _clusterStatusMonitor.setEnabled(!_paused);
+      _clusterStatusMonitor.setPaused(_paused);
+      _clusterStatusMonitor.setMaintenance(_inMaintenanceMode);
     } else {
       enableClusterStatusMonitor(false);
     }

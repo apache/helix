@@ -56,6 +56,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private final MBeanServer _beanServer;
 
   private boolean _enabled = true;
+  private boolean _inMaintenance = false;
+  private boolean _paused = false;
+
   private Set<String> _liveInstances = Collections.emptySet();
   private Set<String> _instances = Collections.emptySet();
   private Set<String> _disabledInstances = Collections.emptySet();
@@ -659,7 +662,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private synchronized void unregisterPerInstanceResources(Collection<PerInstanceResourceMonitor.BeanName> beanNames)
       throws MalformedObjectNameException {
     for (PerInstanceResourceMonitor.BeanName beanName : beanNames) {
-      unregister(getObjectName(getPerInstanceResourceBeanName(beanName.instanceName(), beanName.resourceName())));
+      unregister(getObjectName(
+          getPerInstanceResourceBeanName(beanName.instanceName(), beanName.resourceName())));
     }
     _perInstanceResourceMap.keySet().removeAll(beanNames);
   }
@@ -757,6 +761,25 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   @Override
   public long getEnabled() {
     return _enabled ? 1 : 0;
+  }
+
+  @Override
+  public long getMaintenance() {
+    return _inMaintenance ? 1 : 0;
+  }
+
+  public void setMaintenance(boolean inMaintenance) {
+    _inMaintenance = inMaintenance;
+  }
+
+
+  @Override
+  public long getPaused() {
+    return _paused ? 1 : 0;
+  }
+
+  public void setPaused(boolean paused) {
+    _paused = paused;
   }
 
   public void setEnabled(boolean enabled) {

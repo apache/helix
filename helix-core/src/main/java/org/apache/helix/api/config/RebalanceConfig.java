@@ -65,7 +65,7 @@ public class RebalanceConfig {
   private String _rebalancerClassName;
   private String _rebalanceStrategy;
   private Boolean _delayRebalanceDisabled;
-  private long _rebalanceTimerPeriod = -1;  /* in seconds */
+  private long _rebalanceTimerPeriod = -1;  /* in milliseconds */
 
   private static final Logger _logger = LoggerFactory.getLogger(RebalanceConfig.class.getName());
 

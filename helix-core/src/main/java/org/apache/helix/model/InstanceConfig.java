@@ -412,7 +412,7 @@ public class InstanceConfig extends HelixProperty {
       currentDisabled = new HashMap<>();
     }
 
-    if (disabledPartitionList != null) {
+    if (disabledPartitionList != null && !disabledPartitionList.isEmpty()) {
       currentDisabled.put(resourceName, HelixUtil.serializeByComma(disabledPartitionList));
     } else {
       currentDisabled.remove(resourceName);

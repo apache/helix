@@ -97,6 +97,7 @@ public class CardDealingAdjustmentAlgorithm {
       List<String> partitions = nodeToPartitionMap.get(instance);
       int target = (int) (Math.floor(targetPartitionCount.get(instance)));
       if (partitions.size() > target) {
+/*
         int maxZoneOverflow = maxZoneOverflows.get(_instanceFaultZone.get(instance));
         if (maxZoneOverflow > 0 && totalOverflows > 0) {
           // When fault zone has overflow capacity AND there are still remaining overflow partitions
@@ -104,6 +105,8 @@ public class CardDealingAdjustmentAlgorithm {
           maxZoneOverflows.put(_instanceFaultZone.get(instance), maxZoneOverflow - 1);
           totalOverflows--;
         }
+*/
+
 
         // Shuffle partitions to randomly pickup exceed ones. Ensure the algorithm generates consistent results when the inputs are the same.
         Collections.shuffle(partitions, new Random(instance.hashCode() * 31 + randomSeed));
@@ -131,7 +134,7 @@ public class CardDealingAdjustmentAlgorithm {
   private void partitionDealing(Collection<String> instances,
       TreeMap<String, Integer> toBeReassigned, Map<String, Set<String>> faultZonePartitionMap,
       Map<String, String> faultZoneMap, final Map<String, List<String>> assignmentMap,
-      Map<String, Float> targetPartitionCount, final int randomSeed, int targetAdjustment) {
+      final Map<String, Float> targetPartitionCount, final int randomSeed, final int targetAdjustment) {
     PriorityQueue<String> instanceQueue =
         new PriorityQueue<>(instances.size(), new Comparator<String>() {
           @Override
@@ -139,8 +142,13 @@ public class CardDealingAdjustmentAlgorithm {
             int node1Load = assignmentMap.containsKey(node1) ? assignmentMap.get(node1).size() : 0;
             int node2Load = assignmentMap.containsKey(node2) ? assignmentMap.get(node2).size() : 0;
             if (node1Load == node2Load) {
-              return new Integer((node1 + randomSeed).hashCode())
-                  .compareTo((node2 + randomSeed).hashCode());
+              Float node1Target = targetPartitionCount.get(node1);
+              Float node2Target = targetPartitionCount.get(node2);
+              if (node1Target == node2Target) {
+                return new Integer((node1 + randomSeed).hashCode()).compareTo((node2 + randomSeed).hashCode());
+              } else {
+                return node2Target.compareTo(node1Target);
+              }
             } else {
               return node1Load - node2Load;
             }

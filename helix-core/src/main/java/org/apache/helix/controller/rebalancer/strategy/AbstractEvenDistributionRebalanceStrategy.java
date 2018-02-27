@@ -39,10 +39,16 @@ import java.util.concurrent.ExecutionException;
 public abstract class AbstractEvenDistributionRebalanceStrategy implements RebalanceStrategy {
   private static final Logger _logger =
       LoggerFactory.getLogger(AbstractEvenDistributionRebalanceStrategy.class);
-  private String _resourceName;
-  private int _replica;
+  protected String _resourceName;
+  protected int _replica;
 
   protected abstract RebalanceStrategy getBaseRebalanceStrategy();
+
+  protected CardDealingAdjustmentAlgorithm getCardDealingAlgorithm(Topology topology) {
+    // by default, minimize the movement when calculating for evenness.
+    return new CardDealingAdjustmentAlgorithm(topology, _replica,
+        CardDealingAdjustmentAlgorithm.Mode.MINIMIZE_MOVEMENT);
+  }
 
   @Override
   public void init(String resourceName, final List<String> partitions,
@@ -82,8 +88,8 @@ public abstract class AbstractEvenDistributionRebalanceStrategy implements Rebal
       // Round 2: Rebalance mapping using card dealing algorithm. For ensuring evenness distribution.
       Topology allNodeTopo = new Topology(allNodes, allNodes, clusterData.getInstanceConfigMap(),
           clusterData.getClusterConfig());
-      CardDealingAdjustmentAlgorithm cardDealer =
-          new CardDealingAdjustmentAlgorithm(allNodeTopo, _replica);
+      CardDealingAdjustmentAlgorithm cardDealer = getCardDealingAlgorithm(allNodeTopo);
+
       if (cardDealer.computeMapping(nodeToPartitionMap, _resourceName.hashCode())) {
         // Round 3: Reorder preference Lists to ensure participants' orders (so as the states) are uniform.
         finalPartitionMap = shufflePreferenceList(nodeToPartitionMap);

@@ -38,13 +38,22 @@ under the License.
   </description>
 
   <url>http://helix.apache.org</url>
-  <developers>
+<developers>
+    <developer>
+      <id>kishoreg</id>
+      <name>Kishore Gopalakrishna</name>
+      <email>kishoreg@apache.org</email>
+      <roles>
+        <role>PMC Chair</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
     <developer>
       <id>olamy</id>
       <name>Olivier Lamy</name>
       <email>olamy@apache.org</email>
       <roles>
-        <role>PMC Member</role>
+        <role>Mentor / PMC Member</role>
       </roles>
       <timezone>Australia/Melbourne</timezone>
     </developer>
@@ -53,16 +62,16 @@ under the License.
       <name>Patrick Hunt</name>
       <email>phunt@apache.org</email>
       <roles>
-        <role>PMC Member</role>
+        <role>Mentor / PMC Member</role>
       </roles>
       <timezone>-8</timezone>
     </developer>
     <developer>
-      <id>Mahadev</id>
+      <id>mahadev</id>
       <name>Mahadev Konar</name>
       <email>mahadev@apache.org</email>
       <roles>
-        <role>PMC Member</role>
+        <role>Mentor / PMC Member</role>
       </roles>
       <timezone>-8</timezone>
     </developer>
@@ -71,16 +80,7 @@ under the License.
       <name>Owen O'Malley</name>
       <email>omalley@apache.org</email>
       <roles>
-        <role>PMC Member</role>
-      </roles>
-      <timezone>-8</timezone>
-    </developer>
-    <developer>
-      <id>kishoreg</id>
-      <name>Kishore Gopalakrishna</name>
-      <email>kishoreg@apache.org</email>
-      <roles>
-        <role>Committer</role>
+        <role>Mentor / PMC Member</role>
       </roles>
       <timezone>-8</timezone>
     </developer>
@@ -89,7 +89,7 @@ under the License.
       <name>Zhen Zhang</name>
       <email>zzhang@apache.org</email>
       <roles>
-        <role>Committer</role>
+        <role>Committer / PMC Member</role>
       </roles>
       <timezone>-8</timezone>
     </developer>
@@ -97,6 +97,15 @@ under the License.
       <id>slu</id>
       <name>Shi Lu</name>
       <email>slu@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>TBA</id>
+      <name>Adam Silberstein</name>
+      <email>TBA@apache.org</email>
       <roles>
         <role>Committer</role>
       </roles>
@@ -107,7 +116,106 @@ under the License.
       <name>Kapil Surlaker</name>
       <email>ksurlaker@apache.org</email>
       <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>rms</id>
+      <name>Bob Schulman</name>
+      <email>rms@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>swaroop-aj</id>
+      <name>Swaroop Jagadish</name>
+      <email>swaroop-aj@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>rahula</id>
+      <name>Rahul Aggarwal</name>
+      <email>rahula@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>chtyim</id>
+      <name>Terence Yim</name>
+      <email>chtyim@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>santip</id>
+      <name>Santiago Perez</name>
+      <email>santip@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>vinayakb</id>
+      <name>Vinayak Borkar</name>
+      <email>vinayakb@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>shirshanka</id>
+      <name>Shirshanka Das</name>
+      <email>shirshanka@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>kanak</id>
+      <name>Kanak Biscuitwala</name>
+      <email>kanak@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>gbrandt</id>
+      <name>Greg Brandt</name>
+      <email>gbrandt@apache.org</email>
+      <roles>
         <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>lxia</id>
+      <name>Lei Xia</name>
+      <email>lxia@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>jxue</id>
+      <name>Junkai Xue</name>
+      <email>jxue@apache.org</email>
+      <roles>
+        <role>Committer / PMC Member</role>
       </roles>
       <timezone>-8</timezone>
     </developer>

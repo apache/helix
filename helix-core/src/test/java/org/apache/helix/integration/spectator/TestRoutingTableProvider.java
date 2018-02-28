@@ -3,12 +3,15 @@ package org.apache.helix.integration.spectator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.api.listeners.RoutingTableChangeListener;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -16,6 +19,7 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.spectator.RoutingTableProvider;
+import org.apache.helix.spectator.RoutingTableSnapshot;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.mockito.internal.util.collections.Sets;
@@ -43,6 +47,28 @@ public class TestRoutingTableProvider extends ZkIntegrationTestBase {
   private HelixClusterVerifier _clusterVerifier;
   private RoutingTableProvider _routingTableProvider;
   private RoutingTableProvider _routingTableProvider2;
+  private boolean _listenerTestResult = true;
+
+  class MockRoutingTableChangeListener implements RoutingTableChangeListener {
+    @Override
+    public void onRoutingTableChange(RoutingTableSnapshot routingTableSnapshot, Object context) {
+      Set<String> masterInstances = new HashSet<>();
+      Set<String> slaveInstances = new HashSet<>();
+      for (InstanceConfig config : routingTableSnapshot
+          .getInstancesForResource(TEST_DB, "MASTER")) {
+        masterInstances.add(config.getInstanceName());
+      }
+      for (InstanceConfig config : routingTableSnapshot.getInstancesForResource(TEST_DB, "SLAVE")) {
+        slaveInstances.add(config.getInstanceName());
+      }
+      if (!masterInstances.equals(Map.class.cast(context).get("MASTER")) || !slaveInstances
+          .equals(Map.class.cast(context).get("SLAVE"))) {
+        _listenerTestResult = false;
+      } else {
+        _listenerTestResult = true;
+      }
+    }
+  }
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -130,12 +156,25 @@ public class TestRoutingTableProvider extends ZkIntegrationTestBase {
         Sets.newSet(_instances.get(2)));
   }
 
+
   @Test(dependsOnMethods = { "testDisableInstance" })
-  public void testShutdownInstance() throws InterruptedException {
-    // reenable the first instance
+  public void testRoutingTableListener() throws InterruptedException {
+    RoutingTableChangeListener routingTableChangeListener = new MockRoutingTableChangeListener();
+    Map<String, Set<String>> context = new HashMap<>();
+    context.put("MASTER", Sets.newSet(_instances.get(0)));
+    context.put("SLAVE", Sets.newSet(_instances.get(1), _instances.get(2)));
+    _routingTableProvider.addRoutingTableChangeListener(routingTableChangeListener, context);
+
+    // reenable the master instance to cause change
     String prevMasterInstance = _instances.get(0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);
+    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_listenerTestResult);
+  }
 
+
+  @Test(dependsOnMethods = { "testRoutingTableListener" })
+  public void testShutdownInstance() throws InterruptedException {
     // shutdown second instance.
     _participants.get(1).syncStop();
 

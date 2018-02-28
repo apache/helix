@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.helix.HelixConstants;
@@ -40,6 +41,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.PreFetch;
+import org.apache.helix.api.listeners.RoutingTableChangeListener;
 import org.apache.helix.common.ClusterEventProcessor;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
@@ -58,6 +60,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
   private final HelixManager _helixManager;
   private final RouterUpdater _routerUpdater;
   private final PropertyType _sourceDataType;
+  private final Map<RoutingTableChangeListener, Object> _routingTableChangeListenerMap;
 
   public RoutingTableProvider() {
     this(null);
@@ -72,6 +75,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
     _routingTableRef = new AtomicReference<>(new RoutingTable());
     _helixManager = helixManager;
     _sourceDataType = sourceDataType;
+    _routingTableChangeListenerMap = new ConcurrentHashMap<>();
     String clusterName = _helixManager != null ? _helixManager.getClusterName() : null;
     _routerUpdater = new RouterUpdater(clusterName, _sourceDataType);
     _routerUpdater.start();
@@ -159,6 +163,27 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
    */
   public RoutingTableSnapshot getRoutingTableSnapshot() {
     return new RoutingTableSnapshot(_routingTableRef.get());
+  }
+
+  /**
+   * Add RoutingTableChangeListener with user defined context
+   *
+   * @param routingTableChangeListener
+   * @param context user defined context
+   */
+  public void addRoutingTableChangeListener(final RoutingTableChangeListener routingTableChangeListener,
+      Object context) {
+    _routingTableChangeListenerMap.put(routingTableChangeListener, context);
+  }
+
+  /**
+   * Remove RoutingTableChangeListener
+   *
+   * @param routingTableChangeListener
+   */
+  public Object removeRoutingTableChangeListener(
+      final RoutingTableChangeListener routingTableChangeListener) {
+    return _routingTableChangeListenerMap.remove(routingTableChangeListener);
   }
 
   /**
@@ -454,6 +479,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
     _routingTableRef.set(newRoutingTable);
     logger.info("Refreshed the RoutingTable for cluster " + (_helixManager != null ? _helixManager
         .getClusterName() : null) + ", takes " + (System.currentTimeMillis() - startTime) + "ms.");
+    notifyRoutingTableChange();
   }
 
   protected void refresh(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
@@ -464,6 +490,15 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
     _routingTableRef.set(newRoutingTable);
     logger.info("Refresh the RoutingTable for cluster " + (_helixManager != null ? _helixManager
         .getClusterName() : null) + ", takes " + (System.currentTimeMillis() - startTime) + "ms.");
+    notifyRoutingTableChange();
+  }
+
+  private void notifyRoutingTableChange() {
+    for (Map.Entry<RoutingTableChangeListener, Object> entry : _routingTableChangeListenerMap
+        .entrySet()) {
+      entry.getKey()
+          .onRoutingTableChange(new RoutingTableSnapshot(_routingTableRef.get()), entry.getValue());
+    }
   }
 
   private class RouterUpdater extends ClusterEventProcessor {

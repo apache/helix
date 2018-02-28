@@ -17,4 +17,14 @@ export class WorkflowService extends HelixService {
       .request(`/clusters/${ clusterName }/workflows/${ workflowName }`)
       .map(data => new Workflow(data, clusterName));
   }
+
+  public stop(clusterName: string, workflowName: string) {
+    return this
+      .post(`/clusters/${ clusterName }/workflows/${ workflowName }?command=stop`, null);
+  }
+
+  public resume(clusterName: string, workflowName: string) {
+    return this
+      .post(`/clusters/${ clusterName }/workflows/${ workflowName }?command=resume`, null);
+  }
 }

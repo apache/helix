@@ -13,6 +13,20 @@
       <hi-key-value-pair name="Failure Threshold" prop="config.FailureThreshold"></hi-key-value-pair>
       <hi-key-value-pair name="Expiry" prop="config.Expiry"></hi-key-value-pair>
     </hi-key-value-pairs>
+    <span fxFlex="1 1 auto"></span>
+    <button mat-mini-fab *ngIf="can" [matMenuTriggerFor]="menu">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <mat-menu #menu="matMenu">
+      <button mat-menu-item (click)="stopWorkflow()">
+        <mat-icon>pause_circle_outline</mat-icon>
+        <span>Pause this Workflow</span>
+      </button>
+      <button mat-menu-item (click)="resumeWorkflow()">
+        <mat-icon>play_circle_outline</mat-icon>
+        <span>Resume this workflow</span>
+      </button>
+    </mat-menu>
   </mat-toolbar-row>
 </mat-toolbar>
 <section fxLayout="column" fxLayoutAlign="center center">

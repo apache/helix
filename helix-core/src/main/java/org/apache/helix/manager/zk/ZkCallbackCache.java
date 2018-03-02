@@ -57,7 +57,7 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkChildListener, IZ
     _accessor = accessor;
     _chrootPath = chrootPath;
 
-    _listener = new ConcurrentHashMap<String, Set<HelixPropertyListener>>();
+    _listener = new ConcurrentHashMap<>();
     _eventThread = eventThread;
 
     // init cache

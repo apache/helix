@@ -49,7 +49,8 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
       }
     }
 
-    @Override public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
+    @Override
+    public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
         NotificationContext context) {
       if (context.getType().equals(NotificationContext.Type.CALLBACK)) {
         _instanceConfigChangedCount++;
@@ -74,6 +75,14 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
 
   class MixedListener extends Listener {
     @BatchMode
+    @Override
+    public void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext) {
+      super.onIdealStateChange(idealState, changeContext);
+    }
+  }
+
+  @BatchMode (enabled = false)
+  class BatchDisableddListener extends Listener {
     @Override
     public void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext) {
       super.onIdealStateChange(idealState, changeContext);
@@ -122,21 +131,45 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
 
     final Listener listener = new Listener();
     addListeners(listener);
-
     updateConfigs();
+    verifyNonbatchedListeners(listener);
+    removeListeners(listener);
 
-    Boolean result = TestHelper.verify(new TestHelper.Verifier() {
-      @Override public boolean verify() {
-        return (listener._instanceConfigChangedCount == _numNode) && (
-            listener._idealStateChangedCount == _numResource);
-      }
-    }, 12000);
+    System.out.println("END " + methodName + " at " + new Date(System.currentTimeMillis()));
+  }
 
-    Thread.sleep(50);
+  @Test (dependsOnMethods = {"testNonBatchedListener", "testBatchedListener", "testMixedListener"})
+  public void testEnableBatchedListenerByJavaProperty() throws Exception {
+    String methodName = TestHelper.getTestMethodName();
+    System.out.println("START " + methodName + " at " + new Date(System.currentTimeMillis()));
 
-    Assert.assertTrue(result,
-        "non batched: instance: " + listener._instanceConfigChangedCount + ", idealstate: "
-            + listener._idealStateChangedCount + "\nbatched: instance: ");
+    System.setProperty("isAsyncBatchModeEnabled", "true");
+
+    final Listener listener = new Listener();
+    addListeners(listener);
+    updateConfigs();
+    verifyBatchedListeners(listener);
+
+    System.setProperty("isAsyncBatchModeEnabled", "false");
+    removeListeners(listener);
+
+    System.out.println("END " + methodName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test (dependsOnMethods = {"testNonBatchedListener", "testBatchedListener", "testMixedListener"})
+  public void testDisableBatchedListenerByAnnotation() throws Exception {
+    String methodName = TestHelper.getTestMethodName();
+    System.out.println("START " + methodName + " at " + new Date(System.currentTimeMillis()));
+
+    System.setProperty("isAsyncBatchModeEnabled", "true");
+
+    final Listener listener = new BatchDisableddListener();
+    addListeners(listener);
+    updateConfigs();
+    verifyNonbatchedListeners(listener);
+
+    System.setProperty("isAsyncBatchModeEnabled", "false");
+    removeListeners(listener);
 
     System.out.println("END " + methodName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -148,17 +181,9 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
 
     final BatchedListener batchListener = new BatchedListener();
     addListeners(batchListener);
-
     updateConfigs();
-
-    Thread.sleep(4000);
-
-    boolean result = (batchListener._instanceConfigChangedCount < _numNode/2) && (
-        batchListener._idealStateChangedCount < _numResource/2);
-
-    Assert.assertTrue(result,
-        "batched: instance: " + batchListener._instanceConfigChangedCount + ", idealstate: "
-            + batchListener._idealStateChangedCount);
+    verifyBatchedListeners(batchListener);
+    removeListeners(batchListener);
 
     System.out.println("END " + methodName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -170,24 +195,57 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
 
     final MixedListener mixedListener = new MixedListener();
     addListeners(mixedListener);
-
     updateConfigs();
 
     Thread.sleep(4000);
-
     boolean result = (mixedListener._instanceConfigChangedCount == _numNode) && (
         mixedListener._idealStateChangedCount < _numResource/2);
 
-    Assert.assertTrue(result,
-        "Mixed: instance: " + mixedListener._instanceConfigChangedCount + ", idealstate: "
-            + mixedListener._idealStateChangedCount);
+    Assert.assertTrue(result, "instance callbacks: " + mixedListener._instanceConfigChangedCount
+        + ", idealstate callbacks " + mixedListener._idealStateChangedCount + "\ninstance count: "
+        + _numNode + ", idealstate counts: " + _numResource);
+
+    removeListeners(mixedListener);
 
     System.out.println("END " + methodName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  private void verifyNonbatchedListeners(final Listener listener) throws Exception {
+    Boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override public boolean verify() {
+        return (listener._instanceConfigChangedCount == _numNode) && (
+            listener._idealStateChangedCount == _numResource);
+      }
+    }, 12000);
+
+    Thread.sleep(50);
+    Assert.assertTrue(result,
+        "instance callbacks: " + listener._instanceConfigChangedCount + ", idealstate callbacks "
+            + listener._idealStateChangedCount + "\ninstance count: " + _numNode
+            + ", idealstate counts: " + _numResource);
+  }
+
+  private void verifyBatchedListeners(Listener batchListener) throws InterruptedException {
+    Thread.sleep(3000);
+    boolean result = (batchListener._instanceConfigChangedCount < _numNode / 2) && (
+        batchListener._idealStateChangedCount < _numResource / 2);
+
+    Assert.assertTrue(result, "instance callbacks: " + batchListener._instanceConfigChangedCount
+        + ", idealstate callbacks " + batchListener._idealStateChangedCount + "\ninstance count: "
+        + _numNode + ", idealstate counts: " + _numResource);
+
   }
 
   private void addListeners(Listener listener) throws Exception {
     _manager.addInstanceConfigChangeListener(listener);
     _manager.addIdealStateChangeListener(listener);
+  }
+
+  private void removeListeners(Listener listener) throws Exception {
+    _manager.removeListener(new PropertyKey.Builder(_manager.getClusterName()).instanceConfigs(),
+        listener);
+    _manager
+        .removeListener(new PropertyKey.Builder(_manager.getClusterName()).idealStates(), listener);
   }
 
   private void updateConfigs() throws InterruptedException {

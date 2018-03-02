@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -151,6 +152,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private void parseListenerProperties() {
     BatchMode batchMode = _listener.getClass().getAnnotation(BatchMode.class);
     PreFetch preFetch = _listener.getClass().getAnnotation(PreFetch.class);
+
+    String asyncBatchModeEnabled = System.getProperty("isAsyncBatchModeEnabled");
+    if (asyncBatchModeEnabled != null) {
+      _batchModeEnabled = Boolean.parseBoolean(asyncBatchModeEnabled);
+      logger.info("isAsyncBatchModeEnabled by default: " + _batchModeEnabled);
+    }
 
     if (batchMode != null) {
       _batchModeEnabled = batchMode.enabled();

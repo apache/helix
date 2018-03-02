@@ -45,7 +45,6 @@ public class TestListenerCallback extends ZkUnitTestBase {
     public void onConfigChange(List<HelixProperty> configs, NotificationContext context) {
       _configChanged = true;
       _configSize = configs.size();
-      System.out.println("onConfigChange invoked: " + configs.size() + ", " + configs);
     }
 
     public void reset () {
@@ -68,7 +67,6 @@ public class TestListenerCallback extends ZkUnitTestBase {
         NotificationContext context) {
       _instanceConfigChanged = true;
       _instanceConfigs = instanceConfigs;
-      System.out.println("onInstanceConfigChange invoked: " + instanceConfigs);
     }
 
     @Override
@@ -76,7 +74,6 @@ public class TestListenerCallback extends ZkUnitTestBase {
         NotificationContext context) {
       _clusterConfigChanged = true;
       _clusterConfig = clusterConfig;
-      System.out.println("onClusterConfigChange invoked: " + clusterConfig);
     }
 
     @Override
@@ -84,7 +81,6 @@ public class TestListenerCallback extends ZkUnitTestBase {
         NotificationContext context) {
       _resourceConfigChanged = true;
       _resourceConfigs = resourceConfigs;
-      System.out.println("onResourceConfigChange invoked: " + resourceConfigs);
     }
 
     public void reset () {

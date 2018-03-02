@@ -296,8 +296,9 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
       long timeoutPeriod) {
     long nextTimeout = getTimeoutTime(startTime, timeoutPeriod);
     long nextRebalanceTime = _rebalanceScheduler.getRebalanceTime(resourceId);
-    if (nextRebalanceTime == TaskConstants.DEFAULT_NEVER_TIMEOUT
-        || nextTimeout < nextRebalanceTime) {
+    if (nextTimeout >= System.currentTimeMillis() && (
+        nextRebalanceTime == TaskConstants.DEFAULT_NEVER_TIMEOUT
+            || nextTimeout < nextRebalanceTime)) {
       _rebalanceScheduler.scheduleRebalance(_manager, resourceId, nextTimeout);
     }
   }

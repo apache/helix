@@ -60,6 +60,9 @@ public class RebalanceScheduler {
     }
 
     long delay = startTime - System.currentTimeMillis();
+    if (delay < 0) {
+      LOG.debug(String.format("Delay time is %s, will not be scheduled", delay));
+    }
     LOG.info(
         "Schedule rebalance for resource : " + resource + " at time: " + startTime + " delay: "
             + delay);

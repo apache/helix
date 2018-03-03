@@ -124,6 +124,24 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     return -1;
   }
 
+  @Override
+  public long getTotalCallbackCounter() {
+    if (_zkEventThread != null) {
+      return _zkEventThread.getTotalEventCount();
+    }
+
+    return -1;
+  }
+
+  @Override
+  public long getTotalCallbackHandledCounter() {
+    if (_zkEventThread != null) {
+      return _zkEventThread.getTotalHandledEventCount();
+    }
+
+    return -1;
+  }
+
   private void record(String path, int bytes, long latencyMilliSec, boolean isFailure,
       boolean isRead) {
     for (ZkClientPathMonitor.PredefinedPath predefinedPath : ZkClientPathMonitor.PredefinedPath

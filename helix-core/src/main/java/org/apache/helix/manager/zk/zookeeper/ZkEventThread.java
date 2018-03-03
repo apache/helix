@@ -31,6 +31,9 @@ public class ZkEventThread extends Thread {
 
   private BlockingQueue<ZkEvent> _events = new LinkedBlockingQueue<>();
 
+  private long _totalEventCount = 0L;
+  private long _totalEventCountHandled = 0L;
+
   private static AtomicInteger _eventId = new AtomicInteger(0);
 
   public static abstract class ZkEvent {
@@ -62,6 +65,7 @@ public class ZkEventThread extends Thread {
         LOG.debug("Delivering event #" + eventId + " " + zkEvent);
         try {
           zkEvent.run();
+          _totalEventCountHandled ++;
         } catch (InterruptedException e) {
           interrupt();
         } catch (ZkInterruptedException e) {
@@ -80,10 +84,15 @@ public class ZkEventThread extends Thread {
     if (!isInterrupted()) {
       LOG.debug("New event: " + event);
       _events.add(event);
+      _totalEventCount ++;
     }
   }
 
-  public int getPendingEventsCount() {
+  public long getPendingEventsCount() {
     return _events.size();
   }
+
+  public long getTotalEventCount() { return _totalEventCount; }
+
+  public long getTotalHandledEventCount() { return _totalEventCountHandled; }
 }

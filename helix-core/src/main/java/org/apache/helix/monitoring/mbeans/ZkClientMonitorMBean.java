@@ -25,4 +25,6 @@ public interface ZkClientMonitorMBean extends SensorNameProvider {
   long getStateChangeEventCounter();
   long getDataChangeEventCounter();
   long getPendingCallbackGauge();
+  long getTotalCallbackCounter();
+  long getTotalCallbackHandledCounter();
 }

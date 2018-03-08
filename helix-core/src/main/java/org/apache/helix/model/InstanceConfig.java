@@ -330,7 +330,7 @@ public class InstanceConfig extends HelixProperty {
       disabledPartitions.addAll(oldDisabled);
     }
 
-    if (newDisabledMap != null) {
+    if (newDisabledMap != null && newDisabledMap.containsKey(resourceName)) {
       disabledPartitions.addAll(HelixUtil.deserializeByComma(newDisabledMap.get(resourceName)));
     }
     return new ArrayList<String>(disabledPartitions);

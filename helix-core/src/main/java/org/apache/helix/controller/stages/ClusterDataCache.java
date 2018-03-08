@@ -83,6 +83,7 @@ public class ClusterDataCache {
   private Map<String, Map<String, String>> _idealStateRuleMap;
   private Map<String, Map<String, Long>> _missingTopStateMap = new HashMap<>();
   private Map<String, ExternalView> _targetExternalViewMap = new HashMap<>();
+  private Map<String, ExternalView> _externalViewMap = new HashMap<>();
   private Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
   private Set<String> _disabledInstanceSet = new HashSet<>();
 
@@ -710,6 +711,38 @@ public class ClusterDataCache {
 
   public void updateTargetExternalView(String resourceName, ExternalView targetExternalView) {
     _targetExternalViewMap.put(resourceName, targetExternalView);
+  }
+
+  /**
+   * Get local cached external view map
+   *
+   * @return
+   */
+  public Map<String, ExternalView> getExternalViews() {
+    return Collections.unmodifiableMap(_externalViewMap);
+  }
+
+  /**
+   * Update the cached external view map
+   *
+   * @param externalViews
+   */
+  public void updateExternalViews(List<ExternalView> externalViews) {
+    for (ExternalView externalView : externalViews) {
+      _externalViewMap.put(externalView.getResourceName(), externalView);
+    }
+  }
+
+  /**
+   * Remove dead external views from map
+   *
+   * @param resourceNames
+   */
+
+  public void removeExternalViews(List<String> resourceNames) {
+    for (String externalView : resourceNames) {
+      _externalViewMap.remove(externalView);
+    }
   }
 
   /**

@@ -53,10 +53,9 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
 
-    List<ExternalView> newExtViews = new ArrayList<ExternalView>();
+    List<ExternalView> newExtViews = new ArrayList<>();
 
-    Map<String, ExternalView> curExtViews =
-        dataAccessor.getChildValuesMap(keyBuilder.externalViews());
+    Map<String, ExternalView> curExtViews = cache.getExternalViews();
 
     for (String resourceName : resourceMap.keySet()) {
       ExternalView view = new ExternalView(resourceName);
@@ -130,12 +129,14 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         }
       }
     }
+
+    List<String> externalviewsToRemove = new ArrayList<>();
     // TODO: consider not setting the externalview of SCHEDULER_TASK_QUEUE at all.
     // Are there any entity that will be interested in its change?
 
     // For the resource with DisableExternalView option turned on in IdealState
     // We will not actually create or write the externalView to ZooKeeper.
-    List<PropertyKey> keys = new ArrayList<PropertyKey>();
+    List<PropertyKey> keys = new ArrayList<>();
     for(Iterator<ExternalView> it = newExtViews.iterator(); it.hasNext(); ) {
       ExternalView view = it.next();
       String resourceName = view.getResourceName();
@@ -146,6 +147,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         if (curExtViews.containsKey(resourceName)) {
           LOG.info("Remove externalView for resource: " + resourceName);
           dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
+          externalviewsToRemove.add(resourceName);
         }
       } else {
         keys.add(keyBuilder.externalView(resourceName));
@@ -155,6 +157,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     // add/update external-views
     if (newExtViews.size() > 0) {
       dataAccessor.setChildren(keys, newExtViews);
+      cache.updateExternalViews(newExtViews);
     }
 
     // remove dead external-views
@@ -162,8 +165,10 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       if (!resourceMap.keySet().contains(resourceName)) {
         LOG.info("Remove externalView for resource: " + resourceName);
         dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
+        externalviewsToRemove.add(resourceName);
       }
     }
+    cache.removeExternalViews(externalviewsToRemove);
   }
 
   private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager,

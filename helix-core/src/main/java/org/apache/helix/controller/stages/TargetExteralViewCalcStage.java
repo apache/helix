@@ -62,33 +62,53 @@ public class TargetExteralViewCalcStage extends AbstractBaseStage {
               AccessOption.PERSISTENT);
     }
 
-    IntermediateStateOutput intermediateAssignment =
+    BestPossibleStateOutput bestPossibleAssignments =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
+
+    IntermediateStateOutput intermediateAssignments =
         event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
 
     List<PropertyKey> keys = new ArrayList<>();
-    List<HelixProperty> targetExternalViews = new ArrayList<>();
+    List<ExternalView> targetExternalViews = new ArrayList<>();
 
-    for (String resourceName : intermediateAssignment.resourceSet()) {
+    for (String resourceName : bestPossibleAssignments.resourceSet()) {
       if (cache.getIdealState(resourceName) == null || cache.getIdealState(resourceName).isExternalViewDisabled()) {
         continue;
       }
       Resource resource = resourceMap.get(resourceName);
       if (resource != null) {
         PartitionStateMap partitionStateMap =
-            intermediateAssignment.getPartitionStateMap(resourceName);
-        Map<String, Map<String, String>> assignmentToPersist = convertToMapFields(partitionStateMap.getStateMap());
+            intermediateAssignments.getPartitionStateMap(resourceName);
+        Map<String, Map<String, String>> intermediateAssignment = convertToMapFields(
+            partitionStateMap.getStateMap());
 
+        Map<String, List<String>> preferenceLists =
+            bestPossibleAssignments.getPreferenceLists(resourceName);
+
+        boolean needPersist = false;
         ExternalView targetExternalView = cache.getTargetExternalView(resourceName);
         if (targetExternalView == null) {
           targetExternalView = new ExternalView(resourceName);
           targetExternalView.getRecord()
               .getSimpleFields()
               .putAll(cache.getIdealState(resourceName).getRecord().getSimpleFields());
+          needPersist = true;
         }
-        if (assignmentToPersist != null && !targetExternalView.getRecord().getMapFields()
-            .equals(assignmentToPersist)) {
-          targetExternalView.getRecord().setMapFields(assignmentToPersist);
+
+        if (preferenceLists != null && !targetExternalView.getRecord().getListFields()
+            .equals(preferenceLists)) {
+          targetExternalView.getRecord().setListFields(preferenceLists);
+          needPersist = true;
+        }
+
+        if (intermediateAssignment != null && !targetExternalView.getRecord().getMapFields()
+            .equals(intermediateAssignment)) {
+          targetExternalView.getRecord().setMapFields(intermediateAssignment);
+          needPersist = true;
+        }
+
+        if (needPersist) {
           keys.add(accessor.keyBuilder().targetExternalView(resourceName));
           targetExternalViews.add(targetExternalView);
           cache.updateTargetExternalView(resourceName, targetExternalView);

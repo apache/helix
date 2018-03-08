@@ -27,11 +27,13 @@ import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestTargetExternalView extends TaskTestBase{
+public class TestTargetExternalView extends TaskTestBase {
 
   private ConfigAccessor _configAccessor;
   private HelixDataAccessor _accessor;
@@ -57,7 +59,9 @@ public class TestTargetExternalView extends TaskTestBase{
     clusterConfig.setPersistIntermediateAssignment(true);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
     _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, _testDbs.get(0), 3);
-    Thread.sleep(2000L);
+
+    HelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verify());
 
     Assert
         .assertEquals(_accessor.getChildNames(_accessor.keyBuilder().targetExternalViews()).size(),
@@ -68,19 +72,25 @@ public class TestTargetExternalView extends TaskTestBase{
     List<IdealState> idealStates = _accessor.getChildValues(_accessor.keyBuilder().idealStates());
 
     for (int i = 0; i < idealStates.size(); i++) {
-      Assert.assertTrue(targetExternalViews.get(i).getRecord().getMapFields()
-          .equals(idealStates.get(i).getRecord().getMapFields()));
+      Assert.assertEquals(targetExternalViews.get(i).getRecord().getMapFields(),
+          idealStates.get(i).getRecord().getMapFields());
+      Assert.assertEquals(targetExternalViews.get(i).getRecord().getListFields(),
+          idealStates.get(i).getRecord().getListFields());
     }
 
     // Disable one instance to see whether the target external views changes.
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, _participants[0].getInstanceName(), false);
 
+    Assert.assertTrue(verifier.verify());
+
     targetExternalViews = _accessor.getChildValues(_accessor.keyBuilder().externalViews());
     idealStates = _accessor.getChildValues(_accessor.keyBuilder().idealStates());
 
     for (int i = 0; i < idealStates.size(); i++) {
-      Assert.assertTrue(
-          targetExternalViews.get(i).getRecord().getMapFields().equals(idealStates.get(i).getRecord().getMapFields()));
+      Assert.assertEquals(targetExternalViews.get(i).getRecord().getMapFields(),
+          idealStates.get(i).getRecord().getMapFields());
+      Assert.assertEquals(targetExternalViews.get(i).getRecord().getListFields(),
+          idealStates.get(i).getRecord().getListFields());
     }
   }
 }

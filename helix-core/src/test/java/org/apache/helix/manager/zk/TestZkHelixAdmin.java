@@ -75,7 +75,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     final String clusterName = getShortClassName();
     String rootPath = "/" + clusterName;
     if (_gZkClient.exists(rootPath)) {
-      _gZkClient.deleteRecursive(rootPath);
+      _gZkClient.deleteRecursively(rootPath);
     }
 
     HelixAdmin tool = new ZKHelixAdmin(_gZkClient);
@@ -414,7 +414,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     final String clusterName = getShortClassName();
     String rootPath = "/" + clusterName;
     if (_gZkClient.exists(rootPath)) {
-      _gZkClient.deleteRecursive(rootPath);
+      _gZkClient.deleteRecursively(rootPath);
     }
 
     HelixAdmin tool = new ZKHelixAdmin(_gZkClient);

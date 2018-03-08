@@ -38,7 +38,7 @@ public class TestHierarchicalDataStore extends ZkUnitTestBase {
     FileFilter filter = null;
     // _zkClient.setZkSerializer(new ZNRecordSerializer());
 
-    _zkClientString.deleteRecursive(path);
+    _zkClientString.deleteRecursively(path);
     HierarchicalDataHolder<ZNRecord> dataHolder =
         new HierarchicalDataHolder<ZNRecord>(_zkClientString, path, filter);
     dataHolder.print();

@@ -366,7 +366,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String root = "TestZkBaseDataAccessor_asyn";
     ZkClient zkClient = new ZkClient(ZK_ADDR);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    zkClient.deleteRecursive("/" + root);
+    zkClient.deleteRecursively("/" + root);
 
     ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(zkClient);
 

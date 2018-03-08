@@ -147,7 +147,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     ZKUtil.dropChildren(_zkClient, instanceConfigsPath, instanceConfig.getRecord());
 
     // delete instance path
-    _zkClient.deleteRecursive(instancePath);
+    _zkClient.deleteRecursively(instancePath);
   }
 
   @Override
@@ -553,7 +553,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (_zkClient.exists(root)) {
       if (recreateIfExists) {
         logger.warn("Root directory exists.Cleaning the root directory:" + root);
-        _zkClient.deleteRecursive(root);
+        _zkClient.deleteRecursively(root);
       } else {
         logger.info("Cluster " + clusterName + " already exists");
         return true;
@@ -807,7 +807,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       if (recreateIfExists) {
         logger.info(
             "Operation.State Model directory exists:" + stateModelPath + ", remove and recreate.");
-        _zkClient.deleteRecursive(stateModelPath);
+        _zkClient.deleteRecursively(stateModelPath);
       } else {
         logger.info("Skip the operation. State Model directory exists:" + stateModelPath);
         return;
@@ -862,7 +862,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new HelixException("There are still LEADER in the cluster, shut them down first.");
     }
 
-    _zkClient.deleteRecursive(root);
+    _zkClient.deleteRecursively(root);
   }
 
   @Override

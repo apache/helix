@@ -246,7 +246,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     // test delete callbacks
     listener.reset();
     int expectDeleteNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
-    _gZkClient.deleteRecursive(subRoot);
+    _gZkClient.deleteRecursively(subRoot);
     Thread.sleep(1000);
 
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"

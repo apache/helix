@@ -69,7 +69,7 @@ public class TestDisableExternalView extends ZkIntegrationTestBase {
     _admin = new ZKHelixAdmin(_gZkClient);
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+      _gZkClient.deleteRecursively(namespace);
     }
 
     // setup storage cluster

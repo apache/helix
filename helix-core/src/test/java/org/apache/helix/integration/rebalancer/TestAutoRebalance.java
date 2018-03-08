@@ -57,7 +57,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
 
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+      _gZkClient.deleteRecursively(namespace);
     }
     _setupTool = new ClusterSetup(_gZkClient);
 

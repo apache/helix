@@ -126,7 +126,7 @@ public class TestDriver {
     if (zkClient.exists("/" + clusterName)) {
       LOG.warn("test cluster already exists:" + clusterName + ", test name:" + uniqClusterName
           + " is not unique or test has been run without cleaning up zk; deleting it");
-      zkClient.deleteRecursive("/" + clusterName);
+      zkClient.deleteRecursively("/" + clusterName);
     }
 
     if (_testInfoMap.containsKey(uniqClusterName)) {

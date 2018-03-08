@@ -55,7 +55,7 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_" + "testController";
     String path = "/" + clusterName;
     if (_gZkClient.exists(path)) {
-      _gZkClient.deleteRecursive(path);
+      _gZkClient.deleteRecursively(path);
     }
 
     ZKHelixDataAccessor accessor =
@@ -108,7 +108,7 @@ public class TestDistControllerElection extends ZkUnitTestBase {
         CONTROLLER_CLUSTER_PREFIX + "_" + className + "_" + "testControllerParticipant";
     String path = "/" + clusterName;
     if (_gZkClient.exists(path)) {
-      _gZkClient.deleteRecursive(path);
+      _gZkClient.deleteRecursively(path);
     }
 
     ZKHelixDataAccessor accessor =
@@ -167,7 +167,7 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_" + "testParticipant";
     String path = "/" + clusterName;
     if (_gZkClient.exists(path)) {
-      _gZkClient.deleteRecursive(path);
+      _gZkClient.deleteRecursively(path);
     }
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 

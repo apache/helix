@@ -746,21 +746,49 @@ public class ZkClient implements Watcher {
     return false;
   }
 
+  /**
+   * Delete the path as well as all its children.
+   * This method is deprecated, please use {@link #deleteRecursively(String)}} instead
+   * @param path ZK path
+   * @return true if successfully deleted all children, and the given path, else false
+   */
+  @Deprecated
   public boolean deleteRecursive(String path) {
+    try {
+      deleteRecursively(path);
+      return true;
+    } catch (HelixException e) {
+      LOG.error("Failed to recursively delete path " + path, e);
+      return false;
+    }
+  }
+
+  /**
+   * Delete the path as well as all its children.
+   * @param path
+   * @throws HelixException
+   */
+  public void deleteRecursively(String path) throws HelixException {
     List<String> children;
     try {
       children = getChildren(path, false);
     } catch (ZkNoNodeException e) {
-      return true;
+      // if the node to be deleted does not exist, treat it as success.
+      return;
     }
 
     for (String subPath : children) {
-      if (!deleteRecursive(path + "/" + subPath)) {
-        return false;
-      }
+      deleteRecursively(path + "/" + subPath);
     }
 
-    return delete(path);
+    // delete() function call will return true if successful, false if the path does not
+    // exist (in this context, it should be treated as successful), and throw exception
+    // if there is any other failure case.
+    try {
+      delete(path);
+    } catch (Exception e) {
+      throw new HelixException("Failed to delete " + path, e);
+    }
   }
 
   private void processDataOrChildChange(WatchedEvent event) {
@@ -982,6 +1010,12 @@ public class ZkClient implements Watcher {
     return _zkEventLock;
   }
 
+  /**
+   * Delete the given path. Path should not have any children or the deletion will fail.
+   * This function will throw exception if we fail to delete an existing path
+   * @param path
+   * @return true if path is successfully deleted, false if path does not exist
+   */
   public boolean delete(final String path) {
     long startT = System.currentTimeMillis();
     boolean success;

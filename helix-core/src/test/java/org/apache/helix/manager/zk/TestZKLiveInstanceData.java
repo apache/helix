@@ -113,7 +113,7 @@ public class TestZKLiveInstanceData extends ZkUnitTestBase {
       zkClient = new ZkClient(ZK_ADDR);
       zkClient.setZkSerializer(new ZNRecordSerializer());
       if (zkClient.exists("/" + clusterName)) {
-        zkClient.deleteRecursive("/" + clusterName);
+        zkClient.deleteRecursively("/" + clusterName);
       }
     } finally {
       if (zkClient != null) {

@@ -265,7 +265,7 @@ public class TestHelper {
     ZkClient zkClient = new ZkClient(ZkAddr);
     if (zkClient.exists("/" + clusterName)) {
       LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
-      zkClient.deleteRecursive("/" + clusterName);
+      zkClient.deleteRecursively("/" + clusterName);
     }
 
     ClusterSetup setupTool = new ClusterSetup(ZkAddr);
@@ -290,7 +290,7 @@ public class TestHelper {
   public static void dropCluster(String clusterName, ZkClient zkClient) throws Exception {
     if (!zkClient.exists("/" + clusterName)) {
       LOG.warn("Cluster does not exist:" + clusterName + ". Deleting it");
-      zkClient.deleteRecursive("/" + clusterName);
+      zkClient.deleteRecursively("/" + clusterName);
     }
 
     ClusterSetup setupTool = new ClusterSetup(zkClient);

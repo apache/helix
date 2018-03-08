@@ -90,7 +90,7 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
       int nodesNb, int replica, String stateModelDef, boolean doRebalance) throws Exception {
     if (_gZkClient.exists("/" + clusterName)) {
       LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
-      _gZkClient.deleteRecursive("/" + clusterName);
+      _gZkClient.deleteRecursively("/" + clusterName);
     }
 
     ClusterSetup setupTool = new ClusterSetup(ZkAddr);

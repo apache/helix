@@ -114,7 +114,7 @@ public class ZkChildResource extends ServerResource {
       if (childNames != null) {
         for (String childName : childNames) {
           String childPath = zkPath.equals("/") ? "/" + childName : zkPath + "/" + childName;
-          zkClient.deleteRecursive(childPath);
+          zkClient.deleteRecursively(childPath);
         }
       }
 

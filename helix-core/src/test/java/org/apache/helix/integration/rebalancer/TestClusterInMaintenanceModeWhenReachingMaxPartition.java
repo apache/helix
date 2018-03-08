@@ -60,7 +60,7 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkInte
 
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+      _gZkClient.deleteRecursively(namespace);
     }
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 

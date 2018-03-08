@@ -40,7 +40,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
 
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+      _gZkClient.deleteRecursively(namespace);
     }
     _setupTool = new ClusterSetup(ZK_ADDR);
 
@@ -69,7 +69,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
   public void testParticipantStartUp() throws Exception {
     setupCluster();
     String controllerMsgPath = PropertyPathBuilder.controllerMessage(CLUSTER_NAME);
-    _gZkClient.deleteRecursive(controllerMsgPath);
+    _gZkClient.deleteRecursively(controllerMsgPath);
     HelixManager manager = null;
 
     try {
@@ -102,7 +102,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
 
     setupCluster();
     String stateModelPath = PropertyPathBuilder.stateModelDef(CLUSTER_NAME);
-    _gZkClient.deleteRecursive(stateModelPath);
+    _gZkClient.deleteRecursively(stateModelPath);
 
     try {
       manager =
@@ -120,7 +120,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
     setupCluster();
     String instanceStatusUpdatePath =
         PropertyPathBuilder.instanceStatusUpdate(CLUSTER_NAME, "localhost_" + (START_PORT + 1));
-    _gZkClient.deleteRecursive(instanceStatusUpdatePath);
+    _gZkClient.deleteRecursively(instanceStatusUpdatePath);
 
     try {
       manager =

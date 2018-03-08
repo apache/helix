@@ -57,7 +57,7 @@ public class TestUserContentStore extends TaskTestBase {
     _participants = new MockParticipantManager[_numNodes];
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+      _gZkClient.deleteRecursively(namespace);
     }
 
     // Setup cluster and instances

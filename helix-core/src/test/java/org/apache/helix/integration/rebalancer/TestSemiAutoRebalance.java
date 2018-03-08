@@ -63,7 +63,7 @@ public class TestSemiAutoRebalance extends ZkIntegrationTestBase {
 
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+      _gZkClient.deleteRecursively(namespace);
     }
 
     // setup storage cluster

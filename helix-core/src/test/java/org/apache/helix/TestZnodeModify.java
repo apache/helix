@@ -240,7 +240,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists(PREFIX)) {
-      _zkClient.deleteRecursive(PREFIX);
+      _zkClient.deleteRecursively(PREFIX);
     }
 
   }

@@ -150,7 +150,7 @@ public final class ZKUtil {
     // TODO: check if parentPath exists
     String id = nodeRecord.getId();
     String temp = parentPath + "/" + id;
-    client.deleteRecursive(temp);
+    client.deleteRecursively(temp);
   }
 
   public static List<ZNRecord> getChildren(ZkClient client, String path) {

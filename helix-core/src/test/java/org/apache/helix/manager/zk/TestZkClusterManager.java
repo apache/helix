@@ -60,7 +60,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
 
     // basic test
     if (_gZkClient.exists("/" + clusterName)) {
-      _gZkClient.deleteRecursive("/" + clusterName);
+      _gZkClient.deleteRecursively("/" + clusterName);
     }
 
     ZKHelixManager controller =
@@ -232,7 +232,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
 
     // basic test
     if (_gZkClient.exists("/" + clusterName)) {
-      _gZkClient.deleteRecursive("/" + clusterName);
+      _gZkClient.deleteRecursively("/" + clusterName);
     }
 
     ZKHelixManager admin =

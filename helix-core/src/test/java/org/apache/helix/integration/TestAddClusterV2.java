@@ -56,13 +56,13 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase {
 
     String namespace = "/" + CONTROLLER_CLUSTER;
     if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+      _gZkClient.deleteRecursively(namespace);
     }
 
     for (int i = 0; i < CLUSTER_NR; i++) {
       namespace = "/" + CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
       if (_gZkClient.exists(namespace)) {
-        _gZkClient.deleteRecursive(namespace);
+        _gZkClient.deleteRecursively(namespace);
       }
     }
 

@@ -327,7 +327,7 @@ public class ParticipantManager {
 
       String path = _keyBuilder.currentStates(_instanceName, session).getPath();
       LOG.info("Removing current states from previous sessions. path: " + path);
-      _zkclient.deleteRecursive(path);
+      _zkclient.deleteRecursively(path);
     }
   }
 

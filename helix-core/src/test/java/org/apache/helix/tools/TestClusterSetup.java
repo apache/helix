@@ -86,7 +86,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
   @BeforeMethod()
   public void setup() {
 
-    _zkClient.deleteRecursive("/" + CLUSTER_NAME);
+    _zkClient.deleteRecursively("/" + CLUSTER_NAME);
     _clusterSetup = new ClusterSetup(ZK_ADDR);
     _clusterSetup.addCluster(CLUSTER_NAME, true);
   }
@@ -240,14 +240,14 @@ public class TestClusterSetup extends ZkUnitTestBase {
     // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+ " help"));
 
     // wipe ZK
-    _zkClient.deleteRecursive("/" + CLUSTER_NAME);
+    _zkClient.deleteRecursively("/" + CLUSTER_NAME);
     _clusterSetup = new ClusterSetup(ZK_ADDR);
 
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addCluster "
         + CLUSTER_NAME));
 
     // wipe again
-    _zkClient.deleteRecursive("/" + CLUSTER_NAME);
+    _zkClient.deleteRecursively("/" + CLUSTER_NAME);
     _clusterSetup = new ClusterSetup(ZK_ADDR);
 
     _clusterSetup.setupTestCluster(CLUSTER_NAME);

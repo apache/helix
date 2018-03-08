@@ -47,7 +47,7 @@ public class TestZKUtil extends ZkUnitTestBase {
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists("/" + clusterName)) {
-      _zkClient.deleteRecursive("/" + clusterName);
+      _zkClient.deleteRecursively("/" + clusterName);
     }
 
     boolean result = ZKUtil.isClusterSetup(clusterName, _zkClient);

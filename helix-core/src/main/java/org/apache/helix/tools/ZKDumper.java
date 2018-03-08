@@ -158,7 +158,7 @@ public class ZKDumper {
   }
 
   private void delete(String zkPath) {
-    client.deleteRecursive(zkPath);
+    client.deleteRecursively(zkPath);
 
   }
 

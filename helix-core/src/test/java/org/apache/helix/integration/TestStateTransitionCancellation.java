@@ -63,7 +63,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     _numReplicas = 2;
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+      _gZkClient.deleteRecursively(namespace);
     }
 
     _setupTool = new ClusterSetup(ZK_ADDR);

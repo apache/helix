@@ -70,7 +70,7 @@ public class TestZkClient extends ZkUnitTestBase {
   @Test()
   void testGetStat() {
     String path = "/tmp/getStatTest";
-    _zkClient.deleteRecursive(path);
+    _zkClient.deleteRecursively(path);
 
     Stat stat, newStat;
     stat = _zkClient.getStat(path);

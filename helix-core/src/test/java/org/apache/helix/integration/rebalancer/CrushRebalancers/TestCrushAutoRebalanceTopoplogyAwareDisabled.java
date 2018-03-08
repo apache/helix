@@ -35,7 +35,7 @@ public class TestCrushAutoRebalanceTopoplogyAwareDisabled extends TestCrushAutoR
 
     String namespace = "/" + CLUSTER_NAME;
     if (ZkIntegrationTestBase._gZkClient.exists(namespace)) {
-      ZkIntegrationTestBase._gZkClient.deleteRecursive(namespace);
+      ZkIntegrationTestBase._gZkClient.deleteRecursively(namespace);
     }
     _setupTool = new ClusterSetup(ZkIntegrationTestBase._gZkClient);
     _setupTool.addCluster(CLUSTER_NAME, true);

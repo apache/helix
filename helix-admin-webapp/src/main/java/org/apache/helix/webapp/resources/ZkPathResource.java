@@ -75,7 +75,7 @@ public class ZkPathResource extends ServerResource {
         if (childNames != null) {
           for (String childName : childNames) {
             String childPath = zkPath.equals("/") ? "/" + childName : zkPath + "/" + childName;
-            zkClient.deleteRecursive(childPath);
+            zkClient.deleteRecursively(childPath);
           }
         }
       } else {
@@ -148,7 +148,7 @@ public class ZkPathResource extends ServerResource {
     try {
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-      zkClient.deleteRecursive(zkPath);
+      zkClient.deleteRecursively(zkPath);
 
       getResponse().setStatus(Status.SUCCESS_OK);
     } catch (Exception e) {

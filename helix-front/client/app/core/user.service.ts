@@ -20,6 +20,16 @@ export class UserService {
       .catch(_ => _);
   }
 
+  public login(username: string, password: string): Observable<boolean> {
+    return this.http
+      .post(
+        `${ Settings.userAPI }/login`,
+        { username: username, password: password },
+        { headers: this.getHeaders() }
+      )
+      .map(response => response.json());
+  }
+
   protected getHeaders() {
     let headers = new Headers();
     headers.append('Accept', 'application/json');

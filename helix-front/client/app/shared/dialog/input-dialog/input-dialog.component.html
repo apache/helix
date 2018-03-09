@@ -4,8 +4,8 @@
     <section>
       {{ message }}
     </section>
-    <section *ngFor="let name of getKeys(values)">
-      <section *ngIf="values[name].type === 'boolean'">
+    <section *ngFor="let name of getKeys(values)" [ngSwitch]="values[name].type">
+      <section *ngSwitchCase="'boolean'">
         {{ values[name].label }}:
         <mat-slide-toggle
           [name]="name"
@@ -13,7 +13,15 @@
           {{ values[name].value ? 'True' : 'False' }}
         </mat-slide-toggle>
       </section>
-      <mat-form-field *ngIf="values[name].type !== 'boolean'">
+      <mat-form-field *ngSwitchCase="'password'">
+        <input matInput
+          type="password"
+          [name]="name"
+          [(ngModel)]="values[name].value"
+          [placeholder]="values[name].label"
+          required>
+      </mat-form-field>
+      <mat-form-field *ngSwitchDefault>
         <input matInput
           [name]="name"
           [(ngModel)]="values[name].value"

@@ -1,7 +1,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { HttpModule } from '@angular/http';
 
+import { TestingModule } from '../../../testing/testing.module';
 import { ClusterListComponent } from './cluster-list.component';
 
 describe('ClusterListComponent', () => {
@@ -11,7 +11,7 @@ describe('ClusterListComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        HttpModule
+        TestingModule
       ],
       declarations: [
         ClusterListComponent

@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { MatDialog, MatSnackBar } from '@angular/material';
+import { Router } from '@angular/router';
 
 import { ClusterService } from '../shared/cluster.service';
 import { Cluster } from '../shared/cluster.model';
@@ -17,16 +18,19 @@ export class ClusterListComponent implements OnInit {
   errorMessage: string = '';
   isLoading: boolean = true;
   can: boolean = false;
+  service = '';
 
   constructor(
     protected clusterService: ClusterService,
     protected dialog: MatDialog,
-    protected snackBar: MatSnackBar
+    protected snackBar: MatSnackBar,
+    protected router: Router
   ) { }
 
   ngOnInit() {
     this.loadClusters();
     this.clusterService.can().subscribe(data => this.can = data);
+    this.service = this.router.url.split('/')[1];
   }
 
   loadClusters() {
@@ -70,6 +74,14 @@ export class ClusterListComponent implements OnInit {
           .subscribe(data => {
             this.snackBar.open('Cluster created!', 'OK', {
               duration: 2000,
+            });
+            this.dialog.open(AlertDialogComponent, {
+              width: '600px',
+              data: {
+                title: 'What\'s Next',
+                message: 'New cluster is created yet not activated. When you are ready to activate this cluster,'
+                  + ' please select "Activate this Cluster" menu in the cluster operations to continue.'
+              }
             });
             this.loadClusters();
           });

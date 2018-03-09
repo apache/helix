@@ -11,7 +11,7 @@
     <button mat-mini-fab *ngIf="can" (click)="createCluster()">
       <mat-icon>add</mat-icon>
     </button>
-    <h3 mat-subheader>Clusters ({{ clusters.length }})</h3>
+    <h3 mat-subheader>Clusters in {{ service }} ({{ clusters.length }})</h3>
     <a *ngFor="let cluster of clusters"
       mat-list-item
       [routerLink]="[cluster.name]"

@@ -157,30 +157,19 @@ export class ClusterDetailComponent implements OnInit {
   }
 
   deleteCluster() {
-    // disable delete function right now since it's too dangerous
-    /*
-    this.dialog
-      .open(ConfirmDialogComponent, {
-        data: {
-          title: 'Confirmation',
-          message: 'Are you sure you want to delete this cluster?'
-        }
-      })
-      .afterClosed()
-      .subscribe(result => {
+    this.helperService
+      .showConfirmation('Are you sure you want to delete this cluster?')
+      .then(result => {
         if (result) {
           this.clusterService
             .remove(this.cluster.name)
             .subscribe(data => {
-              this.snackBar.open('Cluster deleted!', 'OK', {
-                duration: 2000,
-              });
+              this.helperService.showSnackBar('Cluster deleted!');
               // FIXME: should reload cluster list as well
               this.router.navigate(['..'], { relativeTo: this.route });
             });
-        }
+          }
       });
-      */
   }
 
 }

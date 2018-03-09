@@ -73,6 +73,9 @@ public class ZkUnitTestBase {
 
   @BeforeSuite(alwaysRun = true)
   public void beforeSuite() throws Exception {
+    // Due to ZOOKEEPER-2693 fix, we need to specify whitelist for execute zk commends
+    System.setProperty("zookeeper.4lw.commands.whitelist", "*");
+
     _zkServer = TestHelper.startZkServer(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();

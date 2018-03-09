@@ -219,8 +219,9 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         long startTime = missingTopStateMap.get(resourceName).get(partitionName);
         if (startTime > 0 && System.currentTimeMillis() - startTime > durationThreshold) {
           missingTopStateMap.get(resourceName).put(partitionName, TRANSITION_FAILED);
-          clusterStatusMonitor
-              .updateMissingTopStateDurationStats(resourceName, 0L, false);
+          if (clusterStatusMonitor != null) {
+            clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, false);
+          }
         }
       }
     }
@@ -294,8 +295,10 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     if (handOffStartTime != TRANSITION_FAILED && handOffEndTime - handOffStartTime <= threshold) {
       LOG.info(String.format("Missing topstate duration is %d for partition %s",
           handOffEndTime - handOffStartTime, partition.getPartitionName()));
-      clusterStatusMonitor.updateMissingTopStateDurationStats(resource.getResourceName(),
-          handOffEndTime - handOffStartTime, true);
+      if (clusterStatusMonitor != null) {
+        clusterStatusMonitor.updateMissingTopStateDurationStats(resource.getResourceName(),
+            handOffEndTime - handOffStartTime, true);
+      }
     }
     removeFromStatsMap(missingTopStateMap, resource, partition);
   }

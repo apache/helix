@@ -19,18 +19,6 @@ package org.apache.helix.controller;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -38,50 +26,24 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.listeners.ClusterConfigChangeListener;
-import org.apache.helix.api.listeners.ControllerChangeListener;
-import org.apache.helix.api.listeners.CurrentStateChangeListener;
-import org.apache.helix.api.listeners.IdealStateChangeListener;
-import org.apache.helix.api.listeners.InstanceConfigChangeListener;
-import org.apache.helix.api.listeners.LiveInstanceChangeListener;
-import org.apache.helix.api.listeners.MessageListener;
-import org.apache.helix.api.listeners.PreFetch;
-import org.apache.helix.api.listeners.ResourceConfigChangeListener;
+import org.apache.helix.api.listeners.*;
+import org.apache.helix.common.ClusterEventBlockingQueue;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.common.ClusterEventBlockingQueue;
-import org.apache.helix.controller.stages.ClusterEventType;
-import org.apache.helix.controller.stages.CompatibilityCheckStage;
-import org.apache.helix.controller.stages.CurrentStateComputationStage;
-import org.apache.helix.controller.stages.ExternalViewComputeStage;
-import org.apache.helix.controller.stages.IntermediateStateCalcStage;
-import org.apache.helix.controller.stages.MessageGenerationPhase;
-import org.apache.helix.controller.stages.MessageSelectionStage;
-import org.apache.helix.controller.stages.MessageThrottleStage;
-import org.apache.helix.controller.stages.PersistAssignmentStage;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.ResourceComputationStage;
-import org.apache.helix.controller.stages.ResourceValidationStage;
-import org.apache.helix.controller.stages.TargetExteralViewCalcStage;
-import org.apache.helix.controller.stages.TaskAssignmentStage;
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.MaintenanceSignal;
-import org.apache.helix.model.Message;
-import org.apache.helix.model.PauseSignal;
-import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.controller.stages.*;
+import org.apache.helix.model.*;
 import org.apache.helix.monitoring.mbeans.ClusterEventMonitor;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.TaskDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.helix.HelixConstants.ChangeType;
 
@@ -113,7 +75,10 @@ public class GenericHelixController implements IdealStateChangeListener,
   final AtomicReference<Map<String, LiveInstance>> _lastSeenInstances;
   final AtomicReference<Map<String, LiveInstance>> _lastSeenSessions;
 
-  ClusterStatusMonitor _clusterStatusMonitor;
+  // By default not reporting status until controller status is changed to activate
+  // TODO This flag should be inside ClusterStatusMonitor. When false, no MBean registering.
+  private boolean _isMonitoring = false;
+  private final ClusterStatusMonitor _clusterStatusMonitor;
 
   /**
    * A queue for controller events and a thread that will consume it
@@ -192,10 +157,10 @@ public class GenericHelixController implements IdealStateChangeListener,
 
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.CALLBACK);
-      ClusterEvent event = new ClusterEvent(_clusterName,ClusterEventType.PeriodicalRebalance);
+      ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.PeriodicalRebalance);
       event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
       event.addAttribute(AttributeName.changeContext.name(), changeContext);
-      List<ZNRecord> dummy = new ArrayList<ZNRecord>();
+      List<ZNRecord> dummy = new ArrayList<>();
       event.addAttribute(AttributeName.eventData.name(), dummy);
       // Should be able to process
       _eventQueue.put(event);
@@ -311,6 +276,8 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     initPipelines(_eventThread, _cache, false);
     initPipelines(_taskEventThread, _taskCache, true);
+
+    _clusterStatusMonitor = new ClusterStatusMonitor(_clusterName);
   }
 
   /**
@@ -331,6 +298,9 @@ public class GenericHelixController implements IdealStateChangeListener,
       return;
     }
 
+    // TODO If init controller with paused = true, it may not take effect immediately
+    // _paused is default false. If any events come before controllerChangeEvent, the controller
+    // will be excuting in un-paused mode. Which might not be the config in ZK.
     if (_paused) {
       logger.info("Cluster " + manager.getClusterName() + " is paused. Ignoring the event:" + event
           .getEventType());
@@ -342,38 +312,28 @@ public class GenericHelixController implements IdealStateChangeListener,
       context = event.getAttribute(AttributeName.changeContext.name());
     }
 
-    // Initialize _clusterStatusMonitor
     if (context != null) {
       if (context.getType() == Type.FINALIZE) {
         stopRebalancingTimer();
         logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getEventType());
         return;
       } else {
-        synchronized (this) {
-          if (_clusterStatusMonitor == null) {
-            _clusterStatusMonitor = new ClusterStatusMonitor(manager.getClusterName());
-          }
-        }
-        // TODO: should be in the initization of controller.
+        // TODO: should be in the initialization of controller.
         if (_cache != null) {
           checkRebalancingTimer(manager, Collections.EMPTY_LIST, _cache.getClusterConfig());
         }
-
-        if (cache.isTaskCache()) {
-          TaskDriver driver = new TaskDriver(manager);
-          _clusterStatusMonitor.refreshWorkflowsStatus(driver);
-          _clusterStatusMonitor.refreshJobsStatus(driver);
+        if (_isMonitoring) {
+          event.addAttribute(AttributeName.clusterStatusMonitor.name(), _clusterStatusMonitor);
         }
-        event.addAttribute(AttributeName.clusterStatusMonitor.name(), _clusterStatusMonitor);
       }
     }
 
     // add the cache
     event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
-    List<Pipeline> pipelines = cache.isTaskCache()
-        ? _taskRegistry.getPipelinesForEvent(event.getEventType())
-        : _registry.getPipelinesForEvent(event.getEventType());
+    List<Pipeline> pipelines = cache.isTaskCache() ?
+        _taskRegistry.getPipelinesForEvent(event.getEventType()) :
+        _registry.getPipelinesForEvent(event.getEventType());
 
     if (pipelines == null || pipelines.size() == 0) {
       logger.info(
@@ -404,39 +364,50 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     if (!cache.isTaskCache()) {
       // report event process durations
-      if (_clusterStatusMonitor != null) {
-        NotificationContext notificationContext =
-            event.getAttribute(AttributeName.changeContext.name());
-        long enqueueTime = event.getCreationTime();
-        long zkCallbackTime;
-        StringBuilder sb = new StringBuilder();
-        if (notificationContext != null) {
-          zkCallbackTime = notificationContext.getCreationTime();
+      NotificationContext notificationContext =
+          event.getAttribute(AttributeName.changeContext.name());
+      long enqueueTime = event.getCreationTime();
+      long zkCallbackTime;
+      StringBuilder sb = new StringBuilder();
+      if (notificationContext != null) {
+        zkCallbackTime = notificationContext.getCreationTime();
+        if (_isMonitoring) {
           _clusterStatusMonitor
               .updateClusterEventDuration(ClusterEventMonitor.PhaseName.Callback.name(),
                   enqueueTime - zkCallbackTime);
-          sb.append(String.format(
-              "Callback time for event: " + event.getEventType() + " took: " + (enqueueTime
-                  - zkCallbackTime) + " ms\n"));
-
         }
+        sb.append(String.format(
+            "Callback time for event: " + event.getEventType() + " took: " + (enqueueTime
+                - zkCallbackTime) + " ms\n"));
+      }
+      if (_isMonitoring) {
         _clusterStatusMonitor
             .updateClusterEventDuration(ClusterEventMonitor.PhaseName.InQueue.name(),
                 startTime - enqueueTime);
         _clusterStatusMonitor
             .updateClusterEventDuration(ClusterEventMonitor.PhaseName.TotalProcessed.name(),
                 endTime - startTime);
-        sb.append(String.format(
-            "InQueue time for event: " + event.getEventType() + " took: " + (startTime
-                - enqueueTime) + " ms\n"));
-        sb.append(String.format(
-            "TotalProcessed time for event: " + event.getEventType() + " took: " + (endTime
-                - startTime) + " ms"));
-        logger.info(sb.toString());
       }
+      sb.append(String.format(
+          "InQueue time for event: " + event.getEventType() + " took: " + (startTime - enqueueTime)
+              + " ms\n"));
+      sb.append(String.format(
+          "TotalProcessed time for event: " + event.getEventType() + " took: " + (endTime
+              - startTime) + " ms"));
+      logger.info(sb.toString());
+    } else if (_isMonitoring) {
+      // report workflow status
+      TaskDriver driver = new TaskDriver(manager);
+      _clusterStatusMonitor.refreshWorkflowsStatus(driver);
+      _clusterStatusMonitor.refreshJobsStatus(driver);
     }
-  }
 
+    // If event handling happens before controller deactivate, the process may write unnecessary
+    // MBeans to monitoring after the monitor is disabled.
+    // So reset ClusterStatusMonitor according to it's status after all event handling.
+    // TODO remove this once clusterStatusMonitor blocks any MBean register on isMonitoring = false.
+    resetClusterStatusMonitor();
+  }
 
   @Override
   @PreFetch(enabled = false)
@@ -457,7 +428,8 @@ public class GenericHelixController implements IdealStateChangeListener,
     notifyCaches(changeContext, ChangeType.MESSAGE);
     pushToEventQueues(ClusterEventType.MessageChange, changeContext,
         Collections.<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
-    if (_clusterStatusMonitor != null && messages != null) {
+
+    if (_isMonitoring && messages != null) {
       _clusterStatusMonitor.addMessageQueueSize(instanceName, messages.size());
     }
 
@@ -608,42 +580,36 @@ public class GenericHelixController implements IdealStateChangeListener,
   @Override
   public void onControllerChange(NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onControllerChange() for cluster " + _clusterName);
+
     _cache.requireFullRefresh();
     _taskCache.requireFullRefresh();
+
+    boolean controllerIsLeader;
+
     if (changeContext != null && changeContext.getType() == Type.FINALIZE) {
-      logger.info("GenericClusterController.onControllerChange() FINALIZE for cluster " + _clusterName);
-      return;
-    }
-    HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
-
-    // double check if this controller is the leader
-    Builder keyBuilder = accessor.keyBuilder();
-    LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
-    if (leader == null) {
-      logger
-          .warn("No controller exists for cluster:" + changeContext.getManager().getClusterName());
-      return;
+      logger.info(
+          "GenericClusterController.onControllerChange() FINALIZE for cluster " + _clusterName);
+      controllerIsLeader = false;
     } else {
-      String leaderName = leader.getInstanceName();
-
-      String instanceName = changeContext.getManager().getInstanceName();
-      if (leaderName == null || !leaderName.equals(instanceName)) {
-        logger.warn("leader name does NOT match, my name: " + instanceName + ", leader: " + leader);
-        return;
-      }
+      // double check if this controller is the leader
+      controllerIsLeader = changeContext.getManager().isLeader();
     }
 
-    PauseSignal pauseSignal = accessor.getProperty(keyBuilder.pause());
-    MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
-    _paused = updateControllerState(changeContext, pauseSignal, _paused);
-    _inMaintenanceMode = updateControllerState(changeContext, maintenanceSignal, _inMaintenanceMode);
-
-    synchronized (this) {
-      if (_clusterStatusMonitor == null) {
-        _clusterStatusMonitor = new ClusterStatusMonitor(changeContext.getManager().getClusterName());
-      }
+    HelixManager manager = changeContext.getManager();
+    if (controllerIsLeader) {
+      HelixDataAccessor accessor = manager.getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
+      PauseSignal pauseSignal = accessor.getProperty(keyBuilder.pause());
+      MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
+      _paused = updateControllerState(changeContext, pauseSignal, _paused);
+      _inMaintenanceMode =
+          updateControllerState(changeContext, maintenanceSignal, _inMaintenanceMode);
+      enableClusterStatusMonitor(true);
+      _clusterStatusMonitor.setEnabled(!_paused);
+    } else {
+      enableClusterStatusMonitor(false);
     }
-    _clusterStatusMonitor.setEnabled(!_paused);
+
     logger.info("END: GenericClusterController.onControllerChange() for cluster " + _clusterName);
   }
 
@@ -656,7 +622,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       NotificationContext changeContext) {
 
     // construct maps for current live-instances
-    Map<String, LiveInstance> curInstances = new HashMap<String, LiveInstance>();
+    Map<String, LiveInstance> curInstances = new HashMap<>();
     Map<String, LiveInstance> curSessions = new HashMap<>();
     for (LiveInstance liveInstance : liveInstances) {
       curInstances.put(liveInstance.getInstanceName(), liveInstance);
@@ -723,21 +689,51 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
   }
 
-  public void shutdownClusterStatusMonitor(String clusterName) {
-    if (_clusterStatusMonitor != null) {
-      logger.info("Shut down _clusterStatusMonitor for cluster " + clusterName);
-      _clusterStatusMonitor.reset();
-      _clusterStatusMonitor = null;
-    }
-  }
-
   public void shutdown() throws InterruptedException {
     stopRebalancingTimer();
 
     terminateEventThread(_eventThread);
     terminateEventThread(_taskEventThread);
 
-    _asyncTasksThreadPool.shutdown();
+    // shutdown asycTasksThreadpool and wait for terminate.
+    _asyncTasksThreadPool.shutdownNow();
+    try {
+      _asyncTasksThreadPool.awaitTermination(EVENT_THREAD_JOIN_TIMEOUT, TimeUnit.MILLISECONDS);
+    } catch (InterruptedException ex) {
+      logger.warn("Timeout when terminating async tasks. Some async tasks are still executing.");
+    }
+
+    enableClusterStatusMonitor(false);
+
+    // TODO controller shouldn't be used in anyway after shutdown.
+    // Need to record shutdown and throw Exception if the controller is used again.
+  }
+
+  private void enableClusterStatusMonitor(boolean enable) {
+    synchronized (_clusterStatusMonitor) {
+      if (_isMonitoring != enable) {
+        // monitoring state changed
+        if (enable) {
+          logger.info("Enable clusterStatusMonitor for cluster " + _clusterName);
+          _clusterStatusMonitor.active();
+        } else {
+          logger.info("Disable clusterStatusMonitor for cluster " + _clusterName);
+          // Reset will be done if (_isMonitoring = false) later, no matter if the state is changed or not.
+        }
+        _isMonitoring = enable;
+      }
+      // Due to multithreads processing, async thread may write to monitor even it is closed.
+      // So when it is disabled, always try to clear the monitor.
+      resetClusterStatusMonitor();
+    }
+  }
+
+  private void resetClusterStatusMonitor() {
+    synchronized (_clusterStatusMonitor) {
+      if (!_isMonitoring) {
+        _clusterStatusMonitor.reset();
+      }
+    }
   }
 
   private void terminateEventThread(Thread thread) throws InterruptedException {
@@ -784,12 +780,12 @@ public class GenericHelixController implements IdealStateChangeListener,
       _eventBlockingQueue = eventBlockingQueue;
     }
 
-    @Override public void run() {
+    @Override
+    public void run() {
       logger.info("START ClusterEventProcessor thread  for cluster " + _clusterName);
       while (!isInterrupted()) {
         try {
-          ClusterEvent event = _eventBlockingQueue.take();
-          handleEvent(event, _cache);
+          handleEvent(_eventBlockingQueue.take(), _cache);
         } catch (InterruptedException e) {
           logger.warn("ClusterEventProcessor interrupted", e);
           interrupt();

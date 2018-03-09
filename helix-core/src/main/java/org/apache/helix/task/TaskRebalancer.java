@@ -78,13 +78,16 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         failedJobs ++;
         if (!cfg.isJobQueue() && failedJobs > cfg.getFailureThreshold()) {
           ctx.setWorkflowState(TaskState.FAILED);
-          _clusterStatusMonitor.updateWorkflowCounters(cfg, TaskState.FAILED);
+          if (_clusterStatusMonitor != null) {
+            _clusterStatusMonitor.updateWorkflowCounters(cfg, TaskState.FAILED);
+          }
           for (String jobToFail : cfg.getJobDag().getAllNodes()) {
             if (ctx.getJobState(jobToFail) == TaskState.IN_PROGRESS) {
               ctx.setJobState(jobToFail, TaskState.ABORTED);
               // Skip aborted jobs latency since they are not accurate latency for job running time
-              _clusterStatusMonitor
-                  .updateJobCounters(jobConfigMap.get(jobToFail), TaskState.ABORTED);
+              if (_clusterStatusMonitor != null) {
+                _clusterStatusMonitor.updateJobCounters(jobConfigMap.get(jobToFail), TaskState.ABORTED);
+              }
             }
           }
           return true;
@@ -98,8 +101,9 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
 
     if (!incomplete && cfg.isTerminable()) {
       ctx.setWorkflowState(TaskState.COMPLETED);
-      _clusterStatusMonitor.updateWorkflowCounters(cfg, TaskState.COMPLETED,
-          ctx.getFinishTime() - ctx.getStartTime());
+      if (_clusterStatusMonitor != null) {
+        _clusterStatusMonitor.updateWorkflowCounters(cfg, TaskState.COMPLETED, ctx.getFinishTime() - ctx.getStartTime());
+      }
       return true;
     }
 

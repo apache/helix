@@ -54,7 +54,9 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     resource.setStateModelDefRef("MasterSlave");
     resource.addPartition(PARTITION);
     event.addAttribute(AttributeName.RESOURCES.name(), Collections.singletonMap(TEST_RESOURCE, resource));
-    event.addAttribute(AttributeName.clusterStatusMonitor.name(), new ClusterStatusMonitor("TestCluster"));
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor("TestCluster");
+    monitor.active();
+    event.addAttribute(AttributeName.clusterStatusMonitor.name(), monitor);
   }
 
   @Test(dataProvider = "successCurrentStateInput")

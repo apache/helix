@@ -19,38 +19,19 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixDefinedState;
-import org.apache.helix.HelixManager;
-import org.apache.helix.PropertyKey;
+import org.apache.helix.*;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.ZNRecordDelta;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
-import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Message;
+import org.apache.helix.model.*;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
-import org.apache.helix.model.ResourceConfig;
-import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 public class ExternalViewComputeStage extends AbstractBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(ExternalViewComputeStage.class);
@@ -106,22 +87,24 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       // Update cluster status monitor mbean
       IdealState idealState = cache.getIdealState(resourceName);
       if (!cache.isTaskCache()) {
+        ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
         ClusterStatusMonitor clusterStatusMonitor =
             event.getAttribute(AttributeName.clusterStatusMonitor.name());
-        ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
-        if (idealState != null && (resourceConfig == null || !resourceConfig
-            .isMonitoringDisabled())) {
-          if (clusterStatusMonitor != null && !idealState.getStateModelDefRef()
-              .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-            StateModelDefinition stateModelDef =
-                cache.getStateModelDef(idealState.getStateModelDefRef());
-            clusterStatusMonitor
-                .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
-                    stateModelDef);
+        if (clusterStatusMonitor != null) {
+          if (idealState != null && (resourceConfig == null || !resourceConfig
+              .isMonitoringDisabled())) {
+            if (!idealState.getStateModelDefRef()
+                .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+              StateModelDefinition stateModelDef =
+                  cache.getStateModelDef(idealState.getStateModelDefRef());
+              clusterStatusMonitor
+                  .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
+                      stateModelDef);
+            }
+          } else {
+            // Drop the metrics if the resource is dropped, or the MonitorDisabled is changed to true.
+            clusterStatusMonitor.unregisterResource(view.getResourceName());
           }
-        } else {
-          // Drop the metrics if the resource is dropped, or the MonitorDisabled is changed to true.
-          clusterStatusMonitor.unregisterResource(view.getResourceName());
         }
       }
       ExternalView curExtView = curExtViews.get(resourceName);

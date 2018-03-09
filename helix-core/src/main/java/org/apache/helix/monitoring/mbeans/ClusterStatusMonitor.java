@@ -85,11 +85,6 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   public ClusterStatusMonitor(String clusterName) {
     _clusterName = clusterName;
     _beanServer = ManagementFactory.getPlatformMBeanServer();
-    try {
-      register(this, getObjectName(clusterBeanName()));
-    } catch (Exception e) {
-      LOG.error("Fail to regiter ClusterStatusMonitor", e);
-    }
   }
 
   public ObjectName getObjectName(String name) throws MalformedObjectNameException {
@@ -275,20 +270,21 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   private ClusterEventMonitor getOrCreateClusterEventMonitor(String phase) {
-    if (!_clusterEventMbeanMap.containsKey(phase)) {
-      ClusterEventMonitor monitor = new ClusterEventMonitor(this, phase);
-      try {
-        ClusterEventMonitor prevEventMbean = _clusterEventMbeanMap.put(phase, monitor);
-        if (prevEventMbean != null) {
-          prevEventMbean.unregister();
+    try {
+      if (!_clusterEventMbeanMap.containsKey(phase)) {
+        synchronized (this) {
+          if (!_clusterEventMbeanMap.containsKey(phase)) {
+            ClusterEventMonitor monitor = new ClusterEventMonitor(this, phase);
+            monitor.register();
+            _clusterEventMbeanMap.put(phase, monitor);
+          }
         }
-        monitor.register();
-      } catch (JMException e) {
-        LOG.error("Failed to register ClusterEventMonitorMbean for cluster " + _clusterName
-            + " and phase type: " + phase, e);
-        return null;
       }
+    } catch (JMException e) {
+      LOG.error("Failed to register ClusterEventMonitorMbean for cluster " + _clusterName
+          + " and phase type: " + phase, e);
     }
+
     return _clusterEventMbeanMap.get(phase);
   }
 
@@ -475,6 +471,15 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   public void addMessageQueueSize(String instanceName, long msgQueueSize) {
     _instanceMsgQueueSizes.put(instanceName, msgQueueSize);
+  }
+
+  public void active() {
+    LOG.info("Active ClusterStatusMonitor");
+    try {
+      register(this, getObjectName(clusterBeanName()));
+    } catch (Exception e) {
+      LOG.error("Fail to register ClusterStatusMonitor", e);
+    }
   }
 
   public void reset() {

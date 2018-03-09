@@ -47,6 +47,7 @@ public class TestClusterEventStatusMonitor {
   private class ClusterStatusMonitorForTest extends ClusterStatusMonitor {
     public ClusterStatusMonitorForTest(String clusterName) {
       super(clusterName);
+      active();
     }
     public ConcurrentHashMap<String, ClusterEventMonitor> getClusterEventMBean() {
       return _clusterEventMbeanMap;

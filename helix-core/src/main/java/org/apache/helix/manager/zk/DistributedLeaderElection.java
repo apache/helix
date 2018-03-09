@@ -22,7 +22,6 @@ package org.apache.helix.manager.zk;
 import java.lang.management.ManagementFactory;
 import java.util.List;
 
-import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixTimerTask;
@@ -30,6 +29,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
@@ -97,11 +97,10 @@ public class DistributedLeaderElection implements ControllerChangeListener {
           }
         }
       } else if (changeContext.getType().equals(NotificationContext.Type.FINALIZE)) {
-        LOG.info(_manager.getInstanceName() + " reqlinquish leadership for cluster: "
+        LOG.info(_manager.getInstanceName() + " relinquish leadership for cluster: "
             + _manager.getClusterName());
         controllerHelper.stopControllerTimerTasks();
         controllerHelper.removeListenersFromController(_controller);
-        _controller.shutdownClusterStatusMonitor(_manager.getClusterName());
 
         /**
          * clear write-through cache

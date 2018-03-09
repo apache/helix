@@ -54,6 +54,7 @@ public class TestClusterStatusMonitor {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
+    monitor.active();
     ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
     try {
       _server.getMBeanInfo(clusterMonitorObjName);

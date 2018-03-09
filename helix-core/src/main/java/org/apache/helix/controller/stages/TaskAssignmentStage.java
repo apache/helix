@@ -77,7 +77,9 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     if (!cache.isTaskCache()) {
       ClusterStatusMonitor clusterStatusMonitor =
           event.getAttribute(AttributeName.clusterStatusMonitor.name());
-      clusterStatusMonitor.increaseMessageReceived(outputMessages);
+      if (clusterStatusMonitor != null) {
+        clusterStatusMonitor.increaseMessageReceived(outputMessages);
+      }
     }
     long cacheStart = System.currentTimeMillis();
     cache.cacheMessages(outputMessages);

@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -148,23 +149,32 @@ public class InstanceMessagesCache {
           String instanceSessionId = liveInstanceMap.get(instance).getSessionId();
 
           if (!instanceSessionId.equals(sessionId)) {
+            LOG.info("Instance SessionId does not match, ignore relay messages attached to message "
+                + message.getId());
             continue;
           }
 
           Map<String, CurrentState> sessionCurrentStateMap = instanceCurrentStateMap.get(sessionId);
           if (sessionCurrentStateMap == null) {
+            LOG.info("No sessionCurrentStateMap found, ignore relay messages attached to message "
+                + message.getId());
             continue;
           }
           CurrentState currentState = sessionCurrentStateMap.get(resourceName);
           if (currentState == null || !targetState.equals(currentState.getState(partitionName))) {
+            LOG.info("CurrentState " + currentState
+                + " do not match the target state of the message, ignore relay messages attached to message "
+                + message.getId());
             continue;
           }
           long transitionCompleteTime = currentState.getEndTime(partitionName);
 
-          for (Message msg : message.getRelayMessages().values()) {
-            msg.setRelayTime(transitionCompleteTime);
-            if (!message.isExpired()) {
-              relayMessages.add(msg);
+          for (Message relayMsg : message.getRelayMessages().values()) {
+            relayMsg.setRelayTime(transitionCompleteTime);
+            if (!relayMsg.isExpired()) {
+              relayMessages.add(relayMsg);
+            } else {
+              LOG.info("Relay message " + relayMsg.getId() + " already expired, ignore it!");
             }
           }
         }

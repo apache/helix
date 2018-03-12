@@ -164,7 +164,7 @@ public class TestRoutingTableProvider extends ZkIntegrationTestBase {
     context.put("MASTER", Sets.newSet(_instances.get(0)));
     context.put("SLAVE", Sets.newSet(_instances.get(1), _instances.get(2)));
     _routingTableProvider.addRoutingTableChangeListener(routingTableChangeListener, context);
-
+    _routingTableProvider.addRoutingTableChangeListener(new MockRoutingTableChangeListener(), null);
     // reenable the master instance to cause change
     String prevMasterInstance = _instances.get(0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);

@@ -60,7 +60,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
   private final HelixManager _helixManager;
   private final RouterUpdater _routerUpdater;
   private final PropertyType _sourceDataType;
-  private final Map<RoutingTableChangeListener, Object> _routingTableChangeListenerMap;
+  private final Map<RoutingTableChangeListener, ListenerContext> _routingTableChangeListenerMap;
 
   public RoutingTableProvider() {
     this(null);
@@ -173,7 +173,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
    */
   public void addRoutingTableChangeListener(final RoutingTableChangeListener routingTableChangeListener,
       Object context) {
-    _routingTableChangeListenerMap.put(routingTableChangeListener, context);
+    _routingTableChangeListenerMap.put(routingTableChangeListener, new ListenerContext(context));
   }
 
   /**
@@ -494,10 +494,10 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
   }
 
   private void notifyRoutingTableChange() {
-    for (Map.Entry<RoutingTableChangeListener, Object> entry : _routingTableChangeListenerMap
+    for (Map.Entry<RoutingTableChangeListener, ListenerContext> entry : _routingTableChangeListenerMap
         .entrySet()) {
-      entry.getKey()
-          .onRoutingTableChange(new RoutingTableSnapshot(_routingTableRef.get()), entry.getValue());
+      entry.getKey().onRoutingTableChange(new RoutingTableSnapshot(_routingTableRef.get()),
+          entry.getValue().getContext());
     }
   }
 
@@ -559,6 +559,18 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
       event.addAttribute(AttributeName.helixmanager.name(), context.getManager());
       event.addAttribute(AttributeName.changeContext.name(), context);
       queueEvent(event);
+    }
+  }
+
+  private class ListenerContext {
+    private Object _context;
+
+    public ListenerContext(Object context) {
+      _context = context;
+    }
+
+    public Object getContext() {
+      return _context;
     }
   }
 }

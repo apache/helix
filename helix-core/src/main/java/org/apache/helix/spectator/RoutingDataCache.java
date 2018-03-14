@@ -19,114 +19,17 @@ package org.apache.helix.spectator;
  * under the License.
  */
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixConstants;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.helix.common.BasicClusterDataCache;
 
 /**
  * Cache the cluster data that are needed by RoutingTableProvider.
  */
-public class RoutingDataCache {
-  private static final Logger LOG = LoggerFactory.getLogger(RoutingDataCache.class.getName());
-
-  private Map<String, LiveInstance> _liveInstanceMap;
-  private Map<String, InstanceConfig> _instanceConfigMap;
-  private Map<String, ExternalView> _externalViewMap;
-  String _clusterName;
-
-  private Map<HelixConstants.ChangeType, Boolean> _propertyDataChangedMap;
+public class RoutingDataCache extends BasicClusterDataCache {
 
   public RoutingDataCache(String clusterName) {
-    _propertyDataChangedMap = new ConcurrentHashMap<>();
-    for (HelixConstants.ChangeType type : HelixConstants.ChangeType.values()) {
-      _propertyDataChangedMap.put(type, Boolean.valueOf(true));
-    }
-    _clusterName = clusterName;
-  }
-
-  /**
-   * This refreshes the cluster data by re-fetching the data from zookeeper in an efficient way
-   *
-   * @param accessor
-   *
-   * @return
-   */
-  public synchronized void refresh(HelixDataAccessor accessor) {
-    LOG.info("START: ClusterDataCache.refresh()");
-    long startTime = System.currentTimeMillis();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW)) {
-      long start = System.currentTimeMillis();
-      _propertyDataChangedMap.put(HelixConstants.ChangeType.EXTERNAL_VIEW, Boolean.valueOf(false));
-      _externalViewMap = accessor.getChildValuesMap(keyBuilder.externalViews());
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Reload ExternalViews: " + _externalViewMap.keySet() + ". Takes " + (
-            System.currentTimeMillis() - start) + " ms");
-      }
-    }
-
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE)) {
-      _propertyDataChangedMap.put(HelixConstants.ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
-      _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
-      LOG.debug("Reload LiveInstances: " + _liveInstanceMap.keySet());
-    }
-
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.INSTANCE_CONFIG)) {
-      _propertyDataChangedMap
-          .put(HelixConstants.ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
-      _instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
-      LOG.debug("Reload InstanceConfig: " + _instanceConfigMap.keySet());
-    }
-
-    long endTime = System.currentTimeMillis();
-    LOG.info(
-        "END: RoutingDataCache.refresh() for cluster " + _clusterName + ", took " + (endTime
-            - startTime) + " ms");
-
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("LiveInstances: " + _liveInstanceMap.keySet());
-      for (LiveInstance instance : _liveInstanceMap.values()) {
-        LOG.debug("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
-      }
-      LOG.debug("ExternalViews: " + _externalViewMap.keySet());
-      LOG.debug("InstanceConfigs: " + _instanceConfigMap.keySet());
-    }
-  }
-
-  /**
-   * Retrieves the ExternalView for all resources
-   *
-   * @return
-   */
-  public Map<String, ExternalView> getExternalViews() {
-    return Collections.unmodifiableMap(_externalViewMap);
-  }
-
-  /**
-   * Returns the LiveInstances for each of the instances that are curretnly up and running
-   *
-   * @return
-   */
-  public Map<String, LiveInstance> getLiveInstances() {
-    return Collections.unmodifiableMap(_liveInstanceMap);
-  }
-
-  /**
-   * Returns the instance config map
-   *
-   * @return
-   */
-  public Map<String, InstanceConfig> getInstanceConfigMap() {
-    return Collections.unmodifiableMap(_instanceConfigMap);
+    super(clusterName);
+    requireFullRefresh();
   }
 
   /**
@@ -134,28 +37,6 @@ public class RoutingDataCache {
    */
   public void notifyDataChange(HelixConstants.ChangeType changeType, String pathChanged) {
     _propertyDataChangedMap.put(changeType, Boolean.valueOf(true));
-  }
-
-  /**
-   * Indicate that a full read should be done on the next refresh
-   */
-  public synchronized void requireFullRefresh() {
-    for(HelixConstants.ChangeType type : HelixConstants.ChangeType.values()) {
-      _propertyDataChangedMap.put(type, Boolean.valueOf(true));
-    }
-  }
-
-  /**
-   * toString method to print the data cache state
-   */
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("liveInstaceMap:" + _liveInstanceMap).append("\n");
-    sb.append("externalViewMap:" + _externalViewMap).append("\n");
-    sb.append("instanceConfigMap:" + _instanceConfigMap).append("\n");
-
-    return sb.toString();
   }
 }
 

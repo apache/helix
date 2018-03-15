@@ -72,10 +72,10 @@ public class AutoRebalancer extends AbstractRebalancer {
       throw new HelixException("State Model Definition null for resource: " + resourceName);
     }
     Map<String, LiveInstance> liveInstance = clusterData.getLiveInstances();
-    String replicas = currentIdealState.getReplicas();
+    int replicas = currentIdealState.getReplicaCount(liveInstance.size());
 
     LinkedHashMap<String, Integer> stateCountMap = stateModelDef
-        .getStateCountMap(liveInstance.size(), Integer.parseInt(replicas));
+        .getStateCountMap(liveInstance.size(), replicas);
     List<String> liveNodes = new ArrayList<String>(liveInstance.keySet());
     List<String> allNodes = new ArrayList<String>(clusterData.getInstanceConfigMap().keySet());
     allNodes.removeAll(clusterData.getDisabledInstances());

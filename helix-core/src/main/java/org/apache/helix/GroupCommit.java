@@ -92,7 +92,7 @@ public class GroupCommit {
 
     while (!entry._sent.get()) {
       if (queue._running.compareAndSet(null, Thread.currentThread())) {
-        ArrayList<Entry> processed = new ArrayList<Entry>();
+        ArrayList<Entry> processed = new ArrayList<>();
         try {
           if (queue._pending.peek() == null)
             return true;
@@ -136,13 +136,14 @@ public class GroupCommit {
           while (++retry <= MAX_RETRY && !success) {
             if (removeIfEmpty && merged.getMapFields().isEmpty()) {
               success = accessor.remove(mergedKey, options);
+              if (!success) {
+                LOG.error("Fails to remove " + mergedKey + " from ZK, retry it!");
+              }
             } else {
               success = accessor.set(mergedKey, merged, options);
-            }
-            if (!success) {
-              LOG.error(
-                  "Fails to update " + mergedKey + " to ZK, retry it! remove: " + (removeIfEmpty
-                      && merged.getMapFields().isEmpty()));
+              if (!success) {
+                LOG.error("Fails to update " + mergedKey + " to ZK, retry it! ");
+              }
             }
           }
         } finally {

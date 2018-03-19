@@ -21,29 +21,22 @@ package org.apache.helix.integration.messaging;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.NotificationContext;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.integration.DelayedTransitionBase;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MasterSlaveSMD;
-import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
@@ -91,6 +84,7 @@ public class TestP2PMessageSemiAuto extends ZkIntegrationTestBase {
     for (int i = 0; i < PARTICIPANT_NUMBER; i++) {
       MockParticipantManager participant =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _instances.get(i));
+      participant.setTransition(new DelayedTransitionBase(50));
       participant.syncStart();
       _participants.add(participant);
     }

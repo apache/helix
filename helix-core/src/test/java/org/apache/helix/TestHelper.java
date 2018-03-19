@@ -770,7 +770,7 @@ public class TestHelper {
       if (result || (System.currentTimeMillis() - start) > timeout) {
         return result;
       }
-      Thread.sleep(100);
+      Thread.sleep(50);
     } while (true);
   }
 

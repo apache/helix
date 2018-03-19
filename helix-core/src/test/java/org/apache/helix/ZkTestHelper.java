@@ -348,7 +348,7 @@ public class ZkTestHelper {
     Map<String, Set<String>> listenerMapByInstance = getListenersByZkPath(zkAddr);
 
     // convert to index by sessionId
-    Map<String, Set<String>> listenerMapBySession = new TreeMap<String, Set<String>>();
+    Map<String, Set<String>> listenerMapBySession = new TreeMap<>();
     for (String path : listenerMapByInstance.keySet()) {
       for (String sessionId : listenerMapByInstance.get(path)) {
         if (!listenerMapBySession.containsKey(sessionId)) {

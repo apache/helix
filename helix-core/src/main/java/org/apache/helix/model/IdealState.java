@@ -651,20 +651,20 @@ public class IdealState extends HelixProperty {
   @Override
   public boolean isValid() {
     if (getNumPartitions() < 0) {
-      logger.error("idealState:" + _record + " does not have number of partitions (was "
+      logger.error("idealState:" + _record.getId() + " does not have number of partitions (was "
           + getNumPartitions() + ").");
       return false;
     }
 
     if (getStateModelDefRef() == null) {
-      logger.error("idealStates:" + _record + " does not have state model definition.");
+      logger.error("idealStates:" + _record.getId() + " does not have state model definition.");
       return false;
     }
 
     if (getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
       String replicaStr = getReplicas();
       if (replicaStr == null) {
-        logger.error("invalid ideal-state. missing replicas in auto mode. record was: " + _record);
+        logger.error("invalid ideal-state. missing replicas in auto mode. record was: " + _record.getId());
         return false;
       }
 
@@ -679,7 +679,7 @@ public class IdealState extends HelixProperty {
                     + replica
                     + ", preference-list size: "
                     + preferenceList.size()
-                    + ", record was: " + _record);
+                    + ", record was: " + _record.getId());
             return false;
           }
         }

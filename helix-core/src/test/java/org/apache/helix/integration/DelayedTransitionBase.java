@@ -19,17 +19,18 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.helix.NotificationContext;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
 
 public class DelayedTransitionBase extends MockTransition {
   protected static long _delay = 0;
+
+  public DelayedTransitionBase() {}
+
+  public DelayedTransitionBase(long delay) {
+    _delay = delay;
+  }
 
   public static void setDelay(long delay) {
     _delay = delay;

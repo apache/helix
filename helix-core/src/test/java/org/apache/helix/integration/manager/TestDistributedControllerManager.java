@@ -121,7 +121,7 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
 
     ZkTestHelper.expireSession(expireController.getZkClient());
     String newSessionId = expireController.getSessionId();
-    LOG.debug("Expried distributedController: " + expireController.getInstanceName()
+    LOG.debug("Expired distributedController: " + expireController.getInstanceName()
         + ", oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
 
     boolean result =

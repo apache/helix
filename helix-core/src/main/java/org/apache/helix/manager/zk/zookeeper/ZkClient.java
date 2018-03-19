@@ -10,6 +10,7 @@
  */
 package org.apache.helix.manager.zk.zookeeper;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -38,6 +39,7 @@ import org.I0Itec.zkclient.exception.ZkTimeoutException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.manager.zk.BasicZkSerializer;
 import org.apache.helix.manager.zk.PathBasedZkSerializer;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks;
@@ -70,7 +72,7 @@ public class ZkClient implements Watcher {
   protected final long operationRetryTimeoutInMillis;
   private final Map<String, Set<IZkChildListener>> _childListener =
       new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, Set<IZkDataListener>> _dataListener =
+  private final ConcurrentHashMap<String, Set<IZkDataListenerEntry>> _dataListener =
       new ConcurrentHashMap<>();
   private final Set<IZkStateListener> _stateListener = new CopyOnWriteArraySet<>();
   private KeeperState _currentState;
@@ -82,6 +84,49 @@ public class ZkClient implements Watcher {
   private volatile boolean _closed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
+
+
+  private class IZkDataListenerEntry {
+    final IZkDataListener _dataListener;
+    final boolean _prefetchData;
+
+    public IZkDataListenerEntry(IZkDataListener dataListener, boolean prefetchData) {
+      _dataListener = dataListener;
+      _prefetchData = prefetchData;
+    }
+
+    public IZkDataListenerEntry(IZkDataListener dataListener) {
+      _dataListener = dataListener;
+      _prefetchData = false;
+    }
+
+    public IZkDataListener getDataListener() {
+      return _dataListener;
+    }
+
+    public boolean isPrefetchData() {
+      return _prefetchData;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof IZkDataListenerEntry)) {
+        return false;
+      }
+
+      IZkDataListenerEntry that = (IZkDataListenerEntry) o;
+
+      return _dataListener.equals(that._dataListener);
+    }
+
+    @Override
+    public int hashCode() {
+      return _dataListener.hashCode();
+    }
+  }
 
 
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
@@ -132,14 +177,22 @@ public class ZkClient implements Watcher {
   }
 
   public void subscribeDataChanges(String path, IZkDataListener listener) {
-    Set<IZkDataListener> listeners;
+    Set<IZkDataListenerEntry> listenerEntries;
     synchronized (_dataListener) {
-      listeners = _dataListener.get(path);
-      if (listeners == null) {
-        listeners = new CopyOnWriteArraySet<>();
-        _dataListener.put(path, listeners);
+      listenerEntries = _dataListener.get(path);
+      if (listenerEntries == null) {
+        listenerEntries = new CopyOnWriteArraySet<>();
+        _dataListener.put(path, listenerEntries);
       }
-      listeners.add(listener);
+
+      boolean prefetchEnabled = isPrefetchEnabled(listener);
+      IZkDataListenerEntry listenerEntry = new IZkDataListenerEntry(listener, prefetchEnabled);
+      listenerEntries.add(listenerEntry);
+      if (prefetchEnabled) {
+        LOG.debug(
+            "Subscribed data changes for " + path + ", listener: " + listener + ", prefetch data: "
+                + prefetchEnabled);
+      }
     }
     watchForData(path);
     if (LOG.isDebugEnabled()) {
@@ -147,11 +200,35 @@ public class ZkClient implements Watcher {
     }
   }
 
+  private boolean isPrefetchEnabled(IZkDataListener dataListener) {
+    PreFetch preFetch = dataListener.getClass().getAnnotation(PreFetch.class);
+    if (preFetch != null) {
+      return preFetch.enabled();
+    }
+
+    Method callbackMethod = IZkDataListener.class.getMethods()[0];
+    try {
+      Method method = dataListener.getClass()
+          .getMethod(callbackMethod.getName(), callbackMethod.getParameterTypes());
+      PreFetch preFetchInMethod = method.getAnnotation(PreFetch.class);
+      if (preFetchInMethod != null) {
+        return preFetchInMethod.enabled();
+      }
+    } catch (NoSuchMethodException e) {
+      LOG.warn(
+          "No method " + callbackMethod.getName() + " defined in listener " + dataListener.getClass()
+              .getCanonicalName());
+    }
+
+    return true;
+  }
+
   public void unsubscribeDataChanges(String path, IZkDataListener dataListener) {
     synchronized (_dataListener) {
-      final Set<IZkDataListener> listeners = _dataListener.get(path);
+      final Set<IZkDataListenerEntry> listeners = _dataListener.get(path);
       if (listeners != null) {
-        listeners.remove(dataListener);
+        IZkDataListenerEntry listenerEntry = new IZkDataListenerEntry(dataListener);
+        listeners.remove(listenerEntry);
       }
       if (listeners == null || listeners.isEmpty()) {
         _dataListener.remove(path);
@@ -539,6 +616,12 @@ public class ZkClient implements Watcher {
         || event.getType() == Event.EventType.NodeCreated
         || event.getType() == Event.EventType.NodeChildrenChanged;
 
+
+    if (event.getType() == Event.EventType.NodeDeleted) {
+      String path = event.getPath();
+      LOG.debug(path);
+    }
+
     getEventLock().lock();
     try {
 
@@ -590,7 +673,7 @@ public class ZkClient implements Watcher {
     for (Entry<String, Set<IZkChildListener>> entry : _childListener.entrySet()) {
       fireChildChangedEvents(entry.getKey(), entry.getValue());
     }
-    for (Entry<String, Set<IZkDataListener>> entry : _dataListener.entrySet()) {
+    for (Entry<String, Set<IZkDataListenerEntry>> entry : _dataListener.entrySet()) {
       fireDataChangedEvents(entry.getKey(), entry.getValue());
     }
   }
@@ -741,7 +824,7 @@ public class ZkClient implements Watcher {
   }
 
   private boolean hasListeners(String path) {
-    Set<IZkDataListener> dataListeners = _dataListener.get(path);
+    Set<IZkDataListenerEntry> dataListeners = _dataListener.get(path);
     if (dataListeners != null && dataListeners.size() > 0) {
       return true;
     }
@@ -810,25 +893,35 @@ public class ZkClient implements Watcher {
 
     if (event.getType() == EventType.NodeDataChanged || event.getType() == EventType.NodeDeleted
         || event.getType() == EventType.NodeCreated) {
-      Set<IZkDataListener> listeners = _dataListener.get(path);
+      Set<IZkDataListenerEntry> listeners = _dataListener.get(path);
       if (listeners != null && !listeners.isEmpty()) {
         fireDataChangedEvents(event.getPath(), listeners);
       }
     }
   }
 
-  private void fireDataChangedEvents(final String path, Set<IZkDataListener> listeners) {
-    for (final IZkDataListener listener : listeners) {
-      _eventThread.send(new ZkEvent("Data of " + path + " changed sent to " + listener) {
+  private void fireDataChangedEvents(final String path, Set<IZkDataListenerEntry> listeners) {
+    for (final IZkDataListenerEntry listener : listeners) {
+      _eventThread.send(new ZkEvent(
+          "Data of " + path + " changed sent to " + listener.getDataListener() + " prefetch data: "
+              + listener.isPrefetchData()) {
 
         @Override public void run() throws Exception {
           // reinstall watch
-          exists(path, true);
-          try {
-            Object data = readData(path, null, true);
-            listener.handleDataChange(path, data);
-          } catch (ZkNoNodeException e) {
-            listener.handleDataDeleted(path);
+          boolean exist = exists(path, true);
+          if (exist) {
+            try {
+              Object data = null;
+              if (listener.isPrefetchData()) {
+                LOG.debug("Prefetch data for path: " + path);
+                data = readData(path, null, true);
+              }
+              listener.getDataListener().handleDataChange(path, data);
+            } catch (ZkNoNodeException e) {
+              listener.getDataListener().handleDataDeleted(path);
+            }
+          } else {
+            listener.getDataListener().handleDataDeleted(path);
           }
         }
       });
@@ -881,10 +974,6 @@ public class ZkClient implements Watcher {
     } finally {
       getEventLock().unlock();
     }
-  }
-
-  protected Set<IZkDataListener> getDataListener(String path) {
-    return _dataListener.get(path);
   }
 
   public IZkConnection getConnection() {
@@ -1045,6 +1134,7 @@ public class ZkClient implements Watcher {
       record(path, null, startT, ZkClientMonitor.AccessType.WRITE);
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.WRITE);
+      LOG.warn("Failed to delete path " + path + "! " + e);
       throw e;
     } finally {
       long endT = System.currentTimeMillis();
@@ -1459,7 +1549,7 @@ public class ZkClient implements Watcher {
     for (Set<IZkChildListener> childListeners : _childListener.values()) {
       listeners += childListeners.size();
     }
-    for (Set<IZkDataListener> dataListeners : _dataListener.values()) {
+    for (Set<IZkDataListenerEntry> dataListeners : _dataListener.values()) {
       listeners += dataListeners.size();
     }
     listeners += _stateListener.size();

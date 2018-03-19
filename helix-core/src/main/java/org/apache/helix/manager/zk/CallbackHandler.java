@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -73,6 +72,7 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 
 import static org.apache.helix.HelixConstants.ChangeType.*;
 
+@PreFetch (enabled = false)
 public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private static Logger logger = LoggerFactory.getLogger(CallbackHandler.class);
 
@@ -407,13 +407,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     NotificationContext.Type type = context.getType();
     if (type == NotificationContext.Type.INIT || type == NotificationContext.Type.CALLBACK) {
       logger.info(
-          _manager.getInstanceName() + " subscribes child-change. path: " + path + ", listener: "
-              + _listener);
+          _manager.getInstanceName() + " subscribes child-change. path: " + path + ", listener: " + _listener);
       _zkClient.subscribeChildChanges(path, this);
     } else if (type == NotificationContext.Type.FINALIZE) {
       logger.info(
-          _manager.getInstanceName() + " unsubscribe child-change. path: " + path + ", listener: "
-              + _listener);
+          _manager.getInstanceName() + " unsubscribe child-change. path: " + path + ", listener: " + _listener);
 
       _zkClient.unsubscribeChildChanges(path, this);
     }

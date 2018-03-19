@@ -24,6 +24,7 @@ import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
@@ -101,6 +102,7 @@ public abstract class ClusterVerifier implements IZkChildListener, IZkDataListen
   }
 
   @Override
+  @PreFetch(enabled = false)
   public void handleDataChange(String dataPath, Object data) throws Exception {
     boolean success = verify();
     if (success) {

@@ -45,6 +45,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
@@ -107,6 +108,7 @@ public class ClusterStateVerifier {
     }
 
     @Override
+    @PreFetch(enabled = false)
     public void handleDataChange(String dataPath, Object data) throws Exception {
       boolean result = _verifier.verify();
       if (result == true) {

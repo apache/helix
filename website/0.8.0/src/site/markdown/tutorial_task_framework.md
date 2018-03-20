@@ -183,7 +183,7 @@ taskDriver.resume(myWorkflow);
 
 #### Delete a Workflow
 
-Simliar to start, stop and resume, delete operation is supported by TaskDriver.
+Similar to start, stop and resume, delete operation is supported by TaskDriver.
 
 ```
 taskDriver.delete(myWorkflow);
@@ -203,6 +203,14 @@ Jobs can have dependencies. If one job2 depends job1, job2 will not be scheduled
 
 ```
 myWorkflowBuilder.addParentChildDependency(ParentJobName, ChildJobName);
+```
+
+#### Schedule a workflow for executing in a future time
+
+Application can create a workflow with a ScheduleConfig so as to schedule it to be executed in a future time.
+
+```
+myWorkflowBuilder.setScheduleConfig(ScheduleConfig.oneTimeDelayedStart(new Date(inFiveSeconds)));
 ```
 
 #### Additional Workflow Options
@@ -321,6 +329,19 @@ To add instance group tag, just set it in JobConfig.Builder:
 jobCfg.setInstanceGroupTag("INSTANCEGROUPTAG");
 ```
 
+#### Delayed scheduling job
+
+Set up a schedule plan for the job.
+If both items are set, Helix will calculate and use the later one. 
+
+```
+myJobCfgBuilder.setExecutionDelay(delayMs);
+myJobCfgBuilder.setExecutionStart(startTimeMs);
+```
+
+Note that the scheduled job needs to be runnable first. Then Helix will start checking it's configuration for scheduling.
+If any parent jobs are not finished, the job won't be scheduled even the scheduled timestamp has already passed.
+
 #### Additional Job Options
 
 | Operation | Detail |
@@ -337,6 +358,8 @@ jobCfg.setInstanceGroupTag("INSTANCEGROUPTAG");
 | _setTaskRetryDelay(long v)_ | Set the delay time before a task retry |
 | _setIgnoreDependentJobFailure(boolean ignoreDependentJobFailure)_ | Set whether ignore the job failure of parent job of this job |
 | _setJobType(String jobType)_ | Set the job type of this job |
+| _setExecutionDelay(String delay)_ | Set the delay time to schedule job execution |
+| _setExecutionStart(String start)_ | Set the start time to schedule job execution |
 
 ### Monitor the status of your job
 As we introduced the excellent util TaskDriver in Workflow Section, we have extra more functionality that provided to user. The user can synchronized wait Job or Workflow until it reaches certain STATES. The function Helix have API pollForJobState and pollForWorkflowState. For pollForJobState, it accepts arguments:

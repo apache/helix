@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
@@ -37,6 +37,7 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -218,5 +219,23 @@ public final class HelixUtil {
     }
 
     return idealStateMap;
+  }
+
+  /**
+   * Remove the given message from ZK using the given accessor. This function will
+   * not throw exception
+   * @param accessor HelixDataAccessor
+   * @param msg message to remove
+   * @param instanceName name of the instance on which the message sits
+   * @return true if success else false
+   */
+  public static boolean removeMessageFromZK(HelixDataAccessor accessor, Message msg,
+      String instanceName) {
+    try {
+      return accessor.removeProperty(msg.getKey(accessor.keyBuilder(), instanceName));
+    } catch (Exception e) {
+      LOG.error("Caught exception while removing message {}.", msg, e);
+    }
+    return false;
   }
 }

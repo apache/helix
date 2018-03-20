@@ -42,6 +42,7 @@ import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.task.TaskResult;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,7 +169,14 @@ public class HelixTask implements MessageTask {
 
       // forward relay messages attached to this message to other participants
       if (taskResult.isSuccess()) {
-        forwardRelayMessages(accessor, _message, taskResult.getCompleteTime());
+        try {
+          forwardRelayMessages(accessor, _message, taskResult.getCompleteTime());
+        } catch (Exception e) {
+          // Fail to send relay message should not result in a task execution failure
+          // Currently we don't log error to ZK to reduce writes as when accessor throws
+          // exception, ZK might not be in good condition.
+          logger.warn("Failed to send relay messages.", e);
+        }
       }
 
       if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
@@ -204,15 +212,7 @@ public class HelixTask implements MessageTask {
   }
 
   private void removeMessageFromZk(HelixDataAccessor accessor, Message message) {
-    Builder keyBuilder = accessor.keyBuilder();
-    PropertyKey msgKey;
-    if (message.getTgtName().equalsIgnoreCase(InstanceType.CONTROLLER.name())) {
-      msgKey = keyBuilder.controllerMessage(message.getMsgId());
-    } else {
-      msgKey = keyBuilder.message(_manager.getInstanceName(), message.getMsgId());
-    }
-    boolean success = accessor.removeProperty(msgKey);
-    if (!success) {
+    if (!HelixUtil.removeMessageFromZK(accessor, message, _manager.getInstanceName())) {
       logger.warn("Failed to delete message " + message.getId() + " from zk!");
     } else {
       logger.info("Delete message " + message.getId() + " from zk!");

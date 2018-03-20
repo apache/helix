@@ -69,6 +69,7 @@ import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor.ProcessedMes
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1059,9 +1060,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   private void removeMessageFromZK(HelixDataAccessor accessor, Message message,
       String instanceName) {
-    boolean success = accessor.removeProperty(message.getKey(accessor.keyBuilder(), instanceName));
-    if (!success) {
-      LOG.warn("Failed to remove message " + message.getId() + " from zk!");
+    if (HelixUtil.removeMessageFromZK(accessor, message, instanceName)) {
+      LOG.info("Successfully removed message {} from ZK.", message.getMsgId());
+    } else {
+      LOG.warn("Failed to remove message {} from ZK.", message.getMsgId());
     }
   }
 

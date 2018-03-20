@@ -401,6 +401,15 @@ public class TaskDriver {
   }
 
   /**
+   * Keep the old name of API for backward compatibility
+   * @param queue
+   */
+  @Deprecated
+  public void cleanupJobQueue(String queue) {
+    cleanupQueue(queue);
+  }
+
+  /**
    * Remove all jobs that are in final states (ABORTED, FAILED, COMPLETED) from the job queue. The
    * job config, job context will be removed from Zookeeper.
    *

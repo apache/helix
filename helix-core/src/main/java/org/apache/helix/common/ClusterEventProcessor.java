@@ -54,4 +54,9 @@ public abstract class ClusterEventProcessor extends Thread {
   public void queueEvent(ClusterEvent event) {
     _eventQueue.put(event);
   }
+
+  public void shutdown() {
+    _eventQueue.clear();
+    this.interrupt();
+  }
 }

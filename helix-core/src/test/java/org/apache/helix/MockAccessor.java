@@ -205,8 +205,11 @@ public class MockAccessor implements HelixDataAccessor {
 
   @Override
   public <T extends HelixProperty> boolean[] setChildren(List<PropertyKey> keys, List<T> children) {
-    // TODO Auto-generated method stub
-    return null;
+    boolean[] results = new boolean[keys.size()];
+    for (int i = 0; i < keys.size(); i++) {
+      results[i] = setProperty(keys.get(i), children.get(i));
+    }
+    return results;
   }
 
   @Override

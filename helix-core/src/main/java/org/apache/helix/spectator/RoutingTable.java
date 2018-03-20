@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -58,9 +59,81 @@ class RoutingTable {
       Collection<LiveInstance> liveInstances) {
     _resourceInfoMap = new HashMap<>();
     _resourceGroupInfoMap = new HashMap<>();
+    _liveInstances = new HashSet<>(liveInstances);
+    _instanceConfigs = new HashSet<>(instanceConfigs);
+    refresh(externalViews);
+  }
+
+  public RoutingTable(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
+      Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
+    _resourceInfoMap = new HashMap<>();
+    _resourceGroupInfoMap = new HashMap<>();
     _liveInstances = liveInstances;
     _instanceConfigs = instanceConfigs;
-    refresh(externalViews, instanceConfigs);
+    refresh(currentStateMap);
+  }
+
+  private void refresh(Collection<ExternalView> externalViewList) {
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    for (InstanceConfig config : _instanceConfigs) {
+      instanceConfigMap.put(config.getId(), config);
+    }
+    if (externalViewList != null) {
+      for (ExternalView extView : externalViewList) {
+        String resourceName = extView.getId();
+        for (String partitionName : extView.getPartitionSet()) {
+          Map<String, String> stateMap = extView.getStateMap(partitionName);
+          for (String instanceName : stateMap.keySet()) {
+            String currentState = stateMap.get(instanceName);
+            if (instanceConfigMap.containsKey(instanceName)) {
+              InstanceConfig instanceConfig = instanceConfigMap.get(instanceName);
+              if (extView.isGroupRoutingEnabled()) {
+                addEntry(resourceName, extView.getResourceGroupName(),
+                    extView.getInstanceGroupTag(), partitionName, currentState, instanceConfig);
+              } else {
+                addEntry(resourceName, partitionName, currentState, instanceConfig);
+              }
+            } else {
+              logger.error("Invalid instance name. " + instanceName
+                  + " .Not found in /cluster/configs/. instanceName: ");
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private void refresh(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap) {
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    for (InstanceConfig config : _instanceConfigs) {
+      instanceConfigMap.put(config.getId(), config);
+    }
+
+    for (LiveInstance liveInstance : _liveInstances) {
+      String instanceName = liveInstance.getInstanceName();
+      String sessionId = liveInstance.getSessionId();
+      InstanceConfig instanceConfig = instanceConfigMap.get(instanceName);
+      if (instanceConfig == null) {
+        logger.error("Invalid instance name. " + instanceName
+            + " .Not found in /cluster/configs/. instanceName: ");
+      }
+
+      Map<String, CurrentState> currentStates = Collections.emptyMap();
+      if (currentStateMap.containsKey(instanceName) && currentStateMap.get(instanceName)
+          .containsKey(sessionId)) {
+        currentStates = currentStateMap.get(instanceName).get(sessionId);
+      }
+
+      for (CurrentState currentState : currentStates.values()) {
+        String resourceName = currentState.getResourceName();
+        Map<String, String> stateMap = currentState.getPartitionStateMap();
+
+        for (String partitionName : stateMap.keySet()) {
+          String state = stateMap.get(partitionName);
+          addEntry(resourceName, partitionName, state, instanceConfig);
+        }
+      }
+    }
   }
 
   private void addEntry(String resourceName, String partitionName, String state,
@@ -269,37 +342,6 @@ class RoutingTable {
     }
 
     return Collections.unmodifiableList(instanceList);
-  }
-
-  private void refresh(Collection<ExternalView> externalViewList,
-      Collection<InstanceConfig> instanceConfigList) {
-    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
-    for (InstanceConfig config : instanceConfigList) {
-      instanceConfigMap.put(config.getId(), config);
-    }
-    if (externalViewList != null) {
-      for (ExternalView extView : externalViewList) {
-        String resourceName = extView.getId();
-        for (String partitionName : extView.getPartitionSet()) {
-          Map<String, String> stateMap = extView.getStateMap(partitionName);
-          for (String instanceName : stateMap.keySet()) {
-            String currentState = stateMap.get(instanceName);
-            if (instanceConfigMap.containsKey(instanceName)) {
-              InstanceConfig instanceConfig = instanceConfigMap.get(instanceName);
-              if (extView.isGroupRoutingEnabled()) {
-                addEntry(resourceName, extView.getResourceGroupName(),
-                    extView.getInstanceGroupTag(), partitionName, currentState, instanceConfig);
-              } else {
-                addEntry(resourceName, partitionName, currentState, instanceConfig);
-              }
-            } else {
-              logger.error("Invalid instance name. " + instanceName
-                  + " .Not found in /cluster/configs/. instanceName: ");
-            }
-          }
-        }
-      }
-    }
   }
 
   /**

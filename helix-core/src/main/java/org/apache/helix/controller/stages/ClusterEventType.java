@@ -29,6 +29,7 @@ public enum ClusterEventType {
   LiveInstanceChange,
   MessageChange,
   ExternalViewChange,
+  TargetExternalViewChange,
   Resume,
   PeriodicalRebalance,
   StateVerifier,

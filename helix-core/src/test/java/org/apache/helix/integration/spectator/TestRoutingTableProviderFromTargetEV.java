@@ -1,4 +1,4 @@
-package org.apache.helix.integration.Spectator;
+package org.apache.helix.integration.spectator;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -25,7 +25,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestRoutingTableProviderWithSourceType extends ZkIntegrationTestBase {
+public class TestRoutingTableProviderFromTargetEV extends ZkIntegrationTestBase {
   private HelixManager _manager;
   private ClusterSetup _setupTool;
   private final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";

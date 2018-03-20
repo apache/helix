@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyType;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -37,28 +36,23 @@ import org.slf4j.LoggerFactory;
  * Cache the basic cluster data, including LiveInstances, InstanceConfigs and ExternalViews.
  */
 public class BasicClusterDataCache {
-  protected final Logger LOG = LoggerFactory.getLogger(this.getClass().getName());
+  private static Logger LOG = LoggerFactory.getLogger(BasicClusterDataCache.class.getName());
 
-  private Map<String, LiveInstance> _liveInstanceMap;
-  private Map<String, InstanceConfig> _instanceConfigMap;
-  private Map<String, ExternalView> _externalViewMap;
-  private final PropertyType _sourceDataType;
+  protected Map<String, LiveInstance> _liveInstanceMap;
+  protected Map<String, InstanceConfig> _instanceConfigMap;
+  protected Map<String, ExternalView> _externalViewMap;
 
   protected String _clusterName;
 
   protected Map<HelixConstants.ChangeType, Boolean> _propertyDataChangedMap;
 
   public BasicClusterDataCache(String clusterName) {
-    this(clusterName, PropertyType.EXTERNALVIEW);
-  }
-
-  public BasicClusterDataCache(String clusterName, PropertyType sourceDataType) {
     _propertyDataChangedMap = new ConcurrentHashMap<>();
     _liveInstanceMap = new HashMap<>();
     _instanceConfigMap = new HashMap<>();
     _externalViewMap = new HashMap<>();
     _clusterName = clusterName;
-    _sourceDataType = sourceDataType;
+    requireFullRefresh();
   }
 
   /**
@@ -69,54 +63,44 @@ public class BasicClusterDataCache {
    * @return
    */
   public synchronized void refresh(HelixDataAccessor accessor) {
-    LOG.info("START: ClusterDataCache.refresh() for cluster " + _clusterName);
+    LOG.info("START: BasicClusterDataCache.refresh() for cluster " + _clusterName);
     long startTime = System.currentTimeMillis();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW)) {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.EXTERNAL_VIEW, Boolean.valueOf(false));
-      switch (_sourceDataType) {
-        case EXTERNALVIEW:
-          _externalViewMap = accessor.getChildValuesMap(keyBuilder.externalViews());
-          break;
-        case TARGETEXTERNALVIEW:
-          _externalViewMap = accessor.getChildValuesMap(keyBuilder.targetExternalViews());
-          break;
-        default:
-          break;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Reload ExternalViews: " + _externalViewMap.keySet() + ". Takes " + (
+      _externalViewMap = accessor.getChildValuesMap(keyBuilder.externalViews());
+      LOG.info("Reload ExternalViews: " + _externalViewMap.keySet() + ". Takes " + (
             System.currentTimeMillis() - start) + " ms");
-      }
     }
 
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE)) {
+      long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
       _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
-      LOG.debug("Reload LiveInstances: " + _liveInstanceMap.keySet());
+      LOG.info("Reload LiveInstances: " + _liveInstanceMap.keySet() + ". Takes " + (
+          System.currentTimeMillis() - start) + " ms");
     }
 
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.INSTANCE_CONFIG)) {
+      long start = System.currentTimeMillis();
       _propertyDataChangedMap
           .put(HelixConstants.ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
       _instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
-      LOG.debug("Reload InstanceConfig: " + _instanceConfigMap.keySet());
+      LOG.info("Reload InstanceConfig: " + _instanceConfigMap.keySet() + ". Takes " + (
+          System.currentTimeMillis() - start) + " ms");
     }
 
     long endTime = System.currentTimeMillis();
     LOG.info(
-        "END: RoutingDataCache.refresh() for cluster " + _clusterName + ", took " + (endTime
+        "END: BasicClusterDataCache.refresh() for cluster " + _clusterName + ", took " + (endTime
             - startTime) + " ms");
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug("LiveInstances: " + _liveInstanceMap.keySet());
-      for (LiveInstance instance : _liveInstanceMap.values()) {
-        LOG.debug("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
-      }
-      LOG.debug("ExternalViews: " + _externalViewMap.keySet());
-      LOG.debug("InstanceConfigs: " + _instanceConfigMap.keySet());
+      LOG.debug("LiveInstances: " + _liveInstanceMap);
+      LOG.debug("ExternalViews: " + _externalViewMap);
+      LOG.debug("InstanceConfigs: " + _instanceConfigMap);
     }
   }
 
@@ -149,8 +133,20 @@ public class BasicClusterDataCache {
 
   /**
    * Notify the cache that some part of the cluster data has been changed.
+   *
+   * @param changeType
+   * @param pathChanged
    */
-  public synchronized void notifyDataChange(HelixConstants.ChangeType changeType) {
+  public void notifyDataChange(HelixConstants.ChangeType changeType, String pathChanged) {
+    notifyDataChange(changeType);
+  }
+
+  /**
+   * Notify the cache that some part of the cluster data has been changed.
+   *
+   * @param changeType
+   */
+  public void notifyDataChange(HelixConstants.ChangeType changeType) {
     _propertyDataChangedMap.put(changeType, Boolean.valueOf(true));
   }
 

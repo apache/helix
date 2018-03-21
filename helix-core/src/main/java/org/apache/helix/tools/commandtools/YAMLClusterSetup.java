@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.tools.commandtools;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,10 +21,11 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.tools.YAMLClusterSetup.YAMLClusterConfig.ParticipantConfig;
-import org.apache.helix.tools.YAMLClusterSetup.YAMLClusterConfig.ResourceConfig;
-import org.apache.helix.tools.YAMLClusterSetup.YAMLClusterConfig.ResourceConfig.ConstraintsConfig;
-import org.apache.helix.tools.YAMLClusterSetup.YAMLClusterConfig.ResourceConfig.StateModelConfig;
+import org.apache.helix.tools.StateModelConfigGenerator;
+import org.apache.helix.tools.commandtools.YAMLClusterSetup.YAMLClusterConfig.ParticipantConfig;
+import org.apache.helix.tools.commandtools.YAMLClusterSetup.YAMLClusterConfig.ResourceConfig;
+import org.apache.helix.tools.commandtools.YAMLClusterSetup.YAMLClusterConfig.ResourceConfig.ConstraintsConfig;
+import org.apache.helix.tools.commandtools.YAMLClusterSetup.YAMLClusterConfig.ResourceConfig.StateModelConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;

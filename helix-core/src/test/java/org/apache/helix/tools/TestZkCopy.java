@@ -26,6 +26,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.tools.commandtools.ZkCopy;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -50,7 +51,8 @@ public class TestZkCopy extends ZkUnitTestBase {
 
     // Copy
     String toPath = "/" + clusterName + "/to";
-    ZkCopy.main(new String[]{"--src", "zk://" + ZK_ADDR + fromPath, "--dst", "zk://" + ZK_ADDR + toPath});
+    ZkCopy.main(
+        new String[] { "--src", "zk://" + ZK_ADDR + fromPath, "--dst", "zk://" + ZK_ADDR + toPath });
 
     // Verify
     Assert.assertTrue(_gZkClient.exists(toPath));

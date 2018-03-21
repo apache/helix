@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.tools.commandtools;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -402,9 +402,9 @@ public class ZkGrep {
             File tmpZkLog = gunzip(zkLogGz);
 
             // parse gunzip file
-            ZKLogFormatter.main(new String[] {
-                log, tmpZkLog.getAbsolutePath(), parsedZkLog.getAbsolutePath()
-            });
+            ZKLogFormatter
+                .main(new String[] { log, tmpZkLog.getAbsolutePath(), parsedZkLog.getAbsolutePath()
+                });
 
             // delete it
             zkLogGz.delete();

@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
@@ -40,6 +39,13 @@ public class CurrentStateOutput {
   private final Map<String, Map<Partition, Map<String, String>>> _currentStateMap;
   private final Map<String, Map<Partition, Map<String, Message>>> _pendingStateMap;
   private final Map<String, Map<Partition, Map<String, Message>>> _cancellationStateMap;
+
+  // resourceName -> (Partition -> (instanceName -> endTime))
+  // Note that startTime / endTime in CurrentState marks that of state transition
+  // and therefore endTime is the starting timestamp of the partition being in the
+  // current state
+  private final Map<String, Map<Partition, Map<String, Long>>> _currentStateEndTimeMap;
+
   // Contains per-resource maps of partition -> (instance, requested_state). This corresponds to the
   // REQUESTED_STATE
   // field in the CURRENTSTATES node.
@@ -57,6 +63,7 @@ public class CurrentStateOutput {
     _currentStateMap = new HashMap<>();
     _pendingStateMap = new HashMap<>();
     _cancellationStateMap = new HashMap<>();
+    _currentStateEndTimeMap = new HashMap<>();
     _resourceStateModelMap = new HashMap<>();
     _curStateMetaMap = new HashMap<>();
     _requestedStateMap = new HashMap<>();
@@ -99,6 +106,17 @@ public class CurrentStateOutput {
       _currentStateMap.get(resourceName).put(partition, new HashMap<String, String>());
     }
     _currentStateMap.get(resourceName).get(partition).put(instanceName, state);
+  }
+
+  public void setEndTime(String resourceName, Partition partition,
+      String instanceName, Long timestamp) {
+    if (!_currentStateEndTimeMap.containsKey(resourceName)) {
+      _currentStateEndTimeMap.put(resourceName, new HashMap<Partition, Map<String, Long>>());
+    }
+    if (!_currentStateEndTimeMap.get(resourceName).containsKey(partition)) {
+      _currentStateEndTimeMap.get(resourceName).put(partition, new HashMap<String, Long>());
+    }
+    _currentStateEndTimeMap.get(resourceName).get(partition).put(instanceName, timestamp);
   }
 
   public void setRequestedState(String resourceName, Partition partition, String instanceName,
@@ -166,6 +184,18 @@ public class CurrentStateOutput {
       }
     }
     return null;
+  }
+
+  public Long getEndTime(String resourceName, Partition partition,
+      String instanceName) {
+    Map<Partition, Map<String, Long>> partitionInfo = _currentStateEndTimeMap.get(resourceName);
+    if (partitionInfo != null) {
+      Map<String, Long> instanceInfo = partitionInfo.get(partition);
+      if (instanceInfo != null && instanceInfo.get(instanceName) != null) {
+        return instanceInfo.get(instanceName);
+      }
+    }
+    return -1L;
   }
 
   public String getRequestedState(String resourceName, Partition partition, String instanceName) {

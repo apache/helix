@@ -24,7 +24,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -48,6 +50,13 @@ import org.slf4j.LoggerFactory;
  */
 public class MessageGenerationPhase extends AbstractBaseStage {
   private final static String NO_DESIRED_STATE = "NoDesiredState";
+
+  // If we see there is any invalid pending message leaving on host, i.e. message
+  // tells participant to change from SLAVE to MASTER, and the participant is already
+  // at MASTER state, we wait for 3 sec and if the message is still not cleaned up by
+  // participant, controller will cleanup them proactively to unblock further state
+  // transition
+  private final static long DEFAULT_OBSELETE_MSG_PURGE_DELAY = 3 * 1000;
   private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
   @Override
@@ -55,6 +64,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
+    Map<String, List<Message>> pendingMessagesToCleanUp = new HashMap<>();
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
     IntermediateStateOutput intermediateStateOutput =
@@ -120,6 +130,18 @@ public class MessageGenerationPhase extends AbstractBaseStage {
           String nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
 
           Message message = null;
+
+          if (shouldCleanUpPendingMessage(pendingMessage, currentState,
+              currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
+            logger.info(
+                "Adding pending message {} on instance {} to clean up. Msg: {}->{}, current state of resource {}:{} is {}",
+                pendingMessage.getMsgId(), instanceName, pendingMessage.getFromState(),
+                pendingMessage.getToState(), resourceName, partition, currentState);
+            if (!pendingMessagesToCleanUp.containsKey(instanceName)) {
+              pendingMessagesToCleanUp.put(instanceName, new ArrayList<Message>());
+            }
+            pendingMessagesToCleanUp.get(instanceName).add(pendingMessage);
+          }
 
           if (desiredState.equals(NO_DESIRED_STATE) || desiredState.equalsIgnoreCase(currentState)) {
             if (desiredState.equals(NO_DESIRED_STATE) || pendingMessage != null && !currentState
@@ -207,7 +229,64 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
       } // end of for-each-partition
     }
+
+    // Asynchronously clean up pending messages if necessary
+    if (!pendingMessagesToCleanUp.isEmpty()) {
+      schedulePendingMessageCleanUp(pendingMessagesToCleanUp, cache.getAsyncTasksThreadPool(),
+          manager.getHelixDataAccessor());
+    }
     event.addAttribute(AttributeName.MESSAGES_ALL.name(), output);
+  }
+
+  /**
+   * Start a job in worker pool that asynchronously clean up pending message. Since it is possible
+   * that participant failed to clean up message after processing, it is important for controller
+   * to try to clean them up as well to unblock further rebalance
+   *
+   * @param pendingMessagesToPurge key: instance name, value: list of pending message to cleanup
+   * @param workerPool ExecutorService that job can be submitted to
+   * @param accessor Data accessor used to clean up message
+   */
+  private void schedulePendingMessageCleanUp(
+      final Map<String, List<Message>> pendingMessagesToPurge, ExecutorService workerPool,
+      final HelixDataAccessor accessor) {
+    workerPool.submit(new Callable<Object>() {
+        @Override
+        public Object call() {
+          for (Map.Entry<String, List<Message>> entry : pendingMessagesToPurge.entrySet()) {
+            String instanceName = entry.getKey();
+            for (Message msg : entry.getValue()) {
+              if (accessor.removeProperty(msg.getKey(accessor.keyBuilder(), instanceName))) {
+                logger.info("Deleted message {} from instance {}", msg.getMsgId(), instanceName);
+              } else {
+                logger.warn(
+                    "Failed to delete message {} from instance {}. Will retry next time if the message is still there",
+                    msg.getMsgId(), instanceName);
+              }
+            }
+          }
+          return null;
+        }
+    });
+  }
+
+  private boolean shouldCleanUpPendingMessage(Message pendingMsg, String currentState,
+      Long currentStateTransitionEndTime) {
+    if (pendingMsg == null) {
+      return false;
+    }
+    if (currentState.equalsIgnoreCase(pendingMsg.getToState())) {
+      // If pending message's toState is same as current state, state transition is finished
+      // successfully. In this case, we will wait for a timeout for participant to cleanup
+      // processed message. If participant fail to do so, controller is going to proactively delete
+      // the message as participant does not retry message deletion upon failure.
+      return System.currentTimeMillis() - currentStateTransitionEndTime
+          > DEFAULT_OBSELETE_MSG_PURGE_DELAY;
+    } else {
+      // Partition's current state should be either pending message's fromState or toState or
+      // the message is invalid and can be safely deleted immediately.
+      return !currentState.equalsIgnoreCase(pendingMsg.getFromState());
+    }
   }
 
   private Message createStateTransitionMessage(HelixManager manager, Resource resource, String partitionName,

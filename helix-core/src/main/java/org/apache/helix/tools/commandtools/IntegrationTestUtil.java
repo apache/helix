@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.tools.commandtools;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -36,7 +36,10 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.tools.ClusterExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,20 +49,25 @@ import org.slf4j.LoggerFactory;
 public class IntegrationTestUtil {
   private static Logger LOG = LoggerFactory.getLogger(IntegrationTestUtil.class);
 
-  public static final long defaultTimeout = 30 * 1000; // in milliseconds
+  public static final long DEFAULT_TIMEOUT = 30 * 1000; // in milliseconds
   public static final String help = "help";
   public static final String zkSvr = "zkSvr";
+  public static final String timeout = "timeout";
+
 
   public static final String verifyExternalView = "verifyExternalView";
   public static final String verifyLiveNodes = "verifyLiveNodes";
   public static final String readZNode = "readZNode";
   public static final String readLeader = "readLeader";
+  public static final String verifyClusterState = "verifyClusterState";
 
   final ZkClient _zkclient;
   final ZNRecordSerializer _serializer;
+  final long _timeoutValue;
 
-  public IntegrationTestUtil(ZkClient zkclient) {
+  public IntegrationTestUtil(ZkClient zkclient, long timeoutValue) {
     _zkclient = zkclient;
+    _timeoutValue = timeoutValue;
     _serializer = new ZNRecordSerializer();
   }
 
@@ -69,8 +77,6 @@ public class IntegrationTestUtil {
       return;
     }
 
-    long timeoutValue = defaultTimeout;
-
     String clusterName = args[0];
     List<String> liveNodes = new ArrayList<String>();
     for (int i = 1; i < args.length; i++) {
@@ -79,9 +85,30 @@ public class IntegrationTestUtil {
 
     ClusterExternalViewVerifier verifier =
         new ClusterExternalViewVerifier(_zkclient, clusterName, liveNodes);
-    boolean success = verifier.verifyByPolling(timeoutValue);
+    boolean success = verifier.verifyByPolling(_timeoutValue);
     System.out.println(success ? "Successful" : "Failed");
 
+    if (!success) {
+      System.exit(1);
+    }
+
+  }
+
+  public void verifyClusterState(String[] args) {
+    if (args == null || args.length == 0) {
+      System.err.println("Illegal arguments for " + verifyExternalView);
+      return;
+    }
+    String clusterName = args[0];
+    HelixClusterVerifier clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_zkclient).build();
+
+    boolean success = clusterVerifier.verify(_timeoutValue);
+    System.out.println(success ? "Successful" : "Failed");
+
+    if (!success) {
+      System.exit(1);
+    }
   }
 
   public void verifyLiveNodes(String[] args) {
@@ -89,8 +116,6 @@ public class IntegrationTestUtil {
       System.err.println("Illegal arguments for " + verifyLiveNodes);
       return;
     }
-
-    long timeoutValue = defaultTimeout;
 
     String clusterName = args[0];
     List<String> liveNodes = new ArrayList<String>();
@@ -100,8 +125,12 @@ public class IntegrationTestUtil {
 
     ClusterLiveNodesVerifier verifier =
         new ClusterLiveNodesVerifier(_zkclient, clusterName, liveNodes);
-    boolean success = verifier.verify(timeoutValue);
+    boolean success = verifier.verify(_timeoutValue);
     System.out.println(success ? "Successful" : "Failed");
+
+    if (!success) {
+      System.exit(1);
+    }
   }
 
   public void readZNode(String path) {
@@ -123,9 +152,17 @@ public class IntegrationTestUtil {
         OptionBuilder.hasArgs(1).isRequired(true).withArgName("zookeeperAddress")
             .withLongOpt(zkSvr).withDescription("Provide zookeeper-address").create();
 
+    Option timeoutOption =
+        OptionBuilder.hasArgs(1).isRequired(true).withArgName("timeout")
+            .withLongOpt(timeout).withDescription("Provide timeout (in ms)").create();
+
     Option verifyExternalViewOption =
         OptionBuilder.hasArgs().isRequired(false).withArgName("clusterName node1 node2..")
             .withLongOpt(verifyExternalView).withDescription("Verify external-view").create();
+
+    Option verifyClusterStateOption =
+        OptionBuilder.hasArgs().isRequired(false).withArgName("clusterName")
+            .withLongOpt(verifyClusterState).withDescription("Verify Bestpossible ClusterState").create();
 
     Option verifyLiveNodesOption =
         OptionBuilder.hasArg().isRequired(false).withArgName("clusterName node1, node2..")
@@ -142,6 +179,7 @@ public class IntegrationTestUtil {
     OptionGroup optGroup = new OptionGroup();
     optGroup.setRequired(true);
     optGroup.addOption(verifyExternalViewOption);
+    optGroup.addOption(verifyClusterStateOption);
     optGroup.addOption(verifyLiveNodesOption);
     optGroup.addOption(readZNodeOption);
     optGroup.addOption(readLeaderOption);
@@ -149,6 +187,7 @@ public class IntegrationTestUtil {
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkSvrOption);
+    options.addOption(timeoutOption);
     options.addOptionGroup(optGroup);
 
     return options;
@@ -174,16 +213,30 @@ public class IntegrationTestUtil {
     }
 
     String zkServer = cmd.getOptionValue(zkSvr);
-
     ZkClient zkclient =
         new ZkClient(zkServer, ZkClient.DEFAULT_SESSION_TIMEOUT,
             ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
-    IntegrationTestUtil util = new IntegrationTestUtil(zkclient);
+
+    long timeoutValue = DEFAULT_TIMEOUT;
+    if (cmd.hasOption(timeout)) {
+      String timeoutStr = cmd.getOptionValue(timeout);
+      try {
+        timeoutValue = Long.valueOf(timeoutStr);
+      } catch (NumberFormatException ex) {
+        System.err.println(
+            "Invalid timeout value " + timeoutStr + ". Using default value: " + timeoutValue);
+      }
+    }
+
+    IntegrationTestUtil util = new IntegrationTestUtil(zkclient, timeoutValue);
 
     if (cmd != null) {
       if (cmd.hasOption(verifyExternalView)) {
         String[] args = cmd.getOptionValues(verifyExternalView);
         util.verifyExternalView(args);
+      } else if (cmd.hasOption(verifyClusterState)) {
+        String[] args = cmd.getOptionValues(verifyClusterState);
+        util.verifyClusterState(args);
       } else if (cmd.hasOption(verifyLiveNodes)) {
         String[] args = cmd.getOptionValues(verifyLiveNodes);
         util.verifyLiveNodes(args);

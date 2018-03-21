@@ -200,19 +200,19 @@ under the License.
               <name>helix-admin</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.ZKDumper</mainClass>
+              <mainClass>org.apache.helix.tools.commandtools.ZKDumper</mainClass>
               <name>zk-dumper</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.ZkCopy</mainClass>
+              <mainClass>org.apache.helix.tools.commandtools.ZkCopy</mainClass>
               <name>zkcopy</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.ZKLogFormatter</mainClass>
+              <mainClass>org.apache.helix.tools.commandtools.ZKLogFormatter</mainClass>
               <name>zk-log-parser</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.ZkLogCSVFormatter</mainClass>
+              <mainClass>org.apache.helix.tools.commandtools.ZkLogCSVFormatter</mainClass>
               <name>zk-log-csv-formatter</name>
             </program>
             <program>
@@ -224,7 +224,7 @@ under the License.
               <name>start-participants</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.LocalZKServer</mainClass>
+              <mainClass>org.apache.helix.tools.commandtools.LocalZKServer</mainClass>
               <name>start-standalone-zookeeper</name>
             </program>
             <program>
@@ -232,23 +232,23 @@ under the License.
               <name>quickstart</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.JmxDumper</mainClass>
+              <mainClass>org.apache.helix.tools.commandtools.JmxDumper</mainClass>
               <name>JmxDumper</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.YAMLClusterSetup</mainClass>
+              <mainClass>org.apache.helix.tools.commandtools.YAMLClusterSetup</mainClass>
               <name>yaml-cluster-setup</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.IntegrationTestUtil</mainClass>
+              <mainClass>org.apache.helix.tools.commandtools.IntegrationTestUtil</mainClass>
               <name>test-util</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.ZkGrep</mainClass>
+              <mainClass>org.apache.helix.tools.commandtools.ZkGrep</mainClass>
               <name>zkgrep</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.TaskAdmin</mainClass>
+              <mainClass>org.apache.helix.tools.commandtools.TaskAdmin</mainClass>
               <name>task-admin</name>
             </program>
           </programs>

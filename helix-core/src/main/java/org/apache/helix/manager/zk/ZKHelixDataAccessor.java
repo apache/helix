@@ -193,8 +193,15 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     return success;
   }
 
+  @Deprecated
   @Override
   public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys) {
+    return getProperty(keys, false);
+  }
+
+  @Override
+  public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys,
+      boolean throwException) throws HelixException {
     if (keys == null || keys.size() == 0) {
       return Collections.emptyList();
     }
@@ -208,7 +215,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
       paths.add(key.getPath());
       stats.add(new Stat());
     }
-    List<ZNRecord> children = _baseDataAccessor.get(paths, stats, 0);
+    List<ZNRecord> children = _baseDataAccessor.get(paths, stats, 0, throwException);
 
     // check if bucketized
     for (int i = 0; i < keys.size(); i++) {
@@ -240,7 +247,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
             property.getRecord().getMapFields().clear();
             property.getRecord().getListFields().clear();
 
-            List<ZNRecord> childRecords = _baseDataAccessor.getChildren(path, null, options);
+            List<ZNRecord> childRecords = _baseDataAccessor.getChildren(path, null, options, 1, 0);
             ZNRecord assembledRecord = new ZNRecordAssembler().assemble(childRecords);
 
             // merge with parent node value
@@ -382,14 +389,24 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     return childNames;
   }
 
+  @Deprecated
   @Override
   public <T extends HelixProperty> List<T> getChildValues(PropertyKey key) {
+    return getChildValues(key, false);
+  }
+
+  @Override
+  public <T extends HelixProperty> List<T> getChildValues(PropertyKey key, boolean throwException) {
     PropertyType type = key.getType();
     String parentPath = key.getPath();
     int options = constructOptions(type);
     List<T> childValues = new ArrayList<T>();
-
-    List<ZNRecord> children = _baseDataAccessor.getChildren(parentPath, null, options);
+    List<ZNRecord> children;
+    if (throwException) {
+      children = _baseDataAccessor.getChildren(parentPath, null, options, 1, 0);
+    } else {
+      children = _baseDataAccessor.getChildren(parentPath, null, options);
+    }
     if (children != null) {
       for (ZNRecord record : children) {
         switch (type) {
@@ -403,7 +420,12 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
             if (bucketSize > 0) {
               // TODO: fix this if record.id != pathName
               String childPath = parentPath + "/" + record.getId();
-              List<ZNRecord> childRecords = _baseDataAccessor.getChildren(childPath, null, options);
+              List<ZNRecord> childRecords;
+              if (throwException) {
+                childRecords = _baseDataAccessor.getChildren(childPath, null, options, 1, 0);
+              } else {
+                childRecords = _baseDataAccessor.getChildren(childPath, null, options);
+              }
               ZNRecord assembledRecord = new ZNRecordAssembler().assemble(childRecords);
 
               // merge with parent node value
@@ -430,18 +452,24 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     return childValues;
   }
 
+  @Deprecated
   @Override
   public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key) {
+    return getChildValuesMap(key, false);
+  }
+
+  @Override
+  public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key,
+      boolean throwException) {
     PropertyType type = key.getType();
     String parentPath = key.getPath();
     int options = constructOptions(type);
-    List<T> children = getChildValues(key);
+    List<T> children = getChildValues(key, throwException);
     Map<String, T> childValuesMap = new HashMap<String, T>();
     for (T t : children) {
       childValuesMap.put(t.getRecord().getId(), t);
     }
     return childValuesMap;
-
   }
 
   @Override

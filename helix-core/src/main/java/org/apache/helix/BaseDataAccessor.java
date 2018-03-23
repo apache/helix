@@ -141,6 +141,19 @@ public interface BaseDataAccessor<T> {
   List<T> get(List<String> paths, List<Stat> stats, int options);
 
   /**
+   * Get List of {@link T} corresponding to the paths using async api
+   * @param paths paths to the ZNodes
+   * @param stats retrieve a list of stats for the ZNodes
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
+   * @param throwException Will throw an exception when it set to be true and one of the path
+   *                             is failed to read.
+   * @return List of record data stored at each ZNode, node value will return null if the node does
+   *         not exist
+   */
+  List<T> get(List<String> paths, List<Stat> stats, int options, boolean throwException)
+      throws HelixException;
+
+  /**
    * Get the children under a parent path using async api
    *
    * For this API, if some of child node is failed to read, Helix will return the data of read

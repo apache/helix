@@ -86,6 +86,19 @@ public interface HelixDataAccessor {
   <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys);
 
   /**
+   * Return a list of property values, each of which must be refer to a single Helix
+   * Property. Property may be bucketized.
+   *
+   * Value will be null if not does not exist. If the node is failed to read, will throw exception
+   * when throwException is set to true.
+   *
+   * @param keys
+   * @param throwException
+   * @return
+   */
+  <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys, boolean throwException);
+
+  /**
    * Removes the property
    * @param key
    * @return true if removal was successful or node does not exist. false if the
@@ -124,6 +137,18 @@ public interface HelixDataAccessor {
   <T extends HelixProperty> List<T> getChildValues(PropertyKey key);
 
   /**
+   * Get the child values for a property. PropertyKey needs to refer to just one
+   * level above the non leaf. PropertyKey.isCollection must be true.
+   *
+   * Value will be null if not does not exist. If the node is failed to read, will throw exception
+   * when throwException is set to true.
+   * @param key
+   * @param throwException
+   * @return subPropertyValues
+   */
+  <T extends HelixProperty> List<T> getChildValues(PropertyKey key, boolean throwException);
+
+  /**
    * Same as getChildValues except that it converts list into a map using the id
    * of the HelixProperty
    * @param key
@@ -131,6 +156,20 @@ public interface HelixDataAccessor {
    */
 
   <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key);
+
+  /**
+   * Same as getChildValues except that it converts list into a map using the id
+   * of the HelixProperty
+   *
+   * Value will be null if not does not exist. If the node is failed to read, will throw exception
+   * when throwException is set to true.
+   * @param key
+   * @param throwException
+   * @return a map of property identifiers to typed properties
+   */
+
+  <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key,
+      boolean throwException);
 
   /**
    * Adds multiple children to a parent.

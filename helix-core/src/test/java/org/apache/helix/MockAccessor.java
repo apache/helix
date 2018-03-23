@@ -190,10 +190,20 @@ public class MockAccessor implements HelixDataAccessor {
     return (List<T>) HelixProperty.convertToTypedList(propertyKey.getTypeClass(), children);
   }
 
+  @Override public <T extends HelixProperty> List<T> getChildValues(PropertyKey key,
+      boolean throwException) {
+    return null;
+  }
+
   @Override
   public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key) {
     List<T> list = getChildValues(key);
     return HelixProperty.convertListToMap(list);
+  }
+
+  @Override public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key,
+      boolean throwException) {
+    return null;
   }
 
   @Override
@@ -238,5 +248,10 @@ public class MockAccessor implements HelixDataAccessor {
       list.add(t);
     }
     return list;
+  }
+
+  @Override public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys,
+      boolean throwException) {
+    return null;
   }
 }

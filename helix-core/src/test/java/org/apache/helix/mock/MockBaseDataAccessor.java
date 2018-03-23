@@ -151,6 +151,12 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
 
   @Override
   public List<ZNRecord> get(List<String> paths, List<Stat> stats, int options) {
+    return get(paths, stats, options, false);
+  }
+
+  @Override
+  public List<ZNRecord> get(List<String> paths, List<Stat> stats, int options,
+      boolean throwException) throws HelixException {
     List<ZNRecord> records = new ArrayList<>();
     for (int i = 0; i < paths.size(); i++) {
       ZNRecord record = get(paths.get(i), stats.get(i), options);

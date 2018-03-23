@@ -336,10 +336,21 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     return get(paths, stats, needRead, false);
   }
 
+
+  @Override
+  public List<T> get(List<String> paths, List<Stat> stats, int options,
+      boolean throwException) throws HelixException {
+    boolean[] needRead = new boolean[paths.size()];
+    Arrays.fill(needRead, true);
+
+    return get(paths, stats, needRead, throwException);
+  }
+
   /**
    * async get
    */
-  List<T> get(List<String> paths, List<Stat> stats, boolean[] needRead, boolean throwException) {
+  List<T> get(List<String> paths, List<Stat> stats, boolean[] needRead, boolean throwException)
+      throws HelixException {
     if (paths == null || paths.size() == 0) {
       return Collections.emptyList();
     }
@@ -398,6 +409,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         LOG.warn("Fail to read record for paths: " + pathFailToRead);
       }
       return records;
+    } catch (Exception e) {
+      throw new HelixException(String.format("Fail to read nodes for %s", paths));
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {

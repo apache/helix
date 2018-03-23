@@ -567,6 +567,12 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   @Override
   public List<T> get(List<String> paths, List<Stat> stats, int options) {
+    return get(paths, stats, options, false);
+  }
+
+  @Override
+  public List<T> get(List<String> paths, List<Stat> stats, int options, boolean throwException)
+      throws HelixException {
     if (paths == null || paths.isEmpty()) {
       return Collections.emptyList();
     }
@@ -603,7 +609,8 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       if (needRead) {
         cache.lockWrite();
         try {
-          List<T> readRecords = _baseAccessor.get(serverPaths, readStats, needReads, false);
+          List<T> readRecords =
+              _baseAccessor.get(serverPaths, readStats, needReads, throwException);
           for (int i = 0; i < size; i++) {
             if (needReads[i]) {
               records.set(i, readRecords.get(i));
@@ -624,7 +631,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     }
 
     // no cache
-    return _baseAccessor.get(serverPaths, stats, options);
+    return _baseAccessor.get(serverPaths, stats, options, throwException);
   }
 
   // TODO: add cache

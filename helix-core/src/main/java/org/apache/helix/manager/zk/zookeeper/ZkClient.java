@@ -142,7 +142,9 @@ public class ZkClient implements Watcher {
       listeners.add(listener);
     }
     watchForData(path);
-    LOG.debug("Subscribed data changes for " + path);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Subscribed data changes for " + path);
+    }
   }
 
   public void unsubscribeDataChanges(String path, IZkDataListener dataListener) {
@@ -525,7 +527,9 @@ public class ZkClient implements Watcher {
 
   @Override
   public void process(WatchedEvent event) {
-    LOG.debug("Received event: " + event);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Received event: " + event);
+    }
     _zookeeperEventThread = Thread.currentThread();
 
     boolean stateChanged = event.getPath() == null;
@@ -540,8 +544,10 @@ public class ZkClient implements Watcher {
 
       // We might have to install child change event listener if a new node was created
       if (getShutdownTrigger()) {
-        LOG.debug("ignoring event '{" + event.getType() + " | " + event.getPath()
-            + "}' since shutdown triggered");
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("ignoring event '{" + event.getType() + " | " + event.getPath()
+              + "}' since shutdown triggered");
+        }
         return;
       }
       if (stateChanged) {
@@ -692,7 +698,7 @@ public class ZkClient implements Watcher {
         reconnect();
         fireNewSessionEvents();
       } catch (final Exception e) {
-        LOG.info(
+        LOG.warn(
             "Unable to re-establish connection. Notifying consumer of the following exception: ",
             e);
         fireSessionEstablishmentError(e);
@@ -855,7 +861,9 @@ public class ZkClient implements Watcher {
   public boolean waitUntilExists(String path, TimeUnit timeUnit, long time)
       throws ZkInterruptedException {
     Date timeout = new Date(System.currentTimeMillis() + timeUnit.toMillis(time));
-    LOG.debug("Waiting until znode '" + path + "' becomes available.");
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Waiting until znode '" + path + "' becomes available.");
+    }
     if (exists(path)) {
       return true;
     }

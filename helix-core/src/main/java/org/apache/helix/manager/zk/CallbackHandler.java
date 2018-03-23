@@ -276,7 +276,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       throws Exception {
     //async mode only applicable to CALLBACK from ZK, During INIT and FINALIZE invoke the callback's immediately.
     if (_batchModeEnabled && changeContext.getType() == NotificationContext.Type.CALLBACK) {
-      logger.info("Enqueuing callback");
+      logger.debug("Enqueuing callback");
       _queue.put(changeContext);
     } else {
       invoke(changeContext);
@@ -442,15 +442,23 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
     if (_eventTypes.contains(EventType.NodeDataChanged) || _eventTypes
         .contains(EventType.NodeCreated) || _eventTypes.contains(EventType.NodeDeleted)) {
-      logger.debug("Subscribing data change listener to path:" + path);
+      if (logger.isDebugEnabled()) {
+        logger.debug("Subscribing data change listener to path:" + path);
+      }
       subscribeDataChange(path, context);
     }
 
     if (_eventTypes.contains(EventType.NodeChildrenChanged)) {
-      logger.debug("Subscribing child change listener to path:" + path);
+      if (logger.isDebugEnabled()) {
+        logger.debug("Subscribing child change listener to path:" + path);
+      }
+
       subscribeChildChange(path, context);
       if (watchChild) {
-        logger.debug("Subscribing data change listener to all children for path:" + path);
+        if (logger.isDebugEnabled()) {
+          logger.debug("Subscribing data change listener to all children for path:" + path);
+        }
+
         try {
           switch (_changeType) {
           case CURRENT_STATE:
@@ -504,7 +512,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
 
     long end = System.currentTimeMillis();
-    logger.info("Subcribing to path:" + path + " took:" + (end - start));
+    logger.info("Subscribing to path:" + path + " took:" + (end - start));
   }
 
   public EventType[] getEventTypes() {
@@ -530,7 +538,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleDataChange(String dataPath, Object data) {
-    logger.info("Data change callback: paths changed: " + dataPath);
+    if (logger.isDebugEnabled()) {
+      logger.debug("Data change callback: paths changed: " + dataPath);
+    }
 
     try {
       updateNotificationTime(System.nanoTime());
@@ -547,8 +557,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
-  @Override public void handleDataDeleted(String dataPath) {
-    logger.info("Data change callback: path deleted: " + dataPath);
+  @Override
+  public void handleDataDeleted(String dataPath) {
+    if (logger.isDebugEnabled()) {
+      logger.debug("Data change callback: path deleted: " + dataPath);
+    }
 
     try {
       updateNotificationTime(System.nanoTime());
@@ -573,8 +586,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   @Override
   public void handleChildChange(String parentPath, List<String> currentChilds) {
-    logger.info("Data change callback: child changed, path: " + parentPath + ", current child count: "
-        + currentChilds.size());
+    if (logger.isDebugEnabled()) {
+      logger.debug(
+          "Data change callback: child changed, path: " + parentPath + ", current child count: "
+              + currentChilds.size());
+    }
 
     try {
       updateNotificationTime(System.nanoTime());

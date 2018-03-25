@@ -72,7 +72,9 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     setupStateModel(clusterName);
 
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    ClusterDataCache cache = new ClusterDataCache(clusterName);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     MessageThrottleStage throttleStage = new MessageThrottleStage();
     try {
@@ -259,7 +261,9 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     // test messageThrottleStage
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+    ClusterDataCache cache = new ClusterDataCache(clusterName);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());

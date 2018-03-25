@@ -25,6 +25,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -44,6 +45,7 @@ public class TestResourceValidationStage {
   @Test
   public void testIdealStateValidity() throws Exception {
     MockAccessor accessor = new MockAccessor();
+    accessor.setProperty(accessor.keyBuilder().clusterConfig(), new ClusterConfig("TestCluster"));
 
     // create some ideal states
     String masterSlaveCustomResource = "masterSlaveCustomResource";
@@ -88,6 +90,7 @@ public class TestResourceValidationStage {
   @Test
   public void testNoSpec() throws Exception {
     MockAccessor accessor = new MockAccessor();
+    accessor.setProperty(accessor.keyBuilder().clusterConfig(), new ClusterConfig("TestCluster"));
 
     // create an ideal state and no spec
     String masterSlaveCustomResource = "masterSlaveCustomResource";
@@ -116,7 +119,7 @@ public class TestResourceValidationStage {
   @Test
   public void testMissingStateModel() throws Exception {
     MockAccessor accessor = new MockAccessor();
-
+    accessor.setProperty(accessor.keyBuilder().clusterConfig(), new ClusterConfig("TestCluster"));
     // create an ideal state and no spec
     String masterSlaveCustomResource = "masterSlaveCustomResource";
     String leaderStandbyCustomResource = "leaderStandbyCustomResource";

@@ -83,6 +83,8 @@ public class ClusterDataCache {
   private Map<String, Map<String, String>> _idealStateRuleMap;
   private Map<String, Map<String, Long>> _missingTopStateMap = new HashMap<>();
   private Map<String, ExternalView> _targetExternalViewMap = new HashMap<>();
+  private Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
+  private Set<String> _disabledInstanceSet = new HashSet<>();
 
   private CurrentStateCache _currentStateCache;
   private TaskDataCache _taskDataCache;
@@ -207,6 +209,8 @@ public class ClusterDataCache {
     MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
     _isMaintenanceModeEnabled = (maintenanceSignal != null) ? true : false;
 
+    updateDisabledInstances();
+
     long endTime = System.currentTimeMillis();
     LOG.info(
         "END: ClusterDataCache.refresh() for cluster " + getClusterName() + ", took " + (endTime
@@ -230,6 +234,33 @@ public class ClusterDataCache {
     }
 
     return true;
+  }
+
+  private void updateDisabledInstances() {
+    // Move the calculating disabled instances to refresh
+    _disabledInstanceForPartitionMap.clear();
+    _disabledInstanceSet.clear();
+    for (InstanceConfig config : _instanceConfigMap.values()) {
+      Map<String, List<String>> disabledPartitionMap = config.getDisabledPartitionsMap();
+      if (!config.getInstanceEnabled()) {
+        _disabledInstanceSet.add(config.getInstanceName());
+      }
+      for (String resource : disabledPartitionMap.keySet()) {
+        if (!_disabledInstanceForPartitionMap.containsKey(resource)) {
+          _disabledInstanceForPartitionMap.put(resource, new HashMap<String, Set<String>>());
+        }
+        for (String partition : disabledPartitionMap.get(resource)) {
+          if (!_disabledInstanceForPartitionMap.get(resource).containsKey(partition)) {
+            _disabledInstanceForPartitionMap.get(resource).put(partition, new HashSet<String>());
+          }
+          _disabledInstanceForPartitionMap.get(resource).get(partition)
+              .add(config.getInstanceName());
+        }
+      }
+    }
+    if (_clusterConfig.getDisabledInstances() != null) {
+      _disabledInstanceSet.addAll(_clusterConfig.getDisabledInstances().keySet());
+    }
   }
 
   private void updateOfflineInstanceHistory(HelixDataAccessor accessor) {
@@ -533,16 +564,14 @@ public class ClusterDataCache {
    * @return
    */
   public Set<String> getDisabledInstancesForPartition(String resource, String partition) {
-    Set<String> disabledInstancesSet = new HashSet<String>();
-    for (String instance : _instanceConfigMap.keySet()) {
-      InstanceConfig config = _instanceConfigMap.get(instance);
-      if (config.getInstanceEnabled() == false || (_clusterConfig.getDisabledInstances() != null
-          && _clusterConfig.getDisabledInstances().containsKey(instance))
-          || config.getInstanceEnabledForPartition(resource, partition) == false) {
-        disabledInstancesSet.add(instance);
-      }
+    Set<String> disabledInstancesForPartition = new HashSet<>(_disabledInstanceSet);
+    if (_disabledInstanceForPartitionMap.containsKey(resource) && _disabledInstanceForPartitionMap
+        .get(resource).containsKey(partition)) {
+      disabledInstancesForPartition
+          .addAll(_disabledInstanceForPartitionMap.get(resource).get(partition));
     }
-    return disabledInstancesSet;
+
+    return disabledInstancesForPartition;
   }
 
   /**
@@ -551,16 +580,7 @@ public class ClusterDataCache {
    * @return
    */
   public Set<String> getDisabledInstances() {
-    Set<String> disabledInstancesSet = new HashSet<>();
-    for (String instance : _instanceConfigMap.keySet()) {
-      InstanceConfig config = _instanceConfigMap.get(instance);
-      if (!config.getInstanceEnabled()
-          || (_clusterConfig.getDisabledInstances() != null && _clusterConfig.getDisabledInstances()
-          .containsKey(instance))) {
-        disabledInstancesSet.add(instance);
-      }
-    }
-    return disabledInstancesSet;
+    return Collections.unmodifiableSet(_disabledInstanceSet);
   }
 
   /**

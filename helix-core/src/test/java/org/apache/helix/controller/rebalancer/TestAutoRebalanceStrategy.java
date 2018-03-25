@@ -41,6 +41,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
@@ -217,6 +218,7 @@ public class TestAutoRebalanceStrategy {
       ClusterDataCache cache = new ClusterDataCache();
       MockAccessor accessor = new MockAccessor();
       Builder keyBuilder = accessor.keyBuilder();
+      accessor.setProperty(keyBuilder.clusterConfig(), new ClusterConfig("TestCluster"));
       for (String node : _liveNodes) {
         LiveInstance liveInstance = new LiveInstance(node);
         liveInstance.setSessionId("testSession");

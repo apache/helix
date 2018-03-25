@@ -253,12 +253,13 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
       preJobFinish = jobContext.getFinishTime();
     }
 
+    TimeUnit.MILLISECONDS.sleep(2000);
     // Flush queue
     LOG.info("Flusing job-queue: " + queueName);
     _driver.flushQueue(queueName);
 
     // TODO: Use TestHelper.verify() instead of waiting here.
-    TimeUnit.MILLISECONDS.sleep(5000);
+    TimeUnit.MILLISECONDS.sleep(2000);
 
     // verify the cleanup
     for (int i = 0; i < currentJobNames.size(); i++) {

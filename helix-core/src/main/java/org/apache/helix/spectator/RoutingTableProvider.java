@@ -505,7 +505,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
     private final RoutingDataCache _dataCache;
 
     public RouterUpdater(String clusterName, PropertyType sourceDataType) {
-      super("Helix-RouterUpdater-event_process");
+      super("Helix-RouterUpdater");
       _dataCache = new RoutingDataCache(clusterName, sourceDataType);
     }
 

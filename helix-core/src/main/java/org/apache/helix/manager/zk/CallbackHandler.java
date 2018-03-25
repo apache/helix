@@ -57,6 +57,7 @@ import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -100,6 +101,43 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
   private Thread _batchProcessThread;  // TODO: change this to use DedupEventProcessor - Lei.
+  private boolean _watchChild = true;  // Whether we should subscribe to the child znode's data change.
+  private static DedupEventProcessor SubscribeChangeEventProcessor;
+
+  static {
+    SubscribeChangeEventProcessor =
+        new DedupEventProcessor<CallbackHandler, SubscribeChangeEvent>("",
+            "CallbackHanlder-AsycSubscribe") {
+          @Override protected void handleEvent(SubscribeChangeEvent event) {
+            logger.info("Resubscribe change to " + event.path + " for listener " + event.listener);
+            try {
+              event.handler.subscribeForChanges(event.callbackType, event.path, event.watchChild);
+            } catch (Exception e) {
+              logger.error("Failed to resubscribe change to " + event.path + " for listener "
+                  + event.listener, e);
+            }
+          }
+        };
+
+    SubscribeChangeEventProcessor.start();
+  }
+
+  class SubscribeChangeEvent {
+    final CallbackHandler handler;
+    final String path;
+    final NotificationContext.Type callbackType;
+    final Object listener;
+    final boolean watchChild;
+
+    SubscribeChangeEvent(CallbackHandler handler, NotificationContext.Type callbackType,
+        String path, boolean watchChild, Object listener) {
+      this.handler = handler;
+      this.path = path;
+      this.callbackType = callbackType;
+      this.listener = listener;
+      this.watchChild = watchChild;
+    }
+  }
 
   /**
    * maintain the expected notification types
@@ -125,18 +163,23 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
               .name());
     }
 
-    this._manager = manager;
-    this._accessor = manager.getHelixDataAccessor();
-    this._zkClient = client;
-    this._propertyKey = propertyKey;
-    this._path = propertyKey.getPath();
-    this._listener = listener;
-    this._eventTypes = new HashSet<>(Arrays.asList(eventTypes));
-    this._changeType = changeType;
-    this._lastNotificationTimeStamp = new AtomicLong(System.nanoTime());
-    this._queue = new LinkedBlockingQueue<>(1000);
+    _manager = manager;
+    _accessor = manager.getHelixDataAccessor();
+    _zkClient = client;
+    _propertyKey = propertyKey;
+    _path = propertyKey.getPath();
+    _listener = listener;
+    _eventTypes = new HashSet<>(Arrays.asList(eventTypes));
+    _changeType = changeType;
+    _lastNotificationTimeStamp = new AtomicLong(System.nanoTime());
+    _queue = new LinkedBlockingQueue<>(1000);
+    _monitor = monitor;
 
-    this._monitor = monitor;
+    if (_changeType == MESSAGE || _changeType == MESSAGES_CONTROLLER || _changeType == CONTROLLER) {
+      _watchChild = false;
+    } else {
+      _watchChild = true;
+    }
 
     parseListenerProperties();
 
@@ -314,16 +357,23 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             "Callback handler received event in wrong order. Listener: " + _listener + ", path: "
                 + _path + ", expected types: " + _expectTypes + " but was " + type);
         return;
+
+      }
+      _expectTypes = nextNotificationType.get(type);
+
+      if (type == Type.INIT || type == Type.FINALIZE) {
+        subscribeForChanges(changeContext.getType(), _path, _watchChild);
+      } else {
+        // put SubscribeForChange run in async thread to reduce the latency of zk callback handling.
+        subscribeForChangesAsyn(changeContext.getType(), _path, _watchChild);
       }
       _expectTypes = nextNotificationType.get(type);
 
       if (_changeType == IDEAL_STATE) {
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
-        subscribeForChanges(changeContext, _path, true);
         List<IdealState> idealStates = preFetch(_propertyKey);
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
-      } else if (_changeType == ChangeType.INSTANCE_CONFIG) {
-        subscribeForChanges(changeContext, _path, true);
+      } else if (_changeType == INSTANCE_CONFIG) {
         if (_listener instanceof ConfigChangeListener) {
           ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
           List<InstanceConfig> configs = preFetch(_propertyKey);
@@ -333,14 +383,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           List<InstanceConfig> configs = preFetch(_propertyKey);
           listener.onInstanceConfigChange(configs, changeContext);
         }
-      } else if (_changeType == ChangeType.RESOURCE_CONFIG) {
-        subscribeForChanges(changeContext, _path, true);
+      } else if (_changeType == RESOURCE_CONFIG) {
         ResourceConfigChangeListener listener = (ResourceConfigChangeListener) _listener;
         List<ResourceConfig> configs = preFetch(_propertyKey);
         listener.onResourceConfigChange(configs, changeContext);
 
-      } else if (_changeType == ChangeType.CLUSTER_CONFIG) {
-        subscribeForChanges(changeContext, _path, true);
+      } else if (_changeType == CLUSTER_CONFIG) {
         ClusterConfigChangeListener listener = (ClusterConfigChangeListener) _listener;
         ClusterConfig config = null;
         if (_preFetchEnabled) {
@@ -349,46 +397,39 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         listener.onClusterConfigChange(config, changeContext);
 
       } else if (_changeType == CONFIG) {
-        subscribeForChanges(changeContext, _path, true);
         ScopedConfigChangeListener listener = (ScopedConfigChangeListener) _listener;
         List<HelixProperty> configs = preFetch(_propertyKey);
         listener.onConfigChange(configs, changeContext);
 
       } else if (_changeType == LIVE_INSTANCE) {
         LiveInstanceChangeListener liveInstanceChangeListener = (LiveInstanceChangeListener) _listener;
-        subscribeForChanges(changeContext, _path, true);
         List<LiveInstance> liveInstances = preFetch(_propertyKey);
         liveInstanceChangeListener.onLiveInstanceChange(liveInstances, changeContext);
 
       } else if (_changeType == CURRENT_STATE) {
         CurrentStateChangeListener currentStateChangeListener = (CurrentStateChangeListener) _listener;
-        subscribeForChanges(changeContext, _path, true);
         String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
         List<CurrentState> currentStates = preFetch(_propertyKey);
         currentStateChangeListener.onStateChange(instanceName, currentStates, changeContext);
 
       } else if (_changeType == MESSAGE) {
         MessageListener messageListener = (MessageListener) _listener;
-        subscribeForChanges(changeContext, _path, false);
         String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
         List<Message> messages = preFetch(_propertyKey);
         messageListener.onMessage(instanceName, messages, changeContext);
 
       } else if (_changeType == MESSAGES_CONTROLLER) {
         MessageListener messageListener = (MessageListener) _listener;
-        subscribeForChanges(changeContext, _path, false);
         List<Message> messages = preFetch(_propertyKey);
         messageListener.onMessage(_manager.getInstanceName(), messages, changeContext);
 
       } else if (_changeType == EXTERNAL_VIEW || _changeType == TARGET_EXTERNAL_VIEW) {
         ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
-        subscribeForChanges(changeContext, _path, true);
         List<ExternalView> externalViewList = preFetch(_propertyKey);
         externalViewListener.onExternalViewChange(externalViewList, changeContext);
 
-      } else if (_changeType == ChangeType.CONTROLLER) {
+      } else if (_changeType == CONTROLLER) {
         ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
-        subscribeForChanges(changeContext, _path, false);
         controllerChangelistener.onControllerChange(changeContext);
       } else {
         logger.warn("Unknown change type: " + _changeType);
@@ -414,13 +455,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
-  private void subscribeChildChange(String path, NotificationContext context) {
-    NotificationContext.Type type = context.getType();
-    if (type == NotificationContext.Type.INIT || type == NotificationContext.Type.CALLBACK) {
+  private void subscribeChildChange(String path, NotificationContext.Type callbackType) {
+    if (callbackType == NotificationContext.Type.INIT
+        || callbackType == NotificationContext.Type.CALLBACK) {
       logger.info(
           _manager.getInstanceName() + " subscribes child-change. path: " + path + ", listener: " + _listener);
       _zkClient.subscribeChildChanges(path, this);
-    } else if (type == NotificationContext.Type.FINALIZE) {
+    } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info(
           _manager.getInstanceName() + " unsubscribe child-change. path: " + path + ", listener: " + _listener);
 
@@ -428,14 +469,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
-  private void subscribeDataChange(String path, NotificationContext context) {
-    NotificationContext.Type type = context.getType();
-    if (type == NotificationContext.Type.INIT || type == NotificationContext.Type.CALLBACK) {
+  private void subscribeDataChange(String path, NotificationContext.Type callbackType) {
+    if (callbackType == NotificationContext.Type.INIT
+        || callbackType == NotificationContext.Type.CALLBACK) {
       logger.info(
           _manager.getInstanceName() + " subscribe data-change. path: " + path + ", listener: "
               + _listener);
       _zkClient.subscribeDataChanges(path, this);
-    } else if (type == NotificationContext.Type.FINALIZE) {
+    } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info(
           _manager.getInstanceName() + " unsubscribe data-change. path: " + path + ", listener: "
               + _listener);
@@ -444,24 +485,29 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
-  // TODO watchParent is always true. consider remove it
-  private void subscribeForChanges(NotificationContext context, String path, boolean watchChild) {
-    long start = System.currentTimeMillis();
+  /** Subscribe Changes in asynchronously */
+  private void subscribeForChangesAsyn(NotificationContext.Type callbackType, String path, boolean watchChild) {
+    SubscribeChangeEvent subscribeEvent =
+        new SubscribeChangeEvent(this, callbackType, path, watchChild, _listener);
+    SubscribeChangeEventProcessor.queueEvent(subscribeEvent.handler, subscribeEvent);
+  }
 
+  private void subscribeForChanges(NotificationContext.Type callbackType, String path,
+      boolean watchChild) {
+    long start = System.currentTimeMillis();
     if (_eventTypes.contains(EventType.NodeDataChanged) || _eventTypes
         .contains(EventType.NodeCreated) || _eventTypes.contains(EventType.NodeDeleted)) {
       if (logger.isDebugEnabled()) {
         logger.debug("Subscribing data change listener to path:" + path);
       }
-      subscribeDataChange(path, context);
+      subscribeDataChange(path, callbackType);
     }
 
     if (_eventTypes.contains(EventType.NodeChildrenChanged)) {
       if (logger.isDebugEnabled()) {
         logger.debug("Subscribing child change listener to path:" + path);
       }
-
-      subscribeChildChange(path, context);
+      subscribeChildChange(path, callbackType);
       if (watchChild) {
         if (logger.isDebugEnabled()) {
           logger.debug("Subscribing data change listener to all children for path:" + path);
@@ -484,19 +530,19 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
               if (bucketSize > 0) {
                 // subscribe both data-change and child-change on bucketized parent node
                 // data-change gives a delete-callback which is used to remove watch
-                subscribeChildChange(childPath, context);
-                subscribeDataChange(childPath, context);
+                subscribeChildChange(childPath, callbackType);
+                subscribeDataChange(childPath, callbackType);
 
                 // subscribe data-change on bucketized child
                 List<String> bucketizedChildNames = _zkClient.getChildren(childPath);
                 if (bucketizedChildNames != null) {
                   for (String bucketizedChildName : bucketizedChildNames) {
                     String bucketizedChildPath = childPath + "/" + bucketizedChildName;
-                    subscribeDataChange(bucketizedChildPath, context);
+                    subscribeDataChange(bucketizedChildPath, callbackType);
                   }
                 }
               } else {
-                subscribeDataChange(childPath, context);
+                subscribeDataChange(childPath, callbackType);
               }
             }
             break;
@@ -506,7 +552,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             if (childNames != null) {
               for (String childName : childNames) {
                 String childPath = path + "/" + childName;
-                subscribeDataChange(childPath, context);
+                subscribeDataChange(childPath, callbackType);
               }
             }
             break;
@@ -617,6 +663,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           changeContext.setType(NotificationContext.Type.CALLBACK);
           changeContext.setPathChanged(parentPath);
           changeContext.setChangeType(_changeType);
+          subscribeForChanges(changeContext.getType(), _path, _watchChild);
           enqueueTask(changeContext);
         }
       }

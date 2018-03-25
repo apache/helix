@@ -876,6 +876,7 @@ public class ZkClient implements Watcher {
     try {
       delete(path);
     } catch (Exception e) {
+      LOG.error("Failed to delete " + path, e);
       throw new HelixException("Failed to delete " + path, e);
     }
   }

@@ -18,9 +18,6 @@ package org.apache.helix.common;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.helix.controller.stages.ClusterEvent;
@@ -28,33 +25,31 @@ import org.apache.helix.controller.stages.ClusterEventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
 /**
  * A blocking queue of ClusterEvent objects to be used by the controller pipeline. This prevents
  * multiple events of the same type from flooding the controller and preventing progress from being
  * made. This queue has no capacity. This class is meant to be a limited implementation of the
  * {@link BlockingQueue} interface.
+ *
+ * This class is deprecated, please use {@link org.apache.helix.common.DedupEventBlockingQueue}.
  */
+@Deprecated
 public class ClusterEventBlockingQueue {
   private static final Logger LOG = LoggerFactory.getLogger(ClusterEventBlockingQueue.class);
-  private final Map<ClusterEventType, ClusterEvent> _eventMap;
-  private final Queue<ClusterEvent> _eventQueue;
+
+  private DedupEventBlockingQueue<ClusterEventType, ClusterEvent> _eventQueue;
 
   /**
    * Instantiate the queue
    */
   public ClusterEventBlockingQueue() {
-    _eventMap = Maps.newHashMap();
-    _eventQueue = Lists.newLinkedList();
+    _eventQueue = new DedupEventBlockingQueue();
   }
 
   /**
    * Remove all events from the queue
    */
-  public synchronized void clear() {
-    _eventMap.clear();
+  public void clear() {
     _eventQueue.clear();
   }
 
@@ -62,19 +57,10 @@ public class ClusterEventBlockingQueue {
    * Add a single event to the queue, overwriting events with the same name
    * @param event ClusterEvent event to add
    */
-  public synchronized void put(ClusterEvent event) {
-    if (!_eventMap.containsKey(event.getEventType())) {
-      // only insert if there isn't a same-named event already present
-      boolean result = _eventQueue.offer(event);
-      if (!result) {
-        return;
-      }
-    }
-    // always overwrite in case this is a FINALIZE
-    _eventMap.put(event.getEventType(), event);
+  public void put(ClusterEvent event) {
+    _eventQueue.put(event.getEventType(), event);
     LOG.debug("Putting event " + event.getEventType());
     LOG.debug("Event queue size: " + _eventQueue.size());
-    notify();
   }
 
   /**
@@ -83,29 +69,21 @@ public class ClusterEventBlockingQueue {
    * @return ClusterEvent at the front of the queue
    * @throws InterruptedException if the wait for elements was interrupted
    */
-  public synchronized ClusterEvent take() throws InterruptedException {
-    while (_eventQueue.isEmpty()) {
-      wait();
-    }
-    ClusterEvent queuedEvent = _eventQueue.poll();
-    if (queuedEvent != null) {
-      LOG.debug("Taking event " + queuedEvent.getEventType());
+  public ClusterEvent take() throws InterruptedException {
+    ClusterEvent event = _eventQueue.take();
+    if (event != null) {
+      LOG.debug("Taking event " + event.getEventType());
       LOG.debug("Event queue size: " + _eventQueue.size());
-      return _eventMap.remove(queuedEvent.getEventType());
     }
-    return null;
+    return event;
   }
 
   /**
    * Get at the head of the queue without removing it
    * @return ClusterEvent at the front of the queue, or null if none available
    */
-  public synchronized ClusterEvent peek() {
-    ClusterEvent queuedEvent = _eventQueue.peek();
-    if (queuedEvent != null) {
-      return _eventMap.get(queuedEvent.getEventType());
-    }
-    return queuedEvent;
+  public ClusterEvent peek() {
+    return _eventQueue.peek();
   }
 
   /**

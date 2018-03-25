@@ -59,7 +59,7 @@ public class CurrentStateCache {
    *
    * @return
    */
-  public synchronized boolean refresh(HelixDataAccessor accessor,
+  public boolean refresh(HelixDataAccessor accessor,
       Map<String, LiveInstance> liveInstanceMap) {
     LOG.info("START: CurrentStateCache.refresh()");
     long startTime = System.currentTimeMillis();
@@ -143,7 +143,7 @@ public class CurrentStateCache {
       }
     }
 
-    List<CurrentState> currentStates = accessor.getProperty(reloadKeys);
+    List<CurrentState> currentStates = accessor.getProperty(reloadKeys, true);
     Iterator<PropertyKey> csKeyIter = reloadKeys.iterator();
     for (CurrentState currentState : currentStates) {
       PropertyKey key = csKeyIter.next();

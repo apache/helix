@@ -64,7 +64,7 @@ public class InstanceMessagesCache {
    *
    * @return
    */
-  public synchronized boolean refresh(HelixDataAccessor accessor,
+  public boolean refresh(HelixDataAccessor accessor,
       Map<String, LiveInstance> liveInstanceMap) {
     LOG.info("START: InstanceMessagesCache.refresh()");
     long startTime = System.currentTimeMillis();
@@ -108,7 +108,7 @@ public class InstanceMessagesCache {
 
     // get the new messages
     if (newMessageKeys.size() > 0) {
-      List<Message> newMessages = accessor.getProperty(newMessageKeys);
+      List<Message> newMessages = accessor.getProperty(newMessageKeys, true);
       for (Message message : newMessages) {
         if (message != null) {
           Map<String, Message> cachedMap = _messageCache.get(message.getTgtName());

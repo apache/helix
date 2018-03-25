@@ -141,7 +141,7 @@ public class ClusterDataCache {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(ChangeType.IDEAL_STATE, Boolean.valueOf(false));
       clearCachedResourceAssignments();
-      _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
+      _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates(), true);
       if (LOG.isDebugEnabled()) {
         LOG.debug("Reload IdealStates: " + _idealStateCacheMap.keySet() + ". Takes " + (
             System.currentTimeMillis() - start) + " ms");
@@ -151,7 +151,7 @@ public class ClusterDataCache {
     if (_propertyDataChangedMap.get(ChangeType.LIVE_INSTANCE)) {
       _propertyDataChangedMap.put(ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
       clearCachedResourceAssignments();
-      _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
+      _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances(), true);
       _updateInstanceOfflineTime = true;
       LOG.debug("Reload LiveInstances: " + _liveInstanceCacheMap.keySet());
     }
@@ -159,14 +159,14 @@ public class ClusterDataCache {
     if (_propertyDataChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
       _propertyDataChangedMap.put(ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
       clearCachedResourceAssignments();
-      _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+      _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs(), true);
       LOG.debug("Reload InstanceConfig: " + _instanceConfigCacheMap.keySet());
     }
 
     if (_propertyDataChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
       _propertyDataChangedMap.put(ChangeType.RESOURCE_CONFIG, Boolean.valueOf(false));
       clearCachedResourceAssignments();
-      _resourceConfigCacheMap = accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs());
+      _resourceConfigCacheMap = accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs(), true);
       LOG.debug("Reload ResourceConfigs: " + _resourceConfigCacheMap.size());
     }
 
@@ -184,9 +184,9 @@ public class ClusterDataCache {
     }
 
     Map<String, StateModelDefinition> stateDefMap =
-        accessor.getChildValuesMap(keyBuilder.stateModelDefs());
+        accessor.getChildValuesMap(keyBuilder.stateModelDefs(), true);
     _stateModelDefMap = new ConcurrentHashMap<>(stateDefMap);
-    _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
+    _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints(), true);
     _clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
 
 
@@ -793,7 +793,7 @@ public class ClusterDataCache {
   }
 
 
-  public void clearCachedResourceAssignments() {
+  protected void clearCachedResourceAssignments() {
     _resourceAssignmentCache.clear();
     _idealMappingCache.clear();
   }

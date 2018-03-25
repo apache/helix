@@ -31,7 +31,6 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.GroupCommit;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
@@ -42,6 +41,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordAssembler;
 import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.ZNRecordUpdater;
+import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
@@ -124,7 +124,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   public <T extends HelixProperty> boolean setProperty(PropertyKey key, T value) {
     PropertyType type = key.getType();
     if (!value.isValid()) {
-      throw new HelixException("The ZNRecord for " + type + " is not valid.");
+      throw new HelixMetaDataAccessException("The ZNRecord for " + type + " is not valid.");
     }
 
     String path = key.getPath();
@@ -201,7 +201,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
   @Override
   public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys,
-      boolean throwException) throws HelixException {
+      boolean throwException) throws HelixMetaDataAccessException {
     if (keys == null || keys.size() == 0) {
       return Collections.emptyList();
     }

@@ -62,7 +62,7 @@ public class BasicClusterDataCache {
    *
    * @return
    */
-  public synchronized void refresh(HelixDataAccessor accessor) {
+  public void refresh(HelixDataAccessor accessor) {
     LOG.info("START: BasicClusterDataCache.refresh() for cluster " + _clusterName);
     long startTime = System.currentTimeMillis();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
@@ -70,7 +70,7 @@ public class BasicClusterDataCache {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW)) {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.EXTERNAL_VIEW, Boolean.valueOf(false));
-      _externalViewMap = accessor.getChildValuesMap(keyBuilder.externalViews());
+      _externalViewMap = accessor.getChildValuesMap(keyBuilder.externalViews(), true);
       LOG.info("Reload ExternalViews: " + _externalViewMap.keySet() + ". Takes " + (
             System.currentTimeMillis() - start) + " ms");
     }
@@ -78,7 +78,7 @@ public class BasicClusterDataCache {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE)) {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
-      _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
+      _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances(), true);
       LOG.info("Reload LiveInstances: " + _liveInstanceMap.keySet() + ". Takes " + (
           System.currentTimeMillis() - start) + " ms");
     }
@@ -87,7 +87,7 @@ public class BasicClusterDataCache {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap
           .put(HelixConstants.ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
-      _instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+      _instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs(), true);
       LOG.info("Reload InstanceConfig: " + _instanceConfigMap.keySet() + ". Takes " + (
           System.currentTimeMillis() - start) + " ms");
     }
@@ -173,7 +173,7 @@ public class BasicClusterDataCache {
   /**
    * Indicate that a full read should be done on the next refresh
    */
-  public synchronized void requireFullRefresh() {
+  public void requireFullRefresh() {
     for(HelixConstants.ChangeType type : HelixConstants.ChangeType.values()) {
       _propertyDataChangedMap.put(type, Boolean.valueOf(true));
     }

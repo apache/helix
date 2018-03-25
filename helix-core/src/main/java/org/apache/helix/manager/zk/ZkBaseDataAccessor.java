@@ -37,6 +37,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
@@ -400,7 +401,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
             stats.set(i, cb._stat);
           }
         } else if (Code.get(cb.getRc()) != Code.NONODE && throwException) {
-          throw new HelixException(String.format("Failed to read node %s", paths.get(i)));
+          throw new HelixMetaDataAccessException(String.format("Failed to read node %s", paths.get(i)));
         } else {
           pathFailToRead.put(paths.get(i), cb.getRc());
         }
@@ -410,7 +411,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       }
       return records;
     } catch (Exception e) {
-      throw new HelixException(String.format("Fail to read nodes for %s", paths));
+      throw new HelixMetaDataAccessException(String.format("Fail to read nodes for %s", paths));
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {
@@ -440,14 +441,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         readCount--;
         List<T> records = getChildren(parentPath, stats, options, true);
         return records;
-      } catch (HelixException e) {
+      } catch (HelixMetaDataAccessException e) {
         if (readCount == 0) {
-          throw new HelixException(String.format("Failed to get full list of %s", parentPath), e);
+          throw new HelixMetaDataAccessException(String.format("Failed to get full list of %s", parentPath), e);
         }
         try {
           Thread.sleep(retryInterval);
         } catch (InterruptedException interruptedException) {
-          throw new HelixException("Fail to interrupt the sleep", interruptedException);
+          throw new HelixMetaDataAccessException("Fail to interrupt the sleep", interruptedException);
         }
       }
     }

@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.api.exceptions;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,20 +19,23 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum ClusterEventType {
-  IdealStateChange,
-  CurrentStateChange,
-  ConfigChange,
-  ClusterConfigChange,
-  ResourceConfigChange,
-  InstanceConfigChange,
-  LiveInstanceChange,
-  MessageChange,
-  ExternalViewChange,
-  TargetExternalViewChange,
-  Resume,
-  PeriodicalRebalance,
-  RetryRebalance,
-  StateVerifier,
-  Unknown
+import org.apache.helix.HelixException;
+
+/**
+ * Class for an exception thrown by Helix due to Helix's failure to read or write some metadata from zookeeper.
+ */
+public class HelixMetaDataAccessException extends HelixException {
+  private static final long serialVersionUID = 6558251214364526258L;
+
+  public HelixMetaDataAccessException(String message) {
+    super(message);
+  }
+
+  public HelixMetaDataAccessException(Throwable cause) {
+    super(cause);
+  }
+
+  public HelixMetaDataAccessException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

@@ -21,6 +21,7 @@ package org.apache.helix.monitoring.mbeans;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.model.*;
 import org.apache.helix.task.*;
@@ -66,6 +67,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private Map<String, List<String>> _oldDisabledPartitions = Collections.emptyMap();
   private Map<String, Long> _instanceMsgQueueSizes = Maps.newConcurrentMap();
   private boolean _rebalanceFailure = false;
+  private AtomicLong _rebalanceFailureCount = new AtomicLong(0L);
+
 
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap = new ConcurrentHashMap<>();
 
@@ -441,8 +444,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
 
     if (resourceMonitor != null) {
-      resourceMonitor.updateRebalancerStat(numPendingRecoveryRebalancePartitions, numPendingLoadRebalancePartitions,
-          numRecoveryRebalanceThrottledPartitions, numLoadRebalanceThrottledPartitions);
+      resourceMonitor.updateRebalancerStat(numPendingRecoveryRebalancePartitions,
+          numPendingLoadRebalancePartitions, numRecoveryRebalanceThrottledPartitions,
+          numLoadRebalanceThrottledPartitions);
     }
   }
 
@@ -655,7 +659,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       String resourceName = monitor.getResourceName();
       String beanName = getPerInstanceResourceBeanName(instanceName, resourceName);
       register(monitor, getObjectName(beanName));
-      _perInstanceResourceMap.put(new PerInstanceResourceMonitor.BeanName(instanceName, resourceName), monitor);
+      _perInstanceResourceMap.put(
+          new PerInstanceResourceMonitor.BeanName(instanceName, resourceName), monitor);
     }
   }
 
@@ -784,5 +789,14 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   public void setEnabled(boolean enabled) {
     this._enabled = enabled;
+  }
+
+  public void reportRebalanceFailure() {
+    _rebalanceFailureCount.incrementAndGet();
+  }
+
+  @Override
+  public long getRebalanceFailureCounter() {
+    return _rebalanceFailureCount.get();
   }
 }

@@ -139,13 +139,29 @@ public class TestClusterDataCacheSelectiveUpdate extends ZkStandAloneCMTestBase 
     }
 
     @Override
+    public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys, boolean throwException) {
+      for (PropertyKey key : keys) {
+        addCount(key);
+      }
+      return super.getProperty(keys, throwException);
+    }
+
+    @Override
     public <T extends HelixProperty> T getProperty(PropertyKey key) {
       addCount(key);
       return super.getProperty(key);
     }
 
+    @Override
     public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key) {
       Map<String, T> map = super.getChildValuesMap(key);
+      addCount(key, map.keySet().size());
+      return map;
+    }
+
+    @Override
+    public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key, boolean throwException) {
+      Map<String, T> map = super.getChildValuesMap(key, throwException);
       addCount(key, map.keySet().size());
       return map;
     }

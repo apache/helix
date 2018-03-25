@@ -61,4 +61,10 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
    * @return 1 if cluster is paused, otherwise 0
    */
   public long getPaused();
+
+  /**
+   * The number of failures during rebalance pipeline.
+   * @return
+   */
+  long getRebalanceFailureCounter();
 }

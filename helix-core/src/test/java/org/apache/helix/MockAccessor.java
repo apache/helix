@@ -192,7 +192,7 @@ public class MockAccessor implements HelixDataAccessor {
 
   @Override public <T extends HelixProperty> List<T> getChildValues(PropertyKey key,
       boolean throwException) {
-    return null;
+    return getChildValues(key);
   }
 
   @Override
@@ -203,14 +203,13 @@ public class MockAccessor implements HelixDataAccessor {
 
   @Override public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key,
       boolean throwException) {
-    return null;
+    return getChildValuesMap(key);
   }
 
   @Override
   public <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys,
       List<T> children) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new HelixException("Method not implemented!");
   }
 
   @Override
@@ -236,7 +235,7 @@ public class MockAccessor implements HelixDataAccessor {
   public <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
       List<DataUpdater<ZNRecord>> updaters, int options) {
     // TODO Auto-generated method stub
-    return null;
+    throw new HelixException("Method not implemented!");
   }
 
   @Override
@@ -252,6 +251,6 @@ public class MockAccessor implements HelixDataAccessor {
 
   @Override public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys,
       boolean throwException) {
-    return null;
+    return getProperty(keys);
   }
 }

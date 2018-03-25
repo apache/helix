@@ -19,13 +19,15 @@ package org.apache.helix.controller;
  * under the License.
  */
 
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.api.listeners.*;
 import org.apache.helix.common.ClusterEventBlockingQueue;
 import org.apache.helix.controller.pipeline.Pipeline;
@@ -39,7 +41,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -89,6 +90,8 @@ public class GenericHelixController implements IdealStateChangeListener,
   private final ClusterEventBlockingQueue _taskEventQueue;
   private final ClusterEventProcessor _taskEventThread;
 
+  private long _continousRebalanceFailureCount = 0;
+
   /**
    * The _paused flag is checked by function handleEvent(), while if the flag is set handleEvent()
    * will be no-op. Other event handling logic keeps the same when the flag is set.
@@ -100,7 +103,13 @@ public class GenericHelixController implements IdealStateChangeListener,
    * The timer that can periodically run the rebalancing pipeline. The timer will start if there is
    * one resource group has the config to use the timer.
    */
-  Timer _rebalanceTimer = null;
+  Timer _periodicalRebalanceTimer = null;
+
+  /**
+   * The timer to schedule ad hoc forced rebalance or retry rebalance event.
+   */
+  Timer _forceRebalanceTimer = null;
+
   long _timerPeriod = Long.MAX_VALUE;
 
   /**
@@ -108,7 +117,7 @@ public class GenericHelixController implements IdealStateChangeListener,
    */
   private ClusterDataCache _cache;
   private ClusterDataCache _taskCache;
-  private ExecutorService _asyncTasksThreadPool;
+  private ScheduledExecutorService _asyncTasksThreadPool;
 
   private String _clusterName;
 
@@ -134,39 +143,51 @@ public class GenericHelixController implements IdealStateChangeListener,
 
   class RebalanceTask extends TimerTask {
     HelixManager _manager;
+    ClusterEventType _clusterEventType;
 
-    public RebalanceTask(HelixManager manager) {
+    public RebalanceTask(HelixManager manager, ClusterEventType clusterEventType) {
       _manager = manager;
+      _clusterEventType = clusterEventType;
     }
 
     @Override
     public void run() {
-      //TODO: this is the temporary workaround
-      _cache.requireFullRefresh();
-      _taskCache.requireFullRefresh();
-      _cache.refresh(_manager.getHelixDataAccessor());
-      _taskCache.refresh(_manager.getHelixDataAccessor());
-      if (_cache.getLiveInstances() != null) {
-        NotificationContext changeContext = new NotificationContext(_manager);
-        changeContext.setType(NotificationContext.Type.CALLBACK);
-        synchronized (_manager) {
-          checkLiveInstancesObservation(new ArrayList<>(_cache.getLiveInstances().values()),
-              changeContext);
+      try {
+        if (_clusterEventType.equals(ClusterEventType.PeriodicalRebalance)) {
+          _cache.requireFullRefresh();
+          _taskCache.requireFullRefresh();
+          _cache.refresh(_manager.getHelixDataAccessor());
+          if (_cache.getLiveInstances() != null) {
+            NotificationContext changeContext = new NotificationContext(_manager);
+            changeContext.setType(NotificationContext.Type.CALLBACK);
+            synchronized (_manager) {
+              checkLiveInstancesObservation(new ArrayList<>(_cache.getLiveInstances().values()),
+                  changeContext);
+            }
+          }
         }
-      }
 
-      NotificationContext changeContext = new NotificationContext(_manager);
-      changeContext.setType(NotificationContext.Type.CALLBACK);
-      ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.PeriodicalRebalance);
-      event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
-      event.addAttribute(AttributeName.changeContext.name(), changeContext);
-      List<ZNRecord> dummy = new ArrayList<>();
-      event.addAttribute(AttributeName.eventData.name(), dummy);
-      // Should be able to process
-      _eventQueue.put(event);
-      _taskEventQueue.put(event.clone());
-      logger.info("Controller periodicalRebalance event triggered!");
+        forceRebalance(_manager, _clusterEventType);
+      } catch (Throwable ex) {
+        logger.error("Time task failed. Rebalance task type: " + _clusterEventType + ", cluster: "
+            + _clusterName);
+      }
     }
+  }
+
+  /* Trigger a rebalance pipeline */
+  private void forceRebalance(HelixManager manager, ClusterEventType eventType) {
+    NotificationContext changeContext = new NotificationContext(manager);
+    changeContext.setType(NotificationContext.Type.CALLBACK);
+    ClusterEvent event = new ClusterEvent(_clusterName, eventType);
+    event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
+    event.addAttribute(AttributeName.changeContext.name(), changeContext);
+    event.addAttribute(AttributeName.eventData.name(), new ArrayList<>());
+
+    _taskEventQueue.put(event);
+    _eventQueue.put(event);
+
+    logger.info("Controller rebalance event triggered with event type: " + eventType);
   }
 
   // TODO who should stop this timer
@@ -177,13 +198,14 @@ public class GenericHelixController implements IdealStateChangeListener,
   void startRebalancingTimer(long period, HelixManager manager) {
     if (period != _timerPeriod) {
       logger.info("Controller starting timer at period " + period);
-      if (_rebalanceTimer != null) {
-        _rebalanceTimer.cancel();
+      if (_periodicalRebalanceTimer != null) {
+        _periodicalRebalanceTimer.cancel();
       }
-      _rebalanceTimer = new Timer(true);
+      _periodicalRebalanceTimer = new Timer(true);
       _timerPeriod = period;
-      _rebalanceTimer
-          .scheduleAtFixedRate(new RebalanceTask(manager), _timerPeriod, _timerPeriod);
+      _periodicalRebalanceTimer
+          .scheduleAtFixedRate(new RebalanceTask(manager, ClusterEventType.PeriodicalRebalance),
+              _timerPeriod, _timerPeriod);
     } else {
       logger.info("Controller already has timer at period " + _timerPeriod);
     }
@@ -192,10 +214,10 @@ public class GenericHelixController implements IdealStateChangeListener,
   /**
    * Stops the rebalancing timer
    */
-  void stopRebalancingTimer() {
-    if (_rebalanceTimer != null) {
-      _rebalanceTimer.cancel();
-      _rebalanceTimer = null;
+  void stopRebalancingTimers() {
+    if (_periodicalRebalanceTimer != null) {
+      _periodicalRebalanceTimer.cancel();
+      _periodicalRebalanceTimer = null;
     }
     _timerPeriod = Integer.MAX_VALUE;
   }
@@ -260,7 +282,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     _lastSeenSessions = new AtomicReference<>();
     _clusterName = clusterName;
     _asyncTasksThreadPool =
-        Executors.newFixedThreadPool(ASYNC_TASKS_THREADPOOL_SIZE, new ThreadFactory() {
+        Executors.newScheduledThreadPool(ASYNC_TASKS_THREADPOOL_SIZE, new ThreadFactory() {
           @Override public Thread newThread(Runnable r) {
             return new Thread(r, "GerenricHelixController-async_task_thread");
           }
@@ -274,10 +296,20 @@ public class GenericHelixController implements IdealStateChangeListener,
     _eventThread = new ClusterEventProcessor(_cache, _eventQueue);
     _taskEventThread = new ClusterEventProcessor(_taskCache, _taskEventQueue);
 
+    _forceRebalanceTimer = new Timer();
+
     initPipelines(_eventThread, _cache, false);
     initPipelines(_taskEventThread, _taskCache, true);
 
     _clusterStatusMonitor = new ClusterStatusMonitor(_clusterName);
+  }
+
+  private boolean isEventQueueEmpty(boolean taskQueue) {
+    if (taskQueue) {
+      return _taskEventQueue.isEmpty();
+    } else {
+      return _eventQueue.isEmpty();
+    }
   }
 
   /**
@@ -314,7 +346,7 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     if (context != null) {
       if (context.getType() == Type.FINALIZE) {
-        stopRebalancingTimer();
+        stopRebalancingTimers();
         logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getEventType());
         return;
       } else {
@@ -345,6 +377,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     logger.info(String.format("START: Invoking %s controller pipeline for cluster %s event: %s",
         manager.getClusterName(), getPipelineType(cache.isTaskCache()), event.getEventType()));
     long startTime = System.currentTimeMillis();
+    boolean rebalanceFail = false;
     for (Pipeline pipeline : pipelines) {
       try {
         pipeline.handle(event);
@@ -352,9 +385,35 @@ public class GenericHelixController implements IdealStateChangeListener,
       } catch (Exception e) {
         logger.error(
             "Exception while executing " + getPipelineType(cache.isTaskCache()) + "pipeline: "
-                + pipeline + ". Will not continue to next pipeline", e);
+                + pipeline + "for cluster ." + _clusterName
+                + ". Will not continue to next pipeline", e);
+
+        if (e instanceof HelixMetaDataAccessException) {
+          rebalanceFail = true;
+          // If pipeline failed due to read/write fails to zookeeper, retry the pipeline.
+          cache.requireFullRefresh();
+          logger.warn("Rebalance pipeline failed due to read failure from zookeeper, cluster: " + _clusterName);
+
+          // only push a retry event when there is no pending event in the corresponding event queue.
+          if (isEventQueueEmpty(cache.isTaskCache())) {
+            _continousRebalanceFailureCount ++;
+            long delay = getRetryDelay(_continousRebalanceFailureCount);
+            if (delay == 0) {
+              forceRebalance(manager, ClusterEventType.RetryRebalance);
+            } else {
+              _asyncTasksThreadPool
+                  .schedule(new RebalanceTask(manager, ClusterEventType.RetryRebalance), delay,
+                      TimeUnit.MILLISECONDS);
+            }
+            logger.info("Retry rebalance pipeline with delay " + delay + "ms for cluster: " + _clusterName);
+          }
+        }
+        _clusterStatusMonitor.reportRebalanceFailure();
         break;
       }
+    }
+    if (!rebalanceFail) {
+      _continousRebalanceFailureCount = 0;
     }
     long endTime = System.currentTimeMillis();
     logger.info(
@@ -407,6 +466,19 @@ public class GenericHelixController implements IdealStateChangeListener,
     // So reset ClusterStatusMonitor according to it's status after all event handling.
     // TODO remove this once clusterStatusMonitor blocks any MBean register on isMonitoring = false.
     resetClusterStatusMonitor();
+  }
+
+  /**
+   * get the delay on next retry rebalance due to zk read failure, We use a simple exponential
+   * backoff to make the delay between [10ms, 1000ms]
+   */
+  private long getRetryDelay(long failCount) {
+    int lowLimit = 5;
+    if (failCount <= lowLimit) {
+      return 0;
+    }
+    long backoff = (long) (Math.pow(2, failCount - lowLimit) * 10);
+    return Math.min(backoff, 1000);
   }
 
   @Override
@@ -692,7 +764,7 @@ public class GenericHelixController implements IdealStateChangeListener,
   }
 
   public void shutdown() throws InterruptedException {
-    stopRebalancingTimer();
+    stopRebalancingTimers();
 
     terminateEventThread(_eventThread);
     terminateEventThread(_taskEventThread);

@@ -99,6 +99,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _batchModeEnabled = false;
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
+  private Thread _batchProcessThread;  // TODO: change this to use DedupEventProcessor - Lei.
 
   /**
    * maintain the expected notification types
@@ -142,9 +143,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     logger.info("isAsyncBatchModeEnabled: " + _batchModeEnabled);
     logger.info("isPreFetchEnabled: " + _preFetchEnabled);
 
-    if (_batchModeEnabled) {
-      new Thread(new CallbackInvoker(this)).start();
-    }
     init();
   }
 
@@ -153,7 +151,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     BatchMode batchMode = _listener.getClass().getAnnotation(BatchMode.class);
     PreFetch preFetch = _listener.getClass().getAnnotation(PreFetch.class);
 
-    String asyncBatchModeEnabled = System.getProperty("isAsyncBatchModeEnabled");
+    String asyncBatchModeEnabled = System.getProperty("helix.callbackhandler.isAsyncBatchModeEnabled");
+    if (asyncBatchModeEnabled == null) {
+      // for backcompatible, the old property name is deprecated.
+      asyncBatchModeEnabled = System.getProperty("isAsyncBatchModeEnabled");
+    }
+
     if (asyncBatchModeEnabled != null) {
       _batchModeEnabled = Boolean.parseBoolean(asyncBatchModeEnabled);
       logger.info("isAsyncBatchModeEnabled by default: " + _batchModeEnabled);
@@ -233,15 +236,19 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     return _path;
   }
 
-  class CallbackInvoker implements Runnable {
-    private CallbackHandler handler;
+  class CallbackProcessor extends Thread {
+    private CallbackHandler _handler;
 
-    CallbackInvoker(CallbackHandler handler) {
-      this.handler = handler;
+    CallbackProcessor(CallbackHandler handler) {
+      super("CallbackHandler-batchprocess");
+      _handler = handler;
     }
 
     public void run() {
-      while (true) {
+      logger.info(
+          "start batch callback handle thread for path:" + _handler.getPath() + ", listener: "
+              + _listener);
+      while (!Thread.interrupted()) {
         try {
           NotificationContext notificationToProcess = _queue.take();
           int mergedCallbacks = 0;
@@ -257,18 +264,22 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           }
           try {
             logger.info(
-                "Num callbacks merged for path:" + handler.getPath() + " : " + mergedCallbacks);
-            handler.invoke(notificationToProcess);
+                "Num callbacks merged for path:" + _handler.getPath() + " : " + mergedCallbacks);
+            _handler.invoke(notificationToProcess);
           } catch (Exception e) {
             logger.warn("Exception in callback processing thread. Skipping callback", e);
           }
         } catch (InterruptedException e) {
           logger.warn(
-              "Interrupted exception in callback processing thread. Exiting thread, new callbacks will not be processed",
-              e);
+              "Interrupted exception in callback processing thread. Exiting thread for listener "
+                  + _listener + ", new callbacks will not be processed", e);
           break;
         }
       }
+
+      logger.warn(
+          "Exiting batch callback processing thread for listener : " + _listener + ", path: "
+              + _path);
     }
   }
 
@@ -287,31 +298,30 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   public void invoke(NotificationContext changeContext) throws Exception {
+    Type type = changeContext.getType();
+    long start = System.currentTimeMillis();
+
     // This allows the listener to work with one change at a time
     synchronized (_manager) {
-      Type type = changeContext.getType();
-      if (!_expectTypes.contains(type)) {
-        logger.warn("Skip processing callbacks for listener: " + _listener + ", path: " + _path
-            + ", expected types: " + _expectTypes + " but was " + type);
-
-        return;
-      }
-      _expectTypes = nextNotificationType.get(type);
-
-      // Builder keyBuilder = _accessor.keyBuilder();
-      long start = System.currentTimeMillis();
       if (logger.isInfoEnabled()) {
         logger.info(
             Thread.currentThread().getId() + " START:INVOKE " + _path + " listener:" + _listener
-                .getClass().getCanonicalName());
+                + " type: " + type);
       }
+
+      if (!_expectTypes.contains(type)) {
+        logger.warn(
+            "Callback handler received event in wrong order. Listener: " + _listener + ", path: "
+                + _path + ", expected types: " + _expectTypes + " but was " + type);
+        return;
+      }
+      _expectTypes = nextNotificationType.get(type);
 
       if (_changeType == IDEAL_STATE) {
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
         subscribeForChanges(changeContext, _path, true);
         List<IdealState> idealStates = preFetch(_propertyKey);
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
-
       } else if (_changeType == ChangeType.INSTANCE_CONFIG) {
         subscribeForChanges(changeContext, _path, true);
         if (_listener instanceof ConfigChangeListener) {
@@ -380,15 +390,16 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
         subscribeForChanges(changeContext, _path, false);
         controllerChangelistener.onControllerChange(changeContext);
+      } else {
+        logger.warn("Unknown change type: " + _changeType);
       }
 
       long end = System.currentTimeMillis();
       if (logger.isInfoEnabled()) {
         logger.info(
             Thread.currentThread().getId() + " END:INVOKE " + _path + " listener:" + _listener
-                .getClass().getCanonicalName() + " Took: " + (end - start) + "ms");
+                + " type: " + type + " Took: " + (end - start) + "ms");
       }
-
       if (_monitor != null) {
         _monitor.increaseCallbackCounters(end - start);
       }
@@ -424,7 +435,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           _manager.getInstanceName() + " subscribe data-change. path: " + path + ", listener: "
               + _listener);
       _zkClient.subscribeDataChanges(path, this);
-
     } else if (type == NotificationContext.Type.FINALIZE) {
       logger.info(
           _manager.getInstanceName() + " unsubscribe data-change. path: " + path + ", listener: "
@@ -462,9 +472,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           case CURRENT_STATE:
           case IDEAL_STATE:
           case EXTERNAL_VIEW:
-            case TARGET_EXTERNAL_VIEW:{
+          case TARGET_EXTERNAL_VIEW: {
             // check if bucketized
-            BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+            BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
             List<ZNRecord> records = baseAccessor.getChildren(path, null, 0);
             for (ZNRecord record : records) {
               HelixProperty property = new HelixProperty(record);
@@ -522,6 +532,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * exists
    */
   public void init() {
+    if (_batchModeEnabled) {
+      _batchProcessThread = new CallbackProcessor(this);
+      _batchProcessThread.start();
+    }
+
     updateNotificationTime(System.nanoTime());
     try {
       NotificationContext changeContext = new NotificationContext(_manager);
@@ -621,6 +636,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       changeContext.setType(NotificationContext.Type.FINALIZE);
       changeContext.setChangeType(_changeType);
       enqueueTask(changeContext);
+      if (_batchProcessThread != null) {
+        _batchProcessThread.interrupt();
+      }
     } catch (Exception e) {
       String msg = "Exception while resetting the listener:" + _listener;
       ZKExceptionHandler.getInstance().handle(msg, e);

@@ -145,12 +145,22 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
 
     System.setProperty("isAsyncBatchModeEnabled", "true");
 
-    final Listener listener = new Listener();
+    Listener listener = new Listener();
     addListeners(listener);
     updateConfigs();
     verifyBatchedListeners(listener);
 
     System.setProperty("isAsyncBatchModeEnabled", "false");
+    removeListeners(listener);
+
+    System.setProperty("helix.callbackhandler.isAsyncBatchModeEnabled", "true");
+
+    listener = new Listener();
+    addListeners(listener);
+    updateConfigs();
+    verifyBatchedListeners(listener);
+
+    System.setProperty("helix.callbackhandler.isAsyncBatchModeEnabled", "false");
     removeListeners(listener);
 
     System.out.println("END " + methodName + " at " + new Date(System.currentTimeMillis()));
@@ -221,8 +231,7 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
     Thread.sleep(50);
     Assert.assertTrue(result,
         "instance callbacks: " + listener._instanceConfigChangedCount + ", idealstate callbacks "
-            + listener._idealStateChangedCount + "\ninstance count: " + _numNode
-            + ", idealstate counts: " + _numResource);
+            + listener._idealStateChangedCount + "\ninstance count: " + _numNode + ", idealstate counts: " + _numResource);
   }
 
   private void verifyBatchedListeners(Listener batchListener) throws InterruptedException {

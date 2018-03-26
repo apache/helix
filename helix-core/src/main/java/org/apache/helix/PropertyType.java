@@ -26,7 +26,8 @@ enum Type {
   CLUSTER,
   INSTANCE,
   CONTROLLER,
-  RESOURCE
+  RESOURCE,
+  TASK
 }
 
 /**
@@ -61,7 +62,10 @@ public enum PropertyType {
   MAINTENANCE(Type.CONTROLLER, true, false, true),
   MESSAGES_CONTROLLER(Type.CONTROLLER, true, false, true),
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true),
-  ERRORS_CONTROLLER(Type.CONTROLLER, true, true, true);
+  ERRORS_CONTROLLER(Type.CONTROLLER, true, true, true),
+
+  // TASK PROPERTY
+  WORKFLOWCONTEXT(Type.TASK, true, false, false, false, false);
 
   // @formatter:on
 

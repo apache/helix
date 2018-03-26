@@ -36,10 +36,12 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
+import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.helix.PropertyType.*;
+
 
 /**
  * Utility mapping properties to their Zookeeper locations
@@ -63,6 +65,8 @@ public class PropertyPathBuilder {
     typeToClassMapping.put(HISTORY, LeaderHistory.class);
     typeToClassMapping.put(PAUSE, PauseSignal.class);
     typeToClassMapping.put(MAINTENANCE, MaintenanceSignal.class);
+    // TODO: Below must handle the case for future versions of Task Framework with a different path structure
+    typeToClassMapping.put(WORKFLOWCONTEXT, WorkflowContext.class);
 
     // @formatter:off
     addEntry(PropertyType.CONFIGS, 1, "/{clusterName}/CONFIGS");
@@ -127,6 +131,11 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.PAUSE, 1, "/{clusterName}/CONTROLLER/PAUSE");
     addEntry(PropertyType.MAINTENANCE, 1, "/{clusterName}/CONTROLLER/MAINTENANCE");
     // @formatter:on
+
+    // RESOURCE
+    // TODO: Below must handle the case for future versions of Task Framework with a different path structure
+    addEntry(PropertyType.WORKFLOWCONTEXT, 2,
+        "/{clusterName}/PROPERTYSTORE/TaskRebalancer/{workflowName}/Context");
 
   }
   static Pattern pattern = Pattern.compile("(\\{.+?\\})");

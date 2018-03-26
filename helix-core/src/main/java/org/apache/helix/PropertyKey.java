@@ -39,6 +39,7 @@ import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
+import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -312,7 +313,7 @@ public class PropertyKey {
     public PropertyKey instances() {
       return new PropertyKey(PropertyType.INSTANCES, null, _clusterName);
     }
-    
+
     /**
      * Get a property key associated with specified instance
      * @return {@link PropertyKey}
@@ -699,6 +700,16 @@ public class PropertyKey {
      */
     public PropertyKey healthReports(String instanceName) {
       return new PropertyKey(PropertyType.HEALTHREPORT, HealthStat.class, _clusterName, instanceName);
+    }
+
+    /**
+     * Get a property key associated with {@link WorkflowContext}
+     * TODO: Below must handle the case for future versions of Task Framework with a different path structure
+     * @param workflowName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey workflowContext(String workflowName) {
+      return new PropertyKey(PropertyType.WORKFLOWCONTEXT, WorkflowContext.class, _clusterName, workflowName);
     }
   }
 

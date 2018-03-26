@@ -191,15 +191,21 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   @Override
   public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory,
       int threadpoolSize) {
-    if (!factory.getMessageTypes().contains(type)) {
-      throw new HelixException("Message factory type mismatch. Type: " + type + ", factory: "
-          + factory.getMessageTypes());
+    if (factory instanceof  MultiTypeMessageHandlerFactory) {
+      if (!((MultiTypeMessageHandlerFactory) factory).getMessageTypes().contains(type)) {
+        throw new HelixException("Message factory type mismatch. Type: " + type + ", factory: "
+            + ((MultiTypeMessageHandlerFactory) factory).getMessageTypes());
+      }
+    } else {
+      if (!factory.getMessageType().equals(type)) {
+        throw new HelixException(
+            "Message factory type mismatch. Type: " + type + ", factory: " + factory.getMessageType());
+      }
     }
 
     _isShuttingDown = false;
 
-    MsgHandlerFactoryRegistryItem newItem =
-        new MsgHandlerFactoryRegistryItem(factory, threadpoolSize);
+    MsgHandlerFactoryRegistryItem newItem = new MsgHandlerFactoryRegistryItem(factory, threadpoolSize);
     MsgHandlerFactoryRegistryItem prevItem = _hdlrFtyRegistry.putIfAbsent(type, newItem);
     if (prevItem == null) {
       ExecutorService newPool = Executors.newFixedThreadPool(threadpoolSize, new ThreadFactory() {

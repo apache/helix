@@ -37,6 +37,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
 import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
@@ -125,7 +126,7 @@ public class TestDefaultMessagingService {
     }
   }
 
-  class TestMessageHandlerFactory implements MessageHandlerFactory {
+  class TestMessageHandlerFactory implements MultiTypeMessageHandlerFactory {
     class TestMessageHandler extends MessageHandler {
 
       public TestMessageHandler(Message message, NotificationContext context) {
@@ -170,7 +171,7 @@ public class TestDefaultMessagingService {
     }
   }
 
-  class TestStateTransitionHandlerFactory implements MessageHandlerFactory {
+  class TestStateTransitionHandlerFactory implements MultiTypeMessageHandlerFactory {
 
     @Override
     public MessageHandler createHandler(Message message, NotificationContext context) {

@@ -37,7 +37,7 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableList;
 
 public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
-  public static class TestMessagingHandlerFactory implements MessageHandlerFactory {
+  public static class TestMessagingHandlerFactory implements MultiTypeMessageHandlerFactory {
     public static HashSet<String> _processedMsgIds = new HashSet<String>();
 
     @Override
@@ -61,7 +61,7 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
 
   }
 
-  public static class TestMessagingHandlerFactory2 implements MessageHandlerFactory {
+  public static class TestMessagingHandlerFactory2 implements MultiTypeMessageHandlerFactory {
     public static HashSet<String> _processedMsgIds = new HashSet<String>();
 
     @Override

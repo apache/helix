@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
-public class AsyncCallbackService implements MessageHandlerFactory {
+public class AsyncCallbackService implements MultiTypeMessageHandlerFactory {
   private final ConcurrentHashMap<String, AsyncCallback> _callbackMap =
       new ConcurrentHashMap<String, AsyncCallback>();
   private static Logger _logger = LoggerFactory.getLogger(AsyncCallbackService.class);

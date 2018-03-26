@@ -28,6 +28,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +43,7 @@ import com.google.common.collect.ImmutableList;
  * and then disable the corresponding partition or the instance. More configs per resource will
  * be added to customize the controller behavior.
  */
-public class DefaultParticipantErrorMessageHandlerFactory implements MessageHandlerFactory {
+public class DefaultParticipantErrorMessageHandlerFactory implements MultiTypeMessageHandlerFactory {
   public enum ActionOnError {
     DISABLE_PARTITION,
     DISABLE_RESOURCE,

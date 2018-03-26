@@ -26,6 +26,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.slf4j.Logger;
@@ -33,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
-public class DefaultControllerMessageHandlerFactory implements MessageHandlerFactory {
+public class DefaultControllerMessageHandlerFactory implements MultiTypeMessageHandlerFactory {
   private static Logger _logger = LoggerFactory.getLogger(DefaultControllerMessageHandlerFactory.class);
 
   @Override

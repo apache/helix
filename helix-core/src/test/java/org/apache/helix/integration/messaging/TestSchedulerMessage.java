@@ -45,6 +45,7 @@ import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.Message;
@@ -81,7 +82,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
   TestMessagingHandlerFactory _factory = new TestMessagingHandlerFactory();
 
-  public static class TestMessagingHandlerFactory implements MessageHandlerFactory {
+  public static class TestMessagingHandlerFactory implements MultiTypeMessageHandlerFactory {
     public Map<String, Set<String>> _results = new ConcurrentHashMap<String, Set<String>>();
 
     @Override
@@ -133,7 +134,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     }
   }
 
-  public static class TestMessagingHandlerFactoryLatch implements MessageHandlerFactory {
+  public static class TestMessagingHandlerFactoryLatch implements MultiTypeMessageHandlerFactory {
     public volatile CountDownLatch _latch = new CountDownLatch(1);
     public int _messageCount = 0;
     public Map<String, Set<String>> _results = new ConcurrentHashMap<String, Set<String>>();

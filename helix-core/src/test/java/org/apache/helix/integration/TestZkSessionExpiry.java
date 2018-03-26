@@ -37,6 +37,7 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
@@ -71,7 +72,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
 
   }
 
-  static class DummyMessageHandlerFactory implements MessageHandlerFactory {
+  static class DummyMessageHandlerFactory implements MultiTypeMessageHandlerFactory {
     final Set<String> _handledMsgSet;
 
     public DummyMessageHandlerFactory(Set<String> handledMsgSet) {

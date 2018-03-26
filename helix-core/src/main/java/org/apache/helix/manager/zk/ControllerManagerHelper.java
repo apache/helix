@@ -28,6 +28,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,21 +54,21 @@ public class ControllerManagerHelper {
        * setup controller message listener and register message handlers
        */
       _manager.addControllerMessageListener(_messagingService.getExecutor());
-      MessageHandlerFactory defaultControllerMsgHandlerFactory =
+      MultiTypeMessageHandlerFactory defaultControllerMsgHandlerFactory =
           new DefaultControllerMessageHandlerFactory();
       for (String type : defaultControllerMsgHandlerFactory.getMessageTypes()) {
         _messagingService.getExecutor()
             .registerMessageHandlerFactory(type, defaultControllerMsgHandlerFactory);
       }
 
-      MessageHandlerFactory defaultSchedulerMsgHandlerFactory =
+      MultiTypeMessageHandlerFactory defaultSchedulerMsgHandlerFactory =
           new DefaultSchedulerMessageHandlerFactory(_manager);
       for (String type : defaultSchedulerMsgHandlerFactory.getMessageTypes()) {
         _messagingService.getExecutor()
             .registerMessageHandlerFactory(type, defaultSchedulerMsgHandlerFactory);
       }
 
-      MessageHandlerFactory defaultParticipantErrorMessageHandlerFactory =
+      MultiTypeMessageHandlerFactory defaultParticipantErrorMessageHandlerFactory =
           new DefaultParticipantErrorMessageHandlerFactory(_manager);
 
       for (String type : defaultParticipantErrorMessageHandlerFactory.getMessageTypes()) {

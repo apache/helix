@@ -40,6 +40,7 @@ import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StatusUpdate;
@@ -55,7 +56,7 @@ import com.google.common.collect.ImmutableList;
  * The current implementation supports throttling on STATE-TRANSITION type of message, transition SCHEDULED-COMPLETED.
  *
  */
-public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFactory {
+public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHandlerFactory {
   public static final String WAIT_ALL = "WAIT_ALL";
   public static final String SCHEDULER_MSG_ID = "SchedulerMessageId";
   public static final String SCHEDULER_TASK_QUEUE = "SchedulerTaskQueue";

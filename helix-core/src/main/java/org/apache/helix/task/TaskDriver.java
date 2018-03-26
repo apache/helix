@@ -66,6 +66,8 @@ public class TaskDriver {
   //
   // TODO Implement or configure the limitation in ZK server.
   private final static int DEFAULT_CONFIGS_LIMITATION = 10000;
+  private final static long TIMESTAMP_NOT_SET = -1L;
+  private final static String TASK_START_TIME_KEY = "START_TIME";
   protected int _configsLimitation = DEFAULT_CONFIGS_LIMITATION;
 
   private final HelixDataAccessor _accessor;
@@ -257,12 +259,12 @@ public class TaskDriver {
     deleteJobFromQueue(queue, job);
   }
 
-    /**
-     * delete a job from a scheduled (non-recurrent) queue.
-     *
-     * @param queue
-     * @param job
-     */
+  /**
+   * delete a job from a scheduled (non-recurrent) queue.
+   *
+   * @param queue
+   * @param job
+   */
 
   private void deleteJobFromQueue(final String queue, final String job) {
     WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_propertyStore, queue);
@@ -571,6 +573,52 @@ public class TaskDriver {
   }
 
   /**
+   * Public synchronized method to wait for a delete operation to fully complete with timeout.
+   * When this method returns, it means that a queue (workflow) has been completely deleted, meaning
+   * its IdealState, WorkflowConfig, and WorkflowContext have all been deleted.
+   *
+   * @param workflow workflow/jobqueue name
+   * @param timeout duration to give to delete operation to completion
+   */
+  public void deleteAndWaitForCompletion(String workflow, long timeout) throws InterruptedException {
+    delete(workflow);
+    long endTime = System.currentTimeMillis() + timeout;
+
+    // For checking whether delete completed
+    BaseDataAccessor baseDataAccessor = _accessor.getBaseDataAccessor();
+    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
+
+    String idealStatePath = keyBuilder.idealStates(workflow).getPath();
+    String workflowConfigPath = keyBuilder.resourceConfig(workflow).getPath();
+    String workflowContextPath = keyBuilder.workflowContext(workflow).getPath();
+
+    while (System.currentTimeMillis() <= endTime) {
+      if (baseDataAccessor.exists(idealStatePath, AccessOption.PERSISTENT)
+          || baseDataAccessor.exists(workflowConfigPath, AccessOption.PERSISTENT)
+          || baseDataAccessor.exists(workflowContextPath, AccessOption.PERSISTENT)) {
+        Thread.sleep(1000);
+      } else {
+        return;
+      }
+    }
+
+    // Deletion failed: check which step of deletion failed to complete and create an error message
+    StringBuilder failed = new StringBuilder();
+    if (baseDataAccessor.exists(idealStatePath, AccessOption.PERSISTENT)) {
+      failed.append("IdealState ");
+    }
+    if (baseDataAccessor.exists(workflowConfigPath, AccessOption.PERSISTENT)) {
+      failed.append("WorkflowConfig ");
+    }
+    if (baseDataAccessor.exists(workflowContextPath, AccessOption.PERSISTENT)) {
+      failed.append("WorkflowContext ");
+    }
+    throw new HelixException(String
+        .format("Failed to delete the workflow/queue %s within %d milliseconds. "
+            + "The following components still remain: %s", workflow, timeout, failed.toString()));
+  }
+
+  /**
    * Helper function to change target state for a given workflow
    */
   private void setWorkflowTargetState(String workflow, TargetState state) {
@@ -796,6 +844,41 @@ public class TaskDriver {
   public TaskState pollForJobState(String workflowName, String jobName, TaskState... states)
       throws InterruptedException {
     return pollForJobState(workflowName, jobName, _defaultTimeout, states);
+  }
+
+  /**
+   * This function returns the timestamp of the very last task that was scheduled. It is provided to help determine
+   * whether a given Workflow/Job/Task is stuck.
+   *
+   * @param workflowName The name of the workflow
+   * @return timestamp of the most recent job scheduled.
+   * -1L if timestamp is not set (either nothing is scheduled or no start time recorded).
+   */
+  public long getLastScheduledTaskTimestamp(String workflowName) {
+    long lastScheduledTaskTimestamp = TIMESTAMP_NOT_SET;
+
+    WorkflowContext workflowContext = getWorkflowContext(workflowName);
+    if (workflowContext != null) {
+      Map<String, TaskState> allJobStates = workflowContext.getJobStates();
+      for (String job : allJobStates.keySet()) {
+        if (!allJobStates.get(job).equals(TaskState.NOT_STARTED)) {
+          JobContext jobContext = getJobContext(job);
+          if (jobContext != null) {
+            Set<Integer> allPartitions = jobContext.getPartitionSet();
+            for (Integer partition : allPartitions) {
+              String startTime = jobContext.getMapField(partition).get(TASK_START_TIME_KEY);
+              if (startTime != null) {
+                long startTimeLong = Long.parseLong(startTime);
+                if (startTimeLong > lastScheduledTaskTimestamp) {
+                  lastScheduledTaskTimestamp = startTimeLong;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return lastScheduledTaskTimestamp;
   }
 
   /**

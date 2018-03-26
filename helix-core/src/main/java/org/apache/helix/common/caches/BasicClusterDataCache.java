@@ -19,12 +19,16 @@ package org.apache.helix.common.caches;
  * under the License.
  */
 
+import com.google.common.collect.Maps;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
@@ -102,6 +106,52 @@ public class BasicClusterDataCache {
       LOG.debug("ExternalViews: " + _externalViewMap);
       LOG.debug("InstanceConfigs: " + _instanceConfigMap);
     }
+  }
+
+  /**
+   * Selective update Helix Cache by version
+   * @param accessor the HelixDataAccessor
+   * @param reloadKeys keys needs to be reload
+   * @param cachedKeys keys already exists in the cache
+   * @param cachedPropertyMap cached map of propertykey -> property object
+   * @param <T> the type of metadata
+   * @return
+   */
+  public static  <T extends HelixProperty> Map<PropertyKey, T> updateReloadProperties(
+      HelixDataAccessor accessor, List<PropertyKey> reloadKeys, List<PropertyKey> cachedKeys,
+      Map<PropertyKey, T> cachedPropertyMap) {
+    // All new entries from zk not cached locally yet should be read from ZK.
+    Map<PropertyKey, T> refreshedPropertyMap = Maps.newHashMap();
+    List<HelixProperty.Stat> stats = accessor.getPropertyStats(cachedKeys);
+    for (int i = 0; i < cachedKeys.size(); i++) {
+      PropertyKey key = cachedKeys.get(i);
+      HelixProperty.Stat stat = stats.get(i);
+      if (stat != null) {
+        T property = cachedPropertyMap.get(key);
+        if (property != null && property.getBucketSize() == 0 && property.getStat().equals(stat)) {
+          refreshedPropertyMap.put(key, property);
+        } else {
+          // need update from zk
+          reloadKeys.add(key);
+        }
+      } else {
+        LOG.warn("Stat is null for key: " + key);
+        reloadKeys.add(key);
+      }
+    }
+
+    List<T> reloadedProperty = accessor.getProperty(reloadKeys, true);
+    Iterator<PropertyKey> reloadKeyIter = reloadKeys.iterator();
+    for (T property : reloadedProperty) {
+      PropertyKey key = reloadKeyIter.next();
+      if (property != null) {
+        refreshedPropertyMap.put(key, property);
+      } else {
+        LOG.warn("Reload property is null for key: " + key);
+      }
+    }
+
+    return refreshedPropertyMap;
   }
 
   /**

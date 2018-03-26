@@ -29,6 +29,7 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
@@ -124,42 +125,14 @@ public class CurrentStateCache {
     List<PropertyKey> cachedKeys = Lists.newLinkedList(_currentStateCache.keySet());
     cachedKeys.retainAll(currentStateKeys);
 
-    List<HelixProperty.Stat> stats = accessor.getPropertyStats(cachedKeys);
-    Map<PropertyKey, CurrentState> currentStatesMap = Maps.newHashMap();
-    for (int i = 0; i < cachedKeys.size(); i++) {
-      PropertyKey key = cachedKeys.get(i);
-      HelixProperty.Stat stat = stats.get(i);
-      if (stat != null) {
-        CurrentState property = _currentStateCache.get(key);
-        if (property != null && property.getBucketSize() == 0 && property.getStat().equals(stat)) {
-          currentStatesMap.put(key, property);
-        } else {
-          // need update from zk
-          reloadKeys.add(key);
-        }
-      } else {
-        LOG.warn("stat is null for key: " + key);
-        reloadKeys.add(key);
-      }
-    }
+    _currentStateCache = Collections.unmodifiableMap(BasicClusterDataCache
+        .updateReloadProperties(accessor, reloadKeys, cachedKeys, _currentStateCache));
 
-    List<CurrentState> currentStates = accessor.getProperty(reloadKeys, true);
-    Iterator<PropertyKey> csKeyIter = reloadKeys.iterator();
-    for (CurrentState currentState : currentStates) {
-      PropertyKey key = csKeyIter.next();
-      if (currentState != null) {
-        currentStatesMap.put(key, currentState);
-      } else {
-        LOG.warn("CurrentState null for key: " + key);
-      }
-    }
-
-    _currentStateCache = Collections.unmodifiableMap(currentStatesMap);
-
-    LOG.info("# of CurrentStates reload: " + reloadKeys.size() + ", skipped:" + (currentStateKeys.size()
-        - reloadKeys.size()));
-    LOG.info("Takes " + (System.currentTimeMillis() - start) + " ms to reload new current states for cluster: "
-        + _clusterName);
+    LOG.info(
+        "# of CurrentStates reload: " + reloadKeys.size() + ", skipped:" + (currentStateKeys.size()
+            - reloadKeys.size()));
+    LOG.info("Takes " + (System.currentTimeMillis() - start)
+        + " ms to reload new current states for cluster: " + _clusterName);
   }
 
   /**

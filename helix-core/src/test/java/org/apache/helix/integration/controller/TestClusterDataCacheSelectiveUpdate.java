@@ -65,10 +65,10 @@ public class TestClusterDataCacheSelectiveUpdate extends ZkStandAloneCMTestBase 
     Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 1);
 
     accessor.clearReadCounters();
-    // refresh again should read only idealstates.
+    // refresh again should read nothing as ideal state is same
     cache.notifyDataChange(HelixConstants.ChangeType.IDEAL_STATE);
     cache.refresh(accessor);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.IDEALSTATES), 1);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.IDEALSTATES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 1);
@@ -116,9 +116,24 @@ public class TestClusterDataCacheSelectiveUpdate extends ZkStandAloneCMTestBase 
 
     accessor.clearReadCounters();
 
-    // refresh again should read only new current states
+    // refresh again should read only new current states and new idealstate
+    cache.notifyDataChange(HelixConstants.ChangeType.IDEAL_STATE);
     cache.refresh(accessor);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), NODE_NR);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.IDEALSTATES), 1);
+
+    // Add more resources
+    accessor.clearReadCounters();
+
+    _setupTool.addResourceToCluster(CLUSTER_NAME, "TestDB_2", _PARTITIONS, STATE_MODEL);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_2", _replica);
+    _setupTool.addResourceToCluster(CLUSTER_NAME, "TestDB_3", _PARTITIONS, STATE_MODEL);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_3", _replica);
+
+    // Totally four resources. Two of them are newly added.
+    cache.notifyDataChange(HelixConstants.ChangeType.IDEAL_STATE);
+    cache.refresh(accessor);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.IDEALSTATES), 2);
   }
 
 

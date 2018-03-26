@@ -826,6 +826,10 @@ public class ClusterDataCache {
     return _isMaintenanceModeEnabled;
   }
 
+  public void clearMonitoringRecords() {
+    _missingTopStateMap.clear();
+  }
+
   /**
    * toString method to print the entire cluster state
    */

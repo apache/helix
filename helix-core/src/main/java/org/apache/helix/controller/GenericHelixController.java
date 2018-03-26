@@ -792,6 +792,10 @@ public class GenericHelixController implements IdealStateChangeListener,
         // monitoring state changed
         if (enable) {
           logger.info("Enable clusterStatusMonitor for cluster " + _clusterName);
+          // Clear old cached monitoring related data to avoid reporting stats cross different
+          // leadership periods
+          _cache.clearMonitoringRecords();
+          _taskCache.clearMonitoringRecords();
           _clusterStatusMonitor.active();
         } else {
           logger.info("Disable clusterStatusMonitor for cluster " + _clusterName);

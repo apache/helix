@@ -40,7 +40,6 @@ import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
-import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.model.builder.IdealStateBuilder;
 import org.slf4j.Logger;
@@ -73,6 +72,10 @@ public class WorkflowRebalancer extends TaskRebalancer {
       workflowCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
       workflowCtx.setStartTime(System.currentTimeMillis());
       workflowCtx.setName(workflow);
+      // Initialize all job states belonging to this workflow context to NOT_STARTED
+      for (String jobState : workflowCtx.getJobStates().keySet()) {
+        workflowCtx.setJobState(jobState, TaskState.NOT_STARTED);
+      }
       LOG.debug("Workflow context is created for " + workflow);
     }
 
@@ -180,7 +183,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
       if (workflowCfg.isJobQueue() && scheduledJobs >= workflowCfg.getParallelJobs()) {
         LOG.debug(String.format("Workflow %s already have enough job in progress, "
-                + "scheduledJobs(s)=%d, stop scheduling more jobs", workflow, scheduledJobs));
+            + "scheduledJobs(s)=%d, stop scheduling more jobs", workflow, scheduledJobs));
         break;
       }
 

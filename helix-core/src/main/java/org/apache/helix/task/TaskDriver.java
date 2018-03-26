@@ -257,12 +257,12 @@ public class TaskDriver {
     deleteJobFromQueue(queue, job);
   }
 
-    /**
-     * delete a job from a scheduled (non-recurrent) queue.
-     *
-     * @param queue
-     * @param job
-     */
+  /**
+   * delete a job from a scheduled (non-recurrent) queue.
+   *
+   * @param queue
+   * @param job
+   */
 
   private void deleteJobFromQueue(final String queue, final String job) {
     WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_propertyStore, queue);
@@ -568,6 +568,52 @@ public class TaskDriver {
         }
       }
     }
+  }
+
+  /**
+   * Public synchronized method to wait for a delete operation to fully complete with timeout.
+   * When this method returns, it means that a queue (workflow) has been completely deleted, meaning
+   * its IdealState, WorkflowConfig, and WorkflowContext have all been deleted.
+   *
+   * @param workflow workflow/jobqueue name
+   * @param timeout duration to give to delete operation to completion
+   */
+  public void deleteAndWaitForCompletion(String workflow, long timeout) throws InterruptedException {
+    delete(workflow);
+    long endTime = System.currentTimeMillis() + timeout;
+
+    // For checking whether delete completed
+    BaseDataAccessor baseDataAccessor = _accessor.getBaseDataAccessor();
+    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
+
+    String idealStatePath = keyBuilder.idealStates(workflow).getPath();
+    String workflowConfigPath = keyBuilder.resourceConfig(workflow).getPath();
+    String workflowContextPath = keyBuilder.workflowContext(workflow).getPath();
+
+    while (System.currentTimeMillis() <= endTime) {
+      if (baseDataAccessor.exists(idealStatePath, AccessOption.PERSISTENT)
+          || baseDataAccessor.exists(workflowConfigPath, AccessOption.PERSISTENT)
+          || baseDataAccessor.exists(workflowContextPath, AccessOption.PERSISTENT)) {
+        Thread.sleep(1000);
+      } else {
+        return;
+      }
+    }
+
+    // Deletion failed: check which step of deletion failed to complete and create an error message
+    StringBuilder failed = new StringBuilder();
+    if (baseDataAccessor.exists(idealStatePath, AccessOption.PERSISTENT)) {
+      failed.append("IdealState ");
+    }
+    if (baseDataAccessor.exists(workflowConfigPath, AccessOption.PERSISTENT)) {
+      failed.append("WorkflowConfig ");
+    }
+    if (baseDataAccessor.exists(workflowContextPath, AccessOption.PERSISTENT)) {
+      failed.append("WorkflowContext ");
+    }
+    throw new HelixException(String
+        .format("Failed to delete the workflow/queue %s within %d milliseconds. "
+            + "The following components still remain: %s", workflow, timeout, failed.toString()));
   }
 
   /**

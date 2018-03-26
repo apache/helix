@@ -21,10 +21,20 @@ package org.apache.helix.rest.server;
 
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -32,12 +42,14 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.rest.server.resources.helix.ResourceAccessor;
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestResourceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
   private final static String RESOURCE_NAME = CLUSTER_NAME + "_db_0";
+  private final static String ANY_INSTANCE = "ANY_LIVEINSTANCE";
 
   @Test
   public void testGetResources() throws IOException {
@@ -138,6 +150,159 @@ public class TestResourceAccessor extends AbstractTestClass {
         .getResourceExternalView(CLUSTER_NAME, RESOURCE_NAME));
   }
 
+  @Test
+  public void testPartitionHealth() throws Exception {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    String clusterName = "TestCluster_1";
+    String resourceName = clusterName + "_db_0";
+
+    // Use mock numbers for testing
+    Map<String, String> idealStateParams = new HashMap<>();
+    idealStateParams.put("MinActiveReplicas", "2");
+    idealStateParams.put("StateModelDefRef", "MasterSlave");
+    idealStateParams.put("MaxPartitionsPerInstance", "3");
+    idealStateParams.put("Replicas", "3");
+    idealStateParams.put("NumPartitions", "3");
+
+    // Create a mock state mapping for testing
+    Map<String, List<String>> partitionReplicaStates = new LinkedHashMap<>();
+    String[] p0 = {"MASTER", "SLAVE", "SLAVE"};
+    String[] p1 = {"MASTER", "SLAVE", "ERROR"};
+    String[] p2 = {"ERROR", "SLAVE", "SLAVE"};
+    partitionReplicaStates.put("p0", Arrays.asList(p0));
+    partitionReplicaStates.put("p1", Arrays.asList(p1));
+    partitionReplicaStates.put("p2", Arrays.asList(p2));
+
+    createDummyMapping(clusterName, resourceName, idealStateParams, partitionReplicaStates);
+
+    // Get the result of getPartitionHealth
+    String body = get("clusters/" + clusterName + "/resources/" + resourceName + "/health",
+        Response.Status.OK.getStatusCode(), true);
+
+    JsonNode node = OBJECT_MAPPER.readTree(body);
+    Map<String, String> healthStatus = OBJECT_MAPPER.readValue(node, new TypeReference<Map<String, String>>(){});
+
+    Assert.assertEquals(healthStatus.get("p0"), "HEALTHY");
+    Assert.assertEquals(healthStatus.get("p1"), "PARTIAL_HEALTHY");
+    Assert.assertEquals(healthStatus.get("p2"), "UNHEALTHY");
+  }
+
+  @Test(dependsOnMethods = "testPartitionHealth")
+  public void testResourceHealth() throws Exception {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    String clusterName = "TestCluster_1";
+    Map<String, String> idealStateParams = new HashMap<>();
+    idealStateParams.put("MinActiveReplicas", "2");
+    idealStateParams.put("StateModelDefRef", "MasterSlave");
+    idealStateParams.put("MaxPartitionsPerInstance", "3");
+    idealStateParams.put("Replicas", "3");
+    idealStateParams.put("NumPartitions", "3");
+
+    // Create a healthy resource
+    String resourceNameHealthy = clusterName + "_db_0";
+    Map<String, List<String>> partitionReplicaStates = new LinkedHashMap<>();
+    String[] p0 = {"MASTER", "SLAVE", "SLAVE"};
+    String[] p1 = {"MASTER", "SLAVE", "SLAVE"};
+    String[] p2 = {"MASTER", "SLAVE", "SLAVE"};
+    partitionReplicaStates.put("p0", Arrays.asList(p0));
+    partitionReplicaStates.put("p1", Arrays.asList(p1));
+    partitionReplicaStates.put("p2", Arrays.asList(p2));
+
+    createDummyMapping(clusterName, resourceNameHealthy, idealStateParams, partitionReplicaStates);
+
+    // Create a partially healthy resource
+    String resourceNamePartiallyHealthy = clusterName + "_db_1";
+    Map<String, List<String>> partitionReplicaStates_1 = new LinkedHashMap<>();
+    String[] p0_1 = {"MASTER", "SLAVE", "SLAVE"};
+    String[] p1_1 = {"MASTER", "SLAVE", "SLAVE"};
+    String[] p2_1 = {"MASTER", "SLAVE", "ERROR"};
+    partitionReplicaStates_1.put("p0", Arrays.asList(p0_1));
+    partitionReplicaStates_1.put("p1", Arrays.asList(p1_1));
+    partitionReplicaStates_1.put("p2", Arrays.asList(p2_1));
+
+    createDummyMapping(clusterName, resourceNamePartiallyHealthy, idealStateParams, partitionReplicaStates_1);
+
+    // Create a partially healthy resource
+    String resourceNameUnhealthy = clusterName + "_db_2";
+    Map<String, List<String>> partitionReplicaStates_2 = new LinkedHashMap<>();
+    String[] p0_2 = {"MASTER", "SLAVE", "SLAVE"};
+    String[] p1_2 = {"MASTER", "SLAVE", "SLAVE"};
+    String[] p2_2 = {"ERROR", "SLAVE", "ERROR"};
+    partitionReplicaStates_2.put("p0", Arrays.asList(p0_2));
+    partitionReplicaStates_2.put("p1", Arrays.asList(p1_2));
+    partitionReplicaStates_2.put("p2", Arrays.asList(p2_2));
+
+    createDummyMapping(clusterName, resourceNameUnhealthy, idealStateParams, partitionReplicaStates_2);
+
+    // Get the result of getResourceHealth
+    String body = get("clusters/" + clusterName + "/resources/health", Response.Status.OK.getStatusCode(),
+        true);
+
+    JsonNode node = OBJECT_MAPPER.readTree(body);
+    Map<String, String> healthStatus = OBJECT_MAPPER.readValue(node, new TypeReference<Map<String, String>>(){});
+
+    Assert.assertEquals(healthStatus.get(resourceNameHealthy), "HEALTHY");
+    Assert.assertEquals(healthStatus.get(resourceNamePartiallyHealthy), "PARTIAL_HEALTHY");
+    Assert.assertEquals(healthStatus.get(resourceNameUnhealthy), "UNHEALTHY");
+  }
+
+  /**
+   * Creates a setup where the health API can be tested.
+   *
+   * @param clusterName
+   * @param resourceName
+   * @param idealStateParams
+   * @param partitionReplicaStates maps partitionName to its replicas' states
+   * @throws Exception
+   */
+  private void createDummyMapping(String clusterName, String resourceName,
+      Map<String, String> idealStateParams,
+      Map<String, List<String>> partitionReplicaStates) throws Exception {
+    IdealState idealState = new IdealState(resourceName);
+    idealState.setMinActiveReplicas(Integer.parseInt(idealStateParams.get("MinActiveReplicas"))); // 2
+    idealState.setStateModelDefRef(idealStateParams.get("StateModelDefRef")); // MasterSlave
+    idealState.setMaxPartitionsPerInstance(Integer.parseInt(idealStateParams.get("MaxPartitionsPerInstance"))); // 3
+    idealState.setReplicas(idealStateParams.get("Replicas")); // 3
+    idealState.setNumPartitions(Integer.parseInt(idealStateParams.get("NumPartitions"))); // 3
+    idealState.enable(false);
+
+    Map<String, List<String>> partitionNames = new LinkedHashMap<>();
+    List<String> dummyPrefList = new ArrayList<>();
+
+    for (int i = 0; i < Integer.parseInt(idealStateParams.get("MaxPartitionsPerInstance")); i++) {
+      dummyPrefList.add(ANY_INSTANCE);
+      partitionNames.put("p" + i, dummyPrefList);
+    }
+    idealState.getRecord().getListFields().putAll(partitionNames);
+
+    if (!_gSetupTool.getClusterManagementTool().getClusters().contains(clusterName)) {
+      _gSetupTool.getClusterManagementTool().addCluster(clusterName);
+    }
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(clusterName, resourceName, idealState);
+
+    // Set ExternalView's replica states for a given parameter map
+    ExternalView externalView = new ExternalView(resourceName);
+
+    Map<String, Map<String, String>> mappingCurrent = new LinkedHashMap<>();
+
+    List<String> partitionReplicaStatesList = new ArrayList<>(partitionReplicaStates.keySet());
+    for (int k = 0; k < partitionReplicaStatesList.size(); k++) {
+      Map<String, String> replicaStatesForPartition = new LinkedHashMap<>();
+      List<String> replicaStateList = partitionReplicaStates.get(partitionReplicaStatesList.get(k));
+      for (int i = 0; i < replicaStateList.size(); i++) {
+        replicaStatesForPartition.put("r" + i, replicaStateList.get(i));
+      }
+      mappingCurrent.put("p" + k, replicaStatesForPartition);
+    }
+
+    externalView.getRecord().getMapFields().putAll(mappingCurrent);
+
+    HelixManager helixManager = HelixManagerFactory
+        .getZKHelixManager(clusterName, "p1", InstanceType.ADMINISTRATOR, ZK_ADDR);
+    helixManager.connect();
+    HelixDataAccessor helixDataAccessor = helixManager.getHelixDataAccessor();
+    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().externalView(resourceName), externalView);
+  }
 }
-
-

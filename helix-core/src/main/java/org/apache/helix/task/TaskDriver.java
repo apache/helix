@@ -66,6 +66,8 @@ public class TaskDriver {
   //
   // TODO Implement or configure the limitation in ZK server.
   private final static int DEFAULT_CONFIGS_LIMITATION = 10000;
+  private final static long TIMESTAMP_NOT_SET = -1L;
+  private final static String TASK_START_TIME_KEY = "START_TIME";
   protected int _configsLimitation = DEFAULT_CONFIGS_LIMITATION;
 
   private final HelixDataAccessor _accessor;
@@ -842,6 +844,41 @@ public class TaskDriver {
   public TaskState pollForJobState(String workflowName, String jobName, TaskState... states)
       throws InterruptedException {
     return pollForJobState(workflowName, jobName, _defaultTimeout, states);
+  }
+
+  /**
+   * This function returns the timestamp of the very last task that was scheduled. It is provided to help determine
+   * whether a given Workflow/Job/Task is stuck.
+   *
+   * @param workflowName The name of the workflow
+   * @return timestamp of the most recent job scheduled.
+   * -1L if timestamp is not set (either nothing is scheduled or no start time recorded).
+   */
+  public long getLastScheduledTaskTimestamp(String workflowName) {
+    long lastScheduledTaskTimestamp = TIMESTAMP_NOT_SET;
+
+    WorkflowContext workflowContext = getWorkflowContext(workflowName);
+    if (workflowContext != null) {
+      Map<String, TaskState> allJobStates = workflowContext.getJobStates();
+      for (String job : allJobStates.keySet()) {
+        if (!allJobStates.get(job).equals(TaskState.NOT_STARTED)) {
+          JobContext jobContext = getJobContext(job);
+          if (jobContext != null) {
+            Set<Integer> allPartitions = jobContext.getPartitionSet();
+            for (Integer partition : allPartitions) {
+              String startTime = jobContext.getMapField(partition).get(TASK_START_TIME_KEY);
+              if (startTime != null) {
+                long startTimeLong = Long.parseLong(startTime);
+                if (startTimeLong > lastScheduledTaskTimestamp) {
+                  lastScheduledTaskTimestamp = startTimeLong;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return lastScheduledTaskTimestamp;
   }
 
   /**

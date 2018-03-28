@@ -137,29 +137,23 @@ public class ClusterDataCache {
    * @return
    */
   public synchronized boolean refresh(HelixDataAccessor accessor) {
-    LOG.info("START: ClusterDataCache.refresh()");
     long startTime = System.currentTimeMillis();
     Builder keyBuilder = accessor.keyBuilder();
 
     if (_propertyDataChangedMap.get(ChangeType.IDEAL_STATE)) {
-      long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(ChangeType.IDEAL_STATE, Boolean.valueOf(false));
       clearCachedResourceAssignments();
       _idealStateCacheMap = refreshIdealStates(accessor);
-      if (LOG.isInfoEnabled()) {
-        LOG.info("Reload IdealStates: " + _idealStateCacheMap.keySet() + ". Takes " + (
-            System.currentTimeMillis() - start) + " ms");
-      }
     }
 
     if (_propertyDataChangedMap.get(ChangeType.LIVE_INSTANCE)) {
+      long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
       clearCachedResourceAssignments();
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances(), true);
       _updateInstanceOfflineTime = true;
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Reload LiveInstances: " + _liveInstanceCacheMap.keySet());
-      }
+      LOG.info("Refresh LiveInstances for cluster " + _clusterName + ", took " + (
+          System.currentTimeMillis() - startTime) + " ms");
     }
 
     if (_propertyDataChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
@@ -233,6 +227,7 @@ public class ClusterDataCache {
         for (LiveInstance instance : _liveInstanceMap.values()) {
           LOG.debug("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
         }
+      LOG.debug("IdealStates: " + _idealStateMap.keySet());
       LOG.debug("ResourceConfigs: " + _resourceConfigMap.keySet());
       LOG.debug("InstanceConfigs: " + _instanceConfigMap.keySet());
       LOG.debug("ClusterConfigs: " + _clusterConfig);
@@ -673,13 +668,14 @@ public class ClusterDataCache {
   }
 
   private Map<String, IdealState> refreshIdealStates(HelixDataAccessor accessor) {
+    long startTime = System.currentTimeMillis();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    List<PropertyKey> currentIdealStateKeys = new ArrayList<>();
+    Set<PropertyKey> currentIdealStateKeys = new HashSet<>();
     for (String idealState : accessor.getChildNames(keyBuilder.idealStates())) {
       currentIdealStateKeys.add(keyBuilder.idealStates(idealState));
     }
 
-    List<PropertyKey> cachedKeys = new ArrayList<>();
+    Set<PropertyKey> cachedKeys = new HashSet<>();
     Map<PropertyKey, IdealState> cachedIdealStateMap = Maps.newHashMap();
     for (String idealState : _idealStateCacheMap.keySet()) {
       cachedKeys.add(keyBuilder.idealStates(idealState));
@@ -688,15 +684,20 @@ public class ClusterDataCache {
     }
     cachedKeys.retainAll(currentIdealStateKeys);
 
-    List<PropertyKey> reloadKeys = new LinkedList<>(currentIdealStateKeys);
+    Set<PropertyKey> reloadKeys = new HashSet<>(currentIdealStateKeys);
     reloadKeys.removeAll(cachedKeys);
 
     Map<PropertyKey, IdealState> updatedMap = BasicClusterDataCache
-        .updateReloadProperties(accessor, reloadKeys, cachedKeys, cachedIdealStateMap);
+        .updateReloadProperties(accessor, new LinkedList<>(reloadKeys),
+            new ArrayList<>(cachedKeys), cachedIdealStateMap);
     Map<String, IdealState> newIdealStateMap = Maps.newHashMap();
     for (IdealState idealState : updatedMap.values()) {
       newIdealStateMap.put(idealState.getResourceName(), idealState);
     }
+
+    long endTime = System.currentTimeMillis();
+    LOG.info("Refresh idealStates for cluster " + _clusterName + ", took " + (endTime
+        - startTime) + " ms");
 
     return Collections.unmodifiableMap(newIdealStateMap);
   }

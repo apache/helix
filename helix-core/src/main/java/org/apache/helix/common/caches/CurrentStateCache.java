@@ -19,17 +19,16 @@ package org.apache.helix.common.caches;
  * under the License.
  */
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
@@ -62,11 +61,9 @@ public class CurrentStateCache {
    */
   public boolean refresh(HelixDataAccessor accessor,
       Map<String, LiveInstance> liveInstanceMap) {
-    LOG.info("START: CurrentStateCache.refresh()");
     long startTime = System.currentTimeMillis();
 
     refreshCurrentStatesCache(accessor, liveInstanceMap);
-
     Map<String, Map<String, Map<String, CurrentState>>> allCurStateMap = new HashMap<>();
     for (PropertyKey key : _currentStateCache.keySet()) {
       CurrentState currentState = _currentStateCache.get(key);
@@ -107,7 +104,7 @@ public class CurrentStateCache {
     long start = System.currentTimeMillis();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    List<PropertyKey> currentStateKeys = Lists.newLinkedList();
+    Set<PropertyKey> currentStateKeys = new HashSet<>();
     for (String instanceName : liveInstanceMap.keySet()) {
       LiveInstance liveInstance = liveInstanceMap.get(instanceName);
       String sessionId = liveInstance.getSessionId();
@@ -117,22 +114,22 @@ public class CurrentStateCache {
         currentStateKeys.add(keyBuilder.currentState(instanceName, sessionId, currentStateName));
       }
     }
-
     // All new entries from zk not cached locally yet should be read from ZK.
-    List<PropertyKey> reloadKeys = Lists.newLinkedList(currentStateKeys);
+    Set<PropertyKey> reloadKeys = new HashSet<>(currentStateKeys);
     reloadKeys.removeAll(_currentStateCache.keySet());
 
-    List<PropertyKey> cachedKeys = Lists.newLinkedList(_currentStateCache.keySet());
+    Set<PropertyKey> cachedKeys = new HashSet<>(_currentStateCache.keySet());
     cachedKeys.retainAll(currentStateKeys);
 
     _currentStateCache = Collections.unmodifiableMap(BasicClusterDataCache
-        .updateReloadProperties(accessor, reloadKeys, cachedKeys, _currentStateCache));
+        .updateReloadProperties(accessor, new ArrayList<>(reloadKeys), new ArrayList<>(cachedKeys),
+            _currentStateCache));
 
-    LOG.info(
-        "# of CurrentStates reload: " + reloadKeys.size() + ", skipped:" + (currentStateKeys.size()
-            - reloadKeys.size()));
-    LOG.info("Takes " + (System.currentTimeMillis() - start)
-        + " ms to reload new current states for cluster: " + _clusterName);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("# of CurrentStates reload: " + reloadKeys.size() + ", skipped:" + (
+          currentStateKeys.size() - reloadKeys.size()) + ". took " + (System.currentTimeMillis()
+          - start) + " ms to reload new current states for cluster: " + _clusterName);
+    }
   }
 
   /**

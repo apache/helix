@@ -416,10 +416,10 @@ public class GenericHelixController implements IdealStateChangeListener,
       _continousRebalanceFailureCount = 0;
     }
     long endTime = System.currentTimeMillis();
-    logger.info(
-        "END: Invoking " + getPipelineType(cache.isTaskCache()) + " controller pipeline for event: "
-            + event.getEventType() + " for cluster " + manager.getClusterName() + ", took " + (
-            endTime - startTime) + " ms");
+    logger.info(String
+        .format("END: Invoking %s controller pipeline for event: %s for cluster %s, took %d ms",
+            getPipelineType(cache.isTaskCache()), event.getEventType(), manager.getClusterName(),
+            (endTime - startTime)));
 
     if (!cache.isTaskCache()) {
       // report event process durations

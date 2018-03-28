@@ -54,9 +54,6 @@ public class Pipeline {
     }
     for (Stage stage : _stages) {
       long startTime = System.currentTimeMillis();
-      logger.info(String
-          .format("START %s for %s pipeline for cluster %s", stage.getStageName(), _pipelineType,
-              event.getClusterName()));
 
       stage.preProcess();
       stage.process(event);

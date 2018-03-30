@@ -44,6 +44,7 @@ under the License.
     <module>0.7.0-incubating</module>
     <module>0.7.1</module>
     <module>0.8.0</module>
+    <module>0.8.1</module>
   </modules>
 
   <properties>

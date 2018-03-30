@@ -1,0 +1,135 @@
+ -----
+ Release Notes for Apache Helix 0.8.1
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 0.8.1
+
+  The Apache Helix team would like to announce the release of Apache Helix 0.8.1.
+
+  This is the thirteenth release under the Apache umbrella, and the ninth as a top-level project.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
+
+  In this release, Helix provides several performance improvements for rebalance pipeline:
+
+[]
+
+* Key Note for Helix Release
+
+** Selective Update for IdealState and CurrentState.
+
+    Existing rebalance cluster data cache reload all the idealstates and current states, whichever has been changed or not. This improvement reduced the number of unnecessary read from Zookeeper and accelerated the process speed for data refresh.    
+
+** Helix Callback Handling
+
+    * Improve CallbackHandler by avoiding redundant re-subscription for data change event. Resubscribe to Zookeeeper changes only happened when there is any child got changed.
+
+    * Add new config name for batch callback handling in CallbackHandler
+
+    * Support configurable data prefetch in ZkClient during subscribe event change.    
+
+** Improve rebalance pipeline computation
+
+    * All the ExternalViews are produced by Helix Controller. In this case, there is no need to read these ExternalViews back from Zookeeper as Helix Controller has the latest information. One of the improvement is trying to avoid read data back from Zookeeper but cache it locally.
+
+    * Anoher improvement is precomputing disabled instance set + disabled partition for instance set instead of deriving data when it is required.
+
+[]
+
+* Detailed Changes
+
+** New Features
+
+    * [HELIX-684] Add health status API in ResourceAccessor
+
+    * [HELIX-687] Add synchronized delete for workflows
+
+    * [HELIX-688] Add method that returns start time of the most recent task scheduled
+
+    * Support RoutingTableProvider for TargetExternalView
+
+    * Allow to get all resources from RoutingTableProvider class
+
+    * Add RoutingTableSnapshot class to hold a snapshot of routing table information and provide API to return RoutingTableSnapshot from RoutingTableProvider
+
+    * Support RoutingTableChangeListener in RoutingTableProvider
+
+    * Support Workflow level timeout feature
+
+    * Support new API for getProperty and get that option to throw exception if one of batched get operation is failed.
+
+** Bug Fixes
+
+    * [HELIX-676] Fix the issue that the controller keep updating idealstates when there is no real diff
+
+    * [HELIX-681] don't fail state transition task if we fail to remove message or send out relay message
+
+    * Fix issue in reporting MissingMinActiveReplicaPartitionGauge metric in ResourceMonitor when there is no IdealMapping persisted in IdealState
+
+    * Fix the job parents listing logic in REST
+
+    * Fix Job level timeout not timeout jobs and refactor logics
+
+    * Fix allowed down instance number set to 0 does not trigger Controller entering maintenance mode
+
+    * Fix a bug in AutoRebalancer that it fails to compute ideal mapping if "ANY_LIVEINSTANCE" is specified as the replica
+
+    * Fix a bug when controller handles relay message timeout, and print out log when controller ignores some relay messages
+
+    * Fix NPE for RoutingTableProvider listener
+
+    * Fix Timeout scheduling issue.
+
+
+** Improvements
+
+    * [HELIX-678] Clear controller event queue when it is shutdown or no longer the leader
+
+    * [HELIX-679] consolidate semantics of recursively delete path in ZkClient
+
+    * [HELIX-682] controller should delete obsolete messages with timeout to unblock state transition
+
+    * [HELIX-685] Set job state to NOT_STARTED at job creation in WorkflowRebalancer
+
+    * Avoid redundant calculation for disabled instances
+
+    * Change RoutingTableProvider to support direct aggregating routing information from CurrentStates in each liveinstance
+
+    * Retrieve cached idealMappings for all Rebalancers (AutoRebalancer, DelayedRebalancer and CustomRebalancer) for any rebalance strategies
+
+    * Persist preferenceLists into TargetExternalView
+
+    * Including version number in Participant and Controller history, and add additional logs
+
+    * CallbackHandler to use either java config property or class annotation to enable batch callback handling
+
+    * Remove empty resource entry if there is no partition disabled for this instance
+
+    * Fail rebalance pipeline and retry if the data load from zookeeper fails in any read/batch-read calls.
+
+
+[]
+
+Cheers,
+--
+The Apache Helix Team

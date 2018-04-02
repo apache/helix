@@ -174,8 +174,10 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
 
     // If there is any parent job not started, this job should not be scheduled
     if (notStartedCount > 0) {
-      LOG.debug(String
-          .format("Job %s is not ready to start, notStartedParent(s)=%d.", job, notStartedCount));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(String
+            .format("Job %s is not ready to start, notStartedParent(s)=%d.", job, notStartedCount));
+      }
       return false;
     }
 
@@ -188,24 +190,30 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     }
     if (failedOrTimeoutCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
       markJobFailed(job, null, workflowCfg, workflowCtx, jobConfigMap);
-      LOG.debug(
-          String.format("Job %s is not ready to start, failedCount(s)=%d.", job, failedOrTimeoutCount));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(String
+            .format("Job %s is not ready to start, failedCount(s)=%d.", job, failedOrTimeoutCount));
+      }
       return false;
     }
 
     if (workflowCfg.isJobQueue()) {
       // If job comes from a JobQueue, it should apply the parallel job logics
       if (incompleteAllCount >= workflowCfg.getParallelJobs()) {
-        LOG.debug(String.format("Job %s is not ready to schedule, inCompleteJobs(s)=%d.", job,
-            incompleteAllCount));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(String.format("Job %s is not ready to schedule, inCompleteJobs(s)=%d.", job,
+              incompleteAllCount));
+        }
         return false;
       }
     } else {
       // If this job comes from a generic workflow, job will not be scheduled until
       // all the direct parent jobs finished
       if (incompleteParentCount > 0) {
-        LOG.debug(String.format("Job %s is not ready to start, notFinishedParent(s)=%d.", job,
-            incompleteParentCount));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(String.format("Job %s is not ready to start, notFinishedParent(s)=%d.", job,
+              incompleteParentCount));
+        }
         return false;
       }
     }

@@ -271,8 +271,11 @@ public class JobRebalancer extends TaskRebalancer {
         getPrevInstanceToTaskAssignments(liveInstances, prevTaskToInstanceStateAssignment, allPartitions);
     long currentTime = System.currentTimeMillis();
 
-    LOG.debug("All partitions: " + allPartitions + " taskAssignment: " + prevInstanceToTaskAssignments
-        + " excludedInstances: " + excludedInstances);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+          "All partitions: " + allPartitions + " taskAssignment: " + prevInstanceToTaskAssignments
+              + " excludedInstances: " + excludedInstances);
+    }
 
     // Iterate through all instances
     for (String instance : prevInstanceToTaskAssignments.keySet()) {
@@ -311,9 +314,11 @@ public class JobRebalancer extends TaskRebalancer {
 
           paMap.put(pId, new PartitionAssignment(instance, requestedState.name()));
           assignedPartitions.add(pId);
-          LOG.debug(String.format(
-              "Instance %s requested a state transition to %s for partition %s.", instance,
-              requestedState, pName));
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(String.format(
+                "Instance %s requested a state transition to %s for partition %s.", instance,
+                requestedState, pName));
+          }
           continue;
         }
 
@@ -328,8 +333,11 @@ public class JobRebalancer extends TaskRebalancer {
 
           paMap.put(pId, new PartitionAssignment(instance, nextState.name()));
           assignedPartitions.add(pId);
-          LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
-              nextState, instance));
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(String
+                .format("Setting task partition %s state to %s on instance %s.", pName, nextState,
+                    instance));
+          }
         }
           break;
         case STOPPED: {
@@ -342,17 +350,21 @@ public class JobRebalancer extends TaskRebalancer {
 
           paMap.put(pId, new PartitionAssignment(instance, nextState.name()));
           assignedPartitions.add(pId);
-          LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
-              nextState, instance));
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(String
+                .format("Setting task partition %s state to %s on instance %s.", pName, nextState,
+                    instance));
+          }
         }
           break;
         case COMPLETED: {
           // The task has completed on this partition. Mark as such in the context object.
           donePartitions.add(pId);
-          LOG.debug(String
-              .format(
-                  "Task partition %s has completed with state %s. Marking as such in rebalancer context.",
-                  pName, currState));
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(String.format(
+                "Task partition %s has completed with state %s. Marking as such in rebalancer context.",
+                pName, currState));
+          }
           partitionsToDropFromIs.add(pId);
           markPartitionCompleted(jobCtx, pId);
         }
@@ -362,9 +374,11 @@ public class JobRebalancer extends TaskRebalancer {
         case TASK_ABORTED:
         case ERROR: {
           donePartitions.add(pId); // The task may be rescheduled on a different instance.
-          LOG.debug(String.format(
-              "Task partition %s has error state %s with msg %s. Marking as such in rebalancer context.", pName,
-              currState, jobCtx.getPartitionInfo(pId)));
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(String.format(
+                "Task partition %s has error state %s with msg %s. Marking as such in rebalancer context.",
+                pName, currState, jobCtx.getPartitionInfo(pId)));
+          }
           markPartitionError(jobCtx, pId, currState, true);
           // The error policy is to fail the task as soon a single partition fails for a specified
           // maximum number of attempts or task is in ABORTED state.
@@ -376,7 +390,9 @@ public class JobRebalancer extends TaskRebalancer {
                 || currState.equals(TaskPartitionState.ERROR)) {
               skippedPartitions.add(pId);
               partitionsToDropFromIs.add(pId);
-              LOG.debug("skippedPartitions:" + skippedPartitions);
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("skippedPartitions:" + skippedPartitions);
+              }
             } else {
               // Mark the task to be started at some later time (if enabled)
               markPartitionDelayed(jobCfg, jobCtx, pId);
@@ -388,9 +404,11 @@ public class JobRebalancer extends TaskRebalancer {
         case DROPPED: {
           // currState in [INIT, DROPPED]. Do nothing, the partition is eligible to be reassigned.
           donePartitions.add(pId);
-          LOG.debug(String.format(
-              "Task partition %s has state %s. It will be dropped from the current ideal state.",
-              pName, currState));
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(String.format(
+                "Task partition %s has state %s. It will be dropped from the current ideal state.",
+                pName, currState));
+          }
         }
           break;
         default:
@@ -501,10 +519,12 @@ public class JobRebalancer extends TaskRebalancer {
         int participantLimitation = participantCapacity - cache.getParticipantActiveTaskCount(instance);
         // New tasks to be assigned
         int numToAssign = Math.min(jobCfgLimitation, participantLimitation);
-        LOG.debug(String.format(
-            "Throttle tasks to be assigned to instance %s using limitation: Job Concurrent Task(%d), "
-                + "Participant Max Task(%d). Remaining capacity %d.", instance, jobCfgLimitation, participantCapacity,
-            numToAssign));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(String.format(
+              "Throttle tasks to be assigned to instance %s using limitation: Job Concurrent Task(%d), "
+                  + "Participant Max Task(%d). Remaining capacity %d.", instance, jobCfgLimitation,
+              participantCapacity, numToAssign));
+        }
         if (numToAssign > 0) {
           Set<Integer> throttledSet = new HashSet<Integer>();
           List<Integer> nextPartitions =
@@ -516,12 +536,17 @@ public class JobRebalancer extends TaskRebalancer {
             jobCtx.setAssignedParticipant(pId, instance);
             jobCtx.setPartitionState(pId, TaskPartitionState.INIT);
             jobCtx.setPartitionStartTime(pId, System.currentTimeMillis());
-            LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
-                TaskPartitionState.RUNNING, instance));
+            if (LOG.isDebugEnabled()) {
+              LOG.debug(String
+                  .format("Setting task partition %s state to %s on instance %s.", pName,
+                      TaskPartitionState.RUNNING, instance));
+            }
           }
-          cache.setParticipantActiveTaskCount(instance, cache.getParticipantActiveTaskCount(instance) + nextPartitions.size());
+          cache.setParticipantActiveTaskCount(instance,
+              cache.getParticipantActiveTaskCount(instance) + nextPartitions.size());
           if (!throttledSet.isEmpty()) {
-            LOG.debug(throttledSet.size() + "tasks are ready but throttled when assigned to participant.");
+            LOG.debug(
+                throttledSet.size() + "tasks are ready but throttled when assigned to participant.");
           }
         }
       }

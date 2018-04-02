@@ -78,8 +78,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
       final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();
       asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
-        @Override
-        public Object call() {
+        @Override public Object call() {
           try {
             if (clusterStatusMonitor != null) {
               clusterStatusMonitor
@@ -289,7 +288,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     Rebalancer customizedRebalancer = null;
     String rebalancerClassName = idealState.getRebalancerClassName();
     if (rebalancerClassName != null) {
-      logger.debug("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
+      if (logger.isDebugEnabled()) {
+        logger
+            .debug("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
+      }
       try {
         customizedRebalancer = Rebalancer.class
             .cast(HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());

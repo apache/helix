@@ -62,7 +62,9 @@ public class ZkCacheEventThread extends Thread {
       while (!isInterrupted()) {
         ZkCacheEvent zkEvent = _events.take();
         int eventId = _eventId.incrementAndGet();
-        LOG.debug("Delivering event #" + eventId + " " + zkEvent);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Delivering event #" + eventId + " " + zkEvent);
+        }
         try {
           zkEvent.run();
         } catch (InterruptedException e) {
@@ -74,7 +76,9 @@ public class ZkCacheEventThread extends Thread {
         } catch (Throwable e) {
           LOG.error("Error handling event " + zkEvent, e);
         }
-        LOG.debug("Delivering event #" + eventId + " done");
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Delivering event #" + eventId + " done");
+        }
       }
     } catch (InterruptedException e) {
       LOG.info("Terminate ZkClient event thread.");
@@ -83,7 +87,9 @@ public class ZkCacheEventThread extends Thread {
 
   public void send(ZkCacheEvent event) {
     if (!isInterrupted()) {
-      LOG.debug("New event: " + event);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("New event: " + event);
+      }
       _events.add(event);
     }
   }

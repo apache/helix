@@ -444,8 +444,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     boolean throttled = false;
     if (throttleController.throttleforResource(rebalanceType, resourceName)) {
       throttled = true;
-      logger
-          .debug("Throttled on resource for " + resourceName + " " + partition.getPartitionName());
+      if (logger.isDebugEnabled()) {
+        logger
+            .debug("Throttled on resource for " + resourceName + " " + partition.getPartitionName());
+      }
     } else {
       // throttle if any of the instance can not handle the state transition
       for (String ins : allInstances) {
@@ -454,9 +456,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         if (bestPossibleState != null && !bestPossibleState.equals(currentState)) {
           if (throttleController.throttleForInstance(rebalanceType, ins)) {
             throttled = true;
-            logger.debug(
-                "Throttled because instance " + ins + " for " + resourceName + " " + partition
-                    .getPartitionName());
+            if (logger.isDebugEnabled()) {
+              logger.debug("Throttled because instance " + ins + " for " + resourceName + " " + partition
+                      .getPartitionName());
+            }
           }
         }
       }
@@ -536,20 +539,24 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       PartitionStateMap bestPossibleStateMap,
       PartitionStateMap intermediateStateMap) {
 
-    logger.debug("Partitions need recovery: " + recoveryPartitions
-        + "\nPartitions get throttled on recovery: " + recoveryThrottledPartitions);
-    logger.debug("Partitions need loadbalance: " + loadbalancePartitions
-        + "\nPartitions get throttled on load-balance: " + loadbalanceThrottledPartitions);
+    if (logger.isDebugEnabled()) {
+      logger.debug("Partitions need recovery: " + recoveryPartitions
+          + "\nPartitions get throttled on recovery: " + recoveryThrottledPartitions);
+      logger.debug("Partitions need loadbalance: " + loadbalancePartitions
+          + "\nPartitions get throttled on load-balance: " + loadbalanceThrottledPartitions);
+    }
 
     for (Partition partition : allPartitions) {
-      logger.debug(
-          partition + ": Best possible map: " + bestPossibleStateMap.getPartitionMap(partition));
-      logger.debug(partition + ": Current State: " + currentStateOutput
-          .getCurrentStateMap(resource, partition));
-      logger.debug(partition + ": Pending state: " + currentStateOutput
-          .getPendingMessageMap(resource, partition));
-      logger.debug(
-          partition + ": Intermediate state: " + intermediateStateMap.getPartitionMap(partition));
+      if (logger.isDebugEnabled()) {
+        logger.debug(
+            partition + ": Best possible map: " + bestPossibleStateMap.getPartitionMap(partition));
+        logger.debug(partition + ": Current State: " + currentStateOutput
+            .getCurrentStateMap(resource, partition));
+        logger.debug(partition + ": Pending state: " + currentStateOutput
+            .getPendingMessageMap(resource, partition));
+        logger.debug(
+            partition + ": Intermediate state: " + intermediateStateMap.getPartitionMap(partition));
+      }
     }
   }
 

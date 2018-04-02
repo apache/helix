@@ -183,13 +183,17 @@ public class WorkflowRebalancer extends TaskRebalancer {
     for (String job : workflowCfg.getJobDag().getAllNodes()) {
       TaskState jobState = workflowCtx.getJobState(job);
       if (jobState != null && !jobState.equals(TaskState.NOT_STARTED)) {
-        LOG.debug("Job " + job + " is already started or completed.");
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Job " + job + " is already started or completed.");
+        }
         continue;
       }
 
       if (workflowCfg.isJobQueue() && scheduledJobs >= workflowCfg.getParallelJobs()) {
-        LOG.debug(String.format("Workflow %s already have enough job in progress, "
-            + "scheduledJobs(s)=%d, stop scheduling more jobs", workflow, scheduledJobs));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(String.format("Workflow %s already have enough job in progress, "
+              + "scheduledJobs(s)=%d, stop scheduling more jobs", workflow, scheduledJobs));
+        }
         break;
       }
 
@@ -330,7 +334,9 @@ public class WorkflowRebalancer extends TaskRebalancer {
       if (scheduleConfig.isRecurring()) {
         // Skip scheduling this workflow if it's not in a start state
         if (!workflowCfg.getTargetState().equals(TargetState.START)) {
-          LOG.debug("Skip scheduling since the workflow has not been started " + workflow);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Skip scheduling since the workflow has not been started " + workflow);
+          }
           return false;
         }
 
@@ -357,7 +363,9 @@ public class WorkflowRebalancer extends TaskRebalancer {
         DateFormat df = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
         String newWorkflowName = workflow + "_" + df.format(new Date(timeToSchedule));
-        LOG.debug("Ready to start workflow " + newWorkflowName);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Ready to start workflow " + newWorkflowName);
+        }
         if (!newWorkflowName.equals(lastScheduled)) {
           Workflow clonedWf =
               cloneWorkflow(_manager, workflow, newWorkflowName, new Date(timeToSchedule));

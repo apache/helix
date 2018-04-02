@@ -189,9 +189,11 @@ public class ZkClient implements Watcher {
       IZkDataListenerEntry listenerEntry = new IZkDataListenerEntry(listener, prefetchEnabled);
       listenerEntries.add(listenerEntry);
       if (prefetchEnabled) {
-        LOG.debug(
-            "Subscribed data changes for " + path + ", listener: " + listener + ", prefetch data: "
-                + prefetchEnabled);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(
+              "Subscribed data changes for " + path + ", listener: " + listener + ", prefetch data: "
+                  + prefetchEnabled);
+        }
       }
     }
     watchForData(path);
@@ -618,8 +620,10 @@ public class ZkClient implements Watcher {
 
 
     if (event.getType() == Event.EventType.NodeDeleted) {
-      String path = event.getPath();
-      LOG.debug(path);
+      if (LOG.isDebugEnabled()) {
+        String path = event.getPath();
+        LOG.debug(path);
+      }
     }
 
     getEventLock().lock();
@@ -665,7 +669,9 @@ public class ZkClient implements Watcher {
       // update state change counter.
       recordStateChange(stateChanged, dataChanged);
 
-      LOG.debug("Leaving process event");
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Leaving process event");
+      }
     }
   }
 
@@ -914,7 +920,9 @@ public class ZkClient implements Watcher {
             try {
               Object data = null;
               if (listener.isPrefetchData()) {
-                LOG.debug("Prefetch data for path: " + path);
+                if (LOG.isDebugEnabled()) {
+                  LOG.debug("Prefetch data for path: " + path);
+                }
                 data = readData(path, null, true);
               }
               listener.getDataListener().handleDataChange(path, data);

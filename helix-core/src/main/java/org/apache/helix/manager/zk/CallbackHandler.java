@@ -458,13 +458,17 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private void subscribeChildChange(String path, NotificationContext.Type callbackType) {
     if (callbackType == NotificationContext.Type.INIT
         || callbackType == NotificationContext.Type.CALLBACK) {
-      logger.info(
-          _manager.getInstanceName() + " subscribes child-change. path: " + path + ", listener: " + _listener);
+      if (logger.isDebugEnabled()) {
+        logger.debug(
+            _manager.getInstanceName() + " subscribes child-change. path: " + path + ", listener: " + _listener);
+      }
       _zkClient.subscribeChildChanges(path, this);
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
-      logger.info(
-          _manager.getInstanceName() + " unsubscribe child-change. path: " + path + ", listener: " + _listener);
-
+      if (logger.isDebugEnabled()) {
+        logger.debug(
+            _manager.getInstanceName() + " unsubscribe child-change. path: " + path + ", listener: "
+                + _listener);
+      }
       _zkClient.unsubscribeChildChanges(path, this);
     }
   }
@@ -472,15 +476,18 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private void subscribeDataChange(String path, NotificationContext.Type callbackType) {
     if (callbackType == NotificationContext.Type.INIT
         || callbackType == NotificationContext.Type.CALLBACK) {
-      logger.info(
-          _manager.getInstanceName() + " subscribe data-change. path: " + path + ", listener: "
-              + _listener);
+      if (logger.isDebugEnabled()) {
+        logger.debug(
+            _manager.getInstanceName() + " subscribe data-change. path: " + path + ", listener: "
+                + _listener);
+      }
       _zkClient.subscribeDataChanges(path, this);
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
-      logger.info(
-          _manager.getInstanceName() + " unsubscribe data-change. path: " + path + ", listener: "
-              + _listener);
-
+      if (logger.isDebugEnabled()) {
+        logger.debug(
+            _manager.getInstanceName() + " unsubscribe data-change. path: " + path + ", listener: "
+                + _listener);
+      }
       _zkClient.unsubscribeDataChanges(path, this);
     }
   }
@@ -497,22 +504,18 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     long start = System.currentTimeMillis();
     if (_eventTypes.contains(EventType.NodeDataChanged) || _eventTypes
         .contains(EventType.NodeCreated) || _eventTypes.contains(EventType.NodeDeleted)) {
-      if (logger.isDebugEnabled()) {
-        logger.debug("Subscribing data change listener to path:" + path);
-      }
+      logger.info("Subscribing data change listener to path:" + path + " for listener: " + _listener);
       subscribeDataChange(path, callbackType);
     }
 
     if (_eventTypes.contains(EventType.NodeChildrenChanged)) {
-      if (logger.isDebugEnabled()) {
-        logger.debug("Subscribing child change listener to path:" + path);
-      }
+      logger.info(
+          "Subscribing child change listener to path:" + path + " for listener: " + _listener);
       subscribeChildChange(path, callbackType);
       if (watchChild) {
-        if (logger.isDebugEnabled()) {
-          logger.debug("Subscribing data change listener to all children for path:" + path);
-        }
-
+        logger.info(
+            "Subscribing data change listener to all children for path:" + path + " for listener: "
+                + _listener);
         try {
           switch (_changeType) {
           case CURRENT_STATE:
@@ -625,14 +628,18 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     try {
       updateNotificationTime(System.nanoTime());
       if (dataPath != null && dataPath.startsWith(_path)) {
-        logger.info(_manager.getInstanceName() + " unsubscribe data-change. path: " + dataPath
-            + ", listener: " + _listener);
+        if (logger.isDebugEnabled()) {
+          logger.info(_manager.getInstanceName() + " unsubscribe data-change. path: " + dataPath
+              + ", listener: " + _listener);
+        }
         _zkClient.unsubscribeDataChanges(dataPath, this);
 
         // only needed for bucketized parent, but OK if we don't have child-change
         // watch on the bucketized parent path
-        logger.info(_manager.getInstanceName() + " unsubscribe child-change. path: " + dataPath
-            + ", listener: " + _listener);
+        if (logger.isDebugEnabled()) {
+          logger.info(_manager.getInstanceName() + " unsubscribe child-change. path: " + dataPath
+              + ", listener: " + _listener);
+        }
         _zkClient.unsubscribeChildChanges(dataPath, this);
         // No need to invoke() since this event will handled by child-change on parent-node
       }
@@ -647,8 +654,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   public void handleChildChange(String parentPath, List<String> currentChilds) {
     if (logger.isDebugEnabled()) {
       logger.debug(
-          "Data change callback: child changed, path: " + parentPath + ", current child count: "
-              + currentChilds.size());
+          "Data change callback: child changed, path: " + parentPath + ", current child count: " + (
+              currentChilds != null
+                  ? currentChilds.size()
+                  : 0));
     }
 
     try {

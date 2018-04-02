@@ -62,7 +62,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
     IdealState cachedIdealState = getCachedIdealState(resourceName, clusterData);
     if (cachedIdealState != null) {
-      LOG.debug("Use cached IdealState for " + resourceName);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Use cached IdealState for " + resourceName);
+      }
       return cachedIdealState;
     }
 
@@ -176,7 +178,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       finalMapping =
           getFinalDelayedMapping(currentIdealState, newIdealMapping, newActiveMapping, liveEnabledNodes,
               replicaCount, minActiveReplicas);
-      LOG.debug("newActiveMapping: " + newActiveMapping);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("newActiveMapping: " + newActiveMapping);
+      }
     }
 
     finalMapping.getListFields().putAll(userDefinedPreferenceList);
@@ -258,15 +262,19 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
     if (nextRebalanceTime == Long.MAX_VALUE) {
       long startTime = _rebalanceScheduler.removeScheduledRebalance(resourceName);
-      LOG.debug(String
-          .format("Remove exist rebalance timer for resource %s at %d\n", resourceName, startTime));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(String
+            .format("Remove exist rebalance timer for resource %s at %d\n", resourceName, startTime));
+      }
     } else {
       long currentScheduledTime = _rebalanceScheduler.getRebalanceTime(resourceName);
       if (currentScheduledTime < 0 || currentScheduledTime > nextRebalanceTime) {
         _rebalanceScheduler.scheduleRebalance(_manager, resourceName, nextRebalanceTime);
-        LOG.debug(String
-            .format("Set next rebalance time for resource %s at time %d\n", resourceName,
-                nextRebalanceTime));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(String
+              .format("Set next rebalance time for resource %s at time %d\n", resourceName,
+                  nextRebalanceTime));
+        }
       }
     }
   }

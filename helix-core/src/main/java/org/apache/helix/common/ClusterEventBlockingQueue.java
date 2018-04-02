@@ -59,8 +59,10 @@ public class ClusterEventBlockingQueue {
    */
   public void put(ClusterEvent event) {
     _eventQueue.put(event.getEventType(), event);
-    LOG.debug("Putting event " + event.getEventType());
-    LOG.debug("Event queue size: " + _eventQueue.size());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Putting event " + event.getEventType());
+      LOG.debug("Event queue size: " + _eventQueue.size());
+    }
   }
 
   /**

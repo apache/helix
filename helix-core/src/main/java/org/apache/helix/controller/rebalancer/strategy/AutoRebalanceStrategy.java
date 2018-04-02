@@ -289,7 +289,9 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
           }
         }
         if (donor.capacity < donor.currentlyAssigned) {
-          logger.debug("Could not take partitions out of node:" + donor.id);
+          if (logger.isDebugEnabled()) {
+            logger.debug("Could not take partitions out of node:" + donor.id);
+          }
         }
       }
     }

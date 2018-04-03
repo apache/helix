@@ -22,8 +22,10 @@ package org.apache.helix.task;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,9 +81,13 @@ public class WorkflowRebalancer extends TaskRebalancer {
       LOG.debug("Workflow context is created for " + workflow);
     }
 
+    Set<TaskState> finalStates = new HashSet<>(Arrays.asList(
+        new TaskState[] { TaskState.COMPLETED, TaskState.FAILED, TaskState.ABORTED,
+            TaskState.FAILED, TaskState.TIMED_OUT
+        }));
     // Only generic workflow get timeouted and schedule rebalance for timeout. Will skip the set if
     // the workflow already got timeouted. Job Queue will ignore the setup.
-    if (!workflowCfg.isJobQueue() && !TaskState.TIMED_OUT.equals(workflowCtx.getWorkflowState())) {
+    if (!workflowCfg.isJobQueue() && !finalStates.contains(workflowCtx.getWorkflowState())) {
       // If timeout point has already been passed, it will not be scheduled
       scheduleRebalanceForTimeout(workflow, workflowCtx.getStartTime(), workflowCfg.getTimeout());
 

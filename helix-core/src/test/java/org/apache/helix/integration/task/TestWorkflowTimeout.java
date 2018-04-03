@@ -12,6 +12,7 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -80,5 +81,21 @@ public class TestWorkflowTimeout extends TaskTestBase {
 
     // Add back the config
     _jobBuilder.setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "99999999"));
+  }
+
+  @Test
+  public void testWorkflowTimeoutWhenWorkflowCompleted() throws InterruptedException {
+    String workflowName = TestHelper.getTestMethodName();
+    _jobBuilder.setWorkflow(workflowName);
+    _jobBuilder.setJobCommandConfigMap(Collections.<String, String>emptyMap());
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName)
+        .setWorkflowConfig(new WorkflowConfig.Builder(workflowName).setTimeout(0).build())
+        .addJob(JOB_NAME, _jobBuilder).setExpiry(2000L);
+
+    _driver.start(workflowBuilder.build());
+    // Pause the queue
+    Thread.sleep(2500);
+    Assert.assertNull(_driver.getWorkflowConfig(workflowName));
+    Assert.assertNull(_driver.getJobContext(workflowName));
   }
 }

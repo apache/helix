@@ -538,6 +538,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       // optimize on common path
       return _zkClient.delete(path);
     } catch (ZkException e) {
+      LOG.warn(String.format("Caught exception when deleting %s with options %s.", path, options),
+          e);
       return _zkClient.deleteRecursive(path);
     }
   }

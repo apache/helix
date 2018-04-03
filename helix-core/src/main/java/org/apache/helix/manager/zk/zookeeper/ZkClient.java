@@ -1130,7 +1130,9 @@ public class ZkClient implements Watcher {
         success = true;
       } catch (ZkNoNodeException e) {
         success = false;
-        LOG.warn("Failed to delete path " + path + ", znode does not exist!");
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Failed to delete path " + path + ", znode does not exist!");
+        }
       }
       record(path, null, startT, ZkClientMonitor.AccessType.WRITE);
     } catch (Exception e) {

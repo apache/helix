@@ -1,7 +1,7 @@
 import { Request, Response, Router } from 'express';
 
 import * as request from 'request';
-import * as LdapClient from 'ldap-client';
+import * as LdapClient from 'ldapjs';
 
 import { LDAP, CheckAdmin } from '../config';
 
@@ -48,16 +48,8 @@ export class UserCtrl {
     }
 
     // check LDAP
-    const ldap = new LdapClient({ uri: LDAP.uri, base: LDAP.base }, err => {
-      if (err) {
-        res.status(500).json(err);
-      }
-    });
-
-    ldap.bind({
-      binddn: credential.username + LDAP.principalSuffix,
-      password: credential.password
-    }, err => {
+    const ldap = LdapClient.createClient({ url: LDAP.uri });
+    ldap.bind(credential.username + LDAP.principalSuffix, credential.password, err => {
       if (err) {
         res.status(401).json(false);
       } else {

@@ -373,9 +373,15 @@ public class CurrentStateOutput {
             if (!currentPartitionCount.containsKey(participant)) {
               currentPartitionCount.put(participant, 0);
             }
-            String currState = participantMap.getValue().toString();
-            if (participantMap.getValue() instanceof Message) {
-              currState = ((Message) participantMap.getValue()).getToState();
+
+            Object curStateObj = participantMap.getValue();
+            String currState = null;
+            if (curStateObj != null) {
+              if (curStateObj instanceof Message) {
+                currState = ((Message) curStateObj).getToState();
+              } else if (curStateObj instanceof String) {
+                currState = curStateObj.toString();
+              }
             }
             if ((currState != null && currState.equals(state)) || (currState == null && state == null)) {
               currentPartitionCount.put(participant, currentPartitionCount.get(participant) + 1);

@@ -20,8 +20,7 @@ package org.apache.helix.participant;
  */
 
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.participant.DistClusterControllerStateModel;
-import org.apache.helix.participant.DistClusterControllerStateModelFactory;
+
 import org.testng.annotations.Test;
 
 public class TestDistControllerStateModelFactory {

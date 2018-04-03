@@ -48,7 +48,8 @@ public class DistClusterControllerStateModel extends StateModel {
 
   @Transition(to = "STANDBY", from = "OFFLINE")
   public void onBecomeStandbyFromOffline(Message message, NotificationContext context) {
-    logger.info("Becoming standby from offline");
+    logger.info("Becoming standby from offline for " + message.getResourceName() + " and " + message
+        .getPartitionName());
   }
 
   @Transition(to = "LEADER", from = "STANDBY")
@@ -105,6 +106,12 @@ public class DistClusterControllerStateModel extends StateModel {
   @Transition(to = "OFFLINE", from = "DROPPED")
   public void onBecomeOfflineFromDropped(Message message, NotificationContext context) {
     logger.info("Becoming offline from dropped");
+  }
+
+  @Transition(to = "OFFLINE", from = "ERROR")
+  public void onBecomeOfflineFromError(Message message, NotificationContext context) {
+    logger.info("Becoming offline from error.");
+    reset();
   }
 
   @Override

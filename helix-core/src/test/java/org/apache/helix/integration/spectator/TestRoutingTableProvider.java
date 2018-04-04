@@ -61,8 +61,8 @@ public class TestRoutingTableProvider extends ZkIntegrationTestBase {
       for (InstanceConfig config : routingTableSnapshot.getInstancesForResource(TEST_DB, "SLAVE")) {
         slaveInstances.add(config.getInstanceName());
       }
-      if (!masterInstances.equals(Map.class.cast(context).get("MASTER")) || !slaveInstances
-          .equals(Map.class.cast(context).get("SLAVE"))) {
+      if (context != null && (!masterInstances.equals(Map.class.cast(context).get("MASTER"))
+          || !slaveInstances.equals(Map.class.cast(context).get("SLAVE")))) {
         _listenerTestResult = false;
       } else {
         _listenerTestResult = true;

@@ -45,6 +45,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
@@ -237,8 +238,7 @@ public class MockManager implements HelixManager {
 
   @Override
   public StateMachineEngine getStateMachineEngine() {
-    // TODO Auto-generated method stub
-    return null;
+    return new HelixStateMachineEngine(this);
   }
 
   @Override

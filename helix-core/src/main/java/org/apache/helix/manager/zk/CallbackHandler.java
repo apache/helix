@@ -37,6 +37,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
@@ -222,11 +223,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     BatchMode batchMode = _listener.getClass().getAnnotation(BatchMode.class);
     PreFetch preFetch = _listener.getClass().getAnnotation(PreFetch.class);
 
-    String asyncBatchModeEnabled =
-        System.getProperty("helix.callbackhandler.isAsyncBatchModeEnabled");
+    String asyncBatchModeEnabled = System.getProperty(SystemPropertyKeys.ASYNC_BATCH_MODE_ENABLED);
     if (asyncBatchModeEnabled == null) {
-      // for back-compatible, the old property name is deprecated.
-      asyncBatchModeEnabled = System.getProperty("isAsyncBatchModeEnabled");
+      // for backcompatible, the old property name is deprecated.
+      asyncBatchModeEnabled =
+          System.getProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED);
     }
 
     if (asyncBatchModeEnabled != null) {

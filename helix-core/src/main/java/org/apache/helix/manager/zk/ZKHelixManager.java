@@ -48,6 +48,7 @@ import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.AutoFallbackPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.helix.util.HelixUtil;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -196,7 +197,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _instanceName = instanceName;
     _preConnectCallbacks = new ArrayList<>();
     _handlers = new ArrayList<>();
-    _properties = new HelixManagerProperties("cluster-manager-version.properties");
+    _properties = new HelixManagerProperties(SystemPropertyKeys.CLUSTER_MANAGER_VERSION);
     _version = _properties.getVersion();
 
     _keyBuilder = new Builder(clusterName);
@@ -218,23 +219,31 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     /**
      * use system property if available
      */
-    _flappingTimeWindowMs = getSystemPropertyAsInt("helixmanager.flappingTimeWindow", ZKHelixManager.FLAPPING_TIME_WINDOW);
+    _flappingTimeWindowMs = HelixUtil.getSystemPropertyAsInt(SystemPropertyKeys.FLAPPING_TIME_WINDOW,
+        ZKHelixManager.FLAPPING_TIME_WINDOW);
 
-    _maxDisconnectThreshold =
-        getSystemPropertyAsInt("helixmanager.maxDisconnectThreshold", ZKHelixManager.MAX_DISCONNECT_THRESHOLD);
+    _maxDisconnectThreshold = HelixUtil
+        .getSystemPropertyAsInt(SystemPropertyKeys.MAX_DISCONNECT_THRESHOLD,
+            ZKHelixManager.MAX_DISCONNECT_THRESHOLD);
 
-    _sessionTimeout = getSystemPropertyAsInt("zk.session.timeout", ZkClient.DEFAULT_SESSION_TIMEOUT);
+    _sessionTimeout = HelixUtil.getSystemPropertyAsInt(SystemPropertyKeys.ZK_SESSION_TIMEOUT,
+        ZkClient.DEFAULT_SESSION_TIMEOUT);
 
-    _connectionInitTimeout = getSystemPropertyAsInt("zk.connection.timeout", ZkClient.DEFAULT_CONNECTION_TIMEOUT);
+    _connectionInitTimeout = HelixUtil
+        .getSystemPropertyAsInt(SystemPropertyKeys.ZK_CONNECTION_TIMEOUT,
+            ZkClient.DEFAULT_CONNECTION_TIMEOUT);
 
-    _connectionRetryTimeout = getSystemPropertyAsInt("zk.connectionReEstablishment.timeout",
-        DEFAULT_CONNECTION_ESTABLISHMENT_RETRY_TIMEOUT);
+    _connectionRetryTimeout = HelixUtil
+        .getSystemPropertyAsInt(SystemPropertyKeys.ZK_REESTABLISHMENT_CONNECTION_TIMEOUT,
+            DEFAULT_CONNECTION_ESTABLISHMENT_RETRY_TIMEOUT);
 
-    _waitForConnectedTimeout = getSystemPropertyAsInt("helixmanager.waitForConnectedTimeout",
-        DEFAULT_WAIT_CONNECTED_TIMEOUT);
+    _waitForConnectedTimeout = HelixUtil
+        .getSystemPropertyAsInt(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT,
+            DEFAULT_WAIT_CONNECTED_TIMEOUT);
 
-    _reportLatency = getSystemPropertyAsInt("helixmanager.participantHealthReport.reportLatency",
-        ParticipantHealthReportTask.DEFAULT_REPORT_LATENCY);
+    _reportLatency = HelixUtil
+        .getSystemPropertyAsInt(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY,
+            ParticipantHealthReportTask.DEFAULT_REPORT_LATENCY);
 
     /**
      * instance type specific init
@@ -270,22 +279,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     default:
       throw new IllegalArgumentException("unrecognized type: " + instanceType);
     }
-  }
-
-  private int getSystemPropertyAsInt(String propertyKey, int propertyDefaultValue) {
-    String valueString = System.getProperty(propertyKey, "" + propertyDefaultValue);
-
-    try {
-      int value = Integer.parseInt(valueString);
-      if (value > 0) {
-        return value;
-      }
-    } catch (NumberFormatException e) {
-      LOG.warn("Exception while parsing property: " + propertyKey + ", string: " + valueString
-          + ", using default value: " + propertyDefaultValue);
-    }
-
-    return propertyDefaultValue;
   }
 
   @Override public boolean removeListener(PropertyKey key, Object listener) {

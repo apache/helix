@@ -238,4 +238,49 @@ public final class HelixUtil {
     }
     return false;
   }
+
+  /**
+   * Get the value of system property
+   * @param propertyKey
+   * @param propertyDefaultValue
+   * @return
+   */
+  public static int getSystemPropertyAsInt(String propertyKey, int propertyDefaultValue) {
+    String valueString = System.getProperty(propertyKey, "" + propertyDefaultValue);
+
+    try {
+      int value = Integer.parseInt(valueString);
+      if (value > 0) {
+        return value;
+      }
+    } catch (NumberFormatException e) {
+      LOG.warn("Exception while parsing property: " + propertyKey + ", string: " + valueString
+          + ", using default value: " + propertyDefaultValue);
+    }
+
+    return propertyDefaultValue;
+  }
+
+  /**
+   * Get the value of system property
+   * @param propertyKey
+   * @param propertyDefaultValue
+   * @return
+   */
+  public static long getSystemPropertyAsLong(String propertyKey, long propertyDefaultValue) {
+    String valueString = System.getProperty(propertyKey, "" + propertyDefaultValue);
+
+    try {
+      long value = Long.parseLong(valueString);
+      if (value > 0) {
+        return value;
+      }
+    } catch (NumberFormatException e) {
+      LOG.warn("Exception while parsing property: " + propertyKey + ", string: " + valueString
+          + ", using default value: " + propertyDefaultValue);
+    }
+
+    return propertyDefaultValue;
+  }
+
 }

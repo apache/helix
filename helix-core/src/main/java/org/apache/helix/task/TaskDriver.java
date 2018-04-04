@@ -31,6 +31,7 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +55,7 @@ public class TaskDriver {
   /** For logging */
   private static final Logger LOG = LoggerFactory.getLogger(TaskDriver.class);
 
+
   /** Default time out for monitoring workflow or job state */
   private final static int _defaultTimeout = 3 * 60 * 1000; /* 3 mins */
 
@@ -65,10 +67,11 @@ public class TaskDriver {
   // return empty list.
   //
   // TODO Implement or configure the limitation in ZK server.
-  private final static int DEFAULT_CONFIGS_LIMITATION = 10000;
+  private final static long DEFAULT_CONFIGS_LIMITATION =
+      HelixUtil.getSystemPropertyAsLong(SystemPropertyKeys.TASK_CONFIG_LIMITATION, 100000L);
   private final static long TIMESTAMP_NOT_SET = -1L;
   private final static String TASK_START_TIME_KEY = "START_TIME";
-  protected int _configsLimitation = DEFAULT_CONFIGS_LIMITATION;
+  protected long _configsLimitation = DEFAULT_CONFIGS_LIMITATION;
 
   private final HelixDataAccessor _accessor;
   private final HelixPropertyStore<ZNRecord> _propertyStore;

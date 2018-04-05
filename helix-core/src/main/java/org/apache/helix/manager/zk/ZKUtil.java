@@ -25,7 +25,6 @@ import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;

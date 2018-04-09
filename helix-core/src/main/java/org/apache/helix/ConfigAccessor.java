@@ -735,7 +735,7 @@ public class ConfigAccessor {
   }
 
   /**
-   * Update ResourceConfig of the given resource. The value of field in current config will be
+   * Update InstanceConfig of the given resource. The value of field in current config will be
    * replaced with the value of the same field in given config if it presents. If there is new field
    * in given config but not in current config, the field will be added into the current config..
    * The list fields and map fields will be replaced as a single entry.

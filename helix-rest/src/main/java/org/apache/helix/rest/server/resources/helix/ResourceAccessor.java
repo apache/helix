@@ -240,22 +240,22 @@ public class ResourceAccessor extends AbstractHelixResource {
     HelixAdmin admin = getHelixAdmin();
     try {
       switch (cmd) {
-        case enable:
-          admin.enableResource(clusterId, resourceName, true);
-          break;
-        case disable:
-          admin.enableResource(clusterId, resourceName, false);
-          break;
-        case rebalance:
-          if (replicas == -1) {
-            return badRequest("Number of replicas is needed for rebalancing!");
-          }
-          keyPrefix = keyPrefix.length() == 0 ? resourceName : keyPrefix;
-          admin.rebalance(clusterId, resourceName, replicas, keyPrefix, group);
-          break;
-        default:
-          _logger.error("Unsupported command :" + command);
-          return badRequest("Unsupported command :" + command);
+      case enable:
+        admin.enableResource(clusterId, resourceName, true);
+        break;
+      case disable:
+        admin.enableResource(clusterId, resourceName, false);
+        break;
+      case rebalance:
+        if (replicas == -1) {
+          return badRequest("Number of replicas is needed for rebalancing!");
+        }
+        keyPrefix = keyPrefix.length() == 0 ? resourceName : keyPrefix;
+        admin.rebalance(clusterId, resourceName, replicas, keyPrefix, group);
+        break;
+      default:
+        _logger.error("Unsupported command :" + command);
+        return badRequest("Unsupported command :" + command);
       }
     } catch (Exception e) {
       _logger.error("Failed in updating resource : " + resourceName, e);
@@ -309,9 +309,7 @@ public class ResourceAccessor extends AbstractHelixResource {
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error(
-          "Failed to update cluster config, cluster " + clusterId + " new config: " + content
-              + ", Exception: " + ex);
+      _logger.error(String.format("Error in update resource config for resource: %s", resourceName), ex);
       return serverError(ex);
     }
     return OK();

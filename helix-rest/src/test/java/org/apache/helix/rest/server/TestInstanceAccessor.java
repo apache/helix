@@ -213,7 +213,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
 
     Entity entity =
         Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
-    put("clusters/" + CLUSTER_NAME + "/instances/" + instanceName + "/configs", null, entity,
+    post("clusters/" + CLUSTER_NAME + "/instances/" + instanceName + "/configs", null, entity,
         Response.Status.OK.getStatusCode());
     Assert.assertEquals(record.getSimpleFields(),
         _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord()

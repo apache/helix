@@ -32,6 +32,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -315,11 +316,10 @@ public class InstanceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
-  @PUT
+  @POST
   @Path("{instanceName}/configs")
   public Response updateInstanceConfig(@PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName, String content) throws IOException {
-    HelixAdmin admin = getHelixAdmin();
+      @PathParam("instanceName") String instanceName, String content) {
     ZNRecord record;
     try {
       record = toZNRecord(content);
@@ -327,14 +327,16 @@ public class InstanceAccessor extends AbstractHelixResource {
       _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
       return badRequest("Input is not a vaild ZNRecord!");
     }
-
+    InstanceConfig instanceConfig = new InstanceConfig(record);
+    ConfigAccessor configAccessor = getConfigAccessor();
     try {
-      admin.setInstanceConfig(clusterId, instanceName, new InstanceConfig(record));
+      configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
+    } catch (HelixException ex) {
+      return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error("Error in update instance config: " + instanceName, ex);
+      _logger.error(String.format("Error in update instance config for instance: %s", instanceName), ex);
       return serverError(ex);
     }
-
     return OK();
   }
 

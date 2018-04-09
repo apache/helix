@@ -220,6 +220,10 @@ under the License.
               <name>start-helix-participant</name>
             </program>
             <program>
+              <mainClass>org.apache.helix.tools.commandtools.ExampleParticipant</mainClass>
+              <name>start-participants</name>
+            </program>
+            <program>
               <mainClass>org.apache.helix.tools.LocalZKServer</mainClass>
               <name>start-standalone-zookeeper</name>
             </program>

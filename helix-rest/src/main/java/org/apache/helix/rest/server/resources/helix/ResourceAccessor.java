@@ -56,18 +56,13 @@ import org.codehaus.jackson.node.ObjectNode;
 @Path("/clusters/{clusterId}/resources")
 public class ResourceAccessor extends AbstractHelixResource {
   private final static Logger _logger = LoggerFactory.getLogger(ResourceAccessor.class);
+
   public enum ResourceProperties {
-    idealState,
-    idealStates,
-    externalView,
-    externalViews,
-    resourceConfig,
+    idealState, idealStates, externalView, externalViews, resourceConfig,
   }
 
   public enum HealthStatus {
-    HEALTHY,
-    PARTIAL_HEALTHY,
-    UNHEALTHY
+    HEALTHY, PARTIAL_HEALTHY, UNHEALTHY
   }
 
   @GET
@@ -114,7 +109,7 @@ public class ResourceAccessor extends AbstractHelixResource {
     Map<String, String> resourceHealthResult = new HashMap<>();
 
     for (String resourceName : resourcesInIdealState) {
-      if(resourcesInExternalView.contains(resourceName)) {
+      if (resourcesInExternalView.contains(resourceName)) {
         Map<String, String> partitionHealth = computePartitionHealth(clusterId, resourceName);
 
         if (partitionHealth.isEmpty() || partitionHealth.values().contains(HealthStatus.UNHEALTHY.name())) {
@@ -186,15 +181,13 @@ public class ResourceAccessor extends AbstractHelixResource {
 
   @PUT
   @Path("{resourceName}")
-  public Response addResource(@PathParam("clusterId") String clusterId,
-      @PathParam("resourceName") String resourceName,
+  public Response addResource(@PathParam("clusterId") String clusterId, @PathParam("resourceName") String resourceName,
       @DefaultValue("-1") @QueryParam("numPartitions") int numPartitions,
       @DefaultValue("") @QueryParam("stateModelRef") String stateModelRef,
       @DefaultValue("SEMI_AUTO") @QueryParam("rebalancerMode") String rebalancerMode,
       @DefaultValue("DEFAULT") @QueryParam("rebalanceStrategy") String rebalanceStrategy,
       @DefaultValue("0") @QueryParam("bucketSize") int bucketSize,
-      @DefaultValue("-1") @QueryParam("maxPartitionsPerInstance") int maxPartitionsPerInstance,
-      String content) {
+      @DefaultValue("-1") @QueryParam("maxPartitionsPerInstance") int maxPartitionsPerInstance, String content) {
 
     HelixAdmin admin = getHelixAdmin();
 
@@ -212,8 +205,8 @@ public class ResourceAccessor extends AbstractHelixResource {
           admin.addResource(clusterId, resourceName, new IdealState(record));
         }
       } else {
-        admin.addResource(clusterId, resourceName, numPartitions, stateModelRef, rebalancerMode,
-            rebalanceStrategy, bucketSize, maxPartitionsPerInstance);
+        admin.addResource(clusterId, resourceName, numPartitions, stateModelRef, rebalancerMode, rebalanceStrategy,
+            bucketSize, maxPartitionsPerInstance);
       }
     } catch (Exception e) {
       _logger.error("Error in adding a resource: " + resourceName, e);
@@ -229,7 +222,7 @@ public class ResourceAccessor extends AbstractHelixResource {
       @PathParam("resourceName") String resourceName, @QueryParam("command") String command,
       @DefaultValue("-1") @QueryParam("replicas") int replicas,
       @DefaultValue("") @QueryParam("keyPrefix") String keyPrefix,
-      @DefaultValue("") @QueryParam("group") String group){
+      @DefaultValue("") @QueryParam("group") String group) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
@@ -240,22 +233,22 @@ public class ResourceAccessor extends AbstractHelixResource {
     HelixAdmin admin = getHelixAdmin();
     try {
       switch (cmd) {
-        case enable:
-          admin.enableResource(clusterId, resourceName, true);
-          break;
-        case disable:
-          admin.enableResource(clusterId, resourceName, false);
-          break;
-        case rebalance:
-          if (replicas == -1) {
-            return badRequest("Number of replicas is needed for rebalancing!");
-          }
-          keyPrefix = keyPrefix.length() == 0 ? resourceName : keyPrefix;
-          admin.rebalance(clusterId, resourceName, replicas, keyPrefix, group);
-          break;
-        default:
-          _logger.error("Unsupported command :" + command);
-          return badRequest("Unsupported command :" + command);
+      case enable:
+        admin.enableResource(clusterId, resourceName, true);
+        break;
+      case disable:
+        admin.enableResource(clusterId, resourceName, false);
+        break;
+      case rebalance:
+        if (replicas == -1) {
+          return badRequest("Number of replicas is needed for rebalancing!");
+        }
+        keyPrefix = keyPrefix.length() == 0 ? resourceName : keyPrefix;
+        admin.rebalance(clusterId, resourceName, replicas, keyPrefix, group);
+        break;
+      default:
+        _logger.error("Unsupported command :" + command);
+        return badRequest("Unsupported command :" + command);
       }
     } catch (Exception e) {
       _logger.error("Failed in updating resource : " + resourceName, e);
@@ -309,9 +302,7 @@ public class ResourceAccessor extends AbstractHelixResource {
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error(
-          "Failed to update cluster config, cluster " + clusterId + " new config: " + content
-              + ", Exception: " + ex);
+      _logger.error(String.format("Error in update resource config for resource: %s", resourceName), ex);
       return serverError(ex);
     }
     return OK();
@@ -350,7 +341,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     StateModelDefinition stateModelDef = admin.getStateModelDef(clusterId, idealState.getStateModelDefRef());
     String initialState = stateModelDef.getInitialState();
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-    statesPriorityList = statesPriorityList.subList(0, statesPriorityList.indexOf(initialState)); // Trim stateList to initialState and above
+    statesPriorityList = statesPriorityList.subList(0,
+        statesPriorityList.indexOf(initialState)); // Trim stateList to initialState and above
     int minActiveReplicas = idealState.getMinActiveReplicas();
 
     // Start the logic that determines the health status of each partition
@@ -365,8 +357,8 @@ public class ResourceAccessor extends AbstractHelixResource {
         // Extract all states into Collections from ExternalView
         Map<String, String> stateMapInExternalView = externalView.getStateMap(partitionName);
         Collection<String> allReplicaStatesInExternalView =
-            (stateMapInExternalView != null && !stateMapInExternalView.isEmpty()) ?
-                stateMapInExternalView.values() : Collections.<String>emptyList();
+            (stateMapInExternalView != null && !stateMapInExternalView.isEmpty()) ? stateMapInExternalView.values()
+                : Collections.<String>emptyList();
         int numActiveReplicasInExternalView = 0;
         HealthStatus status = HealthStatus.HEALTHY;
 

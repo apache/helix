@@ -537,7 +537,7 @@ public class TaskUtil {
       String workflowJobResource) {
     boolean success = true;
     PropertyKey isKey = accessor.keyBuilder().idealStates(workflowJobResource);
-    if (accessor.getProperty(isKey) != null) {
+    if (accessor.getPropertyStat(isKey) != null) {
       if (!accessor.removeProperty(isKey)) {
         LOG.warn(String.format(
             "Error occurred while trying to remove IdealState for %s. Failed to remove node %s.",
@@ -548,7 +548,7 @@ public class TaskUtil {
 
     // Delete external view
     PropertyKey evKey = accessor.keyBuilder().externalView(workflowJobResource);
-    if (accessor.getProperty(evKey) != null) {
+    if (accessor.getPropertyStat(evKey) != null) {
       if (!accessor.removeProperty(evKey)) {
         LOG.warn(String.format(
             "Error occurred while trying to remove ExternalView of resource %s. Failed to remove node %s.",
@@ -583,15 +583,15 @@ public class TaskUtil {
       }
     }
 
+    if (!removeWorkflowConfig(accessor, workflow)) {
+      LOG.warn(
+          String.format("Error occurred while trying to remove workflow config for %s.", workflow));
+      success = false;
+    }
     if (!cleanupWorkflowIdealStateExtView(accessor, workflow)) {
       LOG.warn(String
           .format("Error occurred while trying to remove workflow idealstate/externalview for %s.",
               workflow));
-      success = false;
-    }
-    if (!removeWorkflowConfig(accessor, workflow)) {
-      LOG.warn(
-          String.format("Error occurred while trying to remove workflow config for %s.", workflow));
       success = false;
     }
     if (!removeWorkflowContext(propertyStore, workflow)) {
@@ -679,14 +679,13 @@ public class TaskUtil {
   protected static boolean removeJob(HelixDataAccessor accessor, HelixPropertyStore propertyStore,
       String job) {
     boolean success = true;
-    if (!cleanupJobIdealStateExtView(accessor, job)) {
-      LOG.warn(String
-          .format("Error occurred while trying to remove job idealstate/externalview for %s.",
-              job));
-      success = false;
-    }
     if (!removeJobConfig(accessor, job)) {
       LOG.warn(String.format("Error occurred while trying to remove job config for %s.", job));
+      success = false;
+    }
+    if (!cleanupJobIdealStateExtView(accessor, job)) {
+      LOG.warn(String
+          .format("Error occurred while trying to remove job idealstate/externalview for %s.", job));
       success = false;
     }
     if (!removeJobContext(propertyStore, job)) {
@@ -789,7 +788,7 @@ public class TaskUtil {
   private static boolean removeWorkflowJobConfig(HelixDataAccessor accessor,
       String workflowJobResource) {
     PropertyKey cfgKey = accessor.keyBuilder().resourceConfig(workflowJobResource);
-    if (accessor.getProperty(cfgKey) != null) {
+    if (accessor.getPropertyStat(cfgKey) != null) {
       if (!accessor.removeProperty(cfgKey)) {
         LOG.warn(String.format(
             "Error occurred while trying to remove config for %s. Failed to remove node %s.",

@@ -228,12 +228,37 @@ public class TaskDriver {
    * @param job  job name
    */
   public void deleteJob(final String queue, final String job) {
-    WorkflowConfig workflowCfg =
-        TaskUtil.getWorkflowConfig(_accessor, queue);
+    deleteJob(queue, job, false);
+  }
+
+  /**
+   * Delete a job from an existing named queue,
+   * the queue has to be stopped prior to this call
+   *
+   * @param queue queue name
+   * @param job  job name
+   * @param forceDelete  CAUTION: if set true, all job's related zk nodes will
+   *                     be clean up from zookeeper even if its workflow information can not be found.
+   */
+  public void deleteJob(final String queue, final String job, boolean forceDelete) {
+    WorkflowConfig workflowCfg = TaskUtil.getWorkflowConfig(_accessor, queue);
 
     if (workflowCfg == null) {
-      throw new IllegalArgumentException("Queue " + queue + " does not yet exist!");
+      if (forceDelete) {
+        // remove all job znodes if its original workflow config was already gone.
+        LOG.info("Forcefully removing job: " + job + " from queue: " + queue);
+        boolean success = TaskUtil
+            .removeJob(_accessor, _propertyStore, TaskUtil.getNamespacedJobName(queue, job));
+        if (!success) {
+          LOG.info("Failed to delete job: " + job + " from queue: " + queue);
+          throw new HelixException("Failed to delete job: " + job + " from queue: " + queue);
+        }
+      } else {
+        throw new IllegalArgumentException("Queue " + queue + " does not yet exist!");
+      }
+      return;
     }
+
     if (workflowCfg.isTerminable()) {
       throw new IllegalArgumentException(queue + " is not a queue!");
     }
@@ -283,12 +308,13 @@ public class TaskDriver {
     }
 
     String namespacedJobName = TaskUtil.getNamespacedJobName(queue, job);
-    Set<String> jobs = new HashSet<String>(Arrays.asList(namespacedJobName));
+    Set<String> jobs = new HashSet<>(Arrays.asList(namespacedJobName));
     if (!TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, jobs, true)) {
       LOG.error("Failed to delete job " + job + " from queue " + queue);
       throw new HelixException("Failed to delete job " + job + " from queue " + queue);
     }
   }
+
 
   /**
    * Adds a new job to the end an existing named queue.
@@ -549,26 +575,53 @@ public class TaskDriver {
    * @param workflow
    */
   public void delete(String workflow) {
-    // After set DELETE state, rebalancer may remove the workflow instantly.
-    // So record context before set DELETE state.
+    delete(workflow, false);
+  }
+
+  /**
+   * Public method to delete a workflow/queue.
+   *
+   * @param workflow
+   * @param forceDelete, CAUTION: if set true, workflow and all of its jobs' related zk nodes will
+   *                     be clean up immediately from zookeeper, no matter whether there are jobs
+   *                     are running or not.
+   */
+  public void delete(String workflow, boolean forceDelete) {
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, workflow);
+    if (forceDelete) {
+      // if forceDelete, remove the workflow and its jobs immediately from zookeeper.
+      LOG.info("Forcefully removing workflow: " + workflow);
+      removeWorkflowFromZK(workflow);
+    } else {
+      // Set the workflow target state to DELETE, and let Helix controller to remove the workflow.
+      // Controller may remove the workflow instantly, so record context before set DELETE state.
+      setWorkflowTargetState(workflow, TargetState.DELETE);
+    }
 
-    setWorkflowTargetState(workflow, TargetState.DELETE);
-
-    // Delete all finished scheduled workflows.
+    // Delete all previously scheduled workflows.
     if (wCtx != null && wCtx.getScheduledWorkflows() != null) {
       for (String scheduledWorkflow : wCtx.getScheduledWorkflows()) {
-        WorkflowContext scheduledWorkflowCtx = TaskUtil.getWorkflowContext(_propertyStore, scheduledWorkflow);
-        if (scheduledWorkflowCtx != null && scheduledWorkflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
-          Set<String> jobSet = new HashSet<String>();
-          // Note that even WorkflowConfig is null, if WorkflowContext exists, still need to remove workflow
-          WorkflowConfig wCfg = TaskUtil.getWorkflowConfig(_accessor, scheduledWorkflow);
-          if (wCfg != null) {
-            jobSet.addAll(wCfg.getJobDag().getAllNodes());
-          }
-          TaskUtil.removeWorkflow(_accessor, _propertyStore, scheduledWorkflow, jobSet);
+        WorkflowContext scheduledWorkflowCtx =
+            TaskUtil.getWorkflowContext(_propertyStore, scheduledWorkflow);
+        if (scheduledWorkflowCtx != null
+            && scheduledWorkflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
+          removeWorkflowFromZK(scheduledWorkflow);
         }
       }
+    }
+  }
+
+  private void removeWorkflowFromZK(String workflow) {
+    Set<String> jobSet = new HashSet<>();
+    // Note that even WorkflowConfig is null, if WorkflowContext exists, still need to remove workflow
+    WorkflowConfig wCfg = TaskUtil.getWorkflowConfig(_accessor, workflow);
+    if (wCfg != null) {
+      jobSet.addAll(wCfg.getJobDag().getAllNodes());
+    }
+    boolean success = TaskUtil.removeWorkflow(_accessor, _propertyStore, workflow, jobSet);
+    if (!success) {
+      LOG.info("Failed to delete the workflow " + workflow);
+      throw new HelixException("Failed to delete the workflow " + workflow);
     }
   }
 

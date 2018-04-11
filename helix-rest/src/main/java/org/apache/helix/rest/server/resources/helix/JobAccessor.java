@@ -26,10 +26,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.HelixException;
@@ -128,11 +130,13 @@ public class JobAccessor extends AbstractHelixResource {
   @DELETE
   @Path("{jobName}")
   public Response deleteJob(@PathParam("clusterId") String clusterId,
-      @PathParam("workflowName") String workflowName, @PathParam("jobName") String jobName) {
+      @PathParam("workflowName") String workflowName, @PathParam("jobName") String jobName,
+      @QueryParam("force") @DefaultValue("false") String forceDelete) {
+    boolean force = Boolean.valueOf(forceDelete);
     TaskDriver driver = getTaskDriver(clusterId);
 
     try {
-      driver.deleteJob(workflowName, jobName);
+      driver.deleteJob(workflowName, jobName, force);
     } catch (Exception e) {
       return badRequest(e.getMessage());
     }

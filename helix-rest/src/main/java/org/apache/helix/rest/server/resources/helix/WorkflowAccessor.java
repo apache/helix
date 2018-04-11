@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -173,10 +174,12 @@ public class WorkflowAccessor extends AbstractHelixResource {
   @DELETE
   @Path("{workflowId}")
   public Response deleteWorkflow(@PathParam("clusterId") String clusterId,
-      @PathParam("workflowId") String workflowId) {
+      @PathParam("workflowId") String workflowId,
+      @QueryParam("force") @DefaultValue("false") String forceDelete) {
+    boolean force = Boolean.valueOf(forceDelete);
     TaskDriver driver = getTaskDriver(clusterId);
     try {
-      driver.delete(workflowId);
+      driver.delete(workflowId, force);
     } catch (HelixException e) {
       return badRequest(String
           .format("Failed to delete workflow %s for reason : %s", workflowId, e.getMessage()));

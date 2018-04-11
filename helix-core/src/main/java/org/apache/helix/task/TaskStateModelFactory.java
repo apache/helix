@@ -25,6 +25,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.JMException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
@@ -48,8 +49,9 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry) {
     this(manager, taskFactoryRegistry,
         Executors.newScheduledThreadPool(TASK_THREADPOOL_SIZE, new ThreadFactory() {
+          private AtomicInteger threadId = new AtomicInteger(0);
           @Override public Thread newThread(Runnable r) {
-            return new Thread(r, "TaskStateModelFactory-task_thread");
+            return new Thread(r, "TaskStateModelFactory-task_thread-" + threadId.getAndIncrement());
           }
         }));
   }

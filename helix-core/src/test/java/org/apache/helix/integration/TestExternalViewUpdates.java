@@ -22,10 +22,10 @@ package org.apache.helix.integration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
+import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -43,26 +43,31 @@ public class TestExternalViewUpdates extends ZkIntegrationTestBase {
     System.out.println("START testExternalViewUpdates at " + new Date(System.currentTimeMillis()));
 
     String clusterName = getShortClassName();
-    MockParticipantManager[] participants = new MockParticipantManager[5];
-    int resourceNb = 10;
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    int numResource = 10;
+    int numPartition = 1;
+    int numReplica = 1;
+    int numNode = 5;
+    int startPort = 12918;
+    MockParticipantManager[] participants = new MockParticipantManager[numNode];
+    TestHelper.setupCluster(clusterName, ZK_ADDR, startPort, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
-        resourceNb, // resources
-        1, // partitions per resource
-        5, // number of nodes
-        1, // replicas
+        numResource, // resources
+        numPartition, // partitions per resource
+        numNode, // number of nodes
+        numReplica, // replicas
         "MasterSlave", true); // do rebalance
 
     // start participants
-    for (int i = 0; i < 5; i++) {
-      String instanceName = "localhost_" + (12918 + i);
+    for (int i = 0; i < numNode; i++) {
+      String instanceName = "localhost_" + (startPort + i);
 
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
-    // start controller after participants to trigger rebalance immediate after the controller is ready
+    // start controller after participants to trigger rebalance immediately
+    // after the controller is ready
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
@@ -77,9 +82,10 @@ public class TestExternalViewUpdates extends ZkIntegrationTestBase {
             clusterName));
     Assert.assertTrue(result);
 
-    // need to verify that each ExternalView's version number is 2
+    // 10 Resources, 1 partition, 1 replica, so there are at most 10 ZK writes for EV (assume)
+    // worst case that no event is batched in controller. Therefore, EV version should be < 10
     Builder keyBuilder = new Builder(clusterName);
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    BaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     String parentPath = keyBuilder.externalViews().getPath();
     List<String> childNames = accessor.getChildNames(parentPath, 0);
 
@@ -88,10 +94,11 @@ public class TestExternalViewUpdates extends ZkIntegrationTestBase {
       paths.add(parentPath + "/" + name);
     }
 
-    // Stat[] stats = accessor.getStats(paths);
+    int maxEV = numResource * numPartition * numReplica;
     for (String path : paths) {
       Stat stat = accessor.getStat(path, 0);
-      Assert.assertTrue(stat.getVersion() <= 2, "ExternalView should be updated at most 2 times");
+      Assert.assertTrue(stat.getVersion() <= maxEV,
+          "ExternalView should be updated at most " + maxEV + " times");
     }
 
     // clean up

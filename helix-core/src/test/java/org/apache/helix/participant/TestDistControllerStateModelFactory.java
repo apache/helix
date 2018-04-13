@@ -19,8 +19,10 @@ package org.apache.helix.participant;
  * under the License.
  */
 
+import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 
+import org.apache.helix.model.Message;
 import org.testng.annotations.Test;
 
 public class TestDistControllerStateModelFactory {
@@ -31,6 +33,6 @@ public class TestDistControllerStateModelFactory {
     DistClusterControllerStateModelFactory factory =
         new DistClusterControllerStateModelFactory(zkAddr);
     DistClusterControllerStateModel stateModel = factory.createNewStateModel("name", "key");
-    stateModel.onBecomeStandbyFromOffline(null, null);
+    stateModel.onBecomeStandbyFromOffline(new Message(new ZNRecord("Test")), null);
   }
 }

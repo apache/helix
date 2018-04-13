@@ -289,7 +289,8 @@ public class StatusUpdateUtil {
     ZNRecord result = createEmptyStatusUpdateRecord(getStatusUpdateRecordName(message));
     Map<String, String> contentMap = new TreeMap<String, String>();
 
-    contentMap.put("Message state", message.getMsgState().toString());
+    contentMap.put("Message state",
+        (message.getMsgState() == null ? "NULL" : message.getMsgState().toString()));
     contentMap.put("AdditionalInfo", additionalInfo);
     contentMap.put("Class", classInfo.toString());
     contentMap.put("MSG_ID", message.getMsgId());

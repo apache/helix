@@ -313,8 +313,11 @@ public class Message extends HelixProperty {
    */
   public MessageState getMsgState() {
     // HACK: The "toUpperCase()" call is to make the change backward compatible
-    return MessageState.valueOf(_record.getSimpleField(Attributes.MSG_STATE.toString())
-        .toUpperCase());
+    if (_record.getSimpleField(Attributes.MSG_STATE.toString()) != null) {
+      return MessageState
+          .valueOf(_record.getSimpleField(Attributes.MSG_STATE.toString()).toUpperCase());
+    }
+    return null;
   }
 
   /**

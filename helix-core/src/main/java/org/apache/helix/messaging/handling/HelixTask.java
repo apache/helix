@@ -22,7 +22,6 @@ package org.apache.helix.messaging.handling;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -32,7 +31,6 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.messaging.handling.MessageHandler.ErrorCode;
 import org.apache.helix.messaging.handling.MessageHandler.ErrorType;
 import org.apache.helix.model.Message;
@@ -41,7 +39,6 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
-import org.apache.helix.task.TaskResult;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.slf4j.Logger;
@@ -75,6 +72,8 @@ public class HelixTask implements MessageTask {
 
     ErrorType type = null;
     ErrorCode code = null;
+    Long handlerStart = null;
+    Long handlerEnd = null;
 
     long start = System.currentTimeMillis();
     logger.info("handling task: " + getTaskId() + " begin, at: " + start);
@@ -93,7 +92,9 @@ public class HelixTask implements MessageTask {
     // Handle the message
     try {
       setStarted();
+      handlerStart = System.currentTimeMillis();
       taskResult = _handler.handleMessage();
+      handlerEnd = System.currentTimeMillis();
     } catch (InterruptedException e) {
       taskResult = new HelixTaskResult();
       taskResult.setException(e);
@@ -196,8 +197,14 @@ public class HelixTask implements MessageTask {
       _statusUpdateUtil.logError(_message, HelixTask.class, errorMessage, _manager);
     } finally {
       long end = System.currentTimeMillis();
-      logger.info("msg: " + _message.getMsgId() + " handling task completed, results:"
-          + taskResult.isSuccess() + ", at: " + end + ", took:" + (end - start));
+      long totalDuration = end - start;
+      long handlerDuration =
+          handlerStart != null && handlerEnd != null ? handlerEnd - handlerStart : -1;
+      logger.info(
+          "Message: {} (parent: {}) handling task for {}:{} completed at: {}, results: {}. FrameworkTime: {} ms; HandlerTime: {} ms.",
+          _message.getMsgId(), _message.getAttribute(Attributes.PARENT_MSG_ID), _message.getResourceName(),
+          _message.getPartitionName(), end, taskResult.isSuccess(), totalDuration - handlerDuration,
+          handlerDuration);
 
       // Notify the handler about any error happened in the handling procedure, so that
       // the handler have chance to finally cleanup

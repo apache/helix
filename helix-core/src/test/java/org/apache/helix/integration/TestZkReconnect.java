@@ -142,7 +142,7 @@ public class TestZkReconnect {
   }
 
   @Test
-  public void testZKDisconnectCallback() throws Exception {
+  public void testHelixManagerStateListenerCallback() throws Exception {
     final int zkPort = TestHelper.getRandomPort();
     final String zkAddr = String.format("localhost:%d", zkPort);
     final ZkServer zkServer = TestHelper.startZkServer(zkAddr);
@@ -151,8 +151,9 @@ public class TestZkReconnect {
     String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
 
-    // Init flag to check if callback is triggered
-    final AtomicReference<Boolean> flag = new AtomicReference<Boolean>(false);
+    // Init onDisconnectedFlag to check if callback is triggered
+    final AtomicReference<Boolean> onDisconnectedFlag = new AtomicReference<>(false);
+    final AtomicReference<Boolean> onConnectedFlag = new AtomicReference<>(false);
 
     // Setup cluster
     LOG.info("Setup clusters");
@@ -169,26 +170,32 @@ public class TestZkReconnect {
             new HelixManagerStateListener() {
               @Override
               public void onConnected(HelixManager helixManager) throws Exception {
-                return;
+                Assert.assertEquals(helixManager.getClusterName(), clusterName);
+                onConnectedFlag.getAndSet(true);
               }
 
               @Override
               public void onDisconnected(HelixManager helixManager, Throwable error) throws Exception {
                 Assert.assertEquals(helixManager.getClusterName(), clusterName);
-                flag.getAndSet(true);
+                onDisconnectedFlag.getAndSet(true);
               }
             });
 
     try {
       controller.connect();
+      Assert.assertTrue(onConnectedFlag.getAndSet(false));
       ZkHelixPropertyStore propertyStore = controller.getHelixPropertyStore();
 
       // 1. shutdown zkServer and check if handler trigger callback
       zkServer.shutdown();
-      // Retry will fail, and flag should be set within onDisconnected handler
-      controller.handleSessionEstablishmentError(new Exception("For testing"));
-      Assert.assertTrue(flag.get());
 
+      // Retry will fail, and onDisconnectedFlag should be set within onDisconnected handler
+      controller.handleSessionEstablishmentError(new Exception("For testing"));
+      Assert.assertTrue(onDisconnectedFlag.get());
+      Assert.assertFalse(onConnectedFlag.get());
+      Assert.assertFalse(controller.isConnected());
+
+      // Verify ZK is down
       try {
         propertyStore.get("/", null, 0);
         Assert.fail("propertyStore should be disconnected.");
@@ -198,11 +205,14 @@ public class TestZkReconnect {
       }
 
       // 2. restart zkServer and check if handler will recover connection
-      flag.getAndSet(false);
+      onDisconnectedFlag.getAndSet(false);
       zkServer.start();
-      // Retry will succeed, and flag should not be set
+
+      // Retry will succeed, and onDisconnectedFlag should not be set
       controller.handleSessionEstablishmentError(new Exception("For testing"));
-      Assert.assertFalse(flag.get());
+      Assert.assertFalse(onDisconnectedFlag.get());
+      Assert.assertTrue(onConnectedFlag.get());
+
       // New propertyStore should be in good state
       propertyStore = controller.getHelixPropertyStore();
       propertyStore.get("/", null, 0);

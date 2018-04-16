@@ -661,6 +661,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     try {
       createClient();
       _messagingService.onConnected();
+      if (_stateListener != null) {
+        _stateListener.onConnected(this);
+      }
     } catch (Exception e) {
       LOG.error("fail to connect " + _instanceName, e);
       disconnect();

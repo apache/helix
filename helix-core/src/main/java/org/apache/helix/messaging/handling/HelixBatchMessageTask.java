@@ -48,7 +48,7 @@ public class HelixBatchMessageTask implements MessageTask {
     HelixTaskResult taskResult = null;
 
     long start = System.currentTimeMillis();
-    LOG.info("taskId:" + getTaskId() + " handling task begin, at: " + start);
+    LOG.info("BatchMsg task {} handling task begin, at: {}", getTaskId(), start);
 
     boolean isSucceed = true;
     try {
@@ -74,7 +74,9 @@ public class HelixBatchMessageTask implements MessageTask {
     }
 
     if (isSucceed) {
-      LOG.info("task: " + getTaskId() + " completed sucessfully");
+      LOG.info("BatchMsg task {} completed successfully", getTaskId());
+    } else {
+      LOG.warn("BatchMsg task {} failed.", getTaskId());
     }
 
     taskResult = new HelixTaskResult();

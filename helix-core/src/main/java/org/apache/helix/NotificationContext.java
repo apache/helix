@@ -74,6 +74,24 @@ public class NotificationContext {
   }
 
   /**
+   * Clone a new Notification context from existing one. Map contents are
+   * not recursively deep copied.
+   *
+   * @return new copy of NotificationContext
+   */
+  public NotificationContext clone() {
+
+    NotificationContext copy = new NotificationContext(_manager);
+    copy.setType(_type);
+    copy.setChangeType(_changeType);
+    copy.setPathChanged(_pathChanged);
+    copy.setEventName(_eventName);
+    copy.setCreationTime(_creationTime);
+    copy._map.putAll(_map);
+    return copy;
+  }
+
+  /**
    * Get the HelixManager associated with this notification
    *
    * @return {@link HelixManager} object

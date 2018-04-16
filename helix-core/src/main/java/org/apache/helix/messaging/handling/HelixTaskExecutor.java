@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,9 +36,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.codec.binary.StringUtils;
-import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixConstants;
@@ -50,7 +48,6 @@ import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.controller.GenericHelixController;
@@ -62,10 +59,10 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor.ProcessedMessageState;
+import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
@@ -73,8 +70,6 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   /**
@@ -769,9 +764,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
 
-    // message handlers created
+    // message handlers and corresponding contexts created
     Map<String, MessageHandler> stateTransitionHandlers = new HashMap<>();
+    Map<String, NotificationContext> stateTransitionContexts = new HashMap<>();
+
     List<MessageHandler> nonStateTransitionHandlers = new ArrayList<>();
+    List<NotificationContext> nonStateTransitionContexts = new ArrayList<>();
 
     // message read
     List<Message> readMsgs = new ArrayList<>();
@@ -858,8 +856,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       _monitor.reportReceivedMessage(message);
 
       // create message handlers, if handlers not found, leave its state as NEW
+      NotificationContext msgWorkingContext = changeContext.clone();
       try {
-        MessageHandler createHandler = createMessageHandler(message, changeContext);
+        MessageHandler createHandler = createMessageHandler(message, msgWorkingContext);
         if (createHandler == null) {
           continue;
         }
@@ -868,8 +867,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           stateTransitionHandlers
               .put(getMessageTarget(message.getResourceName(), message.getPartitionName()),
                   createHandler);
+          stateTransitionContexts
+              .put(getMessageTarget(message.getResourceName(), message.getPartitionName()),
+                  msgWorkingContext);
         } else {
           nonStateTransitionHandlers.add(createHandler);
+          nonStateTransitionContexts.add(msgWorkingContext);
         }
       } catch (Exception e) {
         LOG.error("Failed to create message handler for " + message.getMsgId(), e);
@@ -885,7 +888,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         continue;
       }
 
-      markReadMessage(message, changeContext, manager);
+      markReadMessage(message, msgWorkingContext, manager);
       readMsgs.add(message);
 
       // batch creation of all current state meta data
@@ -927,14 +930,22 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     if (readMsgs.size() > 0) {
       updateMessageState(readMsgs, accessor, instanceName);
 
-      for (MessageHandler handler : stateTransitionHandlers.values()) {
-        HelixTask task = new HelixTask(handler._message, changeContext, handler, this);
-        scheduleTask(task);
+      for (Map.Entry<String, MessageHandler> handlerEntry : stateTransitionHandlers.entrySet()) {
+        MessageHandler handler = handlerEntry.getValue();
+        NotificationContext context = stateTransitionContexts.get(handlerEntry.getKey());
+        Message msg = handler._message;
+        scheduleTask(
+            new HelixTask(msg, context, handler, this)
+        );
       }
 
-      for (MessageHandler handler : nonStateTransitionHandlers) {
-        HelixTask task = new HelixTask(handler._message, changeContext, handler, this);
-        scheduleTask(task);
+      for (int i = 0; i < nonStateTransitionHandlers.size(); i++) {
+        MessageHandler handler = nonStateTransitionHandlers.get(i);
+        NotificationContext context = nonStateTransitionContexts.get(i);
+        Message msg = handler._message;
+        scheduleTask(
+            new HelixTask(msg, context, handler, this)
+        );
       }
     }
   }

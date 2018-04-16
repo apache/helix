@@ -84,7 +84,7 @@ public class HelixTask implements MessageTask {
 
     // add a concurrent map to hold currentStateUpdates for sub-messages of a batch-message
     // partitionName -> csUpdate
-    if (_message.getBatchMessageMode() == true) {
+    if (_message.getBatchMessageMode()) {
       _notificationContext.add(MapKey.CURRENT_STATE_UPDATE.toString(),
           new ConcurrentHashMap<String, CurrentStateUpdate>());
     }

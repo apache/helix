@@ -52,7 +52,7 @@ public abstract class DedupEventProcessor<T, E> extends Thread {
         logger.error(_processorName + " thread failed while running the controller pipeline", t);
       }
     }
-    logger.info("END " + _processorName + " thread");
+    logger.info("END " + _processorName + " thread for cluster " + _clusterName);
   }
 
   protected abstract void handleEvent(E event);
@@ -62,7 +62,7 @@ public abstract class DedupEventProcessor<T, E> extends Thread {
   }
 
   public void shutdown() {
-    _eventQueue.clear();
     this.interrupt();
+    _eventQueue.clear();
   }
 }

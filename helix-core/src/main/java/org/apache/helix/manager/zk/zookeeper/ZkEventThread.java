@@ -82,6 +82,8 @@ public class ZkEventThread extends Thread {
     } catch (InterruptedException e) {
       LOG.info("Terminate ZkClient event thread.");
     }
+
+    LOG.info("Terminate ZkClient event thread.");
   }
 
   public void send(ZkEvent event) {

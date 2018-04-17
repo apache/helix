@@ -226,7 +226,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
   }
 
   public static class TestMasterSlaveStateModelFactory
-      extends DummyProcess.DummyStateModelFactory {
+      extends DummyProcess.DummyMasterSlaveStateModelFactory {
     int _startThreadPoolSize;
     Map<String, ExecutorService> _threadPoolExecutorMap;
 

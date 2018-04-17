@@ -33,7 +33,6 @@ import org.apache.helix.mock.participant.MockSchemataModelFactory;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,14 +43,23 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
   protected CountDownLatch _stopCountDown = new CountDownLatch(1);
   protected CountDownLatch _waitStopCompleteCountDown = new CountDownLatch(1);
 
-  protected MockMSModelFactory _msModelFactory = new MockMSModelFactory(null);
-  protected DummyLeaderStandbyStateModelFactory _lsModelFactory =
-      new DummyLeaderStandbyStateModelFactory(10);
-  protected DummyOnlineOfflineStateModelFactory _ofModelFactory =
-      new DummyOnlineOfflineStateModelFactory(10);
+  protected int _transDelay = 10;
+
+  protected MockMSModelFactory _msModelFactory;
+  protected DummyLeaderStandbyStateModelFactory _lsModelFactory;
+  protected DummyOnlineOfflineStateModelFactory _ofModelFactory;
 
   public MockParticipantManager(String zkAddr, String clusterName, String instanceName) {
+    this(zkAddr, clusterName, instanceName, 10);
+  }
+
+  public MockParticipantManager(String zkAddr, String clusterName, String instanceName,
+      int transDelay) {
     super(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddr);
+    _transDelay = transDelay;
+    _msModelFactory = new MockMSModelFactory(null);
+    _lsModelFactory = new DummyLeaderStandbyStateModelFactory(_transDelay);
+    _ofModelFactory = new DummyOnlineOfflineStateModelFactory(_transDelay);
   }
 
   public void setTransition(MockTransition transition) {

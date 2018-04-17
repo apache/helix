@@ -54,7 +54,7 @@ public class DummyProcess {
   private final String _zkConnectString;
   private final String _clusterName;
   private final String _instanceName;
-  private DummyStateModelFactory stateModelFactory;
+  private DummyMasterSlaveStateModelFactory stateModelFactory;
   // private StateMachineEngine genericStateMachineHandler;
 
   private int _transDelayInMs = 0;
@@ -91,7 +91,7 @@ public class DummyProcess {
       throw new IllegalArgumentException("Unsupported cluster manager type:" + _clusterMangerType);
     }
 
-    stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
+    stateModelFactory = new DummyMasterSlaveStateModelFactory(_transDelayInMs);
     DummyLeaderStandbyStateModelFactory stateModelFactory1 =
         new DummyLeaderStandbyStateModelFactory(_transDelayInMs);
     DummyOnlineOfflineStateModelFactory stateModelFactory2 =
@@ -108,16 +108,16 @@ public class DummyProcess {
     return manager;
   }
 
-  public static class DummyStateModelFactory extends StateModelFactory<DummyStateModel> {
+  public static class DummyMasterSlaveStateModelFactory extends StateModelFactory<DummyMasterSlaveStateModel> {
     int _delay;
 
-    public DummyStateModelFactory(int delay) {
+    public DummyMasterSlaveStateModelFactory(int delay) {
       _delay = delay;
     }
 
     @Override
-    public DummyStateModel createNewStateModel(String resourceName, String stateUnitKey) {
-      DummyStateModel model = new DummyStateModel();
+    public DummyMasterSlaveStateModel createNewStateModel(String resourceName, String stateUnitKey) {
+      DummyMasterSlaveStateModel model = new DummyMasterSlaveStateModel();
       model.setDelay(_delay);
       return model;
     }
@@ -155,7 +155,7 @@ public class DummyProcess {
     }
   }
 
-  public static class DummyStateModel extends StateModel {
+  public static class DummyMasterSlaveStateModel extends StateModel {
     int _transDelay = 0;
 
     public void setDelay(int delay) {

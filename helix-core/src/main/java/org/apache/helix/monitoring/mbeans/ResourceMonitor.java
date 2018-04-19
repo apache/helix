@@ -38,17 +38,17 @@ import java.util.*;
 public class ResourceMonitor extends DynamicMBeanProvider {
 
   // Gauges
-  private SimpleDynamicMetric<Integer> _numOfPartitions;
-  private SimpleDynamicMetric<Integer> _numOfPartitionsInExternalView;
-  private SimpleDynamicMetric<Integer> _numOfErrorPartitions;
-  private SimpleDynamicMetric<Integer> _numNonTopStatePartitions;
+  private SimpleDynamicMetric<Long> _numOfPartitions;
+  private SimpleDynamicMetric<Long> _numOfPartitionsInExternalView;
+  private SimpleDynamicMetric<Long> _numOfErrorPartitions;
+  private SimpleDynamicMetric<Long> _numNonTopStatePartitions;
+  private SimpleDynamicMetric<Long> _externalViewIdealStateDiff;
   private SimpleDynamicMetric<Long> _numLessMinActiveReplicaPartitions;
   private SimpleDynamicMetric<Long> _numLessReplicaPartitions;
   private SimpleDynamicMetric<Long> _numPendingRecoveryRebalancePartitions;
   private SimpleDynamicMetric<Long> _numPendingLoadRebalancePartitions;
   private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledPartitions;
   private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledPartitions;
-  private SimpleDynamicMetric<Integer> _externalViewIdealStateDiff;
 
   // Counters
   private SimpleDynamicMetric<Long> _successfulTopStateHandoffDurationCounter;
@@ -63,6 +63,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private final String _resourceName;
   private final String _clusterName;
   private final ObjectName _initObjectName;
+  private ClusterStatusMonitor _clusterStatusMonitor;
 
   @Override
   public ResourceMonitor register() throws JMException {
@@ -85,16 +86,37 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     attributeList.add(_partitionTopStateHandoffDurationGauge);
     attributeList.add(_totalMessageReceived);
     doRegister(attributeList, _initObjectName);
-
     return this;
+  }
+
+  @Override
+  public synchronized void unregister() {
+    super.unregister();
+    // Also remove metrics propagated to aggregate metrics in ClusterStatusMonitor
+    if (_clusterStatusMonitor != null) {
+      _clusterStatusMonitor.applyDeltaToTotalPartitionCount(-_numOfPartitions.getValue());
+      _clusterStatusMonitor.applyDeltaToTotalErrorPartitionCount(-_numOfErrorPartitions.getValue());
+      _clusterStatusMonitor.applyDeltaToTotalExternalViewIdealStateMismatchPartitionCount(
+          -_externalViewIdealStateDiff.getValue());
+      _clusterStatusMonitor.applyDeltaToTotalPartitionsWithoutTopStateCount(-_numNonTopStatePartitions.getValue());
+    }
   }
 
   public enum MonitorState {
     TOP_STATE
   }
 
-  public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName)
-      throws JMException {
+  public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName) {
+    this(null, clusterName, resourceName, objectName);
+  }
+
+  public ResourceMonitor(ClusterStatusMonitor clusterStatusMonitor, String clusterName, String resourceName,
+      ObjectName objectName) {
+    if (clusterStatusMonitor == null) {
+      _logger.warn("ResourceMonitor initialized without a reference to ClusterStatusMonitor (null): metrics will not "
+          + "be aggregated at the cluster level.");
+    }
+    _clusterStatusMonitor = clusterStatusMonitor;
     _clusterName = clusterName;
     _resourceName = resourceName;
     _initObjectName = objectName;
@@ -130,9 +152,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   @Override
   public String getSensorName() {
-    return String
-        .format("%s.%s.%s.%s", ClusterStatusMonitor.RESOURCE_STATUS_KEY, _clusterName, _tag,
-            _resourceName);
+    return String.format("%s.%s.%s.%s", ClusterStatusMonitor.RESOURCE_STATUS_KEY, _clusterName, _tag, _resourceName);
   }
 
   public long getPartitionGauge() {
@@ -199,30 +219,29 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     }
 
     resetGauges();
+
     if (idealState == null) {
-      _logger.warn("ideal state is null for " + _resourceName);
+      _logger.warn("ideal state is null for {}", _resourceName);
       return;
     }
 
     assert (_resourceName.equals(idealState.getId()));
     assert (_resourceName.equals(externalView.getId()));
 
-    int numOfErrorPartitions = 0;
-    int numOfDiff = 0;
-    int numOfPartitionWithTopState = 0;
+    long numOfErrorPartitions = 0;
+    long numOfDiff = 0;
+    long numOfPartitionWithTopState = 0;
 
     Set<String> partitions = idealState.getPartitionSet();
-
-    _numOfPartitions.updateValue(partitions.size());
-
     int replica;
     try {
       replica = Integer.valueOf(idealState.getReplicas());
     } catch (NumberFormatException e) {
-      _logger.info("Unspecified replica count for " + _resourceName + ", skip updating the ResourceMonitor Mbean: " + idealState.getReplicas());
+      _logger.info("Unspecified replica count for {}, skip updating the ResourceMonitor Mbean: {}", _resourceName,
+          idealState.getReplicas());
       return;
     } catch (Exception ex) {
-      _logger.warn("Failed to get replica count for " + _resourceName + ", cannot update the ResourceMonitor Mbean.");
+      _logger.warn("Failed to get replica count for {}, cannot update the ResourceMonitor Mbean.", _resourceName);
       return;
     }
 
@@ -273,9 +292,23 @@ public class ResourceMonitor extends DynamicMBeanProvider {
             .updateValue(_numLessMinActiveReplicaPartitions.getValue() + 1);
       }
     }
+
+    // Update cluster-level aggregate metrics in ClusterStatusMonitor
+    if (_clusterStatusMonitor != null) {
+      _clusterStatusMonitor.applyDeltaToTotalPartitionCount(partitions.size() - _numOfPartitions.getValue());
+      _clusterStatusMonitor.applyDeltaToTotalErrorPartitionCount(
+          numOfErrorPartitions - _numOfErrorPartitions.getValue());
+      _clusterStatusMonitor.applyDeltaToTotalExternalViewIdealStateMismatchPartitionCount(
+          numOfDiff - _externalViewIdealStateDiff.getValue());
+      _clusterStatusMonitor.applyDeltaToTotalPartitionsWithoutTopStateCount(
+          (partitions.size() - numOfPartitionWithTopState) - _numNonTopStatePartitions.getValue());
+    }
+
+    // Update resource-level metrics
+    _numOfPartitions.updateValue((long) partitions.size());
     _numOfErrorPartitions.updateValue(numOfErrorPartitions);
     _externalViewIdealStateDiff.updateValue(numOfDiff);
-    _numOfPartitionsInExternalView.updateValue(externalView.getPartitionSet().size());
+    _numOfPartitionsInExternalView.updateValue((long) externalView.getPartitionSet().size());
     _numNonTopStatePartitions.updateValue(_numOfPartitions.getValue() - numOfPartitionWithTopState);
 
     String tag = idealState.getInstanceGroupTag();
@@ -287,10 +320,15 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   }
 
   private void resetGauges() {
-    _numOfErrorPartitions.updateValue(0);
-    _numNonTopStatePartitions.updateValue(0);
-    _externalViewIdealStateDiff.updateValue(0);
-    _numOfPartitionsInExternalView.updateValue(0);
+    // Disable reset for the following gauges:
+    // 1) Need the previous values for these gauges to compute delta for cluster-level metrics.
+    // 2) These four gauges are reset every time updateResource is called anyway.
+    //_numOfErrorPartitions.updateValue(0l);
+    //_numNonTopStatePartitions.updateValue(0l);
+    //_externalViewIdealStateDiff.updateValue(0l);
+    //_numOfPartitionsInExternalView.updateValue(0l);
+
+    // The following gauges are computed each call to updateResource by way of looping so need to be reset.
     _numLessMinActiveReplicaPartitions.updateValue(0l);
     _numLessReplicaPartitions.updateValue(0l);
     _numPendingRecoveryRebalancePartitions.updateValue(0l);
@@ -301,23 +339,23 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   public void updateStateHandoffStats(MonitorState monitorState, long duration, boolean succeeded) {
     switch (monitorState) {
-    case TOP_STATE:
-      if (succeeded) {
-        _successTopStateHandoffCounter.updateValue(_successTopStateHandoffCounter.getValue() + 1);
-        _successfulTopStateHandoffDurationCounter
-            .updateValue(_successfulTopStateHandoffDurationCounter.getValue() + duration);
-        _partitionTopStateHandoffDurationGauge.updateValue(duration);
-        if (duration > _maxSinglePartitionTopStateHandoffDuration.getValue()) {
-          _maxSinglePartitionTopStateHandoffDuration.updateValue(duration);
-          _lastResetTime = System.currentTimeMillis();
+      case TOP_STATE:
+        if (succeeded) {
+          _successTopStateHandoffCounter.updateValue(_successTopStateHandoffCounter.getValue() + 1);
+          _successfulTopStateHandoffDurationCounter
+              .updateValue(_successfulTopStateHandoffDurationCounter.getValue() + duration);
+          _partitionTopStateHandoffDurationGauge.updateValue(duration);
+          if (duration > _maxSinglePartitionTopStateHandoffDuration.getValue()) {
+            _maxSinglePartitionTopStateHandoffDuration.updateValue(duration);
+            _lastResetTime = System.currentTimeMillis();
+          }
+        } else {
+          _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
         }
-      } else {
-        _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
-      }
-      break;
-    default:
-      _logger.warn(
-          String.format("Wrong monitor state \"%s\" that not supported ", monitorState.name()));
+        break;
+      default:
+        _logger.warn(
+            String.format("Wrong monitor state \"%s\" that not supported ", monitorState.name()));
     }
   }
 

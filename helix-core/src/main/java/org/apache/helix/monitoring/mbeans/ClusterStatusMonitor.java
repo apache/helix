@@ -50,7 +50,6 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   static final String WORKFLOW_TYPE_DN_KEY = "workflowType";
   static final String JOB_TYPE_DN_KEY = "jobType";
   static final String DEFAULT_WORKFLOW_JOB_TYPE = "DEFAULT";
-
   public static final String DEFAULT_TAG = "DEFAULT";
 
   private final String _clusterName;
@@ -69,9 +68,13 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private boolean _rebalanceFailure = false;
   private AtomicLong _rebalanceFailureCount = new AtomicLong(0L);
 
+  // Aggregate metrics from ResourceMonitors
+  private volatile long _totalPartitionCount = 0;
+  private volatile long _totalErrorPartitionCount = 0;
+  private volatile long _totalPartitionsWithoutTopStateCount = 0;
+  private volatile long _totalExternalViewIdealStateMismatchPartitionCount = 0;
 
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap = new ConcurrentHashMap<>();
-
   private final ConcurrentHashMap<String, InstanceMonitor> _instanceMbeanMap = new ConcurrentHashMap<>();
 
   // phaseName -> eventMonitor
@@ -457,7 +460,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           if (!_resourceMbeanMap.containsKey(resourceName)) {
             String beanName = getResourceBeanName(resourceName);
             ResourceMonitor bean =
-                new ResourceMonitor(_clusterName, resourceName, getObjectName(beanName));
+                new ResourceMonitor(this, _clusterName, resourceName, getObjectName(beanName));
             bean.register();
             _resourceMbeanMap.put(resourceName, bean);
           }
@@ -777,7 +780,6 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     _inMaintenance = inMaintenance;
   }
 
-
   @Override
   public long getPaused() {
     return _paused ? 1 : 0;
@@ -799,4 +801,41 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   public long getRebalanceFailureCounter() {
     return _rebalanceFailureCount.get();
   }
+
+  @Override
+  public long getTotalPartitionCount() {
+    return _totalPartitionCount;
+  }
+
+  @Override
+  public long getTotalErrorPartitionCount() {
+    return _totalErrorPartitionCount;
+  }
+
+  @Override
+  public long getTotalPartitionsWithoutTopStateCount() {
+    return _totalPartitionsWithoutTopStateCount;
+  }
+
+  @Override
+  public long getTotalExternalViewIdealStateMismatchPartitionCount() {
+    return _totalExternalViewIdealStateMismatchPartitionCount;
+  }
+
+  synchronized void applyDeltaToTotalPartitionCount(long delta) {
+    _totalPartitionCount += delta;
+  }
+
+  synchronized void applyDeltaToTotalErrorPartitionCount(long delta) {
+    _totalErrorPartitionCount += delta;
+  }
+
+  synchronized void applyDeltaToTotalPartitionsWithoutTopStateCount(long delta) {
+    _totalPartitionsWithoutTopStateCount += delta;
+  }
+
+  synchronized void applyDeltaToTotalExternalViewIdealStateMismatchPartitionCount(long delta) {
+    _totalExternalViewIdealStateMismatchPartitionCount += delta;
+  }
+
 }

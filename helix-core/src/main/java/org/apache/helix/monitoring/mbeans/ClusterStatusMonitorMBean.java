@@ -22,49 +22,82 @@ package org.apache.helix.monitoring.mbeans;
 import org.apache.helix.monitoring.SensorNameProvider;
 
 public interface ClusterStatusMonitorMBean extends SensorNameProvider {
-  public long getDownInstanceGauge();
 
-  public long getInstancesGauge();
+  /**
+   * @return number of instances that are down (non-live instances)
+   */
+  long getDownInstanceGauge();
 
-  public long getDisabledInstancesGauge();
+  /**
+   * @return total number of instances
+   */
+  long getInstancesGauge();
 
-  public long getDisabledPartitionsGauge();
+  /**
+   * @return number of disabled instances
+   */
+  long getDisabledInstancesGauge();
 
-  public long getRebalanceFailureGauge();
+  /**
+   * @return number of disabled partitions
+   */
+  long getDisabledPartitionsGauge();
+
+  /**
+   * @return 1 if rebalance failed; 0 if rebalance did not fail
+   */
+  long getRebalanceFailureGauge();
 
   /**
    * The max message queue size across all instances including controller
    * @return
    */
-  public long getMaxMessageQueueSizeGauge();
+  long getMaxMessageQueueSizeGauge();
 
   /**
    * The sum of all message queue sizes for instances in this cluster
    * @return
    */
-  public long getInstanceMessageQueueBacklog();
+  long getInstanceMessageQueueBacklog();
 
   /**
    * @return 1 if cluster is enabled, otherwise 0
    */
-  public long getEnabled();
+  long getEnabled();
 
   /**
-   *
    * @return 1 if cluster is in maintenance mode, otherwise 0
    */
-  public long getMaintenance();
-
+  long getMaintenance();
 
   /**
-   *
    * @return 1 if cluster is paused, otherwise 0
    */
-  public long getPaused();
+  long getPaused();
 
   /**
    * The number of failures during rebalance pipeline.
    * @return
    */
   long getRebalanceFailureCounter();
+
+  /**
+   * @return number of all partitions in this cluster
+   */
+  long getTotalPartitionCount();
+
+  /**
+   * @return number of all partitions in this cluster that have errors
+   */
+  long getTotalErrorPartitionCount();
+
+  /**
+   * @return number of all partitions in this cluster without any top-state replicas
+   */
+  long getTotalPartitionsWithoutTopStateCount();
+
+  /**
+   * @return number of all partitions in this cluster whose ExternalView and IdealState have discrepancies
+   */
+  long getTotalExternalViewIdealStateMismatchPartitionCount();
 }

@@ -188,6 +188,7 @@ public class NotificationContext {
   public enum Type {
     INIT,
     CALLBACK,
+    PERIODIC_REFRESH,
     FINALIZE
   }
 

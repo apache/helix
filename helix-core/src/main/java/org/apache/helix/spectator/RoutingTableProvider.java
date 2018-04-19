@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.helix.HelixConstants;
@@ -53,25 +55,47 @@ import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RoutingTableProvider implements ExternalViewChangeListener, InstanceConfigChangeListener,
-    ConfigChangeListener, LiveInstanceChangeListener, CurrentStateChangeListener {
+public class RoutingTableProvider
+    implements ExternalViewChangeListener, InstanceConfigChangeListener, ConfigChangeListener,
+               LiveInstanceChangeListener, CurrentStateChangeListener {
   private static final Logger logger = LoggerFactory.getLogger(RoutingTableProvider.class);
+  private static final long DEFAULT_PERIODIC_REFRESH_INTERVAL = 300000; // 5 minutes
   private final AtomicReference<RoutingTable> _routingTableRef;
   private final HelixManager _helixManager;
   private final RouterUpdater _routerUpdater;
   private final PropertyType _sourceDataType;
   private final Map<RoutingTableChangeListener, ListenerContext> _routingTableChangeListenerMap;
 
+  // For periodic refresh
+  private long _lastRefreshTimestamp;
+  private boolean _isPeriodicRefreshEnabled = true; // Default is enabled
+  private long _periodRefreshInterval;
+  private ScheduledThreadPoolExecutor _periodicRefreshExecutor;
+
   public RoutingTableProvider() {
     this(null);
   }
 
   public RoutingTableProvider(HelixManager helixManager) throws HelixException {
-    this(helixManager, PropertyType.EXTERNALVIEW);
+    this(helixManager, PropertyType.EXTERNALVIEW, true, DEFAULT_PERIODIC_REFRESH_INTERVAL);
   }
 
   public RoutingTableProvider(HelixManager helixManager, PropertyType sourceDataType)
       throws HelixException {
+    this(helixManager, sourceDataType, true, DEFAULT_PERIODIC_REFRESH_INTERVAL);
+  }
+
+  /**
+   * Initialize an instance of RoutingTableProvider
+   *
+   * @param helixManager
+   * @param sourceDataType
+   * @param isPeriodicRefreshEnabled true if periodic refresh is enabled, false otherwise
+   * @param periodRefreshInterval only effective if isPeriodRefreshEnabled is true
+   * @throws HelixException
+   */
+  public RoutingTableProvider(HelixManager helixManager, PropertyType sourceDataType,
+      boolean isPeriodicRefreshEnabled, long periodRefreshInterval) throws HelixException {
     _routingTableRef = new AtomicReference<>(new RoutingTable());
     _helixManager = helixManager;
     _sourceDataType = sourceDataType;
@@ -79,41 +103,43 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
     String clusterName = _helixManager != null ? _helixManager.getClusterName() : null;
     _routerUpdater = new RouterUpdater(clusterName, _sourceDataType);
     _routerUpdater.start();
+
     if (_helixManager != null) {
       switch (_sourceDataType) {
-      case EXTERNALVIEW:
-        try {
-          _helixManager.addExternalViewChangeListener(this);
-        } catch (Exception e) {
-          shutdown();
-          logger.error("Failed to attach ExternalView Listener to HelixManager!");
-          throw new HelixException("Failed to attach ExternalView Listener to HelixManager!", e);
-        }
-        break;
+        case EXTERNALVIEW:
+          try {
+            _helixManager.addExternalViewChangeListener(this);
+          } catch (Exception e) {
+            shutdown();
+            logger.error("Failed to attach ExternalView Listener to HelixManager!");
+            throw new HelixException("Failed to attach ExternalView Listener to HelixManager!", e);
+          }
+          break;
 
-      case TARGETEXTERNALVIEW:
-        // Check whether target external has been enabled or not
-        if (!_helixManager.getHelixDataAccessor().getBaseDataAccessor().exists(
-            _helixManager.getHelixDataAccessor().keyBuilder().targetExternalViews().getPath(), 0)) {
-          shutdown();
-          throw new HelixException("Target External View is not enabled!");
-        }
+        case TARGETEXTERNALVIEW:
+          // Check whether target external has been enabled or not
+          if (!_helixManager.getHelixDataAccessor().getBaseDataAccessor().exists(
+              _helixManager.getHelixDataAccessor().keyBuilder().targetExternalViews().getPath(), 0)) {
+            shutdown();
+            throw new HelixException("Target External View is not enabled!");
+          }
 
-        try {
-          _helixManager.addTargetExternalViewChangeListener(this);
-        } catch (Exception e) {
-          shutdown();
-          logger.error("Failed to attach TargetExternalView Listener to HelixManager!");
-          throw new HelixException("Failed to attach TargetExternalView Listener to HelixManager!", e);
-        }
-        break;
+          try {
+            _helixManager.addTargetExternalViewChangeListener(this);
+          } catch (Exception e) {
+            shutdown();
+            logger.error("Failed to attach TargetExternalView Listener to HelixManager!");
+            throw new HelixException("Failed to attach TargetExternalView Listener to HelixManager!",
+                e);
+          }
+          break;
 
-      case CURRENTSTATES:
-        // CurrentState change listeners will be added later in LiveInstanceChange call.
-        break;
+        case CURRENTSTATES:
+          // CurrentState change listeners will be added later in LiveInstanceChange call.
+          break;
 
-      default:
-        throw new HelixException("Unsupported source data type: " + sourceDataType);
+        default:
+          throw new HelixException(String.format("Unsupported source data type: %s", sourceDataType));
       }
 
       try {
@@ -128,12 +154,40 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
             e);
       }
     }
+
+    // For periodic refresh
+    if (isPeriodicRefreshEnabled) {
+      _lastRefreshTimestamp = System.currentTimeMillis(); // Initialize timestamp with current time
+      _periodRefreshInterval = periodRefreshInterval;
+      // Construct a periodic refresh context
+      final NotificationContext periodicRefreshContext = new NotificationContext(_helixManager);
+      periodicRefreshContext.setType(NotificationContext.Type.PERIODIC_REFRESH);
+      // Create a thread that runs at specified interval
+      _periodicRefreshExecutor = new ScheduledThreadPoolExecutor(1);
+      _periodicRefreshExecutor.scheduleAtFixedRate(new Runnable() {
+        @Override
+        public void run() {
+          // If enough time has elapsed since last refresh, queue a refresh event
+          if (_lastRefreshTimestamp + _periodRefreshInterval < System.currentTimeMillis()) {
+            // changeType is irrelevant for NotificationContext.Type.PERIODIC_REFRESH
+            _routerUpdater.queueEvent(periodicRefreshContext, ClusterEventType.PeriodicalRebalance,
+                null);
+          }
+        }
+      }, _periodRefreshInterval, _periodRefreshInterval, TimeUnit.MILLISECONDS);
+    } else {
+      _isPeriodicRefreshEnabled = false;
+    }
   }
 
   /**
    * Shutdown current RoutingTableProvider. Once it is shutdown, it should never be reused.
    */
   public void shutdown() {
+    if (_periodicRefreshExecutor != null) {
+      _periodicRefreshExecutor.purge();
+      _periodicRefreshExecutor.shutdown();
+    }
     _routerUpdater.shutdown();
     if (_helixManager != null) {
       PropertyKey.Builder keyBuilder = _helixManager.getHelixDataAccessor().keyBuilder();
@@ -147,7 +201,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
         case CURRENTSTATES:
           NotificationContext context = new NotificationContext(_helixManager);
           context.setType(NotificationContext.Type.FINALIZE);
-          updateCurrentStatesListeners(Collections.<LiveInstance>emptyList(), context);
+          updateCurrentStatesListeners(Collections.<LiveInstance> emptyList(), context);
           break;
         default:
           break;
@@ -158,7 +212,6 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
   /**
    * Get an snapshot of current RoutingTable information. The snapshot is immutable, it reflects the
    * routing table information at the time this method is called.
-   *
    * @return snapshot of current routing table.
    */
   public RoutingTableSnapshot getRoutingTableSnapshot() {
@@ -167,29 +220,30 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
 
   /**
    * Add RoutingTableChangeListener with user defined context
-   *
    * @param routingTableChangeListener
    * @param context user defined context
    */
-  public void addRoutingTableChangeListener(final RoutingTableChangeListener routingTableChangeListener,
-      Object context) {
+  public void addRoutingTableChangeListener(
+      final RoutingTableChangeListener routingTableChangeListener, Object context) {
     _routingTableChangeListenerMap.put(routingTableChangeListener, new ListenerContext(context));
+    logger.info("Attach RoutingTableProviderChangeListener {}",
+        routingTableChangeListener.getClass().getName());
   }
 
   /**
    * Remove RoutingTableChangeListener
-   *
    * @param routingTableChangeListener
    */
   public Object removeRoutingTableChangeListener(
       final RoutingTableChangeListener routingTableChangeListener) {
+    logger.info("Detach RoutingTableProviderChangeListener {}",
+        routingTableChangeListener.getClass().getName());
     return _routingTableChangeListenerMap.remove(routingTableChangeListener);
   }
 
   /**
    * returns the instances for {resource,partition} pair that are in a specific
    * {state}
-   *
    * This method will be deprecated, please use the
    * {@link #getInstancesForResource(String, String, String)} getInstancesForResource} method.
    * @param resourceName
@@ -198,7 +252,8 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
    * @param state
    * @return empty list if there is no instance in a given state
    */
-  public List<InstanceConfig> getInstances(String resourceName, String partitionName, String state) {
+  public List<InstanceConfig> getInstances(String resourceName, String partitionName,
+      String state) {
     return getInstancesForResource(resourceName, partitionName, state);
   }
 
@@ -211,21 +266,19 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
    * @param state
    * @return empty list if there is no instance in a given state
    */
-  public List<InstanceConfig> getInstancesForResource(String resourceName, String partitionName, String state) {
+  public List<InstanceConfig> getInstancesForResource(String resourceName, String partitionName,
+      String state) {
     return _routingTableRef.get().getInstancesForResource(resourceName, partitionName, state);
   }
 
   /**
    * returns the instances for {resource group,partition} pair in all resources belongs to the given
    * resource group that are in a specific {state}.
-   *
    * The return results aggregate all partition states from all the resources in the given resource
    * group.
-   *
    * @param resourceGroupName
    * @param partitionName
    * @param state
-   *
    * @return empty list if there is no instance in a given state
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
@@ -237,26 +290,22 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
   /**
    * returns the instances for {resource group,partition} pair contains any of the given tags
    * that are in a specific {state}.
-   *
    * Find all resources belongs to the given resource group that have any of the given resource tags
    * and return the aggregated partition states from all these resources.
-   *
    * @param resourceGroupName
    * @param partitionName
    * @param state
    * @param resourceTags
-   *
    * @return empty list if there is no instance in a given state
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
       String partitionName, String state, List<String> resourceTags) {
-    return _routingTableRef.get()
-        .getInstancesForResourceGroup(resourceGroupName, partitionName, state, resourceTags);
+    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, partitionName,
+        state, resourceTags);
   }
 
   /**
    * returns all instances for {resource} that are in a specific {state}
-   *
    * This method will be deprecated, please use the
    * {@link #getInstancesForResource(String, String) getInstancesForResource} method.
    * @param resourceName
@@ -279,10 +328,8 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
 
   /**
    * returns all instances for all resources in {resource group} that are in a specific {state}
-   *
    * @param resourceGroupName
    * @param state
-   *
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state) {
@@ -292,10 +339,8 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
   /**
    * returns all instances for resources contains any given tags in {resource group} that are in a
    * specific {state}
-   *
    * @param resourceGroupName
    * @param state
-   *
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
@@ -333,13 +378,15 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
       NotificationContext changeContext) {
     HelixConstants.ChangeType changeType = changeContext.getChangeType();
     if (changeType != null && !changeType.getPropertyType().equals(_sourceDataType)) {
-      logger.warn("onExternalViewChange called with dis-matched change types. Source data type "
-          + _sourceDataType + ", changed data type: " + changeType);
+      logger.warn(
+          "onExternalViewChange called with mismatched change types. Source data type {}, changed data type: {}",
+          _sourceDataType, changeType);
       return;
     }
     // Refresh with full list of external view.
     if (externalViewList != null && externalViewList.size() > 0) {
-      // keep this here for back-compatibility, application can call onExternalViewChange directly with externalview list supplied.
+      // keep this here for back-compatibility, application can call onExternalViewChange directly
+      // with externalview list supplied.
       refresh(externalViewList, changeContext);
     } else {
       ClusterEventType eventType;
@@ -348,8 +395,9 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
       } else if (_sourceDataType.equals(PropertyType.TARGETEXTERNALVIEW)) {
         eventType = ClusterEventType.TargetExternalViewChange;
       } else {
-        logger.warn("onExternalViewChange called with dis-matched change types. Source data type "
-            + _sourceDataType + ", change type: " + changeType);
+        logger.warn(
+            "onExternalViewChange called with mismatched change types. Source data type {}, change type: {}",
+            _sourceDataType, changeType);
         return;
       }
       _routerUpdater.queueEvent(changeContext, eventType, changeType);
@@ -366,8 +414,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
 
   @Override
   @PreFetch(enabled = false)
-  public void onConfigChange(List<InstanceConfig> configs,
-      NotificationContext changeContext) {
+  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
     onInstanceConfigChange(configs, changeContext);
   }
 
@@ -386,8 +433,8 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
 
   @Override
   @PreFetch(enabled = false)
-  public void onStateChange(String instanceName,
-      List<CurrentState> statesInfo, NotificationContext changeContext) {
+  public void onStateChange(String instanceName, List<CurrentState> statesInfo,
+      NotificationContext changeContext) {
     if (_sourceDataType.equals(PropertyType.CURRENTSTATES)) {
       _routerUpdater.queueEvent(changeContext, ClusterEventType.CurrentStateChange,
           HelixConstants.ChangeType.CURRENT_STATE);
@@ -410,7 +457,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
 
     if (changeContext.getType() == NotificationContext.Type.FINALIZE) {
       // on finalize, should remove all current-state listeners
-      logger.info("remove current-state listeners. lastSeenSessions: " + _lastSeenSessions);
+      logger.info("remove current-state listeners. lastSeenSessions: {}", _lastSeenSessions);
       liveInstances = Collections.emptyList();
     }
 
@@ -433,11 +480,12 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
           try {
             // add current-state listeners for new sessions
             manager.addCurrentStateChangeListener(this, instanceName, session);
-            logger.info(manager.getInstanceName() + " added current-state listener for instance: "
-                + instanceName + ", session: " + session + ", listener: " + this);
+            logger.info(
+                "{} added current-state listener for instance: {}, session: {}, listener: {}",
+                manager.getInstanceName(), instanceName, session, this);
           } catch (Exception e) {
-            logger.error("Fail to add current state listener for instance: " + instanceName
-                + " with session: " + session, e);
+            logger.error("Fail to add current state listener for instance: {} with session: {}",
+                instanceName, session, e);
           }
         }
       }
@@ -447,8 +495,8 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
         if (!curSessions.containsKey(session)) {
           String instanceName = lastSessions.get(session).getInstanceName();
           manager.removeListener(keyBuilder.currentStates(instanceName, session), this);
-          logger.info("remove current-state listener for instance:" + instanceName + ", session: "
-              + session);
+          logger.info("remove current-state listener for instance: {}, session: {}", instanceName,
+              session);
         }
       }
 
@@ -476,10 +524,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
       Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
     long startTime = System.currentTimeMillis();
     RoutingTable newRoutingTable = new RoutingTable(externalViews, instanceConfigs, liveInstances);
-    _routingTableRef.set(newRoutingTable);
-    logger.info("Refreshed the RoutingTable for cluster " + (_helixManager != null ? _helixManager
-        .getClusterName() : null) + ", takes " + (System.currentTimeMillis() - startTime) + "ms.");
-    notifyRoutingTableChange();
+    resetRoutingTableAndNotify(startTime, newRoutingTable);
   }
 
   protected void refresh(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
@@ -487,10 +532,20 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
     long startTime = System.currentTimeMillis();
     RoutingTable newRoutingTable =
         new RoutingTable(currentStateMap, instanceConfigs, liveInstances);
+    resetRoutingTableAndNotify(startTime, newRoutingTable);
+  }
+
+  private void resetRoutingTableAndNotify(long startTime, RoutingTable newRoutingTable) {
     _routingTableRef.set(newRoutingTable);
-    logger.info("Refresh the RoutingTable for cluster " + (_helixManager != null ? _helixManager
-        .getClusterName() : null) + ", takes " + (System.currentTimeMillis() - startTime) + "ms.");
+    logger.info("Refresh the RoutingTable for cluster {}, takes {} ms.",
+        (_helixManager != null ? _helixManager.getClusterName() : null),
+        (System.currentTimeMillis() - startTime));
     notifyRoutingTableChange();
+
+    // Update timestamp for last refresh
+    if (_isPeriodicRefreshEnabled) {
+      _lastRefreshTimestamp = System.currentTimeMillis();
+    }
   }
 
   private void notifyRoutingTableChange() {
@@ -505,7 +560,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
     private final RoutingDataCache _dataCache;
 
     public RouterUpdater(String clusterName, PropertyType sourceDataType) {
-      super("Helix-RouterUpdater");
+      super("Helix-RouterUpdater-event_process");
       _dataCache = new RoutingDataCache(clusterName, sourceDataType);
     }
 
@@ -519,30 +574,26 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
         // refresh routing table.
         HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
         if (manager == null) {
-          logger.error("HelixManager is null for router update event : " + event);
+          logger.error(String.format("HelixManager is null for router update event: %s", event));
           throw new HelixException("HelixManager is null for router update event.");
         }
         _dataCache.refresh(manager.getHelixDataAccessor());
-
         switch (_sourceDataType) {
           case EXTERNALVIEW:
             refresh(_dataCache.getExternalViews().values(),
                 _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values());
             break;
-
           case TARGETEXTERNALVIEW:
             refresh(_dataCache.getTargetExternalViews().values(),
                 _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values());
             break;
-
           case CURRENTSTATES:
             refresh(_dataCache.getCurrentStatesMap(), _dataCache.getInstanceConfigMap().values(),
                 _dataCache.getLiveInstances().values());
             break;
-
           default:
-            logger.warn("Unsupported source data type: " + _sourceDataType
-                + ", stop refreshing the routing table!");
+            logger.warn("Unsupported source data type: {}, stop refreshing the routing table!",
+                _sourceDataType);
         }
       }
     }
@@ -550,12 +601,14 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
     public void queueEvent(NotificationContext context, ClusterEventType eventType,
         HelixConstants.ChangeType changeType) {
       ClusterEvent event = new ClusterEvent(_clusterName, eventType);
-      if (context == null || context.getType() != NotificationContext.Type.CALLBACK) {
+      if (context == null || context.getType() != NotificationContext.Type.CALLBACK
+          || context.getType() == NotificationContext.Type.PERIODIC_REFRESH) {
         _dataCache.requireFullRefresh();
       } else {
         _dataCache.notifyDataChange(changeType, context.getPathChanged());
       }
 
+      // Null check for manager in the following line is done in handleEvent()
       event.addAttribute(AttributeName.helixmanager.name(), context.getManager());
       event.addAttribute(AttributeName.changeContext.name(), context);
       queueEvent(event);

@@ -225,7 +225,7 @@ public class BasicClusterDataCache {
    */
   public void requireFullRefresh() {
     for(HelixConstants.ChangeType type : HelixConstants.ChangeType.values()) {
-      _propertyDataChangedMap.put(type, Boolean.valueOf(true));
+      _propertyDataChangedMap.put(type, Boolean.TRUE);
     }
   }
 

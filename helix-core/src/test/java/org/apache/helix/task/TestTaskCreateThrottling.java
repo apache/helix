@@ -42,7 +42,7 @@ public class TestTaskCreateThrottling extends TaskTestBase {
   @Test
   public void testTaskCreatingThrottle() {
     Workflow flow = WorkflowGenerator
-        .generateDefaultRepeatedJobWorkflowBuilder("hugeWorkflow", _driver._configsLimitation + 1)
+        .generateDefaultRepeatedJobWorkflowBuilder("hugeWorkflow", (int) _driver._configsLimitation + 1)
         .build();
     try {
       _driver.start(flow);

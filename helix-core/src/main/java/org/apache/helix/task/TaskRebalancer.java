@@ -65,24 +65,31 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
    *
    * @param ctx Workflow context containing job states
    * @param cfg Workflow config containing set of jobs
-   * @return returns true if the workflow either completed (all tasks are {@link TaskState#COMPLETED})
-   * or failed (any task is {@link TaskState#FAILED}, false otherwise.
+   * @return returns true if the workflow
+   *            1. completed (all tasks are {@link TaskState#COMPLETED})
+   *            2. failed (any task is {@link TaskState#FAILED}
+   *            3. workflow is {@link TaskState#TIMED_OUT}
+   *         returns false otherwise.
    */
   protected boolean isWorkflowFinished(WorkflowContext ctx, WorkflowConfig cfg,
       Map<String, JobConfig> jobConfigMap) {
     boolean incomplete = false;
-    int failedJobs = 0;
+
     TaskState workflowState = ctx.getWorkflowState();
+    if (TaskState.TIMED_OUT.equals(workflowState)) {
+      // We don't update job state here as JobRebalancer will do it
+      return true;
+    }
+
+    // Check if failed job count is beyond threshold and if so, fail the workflow
+    // and abort in-progress jobs
+    int failedJobs = 0;
     for (String job : cfg.getJobDag().getAllNodes()) {
       TaskState jobState = ctx.getJobState(job);
       if (jobState == TaskState.FAILED || jobState == TaskState.TIMED_OUT) {
         failedJobs++;
-        if (TaskState.TIMED_OUT.equals(workflowState) || (!cfg.isJobQueue() && failedJobs > cfg
-            .getFailureThreshold())) {
+        if (!cfg.isJobQueue() && failedJobs > cfg.getFailureThreshold()) {
           ctx.setWorkflowState(TaskState.FAILED);
-          if (_clusterStatusMonitor != null) {
-            _clusterStatusMonitor.updateWorkflowCounters(cfg, TaskState.FAILED);
-          }
           for (String jobToFail : cfg.getJobDag().getAllNodes()) {
             if (ctx.getJobState(jobToFail) == TaskState.IN_PROGRESS) {
               ctx.setJobState(jobToFail, TaskState.ABORTED);
@@ -104,10 +111,6 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
 
     if (!incomplete && cfg.isTerminable()) {
       ctx.setWorkflowState(TaskState.COMPLETED);
-      if (_clusterStatusMonitor != null) {
-        _clusterStatusMonitor.updateWorkflowCounters(cfg, TaskState.COMPLETED,
-            ctx.getFinishTime() - ctx.getStartTime());
-      }
       return true;
     }
 
@@ -254,6 +257,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     }
     if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap)) {
       workflowContext.setFinishTime(currentTime);
+      updateWorkflowMonitor(workflowContext, workflowConfig);
     }
     scheduleJobCleanUp(jobConfigMap.get(jobName), workflowConfig, currentTime);
   }
@@ -267,6 +271,14 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     if (currentTime + jobConfig.getExpiry() < currentScheduledTime) {
       _rebalanceScheduler.scheduleRebalance(_manager, workflowConfig.getWorkflowId(),
           currentTime + jobConfig.getExpiry());
+    }
+  }
+
+  protected void updateWorkflowMonitor(WorkflowContext context,
+      WorkflowConfig config) {
+    if (_clusterStatusMonitor != null) {
+      _clusterStatusMonitor.updateWorkflowCounters(config, context.getWorkflowState(),
+          context.getFinishTime() - context.getStartTime());
     }
   }
 

@@ -678,6 +678,7 @@ public class JobRebalancer extends TaskRebalancer {
     jobContext.setFinishTime(currentTime);
     if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap)) {
       workflowContext.setFinishTime(currentTime);
+      updateWorkflowMonitor(workflowContext, workflowConfig);
     }
     scheduleJobCleanUp(jobConfigMap.get(jobName), workflowConfig, currentTime);
   }

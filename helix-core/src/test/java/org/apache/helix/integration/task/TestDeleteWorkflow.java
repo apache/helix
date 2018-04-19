@@ -18,7 +18,7 @@ import org.testng.annotations.Test;
 
 
 public class TestDeleteWorkflow extends TaskTestBase  {
-  private static final int DELETE_DELAY = 1000;
+  private static final int DELETE_DELAY = 2000;
 
   private HelixAdmin admin;
 

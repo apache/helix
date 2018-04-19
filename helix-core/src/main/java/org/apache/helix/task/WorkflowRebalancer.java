@@ -54,6 +54,9 @@ import com.google.common.collect.Lists;
  */
 public class WorkflowRebalancer extends TaskRebalancer {
   private static final Logger LOG = LoggerFactory.getLogger(WorkflowRebalancer.class);
+  private static final Set<TaskState> finalStates = new HashSet<>(
+      Arrays.asList(TaskState.COMPLETED, TaskState.FAILED, TaskState.ABORTED, TaskState.TIMED_OUT)
+  );
 
   @Override
   public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
@@ -68,31 +71,9 @@ public class WorkflowRebalancer extends TaskRebalancer {
       return buildEmptyAssignment(workflow, currStateOutput);
     }
 
-    WorkflowContext workflowCtx = clusterData.getWorkflowContext(workflow);
-    // Initialize workflow context if needed
-    if (workflowCtx == null) {
-      workflowCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
-      workflowCtx.setStartTime(System.currentTimeMillis());
-      workflowCtx.setName(workflow);
-    }
+    WorkflowContext workflowCtx = getOrInitializeWorkflowContext(clusterData, workflow);
 
-    Set<TaskState> finalStates = new HashSet<>(Arrays.asList(
-        new TaskState[] { TaskState.COMPLETED, TaskState.FAILED, TaskState.ABORTED,
-            TaskState.FAILED, TaskState.TIMED_OUT
-        }));
-    // Only generic workflow get timeouted and schedule rebalance for timeout. Will skip the set if
-    // the workflow already got timeouted. Job Queue will ignore the setup.
-    if (!workflowCfg.isJobQueue() && !finalStates.contains(workflowCtx.getWorkflowState())) {
-      // If timeout point has already been passed, it will not be scheduled
-      scheduleRebalanceForTimeout(workflow, workflowCtx.getStartTime(), workflowCfg.getTimeout());
-
-      if (isTimeout(workflowCtx.getStartTime(), workflowCfg.getTimeout())) {
-        workflowCtx.setWorkflowState(TaskState.TIMED_OUT);
-        clusterData.updateWorkflowContext(workflow, workflowCtx, _manager.getHelixDataAccessor());
-        return buildEmptyAssignment(workflow, currStateOutput);
-      }
-    }
-
+    // Step 1: Check for deletion - if so, we don't need to go through further steps
     // Clean up if workflow marked for deletion
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {
@@ -101,7 +82,30 @@ public class WorkflowRebalancer extends TaskRebalancer {
       return buildEmptyAssignment(workflow, currStateOutput);
     }
 
-    if (targetState == TargetState.STOP) {
+    // Step 2: handle timeout, which should have higher priority than STOP
+    // Only generic workflow get timeouted and schedule rebalance for timeout. Will skip the set if
+    // the workflow already got timeouted. Job Queue will ignore the setup.
+    if (!workflowCfg.isJobQueue() && !finalStates.contains(workflowCtx.getWorkflowState())) {
+      // If timeout point has already been passed, it will not be scheduled
+      scheduleRebalanceForTimeout(workflow, workflowCtx.getStartTime(), workflowCfg.getTimeout());
+
+      if (!TaskState.TIMED_OUT.equals(workflowCtx.getWorkflowState()) && isTimeout(
+          workflowCtx.getStartTime(), workflowCfg.getTimeout())) {
+        workflowCtx.setWorkflowState(TaskState.TIMED_OUT);
+        clusterData.updateWorkflowContext(workflow, workflowCtx, _manager.getHelixDataAccessor());
+      }
+
+      // We should not return after setting timeout, as in case the workflow is stopped already
+      // marking it timeout will not trigger rebalance pipeline as we are not listening on
+      // PropertyStore change, nor will we schedule rebalance for timeout as at this point,
+      // workflow is already timed-out. We should let the code proceed and wait for schedule
+      // future cleanup work
+    }
+
+    // Step 3: handle workflow that should STOP
+    // For workflows that already reached final states, STOP should not take into effect
+    if (!finalStates.contains(workflowCtx.getWorkflowState()) && TargetState.STOP
+        .equals(targetState)) {
       LOG.info("Workflow " + workflow + "is marked as stopped.");
       if (isWorkflowStopped(workflowCtx, workflowCfg)) {
         workflowCtx.setWorkflowState(TaskState.STOPPED);
@@ -111,13 +115,21 @@ public class WorkflowRebalancer extends TaskRebalancer {
     }
 
     long currentTime = System.currentTimeMillis();
-    // Check if workflow has been finished and mark it if it is.
+
+    // Step 4: Check and process finished workflow context (confusing,
+    // but its inside isWorkflowFinished())
+    // Check if workflow has been finished and mark it if it is. Also update cluster status
+    // monitor if provided
+    // Note that COMPLETE and FAILED will be marked in markJobComplete / markJobFailed
+    // This is to handle TIMED_OUT only
     if (workflowCtx.getFinishTime() == WorkflowContext.UNFINISHED
         && isWorkflowFinished(workflowCtx, workflowCfg, clusterData.getJobConfigMap())) {
       workflowCtx.setFinishTime(currentTime);
+      updateWorkflowMonitor(workflowCtx, workflowCfg);
       clusterData.updateWorkflowContext(workflow, workflowCtx, _manager.getHelixDataAccessor());
     }
 
+    // Step 5: Handle finished workflows
     if (workflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
       LOG.info("Workflow " + workflow + " is finished.");
       long expiryTime = workflowCfg.getExpiry();
@@ -158,6 +170,18 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
     clusterData.updateWorkflowContext(workflow, workflowCtx, _manager.getHelixDataAccessor());
     return buildEmptyAssignment(workflow, currStateOutput);
+  }
+
+  private WorkflowContext getOrInitializeWorkflowContext(ClusterDataCache clusterData, String workflowName) {
+    WorkflowContext workflowCtx = clusterData.getWorkflowContext(workflowName);
+    if (workflowCtx == null) {
+      WorkflowConfig config = clusterData.getWorkflowConfig(workflowName);
+      workflowCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
+      workflowCtx.setStartTime(System.currentTimeMillis());
+      workflowCtx.setName(workflowName);
+      LOG.debug("Workflow context is created for " + workflowName);
+    }
+    return workflowCtx;
   }
 
   /**

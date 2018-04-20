@@ -74,11 +74,6 @@ public class WorkflowRebalancer extends TaskRebalancer {
       workflowCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
       workflowCtx.setStartTime(System.currentTimeMillis());
       workflowCtx.setName(workflow);
-      // Initialize all job states belonging to this workflow context to NOT_STARTED
-      for (String jobState : workflowCtx.getJobStates().keySet()) {
-        workflowCtx.setJobState(jobState, TaskState.NOT_STARTED);
-      }
-      LOG.debug("Workflow context is created for " + workflow);
     }
 
     Set<TaskState> finalStates = new HashSet<>(Arrays.asList(

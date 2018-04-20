@@ -94,7 +94,7 @@ public class TestTaskThrottling extends TaskTestBase {
     _driver.pollForWorkflowState(flow.getName(), TaskState.STOPPED);
 
     // 3. Ensure job can finish normally
-    jobConfig.setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "10"));
+    jobConfig.setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10"));
     String jobName3 = "Job3";
     flow = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName3, jobConfig).build();
     _driver.start(flow);
@@ -167,7 +167,7 @@ public class TestTaskThrottling extends TaskTestBase {
     }
     jobConfig.addTaskConfigs(taskConfigs)
         .setNumConcurrentTasksPerInstance(numTasks)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "120000"));
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "120000"));
     return jobConfig;
   }
 

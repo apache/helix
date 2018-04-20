@@ -33,7 +33,7 @@ public class TestWorkflowTimeout extends TaskTestBase {
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
         .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
         .setCommand(MockTask.TASK_COMMAND)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "99999999"));
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
   }
 
   @Test
@@ -80,7 +80,7 @@ public class TestWorkflowTimeout extends TaskTestBase {
         TaskState.COMPLETED);
 
     // Add back the config
-    _jobBuilder.setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "99999999"));
+    _jobBuilder.setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
   }
 
   @Test

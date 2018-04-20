@@ -20,6 +20,7 @@ package org.apache.helix.integration.task;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +36,6 @@ import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobDag;
 import org.apache.helix.task.JobQueue;
-import org.apache.helix.task.ScheduleConfig;
 import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskState;
@@ -56,11 +56,10 @@ import com.google.common.collect.Sets;
 
 public class TestTaskRebalancerStopResume extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestTaskRebalancerStopResume.class);
-  private static final String TIMEOUT_CONFIG = "Timeout";
   private static final String JOB_RESOURCE = "SomeJob";
 
   @Test public void stopAndResume() throws Exception {
-    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(100));
+    Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(100));
 
     JobConfig.Builder jobBuilder =
         JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
@@ -110,9 +109,9 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // Enqueue jobs
     Set<String> master = Sets.newHashSet("MASTER");
-    JobConfig.Builder job1 =
-        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
+    JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master)
+        .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "200"));
     String job1Name = "masterJob";
     LOG.info("Enqueuing job: " + job1Name);
     _driver.enqueueJob(queueName, job1Name, job1);
@@ -135,7 +134,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.pollForWorkflowState(queueName, TaskState.STOPPED);
 
     // Ensure job2 is not started
-    TimeUnit.MILLISECONDS.sleep(200);
     String namespacedJob2 = String.format("%s_%s", queueName, job2Name);
     TaskTestUtil.pollForEmptyJobState(_driver, queueName, job2Name);
 
@@ -180,7 +178,8 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
       JobConfig.Builder jobBuilder =
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+              .setTargetPartitionStates(Sets.newHashSet(targetPartition))
+              .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "200"));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
       LOG.info("Enqueuing job: " + jobName);
       queueBuilder.enqueueJob(jobName, jobBuilder);
@@ -279,7 +278,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
-    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
+    Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(200));
     for (int i = 0; i <= 4; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
@@ -368,7 +367,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     List<JobConfig.Builder> jobs = new ArrayList<JobConfig.Builder>();
     List<String> jobNames = new ArrayList<String>();
-    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
+    Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(200));
 
 
     int JOB_COUNTS = 3;
@@ -492,7 +491,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // Add 2 jobs
     Map<String, String> jobCommandConfigMap = new HashMap<String, String>();
-    jobCommandConfigMap.put(MockTask.TIMEOUT_CONFIG, "1000000");
+    jobCommandConfigMap.put(MockTask.JOB_DELAY, "1000000");
     jobCommandConfigMap.put(MockTask.NOT_ALLOW_TO_CANCEL, String.valueOf(true));
     List<TaskConfig> taskConfigs = ImmutableList
         .of(new TaskConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTaskId("testTask")
@@ -510,7 +509,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     builder.addJob(job2Name, job2);
 
     _driver.start(builder.build());
-    Thread.sleep(2000);
+    Thread.sleep(1000);
     _driver.stop(workflowName);
     _driver.pollForWorkflowState(workflowName, TaskState.STOPPING);
 

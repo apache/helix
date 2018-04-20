@@ -94,7 +94,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
     JobQueue.Builder queueBuilder = TaskTestUtil.buildRecurrentJobQueue(queueName, 5);
 
     // Create and Enqueue jobs
-    Map<String, String> commandConfig = ImmutableMap.of(MockTask.TIMEOUT_CONFIG, String.valueOf(500));
+    Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(500));
     Thread.sleep(100);
     List<String> currentJobNames = createAndEnqueueJob(queueBuilder, 5);
     _driver.createQueue(queueBuilder.build());
@@ -174,7 +174,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
     // create jobs
     List<JobConfig.Builder> jobs = new ArrayList<JobConfig.Builder>();
     List<String> jobNames = new ArrayList<String>();
-    Map<String, String> commandConfig = ImmutableMap.of(MockTask.TIMEOUT_CONFIG, String.valueOf(500));
+    Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(500));
 
     final int JOB_COUNTS = 3;
     for (int i = 0; i < JOB_COUNTS; i++) {

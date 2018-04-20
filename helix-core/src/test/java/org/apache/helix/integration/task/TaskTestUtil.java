@@ -70,7 +70,8 @@ public class TaskTestUtil {
 
       @Override public boolean verify() throws Exception {
         WorkflowContext ctx = driver.getWorkflowContext(workflowName);
-        return ctx == null || ctx.getJobState(namespacedJobName) == null;
+        return ctx == null || ctx.getJobState(namespacedJobName) == null
+            || ctx.getJobState(namespacedJobName) == TaskState.NOT_STARTED;
       }
     }, _default_timeout);
     Assert.assertTrue(succeed);

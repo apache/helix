@@ -78,7 +78,7 @@ public class TestGetLastScheduledTaskTimestamp extends TaskTestBase {
       taskConfigs.add(new TaskConfig.Builder()
           .setTaskId("task_" + i)
           .setCommand(MockTask.TASK_COMMAND)
-          .addConfig(MockTask.TIMEOUT_CONFIG, String.valueOf(taskTimeout))
+          .addConfig(MockTask.JOB_DELAY, String.valueOf(taskTimeout))
           .build());
     }
     // Run up to 2 tasks at a time

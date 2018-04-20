@@ -1,8 +1,6 @@
 package org.apache.helix.integration.task;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.helix.AccessOption;
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -35,7 +33,7 @@ public class TestDeleteWorkflow extends TaskTestBase  {
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
         .setMaxAttemptsPerTask(1)
         .setWorkflow(jobQueueName)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "100000"));
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "100000"));
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
     jobQueue.enqueueJob("job1", jobBuilder);
@@ -75,7 +73,7 @@ public class TestDeleteWorkflow extends TaskTestBase  {
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
         .setMaxAttemptsPerTask(1)
         .setWorkflow(jobQueueName)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "1000000"));
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000000"));
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
     jobQueue.enqueueJob("job1", jobBuilder);
@@ -120,7 +118,7 @@ public class TestDeleteWorkflow extends TaskTestBase  {
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
         .setMaxAttemptsPerTask(1)
         .setWorkflow(jobQueueName)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "1000000"));
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000000"));
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
     jobQueue.enqueueJob("job1", jobBuilder);

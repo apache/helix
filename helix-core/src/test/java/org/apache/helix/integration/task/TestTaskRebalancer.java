@@ -47,8 +47,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 public class TestTaskRebalancer extends TaskTestBase {
-  private static final String TIMEOUT_CONFIG = "Timeout";
-
   @Test
   public void basic() throws Exception {
     basic(100);
@@ -63,7 +61,7 @@ public class TestTaskRebalancer extends TaskTestBase {
   public void testExpiry() throws Exception {
     String jobName = "Expiry";
     long expiry = 1000;
-    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(100));
+    Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(100));
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
 
@@ -104,7 +102,7 @@ public class TestTaskRebalancer extends TaskTestBase {
     // resource.
     final String jobResource = "basic" + jobCompletionTime;
     Map<String, String> commandConfig =
-        ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(jobCompletionTime));
+        ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(jobCompletionTime));
 
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
@@ -130,7 +128,7 @@ public class TestTaskRebalancer extends TaskTestBase {
         ImmutableList.of("TestDB_1", "TestDB_2", "TestDB_3", "TestDB_5", "TestDB_8", "TestDB_13");
 
     // construct and submit our basic workflow
-    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(100));
+    Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(100));
 
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig).setMaxAttemptsPerTask(1)
@@ -199,7 +197,8 @@ public class TestTaskRebalancer extends TaskTestBase {
           sawTimedoutTask = true;
         }
         // At least one task timed out, other might be aborted due to job failure.
-        Assert.assertTrue(state == TaskPartitionState.TIMED_OUT || state == TaskPartitionState.TASK_ABORTED);
+        Assert.assertTrue(
+            state == TaskPartitionState.TIMED_OUT || state == TaskPartitionState.TASK_ABORTED);
         maxAttempts = Math.max(maxAttempts, ctx.getPartitionNumAttempts(i));
       }
     }

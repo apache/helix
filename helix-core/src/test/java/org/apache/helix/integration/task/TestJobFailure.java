@@ -139,7 +139,7 @@ public final class TestJobFailure extends TaskSynchronizedTestBase {
       } else if (taskStates.get(i).equals(TaskPartitionState.TASK_ABORTED.name())) {
         config.put(MockTask.TASK_RESULT_STATUS, TaskResult.Status.FATAL_FAILED.name());
       } else if (taskStates.get(i).equals(TaskPartitionState.RUNNING.name())) {
-        config.put(MockTask.TIMEOUT_CONFIG, "99999999");
+        config.put(MockTask.JOB_DELAY, "99999999");
       } else {
         throw new IllegalArgumentException("Invalid taskStates input: " + taskStates.get(i));
       }

@@ -142,7 +142,7 @@ public class TestZkConnectionLost extends TaskTestBase {
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
               .setTargetPartitionStates(Sets.newHashSet(targetPartition))
-              .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "100"));
+              .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "100"));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
       queueBuild.enqueueJob(jobName, jobConfig);
       currentJobNames.add(jobName);

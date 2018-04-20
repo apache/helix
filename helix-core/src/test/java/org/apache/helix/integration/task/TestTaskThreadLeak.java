@@ -19,26 +19,25 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import java.util.HashSet;
 import java.util.Set;
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
-import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
-import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestTaskThreadLeak extends TaskTestBase {
+  private int _threadCountBefore = 0;
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    _threadCountBefore = getThreadCount("TaskStateModelFactory");
     setSingleTestEnvironment();
     _numNodes = 1;
     super.beforeClass();
@@ -69,14 +68,23 @@ public class TestTaskThreadLeak extends TaskTestBase {
     String nameSpacedJob = TaskUtil.getNamespacedJobName(queueName, lastJob);
     _driver.pollForJobState(queueName, nameSpacedJob, TaskState.COMPLETED);
 
-    Set<Thread> threads = Thread.getAllStackTraces().keySet();
-    Set<Thread> taskThreads = new HashSet<>();
-    for (Thread t : threads) {
-      if (t.getName().contains("TaskStateModelFactory")) {
-        taskThreads.add(t);
+
+    int threadCountAfter = getThreadCount("TaskStateModelFactory");
+
+    Assert.assertTrue(
+        (threadCountAfter - _threadCountBefore) <= TaskStateModelFactory.TASK_THREADPOOL_SIZE + 1);
+  }
+
+
+  private int getThreadCount(String threadPrefix) {
+    int count = 0;
+    Set<Thread> allThreads = Thread.getAllStackTraces().keySet();
+    for (Thread t : allThreads) {
+      if (t.getName().contains(threadPrefix)) {
+        count ++;
       }
     }
 
-    Assert.assertTrue(taskThreads.size() <= TaskStateModelFactory.TASK_THREADPOOL_SIZE + 1);
+    return count;
   }
 }

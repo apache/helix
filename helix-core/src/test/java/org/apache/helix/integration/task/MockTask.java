@@ -33,7 +33,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 public class MockTask extends UserContentStore implements Task {
   public static final String TASK_COMMAND = "Reindex";
-  public static final String TIMEOUT_CONFIG = "Timeout";
+  public static final String JOB_DELAY = "Delay";
   public static final String TASK_RESULT_STATUS = "TaskResultStatus";
   public static final String THROW_EXCEPTION = "ThrowException";
   public static final String ERROR_MESSAGE = "ErrorMessage";
@@ -55,7 +55,7 @@ public class MockTask extends UserContentStore implements Task {
   public MockTask(TaskCallbackContext context) {
     Map<String, String> cfg = context.getJobConfig().getJobCommandConfigMap();
     if (cfg == null) {
-      cfg = new HashMap<String, String>();
+      cfg = new HashMap<>();
     }
 
     TaskConfig taskConfig = context.getTaskConfig();
@@ -64,7 +64,7 @@ public class MockTask extends UserContentStore implements Task {
       cfg.putAll(taskConfigMap);
     }
 
-    _delay = cfg.containsKey(TIMEOUT_CONFIG) ? Long.parseLong(cfg.get(TIMEOUT_CONFIG)) : 100L;
+    _delay = cfg.containsKey(JOB_DELAY) ? Long.parseLong(cfg.get(JOB_DELAY)) : 100L;
     _notAllowToCancel = cfg.containsKey(NOT_ALLOW_TO_CANCEL)
         ? Boolean.parseBoolean(cfg.get(NOT_ALLOW_TO_CANCEL))
         : false;
@@ -92,8 +92,8 @@ public class MockTask extends UserContentStore implements Task {
           deserializeTargetPartitionConfig(cfg.get(TARGET_PARTITION_CONFIG));
       if (targetPartitionConfigs.containsKey(targetPartition)) {
         Map<String, String> targetPartitionConfig = targetPartitionConfigs.get(targetPartition);
-        if (targetPartitionConfig.containsKey(TIMEOUT_CONFIG)) {
-          _delay = Long.parseLong(targetPartitionConfig.get(TIMEOUT_CONFIG));
+        if (targetPartitionConfig.containsKey(JOB_DELAY)) {
+          _delay = Long.parseLong(targetPartitionConfig.get(JOB_DELAY));
         }
         if (targetPartitionConfig.containsKey(TASK_RESULT_STATUS)) {
           _taskResultStatus = TaskResult.Status.valueOf(targetPartitionConfig.get(TASK_RESULT_STATUS));

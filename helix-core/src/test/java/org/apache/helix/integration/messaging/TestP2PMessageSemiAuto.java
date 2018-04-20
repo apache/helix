@@ -205,20 +205,30 @@ public class TestP2PMessageSemiAuto extends ZkIntegrationTestBase {
     Map<String, LiveInstance> liveInstanceMap = dataCache.getLiveInstances();
     LiveInstance liveInstance = liveInstanceMap.get(instance);
 
-    Map<String, CurrentState> currentStateMap = dataCache.getCurrentState(instance, liveInstance.getSessionId());
+    Map<String, CurrentState> currentStateMap = dataCache.getCurrentState(instance,
+        liveInstance.getSessionId());
     Assert.assertNotNull(currentStateMap);
     CurrentState currentState = currentStateMap.get(dbName);
     Assert.assertNotNull(currentState);
     Assert.assertEquals(currentState.getPartitionStateMap().size(), PARTITION_NUMBER);
 
+    int total = 0;
+    int expectedHost = 0;
     for (String partition : currentState.getPartitionStateMap().keySet()) {
       String state = currentState.getState(partition);
       Assert.assertEquals(state, expectedState,
           dbName + " Partition " + partition + "'s state is different as expected!");
       String triggerHost = currentState.getTriggerHost(partition);
-      Assert.assertEquals(triggerHost, expectedTriggerHost,
-          "Partition " + partition + "'s transition to Master was not triggered by expected host!");
+      if (triggerHost.equals(expectedTriggerHost)) {
+        expectedHost ++;
+      }
+      total ++;
     }
+
+    double ratio = ((double) expectedHost) / ((double) total);
+    Assert.assertTrue(ratio >= 0.7, String
+        .format("Only %d out of %d percent transitions to Master were triggered by expected host!",
+            expectedHost, total));
   }
 }
 

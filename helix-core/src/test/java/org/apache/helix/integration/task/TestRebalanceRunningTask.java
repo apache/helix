@@ -135,7 +135,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
         // different instances
         .setNumConcurrentTasksPerInstance(100)
         .setCommand(MockTask.TASK_COMMAND)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "99999999")); // task stuck
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999")); // task stuck
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW)
         .addJob(JOB, jobBuilder);
@@ -163,7 +163,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
         .setCommand(MockTask.TASK_COMMAND)
         .setFailureThreshold(10)
         .setMaxAttemptsPerTask(2)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "99999999")); // task stuck
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999")); // task stuck
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW)
         .addJob(JOB, jobBuilder);
@@ -198,7 +198,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
         .setNumConcurrentTasksPerInstance(100)
         .setCommand(MockTask.TASK_COMMAND)
         .setRebalanceRunningTask(true)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "99999999")); // task stuck
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999")); // task stuck
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW)
         .addJob(JOB, jobBuilder);
@@ -227,7 +227,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
         .setTargetResource(DATABASE)
         .setNumConcurrentTasksPerInstance(100)
         .setCommand(MockTask.TASK_COMMAND)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "99999999"));
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW)
         .addJob(JOB, jobBuilder);
@@ -258,7 +258,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
         .setMaxAttemptsPerTask(2)
         .setCommand(MockTask.TASK_COMMAND)
         .setJobCommandConfigMap(
-            ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "99999999")); // task stuck
+            ImmutableMap.of(MockTask.JOB_DELAY, "99999999")); // task stuck
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW).addJob(JOB, jobBuilder);
 
@@ -292,7 +292,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
         .setRebalanceRunningTask(true)
         .setCommand(MockTask.TASK_COMMAND)
         .setJobCommandConfigMap(
-            ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "99999999")); // task stuck
+            ImmutableMap.of(MockTask.JOB_DELAY, "99999999")); // task stuck
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW).addJob(JOB, jobBuilder);
 

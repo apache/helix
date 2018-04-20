@@ -46,7 +46,7 @@ public class TestWorkflowTermination extends TaskTestBase {
         .setCommand(MockTask.TASK_COMMAND)
         .setJobCommandConfigMap(
             ImmutableMap.of(
-                MockTask.TIMEOUT_CONFIG, Long.toString(timeoutMs),
+                MockTask.JOB_DELAY, Long.toString(timeoutMs),
                 MockTask.TASK_RESULT_STATUS, taskState
             )
         );

@@ -75,8 +75,8 @@ under the License.
               <goal>install-node-and-npm</goal>
             </goals>
             <configuration>
-              <nodeVersion>v6.10.3</nodeVersion>
-              <npmVersion>3.10.10</npmVersion>
+              <nodeVersion>v8.11.1</nodeVersion>
+              <npmVersion>5.8.0</npmVersion>
             </configuration>
           </execution>
 

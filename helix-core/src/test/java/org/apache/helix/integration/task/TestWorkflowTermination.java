@@ -113,12 +113,11 @@ public class TestWorkflowTermination extends TaskTestBase {
     _driver.pollForWorkflowState(workflowName, 10000L, TaskState.TIMED_OUT);
 
     // Running job should be marked as timeout
-    // and job not started should be marked as NOT_STARTED
+    // and job not started should not appear in workflow context
     _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, JOB_NAME), 10000L, TaskState.TIMED_OUT);
-    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, notStartedJobName), 10000L,
-        TaskState.NOT_STARTED);
 
     WorkflowContext context = _driver.getWorkflowContext(workflowName);
+    Assert.assertNull(context.getJobState(notStartedJobName));
     Assert.assertTrue(context.getFinishTime() - context.getStartTime() >= timeout);
 
     Thread.sleep(workflowExpiry + 200);
@@ -159,12 +158,12 @@ public class TestWorkflowTermination extends TaskTestBase {
 
     _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, JOB_NAME), 10000L,
         TaskState.STOPPED);
-    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, notStartedJobName), 10000L,
-        TaskState.NOT_STARTED);
+    WorkflowContext context = _driver.getWorkflowContext(workflowName);
+    Assert.assertNull(context.getJobState(notStartedJobName));
 
     _driver.pollForWorkflowState(workflowName, 10000L, TaskState.TIMED_OUT);
 
-    WorkflowContext context = _driver.getWorkflowContext(workflowName);
+    context = _driver.getWorkflowContext(workflowName);
     Assert.assertTrue(context.getFinishTime() - context.getStartTime() >= timeout);
 
     Thread.sleep(workflowExpiry + 200);

@@ -20,21 +20,26 @@ package org.apache.helix.messaging.handling;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import com.google.common.collect.ImmutableList;
 
-import org.apache.helix.*;
+import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.ImmutableList;
 
 public class TestHelixTaskExecutor {
   public static class MockClusterManager extends MockManager {
@@ -87,8 +92,9 @@ public class TestHelixTaskExecutor {
       return "TestingMessageHandler";
     }
 
-    @Override public List<String> getMessageTypes() {
-      return ImmutableList.of("TestingMessageHandler");
+    @Override
+    public List<String> getMessageTypes() {
+      return Arrays.asList(new String[]{"TestingMessageHandler", Message.MessageType.STATE_TRANSITION.name()});
     }
 
     @Override
@@ -292,6 +298,53 @@ public class TestHelixTaskExecutor {
 
     }
     System.out.println("END TestCMTaskExecutor.testNormalMsgExecution()");
+  }
+
+  @Test()
+  public void testDuplicatedMessage() throws InterruptedException {
+    System.out.println("START TestHelixTaskExecutor.testDuplicatedMessage()");
+    HelixTaskExecutor executor = new HelixTaskExecutor();
+    HelixManager manager = new MockClusterManager();
+    HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+
+    TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
+    for (String type : factory.getMessageTypes()) {
+      executor.registerMessageHandlerFactory(type, factory);
+    }
+
+    NotificationContext changeContext = new NotificationContext(manager);
+    List<Message> msgList = new ArrayList<Message>();
+
+    int nMsgs = 10;
+    String instanceName = "someInstance";
+    for (int i = 0; i < nMsgs; i++) {
+      Message msg =
+          new Message(Message.MessageType.STATE_TRANSITION.name(), UUID.randomUUID().toString());
+      msg.setTgtSessionId(manager.getSessionId());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
+      msg.setPartitionName("Partition");
+      msg.setResourceName("Resource");
+      dataAccessor.setProperty(msg.getKey(keyBuilder, instanceName), msg);
+      msgList.add(msg);
+    }
+
+    System.out.println(dataAccessor.getChildNames(keyBuilder.messages(instanceName)));
+    AssertJUnit
+        .assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), nMsgs);
+
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
+    executor.onMessage(instanceName, msgList, changeContext);
+
+    Thread.sleep(1000);
+
+    // Will not be able to process state transition messages, but we shall verify that
+    // only 1 message is left over
+    AssertJUnit
+        .assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), 1);
+
+    System.out.println("END TestHelixTaskExecutor.testDuplicatedMessage()");
   }
 
   @Test()

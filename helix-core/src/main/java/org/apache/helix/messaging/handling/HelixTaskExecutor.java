@@ -864,6 +864,15 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         }
         if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name()) || message.getMsgType()
             .equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
+          String messageTarget =
+              getMessageTarget(message.getResourceName(), message.getPartitionName());
+          if (stateTransitionHandlers.containsKey(messageTarget)) {
+            Message duplicatedMessage = stateTransitionHandlers.get(messageTarget)._message;
+            throw new HelixException(String.format(
+                "Duplicated state transition message: %s. Existing: %s -> %s; New (Discarded): %s -> %s",
+                message.getMsgId(), duplicatedMessage.getFromState(),
+                duplicatedMessage.getToState(), message.getFromState(), message.getToState()));
+          }
           stateTransitionHandlers
               .put(getMessageTarget(message.getResourceName(), message.getPartitionName()),
                   createHandler);

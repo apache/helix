@@ -209,7 +209,7 @@ public class MockAccessor implements HelixDataAccessor {
   @Override
   public <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys,
       List<T> children) {
-    throw new HelixException("Method not implemented!");
+    return setChildren(keys, children);
   }
 
   @Override

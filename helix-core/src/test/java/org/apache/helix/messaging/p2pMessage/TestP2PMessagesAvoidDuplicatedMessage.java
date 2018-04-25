@@ -32,6 +32,11 @@ import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
+import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.controller.stages.IntermediateStateCalcStage;
+import org.apache.helix.controller.stages.IntermediateStateOutput;
 import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageSelectionStageOutput;
@@ -45,6 +50,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
@@ -156,7 +162,8 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     // Validate: Controller should not send S->M message to new master.
 
     currentStateOutput.setCurrentState(_db, _partition, initialMaster, "SLAVE");
-    currentStateOutput.setPendingState(_db, _partition, initialMaster, toSlaveMessage);
+    currentStateOutput.setPendingMessage(_db, _partition, initialMaster, toSlaveMessage);
+    currentStateOutput.setPendingRelayMessage(_db, _partition, initialMaster, relayMessage);
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
@@ -175,7 +182,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     currentStateOutput =
         populateCurrentStateFromBestPossible(_bestpossibleState);
     currentStateOutput.setCurrentState(_db, _partition, initialMaster, "SLAVE");
-    currentStateOutput.setPendingState(_db, _partition, secondMaster, relayMessage);
+    currentStateOutput.setPendingMessage(_db, _partition, secondMaster, relayMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     _fullPipeline.handle(event);
@@ -221,7 +228,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     // The initial master has forwarded the p2p message to secondMaster and deleted original M->S message on initialMaster,
     // But the S->M state-transition has not completed yet in secondMaster.
     // Validate: Controller should not send S->M to thirdMaster.
-    currentStateOutput.setPendingState(_db, _partition, secondMaster, relayMessage);
+    currentStateOutput.setPendingMessage(_db, _partition, secondMaster, relayMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);

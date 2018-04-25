@@ -65,7 +65,7 @@ public abstract class AbstractTaskDispatcher {
 
         // Check for pending state transitions on this (partition, instance).
         Message pendingMessage =
-            currStateOutput.getPendingState(jobResource, new Partition(pName), instance);
+            currStateOutput.getPendingMessage(jobResource, new Partition(pName), instance);
         if (pendingMessage != null && !pendingMessage.getToState().equals(currState.name())) {
           processTaskWithPendingMessage(prevTaskToInstanceStateAssignment, pId, pName, instance,
               pendingMessage, jobState, currState, paMap, assignedPartitions);

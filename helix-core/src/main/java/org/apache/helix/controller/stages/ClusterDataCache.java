@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -476,7 +477,16 @@ public class ClusterDataCache {
     return _instanceMessagesCache.getMessages(instanceName);
   }
 
-  public void cacheMessages(List<Message> messages) {
+  /**
+   * Provides a list of current outstanding pending relay messages on a given instance.
+   * @param instanceName
+   * @return
+   */
+  public Map<String, Message> getRelayMessages(String instanceName) {
+    return _instanceMessagesCache.getRelayMessages(instanceName);
+  }
+
+  public void cacheMessages(Collection<Message> messages) {
     _instanceMessagesCache.cacheMessages(messages);
   }
 

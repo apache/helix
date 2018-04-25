@@ -366,7 +366,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
 
         // Check for pending state transitions on this (partition, instance).
         Message pendingMessage =
-            currStateOutput.getPendingState(jobResource, new Partition(pName), instance);
+            currStateOutput.getPendingMessage(jobResource, new Partition(pName), instance);
         if (pendingMessage != null) {
           // There is a pending state transition for this (partition, instance). Just copy forward
           // the state assignment from the previous ideal state.

@@ -156,7 +156,7 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
       int pId = partitions.get(0);
       if (includeSet.contains(pId)) {
         for (String instance : instances) {
-          Message pendingMessage = currStateOutput.getPendingState(tgtIs.getResourceName(),
+          Message pendingMessage = currStateOutput.getPendingMessage(tgtIs.getResourceName(),
               new Partition(pName), instance);
           if (pendingMessage != null) {
             continue;
@@ -230,7 +230,7 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
           // If there is, we should wait until the pending message gets processed, so skip
           // assignment this time around
           Message pendingMessage =
-              currStateOutput.getPendingState(targetIdealState.getResourceName(),
+              currStateOutput.getPendingMessage(targetIdealState.getResourceName(),
                   new Partition(targetResourcePartitionName), instance);
           if (pendingMessage != null) {
             continue;

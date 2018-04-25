@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class ZkHelixClusterVerifier
     implements IZkChildListener, IZkDataListener, HelixClusterVerifier {
   private static Logger LOG = LoggerFactory.getLogger(ZkHelixClusterVerifier.class);
-  protected static int DEFAULT_TIMEOUT = 30 * 1000;
+  protected static int DEFAULT_TIMEOUT = 300 * 1000;
   protected static int DEFAULT_PERIOD = 100;
 
 

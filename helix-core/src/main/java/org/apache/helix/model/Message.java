@@ -178,6 +178,16 @@ public class Message extends HelixProperty {
   }
 
   /**
+   * Instantiate a message with a new id
+   * @param message message to be copied
+   * @param id unique message identifier
+   */
+  public Message(Message message, String id) {
+    super(new ZNRecord(message.getRecord(), id));
+    setMsgId(id);
+  }
+
+  /**
    * Set a subtype of the message
    * @param subType name of the subtype
    */
@@ -820,7 +830,7 @@ public class Message extends HelixProperty {
     // use relay time if this is a relay message
     if (isRelayMessage()) {
       long relayTime = getRelayTime();
-      return relayTime <= 0 || (relayTime + expiry < current);
+      return (relayTime > 0 && (relayTime + expiry < current));
     }
 
     return getCreateTimeStamp() + expiry < current;

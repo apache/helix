@@ -78,7 +78,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     runStage(event, stage);
     CurrentStateOutput output2 = event.getAttribute(AttributeName.CURRENT_STATE.name());
     String pendingState =
-        output2.getPendingState("testResourceName", new Partition("testResourceName_1"),
+        output2.getPendingMessage("testResourceName", new Partition("testResourceName_1"),
             "localhost_3").getToState();
     AssertJUnit.assertEquals(pendingState, "SLAVE");
 

@@ -37,8 +37,9 @@ import com.google.common.collect.Sets;
  */
 public class CurrentStateOutput {
   private final Map<String, Map<Partition, Map<String, String>>> _currentStateMap;
-  private final Map<String, Map<Partition, Map<String, Message>>> _pendingStateMap;
-  private final Map<String, Map<Partition, Map<String, Message>>> _cancellationStateMap;
+  private final Map<String, Map<Partition, Map<String, Message>>> _pendingMessageMap;
+  private final Map<String, Map<Partition, Map<String, Message>>> _cancellationMessageMap;
+  private final Map<String, Map<Partition, Map<String, Message>>> _pendingRelayMessageMap;
 
   // resourceName -> (Partition -> (instanceName -> endTime))
   // Note that startTime / endTime in CurrentState marks that of state transition
@@ -61,8 +62,9 @@ public class CurrentStateOutput {
 
   public CurrentStateOutput() {
     _currentStateMap = new HashMap<>();
-    _pendingStateMap = new HashMap<>();
-    _cancellationStateMap = new HashMap<>();
+    _pendingMessageMap = new HashMap<>();
+    _pendingRelayMessageMap = new HashMap<>();
+    _cancellationMessageMap = new HashMap<>();
     _currentStateEndTimeMap = new HashMap<>();
     _resourceStateModelMap = new HashMap<>();
     _curStateMetaMap = new HashMap<>();
@@ -140,9 +142,9 @@ public class CurrentStateOutput {
     _infoMap.get(resourceName).get(partition).put(instanceName, state);
   }
 
-  public void setPendingState(String resourceName, Partition partition, String instanceName,
+  public void setPendingMessage(String resourceName, Partition partition, String instanceName,
       Message message) {
-    setStateMessage(resourceName, partition, instanceName, message, _pendingStateMap);
+    setStateMessage(resourceName, partition, instanceName, message, _pendingMessageMap);
   }
 
   /**
@@ -152,9 +154,14 @@ public class CurrentStateOutput {
    * @param instanceName
    * @param message
    */
-  public void setCancellationState(String resourceName, Partition partition, String instanceName,
+  public void setCancellationMessage(String resourceName, Partition partition, String instanceName,
       Message message) {
-    setStateMessage(resourceName, partition, instanceName, message, _cancellationStateMap);
+    setStateMessage(resourceName, partition, instanceName, message, _cancellationMessageMap);
+  }
+
+  public void setPendingRelayMessage(String resourceName, Partition partition, String instanceName,
+      Message message) {
+    setStateMessage(resourceName, partition, instanceName, message, _pendingRelayMessageMap);
   }
 
   private void setStateMessage(String resourceName, Partition partition, String instanceName,
@@ -221,15 +228,24 @@ public class CurrentStateOutput {
   }
 
   /**
-   * given (resource, partition, instance), returns toState
+   * given (resource, partition, instance), returns pending message on this instance.
    * @param resourceName
    * @param partition
    * @param instanceName
    * @return pending message
    */
-  // TODO: this should return toState, not pending message, create a separate method
-  public Message getPendingState(String resourceName, Partition partition, String instanceName) {
-    return getStateMessage(resourceName, partition, instanceName, _pendingStateMap);
+  public Message getPendingMessage(String resourceName, Partition partition, String instanceName) {
+    return getStateMessage(resourceName, partition, instanceName, _pendingMessageMap);
+  }
+
+  public Map<String, Message> getPendingRelayMessageMap(String resourceName, Partition partition) {
+    if (_pendingRelayMessageMap.containsKey(resourceName)) {
+      Map<Partition, Map<String, Message>> map = _pendingRelayMessageMap.get(resourceName);
+      if (map.containsKey(partition)) {
+        return map.get(partition);
+      }
+    }
+    return Collections.emptyMap();
   }
 
   /**
@@ -239,9 +255,9 @@ public class CurrentStateOutput {
    * @param instanceName
    * @return
    */
-  public Message getCancellationState(String resourceName, Partition partition,
+  public Message getCancellationMessage(String resourceName, Partition partition,
       String instanceName) {
-    return getStateMessage(resourceName, partition, instanceName, _cancellationStateMap);
+    return getStateMessage(resourceName, partition, instanceName, _cancellationMessageMap);
   }
 
   private Message getStateMessage(String resourceName, Partition partition, String instanceName,
@@ -291,8 +307,8 @@ public class CurrentStateOutput {
    * @return pending target state map
    */
   public Map<String, String> getPendingStateMap(String resourceName, Partition partition) {
-    if (_pendingStateMap.containsKey(resourceName)) {
-      Map<Partition, Map<String, Message>> map = _pendingStateMap.get(resourceName);
+    if (_pendingMessageMap.containsKey(resourceName)) {
+      Map<Partition, Map<String, Message>> map = _pendingMessageMap.get(resourceName);
       if (map.containsKey(partition)) {
         Map<String, Message> pendingMsgMap = map.get(partition);
         Map<String, String> pendingStateMap = new HashMap<String, String>();
@@ -312,8 +328,8 @@ public class CurrentStateOutput {
    * @return pending messages map
    */
   public Map<String, Message> getPendingMessageMap(String resourceName, Partition partition) {
-    if (_pendingStateMap.containsKey(resourceName)) {
-      Map<Partition, Map<String, Message>> map = _pendingStateMap.get(resourceName);
+    if (_pendingMessageMap.containsKey(resourceName)) {
+      Map<Partition, Map<String, Message>> map = _pendingMessageMap.get(resourceName);
       if (map.containsKey(partition)) {
         return map.get(partition);
       }
@@ -328,7 +344,7 @@ public class CurrentStateOutput {
    */
   public Set<Partition> getCurrentStateMappedPartitions(String resourceId) {
     Map<Partition, Map<String, String>> currentStateMap = _currentStateMap.get(resourceId);
-    Map<Partition, Map<String, Message>> pendingStateMap = _pendingStateMap.get(resourceId);
+    Map<Partition, Map<String, Message>> pendingStateMap = _pendingMessageMap.get(resourceId);
     Set<Partition> partitionSet = Sets.newHashSet();
     if (currentStateMap != null) {
       partitionSet.addAll(currentStateMap.keySet());
@@ -346,7 +362,7 @@ public class CurrentStateOutput {
    * @return set of participants to partitions mapping
    */
   public Map<String, Integer> getPartitionCountWithPendingState(String resourceStateModel, String state) {
-    return getPartitionCountWithState(resourceStateModel, state, (Map) _pendingStateMap);
+    return getPartitionCountWithState(resourceStateModel, state, (Map) _pendingMessageMap);
   }
 
   /**
@@ -397,7 +413,7 @@ public class CurrentStateOutput {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("current state= ").append(_currentStateMap);
-    sb.append(", pending state= ").append(_pendingStateMap);
+    sb.append(", pending state= ").append(_pendingMessageMap);
     return sb.toString();
   }
 

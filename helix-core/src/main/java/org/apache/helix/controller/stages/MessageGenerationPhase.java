@@ -82,7 +82,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     }
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
-    Map<String, String> sessionIdMap = new HashMap<String, String>();
+    Map<String, String> sessionIdMap = new HashMap<>();
 
     for (LiveInstance liveInstance : liveInstances.values()) {
       sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId());
@@ -101,7 +101,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
       for (Partition partition : resource.getPartitions()) {
 
-        Map<String, String> instanceStateMap = new HashMap<String, String>(
+        Map<String, String> instanceStateMap = new HashMap<>(
             intermediateStateOutput.getInstanceStateMap(resourceName, partition));
         Map<String, String> pendingStateMap =
             currentStateOutput.getPendingStateMap(resourceName, partition);
@@ -120,24 +120,27 @@ public class MessageGenerationPhase extends AbstractBaseStage {
         // we should generate message based on the desired-state priority
         // so keep generated messages in a temp map keyed by state
         // desired-state->list of generated-messages
-        Map<String, List<Message>> messageMap = new HashMap<String, List<Message>>();
+        Map<String, List<Message>> messageMap = new HashMap<>();
 
         for (String instanceName : instanceStateMap.keySet()) {
           String desiredState = instanceStateMap.get(instanceName);
 
-          String currentState = currentStateOutput.getCurrentState(resourceName, partition, instanceName);
+          String currentState = currentStateOutput.getCurrentState(resourceName, partition,
+              instanceName);
           if (currentState == null) {
             currentState = stateModelDef.getInitialState();
           }
 
-          Message pendingMessage = currentStateOutput.getPendingState(resourceName, partition, instanceName);
+          Message pendingMessage = currentStateOutput.getPendingMessage(resourceName, partition,
+              instanceName);
           boolean isCancellationEnabled = cache.getClusterConfig().isStateTransitionCancelEnabled();
-          Message cancellationMessage = currentStateOutput.getCancellationState(resourceName, partition, instanceName);
+          Message cancellationMessage = currentStateOutput.getCancellationMessage(resourceName,
+              partition, instanceName);
           String nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
 
           Message message = null;
 
-          if (shouldCleanUpPendingMessage(pendingMessage, currentState,
+          if (pendingMessage != null && shouldCleanUpPendingMessage(pendingMessage, currentState,
               currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
             LogUtil.logInfo(logger, _eventId, String.format(
                 "Adding pending message %s on instance %s to clean up. Msg: %s->%s, current state of resource %s:%s is %s",

@@ -98,8 +98,6 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     Assert.assertFalse(_migrationVerifier.hasLessReplica());
-    Assert.assertFalse(_migrationVerifier.hasMoreReplica());
-
     _migrationVerifier.stop();
   }
 

@@ -20,11 +20,13 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.helix.controller.LogUtil;
@@ -60,6 +62,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
@@ -86,6 +89,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
         List<Message> selectedMessages = selectMessages(cache.getLiveInstances(),
             currentStateOutput.getCurrentStateMap(resourceName, partition),
             currentStateOutput.getPendingMessageMap(resourceName, partition), messages,
+            currentStateOutput.getPendingRelayMessageMap(resourceName, partition).values(),
             stateConstraints, stateTransitionPriorities, stateModelDef,
             resource.isP2PMessageEnabled());
         output.addMessages(resourceName, partition, selectedMessages);
@@ -127,9 +131,9 @@ public class MessageSelectionStage extends AbstractBaseStage {
    */
   List<Message> selectMessages(Map<String, LiveInstance> liveInstances,
       Map<String, String> currentStates, Map<String, Message> pendingMessages,
-      List<Message> messages, Map<String, Bounds> stateConstraints,
-      final Map<String, Integer> stateTransitionPriorities, StateModelDefinition stateModelDef,
-      boolean p2pMessageEnabled) {
+      List<Message> messages, Collection<Message> pendingRelayMessages,
+      Map<String, Bounds> stateConstraints, final Map<String, Integer> stateTransitionPriorities,
+      StateModelDefinition stateModelDef, boolean p2pMessageEnabled) {
     if (messages == null || messages.isEmpty()) {
       return Collections.emptyList();
     }
@@ -188,6 +192,27 @@ public class MessageSelectionStage extends AbstractBaseStage {
     for (List<Message> messageList : messagesGroupByStateTransitPriority.values()) {
       for (Message message : messageList) {
         String toState = message.getToState();
+        String fromState = message.getFromState();
+
+        if (toState.equals(stateModelDef.getTopState())) {
+          // find if there are any pending relay messages match this message.
+          // if yes, rebuild the message to use the same message id from the original relay message.
+          for (Message relayMsg : pendingRelayMessages) {
+            if (relayMsg.getToState().equals(toState) && relayMsg.getFromState()
+                .equals(fromState)) {
+              if (relayMsg.getTgtName().equals(message.getTgtName())) {
+                message = new Message(message, relayMsg.getMsgId());
+              } else {
+                // if there are pending relay message that was sent to a different host than the current message
+                // we should not send the toState message now.
+                LOG.info(
+                    "There is pending relay message to a different host, not send message: {}, pending relay message: {}",
+                    message, relayMsg);
+                continue;
+              }
+            }
+          }
+        }
 
         if (stateConstraints.containsKey(toState)) {
           int newCnt = (stateCnts.containsKey(toState) ? stateCnts.get(toState) + 1 : 1);

@@ -270,7 +270,7 @@ public class JobRebalancer extends TaskRebalancer {
           paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.TASK_ABORTED.name()));
         }
         Partition partition = new Partition(pName(jobResource, pId));
-        Message pendingMessage = currStateOutput.getPendingState(jobResource, partition, instance);
+        Message pendingMessage = currStateOutput.getPendingMessage(jobResource, partition, instance);
         // While job is failing, if the task is pending on INIT->RUNNING, set it back to INIT,
         // so that Helix will cancel the transition.
         if (jobCtx.getPartitionState(pId) == TaskPartitionState.INIT && pendingMessage != null) {
@@ -337,7 +337,8 @@ public class JobRebalancer extends TaskRebalancer {
       TaskPartitionState state = jobContext.getPartitionState(pId);
       Partition partition = new Partition(pName(jobResource, pId));
       String instance = jobContext.getAssignedParticipant(pId);
-      Message pendingMessage = currentStateOutput.getPendingState(jobResource, partition, instance);
+      Message pendingMessage = currentStateOutput.getPendingMessage(jobResource, partition,
+          instance);
       // If state is INIT but is pending INIT->RUNNING, it's not yet safe to say the job finished
       if (state == TaskPartitionState.RUNNING
           || (state == TaskPartitionState.INIT && pendingMessage != null)) {

@@ -488,8 +488,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           return true;
         } else {
           _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class,
-              "fail to cancel task: " + taskId,
-              notificationContext.getManager());
+              "fail to cancel task: " + taskId, notificationContext.getManager());
         }
       } else {
         _statusUpdateUtil.logWarning(message, HelixTaskExecutor.class,
@@ -789,14 +788,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         continue;
       }
 
-      if (message.isExpired()) {
-        LOG.info(
-            "Dropping expired message. mid: " + message.getId() + ", from: " + message.getMsgSrc() + " relayed from: "
-                + message.getRelaySrcHost());
-        reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.DISCARDED);
-        continue;
-      }
-
       String tgtSessionId = message.getTgtSessionId();
       // sessionId mismatch normally means message comes from expired session, just remove it
       if (!sessionId.equals(tgtSessionId) && !tgtSessionId.equals("*")) {
@@ -843,6 +834,14 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         continue;
       }
 
+      if (message.isExpired()) {
+        LOG.info(
+            "Dropping expired message. mid: " + message.getId() + ", from: " + message.getMsgSrc()
+                + " relayed from: " + message.getRelaySrcHost());
+        reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.DISCARDED);
+        continue;
+      }
+
       // State Transition Cancellation
       if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
         boolean success = cancelNotStartedStateTransition(message, stateTransitionHandlers, accessor, instanceName);
@@ -874,6 +873,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
                 duplicatedMessage.getToState(), message.getFromState(), message.getToState()));
           } else if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())
               && isStateTransitionInProgress(messageTarget)) {
+
             // If there is another state transition for same partition is going on,
             // discard the message. Controller will resend if this is a valid message
             throw new HelixException(String
@@ -1095,7 +1095,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         && stateTranstionMessage.getToState().equalsIgnoreCase(cancellationMessage.getToState());
   }
 
-  private String getMessageTarget(String resourceName, String partitionName) {
+  String getMessageTarget(String resourceName, String partitionName) {
     return String.format("%s_%s", resourceName, partitionName);
   }
 

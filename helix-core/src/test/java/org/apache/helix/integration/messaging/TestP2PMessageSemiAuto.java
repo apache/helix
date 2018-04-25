@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.integration.DelayedTransitionBase;
@@ -33,11 +32,9 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MasterSlaveSMD;
-import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
@@ -55,7 +52,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   static final String DB_NAME_1 = "TestDB_1";
   static final String DB_NAME_2 = "TestDB_2";
 
-  static final int PARTITION_NUMBER = 20;
+  static final int PARTITION_NUMBER = 200;
   static final int REPLICA_NUMBER = 3;
 
   List<MockParticipantManager> _participants = new ArrayList<>();
@@ -126,23 +123,25 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, false);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    verifyP2PMessage(DB_NAME_1,_instances.get(1), MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName());
-    verifyP2PMessage(DB_NAME_2,_instances.get(1), MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName());
+    verifyP2PMessage(DB_NAME_1,_instances.get(1), MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName(), 1);
+    verifyP2PMessage(DB_NAME_2,_instances.get(1), MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName(), 1);
 
 
     //re-enable the old master
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    verifyP2PMessage(DB_NAME_1, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName());
-    verifyP2PMessage(DB_NAME_2, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName());
+    verifyP2PMessage(DB_NAME_1, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(),
+        _controller.getInstanceName(), 1);
+    verifyP2PMessage(DB_NAME_2, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(),
+        _controller.getInstanceName(), 1);
   }
 
   @Test (dependsOnMethods = {"testP2PStateTransitionDisabled"})
   public void testP2PStateTransitionEnabledInCluster() {
-    enableP2PInCluster(true);
-    enableP2PInResource(DB_NAME_1,false);
-    enableP2PInResource(DB_NAME_2,false);
+    enableP2PInCluster(CLUSTER_NAME, _configAccessor, true);
+    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_1,false);
+    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_2,false);
 
     // disable the master instance
     String prevMasterInstance = _instances.get(0);
@@ -156,15 +155,17 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    verifyP2PMessage(DB_NAME_1, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _instances.get(1));
-    verifyP2PMessage(DB_NAME_2, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _instances.get(1));
+    verifyP2PMessage(DB_NAME_1, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _instances.get(
+        1));
+    verifyP2PMessage(DB_NAME_2, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _instances.get(
+        1));
   }
 
   @Test (dependsOnMethods = {"testP2PStateTransitionDisabled"})
   public void testP2PStateTransitionEnabledInResource() {
-    enableP2PInCluster(false);
-    enableP2PInResource(DB_NAME_1,true);
-    enableP2PInResource(DB_NAME_2,false);
+    enableP2PInCluster(CLUSTER_NAME, _configAccessor, false);
+    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_1,true);
+    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_2,false);
 
 
     // disable the master instance
@@ -173,7 +174,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     verifyP2PMessage(DB_NAME_1, _instances.get(1), MasterSlaveSMD.States.MASTER.name(), prevMasterInstance);
-    verifyP2PMessage(DB_NAME_2, _instances.get(1), MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName());
+    verifyP2PMessage(DB_NAME_2, _instances.get(1), MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName(), 1);
 
 
     //re-enable the old master
@@ -181,37 +182,14 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     verifyP2PMessage(DB_NAME_1, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _instances.get(1));
-    verifyP2PMessage(DB_NAME_2, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName());
-  }
-
-  private void enableP2PInCluster(boolean enable) {
-    // enable p2p message in cluster.
-    if (enable) {
-      ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
-      clusterConfig.enableP2PMessage(true);
-      _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-    } else {
-      ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
-      clusterConfig.getRecord().getSimpleFields().remove(HelixConfigProperty.P2P_MESSAGE_ENABLED.name());
-      _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-    }
-  }
-
-  private void enableP2PInResource(String dbName, boolean enable) {
-    if (enable) {
-      ResourceConfig resourceConfig = new ResourceConfig.Builder(dbName).setP2PMessageEnabled(true).build();
-      _configAccessor.setResourceConfig(CLUSTER_NAME, dbName, resourceConfig);
-    } else {
-      // remove P2P Message in resource config
-      ResourceConfig resourceConfig = _configAccessor.getResourceConfig(CLUSTER_NAME, dbName);
-      if (resourceConfig != null) {
-        resourceConfig.getRecord().getSimpleFields().remove(HelixConfigProperty.P2P_MESSAGE_ENABLED.name());
-        _configAccessor.setResourceConfig(CLUSTER_NAME, dbName, resourceConfig);
-      }
-    }
+    verifyP2PMessage(DB_NAME_2, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName(), 1);
   }
 
   private void verifyP2PMessage(String dbName, String instance, String expectedState, String expectedTriggerHost) {
+    verifyP2PMessage(dbName, instance, expectedState, expectedTriggerHost, 0.7);
+  }
+
+  private void verifyP2PMessage(String dbName, String instance, String expectedState, String expectedTriggerHost, double expectedRatio) {
     ClusterDataCache dataCache = new ClusterDataCache(CLUSTER_NAME);
     dataCache.refresh(_accessor);
 
@@ -239,7 +217,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
     }
 
     double ratio = ((double) expectedHost) / ((double) total);
-    Assert.assertTrue(ratio >= 0.7, String
+    Assert.assertTrue(ratio >= expectedRatio, String
         .format("Only %d out of %d percent transitions to Master were triggered by expected host!",
             expectedHost, total));
   }

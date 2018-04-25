@@ -66,10 +66,12 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
       // update pending messages
       Map<String, Message> messages = cache.getMessages(instanceName);
-      updatePendingMessages(instance, messages.values(), currentStateOutput, resourceMap);
+      Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
+      updatePendingMessages(instance, messages.values(), currentStateOutput, relayMessages.values(), resourceMap);
 
       // update current states.
-      Map<String, CurrentState> currentStateMap = cache.getCurrentState(instanceName, instanceSessionId);
+      Map<String, CurrentState> currentStateMap = cache.getCurrentState(instanceName,
+          instanceSessionId);
       updateCurrentStates(instance, currentStateMap.values(), currentStateOutput, resourceMap);
     }
 
@@ -84,7 +86,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
   // update all pending messages to CurrentStateOutput.
   private void updatePendingMessages(LiveInstance instance, Collection<Message> pendingMessages,
-      CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap) {
+      CurrentStateOutput currentStateOutput, Collection<Message> pendingRelayMessages,
+      Map<String, Resource> resourceMap) {
     String instanceName = instance.getInstanceName();
     String instanceSessionId = instance.getSessionId();
 
@@ -100,6 +103,9 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String resourceName = message.getResourceName();
       Resource resource = resourceMap.get(resourceName);
       if (resource == null) {
+        LogUtil.logInfo(LOG, _eventId, String.format(
+            "Ignore a pending relay message %s for a non-exist resource %s and partition %s",
+            message.getMsgId(), resourceName, message.getPartitionName()));
         continue;
       }
 
@@ -109,7 +115,9 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         if (partition != null) {
           setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
         } else {
-          // log
+          LogUtil.logInfo(LOG, _eventId, String
+              .format("Ignore a pending message %s for a non-exist resource %s and partition %s",
+                  message.getMsgId(), resourceName, message.getPartitionName()));
         }
       } else {
         List<String> partitionNames = message.getPartitionNames();
@@ -119,10 +127,45 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
             if (partition != null) {
               setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
             } else {
-              // log
+              LogUtil.logInfo(LOG, _eventId, String.format(
+                  "Ignore a pending message %s for a non-exist resource %s and partition %s",
+                  message.getMsgId(), resourceName, message.getPartitionName()));
             }
           }
         }
+      }
+    }
+
+
+    // update all pending relay messages
+    for (Message message : pendingRelayMessages) {
+      if (!message.isRelayMessage()) {
+        LogUtil.logWarn(LOG, _eventId,
+            String.format("Not a relay message %s, ignored!", message.getMsgId()));
+        continue;
+      }
+      String resourceName = message.getResourceName();
+      Resource resource = resourceMap.get(resourceName);
+      if (resource == null) {
+        LogUtil.logInfo(LOG, _eventId, String.format(
+            "Ignore a pending relay message %s for a non-exist resource %s and partition %s",
+            message.getMsgId(), resourceName, message.getPartitionName()));
+        continue;
+      }
+
+      if (!message.getBatchMessageMode()) {
+        String partitionName = message.getPartitionName();
+        Partition partition = resource.getPartition(partitionName);
+        if (partition != null) {
+          currentStateOutput.setPendingRelayMessage(resourceName, partition, instanceName, message);
+        } else {
+          LogUtil.logInfo(LOG, _eventId, String.format(
+              "Ignore a pending relay message %s for a non-exist resource %s and partition %s",
+              message.getMsgId(), resourceName, message.getPartitionName()));
+        }
+      } else {
+        LogUtil.logWarn(LOG, _eventId, String
+            .format("A relay message %s should not be batched, ignored!", message.getMsgId()));
       }
     }
   }
@@ -169,9 +212,9 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
   private void setMessageState(CurrentStateOutput currentStateOutput, String resourceName,
       Partition partition, String instanceName, Message message) {
     if (MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())) {
-      currentStateOutput.setPendingState(resourceName, partition, instanceName, message);
+      currentStateOutput.setPendingMessage(resourceName, partition, instanceName, message);
     } else {
-      currentStateOutput.setCancellationState(resourceName, partition, instanceName, message);
+      currentStateOutput.setCancellationMessage(resourceName, partition, instanceName, message);
     }
   }
 

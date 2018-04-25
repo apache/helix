@@ -42,6 +42,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.Stage;
@@ -65,6 +66,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.OnlineOfflineSMD;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
@@ -238,6 +240,38 @@ public class ZkTestBase {
     InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
     instanceConfig.setDelayRebalanceEnabled(enabled);
     configAccessor.setInstanceConfig(clusterName, instanceName, instanceConfig);
+  }
+
+  protected void enableP2PInCluster(String clusterName, ConfigAccessor configAccessor,
+      boolean enable) {
+    // enable p2p message in cluster.
+    if (enable) {
+      ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+      clusterConfig.enableP2PMessage(true);
+      configAccessor.setClusterConfig(clusterName, clusterConfig);
+    } else {
+      ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+      clusterConfig.getRecord().getSimpleFields()
+          .remove(HelixConfigProperty.P2P_MESSAGE_ENABLED.name());
+      configAccessor.setClusterConfig(clusterName, clusterConfig);
+    }
+  }
+
+  protected void enableP2PInResource(String clusterName, ConfigAccessor configAccessor,
+      String dbName, boolean enable) {
+    if (enable) {
+      ResourceConfig resourceConfig =
+          new ResourceConfig.Builder(dbName).setP2PMessageEnabled(true).build();
+      configAccessor.setResourceConfig(clusterName, dbName, resourceConfig);
+    } else {
+      // remove P2P Message in resource config
+      ResourceConfig resourceConfig = configAccessor.getResourceConfig(clusterName, dbName);
+      if (resourceConfig != null) {
+        resourceConfig.getRecord().getSimpleFields()
+            .remove(HelixConfigProperty.P2P_MESSAGE_ENABLED.name());
+        configAccessor.setResourceConfig(clusterName, dbName, resourceConfig);
+      }
+    }
   }
 
   protected void setDelayTimeInCluster(ZkClient zkClient, String clusterName, long delay) {

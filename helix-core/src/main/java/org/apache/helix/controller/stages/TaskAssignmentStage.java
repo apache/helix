@@ -160,6 +160,11 @@ public class TaskAssignmentStage extends AbstractBaseStage {
       keys.add(keyBuilder.message(message.getTgtName(), message.getId()));
     }
 
-    dataAccessor.createChildren(keys, new ArrayList<>(messages));
+    boolean[] results = dataAccessor.createChildren(keys, new ArrayList<>(messages));
+    for (int i = 0; i < results.length; i++) {
+      if (!results[i]) {
+        LogUtil.logWarn(logger, _eventId, "Failed to send message: " + keys.get(i));
+      }
+    }
   }
 }

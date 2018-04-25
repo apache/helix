@@ -329,6 +329,20 @@ public class TaskDriver {
    */
   public void enqueueJob(final String queue, final String job,
       JobConfig.Builder jobBuilder) {
+    enqueueJobs(queue, Collections.singletonList(job), Collections.singletonList(jobBuilder));
+  }
+
+  /**
+   * Batch add jobs to queues that garantee
+   *
+   * @param queue
+   * @param jobs
+   * @param jobBuilders
+   */
+  public void enqueueJobs(final String queue, final List<String> jobs,
+      final List<JobConfig.Builder> jobBuilders) {
+
+
     // Get the job queue config and capacity
     WorkflowConfig workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
     if (workflowConfig == null) {
@@ -357,14 +371,29 @@ public class TaskDriver {
     }
 
     validateZKNodeLimitation(1);
+    final List<JobConfig> jobConfigs = new ArrayList<>();
+    final List<String> namespacedJobNames = new ArrayList<>();
+    final List<String> jobTypeList = new ArrayList<>();
 
-    // Create the job to ensure that it validates
-    JobConfig jobConfig = jobBuilder.setWorkflow(queue).build();
-    final String namespacedJobName = TaskUtil.getNamespacedJobName(queue, job);
+    try {
+      for (int i = 0; i < jobBuilders.size(); i++) {
+        // Create the job to ensure that it validates
+        JobConfig jobConfig = jobBuilders.get(i).setWorkflow(queue).build();
+        String namespacedJobName = TaskUtil.getNamespacedJobName(queue, jobs.get(i));
 
-    // add job config first.
-    addJobConfig(namespacedJobName, jobConfig);
-    final String jobType = jobConfig.getJobType();
+        // add job config first.
+        addJobConfig(namespacedJobName, jobConfig);
+        jobConfigs.add(jobConfig);
+        namespacedJobNames.add(namespacedJobName);
+        jobTypeList.add(jobConfig.getJobType());
+      }
+    } catch (HelixException e) {
+      LOG.error("Failed to add job configs {}. Remove them all!", jobs.toString());
+      for (String job : jobs) {
+        String namespacedJobName = TaskUtil.getNamespacedJobName(queue, job);
+        TaskUtil.removeJobConfig(_accessor, namespacedJobName);
+      }
+    }
 
     // update the job dag to append the job to the end of the queue.
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
@@ -374,53 +403,73 @@ public class TaskDriver {
         JobDag jobDag = JobDag.fromJson(
             currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
         Set<String> allNodes = jobDag.getAllNodes();
-        if (capacity > 0 && allNodes.size() >= capacity) {
-          throw new IllegalStateException(
-              "Queue " + queue + " already reaches its max capacity, failed to add " + job);
+        if (capacity > 0 && allNodes.size() + jobConfigs.size() >= capacity) {
+          throw new IllegalStateException(String
+              .format("Queue %s already reaches its max capacity %f, failed to add %s", capacity,
+                  queue, jobs.toString()));
         }
-        if (allNodes.contains(namespacedJobName)) {
-          throw new IllegalStateException(
-              "Could not add to queue " + queue + ", job " + job + " already exists");
-        }
-        jobDag.addNode(namespacedJobName);
 
-        // Add the node to the end of the queue
-        String candidate = null;
-        for (String node : allNodes) {
-          if (!node.equals(namespacedJobName) && jobDag.getDirectChildren(node).isEmpty()) {
-            candidate = node;
-            break;
+        String lastNodeName = null;
+        for (int i = 0; i < namespacedJobNames.size(); i++) {
+          String namespacedJobName = namespacedJobNames.get(i);
+          if (allNodes.contains(namespacedJobName)) {
+            throw new IllegalStateException(String
+                .format("Could not add to queue %s, job %s already exists", queue, jobs.get(i)));
           }
-        }
-        if (candidate != null) {
-          jobDag.addParentToChild(candidate, namespacedJobName);
+          jobDag.addNode(namespacedJobName);
+
+          // Add the node to the end of the queue
+          String candidate = null;
+          if (lastNodeName == null) {
+            for (String node : allNodes) {
+              if (!node.equals(namespacedJobName) && jobDag.getDirectChildren(node).isEmpty()) {
+                candidate = node;
+                break;
+              }
+            }
+          } else {
+            candidate = lastNodeName;
+          }
+          if (candidate != null) {
+            jobDag.addParentToChild(candidate, namespacedJobName);
+            lastNodeName = namespacedJobName;
+          }
         }
 
         // Add job type if job type is not null
-        if (jobType != null) {
-          Map<String, String> jobTypes =
-              currentData.getMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name());
-          if (jobTypes == null) {
-            jobTypes = new HashMap<String, String>();
+        Map<String, String> jobTypes =
+            currentData.getMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name());
+        for (String jobType : jobTypeList) {
+          if (jobType != null) {
+            if (jobTypes == null) {
+              jobTypes = new HashMap<>();
+            }
+            jobTypes.put(queue, jobType);
           }
-          jobTypes.put(queue, jobType);
-          currentData.setMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name(), jobTypes);
         }
 
+        if (jobTypes != null) {
+          currentData.setMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name(), jobTypes);
+        }
         // Save the updated DAG
         try {
           currentData
               .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
         } catch (Exception e) {
-          throw new IllegalStateException("Could not add job " + job + " to queue " + queue,
-              e);
+          throw new IllegalStateException(
+              String.format("Could not add jobs %s to queue %s", jobs.toString(), queue), e);
         }
         return currentData;
       }
     };
+
     String path = _accessor.keyBuilder().resourceConfig(queue).getPath();
     boolean status = _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
     if (!status) {
+      LOG.error("Failed to update WorkflowConfig, remove all jobs {}", jobs.toString());
+      for (String job : jobs) {
+        TaskUtil.removeJobConfig(_accessor, job);
+      }
       throw new HelixException("Failed to enqueue job");
     }
 

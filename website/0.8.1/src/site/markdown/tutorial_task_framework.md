@@ -63,6 +63,7 @@ TaskConfig taskConfig = new TaskConfig(null, null, null, null);
 ```
 
 For these four fields:
+
 * Command: The task command, will use Job command if this is null
 * ID: Task unique id, will generate a new ID for this task if input is null
 * TaskTargetPartition: Target partition of a target. Could be null
@@ -129,8 +130,10 @@ taskDriver.getJobContext("JOBNAME").getInfo();
 
 As common use, one-time workflow will be the default workflow as user created. The first step is to create a WorkflowConfig.Builder object with workflow name. Then all configs can be set in WorkflowConfig.Builder. Once the configuration is done, [WorkflowConfig](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/WorkflowConfig.java) object can be got from WorkflowConfig.Builder object.
 We have two rules to validate the Workflow configuration:
+
 * Expiry time should not be less than 0
 * Schedule config should be valid either one-time or a positive interval magnitude (Recurrent workflow)
+
 Example:
 
 ```
@@ -274,6 +277,7 @@ JobConfig myJobCfg = myJobCfgBuilder.build();
 ```
 
 Helix has couple rules to validate a job:
+
 * Each job must at least have one task to execute. For adding tasks and task rules please refer following section Add Tasks.
 * Task timeout should not less than zero.
 * Number of concurrent tasks per instances should not less than one.
@@ -283,6 +287,7 @@ Helix has couple rules to validate a job:
 #### Add Tasks
 
 There are two ways of adding tasks:
+
 * Add by TaskConfig. Tasks can be added via adding TaskConfigs. User can create a List of TaskConfigs or add TaskConfigMap, which is a task id to TaskConfig mapping.
 
 ```
@@ -363,10 +368,12 @@ If any parent jobs are not finished, the job won't be scheduled even the schedul
 
 ### Monitor the status of your job
 As we introduced the excellent util TaskDriver in Workflow Section, we have extra more functionality that provided to user. The user can synchronized wait Job or Workflow until it reaches certain STATES. The function Helix have API pollForJobState and pollForWorkflowState. For pollForJobState, it accepts arguments:
+
 * Workflow name, required
 * Job name, required
 * Timeout, not required, will be three minutes if user choose function without timeout argument. Time unit is milisecond.
 * TaskStates, at least one state. This function can accept multiple TaskState, will end function until one of those TaskState reaches.
+
 For example:
 
 ```
@@ -380,3 +387,9 @@ For pollForWorkflowState, it accepts similar arguments except Job name. For exam
 taskDriver.pollForWorkflowState("MyWorkflowName", 180000L, TaskState.FAILED, TaskState.FATAL_FAILED);
 taskDriver.pollForWorkflowState("MyWorkflowName", TaskState.COMPLETED);
 ```
+
+#### Task framework monitoring metrics
+Please refer to following links.
+
+* [Job Monitor](./Metrics.html#MBean_JobMonitor)
+* [Workflow Monitor](./Metrics.html#MBean_WorkflowMonitor)

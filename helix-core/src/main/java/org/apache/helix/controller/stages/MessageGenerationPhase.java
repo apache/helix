@@ -28,6 +28,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -42,6 +43,7 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,10 +55,12 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
   // If we see there is any invalid pending message leaving on host, i.e. message
   // tells participant to change from SLAVE to MASTER, and the participant is already
-  // at MASTER state, we wait for 3 sec and if the message is still not cleaned up by
+  // at MASTER state, we wait for timeout and if the message is still not cleaned up by
   // participant, controller will cleanup them proactively to unblock further state
   // transition
-  private final static long DEFAULT_OBSELETE_MSG_PURGE_DELAY = 3 * 1000;
+  public final static long DEFAULT_OBSELETE_MSG_PURGE_DELAY = HelixUtil
+      .getSystemPropertyAsLong(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, 60 * 1000);
+
   private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
   @Override

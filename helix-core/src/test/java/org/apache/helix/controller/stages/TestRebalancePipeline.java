@@ -129,8 +129,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    HelixManager manager = new DummyClusterManager(clusterName, accessor);
-    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     refreshClusterConfig(clusterName, accessor);
     final String resourceName = "testResource_dup";
     String[] resourceGroups = new String[] {
@@ -151,6 +149,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setupLiveInstances(clusterName, new int[] {
         0, 1
     });
+
+    long msgPurgeDelay = MessageGenerationPhase.DEFAULT_OBSELETE_MSG_PURGE_DELAY;
 
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
@@ -173,13 +173,13 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_1", resourceName, resourceName + "_0", "session_1",
         "SLAVE", true);
 
-    // Controller has 3s timeout, so after 1s, controller should not have GCed message
+    // Controller has timeout > 1sec, so after 1s, controller should not have GCed message
     Thread.sleep(1000);
     Assert.assertEquals(accessor.getChildValues(keyBuilder.messages("localhost_0")).size(), 1);
     Assert.assertEquals(accessor.getChildValues(keyBuilder.messages("localhost_1")).size(), 1);
 
-    // After another 2 second, controller should cleanup messages and continue to rebalance
-    Thread.sleep(3000);
+    // After another purge delay, controller should cleanup messages and continue to rebalance
+    Thread.sleep(msgPurgeDelay);
     // Manually trigger another rebalance by touching current state
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", "session_0",
         "SLAVE");
@@ -197,7 +197,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     // controller will clean it up
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", "session_0",
         "MASTER", true);
-    Thread.sleep(3500);
+    Thread.sleep(msgPurgeDelay);
     // touch current state to trigger rebalance
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", "session_0",
         "MASTER", false);

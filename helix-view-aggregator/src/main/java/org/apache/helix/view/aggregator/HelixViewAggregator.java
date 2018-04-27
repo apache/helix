@@ -91,6 +91,11 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
     };
   }
 
+  public String getAggregatorInstanceName() {
+    return String
+        .format("%s::%s", _viewClusterManager.getInstanceName(), hashCode());
+  }
+
   /**
    * Start controller main logic
    * @throws Exception

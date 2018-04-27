@@ -171,11 +171,7 @@ public class InstanceMessagesCache {
 
           for (Message relayMsg : message.getRelayMessages().values()) {
             relayMsg.setRelayTime(transitionCompleteTime);
-            if (!relayMsg.isExpired()) {
-              relayMessages.add(relayMsg);
-            } else {
-              LOG.info("Relay message " + relayMsg.getId() + " already expired, ignore it!");
-            }
+            relayMessages.add(relayMsg);
           }
         }
       }

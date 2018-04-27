@@ -19,22 +19,18 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import org.apache.helix.controller.pipeline.AbstractBaseStage;
+import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.*;
+import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.controller.pipeline.AbstractBaseStage;
-import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.Message;
-import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
-import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId matches
@@ -77,7 +73,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     if (!cache.isTaskCache()) {
       ClusterStatusMonitor clusterStatusMonitor =
           event.getAttribute(AttributeName.clusterStatusMonitor.name());
-      updateMissingTopStateStatus(cache, clusterStatusMonitor, resourceMap, currentStateOutput);
+      // TODO Update the status async -- jjwang
+      updateTopStateStatus(cache, clusterStatusMonitor, resourceMap, currentStateOutput);
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
   }
@@ -174,14 +171,21 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       currentStateOutput.setCancellationState(resourceName, partition, instanceName, message);
     }
   }
-  private void updateMissingTopStateStatus(ClusterDataCache cache,
+
+  private void updateTopStateStatus(ClusterDataCache cache,
       ClusterStatusMonitor clusterStatusMonitor, Map<String, Resource> resourceMap,
       CurrentStateOutput currentStateOutput) {
     Map<String, Map<String, Long>> missingTopStateMap = cache.getMissingTopStateMap();
+    Map<String, Map<String, String>> lastTopStateMap = cache.getLastTopStateLocationMap();
+
     long durationThreshold = Long.MAX_VALUE;
     if (cache.getClusterConfig() != null) {
       durationThreshold = cache.getClusterConfig().getMissTopStateDurationThreshold();
     }
+
+    // Remove any resource records that no longer exists
+    missingTopStateMap.keySet().retainAll(resourceMap.keySet());
+    lastTopStateMap.keySet().retainAll(resourceMap.keySet());
 
     for (Resource resource : resourceMap.values()) {
       StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
@@ -191,26 +195,33 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         continue;
       }
 
+      String resourceName = resource.getResourceName();
+
       for (Partition partition : resource.getPartitions()) {
         Map<String, String> stateMap =
-            currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
+            currentStateOutput.getCurrentStateMap(resourceName, partition);
 
-        // TODO: improve following with MIN_ACTIVE_TOP_STATE logic
-        // Missing top state need to record
-        if (!stateMap.values().contains(stateModelDef.getTopState()) && (!missingTopStateMap
-            .containsKey(resource.getResourceName()) || !missingTopStateMap
-            .get(resource.getResourceName()).containsKey(partition.getPartitionName()))) {
-          reportNewTopStateMissing(cache, stateMap, missingTopStateMap, resource, partition,
-              stateModelDef.getTopState());
+        for (String instance : stateMap.keySet()) {
+          if (stateMap.get(instance).equals(stateModelDef.getTopState())) {
+            if (!lastTopStateMap.containsKey(resourceName)) {
+              lastTopStateMap.put(resourceName, new HashMap<String, String>());
+            }
+            // recording any top state, it is enough for tracking the top state changes.
+            lastTopStateMap.get(resourceName).put(partition.getPartitionName(), instance);
+            break;
+          }
         }
 
-        // Top state comes back
-        // The first time participant started or controller switched will be ignored
-        if (missingTopStateMap.containsKey(resource.getResourceName()) && missingTopStateMap
-            .get(resource.getResourceName()).containsKey(partition.getPartitionName()) && stateMap
-            .values().contains(stateModelDef.getTopState())) {
-          reportTopStateComesBack(cache, stateMap, missingTopStateMap, resource, partition,
+        if (stateMap.values().contains(stateModelDef.getTopState())) {
+          // Top state comes back
+          // The first time participant started or controller switched will be ignored
+          reportTopStateComesBack(cache, stateMap, missingTopStateMap, resourceName, partition,
               clusterStatusMonitor, durationThreshold, stateModelDef.getTopState());
+        } else {
+          // TODO: improve following with MIN_ACTIVE_TOP_STATE logic
+          // Missing top state need to record
+          reportNewTopStateMissing(cache, missingTopStateMap, lastTopStateMap, resourceName,
+              partition, stateModelDef.getTopState(), currentStateOutput);
         }
       }
     }
@@ -232,19 +243,32 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
   }
 
-  private void reportNewTopStateMissing(ClusterDataCache cache, Map<String, String> stateMap,
-      Map<String, Map<String, Long>> missingTopStateMap, Resource resource, Partition partition,
-      String topState) {
+  private void reportNewTopStateMissing(ClusterDataCache cache,
+      Map<String, Map<String, Long>> missingTopStateMap,
+      Map<String, Map<String, String>> lastTopStateMap, String resourceName, Partition partition,
+      String topState, CurrentStateOutput currentStateOutput) {
+    if (missingTopStateMap.containsKey(resourceName) && missingTopStateMap.get(resourceName)
+        .containsKey(partition.getPartitionName())) {
+      // a previous missing has been already recorded
+      return;
+    }
 
     long startTime = NOT_RECORDED;
-    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
-    for (String instanceName : stateMap.keySet()) {
-      if (liveInstances.containsKey(instanceName)) {
-        CurrentState currentState =
-            cache.getCurrentState(instanceName, liveInstances.get(instanceName).getSessionId())
-                .get(resource.getResourceName());
 
-        if (currentState.getPreviousState(partition.getPartitionName()) != null && currentState
+    // 1. try to find the previous topstate missing event for the startTime.
+    String missingStateInstance = null;
+    if (lastTopStateMap.containsKey(resourceName)) {
+      missingStateInstance = lastTopStateMap.get(resourceName).get(partition.getPartitionName());
+    }
+
+    if (missingStateInstance != null) {
+      Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
+      if (liveInstances.containsKey(missingStateInstance)) {
+        CurrentState currentState = cache.getCurrentState(missingStateInstance,
+            liveInstances.get(missingStateInstance).getSessionId()).get(resourceName);
+
+        if (currentState != null
+            && currentState.getPreviousState(partition.getPartitionName()) != null && currentState
             .getPreviousState(partition.getPartitionName()).equalsIgnoreCase(topState)) {
           // Update the latest start time only from top state to other state transition
           // At beginning, the start time should -1 (not recorded). If something happen either
@@ -254,32 +278,55 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           // Previous state is top state does not mean that resource has only one top state
           // (i.e. Online/Offline). So Helix has to find the latest start time as the staring point.
           startTime = Math.max(startTime, currentState.getStartTime(partition.getPartitionName()));
+        } // Else no related state transition history found, use current time as the missing start time.
+      } else {
+        // If the previous topState holder is no longer alive, the offline time is used as start time.
+        Map<String, Long> offlineMap = cache.getInstanceOfflineTimeMap();
+        if (offlineMap.containsKey(missingStateInstance)) {
+          startTime = Math.max(startTime, offlineMap.get(missingStateInstance));
         }
       }
     }
 
+    // 2. if no previous topstate records, use any pending message that are created for topstate transition
     if (startTime == NOT_RECORDED) {
+      for (Message message : currentStateOutput.getPendingMessageMap(resourceName, partition)
+          .values()) {
+        // Only messages that match the current session ID will be recorded in the map.
+        // So no need to redundantly check here.
+        if (message.getToState().equals(topState)) {
+          startTime = Math.max(startTime, message.getCreateTimeStamp());
+        }
+      }
+    }
+
+    // 3. if no clue about previous topstate or any related pending message, use the current system time.
+    if (startTime == NOT_RECORDED) {
+      LOG.warn("Cannot confirm top state missing start time. Use the current system time as the start time.");
       startTime = System.currentTimeMillis();
     }
 
-    if (!missingTopStateMap.containsKey(resource.getResourceName())) {
-      missingTopStateMap.put(resource.getResourceName(), new HashMap<String, Long>());
+    if (!missingTopStateMap.containsKey(resourceName)) {
+      missingTopStateMap.put(resourceName, new HashMap<String, Long>());
     }
 
-    Map<String, Long> partitionMap = missingTopStateMap.get(resource.getResourceName());
+    Map<String, Long> partitionMap = missingTopStateMap.get(resourceName);
     // Update the new partition without top state
     if (!partitionMap.containsKey(partition.getPartitionName())) {
-      missingTopStateMap.get(resource.getResourceName())
-          .put(partition.getPartitionName(), startTime);
+      partitionMap.put(partition.getPartitionName(), startTime);
     }
   }
 
   private void reportTopStateComesBack(ClusterDataCache cache, Map<String, String> stateMap,
-      Map<String, Map<String, Long>> missingTopStateMap, Resource resource, Partition partition,
+      Map<String, Map<String, Long>> missingTopStateMap, String resourceName, Partition partition,
       ClusterStatusMonitor clusterStatusMonitor, long threshold, String topState) {
+    if (!missingTopStateMap.containsKey(resourceName) || !missingTopStateMap.get(resourceName)
+        .containsKey(partition.getPartitionName())) {
+      // there is no previous missing recorded
+      return;
+    }
 
-    long handOffStartTime =
-        missingTopStateMap.get(resource.getResourceName()).get(partition.getPartitionName());
+    long handOffStartTime = missingTopStateMap.get(resourceName).get(partition.getPartitionName());
 
     // Find the earliest end time from the top states
     long handOffEndTime = System.currentTimeMillis();
@@ -287,32 +334,33 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     for (String instanceName : stateMap.keySet()) {
       CurrentState currentState =
           cache.getCurrentState(instanceName, liveInstances.get(instanceName).getSessionId())
-              .get(resource.getResourceName());
+              .get(resourceName);
       if (currentState.getState(partition.getPartitionName()).equalsIgnoreCase(topState)) {
         handOffEndTime =
             Math.min(handOffEndTime, currentState.getEndTime(partition.getPartitionName()));
       }
     }
 
-    if (handOffStartTime != TRANSITION_FAILED && handOffEndTime - handOffStartTime <= threshold) {
+    if (handOffStartTime > 0 && handOffEndTime - handOffStartTime <= threshold) {
       LOG.info(String.format("Missing topstate duration is %d for partition %s",
           handOffEndTime - handOffStartTime, partition.getPartitionName()));
       if (clusterStatusMonitor != null) {
-        clusterStatusMonitor.updateMissingTopStateDurationStats(resource.getResourceName(),
-            handOffEndTime - handOffStartTime, true);
+        clusterStatusMonitor
+            .updateMissingTopStateDurationStats(resourceName, handOffEndTime - handOffStartTime,
+                true);
       }
     }
-    removeFromStatsMap(missingTopStateMap, resource, partition);
+    removeFromStatsMap(missingTopStateMap, resourceName, partition);
   }
 
   private void removeFromStatsMap(Map<String, Map<String, Long>> missingTopStateMap,
-      Resource resource, Partition partition) {
-    if (missingTopStateMap.containsKey(resource.getResourceName())) {
-      missingTopStateMap.get(resource.getResourceName()).remove(partition.getPartitionName());
+      String resourceName, Partition partition) {
+    if (missingTopStateMap.containsKey(resourceName)) {
+      missingTopStateMap.get(resourceName).remove(partition.getPartitionName());
     }
 
-    if (missingTopStateMap.get(resource.getResourceName()).size() == 0) {
-      missingTopStateMap.remove(resource.getResourceName());
+    if (missingTopStateMap.get(resourceName).size() == 0) {
+      missingTopStateMap.remove(resourceName);
     }
   }
 }

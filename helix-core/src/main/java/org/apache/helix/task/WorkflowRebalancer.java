@@ -148,6 +148,9 @@ public class WorkflowRebalancer extends TaskRebalancer {
     if (!isWorkflowReadyForSchedule(workflowCfg)) {
       LOG.info("Workflow " + workflow + " is not ready to schedule");
       // set the timer to trigger future schedule
+        if (workflowCfg.getStartTime() == null) {
+            throw new RuntimeException("Unparseable date " + workflowCfg.getSimpleConfig(WorkflowConfig.WorkflowConfigProperty.StartTime.name()));
+        }
       _rebalanceScheduler
           .scheduleRebalance(_manager, workflow, workflowCfg.getStartTime().getTime());
       return buildEmptyAssignment(workflow, currStateOutput);

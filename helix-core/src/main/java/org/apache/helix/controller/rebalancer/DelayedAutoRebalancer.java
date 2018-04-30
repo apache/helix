@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
@@ -136,6 +137,11 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
     StateModelDefinition stateModelDef =
         clusterData.getStateModelDef(currentIdealState.getStateModelDefRef());
+
+    if (stateModelDef == null) {
+        LOG.error("State Model Definition null for resource: " + resourceName);
+        throw new HelixException("State Model Definition null for resource: " + resourceName);
+    }
 
     int replicaCount = currentIdealState.getReplicaCount(activeNodes.size());
     if (replicaCount == 0) {

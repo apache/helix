@@ -400,7 +400,9 @@ public class ZkGrep {
             FileUtils.copyFileToDirectory(zkLog, zkParsedDir);
             File zkLogGz = new File(zkParsedDir, zkLog.getName());
             File tmpZkLog = gunzip(zkLogGz);
-
+            if (tmpZkLog == null) {
+                return null;
+            }
             // parse gunzip file
             ZKLogFormatter
                 .main(new String[] { log, tmpZkLog.getAbsolutePath(), parsedZkLog.getAbsolutePath()
@@ -501,7 +503,9 @@ public class ZkGrep {
           FileUtils.copyFileToDirectory(lastZkSnapshot, zkParsedDir);
           File lastZkSnapshotGz = new File(zkParsedDir, lastZkSnapshot.getName());
           File tmpLastZkSnapshot = gunzip(lastZkSnapshotGz);
-
+          if (tmpLastZkSnapshot == null) {
+              return null;
+          }
           // parse gunzip file
           ZKLogFormatter.main(new String[] {
               snapshot, tmpLastZkSnapshot.getAbsolutePath(), parsedZkSnapshot.getAbsolutePath()
@@ -607,6 +611,10 @@ public class ZkGrep {
       }
       // zkDataDirs[0] is the transaction log dir
       List<File> parsedZkLogs = parseZkLogs(zkDataDirs[0], startTime, endTime);
+      if (parsedZkLogs == null) {
+          LOG.error("fail to gunzip file" + zkDataDirs[0]);
+          System.exit(1);
+      }
       grepZkLogDir(parsedZkLogs, startTime, endTime, patterns);
 
     } else if (cmd.hasOption(by)) {
@@ -621,7 +629,10 @@ public class ZkGrep {
 
       // zkDataDirs[1] is the snapshot dir
       File[] lastZkSnapshot = parseZkSnapshot(zkDataDirs[1], byTime);
-
+      if (lastZkSnapshot == null){
+          LOG.error("fail to gunzip file" + zkDataDirs[1]);
+          System.exit(1);
+      }
       // lastZkSnapshot[1] is the parsed last snapshot by byTime
       grepZkSnapshot(lastZkSnapshot[1], patterns);
 

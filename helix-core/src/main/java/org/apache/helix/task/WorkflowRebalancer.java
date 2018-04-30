@@ -391,6 +391,10 @@ public class WorkflowRebalancer extends TaskRebalancer {
         if (!newWorkflowName.equals(lastScheduled)) {
           Workflow clonedWf =
               cloneWorkflow(_manager, workflow, newWorkflowName, new Date(timeToSchedule));
+          if (clonedWf == null) {
+              LOG.error("Failed to schedule cloned workflow" + newWorkflowName);
+              throw new RuntimeException("Failed to schedule cloned workflow" + newWorkflowName);
+          }
           TaskDriver driver = new TaskDriver(_manager);
           try {
             // Start the cloned workflow

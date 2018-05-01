@@ -65,7 +65,7 @@
     </menu>
 
     <menu name="Documentation">
-      <item name="0.8.1 (stable)" href="./0.8.0-docs/index.html"/>
+      <item name="0.8.1 (stable)" href="./0.8.1-docs/index.html"/>
       <item name="0.8.0" href="./0.8.0-docs/index.html"/>
       <item name="0.7.1 (beta)" href="./0.7.1-docs/index.html"/>
       <item name="0.6.9" href="./0.6.9-docs/index.html"/>

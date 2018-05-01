@@ -167,6 +167,18 @@ under the License.
                 <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar.sha1">sha1</a>
               </td>
             </tr>
+            <tr>
+              <td>
+                <a href="[preferred]helix/${releaseName}/binaries/helix-rest-${releaseName}-pkg.tar">helix-rest-${releaseName}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-rest-${releaseName}-pkg.tar.asc">asc</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-rest-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-rest-${releaseName}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
           </tbody>
         </table>
       </subsection>

@@ -77,17 +77,17 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 Apache Helix has two new releases:
 
-* [0.8.0](./0.8.0-docs/index.html) - A release that includes helix REST 2.0, helix UI and performance improvement backward compatible with 0.6.x.
+* [0.8.1](./0.8.1-docs/index.html) - A release focusing on performance improvement backward compatible with 0.6.x.
 
-    [\[Quick Start\]](./0.8.0-docs/Quickstart.html) [\[Release Notes\]](./releasenotes/release-0.8.0.html)
+    [\[Quick Start\]](./0.8.1-docs/Quickstart.html) [\[Release Notes\]](./0.8.1-docs/releasenotes/release-0.8.1.html)
 
 * [0.7.1 (beta)](./0.7.1-docs/index.html) - A release that includes YARN integration, ad-hoc task management, and performant IPC.
 
-    [\[Quick Start\]](./0.7.1-docs/Quickstart.html) [\[Release Notes\]](./releasenotes/release-0.7.1.html)
+    [\[Quick Start\]](./0.7.1-docs/Quickstart.html) [\[Release Notes\]](./0.7.1-docs/releasenotes/release-0.7.1.html)
 
 ### Download
 
-<a href="./0.8.0-docs/download.html" class="btn btn-primary btn-small">0.8.0</a>
+<a href="./0.8.1-docs/download.html" class="btn btn-primary btn-small">0.8.1</a>
 
 <a href="./0.7.1-docs/download.html" class="btn btn-primary btn-small">0.7.1 (beta)</a>
 
@@ -97,7 +97,7 @@ Apache Helix has two new releases:
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>0.8.0</version>
+  <version>0.8.1</version>
 </dependency>
 ```
 
@@ -108,6 +108,6 @@ Requirements: JDK 1.6+, Maven 2.0.8+
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout helix-0.8.0
+git checkout helix-0.8.1
 mvn install package -DskipTests
 ```

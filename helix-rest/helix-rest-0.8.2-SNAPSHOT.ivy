@@ -20,7 +20,7 @@ under the License.
 <ivy-module version="1.0">
 	<info organisation="org.apache.helix"
 		module="helix-rest"
-		revision="0.8.0-SNAPSHOT"
+		revision="0.8.2-SNAPSHOT"
 		status="integration"
 		publication="20170128141623"
 	/>
@@ -46,7 +46,7 @@ under the License.
     <dependency org="org.yaml" name="snakeyaml" rev="1.17">
         <artifact name="snakeyaml" m:classifier="sources" ext="jar"/>
     </dependency>
-		<dependency org="org.apache.helix" name="helix-core" rev="0.8.0-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="org.apache.helix" name="helix-core" rev="0.8.2-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 		<dependency org="org.codehaus.jackson" name="jackson-core-asl" rev="1.8.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 		<dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="1.8.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 		<dependency org="commons-cli" name="commons-cli" rev="1.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>

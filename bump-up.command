@@ -99,6 +99,10 @@ do
   grep -C 1 "$new_version" $POM
 done
 
+echo "bump up helix-front/pom.xml"
+sed -i "s/${version}/${new_version}/g" helix-front/pom.xml
+grep -C 1 "$new_version" helix-front/pom.xml
+
 #END
 
 

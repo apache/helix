@@ -19,6 +19,7 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -488,10 +489,10 @@ public class TaskUtil {
    * @param pName
    * @return
    */
-  protected static int getPartitionId(String pName) {
+  public static int getPartitionId(String pName) {
     int index = pName.lastIndexOf("_");
     if (index == -1) {
-      throw new HelixException("Invalid partition name " + pName);
+      throw new HelixException(String.format("Invalid partition name %s", pName));
     }
     return Integer.valueOf(pName.substring(index + 1));
   }
@@ -816,5 +817,63 @@ public class TaskUtil {
   private static HelixProperty getResourceConfig(HelixDataAccessor accessor, String resource) {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getProperty(keyBuilder.resourceConfig(resource));
+  }
+
+  public static Set<Integer> getNonReadyPartitions(JobContext ctx, long now) {
+    Set<Integer> nonReadyPartitions = Sets.newHashSet();
+    for (int p : ctx.getPartitionSet()) {
+      long toStart = ctx.getNextRetryTime(p);
+      if (now < toStart) {
+        nonReadyPartitions.add(p);
+      }
+    }
+    return nonReadyPartitions;
+  }
+
+  public static boolean isGenericTaskJob(JobConfig jobConfig) {
+    Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
+    return taskConfigMap != null && !taskConfigMap.isEmpty();
+  }
+
+  /**
+   * Check whether tasks are just started or still running
+   *
+   * @param jobContext The job context
+   *
+   * @return False if still tasks not in final state. Otherwise return true
+   */
+  public static boolean checkJobStopped(JobContext jobContext) {
+    for (int partition : jobContext.getPartitionSet()) {
+      TaskPartitionState taskState = jobContext.getPartitionState(partition);
+      if (taskState == TaskPartitionState.RUNNING) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+
+  /**
+   * Count the number of jobs in a workflow that are not in final state.
+   *
+   * @param workflowCfg
+   * @param workflowCtx
+   * @return
+   */
+  public static int getInCompleteJobCount(WorkflowConfig workflowCfg, WorkflowContext workflowCtx) {
+    int inCompleteCount = 0;
+    for (String jobName : workflowCfg.getJobDag().getAllNodes()) {
+      TaskState jobState = workflowCtx.getJobState(jobName);
+      if (jobState == TaskState.IN_PROGRESS || jobState == TaskState.STOPPED) {
+        ++inCompleteCount;
+      }
+    }
+
+    return inCompleteCount;
+  }
+
+  public static boolean isJobStarted(String job, WorkflowContext workflowContext) {
+    TaskState jobState = workflowContext.getJobState(job);
+    return (jobState != null && jobState != TaskState.NOT_STARTED);
   }
 }

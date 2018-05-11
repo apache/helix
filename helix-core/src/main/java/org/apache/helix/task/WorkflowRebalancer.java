@@ -196,7 +196,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       return;
     }
 
-    int inCompleteAllJobCount = getInCompleteJobCount(workflowCfg, workflowCtx);
+    int inCompleteAllJobCount = TaskUtil.getInCompleteJobCount(workflowCfg, workflowCtx);
     int scheduledJobs = 0;
     long timeToSchedule = Long.MAX_VALUE;
     for (String job : workflowCfg.getJobDag().getAllNodes()) {

@@ -185,12 +185,13 @@ public class TestRoutingTable {
       // one master
       add(record, "TESTDB_0", "localhost_8900", "MASTER");
       externalViewList.add(new ExternalView(record));
+      externalViewList.add(new ExternalView(new ZNRecord("fake")));
       routingTable.onExternalViewChange(externalViewList, changeContext);
       instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
       AssertJUnit.assertNotNull(instances);
       AssertJUnit.assertEquals(instances.size(), 1);
 
-      externalViewList.clear();
+      externalViewList.remove(0);
       routingTable.onExternalViewChange(externalViewList, changeContext);
       Thread.sleep(100);
       instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");

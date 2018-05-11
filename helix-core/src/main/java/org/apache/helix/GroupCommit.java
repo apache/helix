@@ -138,6 +138,8 @@ public class GroupCommit {
               success = accessor.remove(mergedKey, options);
               if (!success) {
                 LOG.error("Fails to remove " + mergedKey + " from ZK, retry it!");
+              } else {
+                LOG.info("Removed " + mergedKey);
               }
             } else {
               success = accessor.set(mergedKey, merged, options);

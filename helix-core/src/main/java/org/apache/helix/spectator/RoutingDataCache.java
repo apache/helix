@@ -19,14 +19,13 @@ package org.apache.helix.spectator;
  * under the License.
  */
 
-import java.util.Collections;
 import java.util.Map;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.common.caches.BasicClusterDataCache;
 import org.apache.helix.common.caches.CurrentStateCache;
+import org.apache.helix.common.caches.TargetExternalViewCache;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance;
@@ -41,13 +40,13 @@ class RoutingDataCache extends BasicClusterDataCache {
 
   private final PropertyType _sourceDataType;
   private CurrentStateCache _currentStateCache;
-  private Map<String, ExternalView> _targetExternalViewMap;
+  private TargetExternalViewCache _targetExternalViewCache;
 
   public RoutingDataCache(String clusterName, PropertyType sourceDataType) {
     super(clusterName);
     _sourceDataType = sourceDataType;
     _currentStateCache = new CurrentStateCache(clusterName);
-    _targetExternalViewMap = Collections.emptyMap();
+    _targetExternalViewCache = new TargetExternalViewCache(clusterName);
     requireFullRefresh();
   }
 
@@ -68,12 +67,11 @@ class RoutingDataCache extends BasicClusterDataCache {
     if (_sourceDataType.equals(PropertyType.TARGETEXTERNALVIEW) && _propertyDataChangedMap
         .get(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW)) {
       long start = System.currentTimeMillis();
-      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
       _propertyDataChangedMap
           .put(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW, Boolean.valueOf(false));
-      _targetExternalViewMap = accessor.getChildValuesMap(keyBuilder.targetExternalViews());
-      LOG.info("Reload TargetExternalViews: " + _targetExternalViewMap.keySet() + ". Takes " + (
-          System.currentTimeMillis() - start) + " ms");
+      _targetExternalViewCache.refresh(accessor);
+      LOG.info("Reload " + _targetExternalViewCache.getExternalViewMap().keySet().size()
+          + " TargetExternalViews. Takes " + (System.currentTimeMillis() - start) + " ms");
     }
 
     if (_sourceDataType.equals(PropertyType.CURRENTSTATES) && _propertyDataChangedMap
@@ -81,8 +79,7 @@ class RoutingDataCache extends BasicClusterDataCache {
       long start = System.currentTimeMillis();
       Map<String, LiveInstance> liveInstanceMap = getLiveInstances();
       _currentStateCache.refresh(accessor, liveInstanceMap);
-      LOG.info("Reload CurrentStates: " + _targetExternalViewMap.keySet() + ". Takes " + (
-          System.currentTimeMillis() - start) + " ms");
+      LOG.info("Reload CurrentStates. Takes " + (System.currentTimeMillis() - start) + " ms");
     }
 
     long endTime = System.currentTimeMillis();
@@ -91,7 +88,7 @@ class RoutingDataCache extends BasicClusterDataCache {
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("CurrentStates: " + _currentStateCache);
-      LOG.debug("TargetExternalViews: " + _targetExternalViewMap);
+      LOG.debug("TargetExternalViews: " + _targetExternalViewCache.getExternalViewMap());
     }
   }
 
@@ -101,7 +98,7 @@ class RoutingDataCache extends BasicClusterDataCache {
    * @return
    */
   public Map<String, ExternalView> getTargetExternalViews() {
-    return Collections.unmodifiableMap(_targetExternalViewMap);
+    return _targetExternalViewCache.getExternalViewMap();
   }
 
   /**

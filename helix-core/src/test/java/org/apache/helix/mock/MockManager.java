@@ -20,6 +20,7 @@ package org.apache.helix.mock;
  */
 
 import java.util.UUID;
+import org.apache.helix.MockAccessor;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
@@ -39,7 +40,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
-import org.apache.helix.MockAccessor;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;

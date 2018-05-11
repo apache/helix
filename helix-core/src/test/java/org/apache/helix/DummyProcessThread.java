@@ -19,7 +19,6 @@ package org.apache.helix;
  * under the License.
  */
 
-import org.apache.helix.mock.participant.DummyProcess;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyMasterSlaveStateModelFactory;

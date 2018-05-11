@@ -19,16 +19,12 @@ package org.apache.helix.common.caches;
  * under the License.
  */
 
-import com.google.common.collect.Maps;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
@@ -44,7 +40,7 @@ public class BasicClusterDataCache {
 
   protected Map<String, LiveInstance> _liveInstanceMap;
   protected Map<String, InstanceConfig> _instanceConfigMap;
-  protected Map<String, ExternalView> _externalViewMap;
+  protected ExternalViewCache _externalViewCache;
 
   protected String _clusterName;
 
@@ -54,7 +50,7 @@ public class BasicClusterDataCache {
     _propertyDataChangedMap = new ConcurrentHashMap<>();
     _liveInstanceMap = new HashMap<>();
     _instanceConfigMap = new HashMap<>();
-    _externalViewMap = new HashMap<>();
+    _externalViewCache = new ExternalViewCache(clusterName);
     _clusterName = clusterName;
     requireFullRefresh();
   }
@@ -72,11 +68,8 @@ public class BasicClusterDataCache {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW)) {
-      long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.EXTERNAL_VIEW, Boolean.valueOf(false));
-      _externalViewMap = accessor.getChildValuesMap(keyBuilder.externalViews(), true);
-      LOG.info("Reload ExternalViews: " + _externalViewMap.keySet() + ". Takes " + (
-            System.currentTimeMillis() - start) + " ms");
+      _externalViewCache.refresh(accessor);
     }
 
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE)) {
@@ -103,55 +96,9 @@ public class BasicClusterDataCache {
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("LiveInstances: " + _liveInstanceMap);
-      LOG.debug("ExternalViews: " + _externalViewMap);
+      LOG.debug("ExternalViews: " + _externalViewCache.getExternalViewMap().keySet());
       LOG.debug("InstanceConfigs: " + _instanceConfigMap);
     }
-  }
-
-  /**
-   * Selective update Helix Cache by version
-   * @param accessor the HelixDataAccessor
-   * @param reloadKeys keys needs to be reload
-   * @param cachedKeys keys already exists in the cache
-   * @param cachedPropertyMap cached map of propertykey -> property object
-   * @param <T> the type of metadata
-   * @return
-   */
-  public static  <T extends HelixProperty> Map<PropertyKey, T> updateReloadProperties(
-      HelixDataAccessor accessor, List<PropertyKey> reloadKeys, List<PropertyKey> cachedKeys,
-      Map<PropertyKey, T> cachedPropertyMap) {
-    // All new entries from zk not cached locally yet should be read from ZK.
-    Map<PropertyKey, T> refreshedPropertyMap = Maps.newHashMap();
-    List<HelixProperty.Stat> stats = accessor.getPropertyStats(cachedKeys);
-    for (int i = 0; i < cachedKeys.size(); i++) {
-      PropertyKey key = cachedKeys.get(i);
-      HelixProperty.Stat stat = stats.get(i);
-      if (stat != null) {
-        T property = cachedPropertyMap.get(key);
-        if (property != null && property.getBucketSize() == 0 && property.getStat().equals(stat)) {
-          refreshedPropertyMap.put(key, property);
-        } else {
-          // need update from zk
-          reloadKeys.add(key);
-        }
-      } else {
-        LOG.warn("Stat is null for key: " + key);
-        reloadKeys.add(key);
-      }
-    }
-
-    List<T> reloadedProperty = accessor.getProperty(reloadKeys, true);
-    Iterator<PropertyKey> reloadKeyIter = reloadKeys.iterator();
-    for (T property : reloadedProperty) {
-      PropertyKey key = reloadKeyIter.next();
-      if (property != null) {
-        refreshedPropertyMap.put(key, property);
-      } else {
-        LOG.warn("Reload property is null for key: " + key);
-      }
-    }
-
-    return refreshedPropertyMap;
   }
 
   /**
@@ -160,7 +107,7 @@ public class BasicClusterDataCache {
    * @return
    */
   public Map<String, ExternalView> getExternalViews() {
-    return Collections.unmodifiableMap(_externalViewMap);
+    return _externalViewCache.getExternalViewMap();
   }
 
   /**
@@ -213,7 +160,7 @@ public class BasicClusterDataCache {
       _instanceConfigMap.clear();
       break;
     case EXTERNAL_VIEW:
-      _externalViewMap.clear();
+      _externalViewCache.clear();
       break;
     default:
       break;
@@ -236,7 +183,7 @@ public class BasicClusterDataCache {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("liveInstaceMap:" + _liveInstanceMap).append("\n");
-    sb.append("externalViewMap:" + _externalViewMap).append("\n");
+    sb.append("externalViewMap:" + _externalViewCache.getExternalViewMap()).append("\n");
     sb.append("instanceConfigMap:" + _instanceConfigMap).append("\n");
 
     return sb.toString();

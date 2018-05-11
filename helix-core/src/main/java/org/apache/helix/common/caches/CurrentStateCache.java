@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Cache to hold all CurrentStates of a cluster.
  */
-public class CurrentStateCache {
+public class CurrentStateCache extends AbstractDataCache {
   private static final Logger LOG = LoggerFactory.getLogger(CurrentStateCache.class.getName());
 
   private Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
@@ -121,8 +121,8 @@ public class CurrentStateCache {
     Set<PropertyKey> cachedKeys = new HashSet<>(_currentStateCache.keySet());
     cachedKeys.retainAll(currentStateKeys);
 
-    _currentStateCache = Collections.unmodifiableMap(BasicClusterDataCache
-        .updateReloadProperties(accessor, new ArrayList<>(reloadKeys), new ArrayList<>(cachedKeys),
+    _currentStateCache = Collections.unmodifiableMap(
+        refreshProperties(accessor, new ArrayList<>(reloadKeys), new ArrayList<>(cachedKeys),
             _currentStateCache));
 
     if (LOG.isDebugEnabled()) {

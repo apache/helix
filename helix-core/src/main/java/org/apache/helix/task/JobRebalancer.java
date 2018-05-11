@@ -33,6 +33,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
@@ -55,8 +56,9 @@ public class JobRebalancer extends TaskRebalancer {
   private static final String PREV_RA_NODE = "PreviousResourceAssignment";
 
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
-      IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput) {
+  public ResourceAssignment computeBestPossiblePartitionState(
+      ClusterDataCache clusterData, IdealState taskIs, Resource resource,
+      CurrentStateOutput currStateOutput) {
     final String jobName = resource.getResourceName();
     LOG.debug("Computer Best Partition for job: " + jobName);
 
@@ -258,6 +260,7 @@ public class JobRebalancer extends TaskRebalancer {
         || (jobCfg.getTargetResource() != null
         && cache.getIdealState(jobCfg.getTargetResource()) != null
         && !cache.getIdealState(jobCfg.getTargetResource()).isEnabled())) {
+
       if (isJobFinished(jobCtx, jobResource, currStateOutput)) {
         failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap(), cache);
         return buildEmptyAssignment(jobResource, currStateOutput);
@@ -340,8 +343,8 @@ public class JobRebalancer extends TaskRebalancer {
       Message pendingMessage = currentStateOutput.getPendingMessage(jobResource, partition,
           instance);
       // If state is INIT but is pending INIT->RUNNING, it's not yet safe to say the job finished
-      if (state == TaskPartitionState.RUNNING
-          || (state == TaskPartitionState.INIT && pendingMessage != null)) {
+      if (state == TaskPartitionState.RUNNING || (state == TaskPartitionState.INIT
+          && pendingMessage != null)) {
         return false;
       }
     }
@@ -351,6 +354,7 @@ public class JobRebalancer extends TaskRebalancer {
   /**
    * Get the last task assignment for a given job
    * @param resourceName the name of the job
+   *
    * @return {@link ResourceAssignment} instance, or null if no assignment is available
    */
   private ResourceAssignment getPrevResourceAssignment(String resourceName) {
@@ -395,8 +399,9 @@ public class JobRebalancer extends TaskRebalancer {
 
   /**
    * @param liveInstances
-   * @param prevAssignment task partition -> (instance -> state)
+   * @param prevAssignment    task partition -> (instance -> state)
    * @param allTaskPartitions all task partitionIds
+   *
    * @return instance -> partitionIds from previous assignment, if the instance is still live
    */
   private static Map<String, SortedSet<Integer>> getPrevInstanceToTaskAssignments(

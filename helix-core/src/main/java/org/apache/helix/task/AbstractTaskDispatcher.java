@@ -19,6 +19,7 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.assigner.AssignableInstance;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +67,7 @@ public abstract class AbstractTaskDispatcher {
         // Check for pending state transitions on this (partition, instance).
         Message pendingMessage =
             currStateOutput.getPendingMessage(jobResource, new Partition(pName), instance);
+
         if (pendingMessage != null && !pendingMessage.getToState().equals(currState.name())) {
           processTaskWithPendingMessage(prevTaskToInstanceStateAssignment, pId, pName, instance,
               pendingMessage, jobState, currState, paMap, assignedPartitions);
@@ -818,6 +820,7 @@ public abstract class AbstractTaskDispatcher {
         incomplete = true;
       }
     }
+
     if (!incomplete && cfg.isTerminable()) {
       ctx.setWorkflowState(TaskState.COMPLETED);
       return true;

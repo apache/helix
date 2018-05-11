@@ -47,26 +47,25 @@ public abstract class TaskRebalancer extends AbstractTaskDispatcher
     implements Rebalancer, MappingCalculator {
   private static final Logger LOG = LoggerFactory.getLogger(TaskRebalancer.class);
 
-  @Override
-  public void init(HelixManager manager) {
+  @Override public void init(HelixManager manager) {
     _manager = manager;
   }
 
-  @Override
-  public abstract ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
+  @Override public abstract ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
       IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput);
 
   /**
    * Checks if the workflow has been stopped.
+   *
    * @param ctx Workflow context containing task states
    * @param cfg Workflow config containing set of tasks
+   *
    * @return returns true if all tasks are {@link TaskState#STOPPED}, false otherwise.
    */
   protected boolean isWorkflowStopped(WorkflowContext ctx, WorkflowConfig cfg) {
     for (String job : cfg.getJobDag().getAllNodes()) {
       TaskState jobState = ctx.getJobState(job);
-      if (jobState != null
-          && (jobState.equals(TaskState.IN_PROGRESS) || jobState.equals(TaskState.STOPPING))) {
+      if (jobState != null && (jobState.equals(TaskState.IN_PROGRESS) || jobState.equals(TaskState.STOPPING))) {
         return false;
       }
     }
@@ -90,9 +89,11 @@ public abstract class TaskRebalancer extends AbstractTaskDispatcher
 
   /**
    * Check all the dependencies of a job to determine whether the job is ready to be scheduled.
+   *
    * @param job
    * @param workflowCfg
    * @param workflowCtx
+   *
    * @return
    */
   protected boolean isJobReadyToSchedule(String job, WorkflowConfig workflowCfg,
@@ -116,8 +117,8 @@ public abstract class TaskRebalancer extends AbstractTaskDispatcher
     // If there is any parent job not started, this job should not be scheduled
     if (notStartedCount > 0) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug(String.format("Job %s is not ready to start, notStartedParent(s)=%d.", job,
-            notStartedCount));
+        LOG.debug(String
+            .format("Job %s is not ready to start, notStartedParent(s)=%d.", job, notStartedCount));
       }
       return false;
     }
@@ -132,8 +133,8 @@ public abstract class TaskRebalancer extends AbstractTaskDispatcher
     if (failedOrTimeoutCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
       markJobFailed(job, null, workflowCfg, workflowCtx, jobConfigMap, clusterDataCache);
       if (LOG.isDebugEnabled()) {
-        LOG.debug(String.format("Job %s is not ready to start, failedCount(s)=%d.", job,
-            failedOrTimeoutCount));
+        LOG.debug(String
+            .format("Job %s is not ready to start, failedCount(s)=%d.", job, failedOrTimeoutCount));
       }
       return false;
     }
@@ -164,7 +165,9 @@ public abstract class TaskRebalancer extends AbstractTaskDispatcher
 
   /**
    * Check if a workflow is ready to schedule.
+   *
    * @param workflowCfg the workflow to check
+   *
    * @return true if the workflow is ready for schedule, false if not ready
    */
   protected boolean isWorkflowReadyForSchedule(WorkflowConfig workflowCfg) {
@@ -173,8 +176,7 @@ public abstract class TaskRebalancer extends AbstractTaskDispatcher
     return (startTime == null || startTime.getTime() <= System.currentTimeMillis());
   }
 
-  @Override
-  public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+  @Override public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
       CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
     // All of the heavy lifting is in the ResourceAssignment computation,
     // so this part can just be a no-op.

@@ -838,7 +838,9 @@ public class TaskUtil {
 
   /**
    * Check whether tasks are just started or still running
+   *
    * @param jobContext The job context
+   *
    * @return False if still tasks not in final state. Otherwise return true
    */
   public static boolean checkJobStopped(JobContext jobContext) {
@@ -851,8 +853,10 @@ public class TaskUtil {
     return true;
   }
 
+
   /**
    * Count the number of jobs in a workflow that are not in final state.
+   *
    * @param workflowCfg
    * @param workflowCtx
    * @return

@@ -73,6 +73,7 @@ public class AbstractResource {
     delete,
     rebalance,
     reset,
+    resetPartitions,
     removeInstanceTag
   }
 

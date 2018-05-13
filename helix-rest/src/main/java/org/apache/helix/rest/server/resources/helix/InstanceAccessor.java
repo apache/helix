@@ -230,12 +230,14 @@ public class InstanceAccessor extends AbstractHelixResource {
       case disable:
         admin.enableInstance(clusterId, instanceName, false);
         break;
+
       case reset:
+      case resetPartitions:
         if (!validInstance(node, instanceName)) {
           return badRequest("Instance names are not match!");
         }
         admin.resetPartition(clusterId, instanceName,
-            node.get(InstanceProperties.resource.name()).toString(), (List<String>) OBJECT_MAPPER
+            node.get(InstanceProperties.resource.name()).getTextValue(), (List<String>) OBJECT_MAPPER
                 .readValue(node.get(InstanceProperties.partitions.name()).toString(),
                     OBJECT_MAPPER.getTypeFactory()
                         .constructCollectionType(List.class, String.class)));

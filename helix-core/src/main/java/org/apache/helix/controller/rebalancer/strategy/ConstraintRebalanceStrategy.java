@@ -27,7 +27,8 @@ import org.apache.helix.api.rebalancer.constraint.dataprovider.CapacityProvider;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.rebalancer.constraint.PartitionWeightAwareEvennessConstraint;
-import org.apache.helix.controller.rebalancer.strategy.crushMapping.CardDealingAdjustmentAlgorithm;
+import org.apache.helix.controller.rebalancer.strategy.crushMapping.CardDealer;
+import org.apache.helix.controller.rebalancer.strategy.crushMapping.CardDealingAdjustmentAlgorithmV2;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.InstanceConfig;
@@ -82,7 +83,6 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
   /**
    * This strategy is currently for rebalance tool only.
    * For the constructor defined for AutoRebalancer, use a simplified default constraint to ensure balance.
-   *
    * Note this strategy will flip-flop almost for sure if directly used in the existing rebalancer.
    * TODO Enable different constraints for automatic rebalance process in the controller later.
    */
@@ -108,11 +108,11 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
     _softConstraints.add(defaultConstraint);
   }
 
-  protected CardDealingAdjustmentAlgorithm getCardDealingAlgorithm(Topology topology) {
+  protected CardDealer getCardDealingAlgorithm(Topology topology) {
     // For constraint based strategy, need more fine-grained assignment for each partition.
     // So evenness is more important.
-    return new CardDealingAdjustmentAlgorithm(topology, _replica,
-        CardDealingAdjustmentAlgorithm.Mode.EVENNESS);
+    return new CardDealingAdjustmentAlgorithmV2(topology, _replica,
+        CardDealingAdjustmentAlgorithmV2.Mode.EVENNESS);
   }
 
   @Override
@@ -133,10 +133,10 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
   /**
    * Generate assignment based on the constraints.
    *
-   * @param allNodes         All instances
-   * @param liveNodes        List of live instances
-   * @param currentMapping   current replica mapping. Will directly use this mapping if it meets state model requirement
-   * @param clusterData      cluster data
+   * @param allNodes       All instances
+   * @param liveNodes      List of live instances
+   * @param currentMapping current replica mapping. Will directly use this mapping if it meets state model requirement
+   * @param clusterData    cluster data
    * @return IdeaState node that contains both preference list and a proposed state mapping.
    * @throws HelixException
    */
@@ -213,7 +213,7 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
   /**
    * @param actualMapping
    * @return a filtered state mapping that fit state model definition.
-   *          Or null if the input mapping is conflict with state model.
+   * Or null if the input mapping is conflict with state model.
    */
   private Map<String, String> validateStateMap(Map<String, String> actualMapping) {
     Map<String, String> filteredStateMapping = new HashMap<>();

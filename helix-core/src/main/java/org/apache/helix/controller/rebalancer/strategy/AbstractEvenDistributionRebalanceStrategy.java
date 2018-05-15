@@ -21,6 +21,7 @@ package org.apache.helix.controller.rebalancer.strategy;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.strategy.crushMapping.CardDealer;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CardDealingAdjustmentAlgorithm;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.ConsistentHashingAdjustmentAlgorithm;
 import org.apache.helix.controller.rebalancer.topology.Topology;
@@ -44,10 +45,9 @@ public abstract class AbstractEvenDistributionRebalanceStrategy implements Rebal
 
   protected abstract RebalanceStrategy getBaseRebalanceStrategy();
 
-  protected CardDealingAdjustmentAlgorithm getCardDealingAlgorithm(Topology topology) {
+  protected CardDealer getCardDealingAlgorithm(Topology topology) {
     // by default, minimize the movement when calculating for evenness.
-    return new CardDealingAdjustmentAlgorithm(topology, _replica,
-        CardDealingAdjustmentAlgorithm.Mode.MINIMIZE_MOVEMENT);
+    return new CardDealingAdjustmentAlgorithm(topology, _replica);
   }
 
   @Override
@@ -88,7 +88,7 @@ public abstract class AbstractEvenDistributionRebalanceStrategy implements Rebal
       // Round 2: Rebalance mapping using card dealing algorithm. For ensuring evenness distribution.
       Topology allNodeTopo = new Topology(allNodes, allNodes, clusterData.getInstanceConfigMap(),
           clusterData.getClusterConfig());
-      CardDealingAdjustmentAlgorithm cardDealer = getCardDealingAlgorithm(allNodeTopo);
+      CardDealer cardDealer = getCardDealingAlgorithm(allNodeTopo);
 
       if (cardDealer.computeMapping(nodeToPartitionMap, _resourceName.hashCode())) {
         // Round 3: Reorder preference Lists to ensure participants' orders (so as the states) are uniform.

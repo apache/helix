@@ -121,16 +121,30 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
   }
 
   protected void startParticipants() {
-    startParticipants(_numNodes);
+    startParticipants(ZK_ADDR, _numNodes);
+  }
+
+  protected void startParticipants(String zkAddr) {
+    startParticipants(zkAddr, _numNodes);
   }
 
   protected void startParticipants(int numNodes) {
     for (int i = 0; i < numNodes; i++) {
-      startParticipant(i);
+      startParticipant(ZK_ADDR, i);
+    }
+  }
+
+  protected void startParticipants(String zkAddr, int numNodes) {
+    for (int i = 0; i < numNodes; i++) {
+      startParticipant(zkAddr, i);
     }
   }
 
   protected void startParticipant(int i) {
+    startParticipant(ZK_ADDR, i);
+  }
+
+  protected void startParticipant(String zkAddr, int i) {
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
     taskFactoryReg.put(MockTask.TASK_COMMAND, new TaskFactory() {
       @Override public Task createNewTask(TaskCallbackContext context) {
@@ -138,7 +152,7 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
       }
     });
     String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
-    _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+    _participants[i] = new MockParticipantManager(zkAddr, CLUSTER_NAME, instanceName);
 
     // Register a Task state model factory.
     StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
@@ -165,11 +179,16 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
 
 
   protected void createManagers() throws Exception {
+    createManagers(ZK_ADDR, CLUSTER_NAME);
+  }
+
+  protected void createManagers(String zkAddr, String clusterName) throws Exception {
     _manager = HelixManagerFactory
-        .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
+        .getZKHelixManager(clusterName, "Admin", InstanceType.ADMINISTRATOR, zkAddr);
     _manager.connect();
     _driver = new TaskDriver(_manager);
   }
+
 
   public void setSingleTestEnvironment() {
     _numDbs = 1;

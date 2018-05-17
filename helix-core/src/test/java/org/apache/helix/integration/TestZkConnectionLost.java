@@ -34,30 +34,33 @@ public class TestZkConnectionLost extends TaskTestBase {
 
   private final AtomicReference<ZkServer> _zkServerRef = new AtomicReference<>();
 
+  private String _zkAddr = "localhost:2189";
+
   @BeforeClass
   public void beforeClass() throws Exception {
+    ZkServer zkServer = TestHelper.startZkServer(_zkAddr);
+    _zkServerRef.set(zkServer);
+
     _participants =  new MockParticipantManager[_numNodes];
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursively(namespace);
     }
 
-    _setupTool = new ClusterSetup(ZK_ADDR);
+    _setupTool = new ClusterSetup(_zkAddr);
     _setupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants();
     setupDBs();
-    createManagers();
+    createManagers(_zkAddr, CLUSTER_NAME);
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller = new ClusterControllerManager(_zkAddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     HelixClusterVerifier clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(_zkAddr).build();
     Assert.assertTrue(clusterVerifier.verify());
-
-    _zkServerRef.set(_zkServer);
   }
 
   @Test
@@ -66,7 +69,7 @@ public class TestZkConnectionLost extends TaskTestBase {
     System.setProperty("zk.session.timeout", "1000");
     String queueName = TestHelper.getTestMethodName();
 
-    startParticipants();
+    startParticipants(_zkAddr);
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
@@ -78,7 +81,6 @@ public class TestZkConnectionLost extends TaskTestBase {
     restartZkServer();
 
     WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
-    // ensure job 1 is started before stop it
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
     _driver.pollForWorkflowState(scheduledQueue, 10000, TaskState.COMPLETED);
   }
@@ -91,7 +93,7 @@ public class TestZkConnectionLost extends TaskTestBase {
     String queueName = TestHelper.getTestMethodName();
 
     stopParticipants();
-    startParticipants();
+    startParticipants(_zkAddr);
 
     LOG.info("Starting job-queue: " + queueName);
     JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 6000);
@@ -124,7 +126,7 @@ public class TestZkConnectionLost extends TaskTestBase {
             TestHelper.stopZkServer(_zkServerRef.get());
             Thread.sleep(300);
             System.out.println("Restart ZK server");
-            _zkServerRef.set(TestHelper.startZkServer(ZK_ADDR, null, false));
+            _zkServerRef.set(TestHelper.startZkServer(_zkAddr, null, false));
           } catch (Exception e) {
             LOG.error(e.getMessage(), e);
           }

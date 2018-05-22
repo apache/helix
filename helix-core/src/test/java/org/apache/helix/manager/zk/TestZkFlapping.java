@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
@@ -40,6 +41,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZkFlapping extends ZkUnitTestBase {
+  private final int _disconnectThreshold = 5;
 
   @Test
   public void testZkSessionExpiry() throws Exception {
@@ -147,71 +149,76 @@ public class TestZkFlapping extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        32, // partitions per resource
-        1, // number of nodes
-        1, // replicas
-        "MasterSlave", false);
+    System.setProperty(SystemPropertyKeys.MAX_DISCONNECT_THRESHOLD, Integer.toString(_disconnectThreshold));
 
-    final String instanceName = "localhost_12918";
-    MockParticipantManager participant =
-        new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
-    participant.syncStart();
+    try {
+      TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+          "localhost", // participant name prefix
+          "TestDB", // resource name prefix
+          1, // resources
+          32, // partitions per resource
+          1, // number of nodes
+          1, // replicas
+          "MasterSlave", false);
 
-    final ZkClient client = participant.getZkClient();
-    final ZkStateCountListener listener = new ZkStateCountListener();
-    client.subscribeStateChanges(listener);
+      final String instanceName = "localhost_12918";
+      MockParticipantManager participant =
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participant.syncStart();
 
-    final AtomicInteger expectDisconnectCnt = new AtomicInteger(0);
-    final int n = ZKHelixManager.MAX_DISCONNECT_THRESHOLD;
-    for (int i = 0; i < n; i++) {
-      String oldSessionId = ZkTestHelper.getSessionId(client);
-      ZkTestHelper.simulateZkStateDisconnected(client);
-      expectDisconnectCnt.incrementAndGet();
+      final ZkClient client = participant.getZkClient();
+      final ZkStateCountListener listener = new ZkStateCountListener();
+      client.subscribeStateChanges(listener);
+
+      final AtomicInteger expectDisconnectCnt = new AtomicInteger(0);
+      final int n = _disconnectThreshold;
+      for (int i = 0; i < _disconnectThreshold; i++) {
+        String oldSessionId = ZkTestHelper.getSessionId(client);
+        ZkTestHelper.simulateZkStateReconnected(client);
+        expectDisconnectCnt.incrementAndGet();
+        // wait until we get invoked by zk state change to disconnected
+        TestHelper.verify(new Verifier() {
+
+          @Override
+          public boolean verify() throws Exception {
+            return listener.count == expectDisconnectCnt.get();
+          }
+        }, 30 * 1000);
+
+        String newSessionId = ZkTestHelper.getSessionId(client);
+        Assert.assertEquals(newSessionId, oldSessionId);
+      }
+      client.unsubscribeStateChanges(listener);
+      // make sure participant is NOT disconnected
+      LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
+      Assert.assertNotNull(liveInstance, "Live-instance should exist after " + n + " disconnects");
+
+      // trigger flapping
+      ZkTestHelper.simulateZkStateReconnected(client);
       // wait until we get invoked by zk state change to disconnected
-      TestHelper.verify(new Verifier() {
+      boolean success = TestHelper.verify(new Verifier() {
 
         @Override
         public boolean verify() throws Exception {
-          return listener.count == expectDisconnectCnt.get();
+          return client.getShutdownTrigger();
         }
       }, 30 * 1000);
 
-      String newSessionId = ZkTestHelper.getSessionId(client);
-      Assert.assertEquals(newSessionId, oldSessionId);
+      Assert.assertTrue(success, "The " + (n + 1) + "th disconnect event should trigger ZkHelixManager#disonnect");
+
+      // make sure participant is disconnected
+      success = TestHelper.verify(new TestHelper.Verifier() {
+
+        @Override
+        public boolean verify() throws Exception {
+          LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
+          return liveInstance == null;
+        }
+      }, 3 * 1000);
+      Assert.assertTrue(success, "Live-instance should be gone after " + (n + 1) + " disconnects");
+    } finally {
+      System.clearProperty(SystemPropertyKeys.MAX_DISCONNECT_THRESHOLD);
     }
-    client.unsubscribeStateChanges(listener);
-    // make sure participant is NOT disconnected
-    LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
-    Assert.assertNotNull(liveInstance, "Live-instance should exist after " + n + " disconnects");
-
-    // trigger flapping
-    ZkTestHelper.simulateZkStateDisconnected(client);
-    // wait until we get invoked by zk state change to disconnected
-    boolean success = TestHelper.verify(new Verifier() {
-
-      @Override
-      public boolean verify() throws Exception {
-        return client.getShutdownTrigger();
-      }
-    }, 30 * 1000);
-
-    Assert.assertTrue(success, "The " + (n + 1)
-        + "th disconnect event should trigger ZkHelixManager#disonnect");
-
-    // make sure participant is disconnected
-    success = TestHelper.verify(new TestHelper.Verifier() {
-
-      @Override
-      public boolean verify() throws Exception {
-        LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
-        return liveInstance == null;
-      }
-    }, 3 * 1000);
-    Assert.assertTrue(success, "Live-instance should be gone after " + (n + 1) + " disconnects");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -227,70 +234,75 @@ public class TestZkFlapping extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        32, // partitions per resource
-        1, // number of nodes
-        1, // replicas
-        "MasterSlave", false);
+    System.setProperty(SystemPropertyKeys.MAX_DISCONNECT_THRESHOLD, Integer.toString(_disconnectThreshold));
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
-    controller.syncStart();
+    try {
+      TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+          "localhost", // participant name prefix
+          "TestDB", // resource name prefix
+          1, // resources
+          32, // partitions per resource
+          1, // number of nodes
+          1, // replicas
+          "MasterSlave", false);
 
-    final ZkClient client = controller.getZkClient();
-    final ZkStateCountListener listener = new ZkStateCountListener();
-    client.subscribeStateChanges(listener);
+      ClusterControllerManager controller =
+          new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+      controller.syncStart();
 
-    final AtomicInteger expectDisconnectCnt = new AtomicInteger(0);
-    final int n = ZKHelixManager.MAX_DISCONNECT_THRESHOLD;
-    for (int i = 0; i < n; i++) {
-      String oldSessionId = ZkTestHelper.getSessionId(client);
-      ZkTestHelper.simulateZkStateDisconnected(client);
-      expectDisconnectCnt.incrementAndGet();
+      final ZkClient client = controller.getZkClient();
+      final ZkStateCountListener listener = new ZkStateCountListener();
+      client.subscribeStateChanges(listener);
+
+      final AtomicInteger expectDisconnectCnt = new AtomicInteger(0);
+      final int n = _disconnectThreshold;
+      for (int i = 0; i < n; i++) {
+        String oldSessionId = ZkTestHelper.getSessionId(client);
+        ZkTestHelper.simulateZkStateReconnected(client);
+        expectDisconnectCnt.incrementAndGet();
+        // wait until we get invoked by zk state change to disconnected
+        TestHelper.verify(new Verifier() {
+
+          @Override
+          public boolean verify() throws Exception {
+            return listener.count == expectDisconnectCnt.get();
+          }
+        }, 30 * 1000);
+
+        String newSessionId = ZkTestHelper.getSessionId(client);
+        Assert.assertEquals(newSessionId, oldSessionId);
+      }
+
+      // make sure controller is NOT disconnected
+      LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+      Assert.assertNotNull(leader, "Leader should exist after " + n + " disconnects");
+
+      // trigger flapping
+      ZkTestHelper.simulateZkStateReconnected(client);
       // wait until we get invoked by zk state change to disconnected
-      TestHelper.verify(new Verifier() {
+      boolean success = TestHelper.verify(new Verifier() {
 
         @Override
         public boolean verify() throws Exception {
-          return listener.count == expectDisconnectCnt.get();
+          return client.getShutdownTrigger();
         }
       }, 30 * 1000);
 
-      String newSessionId = ZkTestHelper.getSessionId(client);
-      Assert.assertEquals(newSessionId, oldSessionId);
+      Assert.assertTrue(success, "The " + (n + 1) + "th disconnect event should trigger ZkHelixManager#disonnect");
+
+      // make sure controller is disconnected
+      success = TestHelper.verify(new TestHelper.Verifier() {
+
+        @Override
+        public boolean verify() throws Exception {
+          LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+          return leader == null;
+        }
+      }, 5 * 1000);
+      Assert.assertTrue(success, "Leader should be gone after " + (n + 1) + " disconnects");
+    } finally {
+      System.clearProperty(SystemPropertyKeys.MAX_DISCONNECT_THRESHOLD);
     }
-
-    // make sure controller is NOT disconnected
-    LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
-    Assert.assertNotNull(leader, "Leader should exist after " + n + " disconnects");
-
-    // trigger flapping
-    ZkTestHelper.simulateZkStateDisconnected(client);
-    // wait until we get invoked by zk state change to disconnected
-    boolean success = TestHelper.verify(new Verifier() {
-
-      @Override
-      public boolean verify() throws Exception {
-        return client.getShutdownTrigger();
-      }
-    }, 30 * 1000);
-
-    Assert.assertTrue(success, "The " + (n + 1)
-        + "th disconnect event should trigger ZkHelixManager#disonnect");
-
-    // make sure controller is disconnected
-    success = TestHelper.verify(new TestHelper.Verifier() {
-
-      @Override
-      public boolean verify() throws Exception {
-        LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
-        return leader == null;
-      }
-    }, 5 * 1000);
-    Assert.assertTrue(success, "Leader should be gone after " + (n + 1) + " disconnects");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }

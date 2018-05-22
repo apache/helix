@@ -71,7 +71,7 @@ public class ZkClient implements Watcher {
   private static long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
 
   protected final IZkConnection _connection;
-  protected final long operationRetryTimeoutInMillis;
+  protected final long _operationRetryTimeoutInMillis;
   private final Map<String, Set<IZkChildListener>> _childListener =
       new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, Set<IZkDataListenerEntry>> _dataListener =
@@ -139,7 +139,7 @@ public class ZkClient implements Watcher {
     }
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
-    this.operationRetryTimeoutInMillis = operationRetryTimeout;
+    _operationRetryTimeoutInMillis = operationRetryTimeout;
     connect(connectionTimeout, this);
 
     // initiate monitor
@@ -630,7 +630,6 @@ public class ZkClient implements Watcher {
 
     getEventLock().lock();
     try {
-
       // We might have to install child change event listener if a new node was created
       if (getShutdownTrigger()) {
         if (LOG.isDebugEnabled()) {
@@ -1015,10 +1014,6 @@ public class ZkClient implements Watcher {
     return _connection;
   }
 
-  public void waitUntilConnected() throws ZkInterruptedException {
-    waitUntilConnected(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
-  }
-
   public boolean waitUntilConnected(long time, TimeUnit timeUnit) throws ZkInterruptedException {
     return waitForKeeperState(KeeperState.SyncConnected, time, timeUnit);
   }
@@ -1040,7 +1035,7 @@ public class ZkClient implements Watcher {
         }
         stillWaiting = getEventLock().getStateChangedCondition().awaitUntil(timeout);
       }
-      LOG.debug("State is " + _currentState);
+      LOG.debug("State is " + (_currentState == null ? "CLOSED" : _currentState));
       return true;
     } catch (InterruptedException e) {
       throw new ZkInterruptedException(e);
@@ -1105,21 +1100,16 @@ public class ZkClient implements Watcher {
         throw ExceptionUtil.convertToRuntimeException(e);
       }
       // before attempting a retry, check whether retry timeout has elapsed
-      if (this.operationRetryTimeoutInMillis > -1
-          && (System.currentTimeMillis() - operationStartTime)
-          >= this.operationRetryTimeoutInMillis) {
-        throw new ZkTimeoutException("Operation cannot be retried because of retry timeout ("
-            + this.operationRetryTimeoutInMillis + " milli seconds)");
+      if (System.currentTimeMillis() - operationStartTime > _operationRetryTimeoutInMillis) {
+        throw new ZkTimeoutException(
+            "Operation cannot be retried because of retry timeout (" + _operationRetryTimeoutInMillis
+                + " milli seconds)");
       }
     }
   }
 
   private void waitForRetry() {
-    if (this.operationRetryTimeoutInMillis < 0) {
-      this.waitUntilConnected();
-      return;
-    }
-    this.waitUntilConnected(this.operationRetryTimeoutInMillis, TimeUnit.MILLISECONDS);
+    waitUntilConnected(_operationRetryTimeoutInMillis, TimeUnit.MILLISECONDS);
   }
 
   public void setCurrentState(KeeperState currentState) {
@@ -1529,6 +1519,11 @@ public class ZkClient implements Watcher {
       _eventThread.join(2000);
       _connection.close();
       _closed = true;
+
+      // send state change notification to unlock any wait
+      setCurrentState(null);
+      getEventLock().getStateChangedCondition().signalAll();
+
     } catch (InterruptedException e) {
       /**
        * Workaround for HELIX-264: calling ZkClient#close() in its own eventThread context will
@@ -1561,7 +1556,12 @@ public class ZkClient implements Watcher {
   }
 
   public boolean isClosed() {
-    return (_connection == null || !_connection.getZookeeperState().isAlive());
+    return _closed;
+  }
+
+  public boolean isConnectionClosed() {
+    return (_connection == null || _connection.getZookeeperState() == null ||
+        !_connection.getZookeeperState().isAlive());
   }
 
   private void reconnect() {

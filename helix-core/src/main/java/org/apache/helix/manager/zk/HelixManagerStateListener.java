@@ -34,7 +34,7 @@ public interface HelixManagerStateListener {
   void onConnected(HelixManager helixManager) throws Exception;
 
   /**
-   * Invoked when the HelixManager connection to zookeeper is disconnected
+   * Invoked when the HelixManager connection to zookeeper is closed unexpectedly.
    *
    * @param helixManager HelixManager that fails to be connected
    * @param error connection error

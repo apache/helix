@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
 
+  public static final int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
   public static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   public static final int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
@@ -77,7 +78,7 @@ public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient {
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
-    this(connection, connectionTimeout, zkSerializer, monitorType, monitorKey, -1);
+    this(connection, connectionTimeout, zkSerializer, monitorType, monitorKey, DEFAULT_OPERATION_TIMEOUT);
   }
 
   public ZkClient(String zkServers, String monitorType, String monitorKey) {
@@ -150,7 +151,7 @@ public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient {
 
     PathBasedZkSerializer _zkSerializer;
 
-    long _operationRetryTimeout = -1L;
+    long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
     int _connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
     int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 

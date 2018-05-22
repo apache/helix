@@ -75,11 +75,6 @@ public class TestCorrectnessOnConnectivityLoss {
     _controller.connect();
   }
 
-  @AfterMethod
-  public void afterMethod() throws Exception {
-    TestHelper.stopZkServer(_zkServer);
-  }
-
   @Test
   public void testParticipant() throws Exception {
     Map<String, Integer> stateReachedCounts = Maps.newHashMap();
@@ -143,6 +138,11 @@ public class TestCorrectnessOnConnectivityLoss {
     } finally {
       routingTableProvider.shutdown();
     }
+  }
+
+  @AfterMethod
+  public void afterMethod() throws Exception {
+    TestHelper.stopZkServer(_zkServer);
   }
 
   @StateModelInfo(initialState = "OFFLINE", states = {

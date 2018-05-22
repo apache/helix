@@ -26,6 +26,7 @@ import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
@@ -57,8 +58,10 @@ public class ZkTestHelper {
   /**
    * Simulate a zk state change by calling {@link ZkClient#process(WatchedEvent)} directly
    */
-  public static void simulateZkStateDisconnected(ZkClient client) {
+  public static void simulateZkStateReconnected(ZkClient client) {
     WatchedEvent event = new WatchedEvent(EventType.None, KeeperState.Disconnected, null);
+    client.process(event);
+    event = new WatchedEvent(EventType.None, KeeperState.SyncConnected, null);
     client.process(event);
   }
 
@@ -89,7 +92,7 @@ public class ZkTestHelper {
       @Override
       public void handleNewSession() throws Exception {
         // make sure zkclient is connected again
-        zkClient.waitUntilConnected();
+        zkClient.waitUntilConnected(ZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
 
         ZkConnection connection = ((ZkConnection) zkClient.getConnection());
         ZooKeeper curZookeeper = connection.getZookeeper();
@@ -143,7 +146,7 @@ public class ZkTestHelper {
       @Override
       public void handleNewSession() throws Exception {
         // make sure zkclient is connected again
-        zkClient.waitUntilConnected();
+        zkClient.waitUntilConnected(ZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
 
         ZkConnection connection = ((ZkConnection) zkClient.getConnection());
         ZooKeeper curZookeeper = connection.getZookeeper();

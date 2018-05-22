@@ -364,9 +364,13 @@ public class ParticipantManager {
   }
 
   public void disconnect() {
-    ParticipantHistory history = getHistory();
-    history.reportOffline();
-    persistHistory(history);
+    try {
+      ParticipantHistory history = getHistory();
+      history.reportOffline();
+      persistHistory(history);
+    } catch (Exception e) {
+      LOG.error("Failed to report participant offline.", e);
+    }
     reset();
   }
 }

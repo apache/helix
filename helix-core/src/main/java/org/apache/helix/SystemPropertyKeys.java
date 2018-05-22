@@ -9,6 +9,7 @@ public class SystemPropertyKeys {
 
   public static final String FLAPPING_TIME_WINDOW = "helixmanager.flappingTimeWindow";
 
+  // max disconnect count during the flapping time window to trigger HelixManager flapping handling
   public static final String MAX_DISCONNECT_THRESHOLD = "helixmanager.maxDisconnectThreshold";
 
   public static final String ZK_SESSION_TIMEOUT = "zk.session.timeout";

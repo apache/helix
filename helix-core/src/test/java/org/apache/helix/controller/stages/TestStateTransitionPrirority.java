@@ -149,7 +149,7 @@ public class TestStateTransitionPrirority extends BaseStageTest {
     // Add load rebalance throttle config
     ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
     StateTransitionThrottleConfig throttleConfigForLoadRebalance =
-        new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
+        new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.ANY,
             StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 1);
     List<StateTransitionThrottleConfig> currentThrottleConfig =
         clusterConfig.getStateTransitionThrottleConfigs();

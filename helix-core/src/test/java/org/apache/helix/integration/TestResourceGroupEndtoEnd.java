@@ -139,6 +139,7 @@ public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
 
     _controller.syncStop();
     _spectator.disconnect();
+    _routingTableProvider.shutdown();
   }
 
   private void addInstanceGroup(String clusterName, String instanceTag, int numInstance) {

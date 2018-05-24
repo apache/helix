@@ -88,49 +88,52 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkIntegrationTest
         new RoutingTableProvider(_manager, PropertyType.EXTERNALVIEW);
     RoutingTableProvider routingTableCurrentStates = new RoutingTableProvider(_manager, PropertyType.CURRENTSTATES);
 
-    String db1 = "TestDB-1";
-    _setupTool.addResourceToCluster(CLUSTER_NAME, db1, NUM_PARTITIONS, "MasterSlave",
-        IdealState.RebalanceMode.FULL_AUTO.name());
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db1, NUM_REPLICAS);
+    try {
+      String db1 = "TestDB-1";
+      _setupTool.addResourceToCluster(CLUSTER_NAME, db1, NUM_PARTITIONS, "MasterSlave", IdealState.RebalanceMode.FULL_AUTO.name());
+      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db1, NUM_REPLICAS);
 
-    Thread.sleep(200);
-    HelixClusterVerifier clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(clusterVerifier.verify());
+      Thread.sleep(200);
+      HelixClusterVerifier clusterVerifier =
+          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+      Assert.assertTrue(clusterVerifier.verify());
 
-    IdealState idealState1 = _setupTool.getClusterManagementTool().getResourceIdealState(
-        CLUSTER_NAME, db1);
-    validate(idealState1, routingTableEV, routingTableCurrentStates);
+      IdealState idealState1 =
+          _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db1);
+      validate(idealState1, routingTableEV, routingTableCurrentStates);
 
-    // add new DB
-    String db2 = "TestDB-2";
-    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, NUM_PARTITIONS, "MasterSlave",
-        IdealState.RebalanceMode.FULL_AUTO.name());
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, NUM_REPLICAS);
+      // add new DB
+      String db2 = "TestDB-2";
+      _setupTool.addResourceToCluster(CLUSTER_NAME, db2, NUM_PARTITIONS, "MasterSlave", IdealState.RebalanceMode.FULL_AUTO.name());
+      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, NUM_REPLICAS);
 
-    Thread.sleep(200);
-    Assert.assertTrue(clusterVerifier.verify());
+      Thread.sleep(200);
+      Assert.assertTrue(clusterVerifier.verify());
 
-    IdealState idealState2 = _setupTool.getClusterManagementTool().getResourceIdealState(
-        CLUSTER_NAME, db2);
-    validate(idealState2, routingTableEV, routingTableCurrentStates);
+      IdealState idealState2 =
+          _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db2);
+      validate(idealState2, routingTableEV, routingTableCurrentStates);
 
-    // shutdown an instance
-    _participants[0].syncStop();
-    Thread.sleep(200);
-    Assert.assertTrue(clusterVerifier.verify());
-    validate(idealState1, routingTableEV, routingTableCurrentStates);
-    validate(idealState2, routingTableEV, routingTableCurrentStates);
+      // shutdown an instance
+      _participants[0].syncStop();
+      Thread.sleep(200);
+      Assert.assertTrue(clusterVerifier.verify());
+      validate(idealState1, routingTableEV, routingTableCurrentStates);
+      validate(idealState2, routingTableEV, routingTableCurrentStates);
+    } finally {
+      routingTableEV.shutdown();
+      routingTableCurrentStates.shutdown();
+    }
   }
 
   @Test (dependsOnMethods = {"testRoutingTableWithCurrentStates"})
   public void testWithSupportSourceDataType() {
-    new RoutingTableProvider(_manager, PropertyType.EXTERNALVIEW);
-    new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW);
-    new RoutingTableProvider(_manager, PropertyType.CURRENTSTATES);
+    new RoutingTableProvider(_manager, PropertyType.EXTERNALVIEW).shutdown();
+    new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW).shutdown();
+    new RoutingTableProvider(_manager, PropertyType.CURRENTSTATES).shutdown();
 
     try {
-      new RoutingTableProvider(_manager, PropertyType.IDEALSTATES);
+      new RoutingTableProvider(_manager, PropertyType.IDEALSTATES).shutdown();
       Assert.fail();
     } catch (HelixException ex) {
       Assert.assertTrue(ex.getMessage().contains("Unsupported source data type"));

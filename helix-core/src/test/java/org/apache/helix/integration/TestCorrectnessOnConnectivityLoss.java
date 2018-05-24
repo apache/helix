@@ -118,21 +118,24 @@ public class TestCorrectnessOnConnectivityLoss {
     participant.connect();
 
     RoutingTableProvider routingTableProvider = new RoutingTableProvider();
-    HelixManager spectator =
-        HelixManagerFactory.getZKHelixManager(_clusterName, "spectator", InstanceType.SPECTATOR,
-            ZK_ADDR);
-    spectator.connect();
-    spectator.addConfigChangeListener(routingTableProvider);
-    spectator.addExternalViewChangeListener(routingTableProvider);
-    Thread.sleep(1000);
+    try {
+      HelixManager spectator = HelixManagerFactory
+          .getZKHelixManager(_clusterName, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
+      spectator.connect();
+      spectator.addConfigChangeListener(routingTableProvider);
+      spectator.addExternalViewChangeListener(routingTableProvider);
+      Thread.sleep(1000);
 
-    // Now let's stop the ZK server; this should do nothing
-    TestHelper.stopZkServer(_zkServer);
-    Thread.sleep(1000);
+      // Now let's stop the ZK server; this should do nothing
+      TestHelper.stopZkServer(_zkServer);
+      Thread.sleep(1000);
 
-    // Verify routing table still works
-    Assert.assertEquals(routingTableProvider.getInstances("resource0", "ONLINE").size(), 1);
-    Assert.assertEquals(routingTableProvider.getInstances("resource0", "OFFLINE").size(), 0);
+      // Verify routing table still works
+      Assert.assertEquals(routingTableProvider.getInstances("resource0", "ONLINE").size(), 1);
+      Assert.assertEquals(routingTableProvider.getInstances("resource0", "OFFLINE").size(), 0);
+    } finally {
+      routingTableProvider.shutdown();
+    }
   }
 
   @AfterMethod

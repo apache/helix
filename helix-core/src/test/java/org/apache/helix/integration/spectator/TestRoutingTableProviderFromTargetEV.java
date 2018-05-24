@@ -103,8 +103,12 @@ public class TestRoutingTableProviderFromTargetEV extends ZkIntegrationTestBase 
     String resourceName = WorkflowGenerator.DEFAULT_TGT_DB + 1;
     RoutingTableProvider externalViewProvider =
         new RoutingTableProvider(_manager, PropertyType.EXTERNALVIEW);
-    Assert.assertEquals(externalViewProvider.getInstancesForResource(resourceName, "SLAVE").size(),
-        0);
+    try {
+      Assert.assertEquals(externalViewProvider.getInstancesForResource(resourceName, "SLAVE").size(),
+          0);
+    } finally {
+      externalViewProvider.shutdown();
+    }
   }
 
   @Test (dependsOnMethods = "testTargetExternalViewWithoutEnable")
@@ -120,33 +124,37 @@ public class TestRoutingTableProviderFromTargetEV extends ZkIntegrationTestBase 
     RoutingTableProvider targetExternalViewProvider =
         new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW);
 
-    // ExternalView should not contain any MASTERS
-    // TargetExternalView should contain MASTERS same as the partition number
-    Set<InstanceConfig> externalViewMasters =
-        externalViewProvider.getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER");
-    Assert.assertEquals(externalViewMasters.size(), 0);
-    Set<InstanceConfig> targetExternalViewMasters = targetExternalViewProvider
-        .getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER");
-    Assert.assertEquals(targetExternalViewMasters.size(), NUM_NODES);
+    try {
+      // ExternalView should not contain any MASTERS
+      // TargetExternalView should contain MASTERS same as the partition number
+      Set<InstanceConfig> externalViewMasters =
+          externalViewProvider.getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER");
+      Assert.assertEquals(externalViewMasters.size(), 0);
+      Set<InstanceConfig> targetExternalViewMasters = targetExternalViewProvider
+          .getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER");
+      Assert.assertEquals(targetExternalViewMasters.size(), NUM_NODES);
 
-    // TargetExternalView MASTERS mapping should exactly match IdealState MASTERS mapping
-    Map<String, Map<String, String>> stateMap = _setupTool.getClusterManagementTool()
-        .getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB).getRecord()
-        .getMapFields();
+      // TargetExternalView MASTERS mapping should exactly match IdealState MASTERS mapping
+      Map<String, Map<String, String>> stateMap = _setupTool.getClusterManagementTool()
+          .getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB).getRecord().getMapFields();
 
-    Set<String> idealMasters = new HashSet<>();
-    Set<String> targetMasters = new HashSet<>();
-    for (Map<String, String> instanceMap : stateMap.values()) {
-      for (String instance : instanceMap.keySet()) {
-        if (instanceMap.get(instance).equals("MASTER")) {
-          idealMasters.add(instance);
+      Set<String> idealMasters = new HashSet<>();
+      Set<String> targetMasters = new HashSet<>();
+      for (Map<String, String> instanceMap : stateMap.values()) {
+        for (String instance : instanceMap.keySet()) {
+          if (instanceMap.get(instance).equals("MASTER")) {
+            idealMasters.add(instance);
+          }
         }
       }
-    }
 
-    for (InstanceConfig instanceConfig : targetExternalViewMasters) {
-      targetMasters.add(instanceConfig.getInstanceName());
+      for (InstanceConfig instanceConfig : targetExternalViewMasters) {
+        targetMasters.add(instanceConfig.getInstanceName());
+      }
+      Assert.assertTrue(idealMasters.equals(targetMasters));
+    } finally {
+      externalViewProvider.shutdown();
+      targetExternalViewProvider.shutdown();
     }
-    Assert.assertTrue(idealMasters.equals(targetMasters));
   }
 }

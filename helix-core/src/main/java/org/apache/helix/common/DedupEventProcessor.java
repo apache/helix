@@ -49,7 +49,7 @@ public abstract class DedupEventProcessor<T, E> extends Thread {
       } catch (ThreadDeath death) {
         throw death;
       } catch (Throwable t) {
-        logger.error(_processorName + " thread failed while running the controller pipeline", t);
+        logger.error(_processorName + " thread failed while running " + _processorName, t);
       }
     }
     logger.info("END " + _processorName + " thread for cluster " + _clusterName);

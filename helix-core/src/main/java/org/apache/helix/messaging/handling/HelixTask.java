@@ -255,7 +255,7 @@ public class HelixTask implements MessageTask {
           if (!success) {
             logger.warn("Failed to send relay message " + msg.getId() + " to " + instance);
           } else {
-            logger.info("Send relay message " + message.getId() + " to " + instance);
+            logger.info("Send relay message " + msg.getId() + " to " + instance);
           }
         }
       }

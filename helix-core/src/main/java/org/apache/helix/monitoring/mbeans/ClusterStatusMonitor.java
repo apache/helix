@@ -447,6 +447,14 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
+  public synchronized void updatePendingMessages(String resourceName, int messageCount) {
+    ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
+
+    if (resourceMonitor != null) {
+      resourceMonitor.updatePendingStateTransitionMessages(messageCount);
+    }
+  }
+
   private ResourceMonitor getOrCreateResourceMonitor(String resourceName) {
     try {
       if (!_resourceMbeanMap.containsKey(resourceName)) {
@@ -797,6 +805,11 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   @Override
+  public long getTotalResourceGauge() {
+    return _resourceMbeanMap.size();
+  }
+
+  @Override
   public long getTotalPartitionGauge() {
     long total = 0;
     for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {
@@ -824,10 +837,37 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   @Override
+  public long getMissingMinActiveReplicaPartitionGauge() {
+    long total = 0;
+    for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {
+      total += entry.getValue().getMissingMinActiveReplicaPartitionGauge();
+    }
+    return total;
+  }
+
+  @Override
   public long getDifferenceWithIdealStateGauge() {
     long total = 0;
     for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {
       total += entry.getValue().getDifferenceWithIdealStateGauge();
+    }
+    return total;
+  }
+
+  @Override
+  public long getStateTransitionCounter() {
+    long total = 0;
+    for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {
+      total += entry.getValue().getTotalMessageReceived();
+    }
+    return total;
+  }
+
+  @Override
+  public long getPendingStateTransitionGuage() {
+    long total = 0;
+    for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {
+      total += entry.getValue().getNumPendingStateTransitionGauge();
     }
     return total;
   }

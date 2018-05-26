@@ -20,19 +20,18 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import java.lang.management.ManagementFactory;
-import java.util.Date;
-import java.util.Map;
+import java.util.*;
 
 import javax.management.InstanceNotFoundException;
+import javax.management.JMException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
-import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.*;
+import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -41,6 +40,8 @@ import com.beust.jcommander.internal.Maps;
 
 public class TestClusterStatusMonitor {
   private static final MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
+  String testDB = "TestDB";
+  String testDB_0 = testDB + "_0";
 
   @Test()
   public void testReportData() throws Exception {
@@ -48,8 +49,6 @@ public class TestClusterStatusMonitor {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     int n = 5;
-    String testDB = "TestDB";
-    String testDB_0 = testDB + "_0";
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -160,5 +159,124 @@ public class TestClusterStatusMonitor {
     }
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+
+  @Test
+  public void testResourceAggregation() throws JMException {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
+    monitor.active();
+    ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
+    try {
+      _server.getMBeanInfo(clusterMonitorObjName);
+    } catch (Exception e) {
+      Assert.fail("Fail to register ClusterStatusMonitor");
+    }
+
+    int numInstance = 5;
+    int numPartition = 10;
+    int numReplica = 3;
+    List<String> instances = new ArrayList<String>();
+    for (int i = 0; i < numInstance; i++) {
+      String instance = "localhost_" + (12918 + i);
+      instances.add(instance);
+    }
+
+    ZNRecord idealStateRecord = DefaultIdealStateCalculator
+        .calculateIdealState(instances, numPartition, numReplica, testDB, "MASTER", "SLAVE");
+    IdealState idealState = new IdealState(TestResourceMonitor.deepCopyZNRecord(idealStateRecord));
+    idealState.setMinActiveReplicas(numReplica);
+    ExternalView externalView = new ExternalView(TestResourceMonitor.deepCopyZNRecord(idealStateRecord));
+    StateModelDefinition stateModelDef =
+        BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition();
+
+    monitor.setResourceStatus(externalView, idealState, stateModelDef);
+
+    Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
+    Assert.assertEquals(monitor.getTotalResourceGauge(), 1);
+    Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
+    Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), 0);
+    Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
+    Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
+
+
+    int lessMinActiveReplica = 6;
+    Random r = new Random();
+    externalView = new ExternalView(TestResourceMonitor.deepCopyZNRecord(idealStateRecord));
+    int start = r.nextInt(numPartition - lessMinActiveReplica - 1);
+    for (int i = start; i < start + lessMinActiveReplica; i++) {
+      String partition = testDB + "_" + i;
+      Map<String, String> map = externalView.getStateMap(partition);
+      Iterator<String> it = map.keySet().iterator();
+      int flag = 0;
+      while (it.hasNext()) {
+        String key = it.next();
+        if (map.get(key).equalsIgnoreCase("SLAVE")) {
+          if (flag++ % 2 == 0) {
+            map.put(key, "OFFLINE");
+          } else {
+            it.remove();
+          }
+        }
+      }
+      externalView.setStateMap(partition, map);
+    }
+
+    monitor.setResourceStatus(externalView, idealState, stateModelDef);
+    Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
+    Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), lessMinActiveReplica);
+    Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), 0);
+    Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
+    Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
+
+    int missTopState = 7;
+    externalView = new ExternalView(TestResourceMonitor.deepCopyZNRecord(idealStateRecord));
+    start = r.nextInt(numPartition - missTopState - 1);
+    for (int i = start; i < start + missTopState; i++) {
+      String partition = testDB + "_" + i;
+      Map<String, String> map = externalView.getStateMap(partition);
+      int flag = 0;
+      for (String key : map.keySet()) {
+        if (map.get(key).equalsIgnoreCase("MASTER")) {
+          if (flag++ % 2 == 0) {
+            map.put(key, "OFFLINE");
+          } else {
+            map.remove(key);
+          }
+          break;
+        }
+      }
+      externalView.setStateMap(partition, map);
+    }
+
+    monitor.setResourceStatus(externalView, idealState, stateModelDef);
+    Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
+    Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
+    Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), missTopState);
+    Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
+    Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
+
+    int messageCount = 4;
+    List<Message> messages = new ArrayList<>();
+    for (int i = 0; i < messageCount; i++) {
+      Message message = new Message(Message.MessageType.STATE_TRANSITION, "message" + i);
+      message.setResourceName(testDB);
+      message.setTgtName(instances.get(i % instances.size()));
+      messages.add(message);
+    }
+    monitor.increaseMessageReceived(messages);
+    Assert.assertEquals(monitor.getStateTransitionCounter(), messageCount);
+    Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
+
+    // test pending state transition message report and read
+    messageCount = new Random().nextInt(numPartition) + 1;
+    monitor.updatePendingMessages(testDB, messageCount);
+    Assert.assertEquals(monitor.getPendingStateTransitionGuage(), messageCount);
   }
 }

@@ -49,6 +49,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _numPendingLoadRebalancePartitions;
   private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledPartitions;
   private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledPartitions;
+  private SimpleDynamicMetric<Long> _numPendingStateTransitions;
 
   // Counters
   private SimpleDynamicMetric<Long> _successfulTopStateHandoffDurationCounter;
@@ -86,6 +87,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     attributeList.add(_maxSinglePartitionTopStateHandoffDuration);
     attributeList.add(_partitionTopStateHandoffDurationGauge);
     attributeList.add(_totalMessageReceived);
+    attributeList.add(_numPendingStateTransitions);
     doRegister(attributeList, _initObjectName);
     return this;
   }
@@ -115,6 +117,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numOfErrorPartitions = new SimpleDynamicMetric("ErrorPartitionGauge", 0L);
     _numOfPartitionsInExternalView = new SimpleDynamicMetric("ExternalViewPartitionGauge", 0L);
     _numOfPartitions = new SimpleDynamicMetric("PartitionGauge", 0L);
+    _numPendingStateTransitions = new SimpleDynamicMetric("PendingStateTransitionGauge", 0L);
 
     _partitionTopStateHandoffDurationGauge =
         new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", new Histogram(
@@ -300,6 +303,11 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numPendingLoadRebalancePartitions.updateValue(0L);
     _numRecoveryRebalanceThrottledPartitions.updateValue(0L);
     _numLoadRebalanceThrottledPartitions.updateValue(0L);
+    _numPendingStateTransitions.updateValue(0L);
+  }
+
+  public void updatePendingStateTransitionMessages(int messageCount) {
+    _numPendingStateTransitions.updateValue((long) messageCount);
   }
 
   public void updateStateHandoffStats(MonitorState monitorState, long duration, boolean succeeded) {
@@ -359,6 +367,10 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   public long getLoadRebalanceThrottledPartitionGauge() {
     return _numLoadRebalanceThrottledPartitions.getValue();
+  }
+
+  public long getNumPendingStateTransitionGauge() {
+    return _numPendingStateTransitions.getValue();
   }
 
   public void resetMaxTopStateHandoffGauge() {

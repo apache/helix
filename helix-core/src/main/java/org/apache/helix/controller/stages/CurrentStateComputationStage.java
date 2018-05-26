@@ -31,6 +31,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+
 
 /**
  * For each LiveInstances select currentState and message whose sessionId matches
@@ -47,7 +49,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
 
     if (cache == null || resourceMap == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -55,7 +57,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
-    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    final CurrentStateOutput currentStateOutput = new CurrentStateOutput();
 
     for (LiveInstance instance : liveInstances.values()) {
       String instanceName = instance.getInstanceName();
@@ -71,8 +73,21 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
 
     if (!cache.isTaskCache()) {
-      ClusterStatusMonitor clusterStatusMonitor =
-          event.getAttribute(AttributeName.clusterStatusMonitor.name());
+      final ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
+      asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
+        @Override
+        public Object call() {
+          for (Resource resource : resourceMap.values()) {
+            int totalPendingMessageCount = 0;
+            for (Partition partition : resource.getPartitions()) {
+              totalPendingMessageCount +=
+                  currentStateOutput.getPendingMessageMap(resource.getResourceName(), partition).size();
+            }
+            clusterStatusMonitor.updatePendingMessages(resource.getResourceName(), totalPendingMessageCount);
+          }
+          return null;
+        }
+      });
       // TODO Update the status async -- jjwang
       updateTopStateStatus(cache, clusterStatusMonitor, resourceMap, currentStateOutput);
     }

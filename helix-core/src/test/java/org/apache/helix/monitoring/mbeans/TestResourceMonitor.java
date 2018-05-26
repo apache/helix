@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 import javax.management.JMException;
-import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -44,12 +43,13 @@ public class TestResourceMonitor {
   int _replicas = 3;
   int _partitions = 50;
 
-  @Test() public void testReportData() throws JMException {
+  @Test()
+  public void testReportData() throws JMException {
     final int n = 5;
     ResourceMonitor monitor = new ResourceMonitor(_clusterName, _dbName, new ObjectName("testDomain:key=value"));
     monitor.register();
 
-    List<String> instances = new ArrayList<String>();
+    List<String> instances = new ArrayList<>();
     for (int i = 0; i < n; i++) {
       String instance = "localhost_" + (12918 + i);
       instances.add(instance);
@@ -191,6 +191,12 @@ public class TestResourceMonitor {
     Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
     Assert.assertEquals(monitor.getMissingReplicaPartitionGauge(), missTopState);
     Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), missTopState);
+
+    Assert.assertEquals(monitor.getNumPendingStateTransitionGauge(), 0);
+    // test pending state transition message report and read
+    int messageCount = new Random().nextInt(_partitions) + 1;
+    monitor.updatePendingStateTransitionMessages(messageCount);
+    Assert.assertEquals(monitor.getNumPendingStateTransitionGauge(), messageCount);
   }
 
   /**
@@ -198,17 +204,17 @@ public class TestResourceMonitor {
    *
    * @return
    */
-  public ZNRecord deepCopyZNRecord(ZNRecord record) {
+  public static ZNRecord deepCopyZNRecord(ZNRecord record) {
     ZNRecord copy = new ZNRecord(record.getId());
 
     copy.getSimpleFields().putAll(record.getSimpleFields());
     for (String mapKey : record.getMapFields().keySet()) {
       Map<String, String> mapField = record.getMapFields().get(mapKey);
-      copy.getMapFields().put(mapKey, new TreeMap<String, String>(mapField));
+      copy.getMapFields().put(mapKey, new TreeMap<>(mapField));
     }
 
     for (String listKey : record.getListFields().keySet()) {
-      copy.getListFields().put(listKey, new ArrayList<String>(record.getListFields().get(listKey)));
+      copy.getListFields().put(listKey, new ArrayList<>(record.getListFields().get(listKey)));
     }
     if (record.getRawPayload() != null) {
       byte[] rawPayload = new byte[record.getRawPayload().length];

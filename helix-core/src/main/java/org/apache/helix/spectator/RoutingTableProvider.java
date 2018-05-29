@@ -156,7 +156,7 @@ public class RoutingTableProvider
     }
 
     // For periodic refresh
-    if (isPeriodicRefreshEnabled) {
+    if (isPeriodicRefreshEnabled && _helixManager != null) {
       _lastRefreshTimestamp = System.currentTimeMillis(); // Initialize timestamp with current time
       _periodRefreshInterval = periodRefreshInterval;
       // Construct a periodic refresh context
@@ -560,7 +560,7 @@ public class RoutingTableProvider
     private final RoutingDataCache _dataCache;
 
     public RouterUpdater(String clusterName, PropertyType sourceDataType) {
-      super("Helix-RouterUpdater-event_process");
+      super(clusterName, "Helix-RouterUpdater-event_process");
       _dataCache = new RoutingDataCache(clusterName, sourceDataType);
     }
 
@@ -576,6 +576,10 @@ public class RoutingTableProvider
         if (manager == null) {
           logger.error(String.format("HelixManager is null for router update event: %s", event));
           throw new HelixException("HelixManager is null for router update event.");
+        }
+        if (!manager.isConnected()) {
+          logger.error(String.format("HelixManager is not connected for router update event: %s", event));
+          throw new HelixException("HelixManager is not connected for router update event.");
         }
         _dataCache.refresh(manager.getHelixDataAccessor());
         switch (_sourceDataType) {

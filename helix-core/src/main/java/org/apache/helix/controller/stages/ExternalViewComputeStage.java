@@ -75,6 +75,8 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
         view.setBucketSize(currentStateOutput.getBucketSize(resourceName));
       }
 
+      int totalPendingMessageCount = 0;
+
       for (Partition partition : resource.getPartitions()) {
         Map<String, String> currentStateMap =
             currentStateOutput.getCurrentStateMap(resourceName, partition);
@@ -88,7 +90,10 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
             // }
           }
         }
+        totalPendingMessageCount +=
+            currentStateOutput.getPendingMessageMap(resource.getResourceName(), partition).size();
       }
+
       // Update cluster status monitor mbean
       IdealState idealState = cache.getIdealState(resourceName);
       if (!cache.isTaskCache()) {
@@ -105,6 +110,8 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
               clusterStatusMonitor
                   .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
                       stateModelDef);
+              clusterStatusMonitor
+                  .updatePendingMessages(resource.getResourceName(), totalPendingMessageCount);
             }
           } else {
             // Drop the metrics if the resource is dropped, or the MonitorDisabled is changed to true.

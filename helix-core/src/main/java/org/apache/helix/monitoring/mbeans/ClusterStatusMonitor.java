@@ -448,10 +448,14 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   public synchronized void updatePendingMessages(String resourceName, int messageCount) {
-    ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
+    try {
+      ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
 
-    if (resourceMonitor != null) {
-      resourceMonitor.updatePendingStateTransitionMessages(messageCount);
+      if (resourceMonitor != null) {
+        resourceMonitor.updatePendingStateTransitionMessages(messageCount);
+      }
+    } catch (Exception e) {
+      LOG.error("Fail to update resource pending messages, resource: " + resourceName, e);
     }
   }
 

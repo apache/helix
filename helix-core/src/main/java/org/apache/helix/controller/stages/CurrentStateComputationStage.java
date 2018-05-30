@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 
 
 /**
@@ -73,21 +72,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
 
     if (!cache.isTaskCache()) {
-      final ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
-      asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
-        @Override
-        public Object call() {
-          for (Resource resource : resourceMap.values()) {
-            int totalPendingMessageCount = 0;
-            for (Partition partition : resource.getPartitions()) {
-              totalPendingMessageCount +=
-                  currentStateOutput.getPendingMessageMap(resource.getResourceName(), partition).size();
-            }
-            clusterStatusMonitor.updatePendingMessages(resource.getResourceName(), totalPendingMessageCount);
-          }
-          return null;
-        }
-      });
+      ClusterStatusMonitor clusterStatusMonitor =
+          event.getAttribute(AttributeName.clusterStatusMonitor.name());
       // TODO Update the status async -- jjwang
       updateTopStateStatus(cache, clusterStatusMonitor, resourceMap, currentStateOutput);
     }

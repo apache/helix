@@ -169,11 +169,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       ClusterDataCache cache = new ClusterDataCache();
       cache.refresh(_accessor);
 
-      Map<String, IdealState> idealStates = cache.getIdealStates();
-      if (idealStates == null) {
-        // ideal state is null because ideal state is dropped
-        idealStates = Collections.emptyMap();
-      }
+      Map<String, IdealState> idealStates = new HashMap<>(cache.getIdealStates());
 
       // filter out all resources that use Task state model
       Iterator<Map.Entry<String, IdealState>> it = idealStates.entrySet().iterator();

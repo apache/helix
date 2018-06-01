@@ -32,17 +32,17 @@ Since the problem is NP-hard. We are not expecting the best assignment. A greedy
 After we tried different designs, we found it's hard to achieve both goals (even distribution and fewer movements) using a single strategy. So we decided to apply a hybrid algorithm that finishes the work step by step.
 
 **Step 1, run CRUSH to get a base assignment.**  
-The base assignment usually contains a certain number of uneven partitions, so we need the following steps to re-distribute them.
+The base assignment usually contains a certain number of uneven partitions(i.e. extra partitions above perfect distribution), so we need the following steps to re-distribute them.
 
 **Step 2, run a card dealing algorithm on the uneven parts.**  
-And assign them to idle nodes. This algorithm is conceptually simple. The result ensures that all partitions are assigned to instances with minimum difference. Note that when fault zone joins the game, our greedy algorithm may not be able to calculate possible results because the candidate assignment may have fault zone conflict. So we add the buffer to tolerate small uneven assignment.
+Assign extra partitions to under-loaded nodes, using card dealing strategy. This algorithm is conceptually simple. The result ensures that all partitions are assigned to instances with minimum difference. When gauranteeing fault-zone safe assignment, our greedy algorithm may not be able to calculate possible results because of fault-zone conflict. 
 
 Example of assignments after step 2,
 
 ![Example](images/design/crushed/example-cluster-partition-dist.png)
 
 **Step 3, Shuffle partitions' preference lists.**  
-Since replica states are assigned according to node order in these lists, if the lists are randomly ordered, State assignment (i.e. Master, Slave, Online, Offline) will also be random, so this may result in uneven states distribution. To resolve this issue, CrushED assigns scores to nodes as it computes pref list, to give all nodes equal chances in appearing at the top of the pref list. This operation results in a much more even state distribution.
+State assignments (i.e. Master, Slave, Online, Offline, etc)  are made according to preflist, ordered node. When using randomly ordered lists, State assignment is also random, and it may result in uneven state distribution. To resolve this issue, CrushED assigns scores to nodes as it computes pref list, to give all nodes equal chances in appearing at the top of the pref list. This operation results in a much more even state distribution.
 
 Example of master distribution before step 3,
 
@@ -56,8 +56,7 @@ Example of master distribution after step 3,
 Consistent hashing ensures minimize partition movement.  
 Note that the first 3 steps are using full node list, regardless of disabled or offline nodes. So the assignment will be stable even the algorithm contains random factors such hashCode. Then step 4 ensures all the disabled nodes are handled correctly without causing huge partition movements.
 
-One potential issue of using intuitive algorithm is not converging. In this case, CrushED falls back to CRUSH.  
-Pseudocode is listed below.
+Pseudocode of above algorithm is as follows :
 
 **Pseudo Code** 
 
@@ -172,20 +171,3 @@ CrushED achieves more uniform distribution compared with CRUSH at the cost of hi
     REPLICAS : "1"
     STATE\_MODEL\_DEF_REF : "LeaderStandby"
 
-## Future Works
-
-**Instance Level Capacity Limitation**
-
-Currently, all resources are assigned separately.  
-The pros of this design are that resources change won't cause existing partitions to be re-assigned.  
-The cons are:
-
-1.  It's hard to ensure strict global uniform distribution.
-2.  Instance level capacity control is not possible given the algorithm doesn't have a global view of partition assignment.
-
-**Rebalance Algorithm Takes Partition Weight into Consideration**
-
-This algorithm still considers all partitions to be equally weighted. But in reality, different partitions may have different resource requirements.  
-Application admins need to configure partition weight and Helix should assignment them accordingly.
-
-Note this feature only makes sense when it is applied to a global assignment algorithm since each partition in the same resource are weighted the same.

@@ -82,7 +82,7 @@ public class TestZkConnectionLost extends TaskTestBase {
 
     WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-    _driver.pollForWorkflowState(scheduledQueue, 10000, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(scheduledQueue, 30000, TaskState.COMPLETED);
   }
 
   @Test(dependsOnMethods = { "testLostZkConnection" }, enabled = false)
@@ -108,7 +108,7 @@ public class TestZkConnectionLost extends TaskTestBase {
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
 
     try{
-      _driver.pollForWorkflowState(scheduledQueue, 10000, TaskState.COMPLETED);
+      _driver.pollForWorkflowState(scheduledQueue, 30000, TaskState.COMPLETED);
       Assert.fail("Test failure!");
     } catch (HelixException ex) {
       // test succeed

@@ -859,9 +859,10 @@ public class TaskDriver {
         .contains(ctx.getWorkflowState())) && System.currentTimeMillis() < st + timeout);
 
     if (ctx == null || !allowedStates.contains(ctx.getWorkflowState())) {
-      throw new HelixException(String
-          .format("Workflow \"%s\" context is empty or not in states: \"%s\"", workflowName,
-              targetStates));
+      throw new HelixException(String.format(
+          "Workflow \"%s\" context is empty or not in states: \"%s\", current state: \"%s\"",
+          workflowName, targetStates.toString(),
+          ctx == null ? "null" : ctx.getWorkflowState().toString()));
     }
 
     return ctx.getWorkflowState();

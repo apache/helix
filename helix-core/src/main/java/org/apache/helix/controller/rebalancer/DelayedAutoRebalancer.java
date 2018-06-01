@@ -148,12 +148,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     Map<String, Map<String, String>> currentMapping =
         currentMapping(currentStateOutput, resourceName, allPartitions, stateCountMap);
 
-
-    List<String> partitionsToAssign = new ArrayList<>(allPartitions);
-    partitionsToAssign.removeAll(userDefinedPreferenceList.keySet());
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
     _rebalanceStrategy =
-        getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), partitionsToAssign, resourceName,
+        getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), allPartitions, resourceName,
             stateCountMap, maxPartition);
 
     // sort node lists to ensure consistent preferred assignments

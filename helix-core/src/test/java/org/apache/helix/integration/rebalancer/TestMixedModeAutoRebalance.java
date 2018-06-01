@@ -21,11 +21,14 @@ package org.apache.helix.integration.rebalancer;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
@@ -102,25 +105,27 @@ public class TestMixedModeAutoRebalance extends ZkIntegrationTestBase {
 
   @DataProvider(name = "stateModels")
   public static Object [][] stateModels() {
-    return new Object[][] { {BuiltInStateModelDefinitions.MasterSlave.name(), true},
-        {BuiltInStateModelDefinitions.OnlineOffline.name(), true},
-        {BuiltInStateModelDefinitions.LeaderStandby.name(), true},
-        {BuiltInStateModelDefinitions.MasterSlave.name(), false},
-        {BuiltInStateModelDefinitions.OnlineOffline.name(), false},
-        {BuiltInStateModelDefinitions.LeaderStandby.name(), false},
+    return new Object[][] { {BuiltInStateModelDefinitions.MasterSlave.name(), true, CrushRebalanceStrategy.class.getName()},
+        {BuiltInStateModelDefinitions.OnlineOffline.name(), true, CrushRebalanceStrategy.class.getName()},
+        {BuiltInStateModelDefinitions.LeaderStandby.name(), true, CrushRebalanceStrategy.class.getName()},
+        {BuiltInStateModelDefinitions.MasterSlave.name(), false, CrushRebalanceStrategy.class.getName()},
+        {BuiltInStateModelDefinitions.OnlineOffline.name(), false, CrushRebalanceStrategy.class.getName()},
+        {BuiltInStateModelDefinitions.LeaderStandby.name(), false, CrushRebalanceStrategy.class.getName()},
+        {BuiltInStateModelDefinitions.MasterSlave.name(), true, CrushEdRebalanceStrategy.class.getName()},
+        {BuiltInStateModelDefinitions.OnlineOffline.name(), true, CrushEdRebalanceStrategy.class.getName()}
     };
   }
 
   @Test(dataProvider = "stateModels")
   public void testUserDefinedPreferenceListsInFullAuto(
-      String stateModel, boolean delayEnabled) throws Exception {
+      String stateModel, boolean delayEnabled, String rebalanceStrateyName) throws Exception {
     String db = "Test-DB-" + stateModel;
     if (delayEnabled) {
       createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
-          _replica - 1, 200, CrushRebalanceStrategy.class.getName());
+          _replica - 1, 200, rebalanceStrateyName);
     } else {
       createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
-          _replica, 0, CrushRebalanceStrategy.class.getName());
+          _replica, 0, rebalanceStrateyName);
     }
     IdealState idealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
@@ -142,12 +147,18 @@ public class TestMixedModeAutoRebalance extends ZkIntegrationTestBase {
 
     //TODO: Trigger rebalancer, remove this once Helix controller is listening on resource config changes.
     RebalanceScheduler.invokeRebalance(_dataAccessor, db);
+    Assert.assertTrue(_clusterVerifier.verify(1000));
+    verifyUserDefinedPreferenceLists(db, userDefinedPreferenceLists, userDefinedPartitions);
 
     while (userDefinedPartitions.size() > 0) {
-      Thread.sleep(100);
-      Assert.assertTrue(_clusterVerifier.verify());
-      verifyUserDefinedPreferenceLists(db, userDefinedPreferenceLists, userDefinedPartitions);
+      IdealState originIS = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      Set<String> nonUserDefinedPartitions = new HashSet<>(originIS.getPartitionSet());
+      nonUserDefinedPartitions.removeAll(userDefinedPartitions);
+
       removePartitionFromUserDefinedList(db, userDefinedPartitions);
+      Assert.assertTrue(_clusterVerifier.verify(1000));
+      verifyUserDefinedPreferenceLists(db, userDefinedPreferenceLists, userDefinedPartitions);
+      verifyNonUserDefinedAssignment(db, originIS, nonUserDefinedPartitions);
     }
   }
 
@@ -212,6 +223,18 @@ public class TestMixedModeAutoRebalance extends ZkIntegrationTestBase {
         Assert.assertFalse(userDefined.equals(preferenceListInIs), String
             .format("Partition %s, List in Is: %s, List as defined in config: %s", p, preferenceListInIs,
                 userDefined));
+      }
+    }
+  }
+
+  private void verifyNonUserDefinedAssignment(String db, IdealState originIS, Set<String> nonUserDefinedPartitions)
+      throws InterruptedException {
+    IdealState newIS = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+    Assert.assertEquals(originIS.getPartitionSet(), newIS.getPartitionSet());
+    for (String p : newIS.getPartitionSet()) {
+      if (nonUserDefinedPartitions.contains(p)) {
+        // for non user defined partition, mapping should keep the same
+        Assert.assertEquals(newIS.getPreferenceList(p), originIS.getPreferenceList(p));
       }
     }
   }

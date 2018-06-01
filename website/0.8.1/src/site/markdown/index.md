@@ -52,3 +52,7 @@ under the License.
 ### Operation
 
 [Monitoring Metrics](./Metrics.html)
+
+### Design
+
+[CRUSH-ed for even distribution](./design_crushed.html)

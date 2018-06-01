@@ -258,8 +258,10 @@ public class JobRebalancer extends TaskRebalancer {
 
     addGiveupPartitions(skippedPartitions, jobCtx, allPartitions, jobCfg);
 
-    if (jobState == TaskState.IN_PROGRESS && skippedPartitions.size() > jobCfg
-        .getFailureThreshold()) {
+    if (jobState == TaskState.IN_PROGRESS && skippedPartitions.size() > jobCfg.getFailureThreshold()
+        || (jobCfg.getTargetResource() != null
+        && cache.getIdealState(jobCfg.getTargetResource()) != null && !cache
+        .getIdealState(jobCfg.getTargetResource()).isEnabled())) {
       if (isJobFinished(jobCtx, jobResource, currStateOutput)) {
         failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap());
         return buildEmptyAssignment(jobResource, currStateOutput);

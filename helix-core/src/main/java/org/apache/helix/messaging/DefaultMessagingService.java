@@ -321,8 +321,8 @@ public class DefaultMessagingService implements ClusterMessagingService {
       int timeOut, int retryCount) {
     int messagesSent = send(receipientCriteria, message, asyncCallback, timeOut, retryCount);
     if (messagesSent > 0) {
-      while (!asyncCallback.isDone() && !asyncCallback.isTimedOut()) {
-        synchronized (asyncCallback) {
+      synchronized (asyncCallback) {
+        while (!asyncCallback.isDone() && !asyncCallback.isTimedOut()) {
           try {
             asyncCallback.wait();
           } catch (InterruptedException e) {

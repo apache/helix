@@ -37,10 +37,14 @@ import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
+
+  private static Logger LOG = LoggerFactory.getLogger(TestZkCallbackHandlerLeak.class);
 
   @Test
   public void testCbHandlerLeakOnParticipantSessionExpiry() throws Exception {
@@ -126,8 +130,9 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     ZkTestHelper.expireSession(participantManagerToExpire.getZkClient());
     String newSessionId = participantManagerToExpire.getSessionId();
-    System.out.println("Expried participant session. oldSessionId: " + oldSessionId
-        + ", newSessionId: " + newSessionId);
+    System.out.println(
+        "Expried participant session. oldSessionId: " + oldSessionId + ", newSessionId: "
+            + newSessionId);
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
@@ -237,7 +242,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManager.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, 11,
+    Assert.assertEquals(controllerHandlerNb, 7 + 2 * n,
         "HelixController should have 10 (6+2n) callback handlers for 2 participant, but was "
             + controllerHandlerNb + ", " + printHandlers(controller));
     Assert.assertEquals(particHandlerNb, 1,

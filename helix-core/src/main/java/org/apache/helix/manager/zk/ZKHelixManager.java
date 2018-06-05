@@ -68,7 +68,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public static final int FLAPPING_TIME_WINDOW = 300000; // Default to 300 sec
   public static final int MAX_DISCONNECT_THRESHOLD = 5;
   public static final String ALLOW_PARTICIPANT_AUTO_JOIN = "allowParticipantAutoJoin";
-  private static final int DEFAULT_CONNECTION_ESTABLISHMENT_RETRY_TIMEOUT = 120000; // Default to 120 sec
   private static final int DEFAULT_WAIT_CONNECTED_TIMEOUT = 10 * 1000;  // wait until connected for up to 10 seconds.
 
   protected final String _zkAddress;
@@ -78,7 +77,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private final int _waitForConnectedTimeout; // wait time for testing connect
   private final int _sessionTimeout; // client side session timeout, will be overridden by server timeout. Disconnect after timeout
   private final int _connectionInitTimeout; // client timeout to init connect
-  private final int _connectionRetryTimeout; // retry when connect being re-established
   private final List<PreConnectCallback> _preConnectCallbacks;
   protected final List<CallbackHandler> _handlers;
   private final HelixManagerProperties _properties;
@@ -232,10 +230,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _connectionInitTimeout = HelixUtil
         .getSystemPropertyAsInt(SystemPropertyKeys.ZK_CONNECTION_TIMEOUT,
             ZkClient.DEFAULT_CONNECTION_TIMEOUT);
-
-    _connectionRetryTimeout = HelixUtil
-        .getSystemPropertyAsInt(SystemPropertyKeys.ZK_REESTABLISHMENT_CONNECTION_TIMEOUT,
-            DEFAULT_CONNECTION_ESTABLISHMENT_RETRY_TIMEOUT);
 
     _waitForConnectedTimeout = HelixUtil
         .getSystemPropertyAsInt(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT,
@@ -1060,38 +1054,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public void handleSessionEstablishmentError(Throwable error) throws Exception {
-    LOG.warn("Handling Session Establishment Error. Try to reset connection.", error);
+    LOG.warn("Handling Session Establishment Error. Disconnect Helix Manager.", error);
     // Cleanup ZKHelixManager
     if (_zkclient != null) {
       _zkclient.close();
     }
     disconnect();
-    // Try to establish connections
-    long operationStartTime = System.currentTimeMillis();
-    while (!isConnected()) {
-      try {
-        connect();
-        break;
-      } catch (Exception e) {
-        if (System.currentTimeMillis() - operationStartTime >= _connectionRetryTimeout) {
-          break;
-        }
-        // If retry fails, use the latest exception.
-        error = e;
-        LOG.error("Fail to reset connection after session establishment error happens. Will retry.", error);
-        // Yield until next retry.
-        Thread.yield();
-      }
-    }
 
-    if (!isConnected()) {
-      LOG.error("Fail to reset connection after session establishment error happens.", error);
-      // retry failed, trigger error handler
-      if (_stateListener != null) {
-        _stateListener.onDisconnected(this, error);
-      }
-    } else {
-      LOG.info("Connection is recovered.");
+    if (_stateListener != null) {
+      _stateListener.onDisconnected(this, error);
     }
   }
 

@@ -45,6 +45,7 @@ import org.apache.helix.manager.zk.PathBasedZkSerializer;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks;
 import org.apache.helix.manager.zk.zookeeper.ZkEventThread.ZkEvent;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
+import org.apache.helix.util.ExponentialBackoffStrategy;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
@@ -67,6 +68,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ZkClient implements Watcher {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
+  private static long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
 
   protected final IZkConnection _connection;
   protected final long operationRetryTimeoutInMillis;
@@ -783,16 +785,40 @@ public class ZkClient implements Watcher {
     }
     fireStateChangedEvent(event.getState());
     if (event.getState() == KeeperState.Expired) {
+      reconnectOnExpiring();
+    }
+  }
+
+  private void reconnectOnExpiring() {
+    int retryCount = 0;
+    ExponentialBackoffStrategy retryStrategy =
+        new ExponentialBackoffStrategy(MAX_RECONNECT_INTERVAL_MS, true);
+
+    Exception reconnectException = new ZkException("Shutdown triggered.");
+    while (!_closed) {
       try {
         reconnect();
         fireNewSessionEvents();
-      } catch (final Exception e) {
-        LOG.warn(
-            "Unable to re-establish connection. Notifying consumer of the following exception: ",
-            e);
-        fireSessionEstablishmentError(e);
+        return;
+      } catch (ZkInterruptedException interrupt) {
+        reconnectException = interrupt;
+        break;
+      } catch (Exception e) {
+        reconnectException = e;
+        long waitInterval = retryStrategy.getNextWaitInterval(retryCount++);
+        LOG.warn("ZkClient reconnect on expiring failed. Will retry after {} ms", waitInterval, e);
+        try {
+          Thread.sleep(waitInterval);
+        } catch (InterruptedException ex) {
+          reconnectException = ex;
+          break;
+        }
       }
     }
+
+    LOG.info("Unable to re-establish connection. Notifying consumer of the following exception: ",
+        reconnectException);
+    fireSessionEstablishmentError(reconnectException);
   }
 
   private void fireNewSessionEvents() {
@@ -1437,6 +1463,9 @@ public class ZkClient implements Watcher {
    */
   public void connect(final long maxMsToWaitUntilConnected, Watcher watcher)
       throws ZkInterruptedException, ZkTimeoutException, IllegalStateException {
+    if (_closed) {
+      throw new IllegalStateException("ZkClient already closed!");
+    }
     boolean started = false;
     acquireEventLock();
     try {

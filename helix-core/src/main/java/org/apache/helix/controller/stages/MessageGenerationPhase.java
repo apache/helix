@@ -193,6 +193,12 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                   createStateTransitionMessage(manager, resource, partition.getPartitionName(),
                       instanceName, currentState, nextState, sessionIdMap.get(instanceName),
                       stateModelDef.getId());
+
+              if (logger.isDebugEnabled()) {
+                logger.debug(String.format(
+                    "Resource %s partition %s for instance %s with currentState %s and nextState %s",
+                    resource, partition.getPartitionName(), instanceName, currentState, nextState));
+              }
             }
           }
 

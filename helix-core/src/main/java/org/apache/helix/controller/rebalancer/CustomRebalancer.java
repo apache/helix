@@ -69,9 +69,6 @@ public class CustomRebalancer extends AbstractRebalancer {
 
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing resource:" + resource.getResourceName());
-    }
     partitionMapping = new ResourceAssignment(resource.getResourceName());
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
@@ -87,7 +84,10 @@ public class CustomRebalancer extends AbstractRebalancer {
     }
 
     cache.setCachedResourceAssignment(resource.getResourceName(), partitionMapping);
-
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(String.format("Processing resource:", resource.getResourceName()));
+      LOG.debug(String.format("Final Mapping of resource", partitionMapping.toString()));
+    }
     return partitionMapping;
   }
 

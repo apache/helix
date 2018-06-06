@@ -95,6 +95,9 @@ public class CurrentStateCache extends AbstractDataCache {
     long endTime = System.currentTimeMillis();
     LOG.info("END: CurrentStateCache.refresh() for cluster " + _clusterName + ", took " + (endTime
         - startTime) + " ms");
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(String.format("Current State freshed : ", _currentStateMap.toString()));
+    }
     return true;
   }
 

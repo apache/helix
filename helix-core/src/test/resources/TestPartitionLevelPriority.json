@@ -32,12 +32,6 @@
           "localhost_1" : "SLAVE",
           "localhost_2" : "SLAVE",
           "localhost_3" : "SLAVE"
-        },
-        "Partition_4" : {
-          "localhost_0" : "MASTER",
-          "localhost_1" : "SLAVE",
-          "localhost_2" : "SLAVE",
-          "localhost_3" : "SLAVE"
         }
       },
       "CurrentStateMap" : {
@@ -65,20 +59,13 @@
           "localhost_1" : "OFFLINE",
           "localhost_2" : "OFFLINE",
           "localhost_3" : "OFFLINE"
-        },
-        "Partition_4" : {
-          "localhost_0" : "SLAVE",
-          "localhost_1" : "MASTER",
-          "localhost_2" : "SLAVE",
-          "localhost_3" : "SLAVE"
         }
       },
       "ExpectedPriority" : [
         "Partition_2",
         "Partition_3",
         "Partition_1",
-        "Partition_0",
-        "Partition_4"
+        "Partition_0"
       ]
     },
     {

@@ -19,8 +19,6 @@ package org.apache.helix.webapp;
  * under the License.
  */
 
-import java.util.logging.Level;
-
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.TestHelper;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -28,13 +26,15 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.helix.webapp.AdminTestHelper.AdminThread;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.restlet.Client;
 import org.restlet.data.Protocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
+
+import java.util.logging.Level;
 
 public class AdminTestBase {
   private static Logger LOG = LoggerFactory.getLogger(AdminTestBase.class);
@@ -60,8 +60,8 @@ public class AdminTestBase {
     ZKClientPool.reset();
 
     _gZkClient =
-        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
-            ZkClient.DEFAULT_SESSION_TIMEOUT, new ZNRecordSerializer());
+        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_SESSION_TIMEOUT, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
+            new ZNRecordSerializer());
     _gSetupTool = new ClusterSetup(_gZkClient);
 
     // start admin

@@ -2,13 +2,9 @@ package org.apache.helix.integration;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixException;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -28,6 +24,12 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class TestZkConnectionLost extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestZkConnectionLost.class);
@@ -65,53 +67,63 @@ public class TestZkConnectionLost extends TaskTestBase {
 
   @Test
   public void testLostZkConnection() throws Exception {
-    System.setProperty("helixmanager.waitForConnectedTimeout", "1000");
-    System.setProperty("zk.session.timeout", "1000");
-    String queueName = TestHelper.getTestMethodName();
+    System.setProperty(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT, "1000");
+    System.setProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT, "1000");
+    try {
+      String queueName = TestHelper.getTestMethodName();
 
-    startParticipants(_zkAddr);
+      startParticipants(_zkAddr);
 
-    // Create a queue
-    LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 6000);
-    createAndEnqueueJob(queueBuild, 3);
+      // Create a queue
+      LOG.info("Starting job-queue: " + queueName);
+      JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 6000);
+      createAndEnqueueJob(queueBuild, 3);
 
-    _driver.start(queueBuild.build());
+      _driver.start(queueBuild.build());
 
-    restartZkServer();
+      restartZkServer();
 
-    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
-    String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-    _driver.pollForWorkflowState(scheduledQueue, 30000, TaskState.COMPLETED);
+      WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+      String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+      _driver.pollForWorkflowState(scheduledQueue, 30000, TaskState.COMPLETED);
+    } finally {
+      System.clearProperty(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT);
+      System.clearProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT);
+    }
   }
 
   @Test(dependsOnMethods = { "testLostZkConnection" }, enabled = false)
-  public void testLostZkConnectionNegative()
-      throws Exception {
-    System.setProperty("helixmanager.waitForConnectedTimeout", "10");
-    System.setProperty("zk.session.timeout", "1000");
-    String queueName = TestHelper.getTestMethodName();
+  public void testLostZkConnectionNegative() throws Exception {
+    System.setProperty(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT, "10");
+    System.setProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT, "1000");
 
-    stopParticipants();
-    startParticipants(_zkAddr);
+    try {
+      String queueName = TestHelper.getTestMethodName();
 
-    LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 6000);
-    createAndEnqueueJob(queueBuild, 3);
+      stopParticipants();
+      startParticipants(_zkAddr);
 
-    _driver.start(queueBuild.build());
+      LOG.info("Starting job-queue: " + queueName);
+      JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 6000);
+      createAndEnqueueJob(queueBuild, 3);
 
-    restartZkServer();
+      _driver.start(queueBuild.build());
 
-    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
-    // ensure job 1 is started before stop it
-    String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+      restartZkServer();
 
-    try{
-      _driver.pollForWorkflowState(scheduledQueue, 30000, TaskState.COMPLETED);
-      Assert.fail("Test failure!");
-    } catch (HelixException ex) {
-      // test succeed
+      WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+      // ensure job 1 is started before stop it
+      String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+
+      try {
+        _driver.pollForWorkflowState(scheduledQueue, 30000, TaskState.COMPLETED);
+        Assert.fail("Test failure!");
+      } catch (HelixException ex) {
+        // test succeed
+      }
+    } finally {
+      System.clearProperty(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT);
+      System.clearProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT);
     }
   }
 

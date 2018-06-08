@@ -150,12 +150,12 @@ public class GenericHelixController implements IdealStateChangeListener,
    */
   public GenericHelixController() {
     this(createDefaultRegistry(PipelineTypes.DEFAULT.name()),
-        createDefaultRegistry(PipelineTypes.TASK.name()));
+        createTaskRegistry(PipelineTypes.TASK.name()));
   }
 
   public GenericHelixController(String clusterName) {
     this(createDefaultRegistry(PipelineTypes.DEFAULT.name()),
-        createDefaultRegistry(PipelineTypes.TASK.name()), clusterName);
+        createTaskRegistry(PipelineTypes.TASK.name()), clusterName);
   }
 
   class RebalanceTask extends TimerTask {
@@ -281,9 +281,59 @@ public class GenericHelixController implements IdealStateChangeListener,
       registry.register(ClusterEventType.ClusterConfigChange, dataRefresh, dataPreprocess, rebalancePipeline);
       registry.register(ClusterEventType.LiveInstanceChange, dataRefresh, liveInstancePipeline, dataPreprocess, externalViewPipeline, rebalancePipeline);
       registry.register(ClusterEventType.MessageChange, dataRefresh, dataPreprocess, rebalancePipeline);
-      registry.register(ClusterEventType.ExternalViewChange, dataRefresh);
       registry.register(ClusterEventType.Resume, dataRefresh, dataPreprocess, externalViewPipeline, rebalancePipeline);
       registry.register(ClusterEventType.PeriodicalRebalance, dataRefresh, dataPreprocess, externalViewPipeline, rebalancePipeline);
+      return registry;
+    }
+  }
+
+  private static PipelineRegistry createTaskRegistry(String pipelineName) {
+    logger.info("createDefaultRegistry");
+    synchronized (GenericHelixController.class) {
+      PipelineRegistry registry = new PipelineRegistry();
+
+      // cluster data cache refresh
+      Pipeline dataRefresh = new Pipeline(pipelineName);
+      dataRefresh.addStage(new ReadClusterDataStage());
+
+      // data pre-process pipeline
+      Pipeline dataPreprocess = new Pipeline(pipelineName);
+      dataPreprocess.addStage(new ResourceComputationStage());
+      dataPreprocess.addStage(new ResourceValidationStage());
+      dataPreprocess.addStage(new CurrentStateComputationStage());
+
+      // rebalance pipeline
+      // TODO: Junkai will work on refactoring existing pipeline log into abstract logic and
+      // extend the logic to separate pipeline
+      Pipeline rebalancePipeline = new Pipeline(pipelineName);
+      rebalancePipeline.addStage(new BestPossibleStateCalcStage());
+      rebalancePipeline.addStage(new IntermediateStateCalcStage());
+      rebalancePipeline.addStage(new MessageGenerationPhase());
+      rebalancePipeline.addStage(new MessageSelectionStage());
+      rebalancePipeline.addStage(new MessageThrottleStage());
+      rebalancePipeline.addStage(new TaskAssignmentStage());
+
+      // backward compatibility check
+      Pipeline liveInstancePipeline = new Pipeline(pipelineName);
+      liveInstancePipeline.addStage(new CompatibilityCheckStage());
+
+      registry.register(ClusterEventType.IdealStateChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
+      registry.register(ClusterEventType.CurrentStateChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
+      registry.register(ClusterEventType.InstanceConfigChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
+      registry.register(ClusterEventType.ResourceConfigChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
+      registry.register(ClusterEventType.ClusterConfigChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
+      registry.register(ClusterEventType.LiveInstanceChange, dataRefresh, liveInstancePipeline,
+          dataPreprocess, rebalancePipeline);
+      registry
+          .register(ClusterEventType.MessageChange, dataRefresh, dataPreprocess, rebalancePipeline);
+      registry.register(ClusterEventType.Resume, dataRefresh, dataPreprocess, rebalancePipeline);
+      registry.register(ClusterEventType.PeriodicalRebalance, dataRefresh, dataPreprocess,
+          rebalancePipeline);
       return registry;
     }
   }

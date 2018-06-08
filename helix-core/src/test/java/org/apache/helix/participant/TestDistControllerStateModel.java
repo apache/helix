@@ -28,6 +28,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.DistClusterControllerStateModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -44,6 +45,13 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
       _gZkClient.deleteRecursively("/" + clusterName);
     }
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
+  }
+
+  @AfterMethod
+  public void afterMethod() throws Exception {
+    if (_gZkClient.exists("/" + clusterName)) {
+      TestHelper.dropCluster(clusterName, _gZkClient);
+    }
   }
 
   @Test()

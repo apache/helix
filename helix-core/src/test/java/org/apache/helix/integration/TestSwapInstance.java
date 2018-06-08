@@ -35,8 +35,8 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
   public void TestSwap() throws Exception {
     HelixManager manager = _controller;
     HelixDataAccessor helixAccessor = manager.getHelixDataAccessor();
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", 64, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", _replica);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", 64, STATE_MODEL);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", _replica);
 
     ZNRecord idealStateOld1 = new ZNRecord("TestDB");
     ZNRecord idealStateOld2 = new ZNRecord("MyDB");
@@ -51,8 +51,7 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
         .verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME)));
 
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
-    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
-    _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
@@ -60,11 +59,11 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
     Assert.assertTrue(result);
 
     String instanceName2 = PARTICIPANT_PREFIX + "_" + (START_PORT + 444);
-    _setupTool.addInstanceToCluster(CLUSTER_NAME, instanceName2);
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instanceName2);
 
     boolean exception = false;
     try {
-      _setupTool.swapInstance(CLUSTER_NAME, instanceName, instanceName2);
+      _gSetupTool.swapInstance(CLUSTER_NAME, instanceName, instanceName2);
     } catch (Exception e) {
       exception = true;
     }
@@ -75,7 +74,7 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
 
     exception = false;
     try {
-      _setupTool.swapInstance(CLUSTER_NAME, instanceName, instanceName2);
+      _gSetupTool.swapInstance(CLUSTER_NAME, instanceName, instanceName2);
     } catch (Exception e) {
       e.printStackTrace();
       exception = true;

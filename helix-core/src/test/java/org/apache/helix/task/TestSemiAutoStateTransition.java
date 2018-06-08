@@ -47,22 +47,16 @@ public class TestSemiAutoStateTransition extends TaskTestBase {
     _participants =  new MockParticipantManager[_numNodes];
     _numParitions = 1;
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-
-    _setupTool = new ClusterSetup(ZK_ADDR);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
     _accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     _keyBuilder = _accessor.keyBuilder();
     setupParticipants();
 
     for (int i = 0; i < _numDbs; i++) {
       String db = WorkflowGenerator.DEFAULT_TGT_DB + i;
-      _setupTool.addResourceToCluster(CLUSTER_NAME, db, _numParitions, MASTER_SLAVE_STATE_MODEL,
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, _numParitions, MASTER_SLAVE_STATE_MODEL,
           IdealState.RebalanceMode.SEMI_AUTO.toString());
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _numReplicas);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _numReplicas);
       _testDbs.add(db);
     }
 

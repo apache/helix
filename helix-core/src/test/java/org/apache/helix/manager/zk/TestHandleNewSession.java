@@ -23,12 +23,12 @@ import java.util.Date;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestHandleNewSession extends ZkIntegrationTestBase {
+public class TestHandleNewSession extends ZkTestBase {
   @Test
   public void testHandleNewSession() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -72,6 +72,7 @@ public class TestHandleNewSession extends ZkIntegrationTestBase {
     // Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("Disconnecting ...");
     participant.syncStop();
+    _gSetupTool.deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 

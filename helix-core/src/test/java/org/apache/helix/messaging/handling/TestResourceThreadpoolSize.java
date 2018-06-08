@@ -52,8 +52,8 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
   public void TestThreadPoolSizeConfig() {
     setResourceThreadPoolSize("NextDB", 12);
 
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "NextDB", 64, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "NextDB", 3);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "NextDB", 64, STATE_MODEL);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "NextDB", 3);
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
@@ -84,26 +84,26 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     }
 
     // add db with default thread pool
-    _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "1", 64,
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "1", 64,
         STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "1", 3);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "1", 3);
 
     // add db with customized thread pool
     IdealState idealState = new FullAutoModeISBuilder(WorkflowGenerator.DEFAULT_TGT_DB + "2")
         .setStateModel(ONLINE_OFFLINE).setStateModelFactoryName(TEST_FACTORY).setNumPartitions(10)
         .setNumReplica(1).build();
-    _setupTool.getClusterManagementTool()
+    _gSetupTool.getClusterManagementTool()
         .addResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "2", idealState);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "2", 1);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "2", 1);
 
     // add db with configured pool size
     idealState = new FullAutoModeISBuilder(WorkflowGenerator.DEFAULT_TGT_DB + "3")
         .setStateModel(ONLINE_OFFLINE).setStateModelFactoryName(TEST_FACTORY).setNumPartitions(10)
         .setNumReplica(1).build();
-    _setupTool.getClusterManagementTool()
+    _gSetupTool.getClusterManagementTool()
         .addResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "3", idealState);
     setResourceThreadPoolSize(WorkflowGenerator.DEFAULT_TGT_DB + "3", configuredPoolSize);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "3", 1);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "3", 1);
 
     boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
@@ -141,9 +141,9 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     IdealState idealState = new FullAutoModeISBuilder(WorkflowGenerator.DEFAULT_TGT_DB + "4")
         .setStateModel(MASTER_SLAVE).setStateModelFactoryName(TEST_FACTORY).setNumPartitions(10)
         .setNumReplica(1).build();
-    _setupTool.getClusterManagementTool()
+    _gSetupTool.getClusterManagementTool()
         .addResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "4", idealState);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "4", 1);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "4", 1);
 
     Thread.sleep(2000);
 
@@ -182,8 +182,8 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
       IdealState idealState = new FullAutoModeISBuilder(dbName).setStateModel("OnlineOffline")
           .setStateModelFactoryName("TestFactory").setNumPartitions(10).setNumReplica(1).build();
       idealState.setBatchMessageMode(true);
-      _setupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
+      _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
     }
     Thread.sleep(2000L);
 

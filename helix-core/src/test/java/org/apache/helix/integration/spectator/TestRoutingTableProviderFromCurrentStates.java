@@ -9,14 +9,13 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyType;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.spectator.RoutingTableProvider;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
@@ -24,9 +23,8 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestRoutingTableProviderFromCurrentStates extends ZkIntegrationTestBase {
+public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
   private HelixManager _manager;
-  private ClusterSetup _setupTool;
   private final int NUM_NODES = 10;
   protected int NUM_PARTITIONS = 20;
   protected int NUM_REPLICAS = 3;
@@ -37,19 +35,11 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkIntegrationTest
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    String namespace = "/" + CLUSTER_NAME;
-    _participants =  new MockParticipantManager[NUM_NODES];
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-
-    _setupTool = new ClusterSetup(ZK_ADDR);
-    _setupTool.addCluster(CLUSTER_NAME, true);
-
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
     _participants = new MockParticipantManager[NUM_NODES];
     for (int i = 0; i < NUM_NODES; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
 
     for (int i = 0; i < NUM_NODES; i++) {
@@ -74,11 +64,24 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkIntegrationTest
 
   @AfterClass
   public void afterClass() throws Exception {
-    _manager.disconnect();
+    /**
+     * shutdown order: 1) disconnect the controller 2) disconnect participants
+     */
+    if (_controller != null && _controller.isConnected()) {
+      _controller.syncStop();
+    }
     for (int i = 0; i < NUM_NODES; i++) {
       if (_participants[i] != null && _participants[i].isConnected()) {
-        _participants[i].reset();
+        _participants[i].syncStop();
       }
+    }
+    if (_manager != null && _manager.isConnected()) {
+      _manager.disconnect();
+    }
+
+    String namespace = "/" + CLUSTER_NAME;
+    if (_gZkClient.exists(namespace)) {
+      _gSetupTool.deleteCluster(CLUSTER_NAME);
     }
   }
 
@@ -90,8 +93,8 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkIntegrationTest
 
     try {
       String db1 = "TestDB-1";
-      _setupTool.addResourceToCluster(CLUSTER_NAME, db1, NUM_PARTITIONS, "MasterSlave", IdealState.RebalanceMode.FULL_AUTO.name());
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db1, NUM_REPLICAS);
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db1, NUM_PARTITIONS, "MasterSlave", IdealState.RebalanceMode.FULL_AUTO.name());
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db1, NUM_REPLICAS);
 
       Thread.sleep(200);
       HelixClusterVerifier clusterVerifier =
@@ -99,19 +102,19 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkIntegrationTest
       Assert.assertTrue(clusterVerifier.verify());
 
       IdealState idealState1 =
-          _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db1);
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db1);
       validate(idealState1, routingTableEV, routingTableCurrentStates);
 
       // add new DB
       String db2 = "TestDB-2";
-      _setupTool.addResourceToCluster(CLUSTER_NAME, db2, NUM_PARTITIONS, "MasterSlave", IdealState.RebalanceMode.FULL_AUTO.name());
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, NUM_REPLICAS);
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db2, NUM_PARTITIONS, "MasterSlave", IdealState.RebalanceMode.FULL_AUTO.name());
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, NUM_REPLICAS);
 
       Thread.sleep(200);
       Assert.assertTrue(clusterVerifier.verify());
 
       IdealState idealState2 =
-          _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db2);
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db2);
       validate(idealState2, routingTableEV, routingTableCurrentStates);
 
       // shutdown an instance

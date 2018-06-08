@@ -23,7 +23,7 @@ import java.util.Date;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase {
+public class TestStandAloneCMSessionExpiry extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestStandAloneCMSessionExpiry.class);
 
   @Test()

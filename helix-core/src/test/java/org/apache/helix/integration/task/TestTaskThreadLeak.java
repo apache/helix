@@ -50,9 +50,9 @@ public class TestTaskThreadLeak extends TaskTestBase {
     String lastJob = null;
     for (int i = 0; i < 5; i++) {
       String db = TestHelper.getTestMethodName() + "_" + i;
-      _setupTool.addResourceToCluster(CLUSTER_NAME, db, 20, MASTER_SLAVE_STATE_MODEL,
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, 20, MASTER_SLAVE_STATE_MODEL,
           IdealState.RebalanceMode.FULL_AUTO.name());
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, 1);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, 1);
       JobConfig.Builder jobBuilder =
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(db)
               .setNumConcurrentTasksPerInstance(100);

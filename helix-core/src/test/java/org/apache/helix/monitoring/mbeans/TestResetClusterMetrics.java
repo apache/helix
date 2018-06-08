@@ -72,6 +72,7 @@ public class TestResetClusterMetrics extends ZkUnitTestBase {
 
     // Stop the controller
     controller.syncStop();
+    TestHelper.dropCluster(clusterName, _gZkClient);
 
     // Check the metrics
     Thread.sleep(1000);

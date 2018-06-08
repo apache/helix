@@ -45,7 +45,7 @@ public class TestTaskAssignment extends TaskTestBase {
 
   @Test
   public void testTaskAssignment() throws InterruptedException {
-    _setupTool.getClusterManagementTool()
+    _gSetupTool.getClusterManagementTool()
         .enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_" + (_startPort + 0), false);
     String jobResource = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)

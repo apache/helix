@@ -50,12 +50,8 @@ public class TestJobStateOnCreation extends TaskSynchronizedTestBase {
     _resource = new Resource(WORKFLOW_NAME);
     _currStateOutput = new CurrentStateOutput();
     _participants =  new MockParticipantManager[_numNodes];
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-    _setupTool = new ClusterSetup(ZK_ADDR);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
     createManagers();
   }
 

@@ -54,22 +54,16 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     // Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-    _setupTool = new ClusterSetup(ZK_ADDR);
-
     // setup storage cluster
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
 
-    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 100, "OnlineOffline",
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 100, "OnlineOffline",
         RebalanceMode.FULL_AUTO + "", 0, 25);
     for (int i = 0; i < NODE_NR; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 1);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 1);
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
@@ -134,7 +128,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     // add 2 nodes
     for (int i = 0; i < 2; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (1000 + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
 
       String newInstanceName = storageNodeName.replace(':', '_');
       MockParticipantManager participant =

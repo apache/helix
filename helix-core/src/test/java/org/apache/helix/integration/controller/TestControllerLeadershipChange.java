@@ -28,7 +28,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
@@ -36,7 +36,7 @@ import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestControllerLeadershipChange extends ZkIntegrationTestBase{
+public class TestControllerLeadershipChange extends ZkTestBase {
 
   @Test
   public void testMissingTopStateDurationMonitoring() throws Exception {

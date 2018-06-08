@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -35,7 +35,7 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestErrorPartition extends ZkIntegrationTestBase {
+public class TestErrorPartition extends ZkTestBase {
   @Test()
   public void testErrorPartition() throws Exception {
     String clusterName = getShortClassName();

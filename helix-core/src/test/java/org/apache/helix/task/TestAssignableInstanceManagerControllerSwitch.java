@@ -58,7 +58,7 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
       String instanceName = liveInstance.getInstanceName();
       liveInstanceMap.put(instanceName, liveInstance);
       instanceConfigMap.put(instanceName,
-          _setupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceName));
+          _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceName));
     }
 
     // Get ClusterConfig

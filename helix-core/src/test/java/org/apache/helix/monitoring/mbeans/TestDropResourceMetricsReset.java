@@ -98,6 +98,7 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
     for (MockParticipantManager participant : participants) {
       participant.syncStop();
     }
+    TestHelper.dropCluster(clusterName, _gZkClient);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 

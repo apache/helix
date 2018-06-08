@@ -35,7 +35,7 @@ import javax.management.QueryExp;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
@@ -54,7 +54,7 @@ import org.testng.annotations.Test;
  * when a Participant is disabled.
  *
  */
-public class TestClusterAggregateMetrics extends ZkIntegrationTestBase {
+public class TestClusterAggregateMetrics extends ZkTestBase {
 
   // Configurable values for test setup
   private static final int NUM_PARTICIPANTS = 3;

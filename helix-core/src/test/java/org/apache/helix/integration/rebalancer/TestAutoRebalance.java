@@ -55,33 +55,27 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
     // Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-    _setupTool = new ClusterSetup(_gZkClient);
-
     // setup storage cluster
-    _setupTool.addCluster(CLUSTER_NAME, true);
-    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL,
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL,
         RebalanceMode.FULL_AUTO + "");
 
-    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, _PARTITIONS, "OnlineOffline",
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, db2, _PARTITIONS, "OnlineOffline",
         RebalanceMode.FULL_AUTO + "");
 
     for (int i = 0; i < NODE_NR; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
 
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);
 
     for (int i = 0; i < 3; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _setupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, storageNodeName, _tag);
+      _gSetupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, storageNodeName, _tag);
     }
 
-    _setupTool.rebalanceCluster(CLUSTER_NAME, db2, 1, "ucpx", _tag);
+    _gSetupTool.rebalanceCluster(CLUSTER_NAME, db2, 1, "ucpx", _tag);
 
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++) {
@@ -108,10 +102,10 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
   @Test()
   public void testDropResourceAutoRebalance() throws Exception {
     // add a resource to be dropped
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", _PARTITIONS, "OnlineOffline",
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", _PARTITIONS, "OnlineOffline",
         RebalanceMode.FULL_AUTO + "");
 
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 1);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 1);
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
@@ -126,10 +120,10 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
             "localhost_12921", "localhost_12922"), ZK_ADDR);
 
     // add a resource to be dropped
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", _PARTITIONS, "MasterSlave",
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", _PARTITIONS, "MasterSlave",
         RebalanceMode.FULL_AUTO + "");
 
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 1);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 1);
 
     result =
         ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
@@ -157,7 +151,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
     // add 2 nodes
     for (int i = 0; i < 2; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (1000 + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
 
       MockParticipantManager participant =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, storageNodeName.replace(':', '_'));

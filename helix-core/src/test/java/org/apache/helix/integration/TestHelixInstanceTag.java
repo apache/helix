@@ -43,10 +43,10 @@ public class TestHelixInstanceTag extends ZkStandAloneCMTestBase {
     int replica = 2;
     for (int i = 0; i < 2; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      _setupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, instanceName, DB2tag);
+      _gSetupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, instanceName, DB2tag);
     }
-    _setupTool.addResourceToCluster(CLUSTER_NAME, DB2, partitions, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, DB2, DB2tag, replica);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, DB2, partitions, STATE_MODEL);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, DB2, DB2tag, replica);
 
     boolean result =
         ClusterStateVerifier
@@ -72,10 +72,10 @@ public class TestHelixInstanceTag extends ZkStandAloneCMTestBase {
     replica = 3;
     for (int i = 1; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      _setupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, instanceName, DB3Tag);
+      _gSetupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, instanceName, DB3Tag);
     }
-    _setupTool.addResourceToCluster(CLUSTER_NAME, DB3, partitions, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, DB3, DB3Tag, replica);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, DB3, partitions, STATE_MODEL);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, DB3, DB3Tag, replica);
 
     result =
         ClusterStateVerifier

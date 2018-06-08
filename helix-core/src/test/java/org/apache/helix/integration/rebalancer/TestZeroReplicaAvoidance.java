@@ -29,7 +29,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockTransition;
@@ -38,21 +38,19 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZeroReplicaAvoidance extends ZkIntegrationTestBase implements
+public class TestZeroReplicaAvoidance extends ZkTestBase implements
     ExternalViewChangeListener, IdealStateChangeListener{
   final int NUM_NODE = 6;
   final int START_PORT = 12918;
   final String CLASS_NAME = getShortClassName();
   final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
-  ClusterSetup _setupTool = null;
   List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
   HelixClusterVerifier _clusterVerifier;
   boolean _testSuccess = true;
@@ -62,16 +60,11 @@ public class TestZeroReplicaAvoidance extends ZkIntegrationTestBase implements
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-    _setupTool = new ClusterSetup(_gZkClient);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     for (int i = 0; i < NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
       MockParticipantManager participant =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, storageNodeName);
       participant.setTransition(new DelayedTransition());
@@ -185,7 +178,7 @@ public class TestZeroReplicaAvoidance extends ZkIntegrationTestBase implements
       return;
     }
     for (ExternalView view : externalViewList) {
-      IdealState is = _setupTool.getClusterManagementTool()
+      IdealState is = _gSetupTool.getClusterManagementTool()
           .getResourceIdealState(CLUSTER_NAME, view.getResourceName());
       validateNoZeroReplica(is, view);
     }
@@ -197,7 +190,7 @@ public class TestZeroReplicaAvoidance extends ZkIntegrationTestBase implements
       return;
     }
     for (IdealState is : idealStates) {
-      ExternalView view = _setupTool.getClusterManagementTool()
+      ExternalView view = _gSetupTool.getClusterManagementTool()
           .getResourceExternalView(CLUSTER_NAME, is.getResourceName());
       validateNoZeroReplica(is, view);
     }

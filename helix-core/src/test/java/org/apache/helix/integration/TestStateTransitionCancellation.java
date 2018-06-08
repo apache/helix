@@ -66,13 +66,8 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     _numReplicas = 2;
     _verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
 
-    _setupTool = new ClusterSetup(ZK_ADDR);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants();
     setupDBs();
 
@@ -98,13 +93,13 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     Thread.sleep(2000);
 
     // Disable the resource
-    _setupTool.getClusterManagementTool()
+    _gSetupTool.getClusterManagementTool()
         .enableResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, false);
 
 
     // Wait for pipeline reaching final stage
     Assert.assertTrue(_verifier.verify());
-    ExternalView externalView = _setupTool.getClusterManagementTool()
+    ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     for (String partition : externalView.getPartitionSet()) {
       for (String currentState : externalView.getStateMap(partition).values()) {
@@ -122,19 +117,19 @@ public class TestStateTransitionCancellation extends TaskTestBase {
 
     // Reenable resource
     stateCleanUp();
-    _setupTool.getClusterManagementTool()
+    _gSetupTool.getClusterManagementTool()
         .enableResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, true);
 
     // Wait for assignment done
     Thread.sleep(2000);
 
     // Disable the resource
-    _setupTool.getClusterManagementTool()
+    _gSetupTool.getClusterManagementTool()
         .enableResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, false);
 
     // Wait for pipeline reaching final stage
     Thread.sleep(2000L);
-    ExternalView externalView = _setupTool.getClusterManagementTool()
+    ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     for (String partition : externalView.getPartitionSet()) {
       Assert.assertTrue(externalView.getStateMap(partition).values().contains("SLAVE"));
@@ -151,7 +146,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
 
     // Reenable resource
     stateCleanUp();
-    _setupTool.getClusterManagementTool()
+    _gSetupTool.getClusterManagementTool()
         .enableResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, true);
 
     // Wait for assignment done
@@ -159,7 +154,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     int numNodesToStart = 10;
     for (int i = 0; i < numNodesToStart; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (_startPort + _numNodes + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     MockParticipantManager[] newParticipants = new MockParticipantManager[numNodesToStart];
     registerParticipants(newParticipants, numNodesToStart, _startPort + _numNodes, 1000, -3000000L);
@@ -167,7 +162,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     // Wait for pipeline reaching final stage
     Thread.sleep(2000L);
     int numOfMasters = 0;
-    ExternalView externalView = _setupTool.getClusterManagementTool()
+    ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     for (String partition : externalView.getPartitionSet()) {
       if (externalView.getStateMap(partition).values().contains("MASTER")) {

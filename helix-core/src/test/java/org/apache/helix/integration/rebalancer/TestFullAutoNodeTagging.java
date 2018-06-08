@@ -160,6 +160,13 @@ public class TestFullAutoNodeTagging extends ZkUnitTestBase {
     boolean finalResult = TestHelper.verify(v, 10 * 1000);
     Assert.assertTrue(finalResult);
 
+    // clean up
+    controller.syncStop();
+    for (int i = 0; i < NUM_PARTICIPANTS; i++) {
+      participants[i].syncStop();
+    }
+    TestHelper.dropCluster(clusterName, _gZkClient);
+
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -220,6 +227,7 @@ public class TestFullAutoNodeTagging extends ZkUnitTestBase {
       participants[i].syncStop();
     }
     controller.syncStop();
+    TestHelper.dropCluster(clusterName, _gZkClient);
   }
 
   /**
@@ -312,6 +320,7 @@ public class TestFullAutoNodeTagging extends ZkUnitTestBase {
       }
     }
     controller.syncStop();
+    TestHelper.dropCluster(clusterName, _gZkClient);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 

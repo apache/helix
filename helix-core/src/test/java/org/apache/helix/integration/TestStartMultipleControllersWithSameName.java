@@ -24,13 +24,13 @@ import java.util.Date;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestStartMultipleControllersWithSameName extends ZkIntegrationTestBase {
+public class TestStartMultipleControllersWithSameName extends ZkTestBase {
   @Test
   public void test() throws Exception {
     String className = TestHelper.getTestClassName();
@@ -67,6 +67,7 @@ public class TestStartMultipleControllersWithSameName extends ZkIntegrationTestB
     for (int i = 0; i < 4; i++) {
       controllers[i].syncStop();
     }
+    _gSetupTool.deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 

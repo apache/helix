@@ -78,7 +78,7 @@ public class TestTaskThrottling extends TaskTestBase {
     Map<String, String> properties = new HashMap<String, String>();
     properties.put(ClusterConfig.ClusterConfigProperty.MAX_CONCURRENT_TASK_PER_INSTANCE.name(),
         new Integer(perNodeTaskLimitation).toString());
-    _setupTool.getClusterManagementTool().setConfig(scope, properties);
+    _gSetupTool.getClusterManagementTool().setConfig(scope, properties);
 
     String jobName2 = "Job2";
     flow = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName2, jobConfig).build();
@@ -173,10 +173,10 @@ public class TestTaskThrottling extends TaskTestBase {
 
   private void setParticipantsCapacity(int perNodeTaskLimitation) {
     for (int i = 0; i < _numNodes; i++) {
-      InstanceConfig instanceConfig = _setupTool.getClusterManagementTool()
+      InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool()
           .getInstanceConfig(CLUSTER_NAME, PARTICIPANT_PREFIX + "_" + (_startPort + i));
       instanceConfig.setMaxConcurrentTask(perNodeTaskLimitation);
-      _setupTool.getClusterManagementTool()
+      _gSetupTool.getClusterManagementTool()
           .setInstanceConfig(CLUSTER_NAME, PARTICIPANT_PREFIX + "_" + (_startPort + i), instanceConfig);
     }
   }

@@ -21,7 +21,7 @@ package org.apache.helix.monitoring;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
@@ -43,15 +43,15 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
-  private static final Logger LOG =
-      LoggerFactory.getLogger(TestClusterStatusMonitorLifecycle.class);
+public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(TestClusterStatusMonitorLifecycle.class);
 
   MockParticipantManager[] _participants;
   ClusterDistributedController[] _controllers;
   String _controllerClusterName;
   String _clusterNamePrefix;
   String _firstClusterName;
+  Set<String> _clusters = new HashSet<>();
 
   final int n = 5;
   final int clusterNb = 10;
@@ -77,6 +77,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
           n, // number of nodes
           3, // replicas
           "MasterSlave", true); // do rebalance
+
+      _clusters.add(clusterName);
     }
 
     // setup controller cluster
@@ -142,11 +144,18 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
   }
 
   @AfterClass
-  public void afterClass() {
+  public void afterClass() throws Exception {
     System.out.println("Cleaning up...");
     for (int i = 0; i < _participants.length; i++) {
       _participants[i].syncStop();
     }
+    cleanupControllers();
+    _gSetupTool.deleteCluster(_controllerClusterName);
+
+    for (String cluster : _clusters) {
+      TestHelper.dropCluster(cluster, _gZkClient);
+    }
+
     System.out.println("END " + _clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -178,7 +187,9 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
 
   private void cleanupControllers() {
     for (int i = 0; i < _controllers.length; i++) {
-      _controllers[i].syncStop();
+      if (_controllers[i] != null && _controllers[i].isConnected()) {
+        _controllers[i].syncStop();
+      }
     }
   }
 

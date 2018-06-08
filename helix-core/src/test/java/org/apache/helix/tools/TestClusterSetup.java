@@ -372,6 +372,9 @@ public class TestClusterSetup extends ZkUnitTestBase {
     exists = _gZkClient.exists(keyBuilder.pause().getPath());
     Assert.assertFalse(exists, "pause node under controller should be removed");
 
+    // clean up
+    TestHelper.dropCluster(clusterName, _gZkClient);
+
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
@@ -435,11 +438,13 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     Assert.assertNull(accessor.getProperty(keyBuilder.instanceConfig("localhost_12918")),
         "Instance config should be dropped");
-    Assert.assertFalse(_gZkClient.exists(PropertyPathBuilder.instance(clusterName, "localhost_12918")),
+    Assert.assertFalse(
+        _gZkClient.exists(PropertyPathBuilder.instance(clusterName, "localhost_12918")),
         "Instance/host should be dropped");
 
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    TestHelper.dropCluster(clusterName, _gZkClient);
 
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -471,6 +476,8 @@ public class TestClusterSetup extends ZkUnitTestBase {
     });
     idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     Assert.assertTrue(idealState.isEnabled());
+
+    TestHelper.dropCluster(clusterName, _gZkClient);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 

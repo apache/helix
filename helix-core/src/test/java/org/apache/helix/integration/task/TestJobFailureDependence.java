@@ -62,7 +62,7 @@ public class TestJobFailureDependence extends TaskTestBase {
     }
 
     _driver.start(queueBuilder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
+    _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
 
     // all jobs after failed job should fail too.
     for (int i = 2; i < _numDbs; i++) {
@@ -90,7 +90,7 @@ public class TestJobFailureDependence extends TaskTestBase {
     }
 
     _driver.start(queueBuilder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
+    _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(2));
     _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);
@@ -115,7 +115,7 @@ public class TestJobFailureDependence extends TaskTestBase {
     }
 
     _driver.start(queueBuilder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
+    _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
     String namedSpaceJob2 = String.format("%s_%s", queueName, currentJobNames.get(2));
     _driver.pollForJobState(queueName, namedSpaceJob2, TaskState.FAILED);
 
@@ -145,7 +145,7 @@ public class TestJobFailureDependence extends TaskTestBase {
     }
 
     _driver.start(queueBuilder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(1));
+    _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(1));
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(1));
     _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);

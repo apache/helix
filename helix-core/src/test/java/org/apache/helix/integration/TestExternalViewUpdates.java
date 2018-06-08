@@ -26,7 +26,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -37,7 +37,7 @@ import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestExternalViewUpdates extends ZkIntegrationTestBase {
+public class TestExternalViewUpdates extends ZkTestBase {
   @Test
   public void testExternalViewUpdates() throws Exception {
     System.out.println("START testExternalViewUpdates at " + new Date(System.currentTimeMillis()));

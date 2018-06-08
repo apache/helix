@@ -31,8 +31,8 @@ public class TestDropResource extends ZkStandAloneCMTestBase {
   @Test()
   public void testDropResource() throws Exception {
     // add a resource to be dropped
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
@@ -50,8 +50,8 @@ public class TestDropResource extends ZkStandAloneCMTestBase {
   @Test()
   public void testDropResourceWhileNodeDead() throws Exception {
     // add a resource to be dropped
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", 16, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", 16, STATE_MODEL);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
 
     boolean verifyResult =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(

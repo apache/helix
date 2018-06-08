@@ -68,17 +68,12 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-    _setupTool = new ClusterSetup(ZK_ADDR);
     // setup storage cluster
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     for (int i = 0; i < NODE_NR; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
 
     // start controller
@@ -108,19 +103,19 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
 
   @Test (enabled = false)
   public void testParticipantUnavailable() {
-    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
     HelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(new HashSet<>(Collections.singleton(testDb))).build();
     Assert.assertTrue(verifier.verify());
 
     // disable then enable the resource to ensure no rebalancing error is generated during this process
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, testDb);
-    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
+    _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, testDb);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
     Assert.assertTrue(verifier.verify());
 
     // Verify there is no rebalance error logged
@@ -137,7 +132,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     checkRebalanceFailureGauge(true);
 
     // clean up
-    _setupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
+    _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i] =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _participants[i].getInstanceName());
@@ -147,21 +142,21 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
 
   @Test (enabled = false)
   public void testTagSetIncorrect() {
-    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
     // set expected instance tag
     IdealState is =
-        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
     is.setInstanceGroupTag("RandomTag");
-    _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, testDb, is);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, testDb, is);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
     // Verify there is rebalance error logged
     Assert.assertNotNull(pollForError(accessor, errorNodeKey));
     checkRebalanceFailureGauge(true);
 
     // clean up
-    _setupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
+    _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
   }
 
   @Test (enabled = false)
@@ -188,10 +183,10 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     // Error may be recorded unexpectedly when a resource from other tests is not cleaned up.
     accessor.removeProperty(errorNodeKey);
 
-    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name(),
         CrushRebalanceStrategy.class.getName());
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, replicas);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, replicas);
     HelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(new HashSet<>(Collections.singleton(testDb))).build();
@@ -212,13 +207,13 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     for (int i = replicas; i < NODE_NR; i++) {
       setDomainId(_participants[i].getInstanceName(), configAccessor);
     }
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, replicas);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, replicas);
     Thread.sleep(1000);
     // Verify that rebalance error state is removed
     checkRebalanceFailureGauge(false);
 
     // clean up
-    _setupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
+    _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
     clusterConfig.setTopologyAwareEnabled(false);
   }
 

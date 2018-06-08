@@ -61,8 +61,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
 
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev, instance, true);
     }
@@ -84,8 +84,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
 
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
@@ -111,8 +111,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
 
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
@@ -125,8 +125,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
 
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
     }
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
@@ -148,8 +148,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
 
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
@@ -162,8 +162,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
 
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
     }
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
@@ -186,8 +186,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     Assert.assertTrue(_clusterVerifier.verify());
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
@@ -197,8 +197,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     // after delay time, it should maintain required number of replicas.
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
     }
   }
@@ -215,8 +215,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
 
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
@@ -224,10 +224,10 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
 
     // disable delay rebalance for one db, partition should be moved immediately
     String testDb = _testDBs.get(0);
-    IdealState idealState = _setupTool.getClusterManagementTool().getResourceIdealState(
+    IdealState idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(
         CLUSTER_NAME, testDb);
     idealState.setDelayRebalanceEnabled(false);
-    _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, testDb, idealState);
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, testDb, idealState);
     Thread.sleep(2000);
     Assert.assertTrue(_clusterVerifier.verify());
 
@@ -235,9 +235,9 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     // replica for other dbs should not be moved.
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is =
-          _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
 
       if (db.equals(testDb)) {
         validateMinActiveAndTopStateReplica(idealState, ev, _replica, NUM_NODE);
@@ -263,8 +263,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
 
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName(), true);
@@ -278,8 +278,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     Assert.assertTrue(_clusterVerifier.verify());
     for (String db : _testDBs) {
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(
           CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
     }
@@ -308,7 +308,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
   private void enableInstance(String instance, boolean enabled) {
     // Disable one node, no partition should be moved.
     long currentTime = System.currentTimeMillis();
-    _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instance, enabled);
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instance, enabled);
     InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
     Assert.assertEquals(instanceConfig.getInstanceEnabled(), enabled);
     Assert.assertTrue(instanceConfig.getInstanceEnabledTime() >= currentTime);

@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import org.apache.helix.HelixAdmin;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
@@ -36,7 +36,6 @@ import org.apache.helix.mock.participant.DummyProcess;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
@@ -54,7 +53,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
+public class TestResourceGroupEndtoEnd extends ZkTestBase {
 
   protected static final int GROUP_NODE_NR = 5;
   protected static final int START_PORT = 12918;
@@ -140,6 +139,7 @@ public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
     _controller.syncStop();
     _spectator.disconnect();
     _routingTableProvider.shutdown();
+    _gSetupTool.deleteCluster(CLUSTER_NAME);
   }
 
   private void addInstanceGroup(String clusterName, String instanceTag, int numInstance) {

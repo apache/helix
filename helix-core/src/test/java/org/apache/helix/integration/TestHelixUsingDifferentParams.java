@@ -21,12 +21,12 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
 
-public class TestHelixUsingDifferentParams extends ZkIntegrationTestBase {
+public class TestHelixUsingDifferentParams extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestHelixUsingDifferentParams.class);
 
   @Test()

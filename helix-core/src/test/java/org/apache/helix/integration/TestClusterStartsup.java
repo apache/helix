@@ -38,31 +38,20 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
   void setupCluster() throws HelixException {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-    _setupTool = new ClusterSetup(ZK_ADDR);
-
     // setup storage cluster
-    _setupTool.addCluster(CLUSTER_NAME, true);
-    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 20, STATE_MODEL);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 20, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++) {
       String storageNodeName = "localhost_" + (START_PORT + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
   }
 
   @Override
   @BeforeClass()
   public void beforeClass() throws Exception {
 
-  }
-
-  @Override
-  @AfterClass()
-  public void afterClass() {
   }
 
   @Test()
@@ -135,5 +124,8 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
       AssertJUnit.assertFalse(manager.isConnected());
     }
 
+    if (manager != null) {
+      manager.disconnect();
+    }
   }
 }

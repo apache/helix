@@ -21,7 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
@@ -33,7 +33,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestAddClusterV2 extends ZkIntegrationTestBase {
+public class TestAddClusterV2 extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestAddClusterV2.class);
 
   protected static final int CLUSTER_NR = 10;
@@ -53,18 +53,6 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
-    String namespace = "/" + CONTROLLER_CLUSTER;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-
-    for (int i = 0; i < CLUSTER_NR; i++) {
-      namespace = "/" + CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
-      if (_gZkClient.exists(namespace)) {
-        _gZkClient.deleteRecursively(namespace);
-      }
-    }
 
     _setupTool = new ClusterSetup(ZK_ADDR);
 
@@ -136,6 +124,13 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase {
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].syncStop();
     }
+
+    // delete clusters
+    for (int i = 0; i < CLUSTER_NR; i++) {
+      String clusterName = CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
+      _setupTool.getClusterManagementTool().dropCluster(clusterName);
+    }
+
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 

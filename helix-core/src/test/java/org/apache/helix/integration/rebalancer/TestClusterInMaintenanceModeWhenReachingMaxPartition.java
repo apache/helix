@@ -24,14 +24,13 @@ import java.util.Date;
 import java.util.List;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.MaintenanceSignal;
-import org.apache.helix.model.PauseSignal;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
@@ -39,7 +38,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkIntegrationTestBase {
+public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTestBase {
   final int NUM_NODE = 5;
   protected static final int START_PORT = 12918;
   protected static final int _PARTITIONS = 5;
@@ -58,10 +57,6 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkInte
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     for (int i = 0; i < NUM_NODE; i++) {

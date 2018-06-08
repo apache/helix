@@ -12,7 +12,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.api.listeners.RoutingTableChangeListener;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -28,7 +28,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestRoutingTableProvider extends ZkIntegrationTestBase {
+public class TestRoutingTableProvider extends ZkTestBase {
 
   static final String STATE_MODEL = BuiltInStateModelDefinitions.MasterSlave.name();
   static final String TEST_DB = "TestDB";

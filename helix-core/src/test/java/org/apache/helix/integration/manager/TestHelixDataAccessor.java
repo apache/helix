@@ -6,15 +6,12 @@ import java.util.Map;
 import java.util.TreeMap;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
-import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.MockZkClient;
@@ -22,7 +19,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestHelixDataAccessor extends ZkIntegrationTestBase {
+public class TestHelixDataAccessor extends ZkTestBase {
   private MockZkClient _zkClient;
   BaseDataAccessor<ZNRecord> baseDataAccessor;
   HelixDataAccessor accessor;

@@ -77,8 +77,8 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
 
     // add new resources
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "TestDB_1", 1, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_1", _replica);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "TestDB_1", 1, STATE_MODEL);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_1", _replica);
 
     Thread.sleep(100);
     HelixClusterVerifier _clusterVerifier =
@@ -95,10 +95,10 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     // Add more resources
     accessor.clearReadCounters();
 
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "TestDB_2", 1, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_2", _replica);
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "TestDB_3", 1, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_3", _replica);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "TestDB_2", 1, STATE_MODEL);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_2", _replica);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "TestDB_3", 1, STATE_MODEL);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_3", _replica);
 
     Thread.sleep(100);
     Assert.assertTrue(_clusterVerifier.verify());
@@ -111,7 +111,7 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     // update one resource
     accessor.clearReadCounters();
 
-    _setupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, "TestDB_2", false);
+    _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, "TestDB_2", false);
 
     Thread.sleep(100);
     Assert.assertTrue(_clusterVerifier.verify());

@@ -121,9 +121,5 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     _driver.resume(queueName);
     Thread.sleep(2000);
     Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));
-
-    for (int i = 1; i < _numNodes; i++) {
-      _participants[i].syncStart();
-    }
   }
 }

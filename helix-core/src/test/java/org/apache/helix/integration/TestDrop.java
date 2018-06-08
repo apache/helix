@@ -31,7 +31,7 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -48,7 +48,7 @@ import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDrop extends ZkIntegrationTestBase {
+public class TestDrop extends ZkTestBase {
 
   /**
    * Assert externalView and currentState for each participant are empty

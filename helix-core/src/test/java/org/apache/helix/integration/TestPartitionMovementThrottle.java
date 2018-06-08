@@ -43,7 +43,6 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
@@ -60,18 +59,12 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-    _setupTool = new ClusterSetup(_gZkClient);
-
     // setup storage cluster
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     for (int i = 0; i < NODE_NR; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
 
     // add dummy participants
@@ -117,8 +110,9 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
         StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 100);
 
     clusterConfig
-        .setStateTransitionThrottleConfigs(Arrays.asList(resourceLoadThrottle, instanceLoadThrottle,
-            clusterLoadThrottle, resourceRecoveryThrottle, clusterRecoveryThrottle));
+        .setStateTransitionThrottleConfigs(Arrays
+            .asList(resourceLoadThrottle, instanceLoadThrottle, clusterLoadThrottle,
+                resourceRecoveryThrottle, clusterRecoveryThrottle));
 
     clusterConfig.setPersistIntermediateAssignment(true);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
@@ -133,9 +127,9 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
     for (int i = 0; i < 5; i++) {
       String dbName = "TestDB-" + i;
-      _setupTool.addResourceToCluster(CLUSTER_NAME, dbName, 10, STATE_MODEL,
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, dbName, 10, STATE_MODEL,
           RebalanceMode.FULL_AUTO + "");
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
       _dbs.add(dbName);
     }
 
@@ -168,9 +162,9 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     for (int i = 0; i < NODE_NR - 2; i++) {
       _participants[i].syncStart();
     }
-    _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, 10, STATE_MODEL,
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, 10, STATE_MODEL,
         RebalanceMode.FULL_AUTO.name());
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _replica);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _replica);
 
     HelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
@@ -202,9 +196,9 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     for (int i = 0; i < NODE_NR - 3; i++) {
       _participants[i].syncStart();
     }
-    _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_ANY", 20,
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_ANY", 20,
         STATE_MODEL, RebalanceMode.FULL_AUTO.name());
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_ANY",
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_ANY",
         _replica);
 
     HelixClusterVerifier _clusterVerifier =
@@ -234,7 +228,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
   @AfterMethod
   public void cleanupTest() throws InterruptedException {
     for (String db : _dbs) {
-      _setupTool.dropResourceFromCluster(CLUSTER_NAME, db);
+      _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, db);
       Thread.sleep(20);
     }
     _dbs.clear();
@@ -267,7 +261,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     for (int i = 0; i < 5; i++) {
       String dbName = "TestDB-" + i;
       IdealState is =
-          _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
       if (is != null) {
         System.err.println(dbName + "exists!");
         is.setReplicas(String.valueOf(replica));
@@ -276,12 +270,12 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
           is.setRebalanceDelay(delay);
         }
         is.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
-        _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, dbName, is);
+        _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, dbName, is);
       } else {
         createResourceWithDelayedRebalance(CLUSTER_NAME, dbName, STATE_MODEL, partition, replica,
             minActiveReplica, delay);
       }
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
       _dbs.add(dbName);
     }
 

@@ -2,15 +2,12 @@ package org.apache.helix.integration.task;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.TestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobDag;
 import org.apache.helix.task.JobQueue;
@@ -23,7 +20,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestBatchAddJobs extends ZkIntegrationTestBase {
+public class TestBatchAddJobs extends ZkTestBase {
   private static final String CLUSTER_NAME = CLUSTER_PREFIX + "_TestBatchAddJobs";
   private static final String QUEUE_NAME = "TestBatchAddJobQueue";
   private ClusterSetup _setupTool;
@@ -31,15 +28,9 @@ public class TestBatchAddJobs extends ZkIntegrationTestBase {
 
   @BeforeClass
   public void beforeClass() {
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-
     _setupTool = new ClusterSetup(ZK_ADDR);
     _setupTool.addCluster(CLUSTER_NAME, true);
     _submitJobTasks = new ArrayList<>();
-
   }
 
   @Test

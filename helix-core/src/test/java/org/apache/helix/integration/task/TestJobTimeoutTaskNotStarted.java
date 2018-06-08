@@ -52,8 +52,6 @@ import com.google.common.collect.Sets;
 
 public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
 
-  private ClusterControllerManager _controller;
-
   @BeforeClass
   public void beforeClass() throws Exception {
     _numDbs = 1;
@@ -61,13 +59,7 @@ public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
     _numParitions = 50;
     _numReplicas = 1;
     _participants =  new MockParticipantManager[_numNodes];
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-
-    _setupTool = new ClusterSetup(ZK_ADDR);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants();
     setupDBs();
     startParticipantsWithStuckTaskStateModelFactory();

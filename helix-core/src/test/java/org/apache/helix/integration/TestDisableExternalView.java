@@ -23,7 +23,7 @@ import java.util.Date;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -42,7 +42,7 @@ import org.testng.annotations.Test;
  * if DISABLE_EXTERNAL_VIEW is set to true in a resource's idealstate,
  * there should be no external view for this resource.
  */
-public class TestDisableExternalView extends ZkIntegrationTestBase {
+public class TestDisableExternalView extends ZkTestBase {
   private static final String TEST_DB1 = "test_db1";
   private static final String TEST_DB2 = "test_db2";
 

@@ -128,6 +128,7 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
       for (HelixManager participant : participants) {
         participant.disconnect();
       }
+      TestHelper.dropCluster(clusterName, _gZkClient);
       System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
     }
   }

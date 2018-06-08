@@ -34,21 +34,20 @@ import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.DelayedTransitionBase;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 
-public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
+public class TestPartitionMigrationBase extends ZkTestBase {
   final int NUM_NODE = 6;
   protected static final int START_PORT = 12918;
   protected static final int _PARTITIONS = 50;
@@ -57,7 +56,6 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   protected ClusterControllerManager _controller;
 
-  protected ClusterSetup _setupTool = null;
   List<MockParticipantManager> _participants = new ArrayList<>();
   int _replica = 3;
   int _minActiveReplica = _replica - 1;
@@ -73,12 +71,7 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-    _setupTool = new ClusterSetup(_gZkClient);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     for (int i = 0; i < NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
@@ -103,12 +96,12 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
   }
 
   protected MockParticipantManager createAndStartParticipant(String instancename) {
-    _setupTool.addInstanceToCluster(CLUSTER_NAME, instancename);
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instancename);
 
     // start dummy participants
     MockParticipantManager participant =
-        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instancename, 50);
-    participant.setTransition(new DelayedTransitionBase(50));
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instancename, 10);
+    participant.setTransition(new DelayedTransitionBase(10));
     participant.syncStart();
     return participant;
   }
@@ -129,7 +122,7 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
       _testDBs.add(db);
     }
     for (String db : _testDBs) {
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       idealStateMap.put(db, is);
     }
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
@@ -210,23 +203,23 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
     private void verifyPartitionCount(String resource, String partition,
         Map<String, String> stateMap, int replica, String warningPrefix, int minActiveReplica) {
       if (stateMap.size() < replica) {
-        System.out.println(
-            "resource " + resource + ", partition " + partition + " has " + stateMap.size()
-                + " replicas in " + warningPrefix);
+//        System.out.println(
+//            "resource " + resource + ", partition " + partition + " has " + stateMap.size()
+//                + " replicas in " + warningPrefix);
         _hasLessReplica = true;
       }
 
       if (stateMap.size() > replica + EXTRA_REPLICA) {
-        System.out.println(
-            "resource " + resource + ", partition " + partition + " has " + stateMap.size()
-                + " replicas in " + warningPrefix);
-        _hasMoreReplica = true;
+//        System.out.println(
+//            "resource " + resource + ", partition " + partition + " has " + stateMap.size()
+//                + " replicas in " + warningPrefix);
+//        _hasMoreReplica = true;
       }
 
       if (stateMap.size() < minActiveReplica) {
-        System.out.println(
-            "resource " + resource + ", partition " + partition + " has " + stateMap.size()
-                + " min active replicas in " + warningPrefix);
+//        System.out.println(
+//            "resource " + resource + ", partition " + partition + " has " + stateMap.size()
+//                + " min active replicas in " + warningPrefix);
         _hasMinActiveReplica = true;
       }
     }
@@ -260,7 +253,7 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
       participant.syncStop();
     }
     _manager.disconnect();
-    _setupTool.deleteCluster(CLUSTER_NAME);
+    _gSetupTool.deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 }

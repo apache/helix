@@ -28,7 +28,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDistributedControllerManager extends ZkIntegrationTestBase {
+public class TestDistributedControllerManager extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestDistributedControllerManager.class);
 
   @Test

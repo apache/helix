@@ -38,10 +38,10 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
     HelixManager manager = _participants[0];
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
-    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "OnlineOffline", RebalanceMode.FULL_AUTO
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "OnlineOffline", RebalanceMode.FULL_AUTO
         + "");
 
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 1);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 1);
     String instance2 = "localhost_279699";
     // StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
     MockParticipantManager newParticipant =

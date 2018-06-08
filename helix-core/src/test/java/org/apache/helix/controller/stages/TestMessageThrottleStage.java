@@ -119,8 +119,8 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     Assert.assertEquals(msgThrottleOutput.getMessages("TestDB", new Partition("TestDB_0")).size(),
         1);
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test()
@@ -310,8 +310,8 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     Assert.assertTrue(throttleMessages.contains(msg3));
     Assert.assertTrue(throttleMessages.contains(msg4));
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   private boolean containsConstraint(Set<ConstraintItem> constraints, ConstraintItem constraint) {

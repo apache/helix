@@ -22,12 +22,11 @@ package org.apache.helix.integration.paticipant;
 import java.util.Date;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockBootstrapModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.slf4j.Logger;
@@ -35,7 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestNonOfflineInitState extends ZkIntegrationTestBase {
+public class TestNonOfflineInitState extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestNonOfflineInitState.class);
 
   @Test
@@ -81,6 +80,7 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
     for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }
+    _gSetupTool.deleteCluster(clusterName);
 
     System.out.println("END testNonOfflineInitState at " + new Date(System.currentTimeMillis()));
   }
@@ -88,26 +88,21 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
   private static void setupCluster(String clusterName, String ZkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
       int nodesNb, int replica, String stateModelDef, boolean doRebalance) throws Exception {
-    if (_gZkClient.exists("/" + clusterName)) {
-      LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
-      _gZkClient.deleteRecursively("/" + clusterName);
-    }
 
-    ClusterSetup setupTool = new ClusterSetup(ZkAddr);
-    setupTool.addCluster(clusterName, true);
-    setupTool.addStateModelDef(clusterName, "Bootstrap",
+    _gSetupTool.addCluster(clusterName, true);
+    _gSetupTool.addStateModelDef(clusterName, "Bootstrap",
         TestHelper.generateStateModelDefForBootstrap());
 
     for (int i = 0; i < nodesNb; i++) {
       int port = startPort + i;
-      setupTool.addInstanceToCluster(clusterName, participantNamePrefix + "_" + port);
+      _gSetupTool.addInstanceToCluster(clusterName, participantNamePrefix + "_" + port);
     }
 
     for (int i = 0; i < resourceNb; i++) {
       String dbName = resourceNamePrefix + i;
-      setupTool.addResourceToCluster(clusterName, dbName, partitionNb, stateModelDef);
+      _gSetupTool.addResourceToCluster(clusterName, dbName, partitionNb, stateModelDef);
       if (doRebalance) {
-        setupTool.rebalanceStorageCluster(clusterName, dbName, replica);
+        _gSetupTool.rebalanceStorageCluster(clusterName, dbName, replica);
       }
     }
   }

@@ -14,9 +14,8 @@ import org.apache.helix.controller.rebalancer.constraint.dataprovider.MockCapaci
 import org.apache.helix.controller.rebalancer.constraint.dataprovider.MockPartitionWeightProvider;
 import org.apache.helix.controller.rebalancer.constraint.dataprovider.ZkBasedCapacityProvider;
 import org.apache.helix.controller.rebalancer.constraint.dataprovider.ZkBasedPartitionWeightProvider;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.model.*;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.WeightAwareRebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +28,9 @@ import java.util.*;
 
 import static org.apache.helix.controller.rebalancer.constraint.dataprovider.ZkBasedPartitionWeightProvider.DEFAULT_WEIGHT_VALUE;
 
-public class TestWeightBasedRebalanceUtil extends ZkIntegrationTestBase {
+public class TestWeightBasedRebalanceUtil extends ZkTestBase {
   private static Logger _logger = LoggerFactory.getLogger(TestWeightBasedRebalanceUtil.class);
   private static String CLUSTER_NAME;
-  private static ClusterSetup _setupTool;
 
   final String resourceNamePrefix = "resource";
   final int nParticipants = 40;
@@ -80,19 +78,13 @@ public class TestWeightBasedRebalanceUtil extends ZkIntegrationTestBase {
 
     setupMockCluster();
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
-    }
-    _setupTool = new ClusterSetup(ZK_ADDR);
-
     // setup storage cluster
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
   }
 
   @AfterClass
   public void afterClass() {
-    _setupTool.deleteCluster(CLUSTER_NAME);
+    _gSetupTool.deleteCluster(CLUSTER_NAME);
   }
 
   private void setupMockCluster() {

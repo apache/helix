@@ -21,7 +21,7 @@ package org.apache.helix.integration;
 
 import org.apache.helix.*;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -38,7 +38,7 @@ import org.testng.annotations.Test;
 
 import java.util.*;
 
-public class TestStateTransitionThrottle extends ZkIntegrationTestBase {
+public class TestStateTransitionThrottle extends ZkTestBase {
   int participantCount = 4;
   String resourceName = "TestDB0";
   String resourceNamePrefix = "TestDB";
@@ -103,6 +103,7 @@ public class TestStateTransitionThrottle extends ZkIntegrationTestBase {
     for (int i = 0; i < participantCount; i++) {
       participants[i].syncStop();
     }
+    _gSetupTool.deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -178,6 +179,7 @@ public class TestStateTransitionThrottle extends ZkIntegrationTestBase {
     for (int i = 0; i < participantCount; i++) {
       participants[i].syncStop();
     }
+    _gSetupTool.deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -205,6 +207,8 @@ public class TestStateTransitionThrottle extends ZkIntegrationTestBase {
         StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 100));
     clusterConfig.setStateTransitionThrottleConfigs(throttleConfigs);
     accessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
+
+    _gSetupTool.deleteCluster(clusterName);
   }
 
   private static boolean pollForPartitionAssignment(final HelixDataAccessor accessor,

@@ -28,7 +28,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.integration.DelayedTransitionBase;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -41,10 +41,11 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestP2PMessageSemiAuto extends ZkIntegrationTestBase {
+public class TestP2PMessageSemiAuto extends ZkTestBase {
   final String CLASS_NAME = getShortClassName();
   final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
@@ -57,7 +58,7 @@ public class TestP2PMessageSemiAuto extends ZkIntegrationTestBase {
   static final int PARTITION_NUMBER = 20;
   static final int REPLICA_NUMBER = 3;
 
-  List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
+  List<MockParticipantManager> _participants = new ArrayList<>();
   List<String> _instances = new ArrayList<>();
   ClusterControllerManager _controller;
 
@@ -104,6 +105,18 @@ public class TestP2PMessageSemiAuto extends ZkIntegrationTestBase {
 
     _configAccessor = new ConfigAccessor(_gZkClient);
     _accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+  }
+
+  @AfterClass
+  public void afterClass() throws Exception {
+    _controller.syncStop();
+    for (MockParticipantManager p : _participants) {
+      if (p.isConnected()) {
+        p.syncStop();
+      }
+    }
+    _gSetupTool.deleteCluster(CLUSTER_NAME);
+    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

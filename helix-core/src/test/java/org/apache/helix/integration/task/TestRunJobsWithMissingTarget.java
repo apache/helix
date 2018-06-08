@@ -65,7 +65,7 @@ public class TestRunJobsWithMissingTarget extends TaskTestBase {
       currentJobNames.add(jobName);
     }
 
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(1));
+    _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(1));
     _driver.start(builder.build());
 
     String namedSpaceJob = String.format("%s_%s", workflowName, currentJobNames.get(1));
@@ -129,7 +129,7 @@ public class TestRunJobsWithMissingTarget extends TaskTestBase {
     }
 
     _driver.start(builder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(0));
+    _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(0));
 
     String namedSpaceJob1 = String.format("%s_%s", workflowName, currentJobNames.get(0));
     _driver.pollForJobState(workflowName, namedSpaceJob1, TaskState.FAILED);

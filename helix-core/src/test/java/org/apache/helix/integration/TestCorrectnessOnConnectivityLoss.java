@@ -39,7 +39,9 @@ import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -71,6 +73,11 @@ public class TestCorrectnessOnConnectivityLoss {
 
     _controller = new ClusterControllerManager(ZK_ADDR, _clusterName, "controller0");
     _controller.connect();
+  }
+
+  @AfterMethod
+  public void afterMethod() throws Exception {
+    TestHelper.stopZkServer(_zkServer);
   }
 
   @Test
@@ -136,11 +143,6 @@ public class TestCorrectnessOnConnectivityLoss {
     } finally {
       routingTableProvider.shutdown();
     }
-  }
-
-  @AfterMethod
-  public void afterMethod() throws Exception {
-    TestHelper.stopZkServer(_zkServer);
   }
 
   @StateModelInfo(initialState = "OFFLINE", states = {

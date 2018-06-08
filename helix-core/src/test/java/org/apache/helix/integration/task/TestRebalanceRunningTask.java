@@ -42,8 +42,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
-
-  private ClusterControllerManager _controller;
   private final String JOB = "test_job";
   private String WORKFLOW;
   private final String DATABASE = WorkflowGenerator.DEFAULT_TGT_DB;
@@ -57,13 +55,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
     _numReplicas = 1; // only Master, no Slave
     _numDbs = 1;
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-
-    _setupTool = new ClusterSetup(ZK_ADDR);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants();
     setupDBs();
 

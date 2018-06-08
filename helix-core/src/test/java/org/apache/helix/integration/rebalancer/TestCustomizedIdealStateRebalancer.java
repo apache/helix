@@ -77,14 +77,14 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
 
   @Test
   public void testCustomizedIdealStateRebalancer() throws InterruptedException {
-    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "MasterSlave");
-    _setupTool.addResourceProperty(CLUSTER_NAME, db2,
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "MasterSlave");
+    _gSetupTool.addResourceProperty(CLUSTER_NAME, db2,
         IdealStateProperty.REBALANCER_CLASS_NAME.toString(),
         TestCustomizedIdealStateRebalancer.TestRebalancer.class.getName());
-    _setupTool.addResourceProperty(CLUSTER_NAME, db2, IdealStateProperty.REBALANCE_MODE.toString(),
+    _gSetupTool.addResourceProperty(CLUSTER_NAME, db2, IdealStateProperty.REBALANCE_MODE.toString(),
         RebalanceMode.USER_DEFINED.toString());
 
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 3);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 3);
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,

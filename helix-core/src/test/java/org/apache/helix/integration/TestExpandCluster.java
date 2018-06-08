@@ -33,35 +33,35 @@ public class TestExpandCluster extends ZkStandAloneCMTestBase {
   @Test
   public void testExpandCluster() throws Exception {
     String DB2 = "TestDB2";
-    int partitions = 100;
+    int partitions = 30;
     int replica = 3;
-    _setupTool.addResourceToCluster(CLUSTER_NAME, DB2, partitions, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, DB2, replica, "keyX");
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, DB2, partitions, STATE_MODEL);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, DB2, replica, "keyX");
 
     String DB3 = "TestDB3";
 
-    _setupTool.addResourceToCluster(CLUSTER_NAME, DB3, partitions, STATE_MODEL);
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, DB3, partitions, STATE_MODEL);
 
     IdealState testDB0 =
-        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
     IdealState testDB2 =
-        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB2);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB2);
     IdealState testDB3 =
-        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB3);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB3);
 
     for (int i = 0; i < 5; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (27960 + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     String command = "-zkSvr localhost:2183 -expandCluster " + CLUSTER_NAME;
     ClusterSetup.processCommandLineArgs(command.split(" "));
 
     IdealState testDB0_1 =
-        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
     IdealState testDB2_1 =
-        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB2);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB2);
     IdealState testDB3_1 =
-        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB3);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB3);
 
     Map<String, Object> resultOld2 = RebalanceUtil.buildInternalIdealState(testDB2);
     Map<String, Object> result2 = RebalanceUtil.buildInternalIdealState(testDB2_1);

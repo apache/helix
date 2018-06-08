@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 import org.I0Itec.zkclient.serialize.BytesPushThroughSerializer;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZkClient;
@@ -43,7 +43,7 @@ import org.testng.annotations.Test;
  * Compression can be enabled for a specific resource by setting enableCompression=true in the
  * idealstate of the resource. Generally this is used when the number of partitions is large
  */
-public class TestEnableCompression extends ZkIntegrationTestBase {
+public class TestEnableCompression extends ZkTestBase {
   @Test()
   public void testEnableCompressionResource() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);

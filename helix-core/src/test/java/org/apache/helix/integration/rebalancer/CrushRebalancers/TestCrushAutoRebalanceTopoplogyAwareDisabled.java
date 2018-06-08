@@ -20,10 +20,9 @@ package org.apache.helix.integration.rebalancer.CrushRebalancers;
  */
 
 import java.util.Date;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.tools.ClusterSetup;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -33,36 +32,31 @@ public class TestCrushAutoRebalanceTopoplogyAwareDisabled extends TestCrushAutoR
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (ZkIntegrationTestBase._gZkClient.exists(namespace)) {
-      ZkIntegrationTestBase._gZkClient.deleteRecursively(namespace);
-    }
-    _setupTool = new ClusterSetup(ZkIntegrationTestBase._gZkClient);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     for (int i = 0; i < NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (TestCrushAutoRebalanceNonRack.START_PORT + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
       _nodes.add(storageNodeName);
       String tag = "tag-" + i % 2;
-      _setupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, storageNodeName, tag);
+      _gSetupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, storageNodeName, tag);
       _nodeToTagMap.put(storageNodeName, tag);
     }
 
     // start dummy participants
     for (String node : _nodes) {
       MockParticipantManager participant =
-          new MockParticipantManager(ZkIntegrationTestBase.ZK_ADDR, CLUSTER_NAME, node);
+          new MockParticipantManager(ZkTestBase.ZK_ADDR, CLUSTER_NAME, node);
       participant.syncStart();
       _participants.add(participant);
     }
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZkIntegrationTestBase.ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller = new ClusterControllerManager(ZkTestBase.ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    enablePersistBestPossibleAssignment(ZkIntegrationTestBase._gZkClient, CLUSTER_NAME, true);
+    enablePersistBestPossibleAssignment(ZkTestBase._gZkClient, CLUSTER_NAME, true);
   }
 
   @Test(dataProvider = "rebalanceStrategies")

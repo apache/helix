@@ -24,7 +24,7 @@ import java.util.Date;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockTransition;
@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
+public class TestEnablePartitionDuringDisable extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestEnablePartitionDuringDisable.class);
 
   static {

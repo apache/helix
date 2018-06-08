@@ -12,6 +12,8 @@ import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.integration.task.WorkflowGenerator;
+import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
@@ -22,6 +24,7 @@ import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -37,22 +40,21 @@ public class TestZkConnectionLost extends TaskTestBase {
   private final AtomicReference<ZkServer> _zkServerRef = new AtomicReference<>();
 
   private String _zkAddr = "localhost:2189";
+  ClusterSetup _setupTool;
+  ZkClient _zkClient;
+
 
   @BeforeClass
   public void beforeClass() throws Exception {
     ZkServer zkServer = TestHelper.startZkServer(_zkAddr);
     _zkServerRef.set(zkServer);
-
+    _zkClient = new ZkClient(_zkAddr);
+    _zkClient.setZkSerializer(new ZNRecordSerializer());
+    _setupTool = new ClusterSetup(_zkClient);
     _participants =  new MockParticipantManager[_numNodes];
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-
-    _setupTool = new ClusterSetup(_zkAddr);
     _setupTool.addCluster(CLUSTER_NAME, true);
-    setupParticipants();
-    setupDBs();
+    setupParticipants(_setupTool);
+    setupDBs(_setupTool);
     createManagers(_zkAddr, CLUSTER_NAME);
 
     // start controller
@@ -63,6 +65,29 @@ public class TestZkConnectionLost extends TaskTestBase {
     HelixClusterVerifier clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(_zkAddr).build();
     Assert.assertTrue(clusterVerifier.verify());
+  }
+
+  @AfterClass
+  public void afterClass() throws Exception {
+    if (_controller != null && _controller.isConnected()) {
+      _controller.syncStop();
+    }
+    if (_manager != null && _manager.isConnected()) {
+      _manager.disconnect();
+    }
+    stopParticipants();
+
+    String namespace = "/" + CLUSTER_NAME;
+    if (_zkClient.exists(namespace)) {
+      try {
+        _setupTool.deleteCluster(CLUSTER_NAME);
+      } catch (Exception ex) {
+        System.err.println(
+            "Failed to delete cluster " + CLUSTER_NAME + ", error: " + ex.getLocalizedMessage());
+      }
+    }
+    _zkClient.close();
+    TestHelper.stopZkServer(_zkServerRef.get());
   }
 
   @Test

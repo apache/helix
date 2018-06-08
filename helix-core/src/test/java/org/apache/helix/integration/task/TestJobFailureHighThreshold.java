@@ -43,7 +43,6 @@ import org.testng.annotations.Test;
 
 public class TestJobFailureHighThreshold extends TaskSynchronizedTestBase {
 
-  private ClusterControllerManager _controller;
   private static final String DB_NAME = WorkflowGenerator.DEFAULT_TGT_DB;
 
   @BeforeClass
@@ -54,13 +53,7 @@ public class TestJobFailureHighThreshold extends TaskSynchronizedTestBase {
     _numParitions = 5;
     _numReplicas = 1;
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-
-    _setupTool = new ClusterSetup(ZK_ADDR);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants();
     setupDBs();
     startParticipants();

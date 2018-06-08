@@ -54,15 +54,15 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
     IdealState idealState = new FullAutoModeISBuilder(dbName).setStateModel("OnlineOffline")
         .setStateModelFactoryName("TestFactory").setNumPartitions(10).setNumReplica(1).build();
     idealState.setBatchMessageMode(true);
-    _setupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
+    _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
 
     Thread.sleep(1000L);
 
     int numOfOnlines = 0;
     int numOfErrors = 0;
     ExternalView externalView =
-        _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
+        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
     for (String partition : externalView.getPartitionSet()) {
       if (externalView.getStateMap(partition).values().contains("ONLINE")) {
         numOfOnlines++;

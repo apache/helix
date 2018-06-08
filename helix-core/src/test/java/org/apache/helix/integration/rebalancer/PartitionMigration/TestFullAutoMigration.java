@@ -139,10 +139,10 @@ public class TestFullAutoMigration extends TestPartitionMigrationBase {
           delayTime);
       _testDBs.add(db);
     }
-    Thread.sleep(800);
+    Thread.sleep(100);
     Assert.assertTrue(_clusterVerifier.verify());
     for (String db : _testDBs) {
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       idealStateMap.put(db, is);
     }
     return idealStateMap;

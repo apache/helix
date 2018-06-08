@@ -25,7 +25,7 @@ import java.util.Date;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -41,7 +41,7 @@ import org.testng.annotations.Test;
  * which helps us write integration tests easily
  */
 
-public class SinglePartitionLeaderStandByTest extends ZkIntegrationTestBase {
+public class SinglePartitionLeaderStandByTest extends ZkTestBase {
   @Test
   public void test()
       throws Exception {
@@ -99,6 +99,7 @@ public class SinglePartitionLeaderStandByTest extends ZkIntegrationTestBase {
     for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
+    TestHelper.dropCluster(clusterName, _gZkClient);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

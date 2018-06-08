@@ -46,30 +46,30 @@ public class TestBatchMessageModeConfigs extends ZkStandAloneCMTestBase {
 
   @Test
   public void testEnableBatchModeForCluster() throws InterruptedException {
-    _setupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, true);
+    _gSetupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, true);
     String dbName = TEST_DB_PREFIX + "Cluster";
     setupResource(dbName);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
     Thread.sleep(2000L);
     verify();
-    _setupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, false);
+    _gSetupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, false);
   }
 
   @Test
   public void testEnableBatchModeForResource() throws InterruptedException {
     String dbName = TEST_DB_PREFIX + "Resource";
     setupResource(dbName);
-    _setupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, dbName, true);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
+    _gSetupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, dbName, true);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
     Thread.sleep(2000L);
     verify();
-    _setupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, dbName, false);
+    _gSetupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, dbName, false);
   }
 
   private void setupResource(String dbName) throws InterruptedException {
     IdealState idealState = new FullAutoModeISBuilder(dbName).setStateModel("OnlineOffline")
         .setStateModelFactoryName("TestFactory").setNumPartitions(10).setNumReplica(1).build();
-    _setupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
+    _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
   }
 
   private void verify() {

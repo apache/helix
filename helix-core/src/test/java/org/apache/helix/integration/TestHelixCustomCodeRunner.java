@@ -29,7 +29,7 @@ import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
+public class TestHelixCustomCodeRunner extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestHelixCustomCodeRunner.class);
 
   private final String _clusterName = "CLUSTER_" + getShortClassName();
@@ -133,6 +133,8 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
     for (int i = 0; i < _nodeNb; i++) {
       participants[i].syncStop();
     }
+    accessor.removeProperty(keyBuilder.liveInstance("newLiveInstance"));
+    TestHelper.dropCluster(_clusterName, _gZkClient);
 
     System.out.println("END " + _clusterName + " at " + new Date(System.currentTimeMillis()));
   }

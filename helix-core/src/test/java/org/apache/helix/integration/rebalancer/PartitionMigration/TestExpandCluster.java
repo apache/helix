@@ -80,7 +80,7 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
       config.getRecord().getSimpleFields()
           .remove(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name());
 
-      _setupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
+      _gSetupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
 
       // start dummy participants
       MockParticipantManager participant =
@@ -92,7 +92,7 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
     // enable new instance one by one
     for (int i = numNodes; i < numNodes + NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, storageNodeName, true);
+      _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, storageNodeName, true);
       Thread.sleep(100);
     }
 
@@ -120,7 +120,7 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       MockParticipantManager participant = _participants.get(i);
       participant.syncStop();
-      _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, storageNodeName, false);
+      _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, storageNodeName, false);
       Assert.assertTrue(_clusterVerifier.verify());
     }
 

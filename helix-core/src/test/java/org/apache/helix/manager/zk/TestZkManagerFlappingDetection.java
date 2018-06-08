@@ -22,13 +22,13 @@ package org.apache.helix.manager.zk;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase {
+public class TestZkManagerFlappingDetection extends ZkTestBase {
   @Test
   public void testDisconnectHistory() throws Exception {
     String className = TestHelper.getTestClassName();

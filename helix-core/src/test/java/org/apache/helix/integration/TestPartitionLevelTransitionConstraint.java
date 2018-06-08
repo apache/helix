@@ -30,7 +30,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBase {
+public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
 
   private static Logger LOG = LoggerFactory.getLogger(TestPartitionLevelTransitionConstraint.class);
 
@@ -197,6 +197,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBas
     for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
+    _gSetupTool.deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }

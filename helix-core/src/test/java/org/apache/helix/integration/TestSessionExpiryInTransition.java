@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockTransition;
@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestSessionExpiryInTransition extends ZkIntegrationTestBase {
+public class TestSessionExpiryInTransition extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestSessionExpiryInTransition.class);
 
   public class SessionExpiryTransition extends MockTransition {

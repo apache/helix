@@ -40,9 +40,9 @@ public class TestSkipBestPossibleCalculation extends ZkStandAloneCMTestBase {
     int numResource = 5;
     for (int i = 0; i < numResource; i++) {
       String dbName = "TestDB_" + i;
-      _setupTool.addResourceToCluster(CLUSTER_NAME, dbName, _PARTITIONS, STATE_MODEL,
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, dbName, _PARTITIONS, STATE_MODEL,
           IdealState.RebalanceMode.CUSTOMIZED.name());
-      _setupTool.rebalanceResource(CLUSTER_NAME, dbName, 3);
+      _gSetupTool.rebalanceResource(CLUSTER_NAME, dbName, 3);
     }
 
     ClusterDataCache cache =

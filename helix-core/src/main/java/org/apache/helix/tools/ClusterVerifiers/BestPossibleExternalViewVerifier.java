@@ -82,18 +82,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _expectLiveInstances = expectLiveInstances;
     _clusterDataCache = new ClusterDataCache();
   }
-
-  public static void main (String [] args) {
-    Set<String> resources = Collections.singleton("SyncColoTestDB");
-    BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder("ESPRESSO_MT1")
-            .setZkAddr("zk-ltx1-espresso.stg.linkedin.com:12913")
-            .setResources(resources)
-            .build();
-
-    verifier.verify();
-  }
-
+  
   public static class Builder {
     private String _clusterName;
     private Map<String, Map<String, String>> _errStates;

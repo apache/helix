@@ -157,6 +157,7 @@ public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
     for (int i = 2; i < NUM_PARTICIPANTS; i++) {
       participants[i].syncStop();
     }
+    TestHelper.dropCluster(clusterName, _gZkClient);
 
     System.out.println("STOP " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }

@@ -28,17 +28,20 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
-public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
+public class TaskSynchronizedTestBase extends ZkTestBase {
   protected int _numNodes = 5;
   protected int _startPort = 12918;
   protected int _numParitions = 20;
@@ -48,9 +51,9 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
   protected Boolean _partitionVary = true;
   protected Boolean _instanceGroupTag = false;
 
+  protected ClusterControllerManager _controller;
   protected HelixManager _manager;
   protected TaskDriver _driver;
-  protected ClusterSetup _setupTool;
 
   protected List<String> _testDbs = new ArrayList<String>();
 
@@ -58,64 +61,85 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
   protected MockParticipantManager[] _participants;
 
+  protected HelixClusterVerifier _clusterVerifier;
+
   @BeforeClass
   public void beforeClass() throws Exception {
     _participants =  new MockParticipantManager[_numNodes];
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-
-    _setupTool = new ClusterSetup(ZK_ADDR);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants();
     setupDBs();
     startParticipants();
     createManagers();
+    _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
   }
 
 
   @AfterClass
   public void afterClass() throws Exception {
-    _manager.disconnect();
+    if (_controller != null && _controller.isConnected()) {
+      _controller.syncStop();
+    }
+    if (_manager != null && _manager.isConnected()) {
+      _manager.disconnect();
+    }
     stopParticipants();
+
+    String namespace = "/" + CLUSTER_NAME;
+    if (_gZkClient.exists(namespace)) {
+      try {
+        _gSetupTool.deleteCluster(CLUSTER_NAME);
+      } catch (Exception ex) {
+        System.err.println(
+            "Failed to delete cluster " + CLUSTER_NAME + ", error: " + ex.getLocalizedMessage());
+      }
+    }
   }
 
   protected void setupDBs() {
+    setupDBs(_gSetupTool);
+  }
+
+  protected void setupDBs(ClusterSetup clusterSetup) {
     // Set up target db
     if (_numDbs > 1) {
       for (int i = 0; i < _numDbs; i++) {
         int varyNum = _partitionVary == true ? 10 * i : 0;
         String db = WorkflowGenerator.DEFAULT_TGT_DB + i;
-        _setupTool
+        clusterSetup
             .addResourceToCluster(CLUSTER_NAME, db, _numParitions + varyNum, MASTER_SLAVE_STATE_MODEL,
                 IdealState.RebalanceMode.FULL_AUTO.toString());
-        _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _numReplicas);
+        clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, db, _numReplicas);
         _testDbs.add(db);
       }
     } else {
       if (_instanceGroupTag) {
-        _setupTool
+        clusterSetup
             .addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numParitions,
                 "OnlineOffline", IdealState.RebalanceMode.FULL_AUTO.name());
-        IdealState idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
+        IdealState idealState = clusterSetup.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
         idealState.setInstanceGroupTag("TESTTAG0");
-        _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, idealState);
+        clusterSetup.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, idealState);
       } else {
-        _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
+        clusterSetup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
             _numParitions, MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name());
       }
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numReplicas);
+      clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numReplicas);
     }
   }
 
   protected void setupParticipants() {
+    setupParticipants(_gSetupTool);
+  }
+
+  protected void setupParticipants(ClusterSetup setupTool) {
     _participants = new MockParticipantManager[_numNodes];
     for (int i = 0; i < _numNodes; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
       if (_instanceGroupTag) {
-        _setupTool.addInstanceTag(CLUSTER_NAME, storageNodeName, "TESTTAG" + i);
+        setupTool.addInstanceTag(CLUSTER_NAME, storageNodeName, "TESTTAG" + i);
       }
     }
   }
@@ -173,7 +197,7 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
           + "were set up.", i, _participants.length));
     }
     if (_participants[i] != null && _participants[i].isConnected()) {
-      _participants[i].reset();
+      _participants[i].syncStop();
     }
   }
 

@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -34,10 +34,11 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestSemiAutoRebalance extends ZkIntegrationTestBase {
+public class TestSemiAutoRebalance extends ZkTestBase {
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
@@ -49,7 +50,7 @@ public class TestSemiAutoRebalance extends ZkIntegrationTestBase {
   protected static final int REPLICA_NUMBER = 3;
   protected static final String STATE_MODEL = "MasterSlave";
 
-  protected List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
+  protected List<MockParticipantManager> _participants = new ArrayList<>();
   protected ClusterControllerManager _controller;
 
   protected HelixDataAccessor _accessor;
@@ -60,11 +61,6 @@ public class TestSemiAutoRebalance extends ZkIntegrationTestBase {
       throws InterruptedException {
     System.out.println(
         "START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
-
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
 
     // setup storage cluster
     _gSetupTool.addCluster(CLUSTER_NAME, true);
@@ -123,6 +119,18 @@ public class TestSemiAutoRebalance extends ZkIntegrationTestBase {
       }
       Assert.assertEquals(masters, 1);
     }
+  }
+
+  @AfterClass
+  public void afterClass() throws Exception {
+    _controller.syncStop();
+    for (MockParticipantManager p : _participants) {
+      if (p.isConnected()) {
+        p.syncStop();
+      }
+    }
+    _gSetupTool.deleteCluster(CLUSTER_NAME);
+    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

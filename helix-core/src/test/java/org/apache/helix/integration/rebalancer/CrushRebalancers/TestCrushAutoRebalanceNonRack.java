@@ -31,6 +31,7 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -47,10 +48,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   protected ClusterControllerManager _controller;
 
-  protected ClusterSetup _setupTool = null;
   List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
   Map<String, String> _nodeToTagMap = new HashMap<String, String>();
-  List<String> _nodes = new ArrayList<String>();
+  List<String> _nodes = new ArrayList<>();
   Set<String> _allDBs = new HashSet<>();
   int _replica = 3;
 
@@ -63,12 +63,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-    _setupTool = new ClusterSetup(_gZkClient);
-    _setupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
@@ -78,10 +73,10 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
 
     for (int i = 0; i < NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
       _nodes.add(storageNodeName);
       String tag = "tag-" + i % 2;
-      _setupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, storageNodeName, tag);
+      _gSetupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, storageNodeName, tag);
       _nodeToTagMap.put(storageNodeName, tag);
       InstanceConfig instanceConfig =
           configAccessor.getInstanceConfig(CLUSTER_NAME, storageNodeName);
@@ -105,6 +100,18 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     //enableTopologyAwareRebalance(_gZkClient, CLUSTER_NAME, true);
   }
 
+  @AfterClass
+  public void afterClass() throws Exception {
+    _controller.syncStop();
+    for (MockParticipantManager p : _participants) {
+      if (p.isConnected()) {
+        p.syncStop();
+      }
+    }
+    _gSetupTool.deleteCluster(CLUSTER_NAME);
+    super.afterClass();
+  }
+
   @DataProvider(name = "rebalanceStrategies")
   public static String[][] rebalanceStrategies() {
     return new String[][] { { "CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName() },
@@ -118,9 +125,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     int i = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + rebalanceStrategyName + "-" + i++;
-      _setupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS, stateModel,
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS, stateModel,
           RebalanceMode.FULL_AUTO + "", rebalanceStrategyClass);
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
     Thread.sleep(300);
@@ -130,9 +137,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
     for (String db : _allDBs) {
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, _replica);
     }
   }
@@ -144,13 +151,13 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     int i = 3;
     for (String tag : tags) {
       String db = "Test-DB-" + rebalanceStrategyName + "-" + i++;
-      _setupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS,
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS,
           BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO + "",
           rebalanceStrategyClass);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       is.setInstanceGroupTag(tag);
-      _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, db, is);
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
+      _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, db, is);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
     Thread.sleep(300);
@@ -160,9 +167,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
     for (String db : _allDBs) {
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, _replica);
     }
   }
@@ -183,9 +190,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     int j = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + rebalanceStrategyName + "-" + j++;
-      _setupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS, stateModel,
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS, stateModel,
           RebalanceMode.FULL_AUTO + "", rebalanceStrategyClass);
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
     Thread.sleep(300);
@@ -195,9 +202,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
     for (String db : _allDBs) {
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, 2);
     }
 
@@ -218,18 +225,18 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     for (int i = 2; i < _participants.size(); i++) {
       MockParticipantManager p = _participants.get(i);
       p.syncStop();
-      _setupTool.getClusterManagementTool()
+      _gSetupTool.getClusterManagementTool()
           .enableInstance(CLUSTER_NAME, p.getInstanceName(), false);
       Thread.sleep(200);
-      _setupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
+      _gSetupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
     }
 
     int j = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + rebalanceStrategyName + "-" + j++;
-      _setupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS, stateModel,
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS, stateModel,
           RebalanceMode.FULL_AUTO + "", rebalanceStrategyClass);
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
     Thread.sleep(300);
@@ -238,9 +245,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify());
     for (String db : _allDBs) {
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, 2);
     }
 
@@ -248,7 +255,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
     for (int i = 2; i < _participants.size(); i++) {
       String storageNodeName = _participants.get(i).getInstanceName();
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
 
       InstanceConfig instanceConfig =
           configAccessor.getInstanceConfig(CLUSTER_NAME, storageNodeName);
@@ -274,7 +281,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
       for (String instance : instancesInEV) {
         if (tag != null) {
           InstanceConfig config =
-              _setupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instance);
+              _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instance);
           Assert.assertTrue(config.containsTag(tag));
         }
       }
@@ -284,7 +291,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
   @AfterMethod
   public void afterMethod() throws Exception {
     for (String db : _allDBs) {
-      _setupTool.dropResourceFromCluster(CLUSTER_NAME, db);
+      _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, db);
     }
     _allDBs.clear();
     // waiting for all DB be dropped.

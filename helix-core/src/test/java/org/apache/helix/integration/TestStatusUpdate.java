@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -40,7 +40,7 @@ public class TestStatusUpdate extends ZkStandAloneCMTestBase {
   // this test
   // @Test
   public void testParticipantStatusUpdates() throws Exception {
-    ZkClient zkClient = new ZkClient(ZkIntegrationTestBase.ZK_ADDR);
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(zkClient));

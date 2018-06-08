@@ -53,10 +53,6 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     String className = getShortClassName();
 
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_" + "testController";
-    String path = "/" + clusterName;
-    if (_gZkClient.exists(path)) {
-      _gZkClient.deleteRecursively(path);
-    }
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
@@ -96,6 +92,8 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     // AssertJUnit.assertNull(election.getController());
     // AssertJUnit.assertNull(election.getLeader());
 
+    TestHelper.dropCluster(clusterName, _gZkClient);
+
     System.out.println("END TestDistControllerElection at " + new Date(System.currentTimeMillis()));
   }
 
@@ -106,10 +104,6 @@ public class TestDistControllerElection extends ZkUnitTestBase {
 
     final String clusterName =
         CONTROLLER_CLUSTER_PREFIX + "_" + className + "_" + "testControllerParticipant";
-    String path = "/" + clusterName;
-    if (_gZkClient.exists(path)) {
-      _gZkClient.deleteRecursively(path);
-    }
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
@@ -156,6 +150,7 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     // AssertJUnit.assertNull(election.getController());
     // AssertJUnit.assertNull(election.getLeader());
 
+    TestHelper.dropCluster(clusterName, _gZkClient);
     LOG.info("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -166,9 +161,6 @@ public class TestDistControllerElection extends ZkUnitTestBase {
 
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_" + "testParticipant";
     String path = "/" + clusterName;
-    if (_gZkClient.exists(path)) {
-      _gZkClient.deleteRecursively(path);
-    }
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
     final String controllerName = "participant_0";
@@ -188,6 +180,8 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     AssertJUnit.assertNull(leaderRecord);
     // AssertJUnit.assertNull(election.getController());
     // AssertJUnit.assertNull(election.getLeader());
+
+    TestHelper.dropCluster(clusterName, _gZkClient);
   }
 
 }

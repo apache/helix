@@ -118,8 +118,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 0, "Should NOT output 1 message: SLAVE-MASTER for node1");
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test
@@ -227,8 +227,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     messages = accessor.getChildNames(keyBuilder.messages("localhost_0"));
     Assert.assertTrue(messages.isEmpty());
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test
@@ -323,6 +323,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Assert.assertEquals(message.getToState(), "DROPPED");
     Assert.assertEquals(message.getTgtName(), "localhost_0");
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -398,8 +399,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 0, "Should NOT output 1 message: SLAVE-MASTER for node0");
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test
@@ -464,6 +465,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Assert.assertEquals(message.getToState(), "SLAVE");
     Assert.assertEquals(message.getTgtName(), "localhost_1");
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 

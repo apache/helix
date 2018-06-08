@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -40,7 +40,7 @@ import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestRenamePartition extends ZkIntegrationTestBase {
+public class TestRenamePartition extends ZkTestBase {
   // map from clusterName to participants
   final Map<String, MockParticipantManager[]> _participantMap =
       new ConcurrentHashMap<String, MockParticipantManager[]>();

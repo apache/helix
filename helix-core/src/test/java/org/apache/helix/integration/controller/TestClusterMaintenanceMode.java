@@ -7,10 +7,13 @@ import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestClusterMaintenanceMode extends TaskTestBase {
+  MockParticipantManager _newInstance;
+
   @BeforeClass
   public void beforeClass() throws Exception {
     _numDbs = 1;
@@ -20,6 +23,14 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     super.beforeClass();
   }
 
+  @AfterClass
+  public void afterClass() throws Exception {
+    if (_newInstance != null && _newInstance.isConnected()) {
+      _newInstance.syncStop();
+    }
+    super.afterClass();
+  }
+
   @Test
   public void testMaintenanceModeAddNewInstance() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, true, "Test");
@@ -27,10 +38,10 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     ExternalView prevExternalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + 10);
-    _setupTool.addInstanceToCluster(CLUSTER_NAME, instanceName);
-    MockParticipantManager newInstance =
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instanceName);
+    _newInstance =
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
-    newInstance.syncStart();
+    _newInstance.syncStart();
     _gSetupTool.getClusterManagementTool()
         .rebalance(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, 3);
     Thread.sleep(3000);

@@ -97,6 +97,7 @@ public class TestInvalidResourceRebalance extends ZkUnitTestBase {
       participants[i].syncStop();
     }
     controller.syncStop();
+    TestHelper.dropCluster(clusterName, _gZkClient);
   }
 
 }

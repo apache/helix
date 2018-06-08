@@ -99,7 +99,7 @@ public class CurrentStateCache extends AbstractDataCache {
             - startTime) + " ms");
     if (LOG.isDebugEnabled()) {
       LogUtil.logDebug(LOG, getEventId(),
-          String.format("Current State freshed : ", _currentStateMap.toString()));
+          String.format("Current State freshed : %s", _currentStateMap.toString()));
     }
     return true;
   }

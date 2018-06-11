@@ -36,6 +36,7 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.slf4j.Logger;
@@ -61,6 +62,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   private final Map<String, Map<String, String>> _errStates;
   private final Set<String> _resources;
   private final Set<String> _expectLiveInstances;
+  private final ClusterDataCache _clusterDataCache;
 
   public BestPossibleExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
       Map<String, Map<String, String>> errStates, Set<String> expectLiveInstances) {
@@ -68,6 +70,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _errStates = errStates;
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
+    _clusterDataCache = new ClusterDataCache();
   }
 
   public BestPossibleExternalViewVerifier(ZkClient zkClient, String clusterName,
@@ -77,6 +80,18 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _errStates = errStates;
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
+    _clusterDataCache = new ClusterDataCache();
+  }
+
+  public static void main (String [] args) {
+    Set<String> resources = Collections.singleton("SyncColoTestDB");
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder("ESPRESSO_MT1")
+            .setZkAddr("zk-ltx1-espresso.stg.linkedin.com:12913")
+            .setResources(resources)
+            .build();
+
+    verifier.verify();
   }
 
   public static class Builder {
@@ -184,11 +199,11 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   protected synchronized boolean verifyState() {
     try {
       PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
-      // read cluster once and do verification
-      ClusterDataCache cache = new ClusterDataCache();
-      cache.refresh(_accessor);
 
-      Map<String, IdealState> idealStates = new HashMap<>(cache.getIdealStates());
+      _clusterDataCache.requireFullRefresh();
+      _clusterDataCache.refresh(_accessor);
+
+      Map<String, IdealState> idealStates = new HashMap<>(_clusterDataCache.getIdealStates());
 
       // filter out all resources that use Task state model
       Iterator<Map.Entry<String, IdealState>> it = idealStates.entrySet().iterator();
@@ -201,7 +216,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
       // verify live instances.
       if (_expectLiveInstances != null && !_expectLiveInstances.isEmpty()) {
-        Set<String> actualLiveNodes = cache.getLiveInstances().keySet();
+        Set<String> actualLiveNodes = _clusterDataCache.getLiveInstances().keySet();
         if (!_expectLiveInstances.equals(actualLiveNodes)) {
           LOG.warn("Live instances are not as expected. Actual live nodes: " + actualLiveNodes.toString());
           return false;
@@ -231,7 +246,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       }
 
       // calculate best possible state
-      BestPossibleStateOutput bestPossOutput = calcBestPossState(cache);
+      BestPossibleStateOutput bestPossOutput = calcBestPossState(_clusterDataCache, _resources);
       Map<String, Map<Partition, Map<String, String>>> bestPossStateMap =
           bestPossOutput.getStateMap();
 
@@ -271,7 +286,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         PartitionStateMap bpStateMap =
             bestPossOutput.getPartitionStateMap(resourceName);
 
-        StateModelDefinition stateModelDef = cache.getStateModelDef(is.getStateModelDefRef());
+        StateModelDefinition stateModelDef = _clusterDataCache.getStateModelDef(is.getStateModelDefRef());
         if (stateModelDef == null) {
           LOG.error(
               "State model definition " + is.getStateModelDefRef() + " for resource not found!" + is
@@ -300,16 +315,16 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
   private boolean verifyExternalView(ExternalView externalView,
       PartitionStateMap bestPossibleState, StateModelDefinition stateModelDef) {
-    Set<String> ignoreStaes = new HashSet<>(
+    Set<String> ignoreStates = new HashSet<>(
         Arrays.asList(stateModelDef.getInitialState(), HelixDefinedState.DROPPED.toString()));
 
     Map<String, Map<String, String>> bestPossibleStateMap =
         convertBestPossibleState(bestPossibleState);
 
-    removeEntryWithIgnoredStates(bestPossibleStateMap.entrySet().iterator(), ignoreStaes);
+    removeEntryWithIgnoredStates(bestPossibleStateMap.entrySet().iterator(), ignoreStates);
 
     Map<String, Map<String, String>> externalViewMap = externalView.getRecord().getMapFields();
-    removeEntryWithIgnoredStates(externalViewMap.entrySet().iterator(), ignoreStaes);
+    removeEntryWithIgnoredStates(externalViewMap.entrySet().iterator(), ignoreStates);
 
     return externalViewMap.equals(bestPossibleStateMap);
   }
@@ -349,22 +364,34 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
    * kick off the BestPossibleStateCalcStage we are providing an empty current state map
    *
    * @param cache
+   * @param resources
    * @return
    * @throws Exception
    */
-  private BestPossibleStateOutput calcBestPossState(ClusterDataCache cache) throws Exception {
+  private BestPossibleStateOutput calcBestPossState(ClusterDataCache cache, Set<String> resources)
+      throws Exception {
     ClusterEvent event = new ClusterEvent(ClusterEventType.StateVerifier);
     event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     runStage(event, new ResourceComputationStage());
-    runStage(event, new CurrentStateComputationStage());
 
+    if (resources != null && !resources.isEmpty()) {
+      // Filtering out all non-required resources
+      final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+      resourceMap.keySet().retainAll(resources);
+      event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+
+      final Map<String, Resource> resourceMapToRebalance =
+          event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
+      resourceMapToRebalance.keySet().retainAll(resources);
+      event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMapToRebalance);
+    }
+
+    runStage(event, new CurrentStateComputationStage());
     // TODO: be caution here, should be handled statelessly.
     runStage(event, new BestPossibleStateCalcStage());
 
-    BestPossibleStateOutput output =
-        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
-
+    BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
     return output;
   }
 

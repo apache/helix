@@ -155,24 +155,10 @@ public class ExampleParticipant {
     helpFormatter.printHelp("java " + ExampleParticipant.class.getName(), cliOptions);
   }
 
-  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception {
-    CommandLineParser cliParser = new GnuParser();
-    Options cliOptions = constructCommandLineOptions();
-    try {
-      return cliParser.parse(cliOptions, cliArgs);
-    } catch (ParseException pe) {
-      System.err.println("CommandLineClient: failed to parse command-line options: "
-          + pe.toString());
-      printUsage(cliOptions);
-      System.exit(1);
-    }
-    return null;
-  }
-
   public static void main(String[] args) throws Exception {
     int delay = 0;
 
-    CommandLine cmd = processCommandLineArgs(args);
+    CommandLine cmd = ToolsUtil.processCommandLineArgs(args, constructCommandLineOptions());
     String zkConnectString = cmd.getOptionValue(zkServer);
     String clusterName = cmd.getOptionValue(cluster);
     String instanceNames = cmd.getOptionValue(instances);

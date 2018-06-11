@@ -224,6 +224,10 @@ under the License.
               <name>start-participants</name>
             </program>
             <program>
+              <mainClass>org.apache.helix.tools.commandtools.CurrentStateCleanUp</mainClass>
+              <name>cleanup-currentstate</name>
+            </program>
+            <program>
               <mainClass>org.apache.helix.tools.commandtools.LocalZKServer</mainClass>
               <name>start-standalone-zookeeper</name>
             </program>

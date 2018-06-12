@@ -18,6 +18,10 @@ package org.apache.helix.integration.task;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -27,10 +31,6 @@ import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public class TestRetrieveWorkflows extends TaskTestBase {
   @Test public void testGetAllWorkflows() throws Exception {

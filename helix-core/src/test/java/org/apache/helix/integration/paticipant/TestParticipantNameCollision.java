@@ -20,7 +20,6 @@ package org.apache.helix.integration.paticipant;
  */
 
 import java.util.Date;
-
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;

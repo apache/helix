@@ -600,6 +600,13 @@ public class ZkTestBase {
     stage.postProcess();
   }
 
+  protected void deleteCluster(String clusterName) {
+    String namespace = "/" + clusterName;
+    if (_gZkClient.exists(namespace)) {
+      _gSetupTool.deleteCluster(namespace);
+    }
+  }
+
   /**
    * Poll for the existence (or lack thereof) of a specific Helix property
    * @param clazz the HelixProeprty subclass

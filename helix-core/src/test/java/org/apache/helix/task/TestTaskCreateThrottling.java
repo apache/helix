@@ -19,6 +19,8 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.helix.HelixException;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestBase;
@@ -27,9 +29,6 @@ import org.apache.helix.integration.task.WorkflowGenerator;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class TestTaskCreateThrottling extends TaskTestBase {
   @BeforeClass

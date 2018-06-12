@@ -20,7 +20,6 @@ package org.apache.helix.mock.spectator;
  */
 
 import java.util.List;
-
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixManager;

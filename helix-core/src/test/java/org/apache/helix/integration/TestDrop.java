@@ -24,13 +24,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -44,7 +43,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -101,9 +100,9 @@ public class TestDrop extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    HelixClusterVerifier verifier =
+    ZkHelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // Drop TestDB0
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
@@ -164,10 +163,10 @@ public class TestDrop extends ZkTestBase {
     errStateMap.get("TestDB0").put("TestDB0_4", "localhost_12918");
     errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
 
-    HelixClusterVerifier verifier =
+    ZkHelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
             .setErrStates(errStateMap).build();
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should drop the partition successfully
     ClusterSetup.processCommandLineArgs(new String[] {
@@ -177,7 +176,7 @@ public class TestDrop extends ZkTestBase {
     // make sure TestDB0_4 and TestDB0_8 partitions are dropped
     verifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
 
     Thread.sleep(400);
 
@@ -239,10 +238,10 @@ public class TestDrop extends ZkTestBase {
     errStateMap.put("TestDB0", new HashMap<String, String>());
     errStateMap.get("TestDB0").put("TestDB0_4", "localhost_12918");
 
-    HelixClusterVerifier verifier =
+    ZkHelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
             .setErrStates(errStateMap).build();
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should invoke error->dropped transition
     // if error happens during error->dropped transition, partition should be disabled
@@ -252,7 +251,7 @@ public class TestDrop extends ZkTestBase {
 
     Thread.sleep(100);
     // make sure TestDB0_4 stay in ERROR state and is disabled
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
@@ -360,10 +359,10 @@ public class TestDrop extends ZkTestBase {
     errStateMap.put("TestDB0", new HashMap<String, String>());
     errStateMap.get("TestDB0").put("TestDB0_0", "localhost_12918");
 
-    HelixClusterVerifier verifier =
+    ZkHelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
             .setErrStates(errStateMap).build();
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should drop the partition successfully
     ClusterSetup.processCommandLineArgs(new String[] {
@@ -373,7 +372,7 @@ public class TestDrop extends ZkTestBase {
     // make sure TestDB0_0 partition is dropped
     verifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(verifier.verify(), "Should be empty exeternal-view");
+    Assert.assertTrue(verifier.verifyByPolling(), "Should be empty exeternal-view");
     Thread.sleep(400);
 
     assertEmptyCSandEV(clusterName, "TestDB0", participants);
@@ -421,9 +420,9 @@ public class TestDrop extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    HelixClusterVerifier verifier =
+    ZkHelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // add schemata resource group
     String command =
@@ -433,13 +432,13 @@ public class TestDrop extends ZkTestBase {
     command = "--zkSvr " + ZK_ADDR + " --rebalance " + clusterName + " schemata " + n;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // drop schemata resource group
     // System.out.println("Dropping schemata resource group...");
     command = "--zkSvr " + ZK_ADDR + " --dropResource " + clusterName + " schemata";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
 
     Thread.sleep(400);
     assertEmptyCSandEV(clusterName, "schemata", participants);

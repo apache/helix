@@ -25,15 +25,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
-import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
-import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -99,7 +94,7 @@ public class TestFullAutoMigration extends TestPartitionMigrationBase {
       Thread.sleep(50);
     }
 
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     _migrationVerifier =
         new MigrationStateVerifier(Collections.singletonMap(db, idealState), _manager);
@@ -113,7 +108,7 @@ public class TestFullAutoMigration extends TestPartitionMigrationBase {
     }
 
 
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     Assert.assertFalse(_migrationVerifier.hasLessReplica());
     Assert.assertFalse(_migrationVerifier.hasMoreReplica());
 
@@ -140,7 +135,7 @@ public class TestFullAutoMigration extends TestPartitionMigrationBase {
       _testDBs.add(db);
     }
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       idealStateMap.put(db, is);

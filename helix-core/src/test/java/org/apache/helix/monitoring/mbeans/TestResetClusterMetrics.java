@@ -20,12 +20,10 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import java.lang.management.ManagementFactory;
-
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -72,6 +70,7 @@ public class TestResetClusterMetrics extends ZkUnitTestBase {
 
     // Stop the controller
     controller.syncStop();
+    participant.syncStop();
     TestHelper.dropCluster(clusterName, _gZkClient);
 
     // Check the metrics

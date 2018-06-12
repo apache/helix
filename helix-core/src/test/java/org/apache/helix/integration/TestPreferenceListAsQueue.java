@@ -19,12 +19,12 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import com.google.common.collect.Lists;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixAdmin;
@@ -53,8 +53,6 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.Lists;
 
 public class TestPreferenceListAsQueue extends ZkUnitTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestPreferenceListAsQueue.class);

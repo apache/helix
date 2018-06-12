@@ -19,11 +19,10 @@ package org.apache.helix.integration.manager;
  * under the License.
  */
 
-import java.util.Date;
+import java.lang.reflect.Method;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
@@ -45,21 +44,28 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
+import org.testng.ITestContext;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
 public class TestParticipantManager extends ZkTestBase {
 
   private static Logger LOG = LoggerFactory.getLogger(TestParticipantManager.class);
 
+  String clusterName = TestHelper.getTestClassName();
+
+
+  @AfterMethod
+  public void afterMethod(Method testMethod, ITestContext testContext) {
+    if (_gZkClient.exists("/" + clusterName)) {
+      _gSetupTool.deleteCluster(clusterName);
+    }
+    super.endTest(testMethod, testContext);
+  }
+
   @Test
   public void simpleIntegrationTest() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
     int n = 1;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -95,20 +101,12 @@ public class TestParticipantManager extends ZkTestBase {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12918")));
     Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void simpleSessionExpiryTest() throws Exception {
     // Logger.getRootLogger().setLevel(Level.WARN);
-
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    final String clusterName = className + "_" + methodName;
     int n = 1;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
@@ -157,9 +155,6 @@ public class TestParticipantManager extends ZkTestBase {
     for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   class SessionExpiryTransition extends MockTransition {
@@ -188,14 +183,9 @@ public class TestParticipantManager extends ZkTestBase {
 
   @Test
   public void testSessionExpiryInTransition() throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    final String clusterName = className + "_" + methodName;
     int n = 1;
     CountDownLatch startCountdown = new CountDownLatch(1);
     CountDownLatch endCountdown = new CountDownLatch(1);
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
@@ -251,7 +241,5 @@ public class TestParticipantManager extends ZkTestBase {
     for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

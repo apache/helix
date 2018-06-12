@@ -22,14 +22,13 @@ package org.apache.helix;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.listeners.MessageListener;
-import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
+import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
@@ -47,8 +46,6 @@ import org.testng.annotations.Test;
 
 public class TestZKCallback extends ZkUnitTestBase {
   private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
-
-  ZkClient _zkClient;
 
   private static String[] createArgs(String str) {
     String[] split = str.split("[ ]+");
@@ -203,16 +200,13 @@ public class TestZKCallback extends ZkUnitTestBase {
     // dataAccessor.setNodeConfigs(recList); Thread.sleep(100);
     // AssertJUnit.assertTrue(testListener.configChangeReceived);
     // testListener.Reset();
+
+    accessor.removeProperty(keyBuilder.liveInstance("localhost_8900"));
+    accessor.removeProperty(keyBuilder.liveInstance("localhost_9801"));
   }
 
   @BeforeClass()
   public void beforeClass() throws Exception {
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
-    if (_zkClient.exists("/" + clusterName)) {
-      _zkClient.deleteRecursively("/" + clusterName);
-    }
-
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addCluster "
         + clusterName));
     // ClusterSetup
@@ -236,7 +230,7 @@ public class TestZKCallback extends ZkUnitTestBase {
 
   @AfterClass()
   public void afterClass() {
-    _zkClient.close();
+    deleteCluster(clusterName);
   }
 
 }

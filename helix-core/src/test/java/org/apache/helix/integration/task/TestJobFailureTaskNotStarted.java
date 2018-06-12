@@ -47,9 +47,7 @@ import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskSynchronizedTestBase;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -82,6 +80,8 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.stateTransitionCancelEnabled(true);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
   }
 
   protected void startParticipantsWithStuckTaskStateModelFactory() {
@@ -187,8 +187,6 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
 
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, UNBALANCED_DB_NAME, idealState);
 
-    HelixClusterVerifier clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
-    Assert.assertTrue(clusterVerifier.verify(10000));
+    Assert.assertTrue(_clusterVerifier.verifyByPolling(10000, 100));
   }
 }

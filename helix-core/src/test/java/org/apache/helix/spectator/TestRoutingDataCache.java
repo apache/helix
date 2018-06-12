@@ -27,13 +27,14 @@ import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.MockZkHelixDataAccessor;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
 
-  @Test() public void testUpdateOnNotification() throws Exception {
+  @Test()
+  public void testUpdateOnNotification() throws Exception {
     MockZkHelixDataAccessor accessor =
         new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
@@ -55,7 +56,8 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
   }
 
-  @Test(dependsOnMethods = { "testUpdateOnNotification" }) public void testSelectiveUpdates()
+  @Test(dependsOnMethods = { "testUpdateOnNotification" })
+  public void testSelectiveUpdates()
       throws Exception {
     MockZkHelixDataAccessor accessor =
         new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
@@ -81,9 +83,9 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_1", _replica);
 
     Thread.sleep(100);
-    HelixClusterVerifier _clusterVerifier =
+    ZkHelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     accessor.clearReadCounters();
 
@@ -101,7 +103,7 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_3", _replica);
 
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Totally four resources. Two of them are newly added.
     cache.notifyDataChange(HelixConstants.ChangeType.EXTERNAL_VIEW);
@@ -114,7 +116,7 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, "TestDB_2", false);
 
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     cache.notifyDataChange(HelixConstants.ChangeType.EXTERNAL_VIEW);
     cache.refresh(accessor);

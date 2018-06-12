@@ -25,12 +25,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.helix.AccessOption;
-import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -41,8 +36,12 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.MockListener;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
@@ -110,6 +109,8 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     controller.disconnect();
     AssertJUnit.assertFalse(controller.isConnected());
 
+    _gSetupTool.deleteCluster(clusterName);
+
     System.out.println("END " + className + ".testController() at "
         + new Date(System.currentTimeMillis()));
   }
@@ -167,6 +168,8 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 0);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 3);
 
+    manager.disconnect();
+
     manager = new ZKHelixManager(clusterName, "localhost_1", InstanceType.PARTICIPANT, ZK_ADDR);
     manager.setLiveInstanceInfoProvider(new provider(false));
 
@@ -177,6 +180,8 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 4);
+
+    manager.disconnect();
 
     manager = new ZKHelixManager(clusterName, "localhost_2", InstanceType.PARTICIPANT, ZK_ADDR);
     manager.setLiveInstanceInfoProvider(new provider(true));
@@ -190,8 +195,6 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
     Assert.assertFalse(liveInstance.getSessionId().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
-
-    // //////////////////////////////////
 
     MockParticipantManager manager2 =
         new MockParticipantManager(ZK_ADDR, clusterName, "localhost_3");
@@ -219,6 +222,10 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     Assert.assertFalse(liveInstance.getSessionId().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
     Assert.assertFalse(sessionId.equals(liveInstance.getSessionId()));
+
+    manager.disconnect();
+    manager2.disconnect();
+    _gSetupTool.deleteCluster(clusterName);
 
     System.out.println("END " + className + ".testLiveInstanceInfoProvider() at "
         + new Date(System.currentTimeMillis()));
@@ -260,6 +267,8 @@ public class TestZkClusterManager extends ZkUnitTestBase {
 
     admin.disconnect();
     AssertJUnit.assertFalse(admin.isConnected());
+
+    _gSetupTool.deleteCluster(clusterName);
 
     System.out.println("END " + className + ".testAdministrator() at "
         + new Date(System.currentTimeMillis()));

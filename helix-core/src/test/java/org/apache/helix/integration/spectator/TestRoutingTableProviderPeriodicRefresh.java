@@ -20,7 +20,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -46,7 +46,7 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
   private List<MockParticipantManager> _participants = new ArrayList<>();
   private List<String> _instances = new ArrayList<>();
   private ClusterControllerManager _controller;
-  private HelixClusterVerifier _clusterVerifier;
+  private ZkHelixClusterVerifier _clusterVerifier;
   private MockRoutingTableProvider _routingTableProvider;
   private MockRoutingTableProvider _routingTableProviderNoPeriodicRefresh;
   private MockRoutingTableProvider _routingTableProviderLongPeriodicRefresh;
@@ -114,7 +114,7 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
 
     _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
   }
 

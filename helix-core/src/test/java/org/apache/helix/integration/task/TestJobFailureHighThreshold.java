@@ -33,9 +33,7 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskSynchronizedTestBase;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -61,9 +59,9 @@ public class TestJobFailureHighThreshold extends TaskSynchronizedTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, CONTROLLER_PREFIX);
     _controller.syncStart();
 
-    HelixClusterVerifier clusterVerifier =
+    _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
-    Assert.assertTrue(clusterVerifier.verify(10000));
+    Assert.assertTrue(_clusterVerifier.verifyByPolling(10000, 100));
   }
 
   /**

@@ -23,6 +23,9 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import javax.management.MBeanServerConnection;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -36,15 +39,11 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import javax.management.MBeanServerConnection;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 
 import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.CLUSTER_DN_KEY;
 
@@ -60,7 +59,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit
   private ClusterControllerManager _controller;
 
   private List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
-  private HelixClusterVerifier _clusterVerifier;
+  private ZkHelixClusterVerifier _clusterVerifier;
   private HelixDataAccessor _dataAccessor;
   private int _maxOfflineInstancesAllowed = 4;
 
@@ -103,7 +102,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit
           BuiltInStateModelDefinitions.MasterSlave.name(), _PARTITIONS, 3, 3, -1);
     }
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   @Test

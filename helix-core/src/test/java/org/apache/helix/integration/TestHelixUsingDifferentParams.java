@@ -20,7 +20,6 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
-
 import org.apache.helix.common.ZkTestBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

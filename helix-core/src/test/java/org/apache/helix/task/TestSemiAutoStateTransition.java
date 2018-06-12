@@ -20,7 +20,6 @@ package org.apache.helix.task;
  */
 
 import java.util.Map;
-
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -32,7 +31,6 @@ import org.apache.helix.mock.participant.MockDelayMSStateModelFactory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;

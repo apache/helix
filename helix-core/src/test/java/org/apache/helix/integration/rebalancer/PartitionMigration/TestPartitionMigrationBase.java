@@ -32,9 +32,9 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.DelayedTransitionBase;
-import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -42,7 +42,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
@@ -59,7 +59,7 @@ public class TestPartitionMigrationBase extends ZkTestBase {
   List<MockParticipantManager> _participants = new ArrayList<>();
   int _replica = 3;
   int _minActiveReplica = _replica - 1;
-  HelixClusterVerifier _clusterVerifier;
+  ZkHelixClusterVerifier _clusterVerifier;
   List<String> _testDBs = new ArrayList<>();
 
   MigrationStateVerifier _migrationVerifier;

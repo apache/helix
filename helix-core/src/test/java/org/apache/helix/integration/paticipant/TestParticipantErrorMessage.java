@@ -20,7 +20,6 @@ package org.apache.helix.integration.paticipant;
  */
 
 import java.util.UUID;
-
 import org.apache.helix.Criteria;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey.Builder;

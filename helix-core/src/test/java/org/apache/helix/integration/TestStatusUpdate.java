@@ -22,7 +22,6 @@ package org.apache.helix.integration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;

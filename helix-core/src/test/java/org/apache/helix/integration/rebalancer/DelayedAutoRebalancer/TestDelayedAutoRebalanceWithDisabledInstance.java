@@ -57,7 +57,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     enableInstance(instance, false);
 
     Thread.sleep(300);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {
       ExternalView ev =
@@ -80,7 +80,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     enableInstance(instance, false);
 
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {
       ExternalView ev =
@@ -107,7 +107,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     // disable one node, no partition should be moved.
     enableInstance(_participants.get(0).getInstanceName(), false);
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {
       ExternalView ev =
@@ -121,7 +121,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     // disable another node, the minimal active replica for each partition should be maintained.
     enableInstance(_participants.get(3).getInstanceName(), false);
     Thread.sleep(1000);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {
       ExternalView ev =
@@ -144,7 +144,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     // disable one node, no partition should be moved.
     enableInstance(_participants.get(0).getInstanceName(), false);
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {
       ExternalView ev =
@@ -158,7 +158,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     // bring down another node, the minimal active replica for each partition should be maintained.
     _participants.get(3).syncStop();
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {
       ExternalView ev =
@@ -183,7 +183,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     // disable one node, no partition should be moved.
     enableInstance(_participants.get(0).getInstanceName(), false);
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
@@ -211,7 +211,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     // disable one node, no partition should be moved.
     enableInstance(_participants.get(0).getInstanceName(), false);
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {
       ExternalView ev =
@@ -229,7 +229,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     idealState.setDelayRebalanceEnabled(false);
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, testDb, idealState);
     Thread.sleep(2000);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // once delay rebalance is disabled, it should maintain required number of replicas for that db.
     // replica for other dbs should not be moved.
@@ -259,7 +259,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     // disable one node, no partition should be moved.
     enableInstance(_participants.get(0).getInstanceName(), false);
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {
       ExternalView ev =
@@ -275,7 +275,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     // TODO: remove this once controller is listening on cluster config change.
     RebalanceScheduler.invokeRebalance(_controller.getHelixDataAccessor(), _testDBs.get(0));
     Thread.sleep(2000);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);

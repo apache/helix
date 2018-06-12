@@ -21,7 +21,6 @@ package org.apache.helix.integration;
 
 import java.util.ArrayList;
 import java.util.Date;
-
 import java.util.List;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
@@ -109,15 +108,17 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
       Assert.assertTrue(result);
       ExternalView stableExternalView =
           accessor.getProperty(keyBuilder.externalView(RESOURCE_NAME));
-      for (HelixManager participant : participants) {
+      for (int i = 0; i < NUM_PARTICIPANTS; i++) {
         // disable the controller, bounce the node, re-enable the controller, verify assignments
         // remained the same
+        HelixManager participant = participants[i];
         helixAdmin.enableCluster(clusterName, false);
         participant.disconnect();
         Thread.sleep(1000);
         participant = createParticipant(clusterName, participant.getInstanceName());
         participantToClose.add(participant);
         participant.connect();
+        participants[i] = participant;
         Thread.sleep(1000);
         helixAdmin.enableCluster(clusterName, true);
         Thread.sleep(1000);

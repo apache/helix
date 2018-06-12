@@ -20,8 +20,8 @@ package org.apache.helix;
  */
 
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
-import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyMasterSlaveStateModelFactory;
+import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -20,12 +20,10 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
-
 import org.apache.helix.ExternalCommand;
 import org.apache.helix.ScriptTestHelper;
 import org.apache.helix.TestHelper;
 import org.testng.Assert;
-import org.testng.annotations.Test;
 
 public class TestFailOverPerf1kp {
   // TODO: renable this test. disable it because the script is not running properly on apache

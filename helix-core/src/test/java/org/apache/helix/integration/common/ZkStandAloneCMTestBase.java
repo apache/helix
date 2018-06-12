@@ -20,18 +20,14 @@ package org.apache.helix.integration.common;
  */
 
 import java.util.Date;
-
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -56,11 +52,10 @@ public class ZkStandAloneCMTestBase extends ZkTestBase {
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
-  HelixClusterVerifier _clusterVerifier;
+  protected ZkHelixClusterVerifier _clusterVerifier;
 
   protected MockParticipantManager[] _participants = new MockParticipantManager[NODE_NR];
   protected ClusterControllerManager _controller;
-
   protected int _replica = 3;
 
   @BeforeClass
@@ -89,18 +84,8 @@ public class ZkStandAloneCMTestBase extends ZkTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
-
     _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-
-    Assert.assertTrue(result);
-
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            CLUSTER_NAME));
-    Assert.assertTrue(result);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // create cluster manager
     _manager = HelixManagerFactory
@@ -125,16 +110,7 @@ public class ZkStandAloneCMTestBase extends ZkTestBase {
       _manager.disconnect();
     }
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      try {
-        _gSetupTool.deleteCluster(CLUSTER_NAME);
-      } catch (Exception ex) {
-        System.err.println(
-            "Failed to delete cluster " + CLUSTER_NAME + ", error: " + ex.getLocalizedMessage());
-      }
-    }
-
+    deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 }

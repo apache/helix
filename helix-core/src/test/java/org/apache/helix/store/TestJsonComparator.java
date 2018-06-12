@@ -20,9 +20,7 @@ package org.apache.helix.store;
  */
 
 import java.util.Date;
-
 import org.apache.helix.ZNRecord;
-import org.apache.helix.store.PropertyJsonComparator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 

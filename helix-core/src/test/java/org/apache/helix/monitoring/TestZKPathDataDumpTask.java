@@ -19,11 +19,7 @@ package org.apache.helix.monitoring;
  * under the License.
  */
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.util.Date;
-
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -37,6 +33,9 @@ import org.apache.helix.model.Error;
 import org.apache.helix.model.StatusUpdate;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestZKPathDataDumpTask extends ZkUnitTestBase {
 

@@ -19,9 +19,9 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -40,14 +40,10 @@ import org.apache.helix.task.TaskSynchronizedTestBase;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.Sets;
 
 
 public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
@@ -74,9 +70,10 @@ public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
     clusterConfig.setMaxConcurrentTaskPerInstance(_numParitions);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
-    HelixClusterVerifier clusterVerifier =
+    _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
-    Assert.assertTrue(clusterVerifier.verify(10000));
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling(10000, 100));
   }
 
   protected void startParticipantsWithStuckTaskStateModelFactory() {

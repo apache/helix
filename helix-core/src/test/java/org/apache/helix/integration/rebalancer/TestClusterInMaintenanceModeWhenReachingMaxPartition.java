@@ -32,7 +32,7 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -49,7 +49,7 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
 
   List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
   int _replica = 3;
-  HelixClusterVerifier _clusterVerifier;
+  ZkHelixClusterVerifier _clusterVerifier;
   List<String> _testDBs = new ArrayList<String>();
   HelixDataAccessor _dataAccessor;
 
@@ -103,7 +103,7 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
       _testDBs.add(db);
     }
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     MaintenanceSignal maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
     Assert.assertNull(maintenanceSignal);

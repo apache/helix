@@ -19,9 +19,9 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.testng.Assert;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.testng.Assert;
 
 public class TestZkStateChangeListener extends ZkStandAloneCMTestBase {
   // TODO this test has been covered by TestZkFlapping. check if still needed

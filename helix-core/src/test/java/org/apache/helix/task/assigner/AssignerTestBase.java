@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.task.TaskConfig;
 
 /* package */ class AssignerTestBase {
 

@@ -7,7 +7,6 @@ import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-
 import org.apache.helix.HelixConstants;
 import org.apache.helix.InstanceType;
 import org.testng.Assert;

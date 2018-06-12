@@ -19,7 +19,17 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import org.apache.helix.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -35,8 +45,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.*;
 
 public class TestStateTransitionThrottle extends ZkTestBase {
   int participantCount = 4;
@@ -207,8 +215,6 @@ public class TestStateTransitionThrottle extends ZkTestBase {
         StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 100));
     clusterConfig.setStateTransitionThrottleConfigs(throttleConfigs);
     accessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
-
-    _gSetupTool.deleteCluster(clusterName);
   }
 
   private static boolean pollForPartitionAssignment(final HelixDataAccessor accessor,

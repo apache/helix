@@ -1,12 +1,10 @@
 package org.apache.helix.integration;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;

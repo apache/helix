@@ -17,7 +17,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -97,9 +97,9 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db1, NUM_REPLICAS);
 
       Thread.sleep(200);
-      HelixClusterVerifier clusterVerifier =
+      ZkHelixClusterVerifier clusterVerifier =
           new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-      Assert.assertTrue(clusterVerifier.verify());
+      Assert.assertTrue(clusterVerifier.verifyByPolling());
 
       IdealState idealState1 =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db1);
@@ -111,7 +111,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, NUM_REPLICAS);
 
       Thread.sleep(200);
-      Assert.assertTrue(clusterVerifier.verify());
+      Assert.assertTrue(clusterVerifier.verifyByPolling());
 
       IdealState idealState2 =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db2);
@@ -120,7 +120,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       // shutdown an instance
       _participants[0].syncStop();
       Thread.sleep(200);
-      Assert.assertTrue(clusterVerifier.verify());
+      Assert.assertTrue(clusterVerifier.verifyByPolling());
       validate(idealState1, routingTableEV, routingTableCurrentStates);
       validate(idealState2, routingTableEV, routingTableCurrentStates);
     } finally {

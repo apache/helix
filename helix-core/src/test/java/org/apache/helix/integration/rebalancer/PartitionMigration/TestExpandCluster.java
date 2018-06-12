@@ -43,7 +43,7 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
 
   @Test
   public void testClusterExpansion() throws Exception {
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     _migrationVerifier.start();
 
@@ -56,7 +56,7 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
       Thread.sleep(50);
     }
 
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     Assert.assertFalse(_migrationVerifier.hasLessReplica());
     Assert.assertFalse(_migrationVerifier.hasMoreReplica());
 
@@ -66,7 +66,7 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
 
   @Test (dependsOnMethods = {"testClusterExpansion"})
   public void testClusterExpansionByEnableInstance() throws Exception {
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     _migrationVerifier.reset();
     _migrationVerifier.start();
@@ -96,7 +96,7 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
       Thread.sleep(100);
     }
 
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     Assert.assertFalse(_migrationVerifier.hasLessReplica());
     Assert.assertFalse(_migrationVerifier.hasMoreReplica());
 
@@ -110,7 +110,7 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
     clusterConfig.setRebalanceDelayTime(0);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     _migrationVerifier.reset();
     _migrationVerifier.start();
@@ -121,10 +121,10 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
       MockParticipantManager participant = _participants.get(i);
       participant.syncStop();
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, storageNodeName, false);
-      Assert.assertTrue(_clusterVerifier.verify());
+      Assert.assertTrue(_clusterVerifier.verifyByPolling());
     }
 
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     Assert.assertFalse(_migrationVerifier.hasLessMinActiveReplica());
     Assert.assertFalse(_migrationVerifier.hasMoreReplica());
 

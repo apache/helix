@@ -19,6 +19,12 @@ package org.apache.helix.messaging;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
@@ -26,14 +32,8 @@ import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.Message;
-import org.testng.annotations.Test;
 import org.testng.AssertJUnit;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import org.testng.annotations.Test;
 
 public class TestAsyncCallbackSvc {
   class MockHelixManager extends MockManager {

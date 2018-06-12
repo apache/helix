@@ -20,7 +20,6 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
-
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;

@@ -20,7 +20,6 @@ package org.apache.helix.integration.messaging;
  */
 
 import java.util.Date;
-
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
@@ -35,7 +34,7 @@ import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -106,10 +105,10 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
       participants[i].syncStart();
 
       // wait for each participant to complete state transitions, so we have deterministic results
-      HelixClusterVerifier _clusterVerifier =
+      ZkHelixClusterVerifier _clusterVerifier =
           new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
       Thread.sleep(100);
-      Assert.assertTrue(_clusterVerifier.verify(),
+      Assert.assertTrue(_clusterVerifier.verifyByPolling(),
           "participant: " + instanceName + " fails to complete all transitions");
     }
 

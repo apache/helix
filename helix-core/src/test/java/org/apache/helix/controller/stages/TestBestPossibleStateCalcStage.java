@@ -21,11 +21,10 @@ package org.apache.helix.controller.stages;
 
 import java.util.Date;
 import java.util.Map;
-
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.IdealState.RebalanceMode;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 

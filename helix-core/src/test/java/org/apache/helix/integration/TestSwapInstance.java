@@ -24,7 +24,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
@@ -47,16 +46,13 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
     IdealState is2 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("MyDB"));
     idealStateOld2.merge(is2.getRecord());
 
-    Assert.assertTrue(ClusterStateVerifier
-        .verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME)));
+    Assert.assertTrue(ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME)));
 
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);
 
-    boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     String instanceName2 = PARTICIPANT_PREFIX + "_" + (START_PORT + 444);
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instanceName2);
@@ -70,7 +66,7 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
     Assert.assertTrue(exception);
 
     _participants[0].syncStop();
-    Thread.sleep(1000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     exception = false;
     try {
@@ -84,10 +80,7 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName2);
     newParticipant.syncStart();
 
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     is1 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("TestDB"));
 

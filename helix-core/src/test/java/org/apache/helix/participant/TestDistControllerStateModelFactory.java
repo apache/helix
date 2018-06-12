@@ -21,7 +21,6 @@ package org.apache.helix.participant;
 
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
-
 import org.apache.helix.model.Message;
 import org.testng.annotations.Test;
 

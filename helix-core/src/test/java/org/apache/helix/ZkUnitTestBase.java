@@ -24,10 +24,4 @@ import org.apache.helix.common.ZkTestBase;
 // TODO merge code with ZkIntegrationTestBase
 public class ZkUnitTestBase extends ZkTestBase {
 
-  protected void deleteCluster(String clusterName) {
-    String namespace = "/" + clusterName;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
-  }
 }

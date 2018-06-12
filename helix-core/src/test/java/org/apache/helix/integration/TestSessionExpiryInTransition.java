@@ -21,7 +21,6 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;

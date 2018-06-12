@@ -24,7 +24,6 @@ import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.integration.task.WorkflowGenerator;
-import org.apache.helix.model.ClusterConfig;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;

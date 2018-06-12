@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -37,7 +36,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
@@ -61,7 +60,7 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
   protected MockParticipantManager[] _participants;
 
-  protected HelixClusterVerifier _clusterVerifier;
+  protected ZkHelixClusterVerifier _clusterVerifier;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -86,15 +85,7 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
     }
     stopParticipants();
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      try {
-        _gSetupTool.deleteCluster(CLUSTER_NAME);
-      } catch (Exception ex) {
-        System.err.println(
-            "Failed to delete cluster " + CLUSTER_NAME + ", error: " + ex.getLocalizedMessage());
-      }
-    }
+    deleteCluster(CLUSTER_NAME);
   }
 
   protected void setupDBs() {

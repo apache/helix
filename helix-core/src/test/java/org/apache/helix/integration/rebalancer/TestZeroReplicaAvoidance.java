@@ -39,7 +39,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -52,7 +52,7 @@ public class TestZeroReplicaAvoidance extends ZkTestBase implements
   final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
   List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
-  HelixClusterVerifier _clusterVerifier;
+  ZkHelixClusterVerifier _clusterVerifier;
   boolean _testSuccess = true;
   boolean _startListen = false;
 

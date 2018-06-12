@@ -21,10 +21,7 @@ package org.apache.helix.integration.task;
 
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.task.TaskSynchronizedTestBase;
-import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 public class TaskTestBase extends TaskSynchronizedTestBase {
@@ -38,6 +35,6 @@ public class TaskTestBase extends TaskSynchronizedTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 }

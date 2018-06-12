@@ -19,8 +19,8 @@ package org.apache.helix.mock.statemodel;
  * under the License.
  */
 
-import org.apache.helix.model.Message;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 
 public class MockMasterSlaveStateModel extends StateModel {

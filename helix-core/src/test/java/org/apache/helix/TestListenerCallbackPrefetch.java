@@ -76,15 +76,14 @@ public class TestListenerCallbackPrefetch extends ZkUnitTestBase {
 
   private HelixManager _manager;
 
+  String clusterName = TestHelper.getTestClassName();
+
   @BeforeClass
   public void beforeClass()
       throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
-    int n = 2;
 
+    int n = 2;
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -105,6 +104,9 @@ public class TestListenerCallbackPrefetch extends ZkUnitTestBase {
   public void afterClass()
       throws Exception {
     _manager.disconnect();
+    if (_gZkClient.exists("/" + clusterName)) {
+      _gSetupTool.deleteCluster(clusterName);
+    }
   }
 
   @Test

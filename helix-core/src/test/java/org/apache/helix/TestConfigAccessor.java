@@ -21,7 +21,6 @@ package org.apache.helix;
 
 import java.util.Date;
 import java.util.List;
-
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -151,6 +150,8 @@ public class TestConfigAccessor extends ZkUnitTestBase {
       // OK
     }
 
+    TestHelper.dropCluster(clusterName, _gZkClient);
+
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
@@ -189,6 +190,7 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     String participantConfigValue = configAccessor.get(participantScope, "participantConfigKey");
     Assert.assertEquals(participantConfigValue, "participantConfigValue");
 
+    admin.dropCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

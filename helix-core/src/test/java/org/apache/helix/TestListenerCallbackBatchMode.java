@@ -94,13 +94,11 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
   private int _numNode = 8;
   private int _numResource = 8;
 
+  String clusterName = TestHelper.getTestClassName();
+
   @BeforeClass
   public void beforeClass()
       throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
-
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -121,6 +119,9 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
   public void afterClass()
       throws Exception {
     _manager.disconnect();
+    if (_gZkClient.exists("/" + clusterName)) {
+      _gSetupTool.deleteCluster(clusterName);
+    }
   }
 
 
@@ -236,8 +237,8 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
 
   private void verifyBatchedListeners(Listener batchListener) throws InterruptedException {
     Thread.sleep(3000);
-    boolean result = (batchListener._instanceConfigChangedCount < _numNode / 2) && (
-        batchListener._idealStateChangedCount < _numResource / 2);
+    boolean result = (batchListener._instanceConfigChangedCount < _numNode) && (
+        batchListener._idealStateChangedCount < _numResource);
 
     Assert.assertTrue(result, "instance callbacks: " + batchListener._instanceConfigChangedCount
         + ", idealstate callbacks " + batchListener._idealStateChangedCount + "\ninstance count: "

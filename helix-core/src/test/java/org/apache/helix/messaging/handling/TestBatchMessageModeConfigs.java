@@ -20,7 +20,6 @@ package org.apache.helix.messaging.handling;
  */
 
 import java.util.concurrent.ThreadPoolExecutor;
-
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.IdealState;

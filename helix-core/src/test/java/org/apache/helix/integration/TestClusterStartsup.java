@@ -20,17 +20,14 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
-
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
-import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 

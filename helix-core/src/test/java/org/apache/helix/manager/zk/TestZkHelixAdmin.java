@@ -25,7 +25,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -316,6 +315,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertFalse(_gZkClient.exists(keyBuilder.resourceConfig("test-db").getPath()),
         "test-db resource config should be dropped");
 
+    tool.dropCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -379,6 +379,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     item = constraints.getConstraintItem("constraint1");
     Assert.assertNull(item, "message-constraint for constraint1 should NOT exist");
 
+    tool.dropCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -404,6 +405,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     admin.enableResource(clusterName, resourceName, true);
     idealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
     Assert.assertTrue(idealState.isEnabled());
+
+    admin.dropCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -411,11 +414,9 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
   public void testGetResourcesWithTag() {
     String TEST_TAG = "TestTAG";
 
-    final String clusterName = getShortClassName();
-    String rootPath = "/" + clusterName;
-    if (_gZkClient.exists(rootPath)) {
-      _gZkClient.deleteRecursively(rootPath);
-    }
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
 
     HelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.addCluster(clusterName, true);
@@ -457,6 +458,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     List<String> resourcesWithTag = tool.getResourcesInClusterWithTag(clusterName, TEST_TAG);
     AssertJUnit.assertEquals(allResources.size(), 4);
     AssertJUnit.assertEquals(resourcesWithTag.size(), 2);
+
+    tool.dropCluster(clusterName);
   }
 
   @Test
@@ -485,6 +488,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     instanceConfig.setInstanceEnabledForPartition("10", false);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "0").size(), 3);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "1").size(), 4);
+    admin.dropCluster(clusterName);
   }
 
   @Test

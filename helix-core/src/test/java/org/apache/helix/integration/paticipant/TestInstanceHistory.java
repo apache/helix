@@ -18,6 +18,8 @@ package org.apache.helix.integration.paticipant;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import java.util.List;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -26,8 +28,6 @@ import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.model.ParticipantHistory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.List;
 
 public class TestInstanceHistory extends ZkStandAloneCMTestBase {
 

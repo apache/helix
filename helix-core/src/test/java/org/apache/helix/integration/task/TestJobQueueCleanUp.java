@@ -19,6 +19,7 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.helix.TestHelper;
@@ -32,8 +33,6 @@ import org.apache.helix.task.WorkflowContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.ImmutableMap;
 
 public class TestJobQueueCleanUp extends TaskTestBase {
   @BeforeClass

@@ -21,8 +21,8 @@ package org.apache.helix.integration.controller;
 
 import java.util.ArrayList;
 import java.util.Set;
-import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.controller.GenericHelixController;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

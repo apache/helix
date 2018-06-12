@@ -19,9 +19,9 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import com.google.common.collect.Maps;
 import java.util.Date;
 import java.util.Map;
-
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
@@ -33,8 +33,6 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.Maps;
 
 public class TestInvalidResourceRebalance extends ZkUnitTestBase {
   /**

@@ -43,7 +43,7 @@ public abstract class ZkHelixClusterVerifier
     implements IZkChildListener, IZkDataListener, HelixClusterVerifier {
   private static Logger LOG = LoggerFactory.getLogger(ZkHelixClusterVerifier.class);
   protected static int DEFAULT_TIMEOUT = 30 * 1000;
-  protected static int DEFAULT_PERIOD = 1000;
+  protected static int DEFAULT_PERIOD = 100;
 
 
   protected final ZkClient _zkClient;

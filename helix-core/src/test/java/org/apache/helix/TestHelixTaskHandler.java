@@ -20,9 +20,7 @@ package org.apache.helix;
  */
 
 import java.util.Date;
-
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.integration.TestEntropyFreeNodeBounce;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
 import org.apache.helix.messaging.handling.HelixTask;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
@@ -31,8 +29,8 @@ import org.apache.helix.mock.statemodel.MockMasterSlaveStateModel;
 import org.apache.helix.mock.statemodel.MockStateModelAnnotated;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.AssertJUnit;

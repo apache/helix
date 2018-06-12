@@ -26,7 +26,6 @@ import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -35,11 +34,10 @@ import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -108,24 +106,14 @@ public class TestZKLiveInstanceData extends ZkUnitTestBase {
 
   @BeforeClass()
   public void beforeClass() throws Exception {
-    ZkClient zkClient = null;
-    try {
-      zkClient = new ZkClient(ZK_ADDR);
-      zkClient.setZkSerializer(new ZNRecordSerializer());
-      if (zkClient.exists("/" + clusterName)) {
-        zkClient.deleteRecursively("/" + clusterName);
-      }
-    } finally {
-      if (zkClient != null) {
-        zkClient.close();
-      }
-    }
+    _gSetupTool.addCluster(clusterName, true);
+    _gSetupTool
+        .addInstancesToCluster(clusterName, new String[] { "localhost:54321", "localhost:54322" });
+  }
 
-    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", ZK_ADDR, "-addCluster", clusterName));
-    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", ZK_ADDR, "-addNode", clusterName,
-        "localhost:54321"));
-    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", ZK_ADDR, "-addNode", clusterName,
-        "localhost:54322"));
+  @AfterClass()
+  public void afterClass() throws Exception {
+    _gSetupTool.deleteCluster(clusterName);
   }
 
   private String[] getArgs(String... args) {

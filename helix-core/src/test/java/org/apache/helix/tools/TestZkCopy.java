@@ -20,7 +20,6 @@ package org.apache.helix.tools;
  */
 
 import java.util.Date;
-
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -66,6 +65,7 @@ public class TestZkCopy extends ZkUnitTestBase {
       }
     }
 
+    _gZkClient.deleteRecursively("/" + clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -110,6 +110,9 @@ public class TestZkCopy extends ZkUnitTestBase {
               .isInstanceSetup(_gZkClient, dstClusterName, instanceName, InstanceType.PARTICIPANT);
       Assert.assertTrue(ret);
     }
+
+    TestHelper.dropCluster(srcClusterName, _gZkClient);
+    TestHelper.dropCluster(dstClusterName, _gZkClient);
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 }

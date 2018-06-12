@@ -18,6 +18,8 @@ package org.apache.helix.integration.controller;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import java.util.List;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -27,8 +29,6 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.model.LeaderHistory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.List;
 
 public class TestControllerHistory extends ZkStandAloneCMTestBase {
 

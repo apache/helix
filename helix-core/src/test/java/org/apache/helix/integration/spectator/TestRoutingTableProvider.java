@@ -21,7 +21,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.spectator.RoutingTableSnapshot;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.mockito.internal.util.collections.Sets;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -44,7 +44,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
   private List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
   private List<String> _instances = new ArrayList<>();
   private ClusterControllerManager _controller;
-  private HelixClusterVerifier _clusterVerifier;
+  private ZkHelixClusterVerifier _clusterVerifier;
   private RoutingTableProvider _routingTableProvider;
   private RoutingTableProvider _routingTableProvider2;
   private boolean _listenerTestResult = true;
@@ -112,7 +112,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
     _routingTableProvider2 = new RoutingTableProvider(_spectator);
 
     _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   @AfterClass
@@ -150,7 +150,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
     // disable the master instance
     String prevMasterInstance = _instances.get(0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, false);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     validateRoutingTable(_routingTableProvider, Sets.newSet(_instances.get(1)),
         Sets.newSet(_instances.get(2)));
@@ -170,7 +170,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
     // reenable the master instance to cause change
     String prevMasterInstance = _instances.get(0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     Assert.assertTrue(_listenerTestResult);
   }
 
@@ -180,7 +180,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
     // shutdown second instance.
     _participants.get(1).syncStop();
 
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     Assert.assertEquals(_routingTableProvider.getLiveInstances().size(), _instances.size() - 1);
     Assert.assertEquals(_routingTableProvider.getInstanceConfigs().size(), _instances.size());

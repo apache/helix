@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
@@ -37,7 +36,6 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -55,10 +53,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, "NextDB", 64, STATE_MODEL);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "NextDB", 3);
 
-    boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     long taskcount = 0;
     for (int i = 0; i < NODE_NR; i++) {
@@ -68,6 +63,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
       ThreadPoolExecutor executor =
           (ThreadPoolExecutor) (helixExecutor._executorMap.get(MessageType.STATE_TRANSITION + "."
               + "NextDB"));
+      Assert.assertNotNull(executor);
       Assert.assertEquals(12, executor.getMaximumPoolSize());
       taskcount += executor.getCompletedTaskCount();
       Assert.assertTrue(executor.getCompletedTaskCount() > 0);
@@ -75,7 +71,8 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     Assert.assertEquals(taskcount, 64 * 4);
   }
 
-  @Test public void TestCustomizedResourceThreadPool() {
+  @Test
+  public void TestCustomizedResourceThreadPool() {
     int customizedPoolSize = 7;
     int configuredPoolSize = 9;
     for (MockParticipantManager participant : _participants) {
@@ -105,9 +102,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     setResourceThreadPoolSize(WorkflowGenerator.DEFAULT_TGT_DB + "3", configuredPoolSize);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "3", 1);
 
-    boolean result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (int i = 0; i < NODE_NR; i++) {
       DefaultMessagingService svc =
@@ -119,10 +114,12 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
 
       executor = (ThreadPoolExecutor) (helixExecutor._executorMap
           .get(MessageType.STATE_TRANSITION + "." + WorkflowGenerator.DEFAULT_TGT_DB + "2"));
+      Assert.assertNotNull(executor);
       Assert.assertEquals(customizedPoolSize, executor.getMaximumPoolSize());
 
       executor = (ThreadPoolExecutor) (helixExecutor._executorMap
           .get(MessageType.STATE_TRANSITION + "." + WorkflowGenerator.DEFAULT_TGT_DB + "3"));
+      Assert.assertNotNull(executor);
       Assert.assertEquals(configuredPoolSize, executor.getMaximumPoolSize());
     }
   }
@@ -145,7 +142,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
         .addResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "4", idealState);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "4", 1);
 
-    Thread.sleep(2000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Verify OFFLINE -> SLAVE and SLAVE -> MASTER have different threadpool size.
     for (int i = 0; i < NODE_NR; i++) {
@@ -155,11 +152,13 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
       ThreadPoolExecutor executorOfflineToSlave = (ThreadPoolExecutor) (helixExecutor._executorMap
           .get(MessageType.STATE_TRANSITION + "." + WorkflowGenerator.DEFAULT_TGT_DB + "4" + "."
               + OFFLINE_TO_SLAVE));
+      Assert.assertNotNull(executorOfflineToSlave);
       Assert.assertEquals(customizedPoolSize, executorOfflineToSlave.getMaximumPoolSize());
 
       ThreadPoolExecutor executorSlaveToMaster = (ThreadPoolExecutor) (helixExecutor._executorMap
           .get(MessageType.STATE_TRANSITION + "." + WorkflowGenerator.DEFAULT_TGT_DB + "4" + "."
               + SLAVE_TO_MASTER));
+      Assert.assertNotNull(executorSlaveToMaster);
       Assert.assertEquals(customizedPoolSize + 5, executorSlaveToMaster.getMaximumPoolSize());
     }
   }
@@ -172,7 +171,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     for (int i = 1; i < _participants.length; i++) {
       _participants[i].syncStop();
     }
-    Thread.sleep(2000L);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Add 10 dbs with batch message enabled. Each db has 10 partitions.
     // So it will have 10 batch messages and each batch message has 10 sub messages.
@@ -185,7 +184,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
       _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
     }
-    Thread.sleep(2000L);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     DefaultMessagingService svc =
         (DefaultMessagingService) (_participants[0].getMessagingService());
@@ -196,7 +195,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
 
     BestPossibleExternalViewVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
   }
 
   private void setResourceThreadPoolSize(String resourceName, int threadPoolSize) {

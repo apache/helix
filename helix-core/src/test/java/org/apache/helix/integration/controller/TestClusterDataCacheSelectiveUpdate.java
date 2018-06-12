@@ -27,8 +27,6 @@ import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.MockZkHelixDataAccessor;
-import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -104,9 +102,7 @@ public class TestClusterDataCacheSelectiveUpdate extends ZkStandAloneCMTestBase 
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_1", _replica);
 
     Thread.sleep(100);
-    HelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     accessor.clearReadCounters();
 

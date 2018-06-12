@@ -20,7 +20,6 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.Date;
-
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.PropertyKey;
@@ -77,6 +76,7 @@ public class TestAddBuiltInStateModelDef extends ZkUnitTestBase {
     }, 10 * 1000);
     Assert.assertTrue(ret);
     controller.syncStop();
+    admin.dropCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

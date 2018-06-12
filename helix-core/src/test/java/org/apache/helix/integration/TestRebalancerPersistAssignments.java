@@ -19,6 +19,12 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -26,20 +32,11 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.MasterSlaveSMD;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
   Set<String> _instanceNames = new HashSet<>();
@@ -90,7 +87,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(new HashSet<String>(Collections.singleton(testDb)));
 
-    Assert.assertTrue(verifierBuilder.build().verify());
+    Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
     // kill 1 node
     _participants[0].syncStop();
@@ -98,7 +95,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     Set<String> liveInstances = new HashSet<String>(_instanceNames);
     liveInstances.remove(_participants[0].getInstanceName());
     verifierBuilder.setExpectLiveInstances(liveInstances);
-    Assert.assertTrue(verifierBuilder.build().verify());
+    Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
     IdealState idealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
@@ -128,7 +125,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(new HashSet<String>(Collections.singleton(testDb)));
 
-    Assert.assertTrue(verifierBuilder.build().verify());
+    Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
     IdealState idealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
@@ -140,7 +137,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     Set<String> liveInstances = new HashSet<String>(_instanceNames);
     liveInstances.remove(_participants[0].getInstanceName());
     verifierBuilder.setExpectLiveInstances(liveInstances);
-    Assert.assertTrue(verifierBuilder.build().verify());
+    Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
     idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
     // verify that IdealState contains updated assignment in it map fields.
@@ -174,7 +171,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(new HashSet<String>(Collections.singleton(testDb)));
 
-    Assert.assertTrue(verifierBuilder.build().verify());
+    Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
     IdealState idealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
@@ -186,7 +183,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     Set<String> liveInstances = new HashSet<String>(_instanceNames);
     liveInstances.remove(_participants[0].getInstanceName());
     verifierBuilder.setExpectLiveInstances(liveInstances);
-    Assert.assertTrue(verifierBuilder.build().verify());
+    Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
     idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
     verifySemiAutoMasterSlaveAssignment(idealState);

@@ -2,6 +2,11 @@ package org.apache.helix.integration;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixException;
 import org.apache.helix.SystemPropertyKeys;
@@ -20,19 +25,13 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class TestZkConnectionLost extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestZkConnectionLost.class);
@@ -62,9 +61,9 @@ public class TestZkConnectionLost extends TaskTestBase {
     _controller = new ClusterControllerManager(_zkAddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    HelixClusterVerifier clusterVerifier =
+    ZkHelixClusterVerifier clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(_zkAddr).build();
-    Assert.assertTrue(clusterVerifier.verify());
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
   }
 
   @AfterClass

@@ -32,9 +32,8 @@ import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskSynchronizedTestBase;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
@@ -260,7 +259,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
     Assert.assertTrue(checkTasksOnSameInstances());
     // Add a new instance, partition is rebalanced
     startParticipant(_initialNumNodes);
-    HelixClusterVerifier clusterVerifier =
+    ZkHelixClusterVerifier clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(Sets.newHashSet(DATABASE)).build();
     Assert.assertTrue(clusterVerifier.verify(10*1000));
@@ -294,7 +293,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
     Assert.assertTrue(checkTasksOnSameInstances());
     // Add a new instance, partition is rebalanced
     startParticipant(_initialNumNodes);
-    HelixClusterVerifier clusterVerifier =
+    ZkHelixClusterVerifier clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(Sets.newHashSet(DATABASE)).build();
     Assert.assertTrue(clusterVerifier.verify(10*1000));

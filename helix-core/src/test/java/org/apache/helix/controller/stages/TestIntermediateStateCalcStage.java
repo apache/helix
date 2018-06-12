@@ -19,14 +19,18 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.*;
 
 public class TestIntermediateStateCalcStage extends BaseStageTest {
   private ClusterConfig _clusterConfig;

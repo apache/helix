@@ -21,11 +21,10 @@ package org.apache.helix;
 
 import java.util.Date;
 import java.util.List;
-
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -173,6 +172,8 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
       // OK
       // e.printStackTrace();
     }
+
+    _gSetupTool.deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -211,6 +212,7 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
     String participantConfigValue = configAccessor.get(participantScope, "participantConfigKey");
     Assert.assertEquals(participantConfigValue, "participantConfigValue");
 
+    _gSetupTool.deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

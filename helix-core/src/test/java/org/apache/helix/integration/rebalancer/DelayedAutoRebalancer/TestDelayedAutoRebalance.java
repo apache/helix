@@ -26,16 +26,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
-import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
@@ -55,7 +55,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
   List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
   int _replica = 3;
   int _minActiveReplica = _replica - 1;
-  HelixClusterVerifier _clusterVerifier;
+  ZkHelixClusterVerifier _clusterVerifier;
   List<String> _testDBs = new ArrayList<String>();
 
   @BeforeClass
@@ -147,7 +147,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     validateDelayedMovements(externalViewsBefore);
 
     Thread.sleep(delay + 200);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // after delay time, it should maintain required number of replicas.
     for (String db : _testDBs) {
       ExternalView ev =
@@ -168,8 +168,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
         CLUSTER_NAME, testDb);
     idealState.setDelayRebalanceEnabled(false);
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, testDb, idealState);
-    Thread.sleep(1000);
 
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // once delay rebalance is disabled, it should maintain required number of replicas for that db.
     // replica for other dbs should not be moved.
@@ -200,8 +200,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, false);
     // TODO: remove this once controller is listening on cluster config change.
     RebalanceScheduler.invokeRebalance(_controller.getHelixDataAccessor(), _testDBs.get(0));
-    Thread.sleep(500);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Thread.sleep(100);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
@@ -219,7 +219,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
     String disabledInstanceName = _participants.get(0).getInstanceName();
     enableDelayRebalanceInInstance(_gZkClient, CLUSTER_NAME, disabledInstanceName, false);
-    Thread.sleep(1000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {
       IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
@@ -263,8 +263,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
           _minActiveReplica, delayTime, CrushRebalanceStrategy.class.getName());
       _testDBs.add(db);
     }
-    Thread.sleep(800);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Thread.sleep(100);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
@@ -307,8 +307,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       throws InterruptedException {
     // bring down one node, no partition should be moved.
     _participants.get(0).syncStop();
-    Thread.sleep(500);
-    Assert.assertTrue(_clusterVerifier.verify());
+    Thread.sleep(100);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {
       ExternalView ev =

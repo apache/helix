@@ -19,22 +19,20 @@ package org.apache.helix.messaging.handling;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
-
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.messaging.DefaultMessagingService;
+import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.ImmutableList;
 
 public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
   public static class TestMessagingHandlerFactory implements MultiTypeMessageHandlerFactory {

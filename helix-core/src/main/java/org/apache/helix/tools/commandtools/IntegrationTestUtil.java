@@ -40,6 +40,7 @@ import org.apache.helix.tools.ClusterExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +101,7 @@ public class IntegrationTestUtil {
       return;
     }
     String clusterName = args[0];
-    HelixClusterVerifier clusterVerifier =
+    ZkHelixClusterVerifier clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_zkclient).build();
 
     boolean success = clusterVerifier.verify(_timeoutValue);

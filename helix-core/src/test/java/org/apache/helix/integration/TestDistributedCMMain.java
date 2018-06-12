@@ -19,11 +19,12 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Date;
-
+import java.util.List;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -37,6 +38,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestDistributedCMMain extends ZkTestBase {
+  private List<String> _clusters = new ArrayList<>();
 
   @Test
   public void testDistributedCMMain() throws Exception {
@@ -62,6 +64,8 @@ public class TestDistributedCMMain extends ZkTestBase {
           n, // number of nodes
           3, // replicas
           "MasterSlave", true); // do rebalance
+
+      _clusters.add(clusterName);
     }
 
     // setup controller cluster
@@ -76,6 +80,8 @@ public class TestDistributedCMMain extends ZkTestBase {
         3, // replicas
         "LeaderStandby", true); // do rebalance
 
+    _clusters.add(controllerClusterName);
+
     // start distributed cluster controllers
     ClusterDistributedController[] controllers = new ClusterDistributedController[n + n];
     for (int i = 0; i < n; i++) {
@@ -88,6 +94,7 @@ public class TestDistributedCMMain extends ZkTestBase {
         ClusterStateVerifier.verifyByZkCallback(
             new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, controllerClusterName),
             30000);
+
     Assert.assertTrue(result, "Controller cluster NOT in ideal state");
 
     // start first cluster
@@ -155,19 +162,18 @@ public class TestDistributedCMMain extends ZkTestBase {
     // clean up
     // wait for all zk callbacks done
     System.out.println("Cleaning up...");
-    for (int i = 0; i < 5; i++) {
-      result =
-          ClusterStateVerifier
-              .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                  controllerClusterName));
+    for (int i = 0; i < 2 * n; i++) {
       controllers[i].syncStop();
     }
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
 
-    System.out.println("END " + clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
+    for (String cluster : _clusters) {
+      deleteCluster(cluster);
+    }
 
+    System.out.println("END " + clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
   }
 }

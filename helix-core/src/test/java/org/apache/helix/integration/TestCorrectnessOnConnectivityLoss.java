@@ -19,8 +19,8 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import com.google.common.collect.Maps;
 import java.util.Map;
-
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -39,13 +39,9 @@ import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.Maps;
 
 public class TestCorrectnessOnConnectivityLoss {
   private static final String ZK_ADDR = "localhost:2189";

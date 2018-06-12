@@ -19,8 +19,8 @@ package org.apache.helix.tools;
  * under the License.
  */
 
+import com.google.common.collect.Sets;
 import java.util.Arrays;
-
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
@@ -34,8 +34,6 @@ import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.Sets;
 
 @Deprecated
 public class TestClusterStateVerifier extends ZkUnitTestBase {

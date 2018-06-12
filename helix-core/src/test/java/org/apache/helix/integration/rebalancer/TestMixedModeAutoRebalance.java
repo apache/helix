@@ -28,10 +28,10 @@ import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
-import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -46,7 +46,7 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -64,7 +64,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
 
   private List<MockParticipantManager> _participants = new ArrayList<>();
   private int _replica = 3;
-  private HelixClusterVerifier _clusterVerifier;
+  private ZkHelixClusterVerifier _clusterVerifier;
   private ConfigAccessor _configAccessor;
   private HelixDataAccessor _dataAccessor;
 
@@ -213,8 +213,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
         Assert.assertTrue(userDefined.equals(preferenceListInIs));
       } else {
         if (userDefined.equals(preferenceListInIs)) {
-          System.out.println("Something is not good!");
-          Thread.sleep(10000000);
+          Assert.fail("Something is not good!");
         }
         Assert.assertFalse(userDefined.equals(preferenceListInIs), String
             .format("Partition %s, List in Is: %s, List as defined in config: %s", p, preferenceListInIs,
@@ -256,6 +255,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     for (MockParticipantManager participant : _participants) {
       participant.syncStop();
     }
+    _gSetupTool.deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 

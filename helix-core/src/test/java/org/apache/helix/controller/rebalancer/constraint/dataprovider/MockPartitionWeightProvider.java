@@ -19,10 +19,9 @@ package org.apache.helix.controller.rebalancer.constraint.dataprovider;
  * under the License.
  */
 
-import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
 
 public class MockPartitionWeightProvider implements PartitionWeightProvider {
   private final int _defaultWeight;

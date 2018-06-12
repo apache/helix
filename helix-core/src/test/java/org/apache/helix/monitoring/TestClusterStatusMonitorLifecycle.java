@@ -19,6 +19,19 @@ package org.apache.helix.monitoring;
  * under the License.
  */
 
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanServerConnection;
+import javax.management.MBeanServerNotification;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectInstance;
+import javax.management.ObjectName;
+import javax.management.Query;
+import javax.management.QueryExp;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
@@ -27,21 +40,14 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import javax.management.*;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestClusterStatusMonitorLifecycle.class);
@@ -101,10 +107,11 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
       _controllers[i].syncStart();
     }
 
-    boolean result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, _controllerClusterName),
-        30000);
-    Assert.assertTrue(result, "Controller cluster NOT in ideal state");
+    ZkHelixClusterVerifier controllerClusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(_controllerClusterName).setZkClient(_gZkClient)
+            .build();
+
+    Assert.assertTrue(controllerClusterVerifier.verifyByPolling(), "Controller cluster NOT in ideal state");
 
     // start first cluster
     _participants = new MockParticipantManager[n];
@@ -115,9 +122,10 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
       _participants[i].syncStart();
     }
 
-    result = ClusterStateVerifier
-        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, _firstClusterName));
-    Assert.assertTrue(result, "first cluster NOT in ideal state");
+    ZkHelixClusterVerifier firstClusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(_firstClusterName).setZkClient(_gZkClient)
+            .build();
+    Assert.assertTrue(firstClusterVerifier.verifyByPolling(), "first cluster NOT in ideal state");
 
     // add more controllers to controller cluster
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
@@ -133,21 +141,24 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     }
 
     // verify controller cluster
-    result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, _controllerClusterName));
-    Assert.assertTrue(result, "Controller cluster NOT in ideal state");
+    Assert.assertTrue(controllerClusterVerifier.verifyByPolling(), "Controller cluster NOT in ideal state");
 
     // verify first cluster
-    result = ClusterStateVerifier
-        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, _firstClusterName));
-    Assert.assertTrue(result, "first cluster NOT in ideal state");
+    Assert.assertTrue(firstClusterVerifier.verifyByPolling(), "first cluster NOT in ideal state");
   }
 
   @AfterClass
   public void afterClass() throws Exception {
     System.out.println("Cleaning up...");
+    for (int i = 0; i < 2 * n; i++) {
+      if (_controllers[i] != null && _controllers[i].isConnected()) {
+        _controllers[i].syncStop();
+      }
+    }
     for (int i = 0; i < _participants.length; i++) {
-      _participants[i].syncStop();
+      if (_participants[i] != null && _participants[i].isConnected()) {
+        _participants[i].syncStop();
+      }
     }
     cleanupControllers();
     _gSetupTool.deleteCluster(_controllerClusterName);

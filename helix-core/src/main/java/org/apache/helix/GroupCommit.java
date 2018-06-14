@@ -117,9 +117,9 @@ public class GroupCommit {
            */
           if (merged == null) {
             merged = new ZNRecord(first._record);
-          } else {
-            merged.merge(first._record);
           }
+          merged.merge(first._record);
+
           Iterator<Entry> it = queue._pending.iterator();
           while (it.hasNext()) {
             Entry ent = it.next();

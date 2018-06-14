@@ -81,7 +81,7 @@ public class TestTargetExternalView extends TaskTestBase {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, _participants[0].getInstanceName(), false);
 
     Assert.assertTrue(verifier.verifyByPolling());
-
+    Thread.sleep(1000);
     targetExternalViews = _accessor.getChildValues(_accessor.keyBuilder().externalViews());
     idealStates = _accessor.getChildValues(_accessor.keyBuilder().idealStates());
 

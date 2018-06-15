@@ -19,8 +19,10 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Date;
 
+import java.util.List;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -95,6 +97,7 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    List<HelixManager> participantToClose = new ArrayList<>();
 
     // do the test
     try {
@@ -113,6 +116,7 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
         participant.disconnect();
         Thread.sleep(1000);
         participant = createParticipant(clusterName, participant.getInstanceName());
+        participantToClose.add(participant);
         participant.connect();
         Thread.sleep(1000);
         helixAdmin.enableCluster(clusterName, true);
@@ -125,7 +129,7 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
     } finally {
       // clean up
       controller.syncStop();
-      for (HelixManager participant : participants) {
+      for (HelixManager participant : participantToClose) {
         participant.disconnect();
       }
       TestHelper.dropCluster(clusterName, _gZkClient);

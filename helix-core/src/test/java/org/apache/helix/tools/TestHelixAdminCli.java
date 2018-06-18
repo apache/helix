@@ -53,12 +53,9 @@ public class TestHelixAdminCli extends ZkTestBase {
 
   @AfterMethod
   public void endTest(Method testMethod, ITestContext testContext) {
-    if (_gZkClient.exists("/" + clusterName)) {
-      _gSetupTool.deleteCluster(clusterName);
-    }
-    if (_gZkClient.exists("/" + grandClusterName)) {
-      _gSetupTool.deleteCluster(grandClusterName);
-    }
+    deleteCluster(clusterName);
+    deleteCluster(grandClusterName);
+
     super.endTest(testMethod, testContext);
   }
 

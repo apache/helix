@@ -79,7 +79,7 @@ public class TestNonOfflineInitState extends ZkTestBase {
     for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END testNonOfflineInitState at " + new Date(System.currentTimeMillis()));
   }

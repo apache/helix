@@ -57,9 +57,7 @@ public class TestParticipantManager extends ZkTestBase {
 
   @AfterMethod
   public void afterMethod(Method testMethod, ITestContext testContext) {
-    if (_gZkClient.exists("/" + clusterName)) {
-      _gSetupTool.deleteCluster(clusterName);
-    }
+    deleteCluster(clusterName);
     super.endTest(testMethod, testContext);
   }
 

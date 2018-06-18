@@ -119,9 +119,7 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
   public void afterClass()
       throws Exception {
     _manager.disconnect();
-    if (_gZkClient.exists("/" + clusterName)) {
-      _gSetupTool.deleteCluster(clusterName);
-    }
+    deleteCluster(clusterName);
   }
 
 

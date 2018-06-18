@@ -109,7 +109,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     controller.disconnect();
     AssertJUnit.assertFalse(controller.isConnected());
 
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END " + className + ".testController() at "
         + new Date(System.currentTimeMillis()));
@@ -225,7 +225,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
 
     manager.disconnect();
     manager2.disconnect();
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END " + className + ".testLiveInstanceInfoProvider() at "
         + new Date(System.currentTimeMillis()));
@@ -268,7 +268,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     admin.disconnect();
     AssertJUnit.assertFalse(admin.isConnected());
 
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END " + className + ".testAdministrator() at "
         + new Date(System.currentTimeMillis()));

@@ -126,7 +126,7 @@ public class TestAddClusterV2 extends ZkTestBase {
     // delete clusters
     for (int i = 0; i < CLUSTER_NR; i++) {
       String clusterName = CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
-      _gSetupTool.deleteCluster(clusterName);
+      deleteCluster(clusterName);
     }
 
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));

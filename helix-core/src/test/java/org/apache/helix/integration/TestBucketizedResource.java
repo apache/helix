@@ -117,7 +117,7 @@ public class TestBucketizedResource extends ZkTestBase {
     for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
   }
 
   @Test
@@ -185,7 +185,7 @@ public class TestBucketizedResource extends ZkTestBase {
     for (MockParticipantManager participant : participants) {
       participant.syncStop();
     }
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
   }
 
   class TestExternalViewListener implements ExternalViewChangeListener {
@@ -272,6 +272,6 @@ public class TestBucketizedResource extends ZkTestBase {
     for (MockParticipantManager participant : participants) {
       participant.syncStop();
     }
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
   }
 }

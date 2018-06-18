@@ -129,7 +129,7 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     _spectator.disconnect();
     _spectator_2.disconnect();
     _spectator_3.disconnect();
-    _gSetupTool.deleteCluster(CLUSTER_NAME);
+    deleteCluster(CLUSTER_NAME);
   }
 
   public class MockRoutingTableProvider extends RoutingTableProvider {

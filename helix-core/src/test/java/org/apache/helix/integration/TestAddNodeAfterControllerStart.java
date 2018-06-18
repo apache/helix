@@ -87,7 +87,7 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     for (int i = 0; i < nodeNr; i++) {
       participants[i].syncStop();
     }
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -164,7 +164,7 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     for (int i = 0; i < nodeNr; i++) {
       participants[i].syncStop();
     }
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }

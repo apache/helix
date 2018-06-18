@@ -89,10 +89,7 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
       _manager.disconnect();
     }
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gSetupTool.deleteCluster(CLUSTER_NAME);
-    }
+    deleteCluster(CLUSTER_NAME);
   }
 
   @Test (expectedExceptions = HelixException.class)

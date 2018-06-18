@@ -110,7 +110,7 @@ public class TestRestartParticipant extends ZkTestBase {
       participants[i].syncStop();
     }
     participant.syncStop();
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("START testRestartParticipant at " + new Date(System.currentTimeMillis()));
 

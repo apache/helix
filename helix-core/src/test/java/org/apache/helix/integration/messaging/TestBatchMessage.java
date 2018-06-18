@@ -116,7 +116,7 @@ public class TestBatchMessage extends ZkTestBase {
     for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -199,7 +199,7 @@ public class TestBatchMessage extends ZkTestBase {
     for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -276,7 +276,7 @@ public class TestBatchMessage extends ZkTestBase {
     for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -358,7 +358,7 @@ public class TestBatchMessage extends ZkTestBase {
     for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }

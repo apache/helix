@@ -75,16 +75,9 @@ public class TestZkConnectionLost extends TaskTestBase {
       _manager.disconnect();
     }
     stopParticipants();
+    
+    TestHelper.dropCluster(CLUSTER_NAME, _zkClient, _setupTool);
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_zkClient.exists(namespace)) {
-      try {
-        _setupTool.deleteCluster(CLUSTER_NAME);
-      } catch (Exception ex) {
-        System.err.println(
-            "Failed to delete cluster " + CLUSTER_NAME + ", error: " + ex.getLocalizedMessage());
-      }
-    }
     _zkClient.close();
     TestHelper.stopZkServer(_zkServerRef.get());
   }

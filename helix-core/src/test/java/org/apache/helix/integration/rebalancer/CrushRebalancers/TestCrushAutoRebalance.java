@@ -305,7 +305,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
         p.syncStop();
       }
     }
-    _gSetupTool.deleteCluster(CLUSTER_NAME);
+    deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 }

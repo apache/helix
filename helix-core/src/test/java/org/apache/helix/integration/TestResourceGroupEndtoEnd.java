@@ -139,7 +139,7 @@ public class TestResourceGroupEndtoEnd extends ZkTestBase {
     _controller.syncStop();
     _spectator.disconnect();
     _routingTableProvider.shutdown();
-    _gSetupTool.deleteCluster(CLUSTER_NAME);
+    deleteCluster(CLUSTER_NAME);
   }
 
   private void addInstanceGroup(String clusterName, String instanceTag, int numInstance) {

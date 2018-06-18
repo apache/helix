@@ -113,7 +113,7 @@ public class TestZKLiveInstanceData extends ZkUnitTestBase {
 
   @AfterClass()
   public void afterClass() throws Exception {
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
   }
 
   private String[] getArgs(String... args) {

@@ -71,7 +71,7 @@ public class TestHandleNewSession extends ZkTestBase {
     // Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("Disconnecting ...");
     participant.syncStop();
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 

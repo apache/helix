@@ -601,15 +601,7 @@ public class ZkTestBase {
   }
 
   protected void deleteCluster(String clusterName) {
-    String namespace = "/" + clusterName;
-    if (_gZkClient.exists(namespace)) {
-      try {
-        _gSetupTool.deleteCluster(clusterName);
-      } catch (Exception ex) {
-        System.err.println("Failed to delete cluster " + clusterName);
-        ex.printStackTrace();
-      }
-    }
+    TestHelper.dropCluster(clusterName, _gZkClient, _gSetupTool);
   }
 
   /**

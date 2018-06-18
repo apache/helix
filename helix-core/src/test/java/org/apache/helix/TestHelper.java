@@ -287,13 +287,19 @@ public class TestHelper {
   }
 
   public static void dropCluster(String clusterName, ZkClient zkClient) throws Exception {
-    if (!zkClient.exists("/" + clusterName)) {
-      LOG.warn("Cluster does not exist:" + clusterName + ". Deleting it");
-      zkClient.deleteRecursively("/" + clusterName);
-    }
-
     ClusterSetup setupTool = new ClusterSetup(zkClient);
-    setupTool.deleteCluster(clusterName);
+    dropCluster(clusterName, zkClient, setupTool);
+  }
+
+  public static void dropCluster(String clusterName, ZkClient zkClient, ClusterSetup setup) {
+    String namespace = "/" + clusterName;
+    if (zkClient.exists(namespace)) {
+      try {
+        setup.deleteCluster(clusterName);
+      } catch (Exception ex) {
+        LOG.error("Failed to delete cluster " + clusterName, ex);
+      }
+    }
   }
 
   /**

@@ -173,7 +173,7 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
       // e.printStackTrace();
     }
 
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -212,7 +212,7 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
     String participantConfigValue = configAccessor.get(participantScope, "participantConfigKey");
     Assert.assertEquals(participantConfigValue, "participantConfigValue");
 
-    _gSetupTool.deleteCluster(clusterName);
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -253,7 +253,7 @@ public class TestPartitionMigrationBase extends ZkTestBase {
       participant.syncStop();
     }
     _manager.disconnect();
-    _gSetupTool.deleteCluster(CLUSTER_NAME);
+    deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 }

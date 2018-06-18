@@ -161,7 +161,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
       }
     }
     cleanupControllers();
-    _gSetupTool.deleteCluster(_controllerClusterName);
+    deleteCluster(_controllerClusterName);
 
     for (String cluster : _clusters) {
       TestHelper.dropCluster(cluster, _gZkClient);

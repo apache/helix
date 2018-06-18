@@ -93,7 +93,7 @@ public class TestWeightBasedRebalanceUtil extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
-    _gSetupTool.deleteCluster(CLUSTER_NAME);
+    deleteCluster(CLUSTER_NAME);
   }
 
   private void setupMockCluster() {

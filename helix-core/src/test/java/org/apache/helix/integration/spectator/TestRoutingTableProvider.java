@@ -125,7 +125,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
     _routingTableProvider.shutdown();
     _routingTableProvider2.shutdown();
     _spectator.disconnect();
-    _gSetupTool.deleteCluster(CLUSTER_NAME);
+    deleteCluster(CLUSTER_NAME);
   }
 
   @Test

@@ -603,7 +603,12 @@ public class ZkTestBase {
   protected void deleteCluster(String clusterName) {
     String namespace = "/" + clusterName;
     if (_gZkClient.exists(namespace)) {
-      _gSetupTool.deleteCluster(namespace);
+      try {
+        _gSetupTool.deleteCluster(clusterName);
+      } catch (Exception ex) {
+        System.err.println("Failed to delete cluster " + clusterName);
+        ex.printStackTrace();
+      }
     }
   }
 

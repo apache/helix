@@ -202,6 +202,7 @@ public class TestClusterStatusMonitor {
     Assert.assertEquals(monitor.getTotalResourceGauge(), 1);
     Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
     Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), 0);
+    Assert.assertEquals(monitor.getMissingReplicaPartitionGauge(), 0);
     Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
     Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
 
@@ -232,6 +233,7 @@ public class TestClusterStatusMonitor {
     Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
     Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), lessMinActiveReplica);
     Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), 0);
+    Assert.assertEquals(monitor.getMissingReplicaPartitionGauge(), lessMinActiveReplica);
     Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
     Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
 
@@ -259,6 +261,32 @@ public class TestClusterStatusMonitor {
     Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
     Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
     Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), missTopState);
+    Assert.assertEquals(monitor.getMissingReplicaPartitionGauge(), missTopState);
+    Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
+    Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
+
+    int missReplica = 5;
+    externalView = new ExternalView(TestResourceMonitor.deepCopyZNRecord(idealStateRecord));
+    start = r.nextInt(numPartition - missReplica - 1);
+    for (int i = start; i < start + missReplica; i++) {
+      String partition = testDB + "_" + i;
+      Map<String, String> map = externalView.getStateMap(partition);
+      Iterator<String> it = map.keySet().iterator();
+      while (it.hasNext()) {
+        String key = it.next();
+        if (map.get(key).equalsIgnoreCase("SLAVE")) {
+          it.remove();
+          break;
+        }
+      }
+      externalView.setStateMap(partition, map);
+    }
+
+    monitor.setResourceStatus(externalView, idealState, stateModelDef);
+    Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
+    Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
+    Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), 0);
+    Assert.assertEquals(monitor.getMissingReplicaPartitionGauge(), missReplica);
     Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
     Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
 

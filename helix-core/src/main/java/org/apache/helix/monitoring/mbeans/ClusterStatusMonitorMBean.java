@@ -107,6 +107,11 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
   long getMissingMinActiveReplicaPartitionGauge();
 
   /**
+   * @return number of all partitions in this cluster withouth enough expected replica
+   */
+  long getMissingReplicaPartitionGauge();
+
+  /**
    * @return number of all partitions in this cluster whose ExternalView and IdealState have discrepancies
    */
   long getDifferenceWithIdealStateGauge();

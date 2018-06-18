@@ -850,6 +850,15 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   @Override
+  public long getMissingReplicaPartitionGauge() {
+    long total = 0;
+    for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {
+      total += entry.getValue().getMissingReplicaPartitionGauge();
+    }
+    return total;
+  }
+
+  @Override
   public long getDifferenceWithIdealStateGauge() {
     long total = 0;
     for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {

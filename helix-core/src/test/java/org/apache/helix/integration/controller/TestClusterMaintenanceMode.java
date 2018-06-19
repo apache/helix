@@ -34,7 +34,6 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   @Test
   public void testMaintenanceModeAddNewInstance() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, true, "Test");
-    Thread.sleep(2000);
     ExternalView prevExternalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + 10);
@@ -44,7 +43,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     _newInstance.syncStart();
     _gSetupTool.getClusterManagementTool()
         .rebalance(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, 3);
-    Thread.sleep(3000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     ExternalView newExternalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     Assert.assertEquals(prevExternalView.getRecord().getMapFields(),
@@ -58,7 +57,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
             IdealState.RebalanceMode.FULL_AUTO.name());
     _gSetupTool.getClusterManagementTool()
         .rebalance(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + 1, 3);
-    Thread.sleep(2000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + 1);
     Assert.assertNull(externalView);
@@ -67,7 +66,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   @Test (dependsOnMethods = "testMaintenanceModeAddNewResource")
   public void testMaintenanceModeInstanceDown() throws InterruptedException {
     _participants[0].syncStop();
-    Thread.sleep(2000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     for (Map<String, String> stateMap : externalView.getRecord().getMapFields().values()) {
@@ -80,7 +79,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     _participants[0] =
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _participants[0].getInstanceName());
     _participants[0].syncStart();
-    Thread.sleep(2000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     for (Map<String, String> stateMap : externalView.getRecord().getMapFields().values()) {

@@ -27,7 +27,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
   public void testOldEnableDisable() throws InterruptedException {
     _gSetupTool.getClusterManagementTool()
         .enableInstance(CLUSTER_NAME, _participants[0].getInstanceName(), false);
-    Thread.sleep(2000);
+    Assert.assertTrue(_clusterVerifier.verify());
 
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
@@ -44,7 +44,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),
         false);
-    Thread.sleep(2000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);

@@ -76,10 +76,10 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
       _participants[i].syncStart();
-      Thread.sleep(2000);
+      Thread.sleep(100);
       boolean result =
-          ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
-              CLUSTER_NAME, TEST_DB));
+          ClusterStateVerifier.verifyByPolling(new ExternalViewBalancedVerifier(_gZkClient,
+              CLUSTER_NAME, TEST_DB), 10000, 100);
       Assert.assertTrue(result);
       ExternalView ev =
           manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().externalView(TEST_DB));
@@ -135,10 +135,10 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
       participant.syncStart();
     }
 
-    Thread.sleep(1000);
+    Thread.sleep(100);
     result =
-        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
-            CLUSTER_NAME, TEST_DB));
+        ClusterStateVerifier.verifyByPolling(new ExternalViewBalancedVerifier(_gZkClient,
+            CLUSTER_NAME, TEST_DB), 10000, 100);
     Assert.assertTrue(result);
   }
 

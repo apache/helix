@@ -542,13 +542,16 @@ public class TestHelixAdminCli extends ZkTestBase {
 
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
-    String path = accessor.keyBuilder().controllerLeader().getPath();
-    for (int i = 0; i < 10; i++) {
-      Thread.sleep(1000);
-      if (!_gZkClient.exists(path)) {
-        break;
+    final String path = accessor.keyBuilder().controllerLeader().getPath();
+    TestHelper.verify(new TestHelper.Verifier() {
+      @Override public boolean verify() throws Exception {
+        if (!_gZkClient.exists(path)) {
+          return true;
+        }
+        return false;
       }
-    }
+    }, 5000);
+
     Assert.assertFalse(_gZkClient.exists(path),
         "leader should be gone after deactivate the cluster");
 

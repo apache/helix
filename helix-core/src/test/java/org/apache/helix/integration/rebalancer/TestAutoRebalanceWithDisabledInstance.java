@@ -45,12 +45,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
         RebalanceMode.FULL_AUTO + "");
     _gSetupTool.rebalanceResource(CLUSTER_NAME, TEST_DB_2, _replica);
 
-    Thread.sleep(2000);
-
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-            CLUSTER_NAME));
-    Assert.assertTrue(result);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   @Test()
@@ -71,7 +66,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
 
     // disable instance
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, false);
-    Thread.sleep(4000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // TODO: preference list is not persisted in IS for full-auto,
     // Need a way to find how helix assigns partitions to nodes.
@@ -85,7 +80,8 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
 
     //enable instance
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, true);
-    Thread.sleep(4000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
 
     // TODO: preference list is not persisted in IS for full-auto,
     // Need a way to find how helix assigns partitions to nodes.
@@ -109,7 +105,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
 
     participant.syncStart();
 
-    Thread.sleep(2000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // TODO: preference list is not persisted in IS for full-auto,
     // Need a way to find how helix assigns partitions to nodes.
     /*
@@ -122,7 +118,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
 
     //enable instance
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, nodeName, true);
-    Thread.sleep(2000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // TODO: preference list is not persisted in IS for full-auto,
     // Need a way to find how helix assigns partitions to nodes.
     /*

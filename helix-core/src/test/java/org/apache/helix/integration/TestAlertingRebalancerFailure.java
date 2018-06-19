@@ -206,7 +206,9 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
       setDomainId(_participants[i].getInstanceName(), configAccessor);
     }
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, replicas);
-    Thread.sleep(1000);
+
+    Assert.assertTrue(_clusterVerifier.verify());
+
     // Verify that rebalance error state is removed
     checkRebalanceFailureGauge(false);
 

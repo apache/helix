@@ -40,7 +40,7 @@ public class TestBatchMessageModeConfigs extends ZkStandAloneCMTestBase {
     for (int i = 1; i < _participants.length; i++) {
       _participants[i].syncStop();
     }
-    Thread.sleep(2000L);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   @Test
@@ -49,7 +49,7 @@ public class TestBatchMessageModeConfigs extends ZkStandAloneCMTestBase {
     String dbName = TEST_DB_PREFIX + "Cluster";
     setupResource(dbName);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
-    Thread.sleep(2000L);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     verify();
     _gSetupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, false);
   }
@@ -60,7 +60,7 @@ public class TestBatchMessageModeConfigs extends ZkStandAloneCMTestBase {
     setupResource(dbName);
     _gSetupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, dbName, true);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
-    Thread.sleep(2000L);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     verify();
     _gSetupTool.getClusterManagementTool().enableBatchMessageMode(CLUSTER_NAME, dbName, false);
   }

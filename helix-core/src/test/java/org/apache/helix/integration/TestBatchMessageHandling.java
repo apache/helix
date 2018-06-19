@@ -57,7 +57,7 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
     _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
 
-    Thread.sleep(1000L);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     int numOfOnlines = 0;
     int numOfErrors = 0;

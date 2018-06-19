@@ -231,7 +231,7 @@ public class TestBucketizedResource extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // add an external view listener
-    TestExternalViewListener listener = new TestExternalViewListener();
+    final TestExternalViewListener listener = new TestExternalViewListener();
     controller.addExternalViewChangeListener(listener);
 
     // remove "TestDB0"
@@ -239,14 +239,13 @@ public class TestBucketizedResource extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // wait callback to finish
-    int waitTime =0;
-    do {
-      Thread.sleep(100);
-      waitTime += 100;
-      if (waitTime > 30000) {
-        break;
+    TestHelper.verify(new TestHelper.Verifier() {
+      @Override public boolean verify() throws Exception {
+        return listener.cbCnt > 0;
       }
-    } while (listener.cbCnt == 0);
+    }, 20000);
+    Assert.assertTrue(listener.cbCnt > 0);
+
     listener.cbCnt = 0;
 
     // add a new db
@@ -264,7 +263,12 @@ public class TestBucketizedResource extends ZkTestBase {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    Thread.sleep(200);
+    TestHelper.verify(new TestHelper.Verifier() {
+      @Override public boolean verify() throws Exception {
+        return listener.cbCnt > 0;
+      }
+    }, 20000);
+
     Assert.assertTrue(listener.cbCnt > 0);
 
     // clean up

@@ -157,10 +157,10 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, storageNodeName.replace(':', '_'));
       participant.syncStart();
     }
-    Thread.sleep(1000);
+    Thread.sleep(100);
     result =
-        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
-            CLUSTER_NAME, TEST_DB));
+        ClusterStateVerifier.verifyByPolling(new ExternalViewBalancedVerifier(_gZkClient,
+            CLUSTER_NAME, TEST_DB), 10000, 100);
     Assert.assertTrue(result);
 
     result =

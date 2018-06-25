@@ -48,7 +48,7 @@ public class StateTransitionThrottleConfig {
   public enum RebalanceType {
     LOAD_BALANCE,
     RECOVERY_BALANCE,
-    ANY,
+    ANY, // A type used for general throttling (to account for all types of rebalance)
     NONE
   }
 
@@ -56,8 +56,8 @@ public class StateTransitionThrottleConfig {
   ThrottleScope _throttleScope;
   Long _maxPartitionInTransition;
 
-  public StateTransitionThrottleConfig(RebalanceType rebalanceType,
-      ThrottleScope throttleScope, long maxPartitionInTransition) {
+  public StateTransitionThrottleConfig(RebalanceType rebalanceType, ThrottleScope throttleScope,
+      long maxPartitionInTransition) {
     _rebalanceType = rebalanceType;
     _throttleScope = throttleScope;
     _maxPartitionInTransition = maxPartitionInTransition;
@@ -79,11 +79,10 @@ public class StateTransitionThrottleConfig {
 
   /**
    * Generate the JSON String for StateTransitionThrottleConfig.
-   *
    * @return Json String for this config.
    */
   public String toJSON() {
-    Map<String, String> configMap = new HashMap<String, String>();
+    Map<String, String> configMap = new HashMap<>();
     configMap.put(ConfigProperty.REBALANCE_TYPE.name(), _rebalanceType.name());
     configMap.put(ConfigProperty.THROTTLE_SCOPE.name(), _throttleScope.name());
     configMap.put(ConfigProperty.MAX_PARTITION_IN_TRANSITION.name(),
@@ -94,7 +93,7 @@ public class StateTransitionThrottleConfig {
       ObjectWriter objectWriter = OBJECT_MAPPER.writer();
       jsonStr = objectWriter.writeValueAsString(configMap);
     } catch (IOException e) {
-      logger.error("Failed to convert config map to JSON object! " + configMap);
+      logger.error("Failed to convert config map to JSON object! {}", configMap);
     }
 
     return jsonStr;
@@ -102,9 +101,9 @@ public class StateTransitionThrottleConfig {
 
   /**
    * Instantiate a throttle config from a config JSON string.
-   *
    * @param configJsonStr
-   * @return StateTransitionThrottleConfig or null if the given configs map is not a valid StateTransitionThrottleConfig.
+   * @return StateTransitionThrottleConfig or null if the given configs map is not a valid
+   *         StateTransitionThrottleConfig.
    */
   public static StateTransitionThrottleConfig fromJSON(String configJsonStr) {
     StateTransitionThrottleConfig throttleConfig = null;
@@ -113,23 +112,21 @@ public class StateTransitionThrottleConfig {
       Map<String, String> configsMap = objectReader.readValue(configJsonStr);
       throttleConfig = fromConfigMap(configsMap);
     } catch (IOException e) {
-      logger.error("Failed to convert JSON string to config map! " + configJsonStr);
+      logger.error("Failed to convert JSON string to config map! {}", configJsonStr);
     }
 
     return throttleConfig;
   }
 
   /**
-   * Instantiate a throttle config from a config map
-   *
+   * Instantiate a throttle config from a config map.
    * @param configsMap
-   *
    * @return StateTransitionThrottleConfig or null if the given configs map is not a valid
-   * StateTransitionThrottleConfig.
+   *         StateTransitionThrottleConfig.
    */
   public static StateTransitionThrottleConfig fromConfigMap(Map<String, String> configsMap) {
-    if (!configsMap.containsKey(ConfigProperty.REBALANCE_TYPE.name()) || !configsMap
-        .containsKey(ConfigProperty.THROTTLE_SCOPE.name())) {
+    if (!configsMap.containsKey(ConfigProperty.REBALANCE_TYPE.name())
+        || !configsMap.containsKey(ConfigProperty.THROTTLE_SCOPE.name())) {
       // not a valid StateTransitionThrottleConfig
       return null;
     }

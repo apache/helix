@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
@@ -57,6 +56,15 @@ import org.slf4j.LoggerFactory;
 public class HelixStateTransitionHandler extends MessageHandler {
   public static class HelixStateMismatchException extends Exception {
     public HelixStateMismatchException(String info) {
+      super(info);
+    }
+  }
+
+  /**
+   * If current state == toState in message, this is considered as Duplicated state transition
+   */
+  public static class HelixDuplicatedStateTransitionException extends Exception {
+    public HelixDuplicatedStateTransitionException(String info) {
       super(info);
     }
   }
@@ -104,24 +112,39 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
     String partitionName = _message.getPartitionName();
     String fromState = _message.getFromState();
+    String toState = _message.getToState();
 
     // Verify the fromState and current state of the stateModel
-    String state = _currentStateDelta.getState(partitionName);
+    // getting current state from state model will provide most up-to-date
+    // current state. In case current state is null, partition is in initial
+    // state and we are setting it in current state
+    String state = _stateModel.getCurrentState() != null
+        ? _stateModel.getCurrentState()
+        : _currentStateDelta.getState(partitionName);
 
     // Set start time right before invoke client logic
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
 
-    if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
-      String errorMessage =
-          "Current state of stateModel does not match the fromState in Message"
-              + ", Current State:" + state + ", message expected:" + fromState + ", partition: "
-              + partitionName + ", from: " + _message.getMsgSrc() + ", to: "
-              + _message.getTgtName();
+    Exception err = null;
+    if (toState.equalsIgnoreCase(state)) {
+      // To state equals current state, we can just ignore the message
+      err = new HelixDuplicatedStateTransitionException(
+          String.format("Partition %s current state is same as toState (%s->%s) from message.",
+              partitionName, fromState, toState)
+      );
+    } else if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
+      // If current state is neither toState nor fromState in message, there is a problem
+      err = new HelixStateMismatchException(
+          String.format(
+              "Current state of stateModel does not match the fromState in Message, CurrentState: %s, Message: %s->%s, Partition: %s, from: %s, to: %s",
+              state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName())
+      );
+    }
 
-      _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, errorMessage,
-          _manager);
-      logger.error(errorMessage);
-      throw new HelixStateMismatchException(errorMessage);
+    if (err != null) {
+      _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, err.getMessage(), _manager);
+      logger.error(err.getMessage());
+      throw err;
     }
 
     // Reset the REQUESTED_STATE property if it exists.
@@ -319,6 +342,11 @@ public class HelixStateTransitionHandler extends MessageHandler {
       try {
         preHandleMessage();
         invoke(manager, context, taskResult, message);
+      } catch (HelixDuplicatedStateTransitionException e) {
+        // Duplicated state transition problem is fine
+        taskResult.setSuccess(true);
+        taskResult.setMessage(e.toString());
+        taskResult.setInfo(e.getMessage());
       } catch (HelixStateMismatchException e) {
         // Simply log error and return from here if State mismatch.
         // The current state of the state model is intact.
@@ -414,7 +442,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
               + _stateModel.getClass();
       logger.error(errorMessage);
       taskResult.setSuccess(false);
-
+      taskResult.setInfo(errorMessage);
       _statusUpdateUtil
           .logError(message, HelixStateTransitionHandler.class, errorMessage, manager);
     }

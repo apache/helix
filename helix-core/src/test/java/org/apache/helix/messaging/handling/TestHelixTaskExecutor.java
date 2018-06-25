@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+
 import com.google.common.collect.ImmutableList;
 
 import org.apache.helix.HelixConstants;
@@ -94,7 +95,7 @@ public class TestHelixTaskExecutor {
 
     @Override
     public List<String> getMessageTypes() {
-      return Arrays.asList(new String[]{"TestingMessageHandler", Message.MessageType.STATE_TRANSITION.name()});
+      return Collections.singletonList("TestingMessageHandler");
     }
 
     @Override
@@ -200,9 +201,16 @@ public class TestHelixTaskExecutor {
   class TestStateTransitionHandlerFactory implements MultiTypeMessageHandlerFactory {
     ConcurrentHashMap<String, String> _processedMsgIds = new ConcurrentHashMap<String, String>();
     private final String _msgType;
+    private final long _delay;
     public TestStateTransitionHandlerFactory(String msgType) {
-      _msgType = msgType;
+      this(msgType, -1);
     }
+
+    public TestStateTransitionHandlerFactory(String msgType, long delay) {
+      _msgType = msgType;
+      _delay = delay;
+    }
+
     class TestStateTransitionMessageHandler extends MessageHandler {
       public TestStateTransitionMessageHandler(Message message, NotificationContext context) {
         super(message, context);
@@ -212,6 +220,10 @@ public class TestHelixTaskExecutor {
       public HelixTaskResult handleMessage() throws InterruptedException {
         HelixTaskResult result = new HelixTaskResult();
         _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
+        if (_delay > 0) {
+          System.out.println("Sleeping..." + _delay);
+          Thread.sleep(_delay);
+        }
         result.setSuccess(true);
         return result;
       }
@@ -308,42 +320,55 @@ public class TestHelixTaskExecutor {
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
 
-    TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
-    for (String type : factory.getMessageTypes()) {
-      executor.registerMessageHandlerFactory(type, factory);
-    }
+    TestStateTransitionHandlerFactory stateTransitionFactory =
+        new TestStateTransitionHandlerFactory(Message.MessageType.STATE_TRANSITION.name(), 1000);
+    executor.registerMessageHandlerFactory(Message.MessageType.STATE_TRANSITION.name(),
+        stateTransitionFactory);
 
     NotificationContext changeContext = new NotificationContext(manager);
     List<Message> msgList = new ArrayList<Message>();
 
-    int nMsgs = 10;
-    String instanceName = "someInstance";
+    int nMsgs = 3;
+    String instanceName = manager.getInstanceName();
     for (int i = 0; i < nMsgs; i++) {
       Message msg =
           new Message(Message.MessageType.STATE_TRANSITION.name(), UUID.randomUUID().toString());
       msg.setTgtSessionId(manager.getSessionId());
+      msg.setCreateTimeStamp((long) i);
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msg.setPartitionName("Partition");
       msg.setResourceName("Resource");
+      msg.setStateModelDef("DummyMasterSlave");
+      msg.setFromState("SLAVE");
+      msg.setToState("MASTER");
       dataAccessor.setProperty(msg.getKey(keyBuilder, instanceName), msg);
       msgList.add(msg);
     }
 
-    System.out.println(dataAccessor.getChildNames(keyBuilder.messages(instanceName)));
     AssertJUnit
         .assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), nMsgs);
 
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage(instanceName, msgList, changeContext);
 
+    Thread.sleep(200);
+
+    // only 1 message is left over - state transition takes 1sec
+    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), 1);
+
+    // While a state transition message is going on, another state transition message for same
+    // resource / partition comes in, it should be discarded by message handler
+
+    // Mock accessor is modifying message state in memory so we set it back to NEW
+    msgList.get(2).setMsgState(MessageState.NEW);
+    dataAccessor.setProperty(msgList.get(2).getKey(keyBuilder, instanceName), msgList.get(2));
+    executor.onMessage(instanceName, Arrays.asList(msgList.get(2)), changeContext);
+    Thread.sleep(200);
+    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), 1);
+
     Thread.sleep(1000);
-
-    // Will not be able to process state transition messages, but we shall verify that
-    // only 1 message is left over
-    AssertJUnit
-        .assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), 1);
-
+    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), 0);
     System.out.println("END TestHelixTaskExecutor.testDuplicatedMessage()");
   }
 

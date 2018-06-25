@@ -357,4 +357,4 @@ public class HelixTask implements MessageTask {
     }
     _isStarted = true;
   }
-};
+}

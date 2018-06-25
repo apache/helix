@@ -290,7 +290,7 @@ public class ConfigAccessor {
    */
   public void set(HelixConfigScope scope, Map<String, String> keyValueMap) {
     if (scope == null || scope.getType() == null || !scope.isFullKey()) {
-      LOG.error("fail to set config. invalid config scope. scope: " + scope);
+      LOG.error("fail to set config. invalid config scope. scope: {}", scope);
       return;
     }
 

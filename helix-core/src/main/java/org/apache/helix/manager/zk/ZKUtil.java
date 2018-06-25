@@ -89,7 +89,7 @@ public final class ZKUtil {
   public static boolean isInstanceSetup(ZkClient zkclient, String clusterName, String instanceName,
       InstanceType type) {
     if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT) {
-      ArrayList<String> requiredPaths = new ArrayList<String>();
+      ArrayList<String> requiredPaths = new ArrayList<>();
       requiredPaths.add(PropertyPathBuilder.instanceConfig(clusterName, instanceName));
       requiredPaths.add(PropertyPathBuilder.instanceMessage(clusterName, instanceName));
       requiredPaths.add(PropertyPathBuilder.instanceCurrentState(clusterName, instanceName));
@@ -100,7 +100,7 @@ public final class ZKUtil {
       for (String path : requiredPaths) {
         if (!zkclient.exists(path)) {
           isValid = false;
-          System.err.println("Invalid instance setup, missing znode path: " + path);
+          logger.error("Invalid instance setup, missing znode path: {}", path);
         }
       }
 

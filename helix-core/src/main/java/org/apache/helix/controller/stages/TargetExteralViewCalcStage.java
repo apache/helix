@@ -23,12 +23,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.model.ClusterConfig;
@@ -44,23 +43,39 @@ public class TargetExteralViewCalcStage extends AbstractBaseStage {
   private static final Logger LOG = LoggerFactory.getLogger(TargetExteralViewCalcStage.class);
 
   @Override
-  public void process(ClusterEvent event) throws Exception {
+  public void process(final ClusterEvent event) throws Exception {
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    DedupEventProcessor<String, Runnable> tevWorker =
+        getAsyncWorkerFromClusterEvent(event, AsyncWorkerType.TargetExternalViewCalcWorker);
+
     ClusterConfig clusterConfig = cache.getClusterConfig();
 
     if (cache.isTaskCache() || !clusterConfig.isTargetExternalViewEnabled()) {
       return;
     }
 
-    HelixManager helixManager = event.getAttribute(AttributeName.helixmanager.name());
-    HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
-
-    if (!accessor.getBaseDataAccessor()
-        .exists(accessor.keyBuilder().targetExternalViews().getPath(), AccessOption.PERSISTENT)) {
-      accessor.getBaseDataAccessor()
-          .create(accessor.keyBuilder().targetExternalViews().getPath(), null,
-              AccessOption.PERSISTENT);
+    if (tevWorker == null) {
+      LOG.info("Generating target external view synchronously for cluster {}, {} pipeline",
+          cache.getClusterName(), cache.isTaskCache() ? "TASK" : "RESOURCE");
+      doCalculateTargetExternalView(event);
+    } else {
+      // We have an async worker so update external view asynchronously
+      LOG.info("Sending target external view generating task for cluster {}, {} pipeline to worker",
+          cache.getClusterName(), cache.isTaskCache() ? "TASK" : "RESOURCE");
+      tevWorker.queueEvent(getAsyncTaskDedupType(cache.isTaskCache()), new Runnable() {
+        @Override
+        public void run() {
+          doCalculateTargetExternalView(event);
+        }
+      });
     }
+
+  }
+
+  private void doCalculateTargetExternalView(final ClusterEvent event) {
+    HelixManager helixManager = event.getAttribute(AttributeName.helixmanager.name());
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
 
     BestPossibleStateOutput bestPossibleAssignments =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
@@ -68,6 +83,17 @@ public class TargetExteralViewCalcStage extends AbstractBaseStage {
     IntermediateStateOutput intermediateAssignments =
         event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+
+    long startTimeStamp = System.currentTimeMillis();
+    LOG.info("START: computing target external view for cluster {}, {} pipeline",
+        cache.getClusterName(), cache.isTaskCache() ? "TASK" : "RESOURCE");
+
+    if (!accessor.getBaseDataAccessor()
+        .exists(accessor.keyBuilder().targetExternalViews().getPath(), AccessOption.PERSISTENT)) {
+      accessor.getBaseDataAccessor()
+          .create(accessor.keyBuilder().targetExternalViews().getPath(), null,
+              AccessOption.PERSISTENT);
+    }
 
     List<PropertyKey> keys = new ArrayList<>();
     List<ExternalView> targetExternalViews = new ArrayList<>();
@@ -115,7 +141,13 @@ public class TargetExteralViewCalcStage extends AbstractBaseStage {
         }
       }
     }
+    // TODO (HELIX-964): remove TEV when idealstate is removed
     accessor.setChildren(keys, targetExternalViews);
+
+    long endTimeStamp = System.currentTimeMillis();
+    LOG.info("END: computing target external view for cluster {}, {} pipeline. Took: {} ms",
+        cache.getClusterName(), cache.isTaskCache() ? "TASK" : "RESOURCE",
+        endTimeStamp - startTimeStamp);
   }
 
   private Map<String, Map<String, String>> convertToMapFields(
@@ -126,4 +158,5 @@ public class TargetExteralViewCalcStage extends AbstractBaseStage {
     }
     return mapFields;
   }
+
 }

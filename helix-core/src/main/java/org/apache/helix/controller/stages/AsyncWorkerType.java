@@ -19,22 +19,14 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum AttributeName {
-  RESOURCES,
-  RESOURCES_TO_REBALANCE,
-  BEST_POSSIBLE_STATE,
-  CURRENT_STATE,
-  INTERMEDIATE_STATE,
-  MESSAGES_ALL,
-  MESSAGES_SELECTED,
-  MESSAGES_THROTTLE,
-  LOCAL_STATE,
-  EVENT_CREATE_TIME,
-  ClusterDataCache,
-  helixmanager,
-  clusterStatusMonitor,
-  changeContext,
-  instanceName,
-  eventData,
-  AsyncFIFOWorkerPool
+/**
+ * There are bunch of stages, i.e. TargetExternalViewCalc, PersistAssignment, etc., that have
+ * the choice to submit its tasks to corresponding workers to do the job asynchronously.
+ *
+ * This class contains Async worker enums that corresponding stages can use
+ */
+
+public enum AsyncWorkerType {
+  TargetExternalViewCalcWorker,
+  PersistAssignmentWorker
 }

@@ -18,9 +18,13 @@ package org.apache.helix.controller.pipeline;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-
+import org.apache.helix.common.DedupEventProcessor;
+import org.apache.helix.controller.stages.AsyncWorkerType;
+import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
 
 public class AbstractBaseStage implements Stage {
@@ -61,5 +65,22 @@ public class AbstractBaseStage implements Stage {
     if (service != null) {
       service.submit(task);
     }
+  }
+
+  protected DedupEventProcessor<String, Runnable> getAsyncWorkerFromClusterEvent(ClusterEvent event,
+      AsyncWorkerType worker) {
+    Map<AsyncWorkerType, DedupEventProcessor<String, Runnable>> workerPool =
+        event.getAttribute(AttributeName.AsyncFIFOWorkerPool.name());
+    if (workerPool != null) {
+      if (workerPool.containsKey(worker)) {
+        return workerPool.get(worker);
+      }
+    }
+    return null;
+  }
+
+  protected String getAsyncTaskDedupType(boolean isTaskPipeline) {
+    return String
+        .format("%s::%s", isTaskPipeline ? "TASK" : "RESOURCE", getClass().getSimpleName());
   }
 }

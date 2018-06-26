@@ -19,8 +19,18 @@ package org.apache.helix.controller;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -30,23 +40,26 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.api.listeners.*;
 import org.apache.helix.common.ClusterEventBlockingQueue;
+import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
 import org.apache.helix.controller.stages.*;
-import org.apache.helix.model.*;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.MaintenanceSignal;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.ClusterEventMonitor;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.TaskDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.apache.helix.HelixConstants.ChangeType;
+import static org.apache.helix.HelixConstants.*;
 
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as possible to Ideal State.
@@ -89,6 +102,8 @@ public class GenericHelixController implements IdealStateChangeListener,
 
   private final ClusterEventBlockingQueue _taskEventQueue;
   private final ClusterEventProcessor _taskEventThread;
+
+  private final Map<AsyncWorkerType, DedupEventProcessor<String, Runnable>> _asyncFIFOWorkerPool;
 
   private long _continousRebalanceFailureCount = 0;
 
@@ -290,6 +305,9 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     _eventQueue = new ClusterEventBlockingQueue();
     _taskEventQueue = new ClusterEventBlockingQueue();
+
+    _asyncFIFOWorkerPool = new HashMap<>();
+
     _cache = new ClusterDataCache(clusterName);
     _taskCache = new ClusterDataCache(clusterName);
 
@@ -298,10 +316,34 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     _forceRebalanceTimer = new Timer();
 
+    initializeAsyncFIFOWorkers();
     initPipelines(_eventThread, _cache, false);
     initPipelines(_taskEventThread, _taskCache, true);
 
     _clusterStatusMonitor = new ClusterStatusMonitor(_clusterName);
+  }
+
+  private void initializeAsyncFIFOWorkers() {
+    for (AsyncWorkerType type : AsyncWorkerType.values()) {
+      DedupEventProcessor<String, Runnable> worker =
+          new DedupEventProcessor<String, Runnable>(_clusterName, type.name()) {
+            @Override
+            protected void handleEvent(Runnable event) {
+              // TODO: retry when queue is empty and event.run() failed?
+              event.run();
+            }
+          };
+      worker.start();
+      _asyncFIFOWorkerPool.put(type, worker);
+      logger.info("Started async worker {}", worker.getName());
+    }
+  }
+
+  private void shutdownAsyncFIFOWorkers() {
+    for (DedupEventProcessor processor : _asyncFIFOWorkerPool.values()) {
+      processor.shutdown();
+      logger.info("Shutdown async worker {}", processor.getName());
+    }
   }
 
   private boolean isEventQueueEmpty(boolean taskQueue) {
@@ -642,6 +684,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     ClusterEvent event = new ClusterEvent(_clusterName, eventType);
     event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
     event.addAttribute(AttributeName.changeContext.name(), changeContext);
+    event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
     for (Map.Entry<String, Object> attr : eventAttributes.entrySet()) {
       event.addAttribute(attr.getKey(), attr.getValue());
     }
@@ -779,6 +822,9 @@ public class GenericHelixController implements IdealStateChangeListener,
     } catch (InterruptedException ex) {
       logger.warn("Timeout when terminating async tasks. Some async tasks are still executing.");
     }
+
+    // shutdown async workers
+    shutdownAsyncFIFOWorkers();
 
     enableClusterStatusMonitor(false);
 

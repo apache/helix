@@ -154,7 +154,7 @@ public class ClusterDataCache {
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances(), true);
       _updateInstanceOfflineTime = true;
       LOG.info("Refresh LiveInstances for cluster " + _clusterName + ", took " + (
-          System.currentTimeMillis() - startTime) + " ms");
+          System.currentTimeMillis() - start) + " ms");
     }
 
     if (_propertyDataChangedMap.get(ChangeType.INSTANCE_CONFIG)) {

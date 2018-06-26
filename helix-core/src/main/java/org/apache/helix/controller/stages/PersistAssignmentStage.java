@@ -24,13 +24,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
 import java.util.Set;
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -48,7 +48,29 @@ import org.slf4j.LoggerFactory;
 public class PersistAssignmentStage extends AbstractBaseStage {
   private static final Logger LOG = LoggerFactory.getLogger(PersistAssignmentStage.class);
 
-  @Override public void process(ClusterEvent event) throws Exception {
+  @Override
+  public void process(final ClusterEvent event) throws Exception {
+    DedupEventProcessor<String, Runnable> asyncWorker =
+        getAsyncWorkerFromClusterEvent(event, AsyncWorkerType.PersistAssignmentWorker);
+    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+
+    if (asyncWorker != null) {
+      LOG.info("Sending PersistAssignmentStage task for cluster {}, {} pipeline to worker",
+          cache.getClusterName(), cache.isTaskCache() ? "TASK" : "RESOURCE");
+      asyncWorker.queueEvent(getAsyncTaskDedupType(cache.isTaskCache()), new Runnable() {
+        @Override
+        public void run() {
+          doPersistAssignment(event);
+        }
+      });
+    } else {
+      LOG.info("Starting PersistAssignmentStage synchronously for cluster {}, {} pipeline",
+          cache.getClusterName(), cache.isTaskCache() ? "TASK" : "RESOURCE");
+      doPersistAssignment(event);
+    }
+  }
+
+  private void doPersistAssignment(final ClusterEvent event) {
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     ClusterConfig clusterConfig = cache.getClusterConfig();
 

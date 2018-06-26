@@ -58,6 +58,9 @@ public abstract class DedupEventProcessor<T, E> extends Thread {
   protected abstract void handleEvent(E event);
 
   public void queueEvent(T eventType, E event) {
+    if (isInterrupted()) {
+      return;
+    }
     _eventQueue.put(eventType, event);
   }
 

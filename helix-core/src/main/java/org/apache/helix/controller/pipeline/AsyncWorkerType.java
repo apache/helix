@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.controller.pipeline;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

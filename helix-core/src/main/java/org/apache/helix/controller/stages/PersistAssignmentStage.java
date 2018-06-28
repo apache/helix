@@ -32,7 +32,9 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.controller.common.PartitionStateMap;
+import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
+import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -45,32 +47,16 @@ import org.slf4j.LoggerFactory;
 /**
  * Persist the ResourceAssignment of each resource that went through rebalancing
  */
-public class PersistAssignmentStage extends AbstractBaseStage {
+public class PersistAssignmentStage extends AbstractAsyncBaseStage {
   private static final Logger LOG = LoggerFactory.getLogger(PersistAssignmentStage.class);
 
   @Override
-  public void process(final ClusterEvent event) throws Exception {
-    DedupEventProcessor<String, Runnable> asyncWorker =
-        getAsyncWorkerFromClusterEvent(event, AsyncWorkerType.PersistAssignmentWorker);
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
-
-    if (asyncWorker != null) {
-      LOG.info("Sending PersistAssignmentStage task for cluster {}, {} pipeline to worker",
-          cache.getClusterName(), cache.isTaskCache() ? "TASK" : "RESOURCE");
-      asyncWorker.queueEvent(getAsyncTaskDedupType(cache.isTaskCache()), new Runnable() {
-        @Override
-        public void run() {
-          doPersistAssignment(event);
-        }
-      });
-    } else {
-      LOG.info("Starting PersistAssignmentStage synchronously for cluster {}, {} pipeline",
-          cache.getClusterName(), cache.isTaskCache() ? "TASK" : "RESOURCE");
-      doPersistAssignment(event);
-    }
+  public AsyncWorkerType getAsyncWorkerType() {
+    return AsyncWorkerType.PersistAssignmentWorker;
   }
 
-  private void doPersistAssignment(final ClusterEvent event) {
+  @Override
+  public void execute(final ClusterEvent event) throws Exception {
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     ClusterConfig clusterConfig = cache.getClusterConfig();
 

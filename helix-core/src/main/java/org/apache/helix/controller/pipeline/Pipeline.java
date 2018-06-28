@@ -48,6 +48,10 @@ public class Pipeline {
     stage.init(context);
   }
 
+  public String getPipelineType() {
+    return _pipelineType;
+  }
+
   public void handle(ClusterEvent event) throws Exception {
     if (_stages == null) {
       return;

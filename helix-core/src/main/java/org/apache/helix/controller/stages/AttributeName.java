@@ -36,5 +36,6 @@ public enum AttributeName {
   changeContext,
   instanceName,
   eventData,
-  AsyncFIFOWorkerPool
+  AsyncFIFOWorkerPool,
+  PipelineType
 }

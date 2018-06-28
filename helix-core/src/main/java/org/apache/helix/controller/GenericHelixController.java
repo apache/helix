@@ -41,6 +41,7 @@ import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.api.listeners.*;
 import org.apache.helix.common.ClusterEventBlockingQueue;
 import org.apache.helix.common.DedupEventProcessor;
+import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
 import org.apache.helix.controller.stages.*;
@@ -198,6 +199,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
     event.addAttribute(AttributeName.changeContext.name(), changeContext);
     event.addAttribute(AttributeName.eventData.name(), new ArrayList<>());
+    event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
 
     _taskEventQueue.put(event);
     _eventQueue.put(event);
@@ -421,6 +423,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     long startTime = System.currentTimeMillis();
     boolean rebalanceFail = false;
     for (Pipeline pipeline : pipelines) {
+      event.addAttribute(AttributeName.PipelineType.name(), pipeline.getPipelineType());
       try {
         pipeline.handle(event);
         pipeline.finish();
@@ -887,6 +890,7 @@ public class GenericHelixController implements IdealStateChangeListener,
         event.addAttribute(AttributeName.changeContext.name(), changeContext);
         event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
         event.addAttribute(AttributeName.eventData.name(), signal);
+        event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
         _eventQueue.put(event);
         _taskEventQueue.put(event.clone());
       }

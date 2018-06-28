@@ -32,6 +32,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
@@ -304,7 +305,14 @@ public class ZkIntegrationTestBase {
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
-    stage.process(event);
+
+    // AbstractAsyncBaseStage will run asynchronously, and it's main logics are implemented in
+    // execute() function call
+    if (stage instanceof AbstractAsyncBaseStage) {
+      ((AbstractAsyncBaseStage) stage).execute(event);
+    } else {
+      stage.process(event);
+    }
     stage.postProcess();
   }
 }

@@ -21,7 +21,6 @@ package org.apache.helix.controller.rebalancer;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,8 +31,7 @@ import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
-import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
+import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -409,14 +407,13 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
     ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
     for (Partition partition : resource.getPartitions()) {
-      Map<String, String> currentStateMap =
-          currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
       Set<String> disabledInstancesForPartition =
           cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
       List<String> preferenceList = getPreferenceList(partition, idealState, activeNodes);
       Map<String, String> bestStateForPartition =
-          computeBestPossibleStateForPartition(liveNodes, stateModelDef, preferenceList, currentStateMap,
-              disabledInstancesForPartition, idealState);
+          computeBestPossibleStateForPartition(liveNodes, stateModelDef, preferenceList,
+              currentStateOutput, disabledInstancesForPartition, idealState, clusterConfig,
+              partition);
 
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
@@ -442,21 +439,22 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
    * @param liveInstances
    * @param stateModelDef
    * @param preferenceList
-   * @param currentStateMap
+   * @param currentStateOutput
    *          : instance->state for each partition
    * @param disabledInstancesForPartition
    * @param idealState
+   * @param  clusterConfig
+   * @param  partition
    * @return
    */
   @Override
   protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
       StateModelDefinition stateModelDef, List<String> preferenceList,
-      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
-      IdealState idealState) {
+      CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
+      IdealState idealState, ClusterConfig clusterConfig, Partition partition) {
 
-    if (currentStateMap == null) {
-      currentStateMap = Collections.emptyMap();
-    }
+    Map<String, String> currentStateMap = new HashMap<>(
+        currentStateOutput.getCurrentStateMap(idealState.getResourceName(), partition));
 
     // (1) If the partition is removed from IS or the IS is deleted.
     // Transit to DROPPED no matter the instance is disabled or not.
@@ -470,33 +468,65 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     }
 
     // Instances not in preference list but still have active replica, retain to avoid zero replica during movement
-    List<String> instancesToMove = new ArrayList<String>(currentStateMap.keySet());
-    instancesToMove.removeAll(preferenceList);
+    List<String> currentInstances = new ArrayList<>(currentStateMap.keySet());
+    Collections.sort(currentInstances);
+    Map<String, String> pendingStates =
+        new HashMap<>(currentStateOutput.getPendingStateMap(idealState.getResourceName(), partition));
+    for (String instance : pendingStates.keySet()) {
+      if (!currentStateMap.containsKey(instance)) {
+        currentStateMap.put(instance, stateModelDef.getInitialState());
+        currentInstances.add(instance);
+      }
+    }
 
     Set<String> instancesToDrop = new HashSet<>();
-    Iterator<String> it = instancesToMove.iterator();
+    Iterator<String> it = currentInstances.iterator();
     while (it.hasNext()) {
       String instance = it.next();
       String state = currentStateMap.get(instance);
-      if (disabledInstancesForPartition.contains(instance) || state == null
-          || state.equals(HelixDefinedState.ERROR.name())
-          || state.equals(stateModelDef.getInitialState())
-          || disabledInstancesForPartition.contains(instance)) {
+      if (state == null) {
         it.remove();
         instancesToDrop.add(instance); // These instances should be set to DROPPED after we get bestPossibleStateMap;
       }
     }
 
+
     // Sort the instancesToMove by their current partition state.
     // Reason: because the states are assigned to instances in the order appeared in preferenceList, if we have
     // [node1:Slave, node2:Master], we want to keep it that way, instead of assigning Master to node1.
-    Collections.sort(instancesToMove, new PreferenceListNodeComparator(currentStateMap, stateModelDef));
-    List<String> combinedPreferenceList = new ArrayList<String>(preferenceList);
-    combinedPreferenceList.addAll(instancesToMove);
+
+    if (preferenceList == null) {
+      preferenceList = Collections.emptyList();
+    }
+
+    int numExtraReplicas = getNumExtraReplicas(clusterConfig);
+
+    // TODO : Keep the behavior consistent with existing state count, change back to read from idealstate
+    // replicas
+    int numReplicas = preferenceList.size();
+    List<String> instanceToAdd = new ArrayList<>(preferenceList);
+    instanceToAdd.removeAll(currentInstances);
+    List<String> combinedPreferenceList = new ArrayList<>();
+
+    if (currentInstances.size() <= numReplicas
+        && numReplicas + numExtraReplicas - currentInstances.size() > 0) {
+      int subListSize = numReplicas + numExtraReplicas - currentInstances.size();
+      combinedPreferenceList.addAll(instanceToAdd
+          .subList(0, subListSize <= instanceToAdd.size() ? subListSize : instanceToAdd.size()));
+    }
+
+    // Make all intial state instance not in preference list to be dropped.
+    Map<String, String> currentMapWithPreferenceList = new HashMap<>(currentStateMap);
+    currentMapWithPreferenceList.keySet().retainAll(preferenceList);
+
+    combinedPreferenceList.addAll(currentInstances);
+    Collections.sort(combinedPreferenceList,
+        new PreferenceListNodeComparator(currentStateMap, stateModelDef, preferenceList));
 
     // Assign states to instances with the combined preference list.
-    Map<String, String> bestPossibleStateMap = computeBestPossibleMap(combinedPreferenceList, stateModelDef,
-        currentStateMap, liveInstances, disabledInstancesForPartition);
+    Map<String, String> bestPossibleStateMap =
+        computeBestPossibleMap(combinedPreferenceList, stateModelDef, currentStateMap,
+            liveInstances, disabledInstancesForPartition);
 
     for (String instance : instancesToDrop) {
       bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.name());
@@ -504,50 +534,49 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
     // If the load-balance finishes (all replica are migrated to new instances),
     // we should drop all partitions from previous assigned instances.
-    Map<String, String> targetInstanceMap = new HashMap<>(currentStateMap);
-    targetInstanceMap.keySet().retainAll(preferenceList);
-    if (migrationCompleted(preferenceList, stateModelDef, targetInstanceMap, idealState)) {
-      for (String instance : currentStateMap.keySet()) {
-        if (!preferenceList.contains(instance)) {
-          String state = currentStateMap.get(instance);
-          if (state != null) {
-            bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.toString());
-          }
-        }
+    if (!currentMapWithPreferenceList.values().contains(HelixDefinedState.ERROR.name())
+        && bestPossibleStateMap.size() > numReplicas && readyToDrop(currentStateMap,
+        bestPossibleStateMap, numReplicas, combinedPreferenceList)) {
+      for (int i = 0; i < combinedPreferenceList.size() - numReplicas; i++) {
+        String instanceToDrop = combinedPreferenceList.get(combinedPreferenceList.size() - i - 1);
+        bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
       }
     }
 
     return bestPossibleStateMap;
   }
 
-  private boolean migrationCompleted(List<String> preferenceList,
-      StateModelDefinition stateModelDef, Map<String, String> currentStateMap,
-      IdealState idealState) {
-    if (preferenceList == null) {
-      preferenceList = Collections.emptyList();
+  private boolean readyToDrop(Map<String, String> currentStateMap,
+      Map<String, String> bestPossibleMap, int numReplicas, List<String> combinedPreferenceList) {
+    if (currentStateMap.size() != bestPossibleMap.size()) {
+      return false;
     }
 
-    int replica = idealState.getReplicaCount(preferenceList.size());
-    LinkedHashMap<String, Integer> bestPossileStateCountMap =
-        stateModelDef.getStateCountMap(preferenceList.size(), replica);
-    Map<String, Integer> currentStateCounts = StateModelDefinition.getStateCounts(currentStateMap);
-
-    for (String state : bestPossileStateCountMap.keySet()) {
-      if (state.equals(HelixDefinedState.DROPPED.name()) ||
-          state.equals(HelixDefinedState.ERROR.name()) ||
-          state.equals(stateModelDef.getInitialState())) {
-        continue;
-      }
-
-      Integer bestPossibleCount = bestPossileStateCountMap.get(state);
-      Integer currentCount = currentStateCounts.get(state);
-      bestPossibleCount = bestPossibleCount == null ? 0 : bestPossibleCount;
-      currentCount = currentCount == null ? 0 : currentCount;
-      if (currentCount < bestPossibleCount) {
+    for (int i = 0; i < numReplicas; i++) {
+      String instance = combinedPreferenceList.get(i);
+      if (!currentStateMap.containsKey(instance) || !currentStateMap.get(instance)
+          .equals(bestPossibleMap.get(instance))) {
         return false;
       }
     }
 
     return true;
+  }
+
+  private int getNumExtraReplicas(ClusterConfig clusterConfig) {
+    int numExtraReplicas = StateTransitionThrottleConfig.DEFAULT_NUM_TRANSIT_REPLICAS;
+    List<StateTransitionThrottleConfig> stateTransitionThrottleConfigs =
+        clusterConfig.getStateTransitionThrottleConfigs();
+
+    for (StateTransitionThrottleConfig throttleConfig : stateTransitionThrottleConfigs) {
+      if (StateTransitionThrottleConfig.ThrottleScope.PARTITION
+          .equals(throttleConfig.getThrottleScope())
+          && StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE
+          .equals(throttleConfig.getRebalanceType())) {
+        numExtraReplicas =
+            (int) Math.min(numExtraReplicas, throttleConfig.getMaxPartitionInTransition());
+      }
+    }
+    return numExtraReplicas;
   }
 }

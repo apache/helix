@@ -120,7 +120,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
 
     // disable another node, the minimal active replica for each partition should be maintained.
     enableInstance(_participants.get(3).getInstanceName(), false);
-    Thread.sleep(100);
+    Thread.sleep(1000);
     Assert.assertTrue(_clusterVerifier.verify());
 
     for (String db : _testDBs) {
@@ -193,7 +193,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
           _participants.get(0).getInstanceName(), true);
     }
 
-    Thread.sleep(delay + 200);
+    Thread.sleep(delay + 500);
     // after delay time, it should maintain required number of replicas.
     for (String db : _testDBs) {
       ExternalView ev =
@@ -274,7 +274,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, false);
     // TODO: remove this once controller is listening on cluster config change.
     RebalanceScheduler.invokeRebalance(_controller.getHelixDataAccessor(), _testDBs.get(0));
-    Thread.sleep(500);
+    Thread.sleep(2000);
     Assert.assertTrue(_clusterVerifier.verify());
     for (String db : _testDBs) {
       ExternalView ev =

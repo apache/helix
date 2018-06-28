@@ -10,8 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.helix.controller.stages.BaseStageTest;
+import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.StateModelDefinition;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectReader;
@@ -56,11 +59,17 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
 
     IdealState is = new IdealState("test");
     is.setReplicas("3");
-
+    Partition partition = new Partition("testPartition");
     DelayedAutoRebalancer rebalancer = new DelayedAutoRebalancer();
+    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    for (String instance : currentStateMap.keySet()) {
+      currentStateOutput
+          .setCurrentState("test", partition, instance, currentStateMap.get(instance));
+    }
     Map<String, String> bestPossibleMap = rebalancer
-        .computeBestPossibleStateForPartition(liveInstances, stateModelDef, instancePreferenceList, currentStateMap,
-            Collections.<String>emptySet(), is);
+        .computeBestPossibleStateForPartition(liveInstances, stateModelDef, instancePreferenceList,
+            currentStateOutput, Collections.<String>emptySet(), is,
+            new ClusterConfig("TestCluster"), partition);
     Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap,
         "Differs, get " + bestPossibleMap + "\nexpected: " + expectedBestPossibleMap
             + "\ncurrentState: " + currentStateMap + "\npreferenceList: " + instancePreferenceList);

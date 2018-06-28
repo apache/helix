@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 public class StateTransitionThrottleConfig {
   private static final Logger logger =
       LoggerFactory.getLogger(StateTransitionThrottleConfig.class.getName());
+  public final static int DEFAULT_NUM_TRANSIT_REPLICAS = 1;
 
   private enum ConfigProperty {
     CONFIG_TYPE,
@@ -42,7 +43,8 @@ public class StateTransitionThrottleConfig {
   public enum ThrottleScope {
     CLUSTER,
     RESOURCE,
-    INSTANCE
+    INSTANCE,
+    PARTITION
   }
 
   public enum RebalanceType {

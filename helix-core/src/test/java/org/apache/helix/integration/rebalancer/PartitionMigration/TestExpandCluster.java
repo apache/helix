@@ -21,6 +21,7 @@ package org.apache.helix.integration.rebalancer.PartitionMigration;
 
 import java.util.Map;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.testng.Assert;
@@ -76,6 +77,8 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       InstanceConfig config = InstanceConfig.toInstanceConfig(storageNodeName);
       config.setInstanceEnabled(false);
+      config.getRecord().getSimpleFields()
+          .remove(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name());
 
       _setupTool.getClusterManagementTool().addInstance(CLUSTER_NAME, config);
 
@@ -102,6 +105,11 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
 
   @Test(dependsOnMethods = {"testClusterExpansion", "testClusterExpansionByEnableInstance"})
   public void testClusterShrink() throws Exception {
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setDelayRebalaceEnabled(false);
+    clusterConfig.setRebalanceDelayTime(0);
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
     Assert.assertTrue(_clusterVerifier.verify());
 
     _migrationVerifier.reset();
@@ -112,11 +120,12 @@ public class TestExpandCluster extends TestPartitionMigrationBase {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       MockParticipantManager participant = _participants.get(i);
       participant.syncStop();
-      _setupTool.dropInstanceFromCluster(CLUSTER_NAME, storageNodeName);
+      _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, storageNodeName, false);
+      Assert.assertTrue(_clusterVerifier.verify());
     }
 
     Assert.assertTrue(_clusterVerifier.verify());
-    Assert.assertFalse(_migrationVerifier.hasLessReplica());
+    Assert.assertFalse(_migrationVerifier.hasLessMinActiveReplica());
     Assert.assertFalse(_migrationVerifier.hasMoreReplica());
 
     _migrationVerifier.stop();

@@ -293,6 +293,10 @@ public class ZkIntegrationTestBase {
         }
       }
 
+      if (activeReplica < minActiveReplica) {
+        int a = 0;
+      }
+
       Assert.assertTrue(hasTopState, String.format("%s missing %s replica", partition, topState));
       Assert.assertTrue(activeReplica >= minActiveReplica, String
           .format("%s has less active replica %d then required %d", partition, activeReplica,

@@ -22,8 +22,11 @@ package org.apache.helix.controller.rebalancer;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Partition;
 import org.apache.helix.util.TestInputLoader;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -38,10 +41,17 @@ public class TestAbstractRebalancer {
       Map<String, String> expectedBestPossibleMap) {
     System.out.println("Test case comment: " + comment);
     AutoRebalancer rebalancer = new AutoRebalancer();
+    Partition partition = new Partition("testPartition");
+    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    for (String instance : currentStateMap.keySet()) {
+      currentStateOutput
+          .setCurrentState("test", partition, instance, currentStateMap.get(instance));
+    }
     Map<String, String> bestPossibleMap = rebalancer
         .computeBestPossibleStateForPartition(new HashSet<String>(liveInstances),
             BuiltInStateModelDefinitions.valueOf(stateModelName).getStateModelDefinition(),
-            preferenceList, currentStateMap, new HashSet<String>(disabledInstancesForPartition), new IdealState("test"));
+            preferenceList, currentStateOutput, new HashSet<String>(disabledInstancesForPartition),
+            new IdealState("test"), new ClusterConfig("TestCluster"), partition);
 
     Assert.assertTrue(bestPossibleMap.equals(expectedBestPossibleMap));
   }

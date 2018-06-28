@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -31,11 +32,13 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
+import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.DelayedTransitionBase;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
@@ -63,6 +66,7 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
 
   MigrationStateVerifier _migrationVerifier;
   HelixManager _manager;
+  ConfigAccessor _configAccessor;
 
 
   @BeforeClass
@@ -95,6 +99,7 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
     _manager =
         HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
+    _configAccessor = new ConfigAccessor(_gZkClient);
   }
 
   protected MockParticipantManager createAndStartParticipant(String instancename) {
@@ -120,21 +125,27 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
     for (String stateModel : TestStateModels) {
       String db = "Test-DB-" + i++;
       createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica, _minActiveReplica,
-          delayTime);
+          -1, CrushRebalanceStrategy.class.getName());
       _testDBs.add(db);
     }
     for (String db : _testDBs) {
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       idealStateMap.put(db, is);
     }
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setDelayRebalaceEnabled(true);
+    clusterConfig.setRebalanceDelayTime(delayTime);
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
     return idealStateMap;
   }
 
   class MigrationStateVerifier implements IdealStateChangeListener, ExternalViewChangeListener {
-    static final int EXTRA_REPLICA = 10;
+    static final int EXTRA_REPLICA = 1;
 
     boolean _hasMoreReplica = false;
     boolean _hasLessReplica = false;
+    boolean _hasMinActiveReplica = false;
     HelixManager _manager;
     boolean trackEnabled = false;
     Map<String, IdealState> _resourceMap;
@@ -170,13 +181,15 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
         int replica = is.getReplicaCount(NUM_NODE);
         for (String p : is.getPartitionSet()) {
           Map<String, String> stateMap = is.getRecord().getMapField(p);
-          verifyPartitionCount(is.getResourceName(), p, stateMap, replica, "IS");
+          verifyPartitionCount(is.getResourceName(), p, stateMap, replica, "IS",
+              is.getMinActiveReplicas());
         }
       }
     }
 
     @Override
-    public void onExternalViewChange(List<ExternalView> externalViewList, NotificationContext changeContext) {
+    public void onExternalViewChange(List<ExternalView> externalViewList,
+        NotificationContext changeContext) {
       if (!trackEnabled) {
         return;
       }
@@ -188,13 +201,14 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
         int replica = is.getReplicaCount(NUM_NODE);
         for (String p : is.getPartitionSet()) {
           Map<String, String> stateMap = ev.getStateMap(p);
-          verifyPartitionCount(is.getResourceName(), p, stateMap, replica, "EV");
+          verifyPartitionCount(is.getResourceName(), p, stateMap, replica, "EV",
+              is.getMinActiveReplicas());
         }
       }
     }
 
     private void verifyPartitionCount(String resource, String partition,
-        Map<String, String> stateMap, int replica, String warningPrefix) {
+        Map<String, String> stateMap, int replica, String warningPrefix, int minActiveReplica) {
       if (stateMap.size() < replica) {
         System.out.println(
             "resource " + resource + ", partition " + partition + " has " + stateMap.size()
@@ -208,6 +222,13 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
                 + " replicas in " + warningPrefix);
         _hasMoreReplica = true;
       }
+
+      if (stateMap.size() < minActiveReplica) {
+        System.out.println(
+            "resource " + resource + ", partition " + partition + " has " + stateMap.size()
+                + " min active replicas in " + warningPrefix);
+        _hasMinActiveReplica = true;
+      }
     }
 
     public boolean hasMoreReplica() {
@@ -216,6 +237,10 @@ public class TestPartitionMigrationBase extends ZkIntegrationTestBase {
 
     public boolean hasLessReplica() {
       return _hasLessReplica;
+    }
+
+    public boolean hasLessMinActiveReplica() {
+      return _hasMinActiveReplica;
     }
 
     public void reset() {

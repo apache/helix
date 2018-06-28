@@ -15,7 +15,6 @@
       "bestPossibleStates": {
         "localhost_2": "MASTER",
         "localhost_3": "SLAVE",
-        "localhost_4": "SLAVE",
         "localhost_0": "SLAVE",
         "localhost_1": "SLAVE"
       }
@@ -30,13 +29,11 @@
         "localhost_0": "SLAVE",
         "localhost_1": "SLAVE",
         "localhost_2": "SLAVE",
-        "localhost_3": "OFFLINE",
-        "localhost_4": "OFFLINE"
+        "localhost_3": "OFFLINE"
       },
       "bestPossibleStates": {
         "localhost_2": "MASTER",
         "localhost_3": "SLAVE",
-        "localhost_4": "SLAVE",
         "localhost_0": "SLAVE",
         "localhost_1": "SLAVE"
       }
@@ -51,15 +48,13 @@
         "localhost_0": "SLAVE",
         "localhost_1": "SLAVE",
         "localhost_2": "MASTER",
-        "localhost_3": "SLAVE",
-        "localhost_4": "SLAVE"
+        "localhost_3": "SLAVE"
       },
       "bestPossibleStates": {
+        "localhost_0": "SLAVE",
+        "localhost_1": "DROPPED",
         "localhost_2": "MASTER",
-        "localhost_3": "SLAVE",
-        "localhost_4": "SLAVE",
-        "localhost_0": "DROPPED",
-        "localhost_1": "DROPPED"
+        "localhost_3": "SLAVE"
       }
     },
     {
@@ -72,15 +67,13 @@
         "localhost_0": "OFFLINE",
         "localhost_1": "SLAVE",
         "localhost_2": "MASTER",
-        "localhost_3": "SLAVE",
-        "localhost_4": "SLAVE"
+        "localhost_3": "SLAVE"
       },
       "bestPossibleStates": {
-        "localhost_2": "MASTER",
-        "localhost_3": "SLAVE",
-        "localhost_4": "SLAVE",
         "localhost_0": "DROPPED",
-        "localhost_1": "DROPPED"
+        "localhost_1": "SLAVE",
+        "localhost_2": "MASTER",
+        "localhost_3": "SLAVE"
       }
     },
     {
@@ -96,11 +89,31 @@
         "localhost_3": "ERROR"
       },
       "bestPossibleStates": {
-        "localhost_2": "MASTER",
-        "localhost_4": "SLAVE",
-        "localhost_0": "DROPPED",
+        "localhost_0": "ERROR",
         "localhost_1": "SLAVE",
+        "localhost_2": "MASTER",
         "localhost_3": "ERROR"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_3",
+        "localhost_4",
+        "localhost_5"
+      ],
+      "currentStates": {
+        "localhost_3": "OFFLINE",
+        "localhost_4": "OFFLINE",
+        "localhost_0": "MASTER",
+        "localhost_1": "OFFLINE",
+        "localhost_2": "OFFLINE"
+      },
+      "bestPossibleStates": {
+        "localhost_0": "MASTER",
+        "localhost_1": "SLAVE",
+        "localhost_2": "SLAVE",
+        "localhost_3": "SLAVE",
+        "localhost_4": "SLAVE"
       }
     }
   ]

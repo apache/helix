@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -267,7 +268,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String stateModel : TestStateModels) {
       String db = "Test-DB-" + i++;
       createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
-          _minActiveReplica, delayTime);
+          _minActiveReplica, delayTime, CrushRebalanceStrategy.class.getName());
       _testDBs.add(db);
     }
     Thread.sleep(800);

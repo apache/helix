@@ -44,6 +44,8 @@ import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -53,6 +55,7 @@ import org.testng.annotations.Test;
 public class TestStateTransitionCancellation extends TaskTestBase {
   // TODO: Replace the thread sleep with synchronized condition check
   private ConfigAccessor _configAccessor;
+  private HelixClusterVerifier _verifier;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -61,6 +64,8 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     _numParitions = 20;
     _numNodes = 2;
     _numReplicas = 2;
+    _verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursively(namespace);
@@ -98,7 +103,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
 
 
     // Wait for pipeline reaching final stage
-    Thread.sleep(2000L);
+    Assert.assertTrue(_verifier.verify());
     ExternalView externalView = _setupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     for (String partition : externalView.getPartitionSet()) {

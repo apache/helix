@@ -41,9 +41,11 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.slf4j.Logger;
@@ -218,7 +220,8 @@ public class TestAutoRebalanceStrategy {
       ClusterDataCache cache = new ClusterDataCache();
       MockAccessor accessor = new MockAccessor();
       Builder keyBuilder = accessor.keyBuilder();
-      accessor.setProperty(keyBuilder.clusterConfig(), new ClusterConfig("TestCluster"));
+      ClusterConfig clusterConfig = new ClusterConfig("TestCluster");
+      accessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
       for (String node : _liveNodes) {
         LiveInstance liveInstance = new LiveInstance(node);
         liveInstance.setSessionId("testSession");
@@ -231,9 +234,17 @@ public class TestAutoRebalanceStrategy {
         List<String> preferenceList = listResult.get(partition);
         Map<String, String> currentStateMap = _currentMapping.get(partition);
         Set<String> disabled = Collections.emptySet();
+        Partition p = new Partition(partition);
+        CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+        if (currentStateMap != null) {
+          for (String instance : currentStateMap.keySet()) {
+            currentStateOutput
+                .setCurrentState("resource", p, instance, currentStateMap.get(instance));
+          }
+        }
         Map<String, String> assignment = new AutoRebalancer()
-            .computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), _stateModelDef, preferenceList,
-                currentStateMap, disabled, is);
+            .computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), _stateModelDef,
+                preferenceList, currentStateOutput, disabled, is, clusterConfig, p);
         mapResult.put(partition, assignment);
       }
       return mapResult;

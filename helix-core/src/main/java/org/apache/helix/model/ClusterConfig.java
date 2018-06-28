@@ -66,7 +66,7 @@ public class ClusterConfig extends HelixProperty {
   }
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
   private final static int DEFAULT_ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE = 0; // By default, no load balance if any error partition
-  private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
+  private final static String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
 
   /**
    * Instantiate for a specific cluster

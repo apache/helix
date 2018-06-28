@@ -15,7 +15,6 @@
       "bestPossibleStates": {
         "localhost_2": "ONLINE",
         "localhost_3": "ONLINE",
-        "localhost_4": "ONLINE",
         "localhost_0": "ONLINE",
         "localhost_1": "ONLINE"
       }
@@ -30,14 +29,12 @@
         "localhost_0": "ONLINE",
         "localhost_1": "ONLINE",
         "localhost_2": "ONLINE",
-        "localhost_3": "ONLINE",
-        "localhost_4": "ONLINE"
+        "localhost_3": "ONLINE"
       },
       "bestPossibleStates": {
         "localhost_2": "ONLINE",
         "localhost_3": "ONLINE",
-        "localhost_4": "ONLINE",
-        "localhost_0": "DROPPED",
+        "localhost_0": "ONLINE",
         "localhost_1": "DROPPED"
       }
     },
@@ -56,7 +53,6 @@
       "bestPossibleStates": {
         "localhost_2": "ONLINE",
         "localhost_3": "ONLINE",
-        "localhost_4": "ONLINE",
         "localhost_0": "DROPPED",
         "localhost_1": "ONLINE"
       }
@@ -88,13 +84,11 @@
       "currentStates": {
         "localhost_2": "ERROR",
         "localhost_3": "ONLINE",
-        "localhost_4": "ONLINE",
         "localhost_0": "ONLINE",
         "localhost_1": "ONLINE"
       },
       "bestPossibleStates": {
         "localhost_3": "ONLINE",
-        "localhost_4": "ONLINE",
         "localhost_0": "ONLINE",
         "localhost_1": "ONLINE",
         "localhost_2": "ERROR"

@@ -34,7 +34,8 @@ public class MaintenanceRebalancer extends SemiAutoRebalancer {
       Map<String, String> stateMap = currentStateMap.get(partition);
       List<String> preferenceList = new ArrayList<>(stateMap.keySet());
       Collections.sort(preferenceList, new PreferenceListNodeComparator(stateMap,
-          clusterData.getStateModelDef(currentIdealState.getStateModelDefRef())));
+          clusterData.getStateModelDef(currentIdealState.getStateModelDefRef()),
+          Collections.<String>emptyList()));
       currentIdealState.setPreferenceList(partition.getPartitionName(), preferenceList);
     }
     LOG.info("End computing ideal state for resource %s in maintenance mode.");

@@ -1,0 +1,206 @@
+[
+  {
+    "statemodel": "OnlineOffline",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "OFFLINE",
+          "localhost_1": "OFFLINE",
+          "localhost_2": "OFFLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        },
+        "expectedStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE",
+          "localhost_3": "ONLINE"
+        },
+        "expectedStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        }
+      }
+    }
+  },
+  {
+    "statemodel": "OnlineOffline",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "OFFLINE",
+          "localhost_1": "OFFLINE",
+          "localhost_2": "OFFLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        },
+        "expectedStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE",
+          "localhost_3": "ONLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE",
+          "localhost_3": "DROPPED"
+        },
+        "expectedStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE",
+          "localhost_3": "DROPPED"
+        }
+      }
+    }
+  },
+  {
+    "statemodel": "OnlineOffline",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 100,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "OFFLINE",
+          "localhost_1": "OFFLINE",
+          "localhost_2": "OFFLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        },
+        "expectedStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE",
+          "localhost_3": "ONLINE"
+        },
+        "expectedStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE",
+          "localhost_3": "ONLINE"
+        }
+      }
+    }
+  },
+  {
+    "statemodel": "OnlineOffline",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "OFFLINE",
+          "localhost_1": "OFFLINE",
+          "localhost_2": "OFFLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        },
+        "expectedStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "OFFLINE",
+          "localhost_2": "ONLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "DROPPED",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        },
+        "expectedStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "OFFLINE",
+          "localhost_2": "ONLINE"
+        }
+      }
+    }
+  },
+  {
+    "statemodel": "OnlineOffline",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "DROPPED",
+          "localhost_1": "ONLINE",
+          "localhost_2": "OFFLINE"
+        },
+        "expectedStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "OFFLINE",
+          "localhost_1": "OFFLINE",
+          "localhost_2": "OFFLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        },
+        "expectedStates": {
+          "localhost_0": "ONLINE",
+          "localhost_1": "ONLINE",
+          "localhost_2": "ONLINE"
+        }
+      }
+    }
+  }
+]

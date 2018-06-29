@@ -1,0 +1,257 @@
+[
+  {
+    "statemodel": "MasterSlave",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE",
+          "localhost_3": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE",
+          "localhost_3": "DROPPED"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE",
+          "localhost_3": "DROPPED"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        }
+      }
+    }
+  },
+  {
+    "statemodel": "MasterSlave",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 2,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "ERROR",
+          "localhost_2": "SLAVE",
+          "localhost_3": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "ERROR",
+          "localhost_2": "SLAVE",
+          "localhost_3": "DROPPED"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "ERROR",
+          "localhost_2": "SLAVE",
+          "localhost_3": "DROPPED"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        }
+      }
+    }
+  },
+  {
+    "statemodel": "MasterSlave",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "ERROR",
+          "localhost_2": "SLAVE",
+          "localhost_3": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "ERROR",
+          "localhost_2": "SLAVE",
+          "localhost_3": "DROPPED"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "ERROR",
+          "localhost_2": "SLAVE",
+          "localhost_3": "DROPPED"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        }
+      }
+    }
+  },
+  {
+    "statemodel": "MasterSlave",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "OFFLINE",
+          "localhost_2": "OFFLINE",
+          "localhost_3": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE",
+          "localhost_3": "DROPPED"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE",
+          "localhost_3": "DROPPED"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        }
+      }
+    }
+  },
+  {
+    "statemodel": "MasterSlave",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "SLAVE",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        }
+      }
+    }
+  },
+  {
+    "statemodel": "MasterSlave",
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "inputs": {
+      "resource_0_0": {
+        "currentStates": {
+          "localhost_0": "SLAVE",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE"
+        }
+      },
+      "resource_0_1": {
+        "currentStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE",
+          "localhost_3": "OFFLINE"
+        },
+        "bestPossibleStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE",
+          "localhost_3": "SLAVE"
+        },
+        "expectedStates": {
+          "localhost_0": "MASTER",
+          "localhost_1": "SLAVE",
+          "localhost_2": "SLAVE",
+          "localhost_3": "OFFLINE"
+        }
+      }
+    }
+  }
+]

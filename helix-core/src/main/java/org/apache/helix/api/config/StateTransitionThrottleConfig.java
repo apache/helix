@@ -48,9 +48,9 @@ public class StateTransitionThrottleConfig {
   }
 
   public enum RebalanceType {
-    LOAD_BALANCE,
+    LOAD_BALANCE, // A rebalance type for load balance excluding dropping a replica
     RECOVERY_BALANCE,
-    ANY, // A type used for general throttling (to account for all types of rebalance)
+    ANY, // A rebalance type used for general throttling (to account for all types of rebalance)
     NONE
   }
 

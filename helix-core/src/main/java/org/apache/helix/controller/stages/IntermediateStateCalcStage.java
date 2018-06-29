@@ -53,8 +53,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     if (currentStateOutput == null || bestPossibleStateOutput == null || resourceMap == null
         || cache == null) {
       throw new StageException(String.format("Missing attributes in event: %s. "
-          + "Requires CURRENT_STATE (%s) |BEST_POSSIBLE_STATE (%s) |RESOURCES (%s) |DataCache (%s)",
-          event, currentStateOutput, bestPossibleStateOutput, resourceMap, cache));
+              + "Requires CURRENT_STATE (%s) |BEST_POSSIBLE_STATE (%s) |RESOURCES (%s) |DataCache (%s)", event,
+          currentStateOutput, bestPossibleStateOutput, resourceMap, cache));
     }
 
     IntermediateStateOutput intermediateStateOutput =
@@ -273,9 +273,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           partitionsNeedRecovery.add(partition);
           isRebalanceNeeded = true;
         }
+      } else if (rebalanceType.equals(RebalanceType.LOAD_BALANCE)) {
         // Number of states required by StateModelDefinition are satisfied, but to achieve
         // BestPossibleState, need load balance
-      } else if (rebalanceType.equals(RebalanceType.LOAD_BALANCE)) {
         partitionsNeedLoadBalance.add(partition);
         isRebalanceNeeded = true;
       }
@@ -308,28 +308,48 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
             intermediatePartitionStateMap, partitionsNeedRecovery, currentStateOutput,
             cache.getStateModelDef(resource.getStateModelDefRef()).getTopState());
 
-    // Perform load balance
+    // Perform load balance upon checking conditions below
     Set<Partition> loadbalanceThrottledPartitions = partitionsNeedLoadBalance;
+    ClusterConfig clusterConfig = cache.getClusterConfig();
 
-    long maxAllowedErrorPartitions =
-        cache.getClusterConfig().getErrorPartitionThresholdForLoadBalance();
+    // If the threshold (ErrorOrRecovery) is set, then use it, if not, then check if the old
+    // threshold (Error) is set. If the old threshold is set, use it. If not, use the default value
+    // for the new one. This is for backward-compatibility
+    int threshold = 1; // Default threshold for ErrorOrRecoveryPartitionThresholdForLoadBalance
+    int partitionCount = partitionsWithErrorStateReplica.size();
+    if (clusterConfig.getErrorOrRecoveryPartitionThresholdForLoadBalance() != -1) {
+      // ErrorOrRecovery is set
+      threshold = clusterConfig.getErrorOrRecoveryPartitionThresholdForLoadBalance();
+      partitionCount += partitionsNeedRecovery.size(); // Only add this count when the threshold is set
+    } else {
+      if (clusterConfig.getErrorPartitionThresholdForLoadBalance() != 0) {
+        // 0 is the default value so the old threshold has been set
+        threshold = clusterConfig.getErrorPartitionThresholdForLoadBalance();
+      }
+    }
 
-    // TODO: Logic here needs change - when there is an error partition, load should still happen
-
-    // Perform load balance only if
-    // 1. no recovery operation to be scheduled
-    // 2. error partition count is less than configured limitation
-    if (partitionsNeedRecovery.isEmpty() && (maxAllowedErrorPartitions < 0
-        || partitionsWithErrorStateReplica.size() <= maxAllowedErrorPartitions)) {
+    // Perform load balance only if the number of partitions in recovery and in error is less than
+    // the threshold
+    if (partitionCount < threshold) {
       loadbalanceThrottledPartitions = loadRebalance(resource, currentStateOutput,
           bestPossiblePartitionStateMap, throttleController, intermediatePartitionStateMap,
           partitionsNeedLoadBalance, currentStateOutput.getCurrentStateMap(resourceName));
     } else {
-      // Skip load balance and current states just become intermediate states
+      // Only allow dropping of replicas to happen (dropping does NOT need to be throttled) and skip
+      // load balance for this cycle
       for (Partition partition : partitionsNeedLoadBalance) {
         Map<String, String> currentStateMap =
             currentStateOutput.getCurrentStateMap(resourceName, partition);
+        Map<String, String> bestPossibleMap =
+            bestPossiblePartitionStateMap.getPartitionMap(partition);
+        // Skip load balance by passing current state to intermediate state
         intermediatePartitionStateMap.setState(partition, currentStateMap);
+
+        // Check if this partition only has downward state transitions; if so, allow state
+        // transitions by setting it at bestPossibleState
+        if (isLoadBalanceDownwardForAllReplicas(currentStateMap, bestPossibleMap, stateModelDef)) {
+          intermediatePartitionStateMap.setState(partition, bestPossibleMap);
+        }
       }
     }
 
@@ -348,6 +368,38 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     logger.debug("End processing resource: {}", resourceName);
     return intermediatePartitionStateMap;
+  }
+
+  /**
+   * Check for a partition, whether all transitions for its replicas are downward transitions. Note
+   * that this function does NOT check for ERROR states.
+   * @param currentStateMap
+   * @param bestPossibleMap
+   * @param stateModelDef
+   * @return true if there are; false otherwise
+   */
+  private boolean isLoadBalanceDownwardForAllReplicas(Map<String, String> currentStateMap,
+      Map<String, String> bestPossibleMap, StateModelDefinition stateModelDef) {
+    Set<String> allInstances = new HashSet<>();
+    allInstances.addAll(currentStateMap.keySet());
+    allInstances.addAll(bestPossibleMap.keySet());
+    Map<String, Integer> statePriorityMap = stateModelDef.getStatePriorityMap();
+
+    for (String instance : allInstances) {
+      String currentState = currentStateMap.get(instance);
+      String bestPossibleState = bestPossibleMap.get(instance);
+      if (currentState == null) {
+        return false; // null -> state is upward
+      }
+      if (bestPossibleState != null) {
+        // Compare priority values and return if an upward transition is found
+        // Note that lower integer value implies higher priority
+        if (statePriorityMap.get(currentState) > statePriorityMap.get(bestPossibleState)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**
@@ -437,7 +489,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           intermediatePartitionStateMap, RebalanceType.RECOVERY_BALANCE);
     }
     logger.info(String.format(
-        "For resource %s: Num of partitions needing recovery: %d, Num of partitions needing recovery but throttled (not recovered): %d",
+        "For resource %s: Num of partitions needing recovery: %d, Num of partitions needing recovery"
+            + " but throttled (not recovered): %d",
         resourceName, partitionsNeedRecovery.size(), partitionRecoveryBalanceThrottled.size()));
     return partitionRecoveryBalanceThrottled;
   }
@@ -453,14 +506,14 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    * @param throttleController
    * @param intermediatePartitionStateMap
    * @param partitionsNeedLoadbalance
-   * @param currentStateMaps
+   * @param currentStateMap
    * @return a set of partitions that need to be load-balanced but did not due to throttling
    */
   private Set<Partition> loadRebalance(Resource resource, CurrentStateOutput currentStateOutput,
       PartitionStateMap bestPossiblePartitionStateMap,
       StateTransitionThrottleController throttleController,
       PartitionStateMap intermediatePartitionStateMap, Set<Partition> partitionsNeedLoadbalance,
-      Map<Partition, Map<String, String>> currentStateMaps) {
+      Map<Partition, Map<String, String>> currentStateMap) {
     String resourceName = resource.getResourceName();
     Set<Partition> partitionsLoadbalanceThrottled = new HashSet<>();
 
@@ -478,7 +531,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       }
     });
     Collections.sort(partitionsNeedLoadRebalancePrioritized, new PartitionPriorityComparator(
-        bestPossiblePartitionStateMap.getStateMap(), currentStateMaps, "", false));
+        bestPossiblePartitionStateMap.getStateMap(), currentStateMap, "", false));
     for (Partition partition : partitionsNeedLoadRebalancePrioritized) {
       throttleStateTransitionsForPartition(throttleController, resourceName, partition,
           currentStateOutput, bestPossiblePartitionStateMap, partitionsLoadbalanceThrottled,
@@ -592,7 +645,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         stateModelDef.getStateCountMap(activeList.size(), replica); // StateModelDefinition's counts
     Map<String, Integer> currentStateCounts = StateModelDefinition.getStateCounts(currentStateMap); // Current
     // counts
-
     // Go through each state and compare counts
     for (String state : expectedStateCountMap.keySet()) {
       Integer expectedCount = expectedStateCountMap.get(state);
@@ -643,7 +695,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     if (logger.isDebugEnabled()) {
       logger.debug("Partitions need recovery: {}\nPartitions get throttled on recovery: {}",
           recoveryPartitions, recoveryThrottledPartitions);
-      logger.debug("Partitions need loadbalance: {}\nPartitions get throttled on load-balance: ",
+      logger.debug("Partitions need loadbalance: {}\nPartitions get throttled on load-balance: {}",
           loadbalancePartitions, loadbalanceThrottledPartitions);
     }
 

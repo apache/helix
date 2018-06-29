@@ -11,6 +11,7 @@ import java.util.Set;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.PropertyType;
 import org.apache.helix.api.listeners.RoutingTableChangeListener;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -41,12 +42,13 @@ public class TestRoutingTableProvider extends ZkTestBase {
   static final int REPLICA_NUMBER = 3;
 
   private HelixManager _spectator;
-  private List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
+  private List<MockParticipantManager> _participants = new ArrayList<>();
   private List<String> _instances = new ArrayList<>();
   private ClusterControllerManager _controller;
   private ZkHelixClusterVerifier _clusterVerifier;
-  private RoutingTableProvider _routingTableProvider;
-  private RoutingTableProvider _routingTableProvider2;
+  private RoutingTableProvider _routingTableProvider_default;
+  private RoutingTableProvider _routingTableProvider_ev;
+  private RoutingTableProvider _routingTableProvider_cs;
   private boolean _listenerTestResult = true;
 
   class MockRoutingTableChangeListener implements RoutingTableChangeListener {
@@ -101,15 +103,16 @@ public class TestRoutingTableProvider extends ZkTestBase {
     _controller.syncStart();
 
     // start speculator
-    _routingTableProvider = new RoutingTableProvider();
+    _routingTableProvider_default = new RoutingTableProvider();
     _spectator = HelixManagerFactory
         .getZKHelixManager(CLUSTER_NAME, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
     _spectator.connect();
-    _spectator.addExternalViewChangeListener(_routingTableProvider);
-    _spectator.addLiveInstanceChangeListener(_routingTableProvider);
-    _spectator.addInstanceConfigChangeListener(_routingTableProvider);
+    _spectator.addExternalViewChangeListener(_routingTableProvider_default);
+    _spectator.addLiveInstanceChangeListener(_routingTableProvider_default);
+    _spectator.addInstanceConfigChangeListener(_routingTableProvider_default);
 
-    _routingTableProvider2 = new RoutingTableProvider(_spectator);
+    _routingTableProvider_ev = new RoutingTableProvider(_spectator);
+    _routingTableProvider_cs = new RoutingTableProvider(_spectator, PropertyType.CURRENTSTATES);
 
     _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -122,26 +125,31 @@ public class TestRoutingTableProvider extends ZkTestBase {
       p.syncStop();
     }
     _controller.syncStop();
-    _routingTableProvider.shutdown();
-    _routingTableProvider2.shutdown();
+    _routingTableProvider_default.shutdown();
+    _routingTableProvider_ev.shutdown();
     _spectator.disconnect();
     deleteCluster(CLUSTER_NAME);
   }
 
   @Test
   public void testRoutingTable() {
-    Assert.assertEquals(_routingTableProvider.getLiveInstances().size(), _instances.size());
-    Assert.assertEquals(_routingTableProvider.getInstanceConfigs().size(), _instances.size());
+    Assert.assertEquals(_routingTableProvider_default.getLiveInstances().size(), _instances.size());
+    Assert.assertEquals(_routingTableProvider_default.getInstanceConfigs().size(), _instances.size());
 
-    Assert.assertEquals(_routingTableProvider2.getLiveInstances().size(), _instances.size());
-    Assert.assertEquals(_routingTableProvider2.getInstanceConfigs().size(), _instances.size());
+    Assert.assertEquals(_routingTableProvider_ev.getLiveInstances().size(), _instances.size());
+    Assert.assertEquals(_routingTableProvider_ev.getInstanceConfigs().size(), _instances.size());
 
-    validateRoutingTable(_routingTableProvider, Sets.newSet(_instances.get(0)),
+    Assert.assertEquals(_routingTableProvider_cs.getLiveInstances().size(), _instances.size());
+    Assert.assertEquals(_routingTableProvider_cs.getInstanceConfigs().size(), _instances.size());
+
+    validateRoutingTable(_routingTableProvider_default, Sets.newSet(_instances.get(0)),
         Sets.newSet(_instances.get(1), _instances.get(2)));
-    validateRoutingTable(_routingTableProvider2, Sets.newSet(_instances.get(0)),
+    validateRoutingTable(_routingTableProvider_ev, Sets.newSet(_instances.get(0)),
+        Sets.newSet(_instances.get(1), _instances.get(2)));
+    validateRoutingTable(_routingTableProvider_cs, Sets.newSet(_instances.get(0)),
         Sets.newSet(_instances.get(1), _instances.get(2)));
 
-    Collection<String> databases = _routingTableProvider.getResources();
+    Collection<String> databases = _routingTableProvider_default.getResources();
     Assert.assertEquals(databases.size(), 1);
   }
 
@@ -152,9 +160,11 @@ public class TestRoutingTableProvider extends ZkTestBase {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, false);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    validateRoutingTable(_routingTableProvider, Sets.newSet(_instances.get(1)),
+    validateRoutingTable(_routingTableProvider_default, Sets.newSet(_instances.get(1)),
         Sets.newSet(_instances.get(2)));
-    validateRoutingTable(_routingTableProvider2, Sets.newSet(_instances.get(1)),
+    validateRoutingTable(_routingTableProvider_ev, Sets.newSet(_instances.get(1)),
+        Sets.newSet(_instances.get(2)));
+    validateRoutingTable(_routingTableProvider_cs, Sets.newSet(_instances.get(1)),
         Sets.newSet(_instances.get(2)));
   }
 
@@ -165,8 +175,9 @@ public class TestRoutingTableProvider extends ZkTestBase {
     Map<String, Set<String>> context = new HashMap<>();
     context.put("MASTER", Sets.newSet(_instances.get(0)));
     context.put("SLAVE", Sets.newSet(_instances.get(1), _instances.get(2)));
-    _routingTableProvider.addRoutingTableChangeListener(routingTableChangeListener, context);
-    _routingTableProvider.addRoutingTableChangeListener(new MockRoutingTableChangeListener(), null);
+    _routingTableProvider_default.addRoutingTableChangeListener(routingTableChangeListener, context);
+    _routingTableProvider_default
+        .addRoutingTableChangeListener(new MockRoutingTableChangeListener(), null);
     // reenable the master instance to cause change
     String prevMasterInstance = _instances.get(0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);
@@ -182,15 +193,20 @@ public class TestRoutingTableProvider extends ZkTestBase {
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    Assert.assertEquals(_routingTableProvider.getLiveInstances().size(), _instances.size() - 1);
-    Assert.assertEquals(_routingTableProvider.getInstanceConfigs().size(), _instances.size());
+    Assert.assertEquals(_routingTableProvider_default.getLiveInstances().size(), _instances.size() - 1);
+    Assert.assertEquals(_routingTableProvider_default.getInstanceConfigs().size(), _instances.size());
 
-    Assert.assertEquals(_routingTableProvider2.getLiveInstances().size(), _instances.size() - 1);
-    Assert.assertEquals(_routingTableProvider2.getInstanceConfigs().size(), _instances.size());
+    Assert.assertEquals(_routingTableProvider_ev.getLiveInstances().size(), _instances.size() - 1);
+    Assert.assertEquals(_routingTableProvider_ev.getInstanceConfigs().size(), _instances.size());
 
-    validateRoutingTable(_routingTableProvider, Sets.newSet(_instances.get(0)),
+    Assert.assertEquals(_routingTableProvider_cs.getLiveInstances().size(), _instances.size() - 1);
+    Assert.assertEquals(_routingTableProvider_cs.getInstanceConfigs().size(), _instances.size());
+
+    validateRoutingTable(_routingTableProvider_default, Sets.newSet(_instances.get(0)),
         Sets.newSet(_instances.get(2)));
-    validateRoutingTable(_routingTableProvider2, Sets.newSet(_instances.get(0)),
+    validateRoutingTable(_routingTableProvider_ev, Sets.newSet(_instances.get(0)),
+        Sets.newSet(_instances.get(2)));
+    validateRoutingTable(_routingTableProvider_cs, Sets.newSet(_instances.get(0)),
         Sets.newSet(_instances.get(2)));
   }
 

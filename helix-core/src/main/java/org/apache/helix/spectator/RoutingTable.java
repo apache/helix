@@ -47,6 +47,7 @@ class RoutingTable {
   private final Map<String, ResourceInfo> _resourceInfoMap;
   // mapping a resource group name to a resourceGroupInfo
   private final Map<String, ResourceGroupInfo> _resourceGroupInfoMap;
+
   private final Collection<LiveInstance> _liveInstances;
   private final Collection<InstanceConfig> _instanceConfigs;
   private final Collection<ExternalView> _externalViews;
@@ -56,32 +57,29 @@ class RoutingTable {
         Collections.<LiveInstance>emptyList());
   }
 
-  public RoutingTable(Collection<ExternalView> externalViews, Collection<InstanceConfig> instanceConfigs,
-      Collection<LiveInstance> liveInstances) {
-    _externalViews = externalViews;
+  public RoutingTable(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
+      Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
+    // TODO Aggregate currentState to an ExternalView in the RoutingTable, so there is no need to refresh according to the currentStateMap. - jjwang
+    this(Collections.<ExternalView>emptyList(), instanceConfigs, liveInstances);
+    refresh(currentStateMap);
+  }
+
+  public RoutingTable(Collection<ExternalView> externalViews,
+      Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
     _resourceInfoMap = new HashMap<>();
     _resourceGroupInfoMap = new HashMap<>();
     _liveInstances = new HashSet<>(liveInstances);
     _instanceConfigs = new HashSet<>(instanceConfigs);
+    _externalViews = new HashSet<>(externalViews);
     refresh(externalViews);
-  }
-
-  public RoutingTable(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
-      Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
-    _externalViews = Collections.emptyList();
-    _resourceInfoMap = new HashMap<>();
-    _resourceGroupInfoMap = new HashMap<>();
-    _liveInstances = liveInstances;
-    _instanceConfigs = instanceConfigs;
-    refresh(currentStateMap);
   }
 
   private void refresh(Collection<ExternalView> externalViewList) {
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
-    for (InstanceConfig config : _instanceConfigs) {
-      instanceConfigMap.put(config.getId(), config);
-    }
-    if (externalViewList != null) {
+    if (externalViewList != null && !externalViewList.isEmpty()) {
+      for (InstanceConfig config : _instanceConfigs) {
+        instanceConfigMap.put(config.getId(), config);
+      }
       for (ExternalView extView : externalViewList) {
         String resourceName = extView.getId();
         for (String partitionName : extView.getPartitionSet()) {
@@ -97,8 +95,10 @@ class RoutingTable {
                 addEntry(resourceName, partitionName, currentState, instanceConfig);
               }
             } else {
-              logger.error("Invalid instance name. " + instanceName
-                  + " .Not found in /cluster/configs/. instanceName: ");
+              logger.warn(
+                  "Participant {} is not found with proper configuration information. It might already be removed from the cluster. "
+                      + "Skip recording partition assignment entry: Partition {}, Participant {}, State {}.",
+                  instanceName, partitionName, instanceName, stateMap.get(instanceName));
             }
           }
         }
@@ -108,32 +108,36 @@ class RoutingTable {
 
   private void refresh(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap) {
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
-    for (InstanceConfig config : _instanceConfigs) {
-      instanceConfigMap.put(config.getId(), config);
-    }
-
-    for (LiveInstance liveInstance : _liveInstances) {
-      String instanceName = liveInstance.getInstanceName();
-      String sessionId = liveInstance.getSessionId();
-      InstanceConfig instanceConfig = instanceConfigMap.get(instanceName);
-      if (instanceConfig == null) {
-        logger.error("Invalid instance name. " + instanceName
-            + " .Not found in /cluster/configs/. instanceName: ");
+    if (currentStateMap != null && !currentStateMap.isEmpty()) {
+      for (InstanceConfig config : _instanceConfigs) {
+        instanceConfigMap.put(config.getId(), config);
       }
+      for (LiveInstance liveInstance : _liveInstances) {
+        String instanceName = liveInstance.getInstanceName();
+        String sessionId = liveInstance.getSessionId();
+        InstanceConfig instanceConfig = instanceConfigMap.get(instanceName);
+        if (instanceConfig == null) {
+          logger.warn(
+              "Participant {} is not found with proper configuration information. It might already be removed from the cluster. "
+                  + "Skip recording partition assignments that are related to this instance.",
+              instanceName);
+          continue;
+        }
 
-      Map<String, CurrentState> currentStates = Collections.emptyMap();
-      if (currentStateMap.containsKey(instanceName) && currentStateMap.get(instanceName)
-          .containsKey(sessionId)) {
-        currentStates = currentStateMap.get(instanceName).get(sessionId);
-      }
+        Map<String, CurrentState> currentStates = Collections.emptyMap();
+        if (currentStateMap.containsKey(instanceName) && currentStateMap.get(instanceName)
+            .containsKey(sessionId)) {
+          currentStates = currentStateMap.get(instanceName).get(sessionId);
+        }
 
-      for (CurrentState currentState : currentStates.values()) {
-        String resourceName = currentState.getResourceName();
-        Map<String, String> stateMap = currentState.getPartitionStateMap();
+        for (CurrentState currentState : currentStates.values()) {
+          String resourceName = currentState.getResourceName();
+          Map<String, String> stateMap = currentState.getPartitionStateMap();
 
-        for (String partitionName : stateMap.keySet()) {
-          String state = stateMap.get(partitionName);
-          addEntry(resourceName, partitionName, state, instanceConfig);
+          for (String partitionName : stateMap.keySet()) {
+            String state = stateMap.get(partitionName);
+            addEntry(resourceName, partitionName, state, instanceConfig);
+          }
         }
       }
     }

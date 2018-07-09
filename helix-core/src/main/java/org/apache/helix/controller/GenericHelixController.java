@@ -248,11 +248,14 @@ public class GenericHelixController implements IdealStateChangeListener,
       Pipeline dataRefresh = new Pipeline(pipelineName);
       dataRefresh.addStage(new ReadClusterDataStage());
 
+      // data pre-process pipeline
+      Pipeline dataPreprocess = new Pipeline(pipelineName);
+      dataPreprocess.addStage(new ResourceComputationStage());
+      dataPreprocess.addStage(new ResourceValidationStage());
+      dataPreprocess.addStage(new CurrentStateComputationStage());
+
       // rebalance pipeline
       Pipeline rebalancePipeline = new Pipeline(pipelineName);
-      rebalancePipeline.addStage(new ResourceComputationStage());
-      rebalancePipeline.addStage(new ResourceValidationStage());
-      rebalancePipeline.addStage(new CurrentStateComputationStage());
       rebalancePipeline.addStage(new BestPossibleStateCalcStage());
       rebalancePipeline.addStage(new IntermediateStateCalcStage());
       rebalancePipeline.addStage(new MessageGenerationPhase());
@@ -270,18 +273,16 @@ public class GenericHelixController implements IdealStateChangeListener,
       Pipeline liveInstancePipeline = new Pipeline(pipelineName);
       liveInstancePipeline.addStage(new CompatibilityCheckStage());
 
-      registry.register(ClusterEventType.IdealStateChange, dataRefresh, rebalancePipeline);
-      registry.register(ClusterEventType.CurrentStateChange, dataRefresh, rebalancePipeline, externalViewPipeline);
-      registry.register(ClusterEventType.InstanceConfigChange, dataRefresh, rebalancePipeline);
-      registry.register(ClusterEventType.ResourceConfigChange, dataRefresh, rebalancePipeline);
-      registry.register(ClusterEventType.ClusterConfigChange, dataRefresh, rebalancePipeline);
-      registry.register(ClusterEventType.LiveInstanceChange, dataRefresh, liveInstancePipeline, rebalancePipeline,
-          externalViewPipeline);
-      registry.register(ClusterEventType.MessageChange, dataRefresh, rebalancePipeline);
+      registry.register(ClusterEventType.IdealStateChange, dataRefresh, dataPreprocess, rebalancePipeline);
+      registry.register(ClusterEventType.CurrentStateChange, dataRefresh, dataPreprocess, externalViewPipeline, rebalancePipeline);
+      registry.register(ClusterEventType.InstanceConfigChange, dataRefresh, dataPreprocess, rebalancePipeline);
+      registry.register(ClusterEventType.ResourceConfigChange, dataRefresh, dataPreprocess, rebalancePipeline);
+      registry.register(ClusterEventType.ClusterConfigChange, dataRefresh, dataPreprocess, rebalancePipeline);
+      registry.register(ClusterEventType.LiveInstanceChange, dataRefresh, liveInstancePipeline, dataPreprocess, externalViewPipeline, rebalancePipeline);
+      registry.register(ClusterEventType.MessageChange, dataRefresh, dataPreprocess, rebalancePipeline);
       registry.register(ClusterEventType.ExternalViewChange, dataRefresh);
-      registry.register(ClusterEventType.Resume, dataRefresh, rebalancePipeline, externalViewPipeline);
-      registry
-          .register(ClusterEventType.PeriodicalRebalance, dataRefresh, rebalancePipeline, externalViewPipeline);
+      registry.register(ClusterEventType.Resume, dataRefresh, dataPreprocess, externalViewPipeline, rebalancePipeline);
+      registry.register(ClusterEventType.PeriodicalRebalance, dataRefresh, dataPreprocess, externalViewPipeline, rebalancePipeline);
       return registry;
     }
   }

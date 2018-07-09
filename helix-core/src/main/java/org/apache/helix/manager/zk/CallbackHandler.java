@@ -643,9 +643,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   @Override
   public void handleChildChange(String parentPath, List<String> currentChilds) {
     if (logger.isDebugEnabled()) {
-      logger.debug(
-          "Data change callback: child changed, path: " + parentPath + ", current child count: "
-              + currentChilds.size());
+      logger.debug("Data change callback: child changed, path: {} , current child count: {}",
+          parentPath, currentChilds == null ? 0 : currentChilds.size());
     }
 
     try {

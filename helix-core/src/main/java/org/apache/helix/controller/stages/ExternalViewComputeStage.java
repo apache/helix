@@ -22,7 +22,8 @@ package org.apache.helix.controller.stages;
 import org.apache.helix.*;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
-import org.apache.helix.controller.pipeline.AbstractBaseStage;
+import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
+import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.*;
@@ -33,11 +34,16 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class ExternalViewComputeStage extends AbstractBaseStage {
+public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(ExternalViewComputeStage.class);
 
   @Override
-  public void process(ClusterEvent event) throws Exception {
+  public AsyncWorkerType getAsyncWorkerType() {
+    return AsyncWorkerType.ExternalViewComputeWorker;
+  }
+
+  @Override
+  public void execute(final ClusterEvent event) throws Exception {
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());

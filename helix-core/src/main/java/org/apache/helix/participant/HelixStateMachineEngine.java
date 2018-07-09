@@ -145,11 +145,13 @@ public class HelixStateMachineEngine implements StateMachineEngine {
 
   @Override
   public void reset() {
+    logger.info("Resetting HelixStateMachineEngine");
     for (Map<String, StateModelFactory<? extends StateModel>> ftyMap : _stateModelFactoryMap
         .values()) {
       for (StateModelFactory<? extends StateModel> stateModelFactory : ftyMap.values()) {
         for (String resourceName : stateModelFactory.getResourceSet()) {
           for (String partitionKey : stateModelFactory.getPartitionSet(resourceName)) {
+            logger.info("Resetting {}::{}", resourceName, partitionKey);
             StateModel stateModel = stateModelFactory.getStateModel(resourceName, partitionKey);
             stateModel.reset();
             String initialState = _stateModelParser.getInitialState(stateModel.getClass());
@@ -160,6 +162,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
         }
       }
     }
+    logger.info("Successfully reset HelixStateMachineEngine");
   }
 
   @Override

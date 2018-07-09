@@ -42,7 +42,7 @@ public class TaskConfig {
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskConfig.class);
-  public static final String QUOTA_TYPE_NOT_SET = "QUOTA_TYPE_NOT_SET";
+  public static final String DEFAULT_QUOTA_TYPE = "DEFAULT";
 
   private final Map<String, String> _configMap;
 
@@ -133,7 +133,7 @@ public class TaskConfig {
    */
   public String getQuotaType() {
     return _configMap.containsKey(TaskConfigProperty.TASK_QUOTA_TYPE.name()) ?
-        _configMap.get(TaskConfigProperty.TASK_QUOTA_TYPE.name()) : QUOTA_TYPE_NOT_SET;
+        _configMap.get(TaskConfigProperty.TASK_QUOTA_TYPE.name()) : DEFAULT_QUOTA_TYPE;
   }
 
   /**

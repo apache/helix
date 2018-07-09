@@ -34,7 +34,10 @@ public class TaskAssignResult implements Comparable<TaskAssignResult> {
     NO_SUCH_RESOURCE_TYPE,
 
     // Required quota type is not configured
-    NO_SUCH_QUOTA_TYPE
+    NO_SUCH_QUOTA_TYPE,
+
+    // Task cannot be assigned twice on a node without releasing it first
+    TASK_ALREADY_ASSIGNED
   }
 
   private final boolean _isAssignmentSuccessful;

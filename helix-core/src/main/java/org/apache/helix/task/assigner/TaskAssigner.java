@@ -28,8 +28,8 @@ public interface TaskAssigner {
    * Assign a collection of tasks on a collection of assignableInstances.
    * When an assignment decision is made, AssignableInstance.assign() must be called for the
    * instance to modify its internal capacity profile.
-   * @param assignableInstances
-   * @param tasks
+   * @param assignableInstances String -> AssignableInstanceMapping
+   * @param tasks String -> TaskConfig
    * @return taskID -> TaskAssignmentResult mapping per task
    */
   Map<String, TaskAssignResult> assignTasks(Iterable<AssignableInstance> assignableInstances,

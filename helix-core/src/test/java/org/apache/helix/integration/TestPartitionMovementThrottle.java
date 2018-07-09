@@ -109,17 +109,17 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
             StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 100);
 
 
-        StateTransitionThrottleConfig resourceRecoveryThrottle = new StateTransitionThrottleConfig(
-            StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
-            StateTransitionThrottleConfig.ThrottleScope.RESOURCE, 3);
+    StateTransitionThrottleConfig resourceRecoveryThrottle = new StateTransitionThrottleConfig(
+        StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
+        StateTransitionThrottleConfig.ThrottleScope.RESOURCE, 3);
 
-        StateTransitionThrottleConfig clusterRecoveryThrottle = new StateTransitionThrottleConfig(
-            StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
-            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 100);
+    StateTransitionThrottleConfig clusterRecoveryThrottle = new StateTransitionThrottleConfig(
+        StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
+        StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 100);
 
     clusterConfig.setStateTransitionThrottleConfigs(Arrays
         .asList(resourceLoadThrottle, instanceLoadThrottle, clusterLoadThrottle,
-    resourceRecoveryThrottle, clusterRecoveryThrottle));
+            resourceRecoveryThrottle, clusterRecoveryThrottle));
 
 
     clusterConfig.setPersistIntermediateAssignment(true);
@@ -362,7 +362,6 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
         "Throttle condition does not meet for " + throttledItemName);
   }
 
-
   private int size(List<PartitionTransitionTime> timeList) {
     Set<String> partitions = new HashSet<String>();
     for (PartitionTransitionTime p : timeList) {
@@ -382,7 +381,8 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       this.end = end;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
       return "[" +
           "partition='" + partition + '\'' +
           ", start=" + start +

@@ -281,6 +281,31 @@ public class TestAssignableInstance {
         .assertEquals(result.getFailureReason(), TaskAssignResult.FailureReason.INSUFFICIENT_QUOTA);
   }
 
+  @Test
+  public void testSetCurrentAssignment() {
+    AssignableInstance ai =
+        new AssignableInstance(createClusterConfig(testQuotaTypes, testQuotaRatio, true),
+            new InstanceConfig(testInstanceName), createLiveInstance(
+            new String[] { LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name() },
+            new String[] { "40" }));
+
+    Map<String, TaskConfig> currentAssignments = new HashMap<>();
+    currentAssignments.put("supportedTask", new TaskConfig("", null, "supportedTask", ""));
+    TaskConfig unsupportedTask = new TaskConfig("", null, "unsupportedTask", "");
+    unsupportedTask.setQuotaType("UnsupportedQuotaType");
+    currentAssignments.put("unsupportedTask", unsupportedTask);
+
+    Map<String, TaskAssignResult> results = ai.setCurrentAssignments(currentAssignments);
+    for (TaskAssignResult rst : results.values()) {
+      Assert.assertTrue(rst.isSuccessful());
+      Assert.assertEquals(rst.getAssignableInstance(), ai);
+    }
+    Assert.assertEquals(ai.getCurrentAssignments().size(), 2);
+    Assert.assertEquals(
+        (int) ai.getUsedCapacity().get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name())
+            .get(TaskConfig.DEFAULT_QUOTA_TYPE), 1);
+  }
+
   private Map<String, Integer> createResourceQuotaPerTypeMap(String[] types, int[] quotas) {
     Map<String, Integer> ret = new HashMap<>();
     for (int i = 0; i < types.length; i++) {

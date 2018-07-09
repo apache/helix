@@ -186,6 +186,12 @@ public class AssignableInstance {
     }
   }
 
+  /**
+   * Update this AssignableInstance with new configs
+   * @param clusterConfig cluster config
+   * @param instanceConfig instance config
+   * @param liveInstance live instance object
+   */
   public void updateConfigs(ClusterConfig clusterConfig, InstanceConfig instanceConfig,
       LiveInstance liveInstance) {
     logger.info("Updating configs for AssignableInstance {}", _instanceConfig.getInstanceName());
@@ -319,13 +325,22 @@ public class AssignableInstance {
     _currentAssignments.add(result.getTaskConfig().getId());
 
     // update resource usage
+    // TODO (harry): get requested resource type from task config
     String resourceType = LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name();
     String quotaType = result.getTaskConfig().getQuotaType();
 
-    // Assume used capacity is updated, and if resource type / quota type is not supported
-    // we have already failed the assignment
-    int curUsage = _usedCapacity.get(resourceType).get(quotaType);
-    _usedCapacity.get(resourceType).put(quotaType, curUsage + 1);
+    // Resource type / quota type might have already changed, i.e. we are recovering
+    // current assignments for a live instance, but currently running tasks's quota
+    // type has already been removed by user. So we do the deduction with best effort
+    if (_usedCapacity.containsKey(resourceType) && _usedCapacity.get(resourceType)
+        .containsKey(quotaType)) {
+      int curUsage = _usedCapacity.get(resourceType).get(quotaType);
+      _usedCapacity.get(resourceType).put(quotaType, curUsage + 1);
+    } else {
+      logger.warn(
+          "Task's requested resource type and quota type is no longer supported. TaskConfig: %s; UsedCapacity: %s",
+          result.getTaskConfig(), _usedCapacity);
+    }
 
     logger.info("Assigned task {} to instance {}", result.getTaskConfig().getId(),
         _instanceConfig.getInstanceName());
@@ -356,6 +371,28 @@ public class AssignableInstance {
     _currentAssignments.remove(taskConfig.getId());
     logger.info("Released task {} from instance {}", taskConfig.getId(),
         _instanceConfig.getInstanceName());
+  }
+
+  /**
+   * This method is used for forcing AssignableInstance to match current assignment state. It
+   * returns with TaskAssignResult for proper release current assignments when they are finished.
+   * @param tasks taskId -> taskConfig mapping
+   * @return taskId -> TaskAssignResult mapping
+   */
+  public Map<String, TaskAssignResult> setCurrentAssignments(Map<String, TaskConfig> tasks) {
+    Map<String, TaskAssignResult> assignment = new HashMap<>();
+    for (Map.Entry<String, TaskConfig> entry : tasks.entrySet()) {
+      TaskAssignResult assignResult =
+          new TaskAssignResult(entry.getValue(), this, true, fitnessScoreFactor, null,
+              "Recovered TaskAssignResult from current state");
+      try {
+        assign(assignResult);
+        assignment.put(entry.getKey(), assignResult);
+      } catch (IllegalStateException e) {
+        logger.error("Failed to set current assignment for task {}.", entry.getValue().getId(), e);
+      }
+    }
+    return assignment;
   }
 
   /**

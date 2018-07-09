@@ -19,6 +19,7 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.Map;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.slf4j.Logger;
@@ -35,7 +36,15 @@ public class LiveInstance extends HelixProperty {
     SESSION_ID,
     HELIX_VERSION,
     LIVE_INSTANCE,
-    ZKPROPERTYTRANSFERURL
+    ZKPROPERTYTRANSFERURL,
+    RESOURCE_CAPACITY
+  }
+
+  /**
+   * Resource this instance can provide, i.e. thread, memory heap size, CPU cores, etc
+   */
+  public enum InstanceResourceType {
+    TASK_EXEC_THREAD
   }
 
   private static final Logger _logger = LoggerFactory.getLogger(LiveInstance.class.getName());
@@ -110,6 +119,28 @@ public class LiveInstance extends HelixProperty {
    */
   public void setLiveInstance(String liveInstance) {
     _record.setSimpleField(LiveInstanceProperty.LIVE_INSTANCE.toString(), liveInstance);
+  }
+
+  /**
+   * Get resource quota map of the live instance. Note that this resource name
+   * refers to compute / storage / network resource that this liveinstance
+   * has, i.e. thread count, CPU cores, heap size, etc.
+   * @return resource quota map: key=resourceName, value=quota
+   */
+  public Map<String, String> getResourceCapacityMap() {
+    return _record.getMapField(LiveInstanceProperty.RESOURCE_CAPACITY.name());
+  }
+
+  /**
+   * Add a resource quota map to this LiveInstance. For resource quota map, key=resourceName;
+   * value=quota of that resource. We assume that value can be casted into integers. Note that
+   * this resourceName refers to compute / storage / network resource that this liveinstance
+   * has, i.e. thread count, CPU cores, heap size, etc.
+   *
+   * @param resourceQuotaMap resourceQuotaMap
+   */
+  public void setResourceCapacityMap(Map<String, String> resourceQuotaMap) {
+    _record.setMapField(LiveInstanceProperty.RESOURCE_CAPACITY.name(), resourceQuotaMap);
   }
 
   /**

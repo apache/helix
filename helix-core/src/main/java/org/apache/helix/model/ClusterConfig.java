@@ -20,11 +20,11 @@ package org.apache.helix.model;
  */
 
 import com.google.common.collect.Maps;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-
 import java.util.Map;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
@@ -65,7 +65,7 @@ public class ClusterConfig extends HelixProperty {
     TARGET_EXTERNALVIEW_ENABLED,
     @Deprecated // ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE will take
         // precedence if it is set
-        ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
+    ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
     // transition if the number of partitons that need
     // recovery exceeds this limitation
     ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance
@@ -73,10 +73,9 @@ public class ClusterConfig extends HelixProperty {
     // partitons that need recovery or in
     // error exceeds this limitation
     DISABLED_INSTANCES,
-    VIEW_CLUSTER, // Set to "true" to indicate this is a view cluster
-    VIEW_CLUSTER_SOURCES, // Map field, key is the name of source cluster, value is
-    // ViewClusterSourceConfig JSON string
-    VIEW_CLUSTER_REFRESH_PERIOD, // In second
+
+    // Specifies job types and used for quota allocation
+    QUOTA_TYPES
   }
 
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
@@ -89,6 +88,8 @@ public class ClusterConfig extends HelixProperty {
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
   private final static int DEFAULT_VIEW_CLUSTER_REFRESH_PERIOD = 30;
 
+  public final static String TASK_QUOTA_RATIO_NOT_SET = "-1";
+
   /**
    * Instantiate for a specific cluster
    * @param cluster the cluster identifier
@@ -99,10 +100,47 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Instantiate with a pre-populated record
+   *
    * @param record a ZNRecord corresponding to a cluster configuration
    */
   public ClusterConfig(ZNRecord record) {
     super(record);
+  }
+
+  /**
+   * Set task quota type with the ratio of this quota
+   * @param quotaType
+   * @param quotaRatio
+   */
+  public void setTaskQuotaRatio(String quotaType, String quotaRatio) {
+    if (_record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()) == null) {
+      _record.setMapField(ClusterConfigProperty.QUOTA_TYPES.name(), new HashMap<String, String>());
+    }
+    _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name())
+        .put(quotaType, quotaRatio);
+  }
+
+  /**
+   * Given quota type, return ratio of the quota. If quota type does not exist, return "0"
+   * @param quotaType quota type
+   * @return ratio of quota type
+   */
+  public String getTaskQuotaRatio(String quotaType) {
+    if (_record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()) == null
+        || _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()).get(quotaType) == null) {
+      return TASK_QUOTA_RATIO_NOT_SET;
+    }
+
+    return _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()).get(quotaType);
+  }
+
+  /**
+   * Get all task quota and their ratios
+   *
+   * @return a task quota -> quota ratio mapping
+   */
+  public Map<String, String> getTaskQuotaRatioMap() {
+    return _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name());
   }
 
   /**

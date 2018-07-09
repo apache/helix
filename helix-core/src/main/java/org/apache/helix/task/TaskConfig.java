@@ -19,16 +19,14 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
-
 import org.apache.helix.task.beans.TaskBean;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.codehaus.jackson.map.ObjectMapper;
-
-import com.google.common.collect.Maps;
 
 /**
  * Configuration for an individual task to be run as part of a job.
@@ -39,10 +37,12 @@ public class TaskConfig {
     TASK_COMMAND,
     @Deprecated
     TASK_SUCCESS_OPTIONAL,
-    TASK_TARGET_PARTITION
+    TASK_TARGET_PARTITION,
+    TASK_QUOTA_TYPE
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskConfig.class);
+  public static final String QUOTA_TYPE_NOT_SET = "QUOTA_TYPE_NOT_SET";
 
   private final Map<String, String> _configMap;
 
@@ -117,6 +117,23 @@ public class TaskConfig {
    */
   public String getTargetPartition() {
     return _configMap.get(TaskConfigProperty.TASK_TARGET_PARTITION.name());
+  }
+
+  /**
+   * Set the quota type of this task
+   * @param quotaType
+   */
+  public void setQuotaType(String quotaType) {
+    _configMap.put(TaskConfigProperty.TASK_QUOTA_TYPE.name(), quotaType);
+  }
+
+  /**
+   * Return the quota type of this task
+   * @return
+   */
+  public String getQuotaType() {
+    return _configMap.containsKey(TaskConfigProperty.TASK_QUOTA_TYPE.name()) ?
+        _configMap.get(TaskConfigProperty.TASK_QUOTA_TYPE.name()) : QUOTA_TYPE_NOT_SET;
   }
 
   /**

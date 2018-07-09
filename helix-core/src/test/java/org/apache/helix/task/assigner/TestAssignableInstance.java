@@ -29,17 +29,7 @@ import org.apache.helix.task.TaskStateModelFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestAssignableInstance {
-  private static final String testClusterName = "testCluster";
-  private static final String testInstanceName = "testInstance";
-
-  private static final String[] testResourceTypes = new String[] {"Resource1", "Resource2", "Resource3"};
-  private static final String[] testResourceCapacity = new String[] {"20", "50", "100"};
-
-  private static final String[] testQuotaTypes = new String[] {"Type1", "Type2", "Type3"};
-  private static final String[] testQuotaRatio = new String[] {"50", "30", "20"};
-  private static final String defaultQuotaRatio = "100";
-
+public class TestAssignableInstance extends AssignerTestBase {
 
   @Test
   public void testInvalidInitialization() {
@@ -329,31 +319,5 @@ public class TestAssignableInstance {
               / totalQuota));
     }
     return expectedQuotaPerType;
-  }
-
-  private LiveInstance createLiveInstance(String[] resourceTypes, String[] resourceCapacity) {
-    LiveInstance li = new LiveInstance(testInstanceName);
-    if (resourceCapacity != null && resourceTypes != null) {
-      Map<String, String> resMap = new HashMap<>();
-      for (int i = 0; i < resourceCapacity.length; i++) {
-        resMap.put(resourceTypes[i], resourceCapacity[i]);
-      }
-      li.setResourceCapacityMap(resMap);
-    }
-    return li;
-  }
-
-  private ClusterConfig createClusterConfig(String[] quotaTypes, String[] quotaRatio,
-      boolean addDefaultQuota) {
-    ClusterConfig clusterConfig = new ClusterConfig(testClusterName);
-    if (quotaTypes != null && quotaRatio != null) {
-      for (int i = 0; i < quotaTypes.length; i++) {
-        clusterConfig.setTaskQuotaRatio(quotaTypes[i], quotaRatio[i]);
-      }
-    }
-    if (addDefaultQuota) {
-      clusterConfig.setTaskQuotaRatio(TaskConfig.DEFAULT_QUOTA_TYPE, defaultQuotaRatio);
-    }
-    return clusterConfig;
   }
 }

@@ -77,7 +77,7 @@ public class TaskAssignResult implements Comparable<TaskAssignResult> {
    * @return instance name. Null if assignment was not successful
    */
   public String getInstanceName() {
-    return _node.getInstanceName();
+    return _node == null ? null : _node.getInstanceName();
   }
 
   /**

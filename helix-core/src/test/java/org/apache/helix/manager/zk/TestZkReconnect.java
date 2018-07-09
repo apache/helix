@@ -109,13 +109,22 @@ public class TestZkReconnect {
       ZkHelixPropertyStore propertyStore = controller.getHelixPropertyStore();
       propertyStore.get("/", null, 0);
 
-      onConnectedFlag.set(false);
+      TestHelper.verify(new TestHelper.Verifier() {
+        @Override
+        public boolean verify() throws Exception {
+          return onConnectedFlag.getAndSet(false);
+        }
+      }, 1000);
 
       // Inject expire to test handler
       // onDisconnectedFlag should be set within onDisconnected handler
       controller.handleSessionEstablishmentError(new Exception("For testing"));
-      Thread.sleep(10);
-      Assert.assertTrue(onDisconnectedFlag.get());
+      TestHelper.verify(new TestHelper.Verifier() {
+        @Override
+        public boolean verify() throws Exception {
+          return onDisconnectedFlag.get();
+        }
+      }, 1000);
       Assert.assertFalse(onConnectedFlag.get());
       Assert.assertFalse(controller.isConnected());
 

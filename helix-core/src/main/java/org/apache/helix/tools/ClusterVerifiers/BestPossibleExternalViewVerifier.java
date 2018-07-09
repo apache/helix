@@ -82,7 +82,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _expectLiveInstances = expectLiveInstances;
     _clusterDataCache = new ClusterDataCache();
   }
-  
+
   public static class Builder {
     private String _clusterName;
     private Map<String, Map<String, String>> _errStates;
@@ -260,15 +260,15 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       }
 
       for (String resourceName : idealStates.keySet()) {
-        ExternalView extView = extViews.get(resourceName);
         IdealState is = idealStates.get(resourceName);
+        ExternalView extView = extViews.get(resourceName);
         if (extView == null) {
           if (is.isExternalViewDisabled()) {
             continue;
-          } else {
-            LOG.error("externalView for " + resourceName + " is not available");
-            return false;
           }
+          LOG.warn("externalView for " + resourceName
+              + " is not available, check if best possible state is available.");
+          extView = new ExternalView(resourceName);
         }
 
         // step 0: remove empty map and DROPPED state from best possible state

@@ -1,6 +1,5 @@
 package org.apache.helix.task;
 
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;

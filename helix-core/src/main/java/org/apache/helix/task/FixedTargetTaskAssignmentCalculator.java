@@ -28,10 +28,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
@@ -42,12 +40,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A TaskAssignmentCalculator for when a task group must be assigned according to partitions/states on a target
+ * A TaskAssignmentCalculator for when a task group must be assigned according to partitions/states
+ * on a target
  * resource. Here, tasks are co-located according to where a resource's partitions are, as well as
  * (if desired) only where those partitions are in a given state.
  */
 public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculator {
-  private static final Logger LOG = LoggerFactory.getLogger(FixedTargetTaskAssignmentCalculator.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(FixedTargetTaskAssignmentCalculator.class);
 
   @Override
   public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
@@ -68,7 +68,8 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
       return Collections.emptyMap();
     }
     Set<String> tgtStates = jobCfg.getTargetPartitionStates();
-    return getTgtPartitionAssignment(currStateOutput, instances, tgtIs, tgtStates, partitionSet, jobContext);
+    return getTgtPartitionAssignment(currStateOutput, instances, tgtIs, tgtStates, partitionSet,
+        jobContext);
   }
 
   /**
@@ -93,7 +94,8 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
 
     Set<Integer> taskPartitions = Sets.newTreeSet();
     for (String targetPartition : targetPartitions) {
-      taskPartitions.addAll(getPartitionsForTargetPartition(targetPartition, currentTargets, taskCtx));
+      taskPartitions
+          .addAll(getPartitionsForTargetPartition(targetPartition, currentTargets, taskCtx));
     }
     return taskPartitions;
   }
@@ -123,7 +125,7 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
   private static Map<String, SortedSet<Integer>> getTgtPartitionAssignment(
       CurrentStateOutput currStateOutput, Iterable<String> instances, IdealState tgtIs,
       Set<String> tgtStates, Set<Integer> includeSet, JobContext jobCtx) {
-    Map<String, SortedSet<Integer>> result = new HashMap<String, SortedSet<Integer>>();
+    Map<String, SortedSet<Integer>> result = new HashMap<>();
     for (String instance : instances) {
       result.put(instance, new TreeSet<Integer>());
     }
@@ -137,13 +139,14 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
       int pId = partitions.get(0);
       if (includeSet.contains(pId)) {
         for (String instance : instances) {
-          Message pendingMessage = currStateOutput.getPendingState(tgtIs.getResourceName(), new Partition(pName),
-                  instance);
+          Message pendingMessage = currStateOutput.getPendingState(tgtIs.getResourceName(),
+              new Partition(pName), instance);
           if (pendingMessage != null) {
             continue;
           }
 
-          String s = currStateOutput.getCurrentState(tgtIs.getResourceName(), new Partition(pName), instance);
+          String s = currStateOutput.getCurrentState(tgtIs.getResourceName(), new Partition(pName),
+              instance);
           if (s != null && (tgtStates == null || tgtStates.contains(s))) {
             result.get(instance).add(pId);
           }

@@ -22,7 +22,6 @@ package org.apache.helix.task;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,10 +31,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.util.JenkinsHash;
 import org.slf4j.Logger;
@@ -43,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * This class does an assignment based on an automatic rebalancing strategy, rather than requiring
@@ -76,8 +72,8 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
 
     if (jobCfg.getTargetResource() != null) {
       LOG.error(
-          "Target resource is not null, should call FixedTaskAssignmentCalculator, target resource : "
-              + jobCfg.getTargetResource());
+          "Target resource is not null, should call FixedTaskAssignmentCalculator, target resource : {}",
+          jobCfg.getTargetResource());
       return new HashMap<>();
     }
 
@@ -104,7 +100,7 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
     public Map<String, SortedSet<Integer>> computeMapping(JobConfig jobConfig,
         JobContext jobContext, List<Integer> partitions, String resourceId) {
       if (_numInstances == 0) {
-        return new HashMap<String, SortedSet<Integer>>();
+        return new HashMap<>();
       }
 
       Map<String, SortedSet<Integer>> taskAssignment = Maps.newHashMap();
@@ -118,8 +114,7 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
         if (jobConfig.getMaxAttemptsPerTask() < _numInstances) {
           shiftTimes = numAttempts == -1 ? 0 : numAttempts;
         } else {
-          shiftTimes = (maxAttempts == 0)
-              ? 0
+          shiftTimes = (maxAttempts == 0) ? 0
               : jobContext.getPartitionNumAttempts(partition) / (maxAttempts / _numInstances);
         }
         // Hash the value based on the shifting time. The default shift time will be 0.
@@ -143,7 +138,7 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
 
     private class ConsistentHashSelector {
       private final static int DEFAULT_TOKENS_PER_INSTANCE = 1000;
-      private final SortedMap<Long, String> circle = new TreeMap<Long, String>();
+      private final SortedMap<Long, String> circle = new TreeMap<>();
       protected int instanceSize = 0;
 
       public ConsistentHashSelector(List<String> instances) {

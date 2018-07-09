@@ -84,20 +84,20 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
   /**
    * @return number of all partitions in this cluster
    */
-  long getTotalPartitionCount();
+  long getTotalPartitionGauge();
 
   /**
    * @return number of all partitions in this cluster that have errors
    */
-  long getTotalErrorPartitionCount();
+  long getErrorPartitionGauge();
 
   /**
    * @return number of all partitions in this cluster without any top-state replicas
    */
-  long getTotalPartitionsWithoutTopStateCount();
+  long getMissingTopStatePartitionGauge();
 
   /**
    * @return number of all partitions in this cluster whose ExternalView and IdealState have discrepancies
    */
-  long getTotalExternalViewIdealStateMismatchPartitionCount();
+  long getDifferenceWithIdealStateGauge();
 }

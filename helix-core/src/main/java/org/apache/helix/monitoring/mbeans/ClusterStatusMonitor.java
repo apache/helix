@@ -68,12 +68,6 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private boolean _rebalanceFailure = false;
   private AtomicLong _rebalanceFailureCount = new AtomicLong(0L);
 
-  // Aggregate metrics from ResourceMonitors
-  private volatile long _totalPartitionCount = 0;
-  private volatile long _totalErrorPartitionCount = 0;
-  private volatile long _totalPartitionsWithoutTopStateCount = 0;
-  private volatile long _totalExternalViewIdealStateMismatchPartitionCount = 0;
-
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, InstanceMonitor> _instanceMbeanMap = new ConcurrentHashMap<>();
 
@@ -460,7 +454,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           if (!_resourceMbeanMap.containsKey(resourceName)) {
             String beanName = getResourceBeanName(resourceName);
             ResourceMonitor bean =
-                new ResourceMonitor(this, _clusterName, resourceName, getObjectName(beanName));
+                new ResourceMonitor(_clusterName, resourceName, getObjectName(beanName));
             bean.register();
             _resourceMbeanMap.put(resourceName, bean);
           }
@@ -803,39 +797,38 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   @Override
-  public long getTotalPartitionCount() {
-    return _totalPartitionCount;
+  public long getTotalPartitionGauge() {
+    long total = 0;
+    for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {
+      total += entry.getValue().getPartitionGauge();
+    }
+    return total;
   }
 
   @Override
-  public long getTotalErrorPartitionCount() {
-    return _totalErrorPartitionCount;
+  public long getErrorPartitionGauge() {
+    long total = 0;
+    for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {
+      total += entry.getValue().getErrorPartitionGauge();
+    }
+    return total;
   }
 
   @Override
-  public long getTotalPartitionsWithoutTopStateCount() {
-    return _totalPartitionsWithoutTopStateCount;
+  public long getMissingTopStatePartitionGauge() {
+    long total = 0;
+    for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {
+      total += entry.getValue().getMissingTopStatePartitionGauge();
+    }
+    return total;
   }
 
   @Override
-  public long getTotalExternalViewIdealStateMismatchPartitionCount() {
-    return _totalExternalViewIdealStateMismatchPartitionCount;
+  public long getDifferenceWithIdealStateGauge() {
+    long total = 0;
+    for (Map.Entry<String, ResourceMonitor> entry : _resourceMbeanMap.entrySet()) {
+      total += entry.getValue().getDifferenceWithIdealStateGauge();
+    }
+    return total;
   }
-
-  synchronized void applyDeltaToTotalPartitionCount(long delta) {
-    _totalPartitionCount += delta;
-  }
-
-  synchronized void applyDeltaToTotalErrorPartitionCount(long delta) {
-    _totalErrorPartitionCount += delta;
-  }
-
-  synchronized void applyDeltaToTotalPartitionsWithoutTopStateCount(long delta) {
-    _totalPartitionsWithoutTopStateCount += delta;
-  }
-
-  synchronized void applyDeltaToTotalExternalViewIdealStateMismatchPartitionCount(long delta) {
-    _totalExternalViewIdealStateMismatchPartitionCount += delta;
-  }
-
 }

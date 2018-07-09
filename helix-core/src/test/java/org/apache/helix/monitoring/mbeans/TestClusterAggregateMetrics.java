@@ -61,10 +61,10 @@ public class TestClusterAggregateMetrics extends ZkIntegrationTestBase {
   private static final int NUM_PARTITIONS = 5;
   private static final int NUM_REPLICAS = 3;
 
-  private static final String PARTITION_COUNT = "TotalPartitionCount";
-  private static final String ERROR_PARTITION_COUNT = "TotalErrorPartitionCount";
-  private static final String WITHOUT_TOPSTATE_COUNT = "TotalPartitionsWithoutTopStateCount";
-  private static final String IS_EV_MISMATCH_COUNT = "TotalExternalViewIdealStateMismatchPartitionCount";
+  private static final String PARTITION_COUNT = "TotalPartitionGauge";
+  private static final String ERROR_PARTITION_COUNT = "ErrorPartitionGauge";
+  private static final String WITHOUT_TOPSTATE_COUNT = "MissingTopStatePartitionGauge";
+  private static final String IS_EV_MISMATCH_COUNT = "DifferenceWithIdealStateGauge";
 
   private static final int START_PORT = 12918;
   private static final String STATE_MODEL = "MasterSlave";
@@ -82,15 +82,11 @@ public class TestClusterAggregateMetrics extends ZkIntegrationTestBase {
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursively(namespace);
-    }
     _setupTool = new ClusterSetup(ZK_ADDR);
-
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
     _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, NUM_PARTITIONS, STATE_MODEL);
+
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
@@ -145,7 +141,7 @@ public class TestClusterAggregateMetrics extends ZkIntegrationTestBase {
   }
 
   @Test
-  public void testAggregateMetrics() throws InterruptedException {
+  public void testAggregateMetrics() throws Exception {
     // Everything should be up and running initially with 5 total partitions
     updateMetrics();
     Assert.assertEquals(_beanValueMap.get(PARTITION_COUNT), 5L);

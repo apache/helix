@@ -41,22 +41,32 @@ public class AssignableInstanceManager {
   private Map<String, AssignableInstance> _assignableInstanceMap;
   // TaskID -> TaskAssignResult TODO: Hunter: Move this if not needed
   private Map<String, TaskAssignResult> _taskAssignResultMap;
+  private boolean _hasBeenBuilt; // Flag for whether AssignableInstances have been built
 
   /**
-   * Constructor for AssignableInstanceManager. Builds AssignableInstances based on
-   * WorkflowContexts, JobContexts, and LiveInstances. Note that the lists of LiveInstances and
-   * InstanceConfigs must match, meaning a LiveInstance and an InstanceConfig at the same index
-   * represent the same instance.
+   * Basic constructor for AssignableInstanceManager to allow an empty instantiation. buildAssignableInstances() must be explicitly called after instantiation.
+   */
+  public AssignableInstanceManager() {
+    _assignableInstanceMap = new HashMap<>();
+    _taskAssignResultMap = new HashMap<>();
+    _hasBeenBuilt = false; // AssignableInstances haven't been built
+  }
+
+  /**
+   * Builds AssignableInstances and restores TaskAssignResults from scratch by reading from
+   * TaskDataCache.
    * @param clusterConfig
    * @param taskDataCache
    * @param liveInstances
    * @param instanceConfigs
    */
-  public AssignableInstanceManager(ClusterConfig clusterConfig, TaskDataCache taskDataCache,
+  public void buildAssignableInstances(ClusterConfig clusterConfig, TaskDataCache taskDataCache,
       Map<String, LiveInstance> liveInstances, Map<String, InstanceConfig> instanceConfigs) {
-    // Build the cache from scratch
-    _assignableInstanceMap = new HashMap<>();
-    _taskAssignResultMap = new HashMap<>();
+    // Only need to build from scratch during Controller switch, etc.
+    // This keeps the pipeline from building from scratch every cache refresh
+    if (_hasBeenBuilt) {
+      return;
+    }
 
     // Create all AssignableInstance objects based on what's in liveInstances
     for (Map.Entry<String, LiveInstance> liveInstanceEntry : liveInstances.entrySet()) {
@@ -124,6 +134,7 @@ public class AssignableInstanceManager {
         }
       }
     }
+    _hasBeenBuilt = true; // Set the flag so that it's not re-building from cache every pipeline iteration
   }
 
   /**

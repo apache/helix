@@ -42,8 +42,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase {
-  protected int numJobs = 2;
-  protected int numTasks = 3;
+  private int numJobs = 2;
+  private int numTasks = 3;
 
   @Test
   public void testControllerSwitch() throws InterruptedException {
@@ -74,8 +74,10 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
     Thread.sleep(2000);
     taskDataCache.refresh(accessor, resourceConfigMap);
 
-    AssignableInstanceManager prevAssignableInstanceManager = new AssignableInstanceManager(
-        clusterConfig, taskDataCache, liveInstanceMap, instanceConfigMap);
+    // Create prev manager and build
+    AssignableInstanceManager prevAssignableInstanceManager = new AssignableInstanceManager();
+    prevAssignableInstanceManager.buildAssignableInstances(clusterConfig, taskDataCache,
+        liveInstanceMap, instanceConfigMap);
     Map<String, AssignableInstance> prevAssignableInstanceMap =
         new HashMap<>(prevAssignableInstanceManager.getAssignableInstanceMap());
     Map<String, TaskAssignResult> prevTaskAssignResultMap =
@@ -90,8 +92,9 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
 
     // Generate a new AssignableInstanceManager
     taskDataCache.refresh(accessor, resourceConfigMap);
-    AssignableInstanceManager newAssignableInstanceManager = new AssignableInstanceManager(
-        clusterConfig, taskDataCache, liveInstanceMap, instanceConfigMap);
+    AssignableInstanceManager newAssignableInstanceManager = new AssignableInstanceManager();
+    newAssignableInstanceManager.buildAssignableInstances(clusterConfig, taskDataCache,
+        liveInstanceMap, instanceConfigMap);
     Map<String, AssignableInstance> newAssignableInstanceMap =
         new HashMap<>(newAssignableInstanceManager.getAssignableInstanceMap());
     Map<String, TaskAssignResult> newTaskAssignResultMap =

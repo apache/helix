@@ -28,6 +28,8 @@ import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import org.testng.collections.Maps;
+
 
 public class TestAssignableInstance extends AssignerTestBase {
 
@@ -285,7 +287,16 @@ public class TestAssignableInstance extends AssignerTestBase {
     unsupportedTask.setQuotaType("UnsupportedQuotaType");
     currentAssignments.put("unsupportedTask", unsupportedTask);
 
-    Map<String, TaskAssignResult> results = ai.setCurrentAssignments(currentAssignments);
+    Map<String, TaskAssignResult> results = Maps.newHashMap();
+    for (Map.Entry<String, TaskConfig> entry : currentAssignments.entrySet()) {
+      String taskID = entry.getKey();
+      TaskConfig taskConfig = entry.getValue();
+      TaskAssignResult taskAssignResult = ai.restoreTaskAssignResult(taskID, taskConfig);
+      if (taskAssignResult.isSuccessful()) {
+        results.put(taskID, taskAssignResult);
+      }
+    }
+
     for (TaskAssignResult rst : results.values()) {
       Assert.assertTrue(rst.isSuccessful());
       Assert.assertEquals(rst.getAssignableInstance(), ai);

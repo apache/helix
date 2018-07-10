@@ -374,25 +374,26 @@ public class AssignableInstance {
   }
 
   /**
-   * This method is used for forcing AssignableInstance to match current assignment state. It
-   * returns with TaskAssignResult for proper release current assignments when they are finished.
-   * @param tasks taskId -> taskConfig mapping
-   * @return taskId -> TaskAssignResult mapping
+   * This method restores a TaskAssignResult for a given task in this AssignableInstance when this
+   * AssignableInstance is created from scratch due to events like a controller switch. It
+   * returns a TaskAssignResult to be used for proper release of resources when the task is in a
+   * terminal state.
+   * @param taskId of the task
+   * @param taskConfig of the task
+   * @return TaskAssignResult with isSuccessful = true if successful. If assigning it to an instance
+   *         fails, TaskAssignResult's getSuccessful() will return false
    */
-  public Map<String, TaskAssignResult> setCurrentAssignments(Map<String, TaskConfig> tasks) {
-    Map<String, TaskAssignResult> assignment = new HashMap<>();
-    for (Map.Entry<String, TaskConfig> entry : tasks.entrySet()) {
-      TaskAssignResult assignResult =
-          new TaskAssignResult(entry.getValue(), this, true, fitnessScoreFactor, null,
-              "Recovered TaskAssignResult from current state");
-      try {
-        assign(assignResult);
-        assignment.put(entry.getKey(), assignResult);
-      } catch (IllegalStateException e) {
-        logger.error("Failed to set current assignment for task {}.", entry.getValue().getId(), e);
-      }
+  public TaskAssignResult restoreTaskAssignResult(String taskId, TaskConfig taskConfig) {
+    TaskAssignResult assignResult = new TaskAssignResult(taskConfig, this, true, fitnessScoreFactor,
+        null, "Recovered TaskAssignResult from current state");
+    try {
+      assign(assignResult);
+    } catch (IllegalStateException e) {
+      logger.error("Failed to set current assignment for task {}.", taskId, e);
+      return new TaskAssignResult(taskConfig, this, false, fitnessScoreFactor,
+          null, "Recovered TaskAssignResult from current state");
     }
-    return assignment;
+    return assignResult;
   }
 
   /**

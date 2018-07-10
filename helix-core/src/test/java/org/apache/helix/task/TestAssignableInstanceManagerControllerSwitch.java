@@ -83,12 +83,10 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
 
     // Stop the current controller
     _controller.syncStop();
-    _controller = null;
     // Start a new controller
     String newControllerName = CONTROLLER_PREFIX + "_1";
-    ClusterControllerManager newController =
-        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, newControllerName);
-    newController.syncStart();
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, newControllerName);
+    _controller.syncStart();
 
     // Generate a new AssignableInstanceManager
     taskDataCache.refresh(accessor, resourceConfigMap);

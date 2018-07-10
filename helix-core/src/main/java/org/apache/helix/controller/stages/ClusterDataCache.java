@@ -69,7 +69,6 @@ import static org.apache.helix.HelixConstants.ChangeType;
  */
 public class ClusterDataCache {
   private static final Logger LOG = LoggerFactory.getLogger(ClusterDataCache.class.getName());
-  private static final String NAME = "NAME";
 
   private ClusterConfig _clusterConfig;
   private Map<String, LiveInstance> _liveInstanceMap;
@@ -123,7 +122,7 @@ public class ClusterDataCache {
   public ClusterDataCache(String clusterName) {
     _propertyDataChangedMap = new ConcurrentHashMap<>();
     for (ChangeType type : ChangeType.values()) {
-      _propertyDataChangedMap.put(type, Boolean.valueOf(true));
+      _propertyDataChangedMap.put(type, true);
     }
     _clusterName = clusterName;
     _currentStateCache = new CurrentStateCache(_clusterName);
@@ -142,14 +141,14 @@ public class ClusterDataCache {
     Builder keyBuilder = accessor.keyBuilder();
 
     if (_propertyDataChangedMap.get(ChangeType.IDEAL_STATE)) {
-      _propertyDataChangedMap.put(ChangeType.IDEAL_STATE, Boolean.valueOf(false));
+      _propertyDataChangedMap.put(ChangeType.IDEAL_STATE, false);
       clearCachedResourceAssignments();
       _idealStateCacheMap = refreshIdealStates(accessor);
     }
 
     if (_propertyDataChangedMap.get(ChangeType.LIVE_INSTANCE)) {
       long start = System.currentTimeMillis();
-      _propertyDataChangedMap.put(ChangeType.LIVE_INSTANCE, Boolean.valueOf(false));
+      _propertyDataChangedMap.put(ChangeType.LIVE_INSTANCE, false);
       clearCachedResourceAssignments();
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances(), true);
       _updateInstanceOfflineTime = true;
@@ -158,7 +157,7 @@ public class ClusterDataCache {
     }
 
     if (_propertyDataChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
-      _propertyDataChangedMap.put(ChangeType.INSTANCE_CONFIG, Boolean.valueOf(false));
+      _propertyDataChangedMap.put(ChangeType.INSTANCE_CONFIG, false);
       clearCachedResourceAssignments();
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs(), true);
       if (LOG.isDebugEnabled()) {
@@ -167,18 +166,19 @@ public class ClusterDataCache {
     }
 
     if (_propertyDataChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
-      _propertyDataChangedMap.put(ChangeType.RESOURCE_CONFIG, Boolean.valueOf(false));
+      _propertyDataChangedMap.put(ChangeType.RESOURCE_CONFIG, false);
       clearCachedResourceAssignments();
-      _resourceConfigCacheMap = accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs(), true);
+      _resourceConfigCacheMap =
+          accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs(), true);
       if (LOG.isDebugEnabled()) {
         LOG.debug("Reload ResourceConfigs: " + _resourceConfigCacheMap.size());
       }
     }
 
     _idealStateMap = new HashMap<>(_idealStateCacheMap);
-    _liveInstanceMap = new HashMap(_liveInstanceCacheMap);
+    _liveInstanceMap = new HashMap<>(_liveInstanceCacheMap);
     _instanceConfigMap = new ConcurrentHashMap<>(_instanceConfigCacheMap);
-    _resourceConfigMap = new HashMap(_resourceConfigCacheMap);
+    _resourceConfigMap = new HashMap<>(_resourceConfigCacheMap);
 
     if (_updateInstanceOfflineTime) {
       updateOfflineInstanceHistory(accessor);
@@ -207,12 +207,12 @@ public class ClusterDataCache {
     if (_clusterConfig != null) {
       _idealStateRuleMap = _clusterConfig.getIdealStateRules();
     } else {
-      _idealStateRuleMap = new HashMap();
+      _idealStateRuleMap = new HashMap<>();
       LOG.warn("Cluster config is null!");
     }
 
     MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
-    _isMaintenanceModeEnabled = (maintenanceSignal != null) ? true : false;
+    _isMaintenanceModeEnabled = maintenanceSignal != null;
 
     updateDisabledInstances();
 
@@ -225,9 +225,9 @@ public class ClusterDataCache {
       LOG.debug("# of StateModelDefinition read from zk: " + _stateModelDefMap.size());
       LOG.debug("# of ConstraintMap read from zk: " + _constraintMap.size());
       LOG.debug("LiveInstances: " + _liveInstanceMap.keySet());
-        for (LiveInstance instance : _liveInstanceMap.values()) {
-          LOG.debug("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
-        }
+      for (LiveInstance instance : _liveInstanceMap.values()) {
+        LOG.debug("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
+      }
       LOG.debug("IdealStates: " + _idealStateMap.keySet());
       LOG.debug("ResourceConfigs: " + _resourceConfigMap.keySet());
       LOG.debug("InstanceConfigs: " + _instanceConfigMap.keySet());
@@ -323,7 +323,7 @@ public class ClusterDataCache {
   }
 
   public synchronized void setIdealStates(List<IdealState> idealStates) {
-    Map<String, IdealState> idealStateMap = new HashMap();
+    Map<String, IdealState> idealStateMap = new HashMap<>();
     for (IdealState idealState : idealStates) {
       idealStateMap.put(idealState.getId(), idealState);
     }
@@ -409,7 +409,7 @@ public class ClusterDataCache {
 
 
   public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {
-    Map<String, LiveInstance> liveInstanceMap = new HashMap();
+    Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
     for (LiveInstance liveInstance : liveInstances) {
       liveInstanceMap.put(liveInstance.getId(), liveInstance);
     }
@@ -501,7 +501,7 @@ public class ClusterDataCache {
    * Notify the cache that some part of the cluster data has been changed.
    */
   public void notifyDataChange(ChangeType changeType) {
-    _propertyDataChangedMap.put(changeType, Boolean.valueOf(true));
+    _propertyDataChangedMap.put(changeType, true);
   }
 
   /**
@@ -556,7 +556,7 @@ public class ClusterDataCache {
 
 
   public synchronized void setInstanceConfigs(List<InstanceConfig> instanceConfigs) {
-    Map<String, InstanceConfig> instanceConfigMap = new HashMap();
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     for (InstanceConfig instanceConfig : instanceConfigs) {
       instanceConfigMap.put(instanceConfig.getId(), instanceConfig);
     }
@@ -707,6 +707,8 @@ public class ClusterDataCache {
     return Collections.unmodifiableMap(newIdealStateMap);
   }
 
+
+
   /**
    * Return the JobContext by resource name
    * @param resourceName
@@ -794,7 +796,7 @@ public class ClusterDataCache {
    */
   public synchronized void requireFullRefresh() {
     for(ChangeType type : ChangeType.values()) {
-      _propertyDataChangedMap.put(type, Boolean.valueOf(true));
+      _propertyDataChangedMap.put(type, true);
     }
   }
 
@@ -884,7 +886,7 @@ public class ClusterDataCache {
   }
 
   /**
-   * Set the cache is serving for Task pipleline or not
+   * Set the cache is serving for Task pipeline or not
    * @param taskCache
    */
   public void setTaskCache(boolean taskCache) {
@@ -892,7 +894,7 @@ public class ClusterDataCache {
   }
 
   /**
-   * Get the cache is serving for Task pipleline or not
+   * Get the cache is serving for Task pipeline or not
    * @return
    */
   public boolean isTaskCache() {

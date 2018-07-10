@@ -29,6 +29,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConstants;
@@ -44,11 +45,10 @@ public class TaskDataCache {
   private static final Logger LOG = LoggerFactory.getLogger(TaskDataCache.class.getName());
   private static final String NAME = "NAME";
 
+  private String _clusterName;
   private Map<String, JobConfig> _jobConfigMap = new HashMap<>();
   private Map<String, WorkflowConfig> _workflowConfigMap = new HashMap<>();
   private Map<String, ZNRecord> _contextMap = new HashMap<>();
-
-  private String _clusterName;
 
   public TaskDataCache(String clusterName) {
     _clusterName = clusterName;
@@ -56,9 +56,7 @@ public class TaskDataCache {
 
   /**
    * This refreshes the cluster data by re-fetching the data from zookeeper in an efficient way
-   *
    * @param accessor
-   *
    * @return
    */
   public synchronized boolean refresh(HelixDataAccessor accessor,
@@ -112,14 +110,13 @@ public class TaskDataCache {
     }
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug("# of workflow/job context read from zk: " + _contextMap.size() + ". Take " + (
-          System.currentTimeMillis() - start) + " ms");
+      LOG.debug("# of workflow/job context read from zk: " + _contextMap.size() + ". Take "
+          + (System.currentTimeMillis() - start) + " ms");
     }
   }
 
   /**
    * Returns job config map
-   *
    * @return
    */
   public Map<String, JobConfig> getJobConfigMap() {
@@ -128,9 +125,7 @@ public class TaskDataCache {
 
   /**
    * Returns job config
-   *
    * @param resource
-   *
    * @return
    */
   public JobConfig getJobConfig(String resource) {
@@ -139,7 +134,6 @@ public class TaskDataCache {
 
   /**
    * Returns workflow config map
-   *
    * @return
    */
   public Map<String, WorkflowConfig> getWorkflowConfigMap() {
@@ -148,9 +142,7 @@ public class TaskDataCache {
 
   /**
    * Returns workflow config
-   *
    * @param resource
-   *
    * @return
    */
   public WorkflowConfig getWorkflowConfig(String resource) {
@@ -159,9 +151,7 @@ public class TaskDataCache {
 
   /**
    * Return the JobContext by resource name
-   *
    * @param resourceName
-   *
    * @return
    */
   public JobContext getJobContext(String resourceName) {
@@ -173,9 +163,7 @@ public class TaskDataCache {
 
   /**
    * Return the WorkflowContext by resource name
-   *
    * @param resourceName
-   *
    * @return
    */
   public WorkflowContext getWorkflowContext(String resourceName) {
@@ -213,20 +201,19 @@ public class TaskDataCache {
 
   /**
    * Return map of WorkflowContexts or JobContexts
-   *
    * @return
    */
   public Map<String, ZNRecord> getContexts() {
     return _contextMap;
   }
 
-  @Override public String toString() {
-    return "TaskDataCache{" +
-        "_jobConfigMap=" + _jobConfigMap +
-        ", _workflowConfigMap=" + _workflowConfigMap +
-        ", _contextMap=" + _contextMap +
-        ", _clusterName='" + _clusterName + '\'' +
-        '}';
+  @Override
+  public String toString() {
+    return "TaskDataCache{"
+        + "_jobConfigMap=" + _jobConfigMap
+        + ", _workflowConfigMap=" + _workflowConfigMap
+        + ", _contextMap=" + _contextMap
+        + ", _clusterName='" + _clusterName
+        + '\'' + '}';
   }
 }
-

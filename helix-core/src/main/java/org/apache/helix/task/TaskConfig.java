@@ -37,12 +37,10 @@ public class TaskConfig {
     TASK_COMMAND,
     @Deprecated
     TASK_SUCCESS_OPTIONAL,
-    TASK_TARGET_PARTITION,
-    TASK_QUOTA_TYPE
+    TASK_TARGET_PARTITION
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskConfig.class);
-  public static final String DEFAULT_QUOTA_TYPE = "DEFAULT";
 
   private final Map<String, String> _configMap;
 
@@ -58,12 +56,11 @@ public class TaskConfig {
   }
 
   /**
-   * Instantiate the task config
-   *
-   * @param command         the command to invoke for the task
-   * @param configMap       configuration to be passed as part of the invocation
-   * @param id              existing task ID
-   * @param target          target partition for a task
+   * Instantiate the task config.
+   * @param command the command to invoke for the task
+   * @param configMap configuration to be passed as part of the invocation
+   * @param id existing task ID
+   * @param target target partition for a task
    */
   public TaskConfig(String command, Map<String, String> configMap, String id, String target) {
     if (configMap == null) {
@@ -83,10 +80,9 @@ public class TaskConfig {
   }
 
   /**
-   * Instantiate the task config
-   *
-   * @param command         the command to invoke for the task
-   * @param configMap       configuration to be passed as part of the invocation
+   * Instantiate the task config.
+   * @param command the command to invoke for the task
+   * @param configMap configuration to be passed as part of the invocation
    */
   public TaskConfig(String command, Map<String, String> configMap) {
     this(command, configMap, null, null);
@@ -94,7 +90,6 @@ public class TaskConfig {
 
   /**
    * Unique identifier for this task
-   *
    * @return UUID as a string
    */
   public String getId() {
@@ -103,7 +98,6 @@ public class TaskConfig {
 
   /**
    * Get the command to invoke for this task
-   *
    * @return string command, or null if not overridden
    */
   public String getCommand() {
@@ -112,28 +106,10 @@ public class TaskConfig {
 
   /**
    * Get the target partition of this task, if any
-   *
    * @return the target partition, or null
    */
   public String getTargetPartition() {
     return _configMap.get(TaskConfigProperty.TASK_TARGET_PARTITION.name());
-  }
-
-  /**
-   * Set the quota type of this task
-   * @param quotaType
-   */
-  public void setQuotaType(String quotaType) {
-    _configMap.put(TaskConfigProperty.TASK_QUOTA_TYPE.name(), quotaType);
-  }
-
-  /**
-   * Return the quota type of this task
-   * @return
-   */
-  public String getQuotaType() {
-    return _configMap.containsKey(TaskConfigProperty.TASK_QUOTA_TYPE.name()) ?
-        _configMap.get(TaskConfigProperty.TASK_QUOTA_TYPE.name()) : DEFAULT_QUOTA_TYPE;
   }
 
   /**
@@ -149,14 +125,14 @@ public class TaskConfig {
 
   /**
    * Get the configuration map for this task's command
-   *
    * @return map of configuration key to value
    */
   public Map<String, String> getConfigMap() {
     return _configMap;
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     ObjectMapper mapper = new ObjectMapper();
     try {
       return mapper.writeValueAsString(this);
@@ -224,8 +200,7 @@ public class TaskConfig {
     }
 
     /**
-     * Instantiate a typed configuration from just a target
-     *
+     * Instantiate a typed configuration from just a target.
      * @param target the target partition
      * @return instantiated TaskConfig
      */
@@ -234,8 +209,7 @@ public class TaskConfig {
     }
 
     /**
-     * Instantiate a typed configuration from a bean
-     *
+     * Instantiate a typed configuration from a bean.
      * @param bean plain bean describing the task
      * @return instantiated TaskConfig
      */
@@ -245,7 +219,6 @@ public class TaskConfig {
 
     /**
      * Instantiate a typed configuration from a raw string map
-     *
      * @param rawConfigMap mixed map of configuration and task metadata
      * @return instantiated TaskConfig
      */

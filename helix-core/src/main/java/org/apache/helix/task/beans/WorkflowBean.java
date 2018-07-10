@@ -32,4 +32,5 @@ public class WorkflowBean {
   public ScheduleBean schedule;
   public long expiry = WorkflowConfig.DEFAULT_EXPIRY;
   public String workflowType;
+  public String quotaType; // Syntactic sugar for setting all of workflow's jobs to this quota type
 }

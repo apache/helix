@@ -43,7 +43,8 @@ import com.google.common.collect.Maps;
 public class JobConfig extends ResourceConfig {
 
   /**
-   * Do not use this value directly, always use the get/set methods in JobConfig and JobConfig.Builder.
+   * Do not use this value directly, always use the get/set methods in JobConfig and
+   * JobConfig.Builder.
    */
   protected enum JobConfigProperty {
     /**
@@ -68,7 +69,8 @@ public class JobConfig extends ResourceConfig {
      */
     TargetPartitionStates,
     /**
-     * The set of the target partition ids. The value must be a comma-separated list of partition ids.
+     * The set of the target partition ids. The value must be a comma-separated list of partition
+     * ids.
      */
     TargetPartitions,
     /**
@@ -151,10 +153,15 @@ public class JobConfig extends ResourceConfig {
     /**
      * Whether or not enable running task rebalance
      */
-    RebalanceRunningTask
+    RebalanceRunningTask,
+
+    /**
+     * Quota type for this job used for quota-based scheduling
+     */
+    QuotaType
   }
 
-  //Default property values
+  // Default property values
   public static final long DEFAULT_TIMEOUT_PER_TASK = 60 * 60 * 1000; // 1 hr.
   public static final long DEFAULT_TASK_RETRY_DELAY = -1; // no delay
   public static final int DEFAULT_MAX_ATTEMPTS_PER_TASK = 10;
@@ -182,7 +189,7 @@ public class JobConfig extends ResourceConfig {
         jobConfig.isIgnoreDependentJobFailure(), jobConfig.getTaskConfigMap(),
         jobConfig.getJobType(), jobConfig.getInstanceGroupTag(), jobConfig.getExecutionDelay(),
         jobConfig.getExecutionStart(), jobId, jobConfig.getExpiry(),
-        jobConfig.isRebalanceRunningTask());
+        jobConfig.isRebalanceRunningTask(), jobConfig.getQuotaType());
   }
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
@@ -192,7 +199,7 @@ public class JobConfig extends ResourceConfig {
       boolean disableExternalView, boolean ignoreDependentJobFailure,
       Map<String, TaskConfig> taskConfigMap, String jobType, String instanceGroupTag,
       long executionDelay, long executionStart, String jobId, long expiry,
-      boolean rebalanceRunningTask) {
+      boolean rebalanceRunningTask, String quotaType) {
     super(jobId);
     putSimpleConfig(JobConfigProperty.WorkflowID.name(), workflow);
     putSimpleConfig(JobConfigProperty.JobID.name(), jobId);
@@ -256,6 +263,7 @@ public class JobConfig extends ResourceConfig {
         String.valueOf(WorkflowConfig.DEFAULT_MONITOR_DISABLE));
     getRecord().setBooleanField(JobConfigProperty.RebalanceRunningTask.name(),
         rebalanceRunningTask);
+    putSimpleConfig(JobConfigProperty.QuotaType.name(), quotaType);
   }
 
   public String getWorkflow() {
@@ -273,8 +281,9 @@ public class JobConfig extends ResourceConfig {
   }
 
   public List<String> getTargetPartitions() {
-    return simpleConfigContains(JobConfigProperty.TargetPartitions.name()) ? Arrays
-        .asList(getSimpleConfig(JobConfigProperty.TargetPartitions.name()).split(",")) : null;
+    return simpleConfigContains(JobConfigProperty.TargetPartitions.name())
+        ? Arrays.asList(getSimpleConfig(JobConfigProperty.TargetPartitions.name()).split(","))
+        : null;
   }
 
   public Set<String> getTargetPartitionStates() {
@@ -290,19 +299,19 @@ public class JobConfig extends ResourceConfig {
   }
 
   public Map<String, String> getJobCommandConfigMap() {
-    return simpleConfigContains(JobConfigProperty.JobCommandConfig.name())
-        ? TaskUtil
+    return simpleConfigContains(JobConfigProperty.JobCommandConfig.name()) ? TaskUtil
         .deserializeJobCommandConfigMap(getSimpleConfig(JobConfigProperty.JobCommandConfig.name()))
         : null;
   }
 
   public long getTimeout() {
-    return getRecord().getLongField(JobConfigProperty.Timeout.name(), TaskConstants.DEFAULT_NEVER_TIMEOUT);
+    return getRecord().getLongField(JobConfigProperty.Timeout.name(),
+        TaskConstants.DEFAULT_NEVER_TIMEOUT);
   }
 
   public long getTimeoutPerTask() {
-    return getRecord()
-        .getLongField(JobConfigProperty.TimeoutPerPartition.name(), DEFAULT_TIMEOUT_PER_TASK);
+    return getRecord().getLongField(JobConfigProperty.TimeoutPerPartition.name(),
+        DEFAULT_TIMEOUT_PER_TASK);
   }
 
   public int getNumConcurrentTasksPerInstance() {
@@ -311,29 +320,29 @@ public class JobConfig extends ResourceConfig {
   }
 
   public int getMaxAttemptsPerTask() {
-    return getRecord()
-        .getIntField(JobConfigProperty.MaxAttemptsPerTask.name(), DEFAULT_MAX_ATTEMPTS_PER_TASK);
+    return getRecord().getIntField(JobConfigProperty.MaxAttemptsPerTask.name(),
+        DEFAULT_MAX_ATTEMPTS_PER_TASK);
   }
 
   public int getFailureThreshold() {
-    return getRecord()
-        .getIntField(JobConfigProperty.FailureThreshold.name(), DEFAULT_FAILURE_THRESHOLD);
+    return getRecord().getIntField(JobConfigProperty.FailureThreshold.name(),
+        DEFAULT_FAILURE_THRESHOLD);
   }
 
   public long getTaskRetryDelay() {
-    return getRecord()
-        .getLongField(JobConfigProperty.TaskRetryDelay.name(), DEFAULT_TASK_RETRY_DELAY);
+    return getRecord().getLongField(JobConfigProperty.TaskRetryDelay.name(),
+        DEFAULT_TASK_RETRY_DELAY);
   }
 
   // Execution delay time will be ignored when it is negative number
   public long getExecutionDelay() {
-    return getRecord()
-        .getLongField(JobConfigProperty.DelayTime.name(), DEFAULT_Job_EXECUTION_DELAY_TIME);
+    return getRecord().getLongField(JobConfigProperty.DelayTime.name(),
+        DEFAULT_Job_EXECUTION_DELAY_TIME);
   }
 
   public long getExecutionStart() {
-    return getRecord()
-        .getLongField(JobConfigProperty.StartTime.name(), DEFAULT_JOB_EXECUTION_START_TIME);
+    return getRecord().getLongField(JobConfigProperty.StartTime.name(),
+        DEFAULT_JOB_EXECUTION_START_TIME);
   }
 
   public boolean isDisableExternalView() {
@@ -349,8 +358,8 @@ public class JobConfig extends ResourceConfig {
   public Map<String, TaskConfig> getTaskConfigMap() {
     Map<String, TaskConfig> taskConfigMap = new HashMap<String, TaskConfig>();
     for (Map.Entry<String, Map<String, String>> entry : getMapConfigs().entrySet()) {
-      taskConfigMap
-          .put(entry.getKey(), new TaskConfig(null, entry.getValue(), entry.getKey(), null));
+      taskConfigMap.put(entry.getKey(),
+          new TaskConfig(null, entry.getValue(), entry.getKey(), null));
     }
     return taskConfigMap;
   }
@@ -378,6 +387,14 @@ public class JobConfig extends ResourceConfig {
   public boolean isRebalanceRunningTask() {
     return getRecord().getBooleanField(JobConfigProperty.RebalanceRunningTask.name(),
         DEFAULT_REBALANCE_RUNNING_TASK);
+  }
+
+  /**
+   * Returns the quota type for this job.
+   * @return quota type. null if quota type is not set
+   */
+  public String getQuotaType() {
+    return getSimpleConfig(JobConfigProperty.QuotaType.name());
   }
 
   public static JobConfig fromHelixProperty(HelixProperty property)
@@ -414,6 +431,7 @@ public class JobConfig extends ResourceConfig {
     private boolean _ignoreDependentJobFailure = DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE;
     private int _numberOfTasks = DEFAULT_NUMBER_OF_TASKS;
     private boolean _rebalanceRunningTask = DEFAULT_REBALANCE_RUNNING_TASK;
+    private String _quotaType;
 
     public JobConfig build() {
       if (_targetResource == null && _taskConfigMap.isEmpty()) {
@@ -433,12 +451,11 @@ public class JobConfig extends ResourceConfig {
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
           _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap, _jobType,
           _instanceGroupTag, _executionDelay, _executionStart, _jobId, _expiry,
-          _rebalanceRunningTask);
+          _rebalanceRunningTask, _quotaType);
     }
 
     /**
      * Convenience method to build a {@link JobConfig} from a {@code Map&lt;String, String&gt;}.
-     *
      * @param cfg A map of property names to their string representations.
      * @return A {@link Builder}.
      */
@@ -464,8 +481,8 @@ public class JobConfig extends ResourceConfig {
         b.setCommand(cfg.get(JobConfigProperty.Command.name()));
       }
       if (cfg.containsKey(JobConfigProperty.JobCommandConfig.name())) {
-        Map<String, String> commandConfigMap = TaskUtil.deserializeJobCommandConfigMap(
-            cfg.get(JobConfigProperty.JobCommandConfig.name()));
+        Map<String, String> commandConfigMap = TaskUtil
+            .deserializeJobCommandConfigMap(cfg.get(JobConfigProperty.JobCommandConfig.name()));
         b.setJobCommandConfigMap(commandConfigMap);
       }
       if (cfg.containsKey(JobConfigProperty.Timeout.name())) {
@@ -483,8 +500,7 @@ public class JobConfig extends ResourceConfig {
             Integer.parseInt(cfg.get(JobConfigProperty.MaxAttemptsPerTask.name())));
       }
       if (cfg.containsKey(JobConfigProperty.FailureThreshold.name())) {
-        b.setFailureThreshold(
-            Integer.parseInt(cfg.get(JobConfigProperty.FailureThreshold.name())));
+        b.setFailureThreshold(Integer.parseInt(cfg.get(JobConfigProperty.FailureThreshold.name())));
       }
       if (cfg.containsKey(JobConfigProperty.TaskRetryDelay.name())) {
         b.setTaskRetryDelay(Long.parseLong(cfg.get(JobConfigProperty.TaskRetryDelay.name())));
@@ -515,6 +531,9 @@ public class JobConfig extends ResourceConfig {
       if (cfg.containsKey(JobConfigProperty.RebalanceRunningTask.name())) {
         b.setRebalanceRunningTask(
             Boolean.valueOf(cfg.get(JobConfigProperty.RebalanceRunningTask.name())));
+      }
+      if (cfg.containsKey(JobConfigProperty.QuotaType.name())) {
+        b.setQuotaType(cfg.get(JobConfigProperty.QuotaType.name()));
       }
       return b;
     }
@@ -650,13 +669,18 @@ public class JobConfig extends ResourceConfig {
       return this;
     }
 
+    public Builder setQuotaType(String quotaType) {
+      _quotaType = quotaType;
+      return this;
+    }
+
     private void validate() {
       if (_taskConfigMap.isEmpty() && _targetResource == null) {
         throw new IllegalArgumentException(
             String.format("%s cannot be null", JobConfigProperty.TargetResource));
       }
-      if (_taskConfigMap.isEmpty() && _targetPartitionStates != null && _targetPartitionStates
-          .isEmpty()) {
+      if (_taskConfigMap.isEmpty() && _targetPartitionStates != null
+          && _targetPartitionStates.isEmpty()) {
         throw new IllegalArgumentException(
             String.format("%s cannot be an empty set", JobConfigProperty.TargetPartitionStates));
       }
@@ -681,33 +705,28 @@ public class JobConfig extends ResourceConfig {
         }
       }
       if (_timeout < TaskConstants.DEFAULT_NEVER_TIMEOUT) {
-        throw new IllegalArgumentException(String
-            .format("%s has invalid value %s", JobConfigProperty.Timeout, _timeout));
+        throw new IllegalArgumentException(
+            String.format("%s has invalid value %s", JobConfigProperty.Timeout, _timeout));
       }
       if (_timeoutPerTask < 0) {
-        throw new IllegalArgumentException(String
-            .format("%s has invalid value %s", JobConfigProperty.TimeoutPerPartition,
-                _timeoutPerTask));
+        throw new IllegalArgumentException(String.format("%s has invalid value %s",
+            JobConfigProperty.TimeoutPerPartition, _timeoutPerTask));
       }
       if (_numConcurrentTasksPerInstance < 1) {
-        throw new IllegalArgumentException(String
-            .format("%s has invalid value %s", JobConfigProperty.ConcurrentTasksPerInstance,
-                _numConcurrentTasksPerInstance));
+        throw new IllegalArgumentException(String.format("%s has invalid value %s",
+            JobConfigProperty.ConcurrentTasksPerInstance, _numConcurrentTasksPerInstance));
       }
       if (_maxAttemptsPerTask < 1) {
-        throw new IllegalArgumentException(String
-            .format("%s has invalid value %s", JobConfigProperty.MaxAttemptsPerTask,
-                _maxAttemptsPerTask));
+        throw new IllegalArgumentException(String.format("%s has invalid value %s",
+            JobConfigProperty.MaxAttemptsPerTask, _maxAttemptsPerTask));
       }
       if (_maxForcedReassignmentsPerTask < 0) {
-        throw new IllegalArgumentException(String
-            .format("%s has invalid value %s", JobConfigProperty.MaxForcedReassignmentsPerTask,
-                _maxForcedReassignmentsPerTask));
+        throw new IllegalArgumentException(String.format("%s has invalid value %s",
+            JobConfigProperty.MaxForcedReassignmentsPerTask, _maxForcedReassignmentsPerTask));
       }
       if (_failureThreshold < 0) {
-        throw new IllegalArgumentException(String
-            .format("%s has invalid value %s", JobConfigProperty.FailureThreshold,
-                _failureThreshold));
+        throw new IllegalArgumentException(String.format("%s has invalid value %s",
+            JobConfigProperty.FailureThreshold, _failureThreshold));
       }
       if (_workflow == null) {
         throw new IllegalArgumentException(
@@ -720,14 +739,13 @@ public class JobConfig extends ResourceConfig {
 
       b.setMaxAttemptsPerTask(jobBean.maxAttemptsPerTask)
           .setNumConcurrentTasksPerInstance(jobBean.numConcurrentTasksPerInstance)
-          .setTimeout(jobBean.timeout)
-          .setTimeoutPerTask(jobBean.timeoutPerPartition)
+          .setTimeout(jobBean.timeout).setTimeoutPerTask(jobBean.timeoutPerPartition)
           .setFailureThreshold(jobBean.failureThreshold).setTaskRetryDelay(jobBean.taskRetryDelay)
           .setDisableExternalView(jobBean.disableExternalView)
           .setIgnoreDependentJobFailure(jobBean.ignoreDependentJobFailure)
           .setNumberOfTasks(jobBean.numberOfTasks).setExecutionDelay(jobBean.executionDelay)
           .setExecutionStart(jobBean.executionStart)
-          .setRebalanceRunningTask(jobBean.rebalanceRunningTask);
+          .setRebalanceRunningTask(jobBean.rebalanceRunningTask).setQuotaType(jobBean.quotaType);
 
       if (jobBean.jobCommandConfigMap != null) {
         b.setJobCommandConfigMap(jobBean.jobCommandConfigMap);

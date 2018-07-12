@@ -30,6 +30,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.management.JMException;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -52,6 +54,7 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.monitoring.mbeans.RoutingTableProviderMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +68,7 @@ public class RoutingTableProvider
   private final RouterUpdater _routerUpdater;
   private final PropertyType _sourceDataType;
   private final Map<RoutingTableChangeListener, ListenerContext> _routingTableChangeListenerMap;
+  private final RoutingTableProviderMonitor _monitor;
 
   // For periodic refresh
   private long _lastRefreshTimestamp;
@@ -101,6 +105,14 @@ public class RoutingTableProvider
     _sourceDataType = sourceDataType;
     _routingTableChangeListenerMap = new ConcurrentHashMap<>();
     String clusterName = _helixManager != null ? _helixManager.getClusterName() : null;
+
+    _monitor = new RoutingTableProviderMonitor(_sourceDataType, clusterName);
+    try {
+      _monitor.register();
+    } catch (JMException e) {
+      logger.error("Failed to register RoutingTableProvider monitor MBean.", e);
+    }
+
     _routerUpdater = new RouterUpdater(clusterName, _sourceDataType);
     _routerUpdater.start();
 
@@ -189,6 +201,9 @@ public class RoutingTableProvider
       _periodicRefreshExecutor.shutdown();
     }
     _routerUpdater.shutdown();
+
+    _monitor.unregister();
+
     if (_helixManager != null) {
       PropertyKey.Builder keyBuilder = _helixManager.getHelixDataAccessor().keyBuilder();
       switch (_sourceDataType) {
@@ -511,7 +526,7 @@ public class RoutingTableProvider
     _routingTableRef.set(newRoutingTable);
   }
 
-  public void refresh(List<ExternalView> externalViewList, NotificationContext changeContext) {
+  protected void refresh(List<ExternalView> externalViewList, NotificationContext changeContext) {
     HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
@@ -520,7 +535,7 @@ public class RoutingTableProvider
     refresh(externalViewList, configList, liveInstances);
   }
 
-  public void refresh(Collection<ExternalView> externalViews,
+  protected void refresh(Collection<ExternalView> externalViews,
       Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
     long startTime = System.currentTimeMillis();
     RoutingTable newRoutingTable = new RoutingTable(externalViews, instanceConfigs, liveInstances);
@@ -581,6 +596,9 @@ public class RoutingTableProvider
           logger.error(String.format("HelixManager is not connected for router update event: %s", event));
           throw new HelixException("HelixManager is not connected for router update event.");
         }
+
+        long startTime = System.currentTimeMillis();
+
         _dataCache.refresh(manager.getHelixDataAccessor());
         switch (_sourceDataType) {
           case EXTERNALVIEW:
@@ -599,6 +617,8 @@ public class RoutingTableProvider
             logger.warn("Unsupported source data type: {}, stop refreshing the routing table!",
                 _sourceDataType);
         }
+
+        _monitor.increaseDataRefreshCounters(startTime);
       }
     }
 
@@ -616,6 +636,8 @@ public class RoutingTableProvider
       event.addAttribute(AttributeName.helixmanager.name(), context.getManager());
       event.addAttribute(AttributeName.changeContext.name(), context);
       queueEvent(event);
+
+      _monitor.increaseCallbackCounters(_eventQueue.size());
     }
   }
 

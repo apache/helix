@@ -142,7 +142,7 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     }
 
     @Override
-    public synchronized void refresh(List<ExternalView> externalViewList,
+    protected synchronized void refresh(List<ExternalView> externalViewList,
         NotificationContext changeContext) {
       super.refresh(externalViewList, changeContext);
       _refreshCount++;
@@ -152,7 +152,7 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     }
 
     @Override
-    public synchronized void refresh(Collection<ExternalView> externalViews,
+    protected synchronized void refresh(Collection<ExternalView> externalViews,
         Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
       super.refresh(externalViews, instanceConfigs, liveInstances);
       _refreshCount++;

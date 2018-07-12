@@ -27,5 +27,6 @@ public enum MonitorDomainNames {
   HelixZkClient,
   HelixThreadPoolExecutor,
   HelixCallback,
+  RoutingTableProvider,
   CLMParticipantReport
 }

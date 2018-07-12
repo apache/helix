@@ -19,12 +19,22 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.model.*;
-import org.apache.helix.task.*;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.TaskDriver;
+import org.apache.helix.task.TaskState;
+import org.apache.helix.task.WorkflowConfig;
+import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +43,16 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
@@ -398,20 +416,21 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   /**
-   * Indicate that a resource has been dropped, thus making it OK to drop its metrics
-   * @param resourceName the resource that has been dropped
+   * Cleanup resource monitors. Keep the monitors if only exist in the input set.
+   * @param resourceNames the resources that still exist
    */
-  public void unregisterResource(String resourceName) {
-    if (_resourceMbeanMap.containsKey(resourceName)) {
-      synchronized (this) {
-        if (_resourceMbeanMap.containsKey(resourceName)) {
-          try {
-            unregisterResources(Arrays.asList(resourceName));
-          } catch (MalformedObjectNameException e) {
-            LOG.error("Could not unregister beans for " + resourceName, e);
-          }
-        }
-      }
+  public void retainResourceMonitor(Set<String> resourceNames) {
+    Set<String> resourcesToRemove = new HashSet<>();
+    synchronized (this) {
+      resourcesToRemove.addAll(_resourceMbeanMap.keySet());
+    }
+    resourcesToRemove.removeAll(resourceNames);
+
+    try {
+      unregisterResources(resourcesToRemove);
+    } catch (MalformedObjectNameException e) {
+      LOG.error(String.format("Could not unregister beans for the following resources: %s",
+          Joiner.on(',').join(resourcesToRemove)), e);
     }
   }
 

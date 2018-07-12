@@ -19,21 +19,41 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import org.apache.helix.*;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
+import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.ZNRecordDelta;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
-import org.apache.helix.model.*;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(ExternalViewComputeStage.class);
@@ -60,8 +80,11 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
 
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
 
     List<ExternalView> newExtViews = new ArrayList<>();
+    Set<String> monitoringResources = new HashSet<>();
 
     Map<String, ExternalView> curExtViews = cache.getExternalViews();
 
@@ -100,24 +123,19 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
       IdealState idealState = cache.getIdealState(resourceName);
       if (!cache.isTaskCache()) {
         ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
-        ClusterStatusMonitor clusterStatusMonitor =
-            event.getAttribute(AttributeName.clusterStatusMonitor.name());
         if (clusterStatusMonitor != null) {
-          if (idealState != null && (resourceConfig == null || !resourceConfig
-              .isMonitoringDisabled())) {
-            if (!idealState.getStateModelDefRef()
-                .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-              StateModelDefinition stateModelDef =
-                  cache.getStateModelDef(idealState.getStateModelDefRef());
-              clusterStatusMonitor
-                  .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
-                      stateModelDef);
-              clusterStatusMonitor
-                  .updatePendingMessages(resource.getResourceName(), totalPendingMessageCount);
-            }
-          } else {
-            // Drop the metrics if the resource is dropped, or the MonitorDisabled is changed to true.
-            clusterStatusMonitor.unregisterResource(view.getResourceName());
+          if (idealState != null // has ideal state
+              && (resourceConfig == null || !resourceConfig.isMonitoringDisabled()) // monitoring not disabled
+              && !idealState.getStateModelDefRef() // and not a job resource
+              .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+            StateModelDefinition stateModelDef =
+                cache.getStateModelDef(idealState.getStateModelDefRef());
+            clusterStatusMonitor
+                .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
+                    stateModelDef);
+            clusterStatusMonitor
+                .updatePendingMessages(resource.getResourceName(), totalPendingMessageCount);
+            monitoringResources.add(resourceName);
           }
         }
       }
@@ -145,7 +163,12 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
       }
     }
 
-    List<String> externalviewsToRemove = new ArrayList<>();
+    // Keep MBeans for existing resources and unregister MBeans for dropped resources
+    if (clusterStatusMonitor != null) {
+      clusterStatusMonitor.retainResourceMonitor(monitoringResources);
+    }
+
+    List<String> externalViewsToRemove = new ArrayList<>();
     // TODO: consider not setting the externalview of SCHEDULER_TASK_QUEUE at all.
     // Are there any entity that will be interested in its change?
 
@@ -163,7 +186,7 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
           LogUtil
               .logInfo(LOG, _eventId, "Remove externalView for resource: " + resourceName);
           dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
-          externalviewsToRemove.add(resourceName);
+          externalViewsToRemove.add(resourceName);
         }
       } else {
         keys.add(keyBuilder.externalView(resourceName));
@@ -181,10 +204,10 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
       if (!resourceMap.keySet().contains(resourceName)) {
         LogUtil.logInfo(LOG, _eventId, "Remove externalView for resource: " + resourceName);
         dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
-        externalviewsToRemove.add(resourceName);
+        externalViewsToRemove.add(resourceName);
       }
     }
-    cache.removeExternalViews(externalviewsToRemove);
+    cache.removeExternalViews(externalViewsToRemove);
   }
 
   private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager,

@@ -44,7 +44,8 @@ public class AssignableInstanceManager {
   private boolean _hasBeenBuilt; // Flag for whether AssignableInstances have been built
 
   /**
-   * Basic constructor for AssignableInstanceManager to allow an empty instantiation. buildAssignableInstances() must be explicitly called after instantiation.
+   * Basic constructor for AssignableInstanceManager to allow an empty instantiation.
+   * buildAssignableInstances() must be explicitly called after instantiation.
    */
   public AssignableInstanceManager() {
     _assignableInstanceMap = new HashMap<>();
@@ -96,6 +97,7 @@ public class AssignableInstanceManager {
             jobName, jobConfig, jobContext);
         continue; // Ignore this job if either the config or context is null
       }
+      String quotaType = jobConfig.getQuotaType();
       Set<Integer> taskIndices = jobContext.getPartitionSet(); // Each integer represents a task in
       // this job (this is NOT taskId)
       for (int taskIndex : taskIndices) {
@@ -118,7 +120,7 @@ public class AssignableInstanceManager {
             TaskConfig taskConfig = jobConfig.getTaskConfig(taskId);
             AssignableInstance assignableInstance = _assignableInstanceMap.get(assignedInstance);
             TaskAssignResult taskAssignResult =
-                assignableInstance.restoreTaskAssignResult(taskId, taskConfig);
+                assignableInstance.restoreTaskAssignResult(taskId, taskConfig, quotaType);
             if (taskAssignResult.isSuccessful()) {
               _taskAssignResultMap.put(taskId, taskAssignResult);
               LOG.info("TaskAssignResult restored for taskId: {}, assigned on instance: {}", taskId,
@@ -134,7 +136,8 @@ public class AssignableInstanceManager {
         }
       }
     }
-    _hasBeenBuilt = true; // Set the flag so that it's not re-building from cache every pipeline iteration
+    _hasBeenBuilt = true; // Set the flag so that it's not re-building from cache every pipeline
+    // iteration
   }
 
   /**

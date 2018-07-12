@@ -42,10 +42,10 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
 
     for (String quotaType : testQuotaTypes) {
       // Create tasks
-      List<TaskConfig> tasks = createTaskConfigs(taskCountPerType, quotaType);
+      List<TaskConfig> tasks = createTaskConfigs(taskCountPerType);
 
       // Assign
-      Map<String, TaskAssignResult> results = assigner.assignTasks(instances, tasks);
+      Map<String, TaskAssignResult> results = assigner.assignTasks(instances, tasks, quotaType);
 
       // Check success
       assertAssignmentResults(results.values(), true);
@@ -64,9 +64,9 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
   public void testAssignmentFailureNoInstance() {
     TaskAssigner assigner = new ThreadCountBasedTaskAssigner();
     int taskCount = 10;
-    List<TaskConfig> tasks = createTaskConfigs(taskCount, "Dummy");
+    List<TaskConfig> tasks = createTaskConfigs(taskCount);
     Map<String, TaskAssignResult> results =
-        assigner.assignTasks(Collections.<AssignableInstance>emptyList(), tasks);
+        assigner.assignTasks(Collections.<AssignableInstance>emptyList(), tasks, "Dummy");
     Assert.assertEquals(results.size(), taskCount);
     for (TaskAssignResult result : results.values()) {
       Assert.assertFalse(result.isSuccessful());
@@ -91,9 +91,9 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
 
     // 10 * Type1 quota
     List<AssignableInstance> instances = createAssignableInstances(2, 10);
-    List<TaskConfig> tasks = createTaskConfigs(20, testQuotaTypes[0]);
+    List<TaskConfig> tasks = createTaskConfigs(20);
 
-    Map<String, TaskAssignResult> results = assigner.assignTasks(instances, tasks);
+    Map<String, TaskAssignResult> results = assigner.assignTasks(instances, tasks, testQuotaTypes[0]);
     int successCnt = 0;
     int failCnt = 0;
     for (TaskAssignResult rst : results.values()) {
@@ -113,13 +113,13 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
   public void testAssignmentFailureDuplicatedTask() {
     TaskAssigner assigner = new ThreadCountBasedTaskAssigner();
     List<AssignableInstance> instances = createAssignableInstances(1, 20);
-    List<TaskConfig> tasks = createTaskConfigs(10, testQuotaTypes[0], false);
+    List<TaskConfig> tasks = createTaskConfigs(10, false);
 
     // Duplicate all tasks
-    tasks.addAll(createTaskConfigs(10, testQuotaTypes[0], false));
+    tasks.addAll(createTaskConfigs(10, false));
     Collections.shuffle(tasks);
 
-    Map<String, TaskAssignResult> results = assigner.assignTasks(instances, tasks);
+    Map<String, TaskAssignResult> results = assigner.assignTasks(instances, tasks, testQuotaTypes[0]);
     Assert.assertEquals(results.size(), 10);
     assertAssignmentResults(results.values(), true);
   }
@@ -142,14 +142,14 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
 
       // 50 * instanceCount number of tasks
       List<AssignableInstance> instances = createAssignableInstances(instanceCount, 100);
-      List<TaskConfig> tasks = createTaskConfigs(taskCount, testQuotaTypes[0]);
+      List<TaskConfig> tasks = createTaskConfigs(taskCount);
       List<Map<String, TaskAssignResult>> allResults = new ArrayList<>();
 
       // Assign
       long start = System.currentTimeMillis();
       for (int j = 0; j < taskCount / assignBatchSize; j++) {
         allResults.add(assigner
-            .assignTasks(instances, tasks.subList(j * assignBatchSize, (j + 1) * assignBatchSize)));
+            .assignTasks(instances, tasks.subList(j * assignBatchSize, (j + 1) * assignBatchSize), testQuotaTypes[0]));
       }
       long duration = System.currentTimeMillis() - start;
       totalTime += duration;
@@ -170,16 +170,15 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
     }
   }
 
-  private List<TaskConfig> createTaskConfigs(int count, String quotaType) {
-    return createTaskConfigs(count, quotaType, true);
+  private List<TaskConfig> createTaskConfigs(int count) {
+    return createTaskConfigs(count, true);
   }
 
-  private List<TaskConfig> createTaskConfigs(int count, String quotaType, boolean randomID) {
+  private List<TaskConfig> createTaskConfigs(int count, boolean randomID) {
     List<TaskConfig> tasks = new ArrayList<>();
     for (int i = 0; i < count; i++) {
       TaskConfig task =
           new TaskConfig(null, null, randomID ? UUID.randomUUID().toString() : "task-" + i, null);
-      task.setQuotaType(quotaType);
       tasks.add(task);
     }
     return tasks;

@@ -28,6 +28,9 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.JobConfig;
@@ -35,13 +38,14 @@ import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
+import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Cache for holding all task related cluster data, such as WorkflowConfig, JobConfig and Contexts.
  */
-public class TaskDataCache {
+public class TaskDataCache extends AbstractDataCache {
   private static final Logger LOG = LoggerFactory.getLogger(TaskDataCache.class.getName());
   private static final String NAME = "NAME";
 
@@ -49,7 +53,13 @@ public class TaskDataCache {
   private Map<String, JobConfig> _jobConfigMap = new HashMap<>();
   private Map<String, WorkflowConfig> _workflowConfigMap = new HashMap<>();
   private Map<String, ZNRecord> _contextMap = new HashMap<>();
+  // The following fields have been added for quota-based task scheduling
+  private final AssignableInstanceManager _assignableInstanceManager = new AssignableInstanceManager();
 
+  /**
+   * Original constructor for TaskDataCache.
+   * @param clusterName
+   */
   public TaskDataCache(String clusterName) {
     _clusterName = clusterName;
   }
@@ -79,6 +89,28 @@ public class TaskDataCache {
     return true;
   }
 
+  /**
+   * Refreshes Task Framework contexts and configs from ZooKeeper. This method also re-instantiates
+   * AssignableInstanceManager.
+   * @param accessor
+   * @param resourceConfigMap
+   * @param liveInstanceMap
+   * @param instanceConfigMap
+   * @return
+   */
+  public synchronized boolean refresh(HelixDataAccessor accessor,
+      Map<String, ResourceConfig> resourceConfigMap, ClusterConfig clusterConfig,
+      Map<String, LiveInstance> liveInstanceMap, Map<String, InstanceConfig> instanceConfigMap) {
+    // First, call the original refresh for contexts and configs
+    if (refresh(accessor, resourceConfigMap)) {
+      // Upon refresh success, re-instantiate AssignableInstanceManager from scratch
+      _assignableInstanceManager.buildAssignableInstances(clusterConfig, this, liveInstanceMap,
+          instanceConfigMap);
+      return true;
+    }
+    return false;
+  }
+
   private void refreshJobContexts(HelixDataAccessor accessor) {
     // TODO: Need an optimize for reading context only if the refresh is needed.
     long start = System.currentTimeMillis();
@@ -104,14 +136,15 @@ public class TaskDataCache {
         _contextMap.put(context.getSimpleField(NAME), context);
       } else {
         _contextMap.put(childNames.get(i), context);
-        LOG.debug(
+        LogUtil.logDebug(LOG, getEventId(),
             String.format("Context for %s is null or miss the context NAME!", childNames.get((i))));
       }
     }
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug("# of workflow/job context read from zk: " + _contextMap.size() + ". Take "
-          + (System.currentTimeMillis() - start) + " ms");
+      LogUtil.logDebug(LOG, getEventId(),
+          "# of workflow/job context read from zk: " + _contextMap.size() + ". Take " + (
+              System.currentTimeMillis() - start) + " ms");
     }
   }
 
@@ -205,6 +238,14 @@ public class TaskDataCache {
    */
   public Map<String, ZNRecord> getContexts() {
     return _contextMap;
+  }
+
+  /**
+   * Returns the current AssignableInstanceManager instance.
+   * @return
+   */
+  public AssignableInstanceManager getAssignableInstanceManager() {
+    return _assignableInstanceManager;
   }
 
   @Override

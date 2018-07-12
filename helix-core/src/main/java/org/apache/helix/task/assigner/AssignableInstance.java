@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
  */
 public class AssignableInstance {
   private static final Logger logger = LoggerFactory.getLogger(AssignableInstance.class);
+  public static final String DEFAULT_QUOTA_TYPE = "DEFAULT";
 
   /**
    * Fitness score will be calculated from 0 to 1000
@@ -68,13 +69,14 @@ public class AssignableInstance {
   public AssignableInstance(ClusterConfig clusterConfig, InstanceConfig instanceConfig,
       LiveInstance liveInstance) {
     if (clusterConfig == null || instanceConfig == null || liveInstance == null) {
-      throw new IllegalArgumentException(
-          "ClusterConfig, InstanceConfig, LiveInstance cannot be null!");
+      throw new IllegalArgumentException(String.format(
+          "ClusterConfig, InstanceConfig, LiveInstance cannot be null! ClusterConfig null: %s, InstanceConfig null: %s, LiveInstance null: %s",
+          clusterConfig == null, instanceConfig == null, liveInstance == null));
     }
 
     if (!instanceConfig.getInstanceName().equals(liveInstance.getInstanceName())) {
-      throw new IllegalArgumentException(String
-          .format("Instance name from LiveInstance (%s) and InstanceConfig (%s) don't match!",
+      throw new IllegalArgumentException(
+          String.format("Instance name from LiveInstance (%s) and InstanceConfig (%s) don't match!",
               liveInstance.getInstanceName(), instanceConfig.getInstanceName()));
     }
     _clusterConfig = clusterConfig;
@@ -90,15 +92,15 @@ public class AssignableInstance {
   /**
    * When task quota ratio / instance's resource capacity change, we need to update instance
    * capacity cache. Couple of corner cases to clarify for updating capacity:
-   *    1. User shrinks capacity and used capacity exceeds total capacity - current assignment
-   *       will not be affected (used > total is ok) but no further assignment decision will
-   *       be made on this instance until spaces get freed up
-   *    2. User removed a quotaType but there are still tasks with stale quota type assigned on
-   *       this instance - current assignment will not be affected, and further assignment will
-   *       NOT be made for stale quota type
-   *    3. User removed a resourceType but there are still tasks with stale resource type assigned
-   *       on this instance - current assignment will not be affected, but no further assignment
-   *       with stale resource type request will be allowed on this instance
+   * 1. User shrinks capacity and used capacity exceeds total capacity - current assignment
+   * will not be affected (used > total is ok) but no further assignment decision will
+   * be made on this instance until spaces get freed up
+   * 2. User removed a quotaType but there are still tasks with stale quota type assigned on
+   * this instance - current assignment will not be affected, and further assignment will
+   * NOT be made for stale quota type
+   * 3. User removed a resourceType but there are still tasks with stale resource type assigned
+   * on this instance - current assignment will not be affected, but no further assignment
+   * with stale resource type request will be allowed on this instance
    */
   private void refreshTotalCapacity() {
     // Create a temp total capacity record in case we fail to parse configurations, we
@@ -117,7 +119,7 @@ public class AssignableInstance {
 
     if (typeQuotaRatio == null) {
       typeQuotaRatio = new HashMap<>();
-      typeQuotaRatio.put(TaskConfig.DEFAULT_QUOTA_TYPE, Integer.toString(1));
+      typeQuotaRatio.put(DEFAULT_QUOTA_TYPE, Integer.toString(1));
       logger.info("No quota type ratio provided in LiveInstance {}, assuming default ratio: {}",
           _instanceConfig.getInstanceName(), typeQuotaRatio);
     }
@@ -148,7 +150,7 @@ public class AssignableInstance {
           // Calculate total quota for a given type
           String quotaType = typeQuotaEntry.getKey();
           int quotaRatio = Integer.valueOf(typeQuotaEntry.getValue());
-          int quota = Math.round(capacity * (float)quotaRatio / (float)totalRatio);
+          int quota = Math.round(capacity * (float) quotaRatio / (float) totalRatio);
 
           // Honor non-zero quota ratio for non-zero capacity even if it is rounded to zero
           if (capacity != 0 && quotaRatio != 0 && quota == 0) {
@@ -239,23 +241,23 @@ public class AssignableInstance {
   /**
    * Tries to assign the given task on this instance and returns TaskAssignResult. Instance capacity
    * profile is NOT modified by tryAssign.
-   *
    * When calculating fitness of an assignment, this function will rate assignment from 0 to 1000,
    * and the assignment that has a higher score will be a better fit.
-   *
    * @param task task config
+   * @param quotaType quota type of the task
    * @return TaskAssignResult
    * @throws IllegalArgumentException if task is null
    */
-  public TaskAssignResult tryAssign(TaskConfig task) throws IllegalArgumentException {
+  public TaskAssignResult tryAssign(TaskConfig task, String quotaType)
+      throws IllegalArgumentException {
     if (task == null) {
       throw new IllegalArgumentException("Task is null!");
     }
 
     if (_currentAssignments.contains(task.getId())) {
-      return new TaskAssignResult(task, this, false, 0,
-          TaskAssignResult.FailureReason.TASK_ALREADY_ASSIGNED, String
-          .format("Task %s is already assigned to this instance. Need to release it first",
+      return new TaskAssignResult(task, quotaType, this, false, 0,
+          TaskAssignResult.FailureReason.TASK_ALREADY_ASSIGNED,
+          String.format("Task %s is already assigned to this instance. Need to release it first",
               task.getId()));
     }
 
@@ -264,47 +266,44 @@ public class AssignableInstance {
 
     // Fail when no such resource type
     if (!_totalCapacity.containsKey(resourceType)) {
-      return new TaskAssignResult(task, this, false, 0,
-          TaskAssignResult.FailureReason.NO_SUCH_RESOURCE_TYPE, String
-          .format("Requested resource type %s not supported. Available resource types: %s",
+      return new TaskAssignResult(task, quotaType, this, false, 0,
+          TaskAssignResult.FailureReason.NO_SUCH_RESOURCE_TYPE,
+          String.format("Requested resource type %s not supported. Available resource types: %s",
               resourceType, _totalCapacity.keySet()));
     }
 
-    String quotaType = task.getQuotaType();
-
     // Fail when no such quota type
     if (!_totalCapacity.get(resourceType).containsKey(quotaType)) {
-      return new TaskAssignResult(task, this, false, 0,
-          TaskAssignResult.FailureReason.NO_SUCH_QUOTA_TYPE, String
-          .format("Requested quota type %s not defined. Available quota types: %s", quotaType,
+      return new TaskAssignResult(task, quotaType, this, false, 0,
+          TaskAssignResult.FailureReason.NO_SUCH_QUOTA_TYPE,
+          String.format("Requested quota type %s not defined. Available quota types: %s", quotaType,
               _totalCapacity.get(resourceType).keySet()));
     }
 
     int capacity = _totalCapacity.get(resourceType).get(quotaType);
-    int usage =  _usedCapacity.get(resourceType).get(quotaType);
+    int usage = _usedCapacity.get(resourceType).get(quotaType);
 
     // Fail with insufficient quota
     if (capacity <= usage) {
-      return new TaskAssignResult(task, this, false, 0,
-          TaskAssignResult.FailureReason.INSUFFICIENT_QUOTA, String
-          .format("Insufficient quota %s::%s. Capacity: %s, Current Usage: %s", resourceType,
+      return new TaskAssignResult(task, quotaType, this, false, 0,
+          TaskAssignResult.FailureReason.INSUFFICIENT_QUOTA,
+          String.format("Insufficient quota %s::%s. Capacity: %s, Current Usage: %s", resourceType,
               quotaType, capacity, usage));
     }
 
     // More remaining capacity leads to higher fitness score
-    int fitness = Math.round((float)(capacity - usage) / capacity * fitnessScoreFactor);
+    int fitness = Math.round((float) (capacity - usage) / capacity * fitnessScoreFactor);
 
-    return new TaskAssignResult(task, this, true, fitness,
-        null, "");
+    return new TaskAssignResult(task, quotaType, this, true, fitness, null, "");
   }
 
   /**
    * Performs the following to accept a task:
    * 1. Deduct the amount of resource required by this task
    * 2. Add this TaskAssignResult to _currentAssignments
-   * @param result
+   * @param result TaskAssignResult
    * @throws IllegalStateException if TaskAssignResult is not successful or the task is double
-   *                              assigned, or the task is not assigned to this instance
+   *           assigned, or the task is not assigned to this instance
    */
   public void assign(TaskAssignResult result) throws IllegalStateException {
     if (!result.isSuccessful()) {
@@ -327,13 +326,13 @@ public class AssignableInstance {
     // update resource usage
     // TODO (harry): get requested resource type from task config
     String resourceType = LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name();
-    String quotaType = result.getTaskConfig().getQuotaType();
+    String quotaType = result.getQuotaType();
 
     // Resource type / quota type might have already changed, i.e. we are recovering
     // current assignments for a live instance, but currently running tasks's quota
     // type has already been removed by user. So we do the deduction with best effort
-    if (_usedCapacity.containsKey(resourceType) && _usedCapacity.get(resourceType)
-        .containsKey(quotaType)) {
+    if (_usedCapacity.containsKey(resourceType)
+        && _usedCapacity.get(resourceType).containsKey(quotaType)) {
       int curUsage = _usedCapacity.get(resourceType).get(quotaType);
       _usedCapacity.get(resourceType).put(quotaType, curUsage + 1);
     } else {
@@ -351,20 +350,20 @@ public class AssignableInstance {
    * 1. Release the resource by adding back what the task required.
    * 2. Remove the TaskAssignResult from _currentAssignments
    * @param taskConfig config of this task
+   * @param quotaType quota type this task belongs to
    */
-  public void release(TaskConfig taskConfig) {
+  public void release(TaskConfig taskConfig, String quotaType) {
     if (!_currentAssignments.contains(taskConfig.getId())) {
       logger.warn("Task {} is not assigned on instance {}", taskConfig.getId(),
           _instanceConfig.getInstanceName());
       return;
     }
-    String quotaType = taskConfig.getQuotaType();
     String resourceType = LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name();
 
     // We might be releasing a task whose resource requirement / quota type is out-dated,
     // thus we need to check to avoid NPE
-    if (_usedCapacity.containsKey(resourceType) && _usedCapacity.get(resourceType)
-        .containsKey(quotaType)) {
+    if (_usedCapacity.containsKey(resourceType)
+        && _usedCapacity.get(resourceType).containsKey(quotaType)) {
       int curUsage = _usedCapacity.get(resourceType).get(quotaType);
       _usedCapacity.get(resourceType).put(quotaType, curUsage - 1);
     }
@@ -383,15 +382,16 @@ public class AssignableInstance {
    * @return TaskAssignResult with isSuccessful = true if successful. If assigning it to an instance
    *         fails, TaskAssignResult's getSuccessful() will return false
    */
-  public TaskAssignResult restoreTaskAssignResult(String taskId, TaskConfig taskConfig) {
-    TaskAssignResult assignResult = new TaskAssignResult(taskConfig, this, true, fitnessScoreFactor,
-        null, "Recovered TaskAssignResult from current state");
+  public TaskAssignResult restoreTaskAssignResult(String taskId, TaskConfig taskConfig,
+      String quotaType) {
+    TaskAssignResult assignResult = new TaskAssignResult(taskConfig, quotaType, this, true,
+        fitnessScoreFactor, null, "Recovered TaskAssignResult from current state");
     try {
       assign(assignResult);
     } catch (IllegalStateException e) {
-      logger.error("Failed to set current assignment for task {}.", taskId, e);
-      return new TaskAssignResult(taskConfig, this, false, fitnessScoreFactor,
-          null, "Recovered TaskAssignResult from current state");
+      logger.error("Failed to restore current TaskAssignResult for task {}.", taskId, e);
+      return new TaskAssignResult(taskConfig, quotaType, this, false, fitnessScoreFactor, null,
+          "Recovered TaskAssignResult from current state");
     }
     return assignResult;
   }

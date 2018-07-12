@@ -36,7 +36,6 @@ import org.apache.helix.task.assigner.TaskAssignResult;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import sun.security.jca.GetInstance;
 
 public class TestAssignableInstanceManager {
   private static final int NUM_PARTICIPANTS = 3;

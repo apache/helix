@@ -71,7 +71,7 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
         accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs(), true);
 
     // Wait for the job pipeline
-    Thread.sleep(2000);
+    Thread.sleep(100);
     taskDataCache.refresh(accessor, resourceConfigMap);
 
     // Create prev manager and build
@@ -86,7 +86,7 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
     // Stop the current controller
     _controller.syncStop();
     // Start a new controller
-    String newControllerName = CONTROLLER_PREFIX + "_1";
+    String newControllerName = CONTROLLER_PREFIX + "_2";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, newControllerName);
     _controller.syncStart();
 

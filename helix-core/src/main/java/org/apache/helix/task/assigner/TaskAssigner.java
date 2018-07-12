@@ -27,11 +27,24 @@ public interface TaskAssigner {
   /**
    * Assign a collection of tasks on a collection of assignableInstances.
    * When an assignment decision is made, AssignableInstance.assign() must be called for the
-   * instance to modify its internal capacity profile.
-   * @param assignableInstances String -> AssignableInstanceMapping
-   * @param tasks String -> TaskConfig
-   * @return taskID -> TaskAssignmentResult mapping per task
+   * instance to modify its internal capacity profile. Note that all tasks will be treated as
+   * belonging to the DEFAULT type.
+   * @param assignableInstances AssignableInstances
+   * @param tasks TaskConfigs of the same quota type
+   * @return taskID -> TaskAssignmentResult mappings
    */
   Map<String, TaskAssignResult> assignTasks(Iterable<AssignableInstance> assignableInstances,
       Iterable<TaskConfig> tasks);
+
+  /**
+   * Assign a collection of tasks on a collection of assignableInstances.
+   * When an assignment decision is made, AssignableInstance.assign() must be called for the
+   * instance to modify its internal capacity profile.
+   * @param assignableInstances AssignableInstances
+   * @param tasks TaskConfigs of the same quota type
+   * @param quotaType quota type of the tasks
+   * @return taskID -> TaskAssignmentResult mappings
+   */
+  Map<String, TaskAssignResult> assignTasks(Iterable<AssignableInstance> assignableInstances,
+      Iterable<TaskConfig> tasks, String quotaType);
 }

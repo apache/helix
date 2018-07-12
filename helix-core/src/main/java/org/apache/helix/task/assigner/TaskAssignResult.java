@@ -46,15 +46,17 @@ public class TaskAssignResult implements Comparable<TaskAssignResult> {
   private final AssignableInstance _node;
   private final TaskConfig _taskConfig;
   private final String _description;
+  private final String _quotaType;
 
-  public TaskAssignResult(TaskConfig taskConfig, AssignableInstance node, boolean isSuccessful,
-      int fitness, FailureReason reason, String description) {
+  public TaskAssignResult(TaskConfig taskConfig, String quotaType, AssignableInstance node,
+      boolean isSuccessful, int fitness, FailureReason reason, String description) {
     _isAssignmentSuccessful = isSuccessful;
     _fitnessScore = fitness;
     _reason = reason;
     _taskConfig = taskConfig;
     _node = node;
     _description = description;
+    _quotaType = quotaType;
   }
 
   /**
@@ -70,6 +72,15 @@ public class TaskAssignResult implements Comparable<TaskAssignResult> {
    */
   public TaskConfig getTaskConfig() {
     return _taskConfig;
+  }
+
+  /**
+   * Returns the quota type of the underlying task being assigned. This will be used at release time
+   * so that the right quota type will see resources being released.
+   * @return quota type of the task
+   */
+  public String getQuotaType() {
+    return _quotaType;
   }
 
   /**
@@ -98,8 +109,7 @@ public class TaskAssignResult implements Comparable<TaskAssignResult> {
 
   /**
    * Returns a one sentence description that carries detail information about
-   * assignment failure for debug purpose
-   *
+   * assignment failure for debug purpose.
    * @return description
    */
   public String getFailureDescription() {

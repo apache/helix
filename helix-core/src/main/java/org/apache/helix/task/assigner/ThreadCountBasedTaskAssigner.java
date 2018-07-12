@@ -24,45 +24,53 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Random;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.task.TaskConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ThreadCountBasedTaskAssigner implements TaskAssigner {
-  private static final Logger logger =
-      LoggerFactory.getLogger(ThreadCountBasedTaskAssigner.class);
+  private static final Logger logger = LoggerFactory.getLogger(ThreadCountBasedTaskAssigner.class);
 
   private static final int SCHED_QUEUE_INIT_CAPACITY = 200;
+  private static final String DEFAULT_QUOTA_TYPE = "DEFAULT";
+
+  /**
+   * Assigns given tasks to given AssignableInstances assuming the DEFAULT quota type for all tasks.
+   * @param assignableInstances AssignableInstances
+   * @param tasks TaskConfigs of the same quota type
+   * @return taskID -> TaskAssignmentResult mappings
+   */
+  public Map<String, TaskAssignResult> assignTasks(Iterable<AssignableInstance> assignableInstances,
+      Iterable<TaskConfig> tasks) {
+    return assignTasks(assignableInstances, tasks, DEFAULT_QUOTA_TYPE);
+  }
 
   /**
    * This is a simple task assigning algorithm that uses the following assumptions to achieve
    * efficiency in assigning tasks:
-   *    1. All tasks have same quota type
-   *    2. All tasks only need 1 thread for assignment, no other things to consider
-   *
+   * 1. All tasks have same quota type
+   * 2. All tasks only need 1 thread for assignment, no other things to consider
    * The algorithm ensures the spread-out of tasks with same quota type or tasks from same job, with
    * best effort.
    * NOTE: once we have more things to consider during scheduling, we will need to come up with
-   * a more generic task assignment algorithm
-   * @param assignableInstances String -> AssignableInstanceMapping
-   * @param tasks String -> TaskConfig
-   * @return taskID -> TaskAssignmentResult mapping per task
+   * a more generic task assignment algorithm.
+   * @param assignableInstances AssignableInstances
+   * @param tasks TaskConfigs of the same quota type
+   * @param quotaType quota type of the tasks
+   * @return taskID -> TaskAssignmentResult mappings
    */
+  @Override
   public Map<String, TaskAssignResult> assignTasks(Iterable<AssignableInstance> assignableInstances,
-      Iterable<TaskConfig> tasks) {
+      Iterable<TaskConfig> tasks, String quotaType) {
     if (tasks == null || !tasks.iterator().hasNext()) {
       logger.warn("No task to assign!");
       return Collections.emptyMap();
     }
     if (assignableInstances == null || !assignableInstances.iterator().hasNext()) {
       logger.warn("No instance to assign!");
-      return buildNoInstanceAssignment(tasks);
+      return buildNoInstanceAssignment(tasks, quotaType);
     }
-
-    // get quota type
-    String quotaType = tasks.iterator().next().getQuotaType();
     logger.info("Assigning tasks with quota type {}", quotaType);
 
     // Build a sched queue
@@ -83,17 +91,17 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
       // we assume all subsequent tasks will fail with same reason
       if (lastFailure != null) {
         assignResults.put(task.getId(),
-            new TaskAssignResult(task, null, false, lastFailure.getFitnessScore(),
+            new TaskAssignResult(task, quotaType, null, false, lastFailure.getFitnessScore(),
                 lastFailure.getFailureReason(), lastFailure.getFailureDescription()));
         continue;
       }
 
       // Try to assign the task to least used instance
       AssignableInstance instance = queue.poll();
-      TaskAssignResult result = instance.tryAssign(task);
+      TaskAssignResult result = instance.tryAssign(task, quotaType);
       assignResults.put(task.getId(), result);
 
-      if (!result.isSuccessful()){
+      if (!result.isSuccessful()) {
         // For all failure reasons other than duplicated assignment, we can fail
         // subsequent tasks
         lastFailure = result;
@@ -120,10 +128,11 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
     return queue;
   }
 
-  private Map<String, TaskAssignResult> buildNoInstanceAssignment(Iterable<TaskConfig> tasks) {
+  private Map<String, TaskAssignResult> buildNoInstanceAssignment(Iterable<TaskConfig> tasks,
+      String quotaType) {
     Map<String, TaskAssignResult> result = new HashMap<>();
     for (TaskConfig taskConfig : tasks) {
-      result.put(taskConfig.getId(), new TaskAssignResult(taskConfig, null, false, 0,
+      result.put(taskConfig.getId(), new TaskAssignResult(taskConfig, quotaType, null, false, 0,
           TaskAssignResult.FailureReason.INSUFFICIENT_QUOTA, "No assignable instance to assign"));
     }
     return result;
@@ -149,7 +158,6 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
      * Using this comparator, AssignableInstance will be sorted based on availability of
      * quota given job type in the priority queue. Top of the queue will be the one with
      * highest priority
-     *
      * @return a negative integer, zero, or a positive integer as the
      *         first argument is less than, equal to, or greater than the
      *         second
@@ -163,10 +171,10 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
 
     private Integer getRemainingUsage(Map<String, Map<String, Integer>> capacity,
         Map<String, Map<String, Integer>> used) {
-      if (capacity.containsKey(RESOURCE_TYPE) && capacity.get(RESOURCE_TYPE)
-          .containsKey(_quotaType)) {
-        return capacity.get(RESOURCE_TYPE).get(_quotaType) - used.get(RESOURCE_TYPE)
-            .get(_quotaType);
+      if (capacity.containsKey(RESOURCE_TYPE)
+          && capacity.get(RESOURCE_TYPE).containsKey(_quotaType)) {
+        return capacity.get(RESOURCE_TYPE).get(_quotaType)
+            - used.get(RESOURCE_TYPE).get(_quotaType);
       }
       return 0;
     }

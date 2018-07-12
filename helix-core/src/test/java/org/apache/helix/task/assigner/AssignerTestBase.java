@@ -41,7 +41,8 @@ import org.apache.helix.task.TaskConfig;
     return createLiveInstance(resourceTypes, resourceCapacity, testInstanceName);
   }
 
-  /* package */ LiveInstance createLiveInstance(String[] resourceTypes, String[] resourceCapacity, String instancename) {
+  /* package */ LiveInstance createLiveInstance(String[] resourceTypes, String[] resourceCapacity,
+      String instancename) {
     LiveInstance li = new LiveInstance(instancename);
     if (resourceCapacity != null && resourceTypes != null) {
       Map<String, String> resMap = new HashMap<>();
@@ -62,7 +63,7 @@ import org.apache.helix.task.TaskConfig;
       }
     }
     if (addDefaultQuota) {
-      clusterConfig.setTaskQuotaRatio(TaskConfig.DEFAULT_QUOTA_TYPE, defaultQuotaRatio);
+      clusterConfig.setTaskQuotaRatio(AssignableInstance.DEFAULT_QUOTA_TYPE, defaultQuotaRatio);
     }
     return clusterConfig;
   }

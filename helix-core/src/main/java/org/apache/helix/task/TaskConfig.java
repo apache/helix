@@ -37,10 +37,12 @@ public class TaskConfig {
     TASK_COMMAND,
     @Deprecated
     TASK_SUCCESS_OPTIONAL,
-    TASK_TARGET_PARTITION
+    TASK_TARGET_PARTITION,
+    TASK_QUOTA_TYPE //TODO: remove
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskConfig.class);
+  public static final String DEFAULT_QUOTA_TYPE = "DEFAULT"; //TODO: remove!
 
   private final Map<String, String> _configMap;
 
@@ -229,5 +231,23 @@ public class TaskConfig {
       String targetPartition = rawConfigMap.get(TaskConfigProperty.TASK_TARGET_PARTITION.name());
       return new TaskConfig(command, rawConfigMap, taskId, targetPartition);
     }
+  }
+
+  //TODO: remove the following
+  /**
+   * Set the quota type of this task
+   * @param quotaType
+   */
+  public void setQuotaType(String quotaType) {
+    _configMap.put(TaskConfigProperty.TASK_QUOTA_TYPE.name(), quotaType);
+  }
+
+  /**
+   * Return the quota type of this task
+   * @return
+   */
+  public String getQuotaType() {
+    return _configMap.containsKey(TaskConfigProperty.TASK_QUOTA_TYPE.name()) ?
+        _configMap.get(TaskConfigProperty.TASK_QUOTA_TYPE.name()) : DEFAULT_QUOTA_TYPE;
   }
 }

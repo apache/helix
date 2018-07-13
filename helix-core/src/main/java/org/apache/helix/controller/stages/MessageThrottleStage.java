@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.ClusterConstraints;
@@ -52,16 +53,18 @@ public class MessageThrottleStage extends AbstractBaseStage {
         value = Integer.MAX_VALUE;
         break;
       default:
-        LOG.error("Invalid constraintValue token:" + valueStr + ". Use default value:"
-            + Integer.MAX_VALUE);
+        LogUtil.logError(LOG, _eventId,
+            "Invalid constraintValue token:" + valueStr + ". Use default value:"
+                + Integer.MAX_VALUE);
         break;
       }
     } catch (Exception e) {
       try {
         value = Integer.parseInt(valueStr);
       } catch (NumberFormatException ne) {
-        LOG.error("Invalid constraintValue string:" + valueStr + ". Use default value:"
-            + Integer.MAX_VALUE);
+        LogUtil.logError(LOG, _eventId,
+            "Invalid constraintValue string:" + valueStr + ". Use default value:"
+                + Integer.MAX_VALUE);
       }
     }
     return value;
@@ -113,6 +116,7 @@ public class MessageThrottleStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     MessageSelectionStageOutput msgSelectionOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
@@ -176,7 +180,8 @@ public class MessageThrottleStage extends AbstractBaseStage {
 
           if (LOG.isDebugEnabled()) {
             // TODO: printout constraint item that throttles the message
-            LOG.debug("message: " + message + " is throttled by constraint: " + item);
+            LogUtil.logDebug(LOG, _eventId,
+                "message: " + message + " is throttled by constraint: " + item);
           }
         }
       }

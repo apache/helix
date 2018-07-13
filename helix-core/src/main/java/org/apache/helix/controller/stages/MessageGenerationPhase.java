@@ -30,6 +30,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
@@ -65,6 +66,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
@@ -92,7 +94,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
       StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
       if (stateModelDef == null) {
-        logger.error(
+        LogUtil.logError(logger, _eventId,
             "State Model Definition null, skip generating messages for resource: " + resourceName);
         continue;
       }
@@ -137,10 +139,10 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
           if (shouldCleanUpPendingMessage(pendingMessage, currentState,
               currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
-            logger.info(
-                "Adding pending message {} on instance {} to clean up. Msg: {}->{}, current state of resource {}:{} is {}",
+            LogUtil.logInfo(logger, _eventId, String.format(
+                "Adding pending message %s on instance %s to clean up. Msg: %s->%s, current state of resource %s:%s is %s",
                 pendingMessage.getMsgId(), instanceName, pendingMessage.getFromState(),
-                pendingMessage.getToState(), resourceName, partition, currentState);
+                pendingMessage.getToState(), resourceName, partition, currentState));
             if (!pendingMessagesToCleanUp.containsKey(instanceName)) {
                 pendingMessagesToCleanUp.put(instanceName, new HashMap<String, Message>());
             }
@@ -158,29 +160,31 @@ public class MessageGenerationPhase extends AbstractBaseStage {
             }
           } else {
             if (nextState == null) {
-              logger.error("Unable to find a next state for resource: " + resource.getResourceName()
-                  + " partition: " + partition.getPartitionName() + " from stateModelDefinition"
-                  + stateModelDef.getClass() + " from:" + currentState + " to:" + desiredState);
+              LogUtil.logError(logger, _eventId,
+                  "Unable to find a next state for resource: " + resource.getResourceName()
+                      + " partition: " + partition.getPartitionName() + " from stateModelDefinition"
+                      + stateModelDef.getClass() + " from:" + currentState + " to:" + desiredState);
               continue;
             }
 
             if (pendingMessage != null) {
               String pendingState = pendingMessage.getToState();
               if (nextState.equalsIgnoreCase(pendingState)) {
-                logger.debug(
+                LogUtil.logDebug(logger, _eventId,
                     "Message already exists for " + instanceName + " to transit " + resource
                         .getResourceName() + "." + partition.getPartitionName() + " from "
                         + currentState + " to " + nextState);
               } else if (currentState.equalsIgnoreCase(pendingState)) {
-                logger.info(
+                LogUtil.logInfo(logger, _eventId,
                     "Message hasn't been removed for " + instanceName + " to transit " + resource
                         .getResourceName() + "." + partition.getPartitionName() + " to "
                         + pendingState + ", desiredState: " + desiredState);
               } else {
-                logger.info("IdealState changed before state transition completes for " + resource
-                    .getResourceName() + "." + partition.getPartitionName() + " on " + instanceName
-                    + ", pendingState: " + pendingState + ", currentState: " + currentState
-                    + ", nextState: " + nextState);
+                LogUtil.logInfo(logger, _eventId,
+                    "IdealState changed before state transition completes for " + resource
+                        .getResourceName() + "." + partition.getPartitionName() + " on "
+                        + instanceName + ", pendingState: " + pendingState + ", currentState: "
+                        + currentState + ", nextState: " + nextState);
 
                 message = createStateTransitionCancellationMessage(manager, resource,
                     partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
@@ -195,7 +199,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                       stateModelDef.getId());
 
               if (logger.isDebugEnabled()) {
-                logger.debug(String.format(
+                LogUtil.logDebug(logger, _eventId, String.format(
                     "Resource %s partition %s for instance %s with currentState %s and nextState %s",
                     resource, partition.getPartitionName(), instanceName, currentState, nextState));
               }
@@ -268,7 +272,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
             String instanceName = entry.getKey();
             for (Message msg : entry.getValue().values()) {
               if (accessor.removeProperty(msg.getKey(accessor.keyBuilder(), instanceName))) {
-                logger.info("Deleted message {} from instance {}", msg.getMsgId(), instanceName);
+                LogUtil.logInfo(logger, _eventId, String
+                    .format("Deleted message %s from instance %s", msg.getMsgId(), instanceName));
               }
             }
           }
@@ -330,9 +335,10 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       String currentState) {
 
     if (isCancellationEnabled && cancellationMessage == null) {
-      logger.info("Send cancellation message of the state transition for " + resource.getResourceName() + "."
-          + partitionName + " on " + instanceName + ", currentState: " + currentState + ", nextState: "
-          + (nextState == null ? "N/A" : nextState));
+      LogUtil.logInfo(logger, _eventId,
+          "Send cancellation message of the state transition for " + resource.getResourceName()
+              + "." + partitionName + " on " + instanceName + ", currentState: " + currentState
+              + ", nextState: " + (nextState == null ? "N/A" : nextState));
 
       String uuid = UUID.randomUUID().toString();
       Message message = new Message(MessageType.STATE_TRANSITION_CANCELLATION, uuid);
@@ -382,7 +388,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       try {
         timeout = Integer.parseInt(timeOutStr);
       } catch (Exception e) {
-        logger.error("", e);
+        LogUtil.logError(logger, _eventId, "", e);
       }
     }
 

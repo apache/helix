@@ -20,6 +20,7 @@ package org.apache.helix.controller.pipeline;
  */
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import org.apache.helix.common.DedupEventProcessor;
@@ -27,6 +28,8 @@ import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
 
 public class AbstractBaseStage implements Stage {
+  protected String _eventId;
+
   @Override
   public void init(StageContext context) {
 

@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.model.IdealState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +93,7 @@ public class IdealStateCache extends AbstractDataCache {
     _idealStateMap = new HashMap<>(newIdealStateMap);
 
     long endTime = System.currentTimeMillis();
-    LOG.info(
+    LogUtil.logInfo(LOG, getEventId(),
         "Refresh " + _idealStateMap.size() + " idealStates for cluster " + _clusterName + ", took "
             + (endTime - startTime) + " ms");
   }

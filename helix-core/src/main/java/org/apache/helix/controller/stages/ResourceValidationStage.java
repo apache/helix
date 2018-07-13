@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.Map;
 
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.IdealState;
@@ -34,6 +35,7 @@ public class ResourceValidationStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     if (cache == null) {
       throw new StageException("Missing attributes in event:" + event + ". Requires DataCache");
@@ -60,7 +62,8 @@ public class ResourceValidationStage extends AbstractBaseStage {
           }
         }
         if (!hasMatchingRule) {
-          LOG.warn("Resource " + resourceName + " does not have a valid ideal state!");
+          LogUtil.logWarn(LOG, _eventId,
+              "Resource " + resourceName + " does not have a valid ideal state!");
           resourceMap.remove(resourceName);
         }
       }
@@ -69,8 +72,9 @@ public class ResourceValidationStage extends AbstractBaseStage {
       String stateModelDefRef = idealState.getStateModelDefRef();
       StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefRef);
       if (stateModelDef == null) {
-        LOG.warn("Resource " + resourceName + " uses state model " + stateModelDefRef
-            + ", but it is not on the cluster!");
+        LogUtil.logWarn(LOG, _eventId,
+            "Resource " + resourceName + " uses state model " + stateModelDefRef
+                + ", but it is not on the cluster!");
         resourceMap.remove(resourceName);
       }
     }

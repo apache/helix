@@ -23,6 +23,7 @@ import com.google.common.collect.Maps;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
@@ -31,7 +32,15 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractDataCache {
   private static Logger LOG = LoggerFactory.getLogger(AbstractDataCache.class.getName());
+  private String _eventId = "NO_ID";
 
+  public String getEventId() {
+    return _eventId;
+  }
+
+  public void setEventId(String eventId) {
+    _eventId = eventId;
+  }
 
   /**
    * Selectively fetch Helix Properties from ZK by comparing the version of local cached one with the one on ZK.
@@ -54,6 +63,7 @@ public abstract class AbstractDataCache {
       HelixProperty.Stat stat = stats.get(i);
       if (stat != null) {
         T property = cachedPropertyMap.get(key);
+
         if (property != null && property.getBucketSize() == 0 && property.getStat().equals(stat)) {
           refreshedPropertyMap.put(key, property);
         } else {

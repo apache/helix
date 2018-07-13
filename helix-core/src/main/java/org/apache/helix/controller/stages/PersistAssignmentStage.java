@@ -30,10 +30,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
-import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
@@ -41,6 +39,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +77,8 @@ public class PersistAssignmentStage extends AbstractAsyncBaseStage {
       if (resource != null) {
         final IdealState idealState = cache.getIdealState(resourceId);
         if (idealState == null) {
-          LOG.warn("IdealState not found for resource " + resourceId);
+          LogUtil
+              .logWarn(LOG, event.getEventId(), "IdealState not found for resource " + resourceId);
           continue;
         }
         IdealState.RebalanceMode mode = idealState.getRebalanceMode();

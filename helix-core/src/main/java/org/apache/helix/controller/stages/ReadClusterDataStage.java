@@ -26,6 +26,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.ClusterConfig;
@@ -45,6 +46,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     if (manager == null) {
       throw new StageException("HelixManager attribute value is null");
@@ -66,7 +68,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
         @Override public Object call() {
           // Update the cluster status gauges
           if (clusterStatusMonitor != null) {
-            logger.debug("Update cluster status monitors");
+            LogUtil.logDebug(logger, _eventId, "Update cluster status monitors");
 
             Set<String> instanceSet = Sets.newHashSet();
             Set<String> liveInstanceSet = Sets.newHashSet();
@@ -97,7 +99,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
             clusterStatusMonitor
                 .setClusterInstanceStatus(liveInstanceSet, instanceSet, disabledInstanceSet,
                     disabledPartitions, oldDisabledPartitions, tags);
-            logger.debug("Complete cluster status monitors update.");
+            LogUtil.logDebug(logger, _eventId, "Complete cluster status monitors update.");
           }
           return null;
         }

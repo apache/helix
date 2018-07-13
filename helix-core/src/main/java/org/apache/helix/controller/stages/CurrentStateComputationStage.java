@@ -24,6 +24,7 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.*;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +48,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
 
@@ -303,7 +305,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
     // 3. if no clue about previous topstate or any related pending message, use the current system time.
     if (startTime == NOT_RECORDED) {
-      LOG.warn("Cannot confirm top state missing start time. Use the current system time as the start time.");
+      LogUtil.logWarn(LOG, _eventId,
+          "Cannot confirm top state missing start time. Use the current system time as the start time.");
       startTime = System.currentTimeMillis();
     }
 
@@ -343,7 +346,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
 
     if (handOffStartTime > 0 && handOffEndTime - handOffStartTime <= threshold) {
-      LOG.info(String.format("Missing topstate duration is %d for partition %s",
+      LogUtil.logInfo(LOG, _eventId, String.format("Missing topstate duration is %d for partition %s",
           handOffEndTime - handOffStartTime, partition.getPartitionName()));
       if (clusterStatusMonitor != null) {
         clusterStatusMonitor

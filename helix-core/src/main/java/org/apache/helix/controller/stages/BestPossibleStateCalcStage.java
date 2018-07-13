@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
@@ -49,6 +50,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
     final Map<String, Resource> resourceMap =
@@ -78,7 +80,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
       final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();
       asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
-        @Override public Object call() {
+        @Override
+        public Object call() {
           try {
             if (clusterStatusMonitor != null) {
               clusterStatusMonitor
@@ -86,7 +89,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                       resourceMap, stateModelDefMap);
             }
           } catch (Exception e) {
-            logger.error("Could not update cluster status metrics!", e);
+            LogUtil
+                .logError(logger, _eventId, "Could not update cluster status metrics!", e);
           }
           return null;
         }
@@ -116,7 +120,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       Resource resource = itr.next().getResource();
       if (!computeResourceBestPossibleState(event, cache, currentStateOutput, resource, output)) {
         failureResources.add(resource.getResourceName());
-        logger.warn("Failed to calculate best possible states for " + resource.getResourceName());
+        LogUtil.logWarn(logger, _eventId, "Failed to calculate best possible states for " + resource.getResourceName());
       }
     }
 
@@ -150,7 +154,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
             clusterStatusMonitor.setRebalanceFailureGauge(hasFailure);
           }
         } catch (Exception e) {
-          logger.error("Could not update cluster status!", e);
+          LogUtil.logError(logger, _eventId, "Could not update cluster status!", e);
         }
         return null;
       }
@@ -175,7 +179,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                 .enableMaintenanceMode(manager.getClusterName(), true, errMsg);
           }
         } else {
-          logger.error("Failed to pause cluster, HelixManager is not set!");
+          LogUtil.logError(logger, _eventId, "Failed to pause cluster, HelixManager is not set!");
         }
         if (!cache.isTaskCache()) {
           updateRebalanceStatus(true, manager, cache, clusterStatusMonitor, errMsg);
@@ -193,13 +197,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // for each instanceName check if its alive then assign a state
 
     String resourceName = resource.getResourceName();
-    logger.debug("Processing resource:" + resourceName);
+    LogUtil.logDebug(logger, _eventId, "Processing resource:" + resourceName);
     // Ideal state may be gone. In that case we need to get the state model name
     // from the current state
     IdealState idealState = cache.getIdealState(resourceName);
     if (idealState == null) {
       // if ideal state is deleted, use an empty one
-      logger.info("resource:" + resourceName + " does not exist anymore");
+      LogUtil.logInfo(logger, _eventId, "resource:" + resourceName + " does not exist anymore");
       idealState = new IdealState(resourceName);
       idealState.setStateModelDefRef(resource.getStateModelDefRef());
     }
@@ -209,7 +213,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     MappingCalculator mappingCalculator = getMappingCalculator(rebalancer, resourceName);
 
     if (rebalancer == null || mappingCalculator == null) {
-      logger.error(
+      LogUtil.logError(logger, _eventId,
           "Error computing assignment for resource " + resourceName + ". no rebalancer found. rebalancer: " + rebalancer
               + " mappingCaculator: " + mappingCalculator);
     }
@@ -241,7 +245,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         // Check if calculation is done successfully
         return checkBestPossibleStateCalculation(idealState);
       } catch (Exception e) {
-        logger.error("Error computing assignment for resource " + resourceName + ". Skipping.", e);
+        LogUtil
+            .logError(logger, _eventId, "Error computing assignment for resource " + resourceName + ". Skipping.", e);
         // TODO : remove this part after debugging NPE
         StringBuilder sb = new StringBuilder();
 
@@ -254,7 +259,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
             String.format("PartitionAssignment is null : %s\n", partitionStateAssignment == null));
         sb.append(String.format("Output is null : %s\n", output == null));
 
-        logger.error(sb.toString());
+        LogUtil.logError(logger, _eventId, sb.toString());
       }
     }
     // Exception or rebalancer is not found
@@ -289,14 +294,15 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     String rebalancerClassName = idealState.getRebalancerClassName();
     if (rebalancerClassName != null) {
       if (logger.isDebugEnabled()) {
-        logger
-            .debug("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
+        LogUtil.logDebug(logger, _eventId,
+            "resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
       }
       try {
         customizedRebalancer = Rebalancer.class
             .cast(HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());
       } catch (Exception e) {
-        logger.error("Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
+        LogUtil.logError(logger, _eventId,
+            "Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
       }
     }
 
@@ -324,7 +330,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       rebalancer = customizedRebalancer;
       break;
     default:
-      logger.error(
+      LogUtil.logError(logger, _eventId,
           "Fail to find the rebalancer, invalid rebalance mode " + idealState.getRebalanceMode());
       break;
     }
@@ -339,7 +345,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       try {
         mappingCalculator = MappingCalculator.class.cast(rebalancer);
       } catch (ClassCastException e) {
-        logger.warn(
+        LogUtil.logWarn(logger, _eventId,
             "Rebalancer does not have a mapping calculator, defaulting to SEMI_AUTO, resource: "
                 + resourceName);
       }

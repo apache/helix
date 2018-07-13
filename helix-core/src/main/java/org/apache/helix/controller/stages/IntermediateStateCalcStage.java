@@ -24,6 +24,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -44,6 +45,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE.name());
 
     BestPossibleStateOutput bestPossibleStateOutput =
@@ -132,8 +134,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       IdealState idealState = dataCache.getIdealState(resourceName);
       if (idealState == null) {
         // If IdealState is null, use an empty one
-        logger.info("IdealState for resource {} does not exist; resource may not exist anymore",
-            resourceName);
+        LogUtil.logInfo(logger, _eventId, String
+            .format("IdealState for resource %s does not exist; resource may not exist anymore",
+                resourceName));
         idealState = new IdealState(resourceName);
         idealState.setStateModelDefRef(resource.getStateModelDefRef());
       }
@@ -202,7 +205,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
               manager.getClusterManagmentTool().enableMaintenanceMode(manager.getClusterName(),
                   true, errMsg);
             } else {
-              logger.error(
+              LogUtil.logError(logger, _eventId,
                   "HelixManager is not set/null! Failed to pause this cluster/enable maintenance"
                       + " mode due to an instance being assigned more replicas/partitions than "
                       + "the limit.");
@@ -233,7 +236,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       Map<String, List<String>> preferenceLists,
       StateTransitionThrottleController throttleController) {
     String resourceName = resource.getResourceName();
-    logger.debug("Processing resource: {}", resourceName);
+    LogUtil.logDebug(logger, _eventId, String.format("Processing resource: %s", resourceName));
 
     // Throttling is applied only on FULL-AUTO mode
     if (!throttleController.isThrottleEnabled()
@@ -288,16 +291,19 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
 
     if (!partitionsNeedRecovery.isEmpty()) {
-      logger.info("Recovery balance needed for {} partitions: {}", resourceName,
-          partitionsNeedRecovery);
+      LogUtil.logInfo(logger, _eventId, String
+          .format("Recovery balance needed for %s partitions: %s", resourceName,
+              partitionsNeedRecovery));
     }
     if (!partitionsNeedLoadBalance.isEmpty()) {
-      logger.info("Load balance needed for partitions: {}", resourceName,
-          partitionsNeedLoadBalance);
+      LogUtil.logInfo(logger, _eventId, String
+          .format("Load balance needed for %s partitions: %s", resourceName,
+              partitionsNeedLoadBalance));
     }
     if (!partitionsWithErrorStateReplica.isEmpty()) {
-      logger.info("Partition currently has an ERROR replica in {} partitions: {}", resourceName,
-          partitionsWithErrorStateReplica);
+      LogUtil.logInfo(logger, _eventId, String
+          .format("Partition currently has an ERROR replica in %s partitions: %s", resourceName,
+              partitionsWithErrorStateReplica));
     }
 
     chargePendingTransition(resource, currentStateOutput, throttleController,
@@ -352,7 +358,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           intermediatePartitionStateMap);
     }
 
-    logger.debug("End processing resource: {}", resourceName);
+    LogUtil
+        .logDebug(logger, _eventId, String.format("End processing resource: %s", resourceName));
     return intermediatePartitionStateMap;
   }
 
@@ -474,7 +481,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           currentStateOutput, bestPossiblePartitionStateMap, partitionRecoveryBalanceThrottled,
           intermediatePartitionStateMap, RebalanceType.RECOVERY_BALANCE);
     }
-    logger.info(String.format(
+    LogUtil.logInfo(logger, _eventId, String.format(
         "For resource %s: Num of partitions needing recovery: %d, Num of partitions needing recovery"
             + " but throttled (not recovered): %d",
         resourceName, partitionsNeedRecovery.size(), partitionRecoveryBalanceThrottled.size()));
@@ -542,7 +549,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           currentStateOutput, bestPossiblePartitionStateMap, partitionsLoadbalanceThrottled,
           intermediatePartitionStateMap, RebalanceType.LOAD_BALANCE);
     }
-    logger.info(String.format(
+    LogUtil.logInfo(logger, _eventId, String.format(
         "For resource %s: Num of partitions needing load-balance: %d, Num of partitions needing"
             + " load-balance but throttled (not load-balanced): %d",
         resourceName, partitionsNeedLoadbalance.size(), partitionsLoadbalanceThrottled.size()));
@@ -578,8 +585,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     if (throttleController.shouldThrottleForResource(rebalanceType, resourceName)) {
       hasReachedThrottlingLimit = true;
       if (logger.isDebugEnabled()) {
-        logger.debug("Throttled on partition: {} in resource: {}", partition.getPartitionName(),
-            resourceName);
+        LogUtil.logDebug(logger, _eventId, String
+            .format("Throttled on partition: %s in resource: %s", partition.getPartitionName(),
+                resourceName));
       }
     } else {
       // throttle if any of the instances are not able to accept state transitions
@@ -590,9 +598,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           if (throttleController.shouldThrottleForInstance(rebalanceType, instance)) {
             hasReachedThrottlingLimit = true;
             if (logger.isDebugEnabled()) {
-              logger.debug(
-                  "Throttled because of instance: {} for partition: {} in resource: {}", instance,
-                  partition.getPartitionName(), resourceName);
+              LogUtil.logDebug(logger, _eventId, String
+                  .format("Throttled because of instance: %s for partition: %s in resource: %s",
+                      instance, partition.getPartitionName(), resourceName));
             }
             break;
           }
@@ -698,22 +706,25 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       PartitionStateMap intermediateStateMap) {
 
     if (logger.isDebugEnabled()) {
-      logger.debug("Partitions need recovery: {}\nPartitions get throttled on recovery: {}",
-          recoveryPartitions, recoveryThrottledPartitions);
-      logger.debug("Partitions need loadbalance: {}\nPartitions get throttled on load-balance: {}",
-          loadbalancePartitions, loadbalanceThrottledPartitions);
+      LogUtil.logDebug(logger, _eventId, String
+          .format("Partitions need recovery: %s\nPartitions get throttled on recovery: %s",
+              recoveryPartitions, recoveryThrottledPartitions));
+      LogUtil.logDebug(logger, _eventId, String
+          .format("Partitions need loadbalance: %s\nPartitions get throttled on load-balance: %s",
+              loadbalancePartitions, loadbalanceThrottledPartitions));
     }
 
     for (Partition partition : allPartitions) {
       if (logger.isDebugEnabled()) {
-        logger.debug(partition + ": Best possible map: {}",
-            bestPossibleStateMap.getPartitionMap(partition));
-        logger.debug(partition + ": Current State: {}",
-            currentStateOutput.getCurrentStateMap(resource, partition));
-        logger.debug(partition + ": Pending state: {}",
-            currentStateOutput.getPendingMessageMap(resource, partition));
-        logger.debug(partition + ": Intermediate state: {}",
-            intermediateStateMap.getPartitionMap(partition));
+        LogUtil.logDebug(logger, _eventId, String
+            .format("%s : Best possible map: %s", partition,
+                bestPossibleStateMap.getPartitionMap(partition)));
+        LogUtil.logDebug(logger, _eventId, String.format("%s : Current State: %s", partition,
+            currentStateOutput.getCurrentStateMap(resource, partition)));
+        LogUtil.logDebug(logger, _eventId, String.format("%s: Pending state: %s", partition,
+            currentStateOutput.getPendingMessageMap(resource, partition)));
+        LogUtil.logDebug(logger, _eventId, String
+            .format("%s: Intermediate state: %s", partition, intermediateStateMap.getPartitionMap(partition)));
       }
     }
   }

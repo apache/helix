@@ -22,6 +22,7 @@ package org.apache.helix.controller.stages;
 import org.apache.helix.*;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.StageException;
@@ -44,6 +45,7 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
 
   @Override
   public void execute(final ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
@@ -158,7 +160,8 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
         it.remove();
         // remove the external view if the external view exists
         if (curExtViews.containsKey(resourceName)) {
-          LOG.info("Remove externalView for resource: " + resourceName);
+          LogUtil
+              .logInfo(LOG, _eventId, "Remove externalView for resource: " + resourceName);
           dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
           externalviewsToRemove.add(resourceName);
         }
@@ -176,7 +179,7 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
     // remove dead external-views
     for (String resourceName : curExtViews.keySet()) {
       if (!resourceMap.keySet().contains(resourceName)) {
-        LOG.info("Remove externalView for resource: " + resourceName);
+        LogUtil.logInfo(LOG, _eventId, "Remove externalView for resource: " + resourceName);
         dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
         externalviewsToRemove.add(resourceName);
       }
@@ -201,19 +204,19 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
 
     for (String taskPartitionName : ev.getPartitionSet()) {
       for (String taskState : ev.getStateMap(taskPartitionName).values()) {
-        if (taskState.equalsIgnoreCase(HelixDefinedState.ERROR.toString())
-            || taskState.equalsIgnoreCase("COMPLETED")) {
-          LOG.info(taskPartitionName + " finished as " + taskState);
+        if (taskState.equalsIgnoreCase(HelixDefinedState.ERROR.toString()) || taskState
+            .equalsIgnoreCase("COMPLETED")) {
+          LogUtil.logInfo(LOG, _eventId, taskPartitionName + " finished as " + taskState);
           finishedTasks.getListFields().put(taskPartitionName, emptyList);
           finishedTasks.getMapFields().put(taskPartitionName, emptyMap);
 
           // Update original scheduler message status update
           if (taskQueueIdealState.getRecord().getMapField(taskPartitionName) != null) {
-            String controllerMsgId =
-                taskQueueIdealState.getRecord().getMapField(taskPartitionName)
-                    .get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
+            String controllerMsgId = taskQueueIdealState.getRecord().getMapField(taskPartitionName)
+                .get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
             if (controllerMsgId != null) {
-              LOG.info(taskPartitionName + " finished with controllerMsg " + controllerMsgId);
+              LogUtil.logInfo(LOG, _eventId,
+                  taskPartitionName + " finished with controllerMsg " + controllerMsgId);
               if (!controllerMsgUpdates.containsKey(controllerMsgId)) {
                 controllerMsgUpdates.put(controllerMsgId, new HashMap<String, String>());
               }

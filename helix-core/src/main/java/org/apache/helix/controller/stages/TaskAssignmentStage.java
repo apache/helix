@@ -30,6 +30,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.LiveInstance;
@@ -45,6 +46,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
@@ -84,7 +86,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     long cacheStart = System.currentTimeMillis();
     cache.cacheMessages(outputMessages);
     long cacheEnd = System.currentTimeMillis();
-    logger.debug("Caching messages took " + (cacheEnd - cacheStart) + " ms");
+    LogUtil.logDebug(logger, _eventId, "Caching messages took " + (cacheEnd - cacheStart) + " ms");
   }
 
   List<Message> batchMessage(Builder keyBuilder, List<Message> messages,
@@ -139,17 +141,19 @@ public class TaskAssignmentStage extends AbstractBaseStage {
 
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
     for (Message message : messages) {
-      logger.info(
+      LogUtil.logInfo(logger, _eventId,
           "Sending Message " + message.getMsgId() + " to " + message.getTgtName() + " transit "
               + message.getResourceName() + "." + message.getPartitionName() + "|" + message
               .getPartitionNames() + " from:" + message.getFromState() + " to:" + message
               .getToState() + ", relayMessages: " + message.getRelayMessages().size());
       if (message.hasRelayMessages()) {
         for (Message msg : message.getRelayMessages().values()) {
-          logger.info("Sending Relay Message " + msg.getMsgId() + " to " + msg.getTgtName() + " transit "
-              + msg.getResourceName() + "." + msg.getPartitionName() + "|" + msg.getPartitionNames() + " from:"
-              + msg.getFromState() + " to:" + msg.getToState() + ", relayFrom: " + msg.getRelaySrcHost()
-              + ", attached to message: " + message.getMsgId());
+          LogUtil.logInfo(logger, _eventId,
+              "Sending Relay Message " + msg.getMsgId() + " to " + msg.getTgtName() + " transit "
+                  + msg.getResourceName() + "." + msg.getPartitionName() + "|" + msg
+                  .getPartitionNames() + " from:" + msg.getFromState() + " to:" + msg.getToState()
+                  + ", relayFrom: " + msg.getRelaySrcHost() + ", attached to message: " + message
+                  .getMsgId());
         }
       }
 

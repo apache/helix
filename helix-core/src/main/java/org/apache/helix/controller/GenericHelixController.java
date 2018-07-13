@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -406,21 +407,23 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
 
     // add the cache
+    _cache.setEventId(event.getEventId());
     event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
 
     List<Pipeline> pipelines = cache.isTaskCache() ?
-        _taskRegistry.getPipelinesForEvent(event.getEventType()) :
-        _registry.getPipelinesForEvent(event.getEventType());
+        _taskRegistry.getPipelinesForEvent(event.getEventType()) : _registry
+        .getPipelinesForEvent(event.getEventType());
 
     if (pipelines == null || pipelines.size() == 0) {
-      logger.info(
-          "No " + getPipelineType(cache.isTaskCache()) + " pipeline to run for event:" + event
-              .getEventType());
+      logger.info(String
+          .format("No % pipeline to run for event: %s %s", getPipelineType(cache.isTaskCache()),
+              event.getEventType(), event.getEventId()));
       return;
     }
 
-    logger.info(String.format("START: Invoking %s controller pipeline for cluster %s event: %s",
-        manager.getClusterName(), getPipelineType(cache.isTaskCache()), event.getEventType()));
+    logger.info(String.format("START: Invoking %s controller pipeline for cluster %s event: %s  %s",
+        manager.getClusterName(), getPipelineType(cache.isTaskCache()), event.getEventType(),
+        event.getEventId()));
     long startTime = System.currentTimeMillis();
     boolean rebalanceFail = false;
     for (Pipeline pipeline : pipelines) {
@@ -463,9 +466,9 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
     long endTime = System.currentTimeMillis();
     logger.info(String
-        .format("END: Invoking %s controller pipeline for event: %s for cluster %s, took %d ms",
-            getPipelineType(cache.isTaskCache()), event.getEventType(), manager.getClusterName(),
-            (endTime - startTime)));
+        .format("END: Invoking %s controller pipeline for event: %s %s for cluster %s, took %d ms",
+            getPipelineType(cache.isTaskCache()), event.getEventType(), event.getEventId(),
+            manager.getClusterName(), (endTime - startTime)));
 
     if (!cache.isTaskCache()) {
       // report event process durations
@@ -685,7 +688,10 @@ public class GenericHelixController implements IdealStateChangeListener,
 
   private void pushToEventQueues(ClusterEventType eventType, NotificationContext changeContext,
       Map<String, Object> eventAttributes) {
-    ClusterEvent event = new ClusterEvent(_clusterName, eventType);
+    // No need for completed UUID, prefixed should be fine
+    String uid = UUID.randomUUID().toString().substring(0, 8);
+    ClusterEvent event = new ClusterEvent(_clusterName, eventType,
+        String.format("%s_%s", uid, PipelineTypes.DEFAULT.name()));
     event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
     event.addAttribute(AttributeName.changeContext.name(), changeContext);
     event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
@@ -693,7 +699,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       event.addAttribute(attr.getKey(), attr.getValue());
     }
     _eventQueue.put(event);
-    _taskEventQueue.put(event.clone());
+    _taskEventQueue.put(event.clone(String.format("%s_%s", uid, PipelineTypes.TASK.name())));
   }
 
   @Override
@@ -887,13 +893,15 @@ public class GenericHelixController implements IdealStateChangeListener,
       if (statusFlag) {
         statusFlag = false;
         logger.info("controller is now resumed from paused state");
-        ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.Resume);
+        String uid = UUID.randomUUID().toString().substring(0, 8);
+        ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.Resume,
+            String.format("%s_%s", uid, PipelineTypes.DEFAULT.name()));
         event.addAttribute(AttributeName.changeContext.name(), changeContext);
         event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
         event.addAttribute(AttributeName.eventData.name(), signal);
         event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
         _eventQueue.put(event);
-        _taskEventQueue.put(event.clone());
+        _taskEventQueue.put(event.clone(String.format("%s_%s", uid, PipelineTypes.TASK.name())));
       }
     }
     return statusFlag;

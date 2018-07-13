@@ -65,9 +65,9 @@ public class Pipeline {
 
       long endTime = System.currentTimeMillis();
       long duration = endTime - startTime;
-      logger.info(String
-          .format("END %s for %s pipeline for cluster %s. took: %d ms ", stage.getStageName(),
-              _pipelineType, event.getClusterName(), duration));
+      logger.info(String.format("END %s for %s pipeline for cluster %s. took: %d ms for event %s",
+          stage.getStageName(), _pipelineType, event.getClusterName(), duration,
+          event.getEventId()));
 
       ClusterStatusMonitor clusterStatusMonitor =
           event.getAttribute(AttributeName.clusterStatusMonitor.name());

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.IdealState;
@@ -57,6 +58,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     CurrentStateOutput currentStateOutput =
@@ -200,7 +202,9 @@ public class MessageSelectionStage extends AbstractBaseStage {
               }
             } else {
               // reach upper-bound of message for the topState, will not send the message
-              LOG.info("Reach upper_bound: " + stateConstraints.get(toState).getUpperBound() + ", not send message: " + message);
+              LogUtil.logInfo(LOG, _eventId,
+                  "Reach upper_bound: " + stateConstraints.get(toState).getUpperBound()
+                      + ", not send message: " + message);
             }
             continue;
           }

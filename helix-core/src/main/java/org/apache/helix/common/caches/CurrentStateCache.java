@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
@@ -93,10 +94,12 @@ public class CurrentStateCache extends AbstractDataCache {
     _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
 
     long endTime = System.currentTimeMillis();
-    LOG.info("END: CurrentStateCache.refresh() for cluster " + _clusterName + ", took " + (endTime
-        - startTime) + " ms");
+    LogUtil.logInfo(LOG, getEventId(),
+        "END: CurrentStateCache.refresh() for cluster " + _clusterName + ", took " + (endTime
+            - startTime) + " ms");
     if (LOG.isDebugEnabled()) {
-      LOG.debug(String.format("Current State freshed : ", _currentStateMap.toString()));
+      LogUtil.logDebug(LOG, getEventId(),
+          String.format("Current State freshed : ", _currentStateMap.toString()));
     }
     return true;
   }
@@ -129,9 +132,10 @@ public class CurrentStateCache extends AbstractDataCache {
             _currentStateCache));
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug("# of CurrentStates reload: " + reloadKeys.size() + ", skipped:" + (
-          currentStateKeys.size() - reloadKeys.size()) + ". took " + (System.currentTimeMillis()
-          - start) + " ms to reload new current states for cluster: " + _clusterName);
+      LogUtil.logDebug(LOG, getEventId(),
+          "# of CurrentStates reload: " + reloadKeys.size() + ", skipped:" + (
+              currentStateKeys.size() - reloadKeys.size()) + ". took " + (System.currentTimeMillis()
+              - start) + " ms to reload new current states for cluster: " + _clusterName);
     }
   }
 

@@ -31,6 +31,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +46,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    _eventId = event.getEventId();
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     if (cache == null) {
       throw new StageException("Missing attributes in event:" + event + ". Requires DataCache");
@@ -142,9 +144,10 @@ public class ResourceComputationStage extends AbstractBaseStage {
           }
 
           if (currentState.getStateModelDefRef() == null) {
-            LOG.error("state model def is null." + "resource:" + currentState.getResourceName()
-                + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
-                + currentState.getPartitionStateMap().values());
+            LogUtil.logError(LOG, _eventId,
+                "state model def is null." + "resource:" + currentState.getResourceName()
+                    + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
+                    + currentState.getPartitionStateMap().values());
             throw new StageException("State model def is null for resource:"
                 + currentState.getResourceName());
           }

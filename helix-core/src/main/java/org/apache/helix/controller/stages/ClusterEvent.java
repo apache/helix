@@ -22,6 +22,7 @@ package org.apache.helix.controller.stages;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,19 +32,27 @@ public class ClusterEvent {
   private final Map<String, Object> _eventAttributeMap;
   private long _creationTime;
   private String _clusterName;
+  private String _eventId;
 
   @Deprecated
   public ClusterEvent(ClusterEventType eventType) {
     _eventType = eventType;
     _eventAttributeMap = new HashMap<>();
     _creationTime = System.currentTimeMillis();
+    _eventId = UUID.randomUUID().toString();
   }
 
   public ClusterEvent(String clusterName, ClusterEventType eventType) {
+    this(clusterName, eventType, UUID.randomUUID().toString());
+  }
+
+  public ClusterEvent(String clusterName, ClusterEventType eventType, String eventId) {
     _clusterName = clusterName;
     _eventType = eventType;
+
     _eventAttributeMap = new HashMap<>();
     _creationTime = System.currentTimeMillis();
+    _eventId = eventId;
   }
 
   public void addAttribute(String attrName, Object attrValue) {
@@ -73,6 +82,15 @@ public class ClusterEvent {
     _clusterName = clusterName;
   }
 
+  public void setEventId(String eventId) {
+    _eventId = eventId;
+  }
+
+  public String getEventId() {
+    return _eventId;
+  }
+
+
   @SuppressWarnings("unchecked")
   public <T extends Object> T getAttribute(String attrName) {
     Object ret = _eventAttributeMap.get(attrName);
@@ -85,6 +103,7 @@ public class ClusterEvent {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
+    sb.append(String.format("Event id : %s", _eventId.toString()));
     sb.append("name:" + _eventType.name()).append("\n");
     for (String key : _eventAttributeMap.keySet()) {
       sb.append(key).append(":").append(_eventAttributeMap.get(key)).append("\n");
@@ -92,8 +111,8 @@ public class ClusterEvent {
     return sb.toString();
   }
 
-  public ClusterEvent clone() {
-    ClusterEvent newEvent = new ClusterEvent(_clusterName, _eventType);
+  public ClusterEvent clone(String eventId) {
+    ClusterEvent newEvent = new ClusterEvent(_clusterName, _eventType, eventId);
     newEvent.setCreationTime(_creationTime);
     for (String attributeName : _eventAttributeMap.keySet()) {
       newEvent.addAttribute(attributeName, _eventAttributeMap.get(attributeName));

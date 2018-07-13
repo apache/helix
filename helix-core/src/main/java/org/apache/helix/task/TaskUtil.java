@@ -59,11 +59,10 @@ public class TaskUtil {
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.
    * This method is internal API, please use the corresponding one in TaskDriver.getJobConfig();
-   *
-   * @param accessor    Accessor to access Helix configs
+   * @param accessor Accessor to access Helix configs
    * @param job The name of the job resource
    * @return A {@link JobConfig} object if Helix contains valid configurations for the job, null
-   * otherwise.
+   *         otherwise.
    */
   protected static JobConfig getJobConfig(HelixDataAccessor accessor, String job) {
     HelixProperty jobResourceConfig = getResourceConfig(accessor, job);
@@ -76,11 +75,10 @@ public class TaskUtil {
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.
    * This method is internal API, please use the corresponding one in TaskDriver.getJobConfig();
-   *
-   * @param manager     HelixManager object used to connect to Helix.
+   * @param manager HelixManager object used to connect to Helix.
    * @param job The name of the job resource.
    * @return A {@link JobConfig} object if Helix contains valid configurations for the job, null
-   * otherwise.
+   *         otherwise.
    */
   protected static JobConfig getJobConfig(HelixManager manager, String job) {
     return getJobConfig(manager.getHelixDataAccessor(), job);
@@ -88,11 +86,9 @@ public class TaskUtil {
 
   /**
    * Set the job config
-   *
-   * @param accessor  Accessor to Helix configs
-   * @param job       The job name
+   * @param accessor Accessor to Helix configs
+   * @param job The job name
    * @param jobConfig The job config to be set
-   *
    * @return True if set successfully, otherwise false
    */
   protected static boolean setJobConfig(HelixDataAccessor accessor, String job,
@@ -102,10 +98,8 @@ public class TaskUtil {
 
   /**
    * Remove a job config.
-   *
    * @param accessor
    * @param job
-   *
    * @return
    */
   protected static boolean removeJobConfig(HelixDataAccessor accessor, String job) {
@@ -114,12 +108,12 @@ public class TaskUtil {
 
   /**
    * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
-   * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowConfig();
-   *
-   * @param accessor  Accessor to access Helix configs
+   * This method is internal API, please use the corresponding one in
+   * TaskDriver.getWorkflowConfig();
+   * @param accessor Accessor to access Helix configs
    * @param workflow The name of the workflow.
    * @return A {@link WorkflowConfig} object if Helix contains valid configurations for the
-   * workflow, null otherwise.
+   *         workflow, null otherwise.
    */
   protected static WorkflowConfig getWorkflowConfig(HelixDataAccessor accessor, String workflow) {
     HelixProperty workflowCfg = getResourceConfig(accessor, workflow);
@@ -132,12 +126,12 @@ public class TaskUtil {
 
   /**
    * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
-   * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowConfig();
-   *
-   * @param manager          Helix manager object used to connect to Helix.
+   * This method is internal API, please use the corresponding one in
+   * TaskDriver.getWorkflowConfig();
+   * @param manager Helix manager object used to connect to Helix.
    * @param workflow The name of the workflow resource.
    * @return A {@link WorkflowConfig} object if Helix contains valid configurations for the
-   * workflow, null otherwise.
+   *         workflow, null otherwise.
    */
   protected static WorkflowConfig getWorkflowConfig(HelixManager manager, String workflow) {
     return getWorkflowConfig(manager.getHelixDataAccessor(), workflow);
@@ -145,10 +139,10 @@ public class TaskUtil {
 
   /**
    * Set the workflow config
-   * @param accessor        Accessor to Helix configs
-   * @param workflow        The workflow name
-   * @param workflowConfig  The workflow config to be set
-   * @return                True if set successfully, otherwise false
+   * @param accessor Accessor to Helix configs
+   * @param workflow The workflow name
+   * @param workflowConfig The workflow config to be set
+   * @return True if set successfully, otherwise false
    */
   protected static boolean setWorkflowConfig(HelixDataAccessor accessor, String workflow,
       WorkflowConfig workflowConfig) {
@@ -167,9 +161,8 @@ public class TaskUtil {
 
   /**
    * Get a Helix configuration scope at a resource (i.e. job and workflow) level
-   *
    * @param clusterName the cluster containing the resource
-   * @param resource    the resource name
+   * @param resource the resource name
    * @return instantiated {@link HelixConfigScope}
    */
   protected static HelixConfigScope getResourceConfigScope(String clusterName, String resource) {
@@ -180,24 +173,22 @@ public class TaskUtil {
   /**
    * Get the runtime context of a single job.
    * This method is internal API, please use TaskDriver.getJobContext();
-   *
    * @param propertyStore Property store for the cluster
-   * @param jobResource   The name of the job
+   * @param jobResource The name of the job
    * @return the {@link JobContext}, or null if none is available
    */
   protected static JobContext getJobContext(HelixPropertyStore<ZNRecord> propertyStore,
       String jobResource) {
-    ZNRecord r = propertyStore
-        .get(Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, CONTEXT_NODE),
-            null, AccessOption.PERSISTENT);
+    ZNRecord r = propertyStore.get(
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, CONTEXT_NODE), null,
+        AccessOption.PERSISTENT);
     return r != null ? new JobContext(r) : null;
   }
 
   /**
    * Get the runtime context of a single job.
    * This method is internal API, please use TaskDriver.getJobContext();
-   *
-   * @param manager     a connection to Helix
+   * @param manager a connection to Helix
    * @param jobResource the name of the job
    * @return the {@link JobContext}, or null if none is available
    */
@@ -208,24 +199,22 @@ public class TaskUtil {
   /**
    * Set the runtime context of a single job
    * This method is internal API;
-   *
-   * @param manager     a connection to Helix
+   * @param manager a connection to Helix
    * @param jobResource the name of the job
-   * @param ctx         the up-to-date {@link JobContext} for the job
+   * @param ctx the up-to-date {@link JobContext} for the job
    */
   protected static void setJobContext(HelixManager manager, String jobResource, JobContext ctx) {
-    manager.getHelixPropertyStore()
-        .set(Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, CONTEXT_NODE),
-            ctx.getRecord(), AccessOption.PERSISTENT);
+    manager.getHelixPropertyStore().set(
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, CONTEXT_NODE),
+        ctx.getRecord(), AccessOption.PERSISTENT);
   }
 
   /**
    * Remove the runtime context of a single job.
    * This method is internal API.
-   *
-   * @param manager     A connection to Helix
+   * @param manager A connection to Helix
    * @param jobResource The name of the job
-   * @return            True if remove success, otherwise false
+   * @return True if remove success, otherwise false
    */
   protected static boolean removeJobContext(HelixManager manager, String jobResource) {
     return removeJobContext(manager.getHelixPropertyStore(), jobResource);
@@ -234,10 +223,9 @@ public class TaskUtil {
   /**
    * Remove the runtime context of a single job.
    * This method is internal API.
-   *
    * @param propertyStore Property store for the cluster
-   * @param job   The name of the job
-   * @return              True if remove success, otherwise false
+   * @param job The name of the job
+   * @return True if remove success, otherwise false
    */
   protected static boolean removeJobContext(HelixPropertyStore<ZNRecord> propertyStore,
       String job) {
@@ -246,25 +234,25 @@ public class TaskUtil {
 
   /**
    * Get the runtime context of a single workflow.
-   * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowContext();
-   *
-   * @param propertyStore    Property store of the cluster
+   * This method is internal API, please use the corresponding one in
+   * TaskDriver.getWorkflowContext();
+   * @param propertyStore Property store of the cluster
    * @param workflow The name of the workflow
    * @return the {@link WorkflowContext}, or null if none is available
    */
   protected static WorkflowContext getWorkflowContext(HelixPropertyStore<ZNRecord> propertyStore,
       String workflow) {
     ZNRecord r = propertyStore.get(
-        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflow, CONTEXT_NODE),
-        null, AccessOption.PERSISTENT);
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflow, CONTEXT_NODE), null,
+        AccessOption.PERSISTENT);
     return r != null ? new WorkflowContext(r) : null;
   }
 
   /**
    * Get the runtime context of a single workflow.
-   * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowContext();
-   *
-   * @param manager          a connection to Helix
+   * This method is internal API, please use the corresponding one in
+   * TaskDriver.getWorkflowContext();
+   * @param manager a connection to Helix
    * @param workflow the name of the workflow
    * @return the {@link WorkflowContext}, or null if none is available
    */
@@ -274,10 +262,9 @@ public class TaskUtil {
 
   /**
    * Set the runtime context of a single workflow
-   *
-   * @param manager          a connection to Helix
+   * @param manager a connection to Helix
    * @param workflow the name of the workflow
-   * @param workflowContext              the up-to-date {@link WorkflowContext} for the workflow
+   * @param workflowContext the up-to-date {@link WorkflowContext} for the workflow
    */
   protected static void setWorkflowContext(HelixManager manager, String workflow,
       WorkflowContext workflowContext) {
@@ -289,10 +276,9 @@ public class TaskUtil {
   /**
    * Remove the runtime context of a single workflow.
    * This method is internal API.
-   *
-   * @param manager     A connection to Helix
+   * @param manager A connection to Helix
    * @param workflow The name of the workflow
-   * @return            True if remove success, otherwise false
+   * @return True if remove success, otherwise false
    */
   protected static boolean removeWorkflowContext(HelixManager manager, String workflow) {
     return removeWorkflowContext(manager.getHelixPropertyStore(), workflow);
@@ -301,10 +287,9 @@ public class TaskUtil {
   /**
    * Remove the runtime context of a single workflow.
    * This method is internal API.
-   *
-   * @param propertyStore      Property store for the cluster
-   * @param workflow   The name of the workflow
-   * @return                   True if remove success, otherwise false
+   * @param propertyStore Property store for the cluster
+   * @param workflow The name of the workflow
+   * @return True if remove success, otherwise false
    */
   protected static boolean removeWorkflowContext(HelixPropertyStore<ZNRecord> propertyStore,
       String workflow) {
@@ -313,49 +298,46 @@ public class TaskUtil {
 
   /**
    * Intialize the user content store znode setup
-   * @param propertyStore       zookeeper property store
+   * @param propertyStore zookeeper property store
    * @param workflowJobResource the name of workflow or job
-   * @param record              the initial data
+   * @param record the initial data
    */
-  protected static void createUserContent(HelixPropertyStore propertyStore, String workflowJobResource,
-      ZNRecord record) {
-    propertyStore.create(Joiner.on("/")
-        .join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource,
-            TaskUtil.USER_CONTENT_NODE), record, AccessOption.PERSISTENT);
+  protected static void createUserContent(HelixPropertyStore propertyStore,
+      String workflowJobResource, ZNRecord record) {
+    propertyStore.create(Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT,
+        workflowJobResource, TaskUtil.USER_CONTENT_NODE), record, AccessOption.PERSISTENT);
   }
 
   /**
    * Get user defined workflow or job level key-value pair data
-   *
-   * @param manager             a connection to Helix
+   * @param manager a connection to Helix
    * @param workflowJobResource the name of workflow
-   * @param key                 the key of key-value pair
-   *
+   * @param key the key of key-value pair
    * @return null if there is no such pair, otherwise return a String
    */
   protected static String getWorkflowJobUserContent(HelixManager manager,
       String workflowJobResource, String key) {
     ZNRecord r = manager.getHelixPropertyStore().get(Joiner.on("/")
-            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource, USER_CONTENT_NODE),
-        null, AccessOption.PERSISTENT);
+            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource, USER_CONTENT_NODE), null,
+        AccessOption.PERSISTENT);
     return r != null ? r.getSimpleField(key) : null;
   }
 
   /**
    * Add an user defined key-value pair data to workflow or job level
-   *
-   * @param manager             a connection to Helix
+   * @param manager a connection to Helix
    * @param workflowJobResource the name of workflow or job
-   * @param key                 the key of key-value pair
-   * @param value               the value of key-value pair
+   * @param key the key of key-value pair
+   * @param value the value of key-value pair
    */
   protected static void addWorkflowJobUserContent(final HelixManager manager,
       String workflowJobResource, final String key, final String value) {
-    String path = Joiner.on("/")
-        .join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource, USER_CONTENT_NODE);
+    String path = Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource,
+        USER_CONTENT_NODE);
 
     manager.getHelixPropertyStore().update(path, new DataUpdater<ZNRecord>() {
-      @Override public ZNRecord update(ZNRecord znRecord) {
+      @Override
+      public ZNRecord update(ZNRecord znRecord) {
         znRecord.setSimpleField(key, value);
         return znRecord;
       }
@@ -364,32 +346,27 @@ public class TaskUtil {
 
   /**
    * Get user defined task level key-value pair data
-   *
-   * @param manager      a connection to Helix
-   * @param job  the name of job
+   * @param manager a connection to Helix
+   * @param job the name of job
    * @param task the name of the task
-   * @param key          the key of key-value pair
-   *
+   * @param key the key of key-value pair
    * @return null if there is no such pair, otherwise return a String
    */
-  protected static String getTaskUserContent(HelixManager manager, String job,
-      String task, String key) {
+  protected static String getTaskUserContent(HelixManager manager, String job, String task,
+      String key) {
     ZNRecord r = manager.getHelixPropertyStore().get(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, job, USER_CONTENT_NODE), null,
         AccessOption.PERSISTENT);
-    return r != null ? (r.getMapField(task) != null
-        ? r.getMapField(task).get(key)
-        : null) : null;
+    return r != null ? (r.getMapField(task) != null ? r.getMapField(task).get(key) : null) : null;
   }
 
   /**
    * Add an user defined key-value pair data to task level
-   *
-   * @param manager       a connection to Helix
-   * @param job   the name of job
-   * @param task  the name of task
-   * @param key           the key of key-value pair
-   * @param value         the value of key-value pair
+   * @param manager a connection to Helix
+   * @param job the name of job
+   * @param task the name of task
+   * @param key the key of key-value pair
+   * @param value the value of key-value pair
    */
   protected static void addTaskUserContent(final HelixManager manager, String job,
       final String task, final String key, final String value) {
@@ -397,7 +374,8 @@ public class TaskUtil {
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, job, USER_CONTENT_NODE);
 
     manager.getHelixPropertyStore().update(path, new DataUpdater<ZNRecord>() {
-      @Override public ZNRecord update(ZNRecord znRecord) {
+      @Override
+      public ZNRecord update(ZNRecord znRecord) {
         if (znRecord.getMapField(task) == null) {
           znRecord.setMapField(task, new HashMap<String, String>());
         }
@@ -406,9 +384,9 @@ public class TaskUtil {
       }
     }, AccessOption.PERSISTENT);
   }
+
   /**
    * Get a workflow-qualified job name for a single-job workflow
-   *
    * @param singleJobWorkflow the name of the single-job workflow
    * @return The namespaced job name, which is just singleJobWorkflow_singleJobWorkflow
    */
@@ -418,9 +396,8 @@ public class TaskUtil {
 
   /**
    * Get a workflow-qualified job name for a job in that workflow
-   *
    * @param workflow the name of the workflow
-   * @param jobName          the un-namespaced name of the job
+   * @param jobName the un-namespaced name of the job
    * @return The namespaced job name, which is just workflowResource_jobName
    */
   public static String getNamespacedJobName(String workflow, String jobName) {
@@ -429,9 +406,8 @@ public class TaskUtil {
 
   /**
    * Remove the workflow namespace from the job name
-   *
    * @param workflow the name of the workflow that owns the job
-   * @param jobName          the namespaced job name
+   * @param jobName the namespaced job name
    * @return the denamespaced job name, or the same job name if it is already denamespaced
    */
   public static String getDenamespacedJobName(String workflow, String jobName) {
@@ -445,7 +421,6 @@ public class TaskUtil {
 
   /**
    * Serialize a map of job-level configurations as a single string
-   *
    * @param commandConfig map of job config key to config value
    * @return serialized string
    */
@@ -464,7 +439,6 @@ public class TaskUtil {
 
   /**
    * Deserialize a single string into a map of job-level configurations
-   *
    * @param commandConfig the serialized job config map
    * @return a map of job config key to config value
    */
@@ -485,7 +459,6 @@ public class TaskUtil {
 
   /**
    * Extracts the partition id from the given partition name.
-   *
    * @param pName
    * @return
    */
@@ -504,27 +477,27 @@ public class TaskUtil {
   }
 
   @Deprecated
-  public static PropertyKey getWorkflowConfigKey(final HelixDataAccessor accessor, String workflow) {
+  public static PropertyKey getWorkflowConfigKey(final HelixDataAccessor accessor,
+      String workflow) {
     return accessor.keyBuilder().resourceConfig(workflow);
   }
 
   /**
    * Cleans up IdealState and external view associated with a job.
-   *
    * @param accessor
    * @param job
-   * @return  True if remove success, otherwise false
+   * @return True if remove success, otherwise false
    */
-  protected static boolean cleanupJobIdealStateExtView(final HelixDataAccessor accessor, String job) {
+  protected static boolean cleanupJobIdealStateExtView(final HelixDataAccessor accessor,
+      String job) {
     return cleanupIdealStateExtView(accessor, job);
   }
 
   /**
    * Cleans up IdealState and external view associated with a workflow.
-   *
    * @param accessor
    * @param workflow
-   * @return  True if remove success, otherwise false
+   * @return True if remove success, otherwise false
    */
   protected static boolean cleanupWorkflowIdealStateExtView(final HelixDataAccessor accessor,
       String workflow) {
@@ -565,56 +538,49 @@ public class TaskUtil {
    * Remove a workflow and all jobs for the workflow. This removes the workflow config, idealstate,
    * externalview and workflow contexts associated with this workflow, and all jobs information,
    * including their configs, context, IS and EV.
-   *
    * @param accessor
    * @param propertyStore
    * @param workflow the workflow name.
-   * @param jobs     all job names in this workflow.
-   *
-   * @return  True if remove success, otherwise false
+   * @param jobs all job names in this workflow.
+   * @return True if remove success, otherwise false
    */
-  protected static boolean removeWorkflow(final HelixDataAccessor accessor, final HelixPropertyStore propertyStore,
-      String workflow, Set<String> jobs) {
-    boolean success = true;
-
+  protected static boolean removeWorkflow(final HelixDataAccessor accessor,
+      final HelixPropertyStore propertyStore, String workflow, Set<String> jobs) {
     // clean up all jobs
     for (String job : jobs) {
       if (!removeJob(accessor, propertyStore, job)) {
-        success = false;
+        return false;
       }
     }
 
     if (!removeWorkflowConfig(accessor, workflow)) {
       LOG.warn(
           String.format("Error occurred while trying to remove workflow config for %s.", workflow));
-      success = false;
+      return false;
     }
     if (!cleanupWorkflowIdealStateExtView(accessor, workflow)) {
-      LOG.warn(String
-          .format("Error occurred while trying to remove workflow idealstate/externalview for %s.",
-              workflow));
-      success = false;
+      LOG.warn(String.format(
+          "Error occurred while trying to remove workflow idealstate/externalview for %s.",
+          workflow));
+      return false;
     }
     if (!removeWorkflowContext(propertyStore, workflow)) {
-      LOG.warn(String
-          .format("Error occurred while trying to remove workflow context for %s.", workflow));
-      success = false;
+      LOG.warn(String.format("Error occurred while trying to remove workflow context for %s.",
+          workflow));
+      return false;
     }
-
-    return success;
+    return true;
   }
 
   /**
    * Remove a set of jobs from a workflow. This removes the config, context, IS and EV associated
    * with each individual job, and removes all the jobs from the WorkflowConfig, and job states from
    * WorkflowContext.
-   *
    * @param dataAccessor
    * @param propertyStore
    * @param jobs
    * @param workflow
    * @param maintainDependency
-   *
    * @return True if remove success, otherwise false
    */
   protected static boolean removeJobsFromWorkflow(final HelixDataAccessor dataAccessor,
@@ -627,9 +593,8 @@ public class TaskUtil {
       success = false;
     }
     if (!removeJobsState(propertyStore, workflow, jobs)) {
-      LOG.warn(
-          "Error occurred while trying to remove jobs states from workflow + " + workflow + " jobs "
-              + jobs);
+      LOG.warn("Error occurred while trying to remove jobs states from workflow + " + workflow
+          + " jobs " + jobs);
       success = false;
     }
     for (String job : jobs) {
@@ -643,12 +608,10 @@ public class TaskUtil {
 
   /**
    * Return all jobs that are COMPLETED and passes its expiry time.
-   *
    * @param dataAccessor
    * @param propertyStore
    * @param workflowConfig
    * @param workflowContext
-   *
    * @return
    */
   protected static Set<String> getExpiredJobs(HelixDataAccessor dataAccessor,
@@ -685,8 +648,8 @@ public class TaskUtil {
       success = false;
     }
     if (!cleanupJobIdealStateExtView(accessor, job)) {
-      LOG.warn(String
-          .format("Error occurred while trying to remove job idealstate/externalview for %s.", job));
+      LOG.warn(String.format(
+          "Error occurred while trying to remove job idealstate/externalview for %s.", job));
       success = false;
     }
     if (!removeJobContext(propertyStore, job)) {
@@ -699,8 +662,8 @@ public class TaskUtil {
 
   /** Remove the job name from the DAG from the queue configuration */
   // Job name should be namespaced job name here.
-  protected static boolean removeJobsFromDag(final HelixDataAccessor accessor, final String workflow,
-      final Set<String> jobsToRemove, final boolean maintainDependency) {
+  protected static boolean removeJobsFromDag(final HelixDataAccessor accessor,
+      final String workflow, final Set<String> jobsToRemove, final boolean maintainDependency) {
     // Now atomically clear the DAG
     DataUpdater<ZNRecord> dagRemover = new DataUpdater<ZNRecord>() {
       @Override
@@ -716,8 +679,8 @@ public class TaskUtil {
             jobDag.removeNode(job, maintainDependency);
           }
           try {
-            currentData
-                .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
+            currentData.setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(),
+                jobDag.toJson());
           } catch (IOException e) {
             throw new IllegalArgumentException(e);
           }
@@ -749,7 +712,8 @@ public class TaskUtil {
     }
 
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
-      @Override public ZNRecord update(ZNRecord currentData) {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
         if (currentData != null) {
           WorkflowContext workflowContext = new WorkflowContext(currentData);
           workflowContext.removeJobStates(jobs);
@@ -782,7 +746,6 @@ public class TaskUtil {
 
   /**
    * Remove workflow or job config.
-   *
    * @param accessor
    * @param workflowJobResource the workflow or job name
    */
@@ -803,10 +766,10 @@ public class TaskUtil {
 
   /**
    * Set the resource config
-   * @param accessor        Accessor to Helix configs
-   * @param resource        The resource name
-   * @param resourceConfig  The resource config to be set
-   * @return                True if set successfully, otherwise false
+   * @param accessor Accessor to Helix configs
+   * @param resource The resource name
+   * @param resourceConfig The resource config to be set
+   * @return True if set successfully, otherwise false
    */
   private static boolean setResourceConfig(HelixDataAccessor accessor, String resource,
       ResourceConfig resourceConfig) {
@@ -830,16 +793,19 @@ public class TaskUtil {
     return nonReadyPartitions;
   }
 
+  /**
+   * Returns whether if a given job is a generic job (not a targeted job).
+   * @param jobConfig
+   * @return
+   */
   public static boolean isGenericTaskJob(JobConfig jobConfig) {
-    Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
-    return taskConfigMap != null && !taskConfigMap.isEmpty();
+    // Targeted jobs may have TaskConfigs, so we check whether the target resource is set
+    return jobConfig.getTargetResource() == null || jobConfig.getTargetResource().equals("");
   }
 
   /**
    * Check whether tasks are just started or still running
-   *
    * @param jobContext The job context
-   *
    * @return False if still tasks not in final state. Otherwise return true
    */
   public static boolean checkJobStopped(JobContext jobContext) {
@@ -852,10 +818,8 @@ public class TaskUtil {
     return true;
   }
 
-
   /**
    * Count the number of jobs in a workflow that are not in final state.
-   *
    * @param workflowCfg
    * @param workflowCtx
    * @return

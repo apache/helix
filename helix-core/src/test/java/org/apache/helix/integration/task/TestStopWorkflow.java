@@ -14,7 +14,7 @@ import org.testng.annotations.Test;
 public class TestStopWorkflow extends TaskTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
-    _numParitions = 1;
+    _numPartitions = 1;
     super.beforeClass();
   }
 

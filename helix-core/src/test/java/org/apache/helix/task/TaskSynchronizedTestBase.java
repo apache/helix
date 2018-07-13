@@ -43,7 +43,7 @@ import org.testng.annotations.BeforeClass;
 public class TaskSynchronizedTestBase extends ZkTestBase {
   protected int _numNodes = 5;
   protected int _startPort = 12918;
-  protected int _numParitions = 20;
+  protected int _numPartitions = 20;
   protected int _numReplicas = 3;
   protected int _numDbs = 1;
 
@@ -99,7 +99,7 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
         int varyNum = _partitionVary == true ? 10 * i : 0;
         String db = WorkflowGenerator.DEFAULT_TGT_DB + i;
         clusterSetup
-            .addResourceToCluster(CLUSTER_NAME, db, _numParitions + varyNum, MASTER_SLAVE_STATE_MODEL,
+            .addResourceToCluster(CLUSTER_NAME, db, _numPartitions + varyNum, MASTER_SLAVE_STATE_MODEL,
                 IdealState.RebalanceMode.FULL_AUTO.toString());
         clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, db, _numReplicas);
         _testDbs.add(db);
@@ -107,14 +107,13 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
     } else {
       if (_instanceGroupTag) {
         clusterSetup
-            .addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numParitions,
+            .addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numPartitions,
                 "OnlineOffline", IdealState.RebalanceMode.FULL_AUTO.name());
         IdealState idealState = clusterSetup.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
         idealState.setInstanceGroupTag("TESTTAG0");
         clusterSetup.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, idealState);
       } else {
-        clusterSetup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
-            _numParitions, MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name());
+        clusterSetup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numPartitions, MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name());
       }
       clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numReplicas);
     }
@@ -208,7 +207,7 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
   public void setSingleTestEnvironment() {
     _numDbs = 1;
     _numNodes = 1;
-    _numParitions = 1;
+    _numPartitions = 1;
     _numReplicas = 1;
   }
 }

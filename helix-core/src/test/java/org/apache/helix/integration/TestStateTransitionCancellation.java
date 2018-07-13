@@ -59,7 +59,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
   public void beforeClass() throws Exception {
     _participants = new MockParticipantManager[_numNodes];
     _numDbs = 1;
-    _numParitions = 20;
+    _numPartitions = 20;
     _numNodes = 2;
     _numReplicas = 2;
     _verifier =
@@ -174,7 +174,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
 
     // Either partial of state transitions have been cancelled or all the Slave -> Master
     // reassigned to other cluster
-    Assert.assertTrue((numOfMasters > 0 && numOfMasters <= _numParitions));
+    Assert.assertTrue((numOfMasters > 0 && numOfMasters <= _numPartitions));
   }
 
   private void stateCleanUp() {

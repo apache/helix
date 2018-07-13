@@ -19,12 +19,12 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
@@ -40,17 +40,26 @@ import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
+
 import org.apache.helix.task.Workflow;
+import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.testng.collections.Sets;
 
-public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+/**
+ * This class tests basic job and test assignment/scheduling functionality of
+ * TaskAssignmentCalculators.
+ */
+public class TestTaskAssignmentCalculator extends TaskTestBase {
   private Set<String> _invokedClasses = Sets.newHashSet();
-  private Map<String, Integer> _runCounts = Maps.newHashMap();
-  private TaskConfig _taskConfig;
+  private Map<String, Integer> _runCounts = new ConcurrentHashMap<>();
+
   private Map<String, String> _jobCommandMap;
   private boolean failTask;
 
@@ -73,7 +82,8 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
       Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
 
       taskFactoryReg.put("TaskOne", new TaskFactory() {
-        @Override public Task createNewTask(TaskCallbackContext context) {
+        @Override
+        public Task createNewTask(TaskCallbackContext context) {
           return new TaskOne(context, instanceName);
         }
       });
@@ -93,28 +103,59 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
     _controller.syncStart();
 
     // Start an admin connection
-    _manager = HelixManagerFactory
-        .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
+    _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
+        InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
     _driver = new TaskDriver(_manager);
 
-    Map<String, String> taskConfigMap = Maps.newHashMap();
-    _taskConfig = new TaskConfig("TaskOne", taskConfigMap);
     _jobCommandMap = Maps.newHashMap();
   }
 
+  /**
+   * This test does NOT allow multiple jobs being assigned to an instance.
+   * @throws InterruptedException
+   */
   @Test
   public void testMultipleJobAssignment() throws InterruptedException {
+    _runCounts.clear();
     failTask = false;
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
-    List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
-    taskConfigs.add(_taskConfig);
-    JobConfig.Builder jobBuilder =
-        new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
-            .setJobCommandConfigMap(_jobCommandMap);
 
-    for (int i = 0; i < 25; i++) {
+    for (int i = 0; i < 20; i++) {
+      List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
+      taskConfigs.add(new TaskConfig("TaskOne", new HashMap<String, String>()));
+      JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
+          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap);
+      workflowBuilder.addJob("JOB" + i, jobBuilder);
+    }
+
+    _driver.start(workflowBuilder.build());
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
+
+    Assert.assertEquals(_runCounts.size(), 5);
+  }
+
+  /**
+   * This test explicitly allows overlap job assignment.
+   * @throws InterruptedException
+   */
+  @Test
+  // This test does NOT allow multiple jobs being assigned to an instance.
+  public void testMultipleJobAssignmentOverlapEnabled() throws InterruptedException {
+    _runCounts.clear();
+    failTask = false;
+    String workflowName = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
+    configBuilder.setAllowOverlapJobAssignment(true);
+    workflowBuilder.setWorkflowConfig(configBuilder.build());
+
+    for (int i = 0; i < 40; i++) {
+      List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
+      taskConfigs.add(new TaskConfig("TaskOne", new HashMap<String, String>()));
+      JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
+          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap);
       workflowBuilder.addJob("JOB" + i, jobBuilder);
     }
 
@@ -126,18 +167,19 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
 
   @Test
   public void testMultipleTaskAssignment() throws InterruptedException {
+    _runCounts.clear();
     failTask = false;
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
 
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(20);
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 20; i++) {
       Map<String, String> taskConfigMap = Maps.newHashMap();
       taskConfigs.add(new TaskConfig("TaskOne", taskConfigMap));
     }
-    JobConfig.Builder jobBuilder =
-        new JobConfig.Builder().setCommand("DummyCommand").setJobCommandConfigMap(_jobCommandMap)
-            .addTaskConfigs(taskConfigs);
+    JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
+        .setJobCommandConfigMap(_jobCommandMap).addTaskConfigs(taskConfigs);
+
     workflowBuilder.addJob("JOB", jobBuilder);
     _driver.start(workflowBuilder.build());
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
@@ -146,18 +188,17 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
   }
 
   @Test
-  public void testAbortTaskForWorkflowFail()
-      throws InterruptedException {
+  public void testAbortTaskForWorkflowFail() throws InterruptedException {
     failTask = true;
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
-    List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
-    taskConfigs.add(_taskConfig);
-    JobConfig.Builder jobBuilder =
-        new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
-            .setJobCommandConfigMap(_jobCommandMap);
 
     for (int i = 0; i < 5; i++) {
+      List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
+      Map<String, String> taskConfigMap = Maps.newHashMap();
+      taskConfigs.add(new TaskConfig("TaskOne", taskConfigMap));
+      JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
+          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap);
       workflowBuilder.addJob("JOB" + i, jobBuilder);
     }
 

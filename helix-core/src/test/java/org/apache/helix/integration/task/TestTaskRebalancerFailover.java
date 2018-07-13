@@ -67,7 +67,7 @@ public class TestTaskRebalancerFailover extends TaskTestBase {
         accessor.getProperty(keyBuilder.externalView(WorkflowGenerator.DEFAULT_TGT_DB));
     JobContext ctx = _driver.getJobContext(namespacedJob1);
     Set<String> failOverPartitions = Sets.newHashSet();
-    for (int p = 0; p < _numParitions; p++) {
+    for (int p = 0; p < _numPartitions; p++) {
       String instanceName = ctx.getAssignedParticipant(p);
       Assert.assertNotNull(instanceName);
       String partitionName = ctx.getTargetForPartition(p);
@@ -93,7 +93,7 @@ public class TestTaskRebalancerFailover extends TaskTestBase {
     // tasks previously assigned to localhost_12918 should be re-scheduled on new master
     ctx = _driver.getJobContext(namespacedJob2);
     ev = accessor.getProperty(keyBuilder.externalView(WorkflowGenerator.DEFAULT_TGT_DB));
-    for (int p = 0; p < _numParitions; p++) {
+    for (int p = 0; p < _numPartitions; p++) {
       String partitionName = ctx.getTargetForPartition(p);
       Assert.assertNotNull(partitionName);
       if (failOverPartitions.contains(partitionName)) {

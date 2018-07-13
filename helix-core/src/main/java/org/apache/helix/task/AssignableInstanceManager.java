@@ -66,6 +66,8 @@ public class AssignableInstanceManager {
     // Only need to build from scratch during Controller switch, etc.
     // This keeps the pipeline from building from scratch every cache refresh
     if (_hasBeenBuilt) {
+      // If it has been already built, just update (configs and LiveInstance changes may be present)
+      updateAssignableInstances(clusterConfig, liveInstances, instanceConfigs);
       return;
     }
 
@@ -186,12 +188,14 @@ public class AssignableInstanceManager {
       // Remove all tasks on this instance first
       for (String taskToRemove : instanceToBeRemoved.getCurrentAssignments()) {
         // Check that AssignableInstances match
-        if (_taskAssignResultMap.get(taskToRemove).getAssignableInstance().getInstanceName()
-            .equals(instanceToBeRemoved.getInstanceName())) {
-          _taskAssignResultMap.remove(taskToRemove); // TODO: Hunter: Move this if necessary
-          LOG.info(
-              "TaskAssignResult removed because its assigned instance is no longer live. TaskID: {}, instance: {}",
-              taskToRemove, instanceToBeRemoved.getInstanceName());
+        if (_taskAssignResultMap.containsKey(taskToRemove)) {
+          if (_taskAssignResultMap.get(taskToRemove).getAssignableInstance().getInstanceName()
+              .equals(instanceToBeRemoved.getInstanceName())) {
+            _taskAssignResultMap.remove(taskToRemove); // TODO: Hunter: Move this if necessary
+            LOG.info(
+                "TaskAssignResult removed because its assigned instance is no longer live. TaskID: {}, instance: {}",
+                taskToRemove, instanceToBeRemoved.getInstanceName());
+          }
         }
       }
       _assignableInstanceMap.remove(instanceToBeRemoved.getInstanceName());

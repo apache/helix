@@ -175,6 +175,9 @@ public class JobConfig extends ResourceConfig {
   public static final long DEFAULT_Job_EXECUTION_DELAY_TIME = -1L;
   public static final boolean DEFAULT_REBALANCE_RUNNING_TASK = false;
 
+  // Cache TaskConfig objects for targeted jobs' tasks to reduce object creation/GC overload
+  private Map<String, TaskConfig> _targetedTaskConfigMap = new HashMap<>();
+
   public JobConfig(HelixProperty property) {
     super(property.getRecord());
   }
@@ -263,7 +266,9 @@ public class JobConfig extends ResourceConfig {
         String.valueOf(WorkflowConfig.DEFAULT_MONITOR_DISABLE));
     getRecord().setBooleanField(JobConfigProperty.RebalanceRunningTask.name(),
         rebalanceRunningTask);
-    putSimpleConfig(JobConfigProperty.QuotaType.name(), quotaType);
+    if (quotaType != null) {
+      putSimpleConfig(JobConfigProperty.QuotaType.name(), quotaType);
+    }
   }
 
   public String getWorkflow() {
@@ -355,8 +360,16 @@ public class JobConfig extends ResourceConfig {
         DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE);
   }
 
+  /**
+   * Returns taskConfigMap. If it's targeted, then return a cached targetedTaskConfigMap.
+   * @return
+   */
   public Map<String, TaskConfig> getTaskConfigMap() {
-    Map<String, TaskConfig> taskConfigMap = new HashMap<String, TaskConfig>();
+    String targetResource = getSimpleConfig(JobConfigProperty.TargetResource.name());
+    if (targetResource != null) {
+      return _targetedTaskConfigMap;
+    }
+    Map<String, TaskConfig> taskConfigMap = new HashMap<>();
     for (Map.Entry<String, Map<String, String>> entry : getMapConfigs().entrySet()) {
       taskConfigMap.put(entry.getKey(),
           new TaskConfig(null, entry.getValue(), entry.getKey(), null));
@@ -364,8 +377,31 @@ public class JobConfig extends ResourceConfig {
     return taskConfigMap;
   }
 
+  /**
+   * If the job is targeted, try to get it from the cached targetedTaskConfigMap first. If not,
+   * create a TaskConfig on the fly.
+   * @param id pName for targeted tasks
+   * @return a TaskConfig object
+   */
   public TaskConfig getTaskConfig(String id) {
+    String targetResource = getSimpleConfig(JobConfigProperty.TargetResource.name());
+    if (targetResource != null) {
+      // This is a targeted task. For targeted tasks, id is pName
+      if (!_targetedTaskConfigMap.containsKey(id)) {
+        return new TaskConfig(null, null, id, null);
+      }
+      return _targetedTaskConfigMap.get(id);
+    }
     return new TaskConfig(null, getMapConfig(id), id, null);
+  }
+
+  /**
+   * When a targeted task is assigned for the first time, cache it in JobConfig so that it could be
+   * retrieved later for release.
+   * @param pName a concatenation of job name + "_" + task partition number
+   */
+  public void setTaskConfig(String pName, TaskConfig taskConfig) {
+    _targetedTaskConfigMap.put(pName, taskConfig);
   }
 
   public Map<String, String> getResourceConfigMap() {

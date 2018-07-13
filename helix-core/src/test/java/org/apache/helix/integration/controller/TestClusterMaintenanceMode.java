@@ -19,7 +19,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     _numDbs = 1;
     _numNodes = 3;
     _numReplicas = 3;
-    _numParitions = 5;
+    _numPartitions = 5;
     super.beforeClass();
   }
 

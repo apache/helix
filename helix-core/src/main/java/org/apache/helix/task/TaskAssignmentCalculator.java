@@ -11,7 +11,7 @@ import java.util.SortedSet;
 
 public abstract class TaskAssignmentCalculator {
   /**
-   * Get all the partitions that should be created by this task
+   * Get all the partitions/tasks that belong to this job.
    *
    * @param jobCfg the task configuration
    * @param jobCtx the task context

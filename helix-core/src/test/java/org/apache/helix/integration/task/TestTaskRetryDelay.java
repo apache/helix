@@ -32,7 +32,7 @@ public class TestTaskRetryDelay extends TaskTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    _numParitions = 1;
+    _numPartitions = 1;
     super.beforeClass();
   }
 
@@ -78,4 +78,3 @@ public class TestTaskRetryDelay extends TaskTestBase {
     Assert.assertTrue(finishedTime - startTime <= 2000L);
   }
 }
-

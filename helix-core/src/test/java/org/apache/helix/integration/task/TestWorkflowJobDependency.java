@@ -40,7 +40,7 @@ public class TestWorkflowJobDependency extends TaskTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     _numDbs = 5;
-    _numParitions = 1;
+    _numPartitions = 1;
     _partitionVary = false;
     super.beforeClass();
   }

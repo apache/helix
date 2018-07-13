@@ -20,7 +20,6 @@ package org.apache.helix.model;
  */
 
 import com.google.common.collect.Maps;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -65,7 +64,7 @@ public class ClusterConfig extends HelixProperty {
     TARGET_EXTERNALVIEW_ENABLED,
     @Deprecated // ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE will take
         // precedence if it is set
-    ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
+        ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
     // transition if the number of partitons that need
     // recovery exceeds this limitation
     ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance
@@ -73,6 +72,10 @@ public class ClusterConfig extends HelixProperty {
     // partitons that need recovery or in
     // error exceeds this limitation
     DISABLED_INSTANCES,
+    VIEW_CLUSTER, // Set to "true" to indicate this is a view cluster
+    VIEW_CLUSTER_SOURCES, // Map field, key is the name of source cluster, value is
+    // ViewClusterSourceConfig JSON string
+    VIEW_CLUSTER_REFRESH_PERIOD, // In second
 
     // Specifies job types and used for quota allocation
     QUOTA_TYPES
@@ -107,10 +110,37 @@ public class ClusterConfig extends HelixProperty {
     super(record);
   }
 
+  public void setViewCluster() {
+    _record.setBooleanField(ClusterConfigProperty.VIEW_CLUSTER.name(), true);
+  }
+
   /**
-   * Set task quota type with the ratio of this quota
-   * @param quotaType
-   * @param quotaRatio
+   * Whether this cluster is a ViewCluster
+   * @return
+   */
+  public boolean isViewCluster() {
+    return _record
+        .getBooleanField(ClusterConfigProperty.VIEW_CLUSTER.name(), false);
+  }
+
+  /**
+   * Set task quota type with the ratio of this quota.
+   * @param quotaType String
+   * @param quotaRatio int
+   */
+  public void setTaskQuotaRatio(String quotaType, int quotaRatio) {
+    if (_record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()) == null) {
+      _record.setMapField(ClusterConfigProperty.QUOTA_TYPES.name(), new HashMap<String, String>());
+    }
+    _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name())
+        .put(quotaType, Integer.toString(quotaRatio));
+  }
+
+  /**
+   * Set task quota type with the ratio of this quota. Quota ratio must be a String that is
+   * parse-able into an int.
+   * @param quotaType String
+   * @param quotaRatio String
    */
   public void setTaskQuotaRatio(String quotaType, String quotaRatio) {
     if (_record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()) == null) {
@@ -118,6 +148,16 @@ public class ClusterConfig extends HelixProperty {
     }
     _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name())
         .put(quotaType, quotaRatio);
+  }
+
+  /**
+   * Remove task quota with the given quota type.
+   * @param quotaType
+   */
+  public void removeTaskQuotaRatio(String quotaType) {
+    if (_record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()) != null) {
+      _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()).remove(quotaType);
+    }
   }
 
   /**
@@ -141,6 +181,29 @@ public class ClusterConfig extends HelixProperty {
    */
   public Map<String, String> getTaskQuotaRatioMap() {
     return _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name());
+  }
+
+  /**
+   * Resets all quota-related information in this ClusterConfig.
+   */
+  public void resetTaskQuotaRatioMap() {
+    if (_record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()) != null) {
+      _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()).clear();
+    }
+  }
+
+  /**
+   * Set view cluster max refresh period
+   * @param refreshPeriod refresh period in second
+   */
+  public void setViewClusterRefreshPeriod(int refreshPeriod) {
+    _record.setIntField(ClusterConfigProperty.VIEW_CLUSTER_REFRESH_PERIOD.name(),
+        refreshPeriod);
+  }
+
+  public int getViewClusterRefershPeriod() {
+    return _record.getIntField(ClusterConfigProperty.VIEW_CLUSTER_REFRESH_PERIOD.name(),
+        DEFAULT_VIEW_CLUSTER_REFRESH_PERIOD);
   }
 
   /**

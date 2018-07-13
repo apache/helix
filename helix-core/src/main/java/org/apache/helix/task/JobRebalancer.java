@@ -40,6 +40,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.task.assigner.ThreadCountBasedTaskAssigner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,17 +52,14 @@ import com.google.common.collect.ImmutableMap;
  */
 public class JobRebalancer extends TaskRebalancer {
   private static final Logger LOG = LoggerFactory.getLogger(JobRebalancer.class);
-  private static TaskAssignmentCalculator _fixTaskAssignmentCal =
-      new FixedTargetTaskAssignmentCalculator();
-  private static TaskAssignmentCalculator _genericTaskAssignmentCal =
-      new GenericTaskAssignmentCalculator();
+  private static TaskAssignmentCalculator _fixTaskAssignmentCal;
+  private static TaskAssignmentCalculator _threadCountBasedTaskAssignmentCal;
 
   private static final String PREV_RA_NODE = "PreviousResourceAssignment";
 
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(
-      ClusterDataCache clusterData, IdealState taskIs, Resource resource,
-      CurrentStateOutput currStateOutput) {
+  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
+      IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput) {
     final String jobName = resource.getResourceName();
     LOG.debug("Computer Best Partition for job: " + jobName);
 
@@ -93,7 +91,8 @@ public class JobRebalancer extends TaskRebalancer {
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
-    // Stop current run of the job if workflow or job is already in final state (failed or completed)
+    // Stop current run of the job if workflow or job is already in final state (failed or
+    // completed)
     TaskState workflowState = workflowCtx.getWorkflowState();
     TaskState jobState = workflowCtx.getJobState(jobName);
     // The job is already in a final state (completed/failed).
@@ -114,7 +113,7 @@ public class JobRebalancer extends TaskRebalancer {
 
     if (!TaskUtil.isJobStarted(jobName, workflowCtx) && !isJobReadyToSchedule(jobName, workflowCfg,
         workflowCtx, TaskUtil.getInCompleteJobCount(workflowCfg, workflowCtx),
-        clusterData.getJobConfigMap())) {
+        clusterData.getJobConfigMap(), clusterData)) {
       LOG.info("Job is not ready to run " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
@@ -142,9 +141,9 @@ public class JobRebalancer extends TaskRebalancer {
     // is stored in zk.
     // Fetch the previous resource assignment from the property store. This is required because of
     // HELIX-230.
-    Set<String> liveInstances = jobCfg.getInstanceGroupTag() == null
-        ? clusterData.getEnabledLiveInstances()
-        : clusterData.getEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
+    Set<String> liveInstances =
+        jobCfg.getInstanceGroupTag() == null ? clusterData.getEnabledLiveInstances()
+            : clusterData.getEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
 
     if (liveInstances.isEmpty()) {
       LOG.error("No available instance found for job!");
@@ -197,13 +196,13 @@ public class JobRebalancer extends TaskRebalancer {
 
     // Update Workflow and Job context in data cache and ZK.
     clusterData.updateJobContext(jobName, jobCtx, _manager.getHelixDataAccessor());
-    clusterData
-        .updateWorkflowContext(workflowResource, workflowCtx, _manager.getHelixDataAccessor());
+    clusterData.updateWorkflowContext(workflowResource, workflowCtx,
+        _manager.getHelixDataAccessor());
 
     setPrevResourceAssignment(jobName, newAssignment);
 
-    LOG.debug("Job " + jobName + " new assignment " + Arrays
-        .toString(newAssignment.getMappedPartitions().toArray()));
+    LOG.debug("Job " + jobName + " new assignment "
+        + Arrays.toString(newAssignment.getMappedPartitions().toArray()));
     return newAssignment;
   }
 
@@ -212,7 +211,6 @@ public class JobRebalancer extends TaskRebalancer {
       ResourceAssignment prevTaskToInstanceStateAssignment, Collection<String> liveInstances,
       CurrentStateOutput currStateOutput, WorkflowContext workflowCtx, JobContext jobCtx,
       Set<Integer> partitionsToDropFromIs, ClusterDataCache cache) {
-
 
     // Used to keep track of tasks that have already been assigned to instances.
     Set<Integer> assignedPartitions = new HashSet<>();
@@ -223,12 +221,13 @@ public class JobRebalancer extends TaskRebalancer {
     // Keeps a mapping of (partition) -> (instance, state)
     Map<Integer, PartitionAssignment> paMap = new TreeMap<>();
 
-    Set<String> excludedInstances = getExcludedInstances(jobResource, workflowConfig, cache);
+    Set<String> excludedInstances =
+        getExcludedInstances(jobResource, workflowConfig, workflowCtx, cache);
 
     // Process all the current assignments of tasks.
-    TaskAssignmentCalculator taskAssignmentCal = getAssignmentCalulator(jobCfg);
-    Set<Integer> allPartitions = taskAssignmentCal
-        .getAllTaskPartitions(jobCfg, jobCtx, workflowConfig, workflowCtx, cache.getIdealStates());
+    TaskAssignmentCalculator taskAssignmentCal = getAssignmentCalculator(jobCfg, cache);
+    Set<Integer> allPartitions = taskAssignmentCal.getAllTaskPartitions(jobCfg, jobCtx,
+        workflowConfig, workflowCtx, cache.getIdealStates());
 
     if (allPartitions == null || allPartitions.isEmpty()) {
       // Empty target partitions, mark the job as FAILED.
@@ -236,7 +235,7 @@ public class JobRebalancer extends TaskRebalancer {
           "Empty task partition mapping for job " + jobResource + ", marked the job as FAILED!";
       LOG.info(failureMsg);
       jobCtx.setInfo(failureMsg);
-      failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap());
+      failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap(), cache);
       markAllPartitionsError(jobCtx, TaskPartitionState.ERROR, false);
       return new ResourceAssignment(jobResource);
     }
@@ -247,23 +246,23 @@ public class JobRebalancer extends TaskRebalancer {
     long currentTime = System.currentTimeMillis();
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug(
-          "All partitions: " + allPartitions + " taskAssignment: " + prevInstanceToTaskAssignments
-              + " excludedInstances: " + excludedInstances);
+      LOG.debug("All partitions: " + allPartitions + " taskAssignment: "
+          + prevInstanceToTaskAssignments + " excludedInstances: " + excludedInstances);
     }
 
+    // Release resource for tasks in terminal state
     updatePreviousAssignedTasksStatus(prevInstanceToTaskAssignments, excludedInstances, jobResource,
         currStateOutput, jobCtx, jobCfg, prevTaskToInstanceStateAssignment, jobState,
-        assignedPartitions, partitionsToDropFromIs, paMap, jobTgtState, skippedPartitions);
+        assignedPartitions, partitionsToDropFromIs, paMap, jobTgtState, skippedPartitions, cache);
 
     addGiveupPartitions(skippedPartitions, jobCtx, allPartitions, jobCfg);
 
     if (jobState == TaskState.IN_PROGRESS && skippedPartitions.size() > jobCfg.getFailureThreshold()
         || (jobCfg.getTargetResource() != null
-        && cache.getIdealState(jobCfg.getTargetResource()) != null && !cache
-        .getIdealState(jobCfg.getTargetResource()).isEnabled())) {
+        && cache.getIdealState(jobCfg.getTargetResource()) != null
+        && !cache.getIdealState(jobCfg.getTargetResource()).isEnabled())) {
       if (isJobFinished(jobCtx, jobResource, currStateOutput)) {
-        failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap());
+        failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap(), cache);
         return buildEmptyAssignment(jobResource, currStateOutput);
       }
       workflowCtx.setJobState(jobResource, TaskState.FAILING);
@@ -286,12 +285,13 @@ public class JobRebalancer extends TaskRebalancer {
     }
 
     if (jobState == TaskState.FAILING && isJobFinished(jobCtx, jobResource, currStateOutput)) {
-      failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap());
+      failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap(), cache);
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
 
     if (isJobComplete(jobCtx, allPartitions, jobCfg)) {
-      markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx, cache.getJobConfigMap());
+      markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx, cache.getJobConfigMap(),
+          cache);
       _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.COMPLETED,
           jobCtx.getFinishTime() - jobCtx.getStartTime());
       _rebalanceScheduler.removeScheduledRebalance(jobResource);
@@ -299,7 +299,8 @@ public class JobRebalancer extends TaskRebalancer {
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
 
-    // If job is being timed out and no task is running (for whatever reason), idealState can be deleted and all tasks
+    // If job is being timed out and no task is running (for whatever reason), idealState can be
+    // deleted and all tasks
     // can be dropped(note that Helix doesn't track whether the drop is success or not).
     if (jobState == TaskState.TIMING_OUT && isJobFinished(jobCtx, jobResource, currStateOutput)) {
       handleJobTimeout(jobCtx, workflowCtx, jobResource, jobCfg);
@@ -341,8 +342,8 @@ public class JobRebalancer extends TaskRebalancer {
       String instance = jobContext.getAssignedParticipant(pId);
       Message pendingMessage = currentStateOutput.getPendingState(jobResource, partition, instance);
       // If state is INIT but is pending INIT->RUNNING, it's not yet safe to say the job finished
-      if (state == TaskPartitionState.RUNNING || (state == TaskPartitionState.INIT
-          && pendingMessage != null)) {
+      if (state == TaskPartitionState.RUNNING
+          || (state == TaskPartitionState.INIT && pendingMessage != null)) {
         return false;
       }
     }
@@ -351,28 +352,25 @@ public class JobRebalancer extends TaskRebalancer {
 
   /**
    * Get the last task assignment for a given job
-   *
    * @param resourceName the name of the job
-   *
    * @return {@link ResourceAssignment} instance, or null if no assignment is available
    */
   private ResourceAssignment getPrevResourceAssignment(String resourceName) {
-    ZNRecord r = _manager.getHelixPropertyStore()
-        .get(Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, PREV_RA_NODE),
-            null, AccessOption.PERSISTENT);
+    ZNRecord r = _manager.getHelixPropertyStore().get(
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, PREV_RA_NODE),
+        null, AccessOption.PERSISTENT);
     return r != null ? new ResourceAssignment(r) : null;
   }
 
   /**
    * Set the last task assignment for a given job
-   *
    * @param resourceName the name of the job
-   * @param ra           {@link ResourceAssignment} containing the task assignment
+   * @param ra {@link ResourceAssignment} containing the task assignment
    */
   private void setPrevResourceAssignment(String resourceName, ResourceAssignment ra) {
-    _manager.getHelixPropertyStore()
-        .set(Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, PREV_RA_NODE),
-            ra.getRecord(), AccessOption.PERSISTENT);
+    _manager.getHelixPropertyStore().set(
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, PREV_RA_NODE),
+        ra.getRecord(), AccessOption.PERSISTENT);
   }
 
   /**
@@ -389,7 +387,8 @@ public class JobRebalancer extends TaskRebalancer {
         if (!isTaskGivenup(ctx, cfg, pId)) {
           return false;
         }
-        // If the task is given up, there's still chance the job has completed because of job failure threshold.
+        // If the task is given up, there's still chance the job has completed because of job
+        // failure threshold.
         numOfGivenUpTasks++;
       }
     }
@@ -398,9 +397,8 @@ public class JobRebalancer extends TaskRebalancer {
 
   /**
    * @param liveInstances
-   * @param prevAssignment    task partition -> (instance -> state)
+   * @param prevAssignment task partition -> (instance -> state)
    * @param allTaskPartitions all task partitionIds
-   *
    * @return instance -> partitionIds from previous assignment, if the instance is still live
    */
   private static Map<String, SortedSet<Integer>> getPrevInstanceToTaskAssignments(
@@ -426,7 +424,24 @@ public class JobRebalancer extends TaskRebalancer {
     return result;
   }
 
-  private TaskAssignmentCalculator getAssignmentCalulator(JobConfig jobConfig) {
-    return TaskUtil.isGenericTaskJob(jobConfig) ? _genericTaskAssignmentCal : _fixTaskAssignmentCal;
+  /**
+   * If the job is a targeted job, use fixedTaskAssignmentCalculator. Otherwise, use
+   * threadCountBasedTaskAssignmentCalculator. Both calculators support quota-based scheduling.
+   * @param jobConfig
+   * @param cache
+   * @return
+   */
+  private TaskAssignmentCalculator getAssignmentCalculator(JobConfig jobConfig,
+      ClusterDataCache cache) {
+    AssignableInstanceManager assignableInstanceManager = cache.getAssignableInstanceManager();
+    if (_threadCountBasedTaskAssignmentCal == null) {
+      _threadCountBasedTaskAssignmentCal = new ThreadCountBasedTaskAssignmentCalculator(
+          new ThreadCountBasedTaskAssigner(), assignableInstanceManager);
+    }
+    if (_fixTaskAssignmentCal == null) {
+      _fixTaskAssignmentCal = new FixedTargetTaskAssignmentCalculator(assignableInstanceManager);
+    }
+    return TaskUtil.isGenericTaskJob(jobConfig) ? _threadCountBasedTaskAssignmentCal
+        : _fixTaskAssignmentCal;
   }
 }

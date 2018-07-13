@@ -53,7 +53,7 @@ public class TestTaskRebalancerRetryLimit extends TaskTestBase {
     _driver.pollForWorkflowState(jobResource, TaskState.COMPLETED);
 
     JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
-    for (int i = 0; i < _numParitions; i++) {
+    for (int i = 0; i < _numPartitions; i++) {
       TaskPartitionState state = ctx.getPartitionState(i);
       if (state != null) {
         Assert.assertEquals(state, TaskPartitionState.TASK_ERROR);

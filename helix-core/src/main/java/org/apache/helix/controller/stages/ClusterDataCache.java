@@ -96,16 +96,14 @@ public class ClusterDataCache {
 
   // maintain a cache of bestPossible assignment across pipeline runs
   // TODO: this is only for customRebalancer, remove it and merge it with _idealMappingCache.
-  private Map<String, ResourceAssignment>  _resourceAssignmentCache = new HashMap<>();
-
+  private Map<String, ResourceAssignment> _resourceAssignmentCache = new HashMap<>();
 
   // maintain a cache of idealmapping (preference list) for full-auto resource across pipeline runs
-  private Map<String, ZNRecord>  _idealMappingCache = new HashMap<>();
+  private Map<String, ZNRecord> _idealMappingCache = new HashMap<>();
 
   private Map<ChangeType, Boolean> _propertyDataChangedMap;
 
   private Map<String, Integer> _participantActiveTaskCount = new HashMap<>();
-
 
   private ExecutorService _asyncTasksThreadPool;
 
@@ -115,7 +113,10 @@ public class ClusterDataCache {
 
   private String _clusterName;
 
-  public ClusterDataCache () {
+  // For detecting liveinstance and target resource partition state change in task assignment
+  private boolean _existsLiveInstanceOrCurrentStateChange = false;
+
+  public ClusterDataCache() {
     this(null);
   }
 
@@ -146,33 +147,30 @@ public class ClusterDataCache {
       clearCachedResourceAssignments();
       _idealStateCache.refresh(accessor);
       LogUtil.logInfo(LOG, _eventId,
-          "Refresh IdealStates for cluster " + _clusterName + ", took " + (
-              System.currentTimeMillis() - startTime) + " ms for " + (_isTaskCache
-              ? "TASK"
-              : "DEFAULT") + "pipeline");
+          "Refresh IdealStates for cluster " + _clusterName + ", took "
+              + (System.currentTimeMillis() - startTime) + " ms for "
+              + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
     }
 
     if (_propertyDataChangedMap.get(ChangeType.LIVE_INSTANCE)) {
+      _existsLiveInstanceOrCurrentStateChange = true;
       startTime = System.currentTimeMillis();
       _propertyDataChangedMap.put(ChangeType.LIVE_INSTANCE, false);
       clearCachedResourceAssignments();
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances(), true);
       _updateInstanceOfflineTime = true;
       LogUtil.logInfo(LOG, _eventId,
-          "Refresh LiveInstances for cluster " + _clusterName + ", took " + (
-              System.currentTimeMillis() - startTime) + " ms for " + (_isTaskCache
-              ? "TASK"
-              : "DEFAULT") + "pipeline");
+          "Refresh LiveInstances for cluster " + _clusterName + ", took "
+              + (System.currentTimeMillis() - startTime) + " ms for "
+              + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
     }
 
     if (_propertyDataChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
       _propertyDataChangedMap.put(ChangeType.INSTANCE_CONFIG, false);
       clearCachedResourceAssignments();
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs(), true);
-      LogUtil.logInfo(LOG, _eventId,
-          "Reload InstanceConfig: " + _instanceConfigCacheMap.keySet() + " for " + (_isTaskCache
-              ? "TASK"
-              : "DEFAULT") + "pipeline");
+      LogUtil.logInfo(LOG, _eventId, "Reload InstanceConfig: " + _instanceConfigCacheMap.keySet()
+          + " for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
     }
 
     if (_propertyDataChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
@@ -180,11 +178,15 @@ public class ClusterDataCache {
       clearCachedResourceAssignments();
       _resourceConfigCacheMap =
           accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs(), true);
-      LogUtil.logInfo(LOG, _eventId,
-          "Reload ResourceConfigs: " + _resourceConfigCacheMap.keySet() + " for " + (_isTaskCache
-              ? "TASK"
-              : "DEFAULT") + "pipeline");
+      LogUtil.logInfo(LOG, _eventId, "Reload ResourceConfigs: " + _resourceConfigCacheMap.keySet()
+          + " for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
+    }
 
+    // This is for target jobs' task assignment. It needs to watch for current state changes for
+    // when targeted resources' state transitions complete
+    if (_propertyDataChangedMap.get(ChangeType.CURRENT_STATE)) {
+      _existsLiveInstanceOrCurrentStateChange = true;
+      _propertyDataChangedMap.put(ChangeType.CURRENT_STATE, false);
     }
 
     _liveInstanceMap = new HashMap<>(_liveInstanceCacheMap);
@@ -212,7 +214,8 @@ public class ClusterDataCache {
 
     // current state must be refreshed before refreshing relay messages
     // because we need to use current state to validate all relay messages.
-    _instanceMessagesCache.updateRelayMessages(_liveInstanceMap, _currentStateCache.getCurrentStatesMap());
+    _instanceMessagesCache.updateRelayMessages(_liveInstanceMap,
+        _currentStateCache.getCurrentStatesMap());
 
     if (_clusterConfig != null) {
       _idealStateRuleMap = _clusterConfig.getIdealStateRules();
@@ -229,26 +232,25 @@ public class ClusterDataCache {
 
     long endTime = System.currentTimeMillis();
     LogUtil.logInfo(LOG, _eventId,
-        "END: ClusterDataCache.refresh() for cluster " + getClusterName() + ", took " + (endTime
-            - startTime) + " ms for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
+        "END: ClusterDataCache.refresh() for cluster " + getClusterName() + ", took "
+            + (endTime - startTime) + " ms for " + (_isTaskCache ? "TASK" : "DEFAULT")
+            + "pipeline");
 
     if (LOG.isDebugEnabled()) {
       LogUtil.logDebug(LOG, _eventId,
           "# of StateModelDefinition read from zk: " + _stateModelDefMap.size());
-      LogUtil
-          .logDebug(LOG, _eventId, "# of ConstraintMap read from zk: " + _constraintMap.size());
+      LogUtil.logDebug(LOG, _eventId, "# of ConstraintMap read from zk: " + _constraintMap.size());
       LogUtil.logDebug(LOG, _eventId, "LiveInstances: " + _liveInstanceMap.keySet());
       for (LiveInstance instance : _liveInstanceMap.values()) {
         LogUtil.logDebug(LOG, _eventId,
             "live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
       }
-      LogUtil
-          .logDebug(LOG, _eventId, "IdealStates: " + _idealStateCache.getIdealStateMap().keySet());
+      LogUtil.logDebug(LOG, _eventId,
+          "IdealStates: " + _idealStateCache.getIdealStateMap().keySet());
       LogUtil.logDebug(LOG, _eventId, "ResourceConfigs: " + _resourceConfigMap.keySet());
       LogUtil.logDebug(LOG, _eventId, "InstanceConfigs: " + _instanceConfigMap.keySet());
       LogUtil.logDebug(LOG, _eventId, "ClusterConfigs: " + _clusterConfig);
-      LogUtil
-          .logDebug(LOG, _eventId, "JobContexts: " + _taskDataCache.getContexts().keySet());
+      LogUtil.logDebug(LOG, _eventId, "JobContexts: " + _taskDataCache.getContexts().keySet());
     }
 
     if (LOG.isTraceEnabled()) {
@@ -301,8 +303,8 @@ public class ClusterDataCache {
         history.reportOffline();
         // persist history back to ZK.
         if (!accessor.setProperty(propertyKey, history)) {
-          LogUtil
-              .logError(LOG, _eventId, "Fails to persist participant online history back to ZK!");
+          LogUtil.logError(LOG, _eventId,
+              "Fails to persist participant online history back to ZK!");
         }
       }
       _instanceOfflineTimeMap.put(instance, history.getLastOfflineTime());
@@ -324,7 +326,6 @@ public class ClusterDataCache {
 
   /**
    * Return the last offline time map for all offline instances.
-   *
    * @return
    */
   public Map<String, Long> getInstanceOfflineTimeMap() {
@@ -355,7 +356,6 @@ public class ClusterDataCache {
     return _liveInstanceMap;
   }
 
-
   /**
    * Return the set of all instances names.
    */
@@ -365,7 +365,6 @@ public class ClusterDataCache {
 
   /**
    * Return all the live nodes that are enabled
-   *
    * @return A new set contains live instance name and that are marked enabled
    */
   public Set<String> getEnabledLiveInstances() {
@@ -377,7 +376,6 @@ public class ClusterDataCache {
 
   /**
    * Return all nodes that are enabled.
-   *
    * @return
    */
   public Set<String> getEnabledInstances() {
@@ -389,10 +387,9 @@ public class ClusterDataCache {
 
   /**
    * Return all the live nodes that are enabled and tagged with given instanceTag.
-   *
    * @param instanceTag The instance group tag.
-   * @return A new set contains live instance name and that are marked enabled and have the specified
-   * tag.
+   * @return A new set contains live instance name and that are marked enabled and have the
+   *         specified tag.
    */
   public Set<String> getEnabledLiveInstancesWithTag(String instanceTag) {
     Set<String> enabledLiveInstancesWithTag = new HashSet<>(getLiveInstances().keySet());
@@ -405,7 +402,6 @@ public class ClusterDataCache {
 
   /**
    * Return all the nodes that are tagged with given instance tag.
-   *
    * @param instanceTag The instance group tag.
    */
   public Set<String> getInstancesWithTag(String instanceTag) {
@@ -420,7 +416,6 @@ public class ClusterDataCache {
     return taggedInstances;
   }
 
-
   public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {
     Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
     for (LiveInstance liveInstance : liveInstances) {
@@ -433,10 +428,8 @@ public class ClusterDataCache {
   /**
    * Provides the current state of the node for a given session id, the sessionid can be got from
    * LiveInstance
-   *
    * @param instanceName
    * @param clientSessionId
-   *
    * @return
    */
   public Map<String, CurrentState> getCurrentState(String instanceName, String clientSessionId) {
@@ -503,7 +496,6 @@ public class ClusterDataCache {
 
   /**
    * Returns the resource config map
-   *
    * @return
    */
   public Map<String, ResourceConfig> getResourceConfigMap() {
@@ -526,7 +518,6 @@ public class ClusterDataCache {
 
   /**
    * Returns the instance config map
-   *
    * @return
    */
   public ResourceConfig getResourceConfig(String resource) {
@@ -567,7 +558,6 @@ public class ClusterDataCache {
     return _taskDataCache.getWorkflowConfig(resource);
   }
 
-
   public synchronized void setInstanceConfigs(List<InstanceConfig> instanceConfigs) {
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     for (InstanceConfig instanceConfig : instanceConfigs) {
@@ -584,8 +574,8 @@ public class ClusterDataCache {
    */
   public Set<String> getDisabledInstancesForPartition(String resource, String partition) {
     Set<String> disabledInstancesForPartition = new HashSet<>(_disabledInstanceSet);
-    if (_disabledInstanceForPartitionMap.containsKey(resource) && _disabledInstanceForPartitionMap
-        .get(resource).containsKey(partition)) {
+    if (_disabledInstanceForPartitionMap.containsKey(resource)
+        && _disabledInstanceForPartitionMap.get(resource).containsKey(partition)) {
       disabledInstancesForPartition
           .addAll(_disabledInstanceForPartitionMap.get(resource).get(partition));
     }
@@ -595,7 +585,6 @@ public class ClusterDataCache {
 
   /**
    * This method allows one to fetch the set of nodes that are disabled
-   *
    * @return
    */
   public Set<String> getDisabledInstances() {
@@ -621,18 +610,13 @@ public class ClusterDataCache {
           try {
             replicas = Integer.parseInt(replicasStr);
           } catch (Exception e) {
-            LogUtil.logError(LOG, _eventId,
-                "invalid replicas string: " + replicasStr + " for " + (_isTaskCache
-                    ? "TASK"
-                    : "DEFAULT") + "pipeline");
+            LogUtil.logError(LOG, _eventId, "invalid replicas string: " + replicasStr + " for "
+                + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
           }
         }
       } else {
-        LogUtil.logError(LOG, _eventId,
-            "idealState for resource: " + resourceName + " does NOT have replicas for " + (
-                _isTaskCache
-                    ? "TASK"
-                    : "DEFAULT") + "pipeline");
+        LogUtil.logError(LOG, _eventId, "idealState for resource: " + resourceName
+            + " does NOT have replicas for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
       }
     }
     return replicas;
@@ -675,21 +659,29 @@ public class ClusterDataCache {
       _participantActiveTaskCount.put(liveInstance, 0);
     }
     // Active task == init and running tasks
-    fillActiveTaskCount(currentStateOutput.getPartitionCountWithPendingState(TaskConstants.STATE_MODEL_NAME,
-        TaskPartitionState.INIT.name()), _participantActiveTaskCount);
-    fillActiveTaskCount(currentStateOutput.getPartitionCountWithPendingState(TaskConstants.STATE_MODEL_NAME,
-        TaskPartitionState.RUNNING.name()), _participantActiveTaskCount);
-    fillActiveTaskCount(currentStateOutput.getPartitionCountWithCurrentState(TaskConstants.STATE_MODEL_NAME,
-        TaskPartitionState.INIT.name()), _participantActiveTaskCount);
-    fillActiveTaskCount(currentStateOutput
-        .getPartitionCountWithCurrentState(TaskConstants.STATE_MODEL_NAME,
-            TaskPartitionState.RUNNING.name()), _participantActiveTaskCount);
+    fillActiveTaskCount(
+        currentStateOutput.getPartitionCountWithPendingState(TaskConstants.STATE_MODEL_NAME,
+            TaskPartitionState.INIT.name()),
+        _participantActiveTaskCount);
+    fillActiveTaskCount(
+        currentStateOutput.getPartitionCountWithPendingState(TaskConstants.STATE_MODEL_NAME,
+            TaskPartitionState.RUNNING.name()),
+        _participantActiveTaskCount);
+    fillActiveTaskCount(
+        currentStateOutput.getPartitionCountWithCurrentState(TaskConstants.STATE_MODEL_NAME,
+            TaskPartitionState.INIT.name()),
+        _participantActiveTaskCount);
+    fillActiveTaskCount(
+        currentStateOutput.getPartitionCountWithCurrentState(TaskConstants.STATE_MODEL_NAME,
+            TaskPartitionState.RUNNING.name()),
+        _participantActiveTaskCount);
   }
 
   private void fillActiveTaskCount(Map<String, Integer> additionPartitionMap,
       Map<String, Integer> partitionMap) {
     for (String participant : additionPartitionMap.keySet()) {
-      partitionMap.put(participant, partitionMap.get(participant) + additionPartitionMap.get(participant));
+      partitionMap.put(participant,
+          partitionMap.get(participant) + additionPartitionMap.get(participant));
     }
   }
 
@@ -753,7 +745,6 @@ public class ClusterDataCache {
 
   /**
    * Get local cached external view map
-   *
    * @return
    */
   public Map<String, ExternalView> getExternalViews() {
@@ -762,7 +753,6 @@ public class ClusterDataCache {
 
   /**
    * Update the cached external view map
-   *
    * @param externalViews
    */
   public void updateExternalViews(List<ExternalView> externalViews) {
@@ -773,7 +763,6 @@ public class ClusterDataCache {
 
   /**
    * Remove dead external views from map
-   *
    * @param resourceNames
    */
 
@@ -787,7 +776,7 @@ public class ClusterDataCache {
    * Indicate that a full read should be done on the next refresh
    */
   public synchronized void requireFullRefresh() {
-    for(ChangeType type : ChangeType.values()) {
+    for (ChangeType type : ChangeType.values()) {
       _propertyDataChangedMap.put(type, true);
     }
   }
@@ -802,9 +791,7 @@ public class ClusterDataCache {
 
   /**
    * Get cached resourceAssignment (bestPossible mapping) for a resource
-   *
    * @param resource
-   *
    * @return
    */
   public ResourceAssignment getCachedResourceAssignment(String resource) {
@@ -813,7 +800,6 @@ public class ClusterDataCache {
 
   /**
    * Get cached resourceAssignments
-   *
    * @return
    */
   public Map<String, ResourceAssignment> getCachedResourceAssignments() {
@@ -822,21 +808,16 @@ public class ClusterDataCache {
 
   /**
    * Cache resourceAssignment (bestPossible mapping) for a resource
-   *
    * @param resource
-   *
    * @return
    */
   public void setCachedResourceAssignment(String resource, ResourceAssignment resourceAssignment) {
     _resourceAssignmentCache.put(resource, resourceAssignment);
   }
 
-
   /**
    * Get cached resourceAssignment (ideal mapping) for a resource
-   *
    * @param resource
-   *
    * @return
    */
   public ZNRecord getCachedIdealMapping(String resource) {
@@ -845,7 +826,6 @@ public class ClusterDataCache {
 
   /**
    * Get cached idealmapping
-   *
    * @return
    */
   public Map<String, ZNRecord> getCachedIdealMapping() {
@@ -854,15 +834,12 @@ public class ClusterDataCache {
 
   /**
    * Cache resourceAssignment (ideal mapping) for a resource
-   *
    * @param resource
-   *
    * @return
    */
   public void setCachedIdealMapping(String resource, ZNRecord mapping) {
     _idealMappingCache.put(resource, mapping);
   }
-
 
   public void clearCachedResourceAssignments() {
     _resourceAssignmentCache.clear();
@@ -911,6 +888,17 @@ public class ClusterDataCache {
     _idealStateCache.setEventId(eventId);
     _currentStateCache.setEventId(eventId);
     _taskDataCache.setEventId(eventId);
+  }
+
+  /**
+   * Returns whether there has been LiveInstance change. Once called, it will be set to false. To be
+   * used for task-assigning.
+   * @return
+   */
+  public boolean getExistsLiveInstanceOrCurrentStateChange() {
+    boolean change = _existsLiveInstanceOrCurrentStateChange;
+    _existsLiveInstanceOrCurrentStateChange = false;
+    return change;
   }
 
   /**

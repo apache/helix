@@ -71,6 +71,12 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
       logger.warn("No instance to assign!");
       return buildNoInstanceAssignment(tasks, quotaType);
     }
+    if (quotaType == null || quotaType.equals("") || quotaType.equals("null")) {
+      // Sometimes null is stored as a String literal
+      logger.warn("Quota type is null. Assigning it as DEFAULT type!");
+      quotaType = DEFAULT_QUOTA_TYPE;
+    }
+
     logger.info("Assigning tasks with quota type {}", quotaType);
 
     // Build a sched queue
@@ -87,6 +93,9 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
         continue;
       }
 
+      // TODO: Review this logic
+      // TODO: 1. It assumes that the only mode of failure is due to insufficient capacity. This assumption may not always be true. Verify
+      // TODO: 2. All TaskAssignResults will get failureReason/Description/TaskID for the first task that failed. This will need correction
       // Every time we try to assign the task to the least-used instance, if that fails,
       // we assume all subsequent tasks will fail with same reason
       if (lastFailure != null) {

@@ -51,7 +51,7 @@ public final class TestJobFailure extends TaskSynchronizedTestBase {
   public void beforeClass() throws Exception {
     _participants = new MockParticipantManager[_numNodes];
     _numNodes = 2;
-    _numParitions = 2;
+    _numPartitions = 2;
     _numReplicas = 1; // only Master, no Slave
     _numDbs = 1;
 

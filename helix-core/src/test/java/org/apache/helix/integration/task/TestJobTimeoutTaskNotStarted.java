@@ -52,7 +52,7 @@ public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
   public void beforeClass() throws Exception {
     _numDbs = 1;
     _numNodes = 1;
-    _numParitions = 50;
+    _numPartitions = 50;
     _numReplicas = 1;
     _participants =  new MockParticipantManager[_numNodes];
     _gSetupTool.addCluster(CLUSTER_NAME, true);
@@ -67,7 +67,7 @@ public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
     ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.stateTransitionCancelEnabled(true);
-    clusterConfig.setMaxConcurrentTaskPerInstance(_numParitions);
+    clusterConfig.setMaxConcurrentTaskPerInstance(_numPartitions);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     _clusterVerifier =
@@ -111,16 +111,17 @@ public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
         .setTargetResource(DB_NAME)
         .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
         .setCommand(MockTask.TASK_COMMAND)
-        .setNumConcurrentTasksPerInstance(_numParitions);
+        .setNumConcurrentTasksPerInstance(_numPartitions);
 
     Workflow.Builder blockWorkflowBuilder = new Workflow.Builder(BLOCK_WORKFLOW_NAME)
         .addJob("blockJob", blockJobBuilder);
     _driver.start(blockWorkflowBuilder.build());
 
+    int numOfParticipantThreads = 40;
     Assert.assertTrue(TaskTestUtil.pollForAllTasksBlock(_manager.getHelixDataAccessor(),
-        _participants[0].getInstanceName(), _numParitions, 10000));
+        _participants[0].getInstanceName(), numOfParticipantThreads, 10000));
     // Now, the HelixTask threadpool is full and blocked by blockJob.
-    // New tasks assigned to the instance won't start at all.
+    // New tasks assigned to the instance won't be assigned at all.
 
     // 2 timeout jobs, first one timeout, but won't block the second one to run, the second one also timeout.
     JobConfig.Builder timeoutJobBuilder = new JobConfig.Builder()
@@ -128,7 +129,7 @@ public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
         .setTargetResource(DB_NAME)
         .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
         .setCommand(MockTask.TASK_COMMAND)
-        .setNumConcurrentTasksPerInstance(_numParitions)
+        .setNumConcurrentTasksPerInstance(_numPartitions)
         .setTimeout(3000); // Wait a bit so that tasks are already assigned to the job (and will be cancelled)
 
     WorkflowConfig.Builder timeoutWorkflowConfigBuilder =
@@ -153,14 +154,18 @@ public class TestJobTimeoutTaskNotStarted extends TaskSynchronizedTestBase {
 
     JobContext jobContext = _driver.getJobContext(TaskUtil.getNamespacedJobName(TIMEOUT_WORKFLOW_NAME, TIMEOUT_JOB_1));
     for (int pId : jobContext.getPartitionSet()) {
-      // All tasks stuck at INIT->RUNNING, and state transition cancelled and marked TASK_ABORTED
-      Assert.assertEquals(jobContext.getPartitionState(pId), TaskPartitionState.TASK_ABORTED);
+      if (jobContext.getAssignedParticipant(pId) != null) {
+        // All tasks stuck at INIT->RUNNING, and state transition cancelled and marked TASK_ABORTED
+        Assert.assertEquals(jobContext.getPartitionState(pId), TaskPartitionState.TASK_ABORTED);
+      }
     }
 
     jobContext = _driver.getJobContext(TaskUtil.getNamespacedJobName(TIMEOUT_WORKFLOW_NAME, TIMEOUT_JOB_2));
     for (int pId : jobContext.getPartitionSet()) {
-      // All tasks stuck at INIT->RUNNING, and state transition cancelled and marked TASK_ABORTED
-      Assert.assertEquals(jobContext.getPartitionState(pId), TaskPartitionState.TASK_ABORTED);
+      if (jobContext.getAssignedParticipant(pId) != null) {
+        // All tasks stuck at INIT->RUNNING, and state transition cancelled and marked TASK_ABORTED
+        Assert.assertEquals(jobContext.getPartitionState(pId), TaskPartitionState.TASK_ABORTED);
+      }
     }
   }
 }

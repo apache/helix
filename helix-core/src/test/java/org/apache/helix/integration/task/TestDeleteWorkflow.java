@@ -22,7 +22,7 @@ public class TestDeleteWorkflow extends TaskTestBase  {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    _numParitions = 1;
+    _numPartitions = 1;
     admin = _gSetupTool.getClusterManagementTool();
     super.beforeClass();
   }
@@ -139,6 +139,15 @@ public class TestDeleteWorkflow extends TaskTestBase  {
     accessor.removeProperty(keyBuild.idealStates(jobQueueName));
     accessor.removeProperty(keyBuild.resourceConfig(jobQueueName));
     accessor.removeProperty(keyBuild.workflowContext(jobQueueName));
+
+    // Sometimes it's a ZK write fail - delete one more time to lower test failure rate
+    if (admin.getResourceIdealState(CLUSTER_NAME, jobQueueName) != null
+        || _driver.getWorkflowConfig(jobQueueName) != null
+        || _driver.getWorkflowContext(jobQueueName) != null) {
+      accessor.removeProperty(keyBuild.idealStates(jobQueueName));
+      accessor.removeProperty(keyBuild.resourceConfig(jobQueueName));
+      accessor.removeProperty(keyBuild.workflowContext(jobQueueName));
+    }
 
     Assert.assertNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
     Assert.assertNull(_driver.getWorkflowConfig(jobQueueName));

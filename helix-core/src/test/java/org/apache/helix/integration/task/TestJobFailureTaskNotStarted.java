@@ -64,7 +64,7 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
     _participants =  new MockParticipantManager[_numNodes];
     _numDbs = 1;
     _numNodes = 2;
-    _numParitions = 2;
+    _numPartitions = 2;
     _numReplicas = 1;
 
     _gSetupTool.addCluster(CLUSTER_NAME, true);
@@ -158,11 +158,16 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
         TaskState.FAILED);
     _driver.pollForWorkflowState(FAIL_WORKFLOW_NAME, TaskState.FAILED);
 
-    JobContext jobContext = _driver.getJobContext(TaskUtil.getNamespacedJobName(FAIL_WORKFLOW_NAME, FAIL_JOB_NAME));
+    JobContext jobContext =
+        _driver.getJobContext(TaskUtil.getNamespacedJobName(FAIL_WORKFLOW_NAME, FAIL_JOB_NAME));
     for (int pId : jobContext.getPartitionSet()) {
+      String assignedParticipant = jobContext.getAssignedParticipant(pId);
+      if (assignedParticipant == null) {
+        continue; // May not have been assigned at all due to quota limitations
+      }
       if (jobContext.getAssignedParticipant(pId).equals(_blockedParticipant.getInstanceName())) {
         Assert.assertEquals(jobContext.getPartitionState(pId), TaskPartitionState.TASK_ABORTED);
-      } else if (jobContext.getAssignedParticipant(pId).equals(_normalParticipant.getInstanceName())) {
+      } else if (assignedParticipant.equals(_normalParticipant.getInstanceName())) {
         Assert.assertEquals(jobContext.getPartitionState(pId), TaskPartitionState.TASK_ERROR);
       } else {
         throw new HelixException("There should be only 2 instances, 1 blocked, 1 normal.");

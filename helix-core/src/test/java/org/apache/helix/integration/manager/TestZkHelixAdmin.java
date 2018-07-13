@@ -22,7 +22,7 @@ package org.apache.helix.integration.manager;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.task.MockTask;
@@ -41,31 +41,35 @@ import org.testng.annotations.Test;
 
 public class TestZkHelixAdmin extends TaskTestBase {
 
+  private HelixAdmin _admin;
+  private ConfigAccessor _configAccessor;
+
   @BeforeClass
   public void beforeClass() throws Exception {
     _numDbs = 1;
     _numNodes = 2;
-    _numParitions = 3;
+    _numPartitions = 3;
     _numReplicas = 2;
     _partitionVary = false;
+    _admin = new ZKHelixAdmin(_gZkClient);
+    _configAccessor = new ConfigAccessor(_gZkClient);
     super.beforeClass();
   }
 
   @Test
   public void testEnableDisablePartitions() throws InterruptedException {
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
-    admin.enablePartition(false, CLUSTER_NAME, (PARTICIPANT_PREFIX + "_" + _startPort),
+    _admin.enablePartition(false, CLUSTER_NAME, (PARTICIPANT_PREFIX + "_" + _startPort),
         WorkflowGenerator.DEFAULT_TGT_DB, Arrays.asList(new String[] { "TestDB_0", "TestDB_2" }));
 
     IdealState idealState =
-        admin.getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
+        _admin.getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     List<String> preferenceList =
         Arrays.asList(new String[] { "localhost_12919", "localhost_12918" });
     for (String partitionName : idealState.getPartitionSet()) {
       idealState.setPreferenceList(partitionName, preferenceList);
     }
     idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
-    admin.setResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, idealState);
+    _admin.setResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, idealState);
 
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder builder = new Workflow.Builder(workflowName);

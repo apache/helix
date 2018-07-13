@@ -18,7 +18,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
     _numDbs = 1;
     _numReplicas = 3;
     _numNodes = 5;
-    _numParitions = 4;
+    _numPartitions = 4;
     super.beforeClass();
     _accessor = new ConfigAccessor(_gZkClient);
   }
@@ -31,7 +31,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
 
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
-    Assert.assertEquals(externalView.getRecord().getMapFields().size(), _numParitions);
+    Assert.assertEquals(externalView.getRecord().getMapFields().size(), _numPartitions);
     for (Map<String, String> stateMap : externalView.getRecord().getMapFields().values()) {
       Assert.assertTrue(!stateMap.keySet().contains(_participants[0].getInstanceName()));
     }
@@ -48,7 +48,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
 
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
-    Assert.assertEquals(externalView.getRecord().getMapFields().size(), _numParitions);
+    Assert.assertEquals(externalView.getRecord().getMapFields().size(), _numPartitions);
     for (Map<String, String> stateMap : externalView.getRecord().getMapFields().values()) {
       Assert.assertTrue(!stateMap.keySet().contains(_participants[0].getInstanceName()));
       Assert.assertTrue(!stateMap.keySet().contains(_participants[1].getInstanceName()));
@@ -69,7 +69,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
 
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
-    Assert.assertEquals(externalView.getRecord().getMapFields().size(), _numParitions);
+    Assert.assertEquals(externalView.getRecord().getMapFields().size(), _numPartitions);
     int numOfFirstHost = 0;
     for (Map<String, String> stateMap : externalView.getRecord().getMapFields().values()) {
       if (stateMap.keySet().contains(_participants[0].getInstanceName())) {
@@ -92,7 +92,7 @@ public class TestBatchEnableInstances extends TaskTestBase {
 
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
-    Assert.assertEquals(externalView.getRecord().getMapFields().size(), _numParitions);
+    Assert.assertEquals(externalView.getRecord().getMapFields().size(), _numPartitions);
     int numOfFirstHost = 0;
     for (Map<String, String> stateMap : externalView.getRecord().getMapFields().values()) {
       if (stateMap.keySet().contains(_participants[0].getInstanceName())) {

@@ -43,7 +43,7 @@ public class TestSemiAutoStateTransition extends TaskTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     _participants =  new MockParticipantManager[_numNodes];
-    _numParitions = 1;
+    _numPartitions = 1;
 
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     _accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
@@ -52,7 +52,7 @@ public class TestSemiAutoStateTransition extends TaskTestBase {
 
     for (int i = 0; i < _numDbs; i++) {
       String db = WorkflowGenerator.DEFAULT_TGT_DB + i;
-      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, _numParitions, MASTER_SLAVE_STATE_MODEL,
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, _numPartitions, MASTER_SLAVE_STATE_MODEL,
           IdealState.RebalanceMode.SEMI_AUTO.toString());
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _numReplicas);
       _testDbs.add(db);

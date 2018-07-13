@@ -32,7 +32,7 @@ public class TestWorkflowTermination extends TaskTestBase {
   public void beforeClass() throws Exception {
     _numDbs = 1;
     _numNodes = 3;
-    _numParitions = 5;
+    _numPartitions = 5;
     _numReplicas = 3;
     super.beforeClass();
   }

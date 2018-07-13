@@ -48,7 +48,7 @@ public class TestJobFailureHighThreshold extends TaskSynchronizedTestBase {
     _participants = new MockParticipantManager[_numNodes];
     _numDbs = 1;
     _numNodes = 1;
-    _numParitions = 5;
+    _numPartitions = 5;
     _numReplicas = 1;
 
     _gSetupTool.addCluster(CLUSTER_NAME, true);

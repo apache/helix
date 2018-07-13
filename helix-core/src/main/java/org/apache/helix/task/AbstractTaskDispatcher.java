@@ -18,6 +18,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.task.assigner.AssignableInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,12 @@ public abstract class AbstractTaskDispatcher {
       ResourceAssignment prevTaskToInstanceStateAssignment, TaskState jobState,
       Set<Integer> assignedPartitions, Set<Integer> partitionsToDropFromIs,
       Map<Integer, PartitionAssignment> paMap, TargetState jobTgtState,
-      Set<Integer> skippedPartitions) {
+      Set<Integer> skippedPartitions, ClusterDataCache cache) {
+
+    // Get AssignableInstanceMap for releasing resources for tasks in terminal states
+    Map<String, AssignableInstance> assignableInstanceMap =
+        cache.getAssignableInstanceManager().getAssignableInstanceMap();
+
     // Iterate through all instances
     for (String instance : prevInstanceToTaskAssignments.keySet()) {
       if (excludedInstances.contains(instance)) {
@@ -54,8 +60,8 @@ public abstract class AbstractTaskDispatcher {
       Set<Integer> donePartitions = new TreeSet<>();
       for (int pId : pSet) {
         final String pName = pName(jobResource, pId);
-        TaskPartitionState currState = updateJobContextAndGetTaskCurrentState(currStateOutput, jobResource, pId, pName,
-                instance, jobCtx);
+        TaskPartitionState currState = updateJobContextAndGetTaskCurrentState(currStateOutput,
+            jobResource, pId, pName, instance, jobCtx);
 
         // Check for pending state transitions on this (partition, instance).
         Message pendingMessage =
@@ -80,104 +86,160 @@ public abstract class AbstractTaskDispatcher {
           paMap.put(pId, new PartitionAssignment(instance, requestedState.name()));
           assignedPartitions.add(pId);
           if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(
-                "Instance %s requested a state transition to %s for partition %s.", instance,
-                requestedState, pName));
+            LOG.debug(
+                String.format("Instance %s requested a state transition to %s for partition %s.",
+                    instance, requestedState, pName));
           }
           continue;
         }
 
+        // Get AssignableInstance for this instance and TaskConfig for releasing resources
+        String quotaType = jobCfg.getQuotaType();
+        AssignableInstance assignableInstance = assignableInstanceMap.get(instance);
+        String taskId;
+        if (TaskUtil.isGenericTaskJob(jobCfg)) {
+          taskId = jobCtx.getTaskIdForPartition(pId);
+        } else {
+          taskId = pName;
+        }
+        TaskConfig taskConfig = jobCfg.getTaskConfig(taskId);
+
         switch (currState) {
-        case RUNNING: {
-          TaskPartitionState nextState = TaskPartitionState.RUNNING;
-          if (jobState.equals(TaskState.TIMING_OUT)) {
-            nextState = TaskPartitionState.TASK_ABORTED;
-          } else if (jobTgtState.equals(TargetState.STOP)) {
-            nextState = TaskPartitionState.STOPPED;
-          }
+          case RUNNING: {
+            TaskPartitionState nextState = TaskPartitionState.RUNNING;
+            if (jobState == TaskState.TIMING_OUT) {
+              nextState = TaskPartitionState.TASK_ABORTED;
+            } else if (jobTgtState == TargetState.STOP) {
+              nextState = TaskPartitionState.STOPPED;
+            } else if (jobState == TaskState.ABORTED || jobState == TaskState.FAILED
+                || jobState == TaskState.FAILING || jobState == TaskState.TIMED_OUT) {
+              // Drop tasks if parent job is not in progress
+              paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
+              break;
+            }
 
-          paMap.put(pId, new PartitionAssignment(instance, nextState.name()));
-          assignedPartitions.add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String
-                .format("Setting task partition %s state to %s on instance %s.", pName, nextState,
-                    instance));
-          }
-        }
-        break;
-        case STOPPED: {
-          TaskPartitionState nextState;
-          if (jobTgtState.equals(TargetState.START)) {
-            nextState = TaskPartitionState.RUNNING;
-          } else {
-            nextState = TaskPartitionState.STOPPED;
-          }
-
-          paMap.put(pId, new JobRebalancer.PartitionAssignment(instance, nextState.name()));
-          assignedPartitions.add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String
-                .format("Setting task partition %s state to %s on instance %s.", pName, nextState,
-                    instance));
-          }
-        }
-        break;
-        case COMPLETED: {
-          // The task has completed on this partition. Mark as such in the context object.
-          donePartitions.add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(
-                "Task partition %s has completed with state %s. Marking as such in rebalancer context.",
-                pName, currState));
-          }
-          partitionsToDropFromIs.add(pId);
-          markPartitionCompleted(jobCtx, pId);
-        }
-        break;
-        case TIMED_OUT:
-        case TASK_ERROR:
-        case TASK_ABORTED:
-        case ERROR: {
-          donePartitions.add(pId); // The task may be rescheduled on a different instance.
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(
-                "Task partition %s has error state %s with msg %s. Marking as such in rebalancer context.",
-                pName, currState, jobCtx.getPartitionInfo(pId)));
-          }
-          markPartitionError(jobCtx, pId, currState, true);
-          // The error policy is to fail the task as soon a single partition fails for a specified
-          // maximum number of attempts or task is in ABORTED state.
-          // But notice that if job is TIMED_OUT, aborted task won't be treated as fail and won't cause job fail.
-          // After all tasks are aborted, they will be dropped, because of job timeout.
-          if (jobState != TaskState.TIMED_OUT && jobState != TaskState.TIMING_OUT) {
-            if (jobCtx.getPartitionNumAttempts(pId) >= jobCfg.getMaxAttemptsPerTask()
-                || currState.equals(TaskPartitionState.TASK_ABORTED)
-                || currState.equals(TaskPartitionState.ERROR)) {
-              skippedPartitions.add(pId);
-              partitionsToDropFromIs.add(pId);
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("skippedPartitions:" + skippedPartitions);
-              }
-            } else {
-              // Mark the task to be started at some later time (if enabled)
-              markPartitionDelayed(jobCfg, jobCtx, pId);
+            paMap.put(pId, new PartitionAssignment(instance, nextState.name()));
+            assignedPartitions.add(pId);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
+                  nextState, instance));
             }
           }
-        }
-        break;
-        case INIT:
-        case DROPPED: {
-          // currState in [INIT, DROPPED]. Do nothing, the partition is eligible to be reassigned.
-          donePartitions.add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(
-                "Task partition %s has state %s. It will be dropped from the current ideal state.",
-                pName, currState));
+          break;
+          case STOPPED: {
+            TaskPartitionState nextState;
+            if (jobTgtState.equals(TargetState.START)) {
+              nextState = TaskPartitionState.RUNNING;
+            } else {
+              nextState = TaskPartitionState.STOPPED;
+              // This task is STOPPED and not going to be re-run, so release this task
+              assignableInstance.release(taskConfig, quotaType);
+            }
+
+            paMap.put(pId, new JobRebalancer.PartitionAssignment(instance, nextState.name()));
+            assignedPartitions.add(pId);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
+                  nextState, instance));
+            }
           }
-        }
-        break;
-        default:
-          throw new AssertionError("Unknown enum symbol: " + currState);
+          break;
+          case COMPLETED: {
+            // The task has completed on this partition. Mark as such in the context object.
+            donePartitions.add(pId);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug(String.format(
+                  "Task partition %s has completed with state %s. Marking as such in rebalancer context.",
+                  pName, currState));
+            }
+            partitionsToDropFromIs.add(pId);
+            markPartitionCompleted(jobCtx, pId);
+
+            // This task is COMPLETED, so release this task
+            assignableInstance.release(taskConfig, quotaType);
+          }
+          break;
+          case TIMED_OUT:
+
+          case TASK_ERROR:
+
+          case TASK_ABORTED:
+
+          case ERROR: {
+            donePartitions.add(pId); // The task may be rescheduled on a different instance.
+            if (LOG.isDebugEnabled()) {
+              LOG.debug(String.format(
+                  "Task partition %s has error state %s with msg %s. Marking as such in rebalancer context.",
+                  pName, currState, jobCtx.getPartitionInfo(pId)));
+            }
+            markPartitionError(jobCtx, pId, currState, true);
+            // The error policy is to fail the task as soon a single partition fails for a specified
+            // maximum number of attempts or task is in ABORTED state.
+            // But notice that if job is TIMED_OUT, aborted task won't be treated as fail and won't
+            // cause job fail.
+            // After all tasks are aborted, they will be dropped, because of job timeout.
+            if (jobState != TaskState.TIMED_OUT && jobState != TaskState.TIMING_OUT) {
+              if (jobCtx.getPartitionNumAttempts(pId) >= jobCfg.getMaxAttemptsPerTask()
+                  || currState.equals(TaskPartitionState.TASK_ABORTED)
+                  || currState.equals(TaskPartitionState.ERROR)) {
+                skippedPartitions.add(pId);
+                partitionsToDropFromIs.add(pId);
+                if (LOG.isDebugEnabled()) {
+                  LOG.debug("skippedPartitions:" + skippedPartitions);
+                }
+              } else {
+                // Mark the task to be started at some later time (if enabled)
+                markPartitionDelayed(jobCfg, jobCtx, pId);
+              }
+            }
+            // Release this task
+            assignableInstance.release(taskConfig, quotaType);
+          }
+          break;
+          case INIT: {
+            // INIT is a temporary state for tasks
+            // Two possible scenarios for INIT:
+            // 1. Task is getting scheduled for the first time. In this case, Task's state will go
+            // from null->INIT->RUNNING, and this INIT state will be transient and very short-lived
+            // 2. Task is getting scheduled for the first time, but in this case, job is timed out or
+            // timing out. In this case, it will be sent back to INIT state to be removed. Here we
+            // ensure that this task then goes from INIT to DROPPED so that it will be released from
+            // AssignableInstance to prevent resource leak
+            if (jobState == TaskState.TIMED_OUT || jobState == TaskState.TIMING_OUT
+                || jobTgtState == TargetState.DELETE) {
+              // Job is timed out or timing out or targetState is to be deleted, so its tasks will be
+              // sent back to INIT
+              // In this case, tasks' IdealState will be removed, and they will be sent to DROPPED
+              partitionsToDropFromIs.add(pId);
+
+              // Also release resources for these tasks
+              assignableInstance.release(taskConfig, quotaType);
+
+            } else if (jobState == TaskState.IN_PROGRESS
+                && (jobTgtState != TargetState.STOP && jobTgtState != TargetState.DELETE)) {
+              // Job is in progress, implying that tasks are being re-tried, so set it to RUNNING
+              paMap.put(pId,
+                  new JobRebalancer.PartitionAssignment(instance, TaskPartitionState.RUNNING.name()));
+              assignedPartitions.add(pId);
+            }
+          }
+
+          case DROPPED: {
+            // currState in [INIT, DROPPED]. Do nothing, the partition is eligible to be reassigned.
+            donePartitions.add(pId);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug(String.format(
+                  "Task partition %s has state %s. It will be dropped from the current ideal state.",
+                  pName, currState));
+            }
+            // If it's DROPPED, release this task. If INIT, do not release
+            if (currState == TaskPartitionState.DROPPED) {
+              assignableInstance.release(taskConfig, quotaType);
+            }
+          }
+          break;
+          default:
+            throw new AssertionError("Unknown enum symbol: " + currState);
         }
       }
 
@@ -190,7 +252,7 @@ public abstract class AbstractTaskDispatcher {
    * Computes the partition name given the resource name and partition id.
    */
   protected String pName(String resource, int pId) {
-    return resource + "_" + pId;
+    return String.format("%s_%s", resource, pId);
   }
 
   /**
@@ -206,37 +268,39 @@ public abstract class AbstractTaskDispatcher {
     }
   }
 
-  private TaskPartitionState updateJobContextAndGetTaskCurrentState(CurrentStateOutput currentStateOutput,
-      String jobResource, Integer pId, String pName, String instance, JobContext jobCtx) {
-    String currentStateString = currentStateOutput.getCurrentState(jobResource, new Partition(
-        pName), instance);
+  private TaskPartitionState updateJobContextAndGetTaskCurrentState(
+      CurrentStateOutput currentStateOutput, String jobResource, Integer pId, String pName,
+      String instance, JobContext jobCtx) {
+    String currentStateString =
+        currentStateOutput.getCurrentState(jobResource, new Partition(pName), instance);
     if (currentStateString == null) {
       // Task state is either DROPPED or INIT
       return jobCtx.getPartitionState(pId);
     }
     TaskPartitionState currentState = TaskPartitionState.valueOf(currentStateString);
     jobCtx.setPartitionState(pId, currentState);
-    String taskMsg = currentStateOutput.getInfo(jobResource, new Partition(
-        pName), instance);
+    String taskMsg = currentStateOutput.getInfo(jobResource, new Partition(pName), instance);
     if (taskMsg != null) {
       jobCtx.setPartitionInfo(pId, taskMsg);
     }
     return currentState;
   }
 
-  private void processTaskWithPendingMessage(ResourceAssignment prevAssignment, Integer pId, String pName,
-      String instance, Message pendingMessage, TaskState jobState, TaskPartitionState currState,
-      Map<Integer, PartitionAssignment> paMap, Set<Integer> assignedPartitions) {
+  private void processTaskWithPendingMessage(ResourceAssignment prevAssignment, Integer pId,
+      String pName, String instance, Message pendingMessage, TaskState jobState,
+      TaskPartitionState currState, Map<Integer, PartitionAssignment> paMap,
+      Set<Integer> assignedPartitions) {
 
     Map<String, String> stateMap = prevAssignment.getReplicaMap(new Partition(pName));
     if (stateMap != null) {
       String prevState = stateMap.get(instance);
       if (!pendingMessage.getToState().equals(prevState)) {
-        LOG.warn(String.format("Task pending to-state is %s while previous assigned state is %s. This should not"
-            + "happen.", pendingMessage.getToState(), prevState));
+        LOG.warn(String.format(
+            "Task pending to-state is %s while previous assigned state is %s. This should not"
+                + "happen.",
+            pendingMessage.getToState(), prevState));
       }
-      if (jobState == TaskState.TIMING_OUT
-          && currState == TaskPartitionState.INIT
+      if (jobState == TaskState.TIMING_OUT && currState == TaskPartitionState.INIT
           && prevState.equals(TaskPartitionState.RUNNING.name())) {
         // While job is timing out, if the task is pending on INIT->RUNNING, set it back to INIT,
         // so that Helix will cancel the transition.
@@ -309,8 +373,10 @@ public abstract class AbstractTaskDispatcher {
   }
 
   protected void failJob(String jobName, WorkflowContext workflowContext, JobContext jobContext,
-      WorkflowConfig workflowConfig, Map<String, JobConfig> jobConfigMap) {
-    markJobFailed(jobName, jobContext, workflowConfig, workflowContext, jobConfigMap);
+      WorkflowConfig workflowConfig, Map<String, JobConfig> jobConfigMap,
+      ClusterDataCache clusterDataCache) {
+    markJobFailed(jobName, jobContext, workflowConfig, workflowContext, jobConfigMap,
+        clusterDataCache);
     // Mark all INIT task to TASK_ABORTED
     for (int pId : jobContext.getPartitionSet()) {
       if (jobContext.getPartitionState(pId) == TaskPartitionState.INIT) {
@@ -322,7 +388,8 @@ public abstract class AbstractTaskDispatcher {
     TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
   }
 
-  // Compute real assignment from theoretical calculation with applied throttling or other logics
+  // Compute real assignment from theoretical calculation with applied throttling
+  // This is the actual assigning part
   protected void handleAdditionalTaskAssignment(
       Map<String, SortedSet<Integer>> prevInstanceToTaskAssignments, Set<String> excludedInstances,
       String jobResource, CurrentStateOutput currStateOutput, JobContext jobCtx, JobConfig jobCfg,
@@ -331,6 +398,11 @@ public abstract class AbstractTaskDispatcher {
       Map<Integer, PartitionAssignment> paMap, Set<Integer> skippedPartitions,
       TaskAssignmentCalculator taskAssignmentCal, Set<Integer> allPartitions, long currentTime,
       Collection<String> liveInstances) {
+
+    // See if there was LiveInstance change and cache LiveInstances from this iteration of pipeline
+    boolean existsLiveInstanceOrCurrentStateChange =
+        cache.getExistsLiveInstanceOrCurrentStateChange();
+
     // The excludeSet contains the set of task partitions that must be excluded from consideration
     // when making any new assignments.
     // This includes all completed, failed, delayed, and already assigned partitions.
@@ -338,20 +410,86 @@ public abstract class AbstractTaskDispatcher {
     addCompletedTasks(excludeSet, jobCtx, allPartitions);
     addGiveupPartitions(excludeSet, jobCtx, allPartitions, jobCfg);
     excludeSet.addAll(skippedPartitions);
-    excludeSet.addAll(TaskUtil.getNonReadyPartitions(jobCtx, currentTime));
-    // Get instance->[partition, ...] mappings for the target resource.
-    Map<String, SortedSet<Integer>> tgtPartitionAssignments = taskAssignmentCal
-        .getTaskAssignment(currStateOutput, prevTaskToInstanceStateAssignment, liveInstances,
-            jobCfg, jobCtx, workflowConfig, workflowCtx, allPartitions, cache.getIdealStates());
+    Set<Integer> partitionsWithDelay = TaskUtil.getNonReadyPartitions(jobCtx, currentTime);
+    excludeSet.addAll(partitionsWithDelay);
 
-    if (!TaskUtil.isGenericTaskJob(jobCfg) || jobCfg.isRebalanceRunningTask()) {
+    // The following is filtering of tasks before passing them to the assigner
+    // Only feed in tasks that need to be assigned (null and STOPPED)
+    Set<Integer> filteredTaskPartitionNumbers = filterTasks(allPartitions, jobCtx, liveInstances);
+    // Remove all excludeSet tasks to be safer because some STOPPED tasks have been already
+    // re-started (excludeSet includes already-assigned partitions). Also tasks with their retry
+    // limit exceed (addGiveupPartitions) will be removed as well
+    filteredTaskPartitionNumbers.removeAll(excludeSet);
+
+    Set<Integer> partitionsToRetryOnLiveInstanceChangeForTargetedJob = new HashSet<>();
+    // If the job is a targeted job, in case of live instance change, we need to assign
+    // non-terminal tasks so that they could be re-scheduled
+    if (!TaskUtil.isGenericTaskJob(jobCfg) && existsLiveInstanceOrCurrentStateChange) {
+      // This job is a targeted job, so FixedAssignmentCalculator will be used
+      // There has been a live instance change. Must re-add incomplete task partitions to be
+      // re-assigned and re-scheduled
+      for (int partitionNum : allPartitions) {
+        TaskPartitionState taskPartitionState = jobCtx.getPartitionState(partitionNum);
+        if (isTaskNotInTerminalState(taskPartitionState)
+            && !partitionsWithDelay.contains(partitionNum)) {
+          // Some targeted tasks may have timed-out due to Participants (instances) not being
+          // live, so we give tasks like these another try
+          // If some of these tasks are already scheduled and running, they will be dropped as
+          // well
+          // Also, do not include partitions with delay that are not ready to be assigned and
+          // scheduled
+          partitionsToRetryOnLiveInstanceChangeForTargetedJob.add(partitionNum);
+        }
+      }
+    }
+    filteredTaskPartitionNumbers.addAll(partitionsToRetryOnLiveInstanceChangeForTargetedJob);
+
+    // The actual assignment is computed here
+    // Get instance->[partition, ...] mappings for the target resource.
+    Map<String, SortedSet<Integer>> tgtPartitionAssignments = taskAssignmentCal.getTaskAssignment(
+        currStateOutput, prevTaskToInstanceStateAssignment, liveInstances, jobCfg, jobCtx,
+        workflowConfig, workflowCtx, filteredTaskPartitionNumbers, cache.getIdealStates());
+
+    if (!TaskUtil.isGenericTaskJob(jobCfg) && jobCfg.isRebalanceRunningTask()) {
+      // TODO: Revisit the logic for isRebalanceRunningTask() and valid use cases for it
+      // TODO: isRebalanceRunningTask() was originally put in place to allow users to move
+      // ("rebalance") long-running tasks, but there hasn't been a clear use case for this
+      // Previously, there was a bug in the condition above (it was || where it should have been &&)
       dropRebalancedRunningTasks(tgtPartitionAssignments, prevInstanceToTaskAssignments, paMap,
           jobCtx);
     }
 
+    // If this is a targeted job and if there was a live instance change
+    if (!TaskUtil.isGenericTaskJob(jobCfg) && existsLiveInstanceOrCurrentStateChange) {
+      // Drop current jobs only if they are assigned to a different instance, regardless of
+      // the jobCfg.isRebalanceRunningTask() setting
+      dropRebalancedRunningTasks(tgtPartitionAssignments, prevInstanceToTaskAssignments, paMap,
+          jobCtx);
+    }
+    // Go through ALL instances and assign/throttle tasks accordingly
     for (Map.Entry<String, SortedSet<Integer>> entry : prevInstanceToTaskAssignments.entrySet()) {
       String instance = entry.getKey();
-      if (!tgtPartitionAssignments.containsKey(instance) || excludedInstances.contains(instance)) {
+      if (!tgtPartitionAssignments.containsKey(instance)) {
+        // There is no assignment made for this instance, so it is safe to skip
+        continue;
+      }
+      if (excludedInstances.contains(instance)) {
+        // There is a task assignment made for this instance, but for some reason, we cannot
+        // assign to this instance. So we must skip the actual scheduling, but we must also
+        // release the prematurely assigned tasks from AssignableInstance
+        if (!cache.getAssignableInstanceManager().getAssignableInstanceMap()
+            .containsKey(instance)) {
+          continue; // This should not happen; skip!
+        }
+        AssignableInstance assignableInstance =
+            cache.getAssignableInstanceManager().getAssignableInstanceMap().get(instance);
+        String quotaType = jobCfg.getQuotaType();
+        for (int partitionNum : tgtPartitionAssignments.get(instance)) {
+          // Get the TaskConfig for this partitionNumber
+          String taskId = getTaskId(jobCfg, jobCtx, partitionNum);
+          TaskConfig taskConfig = jobCfg.getTaskConfig(taskId);
+          assignableInstance.release(taskConfig, quotaType);
+        }
         continue;
       }
       // 1. throttled by job configuration
@@ -370,14 +508,13 @@ public abstract class AbstractTaskDispatcher {
       if (LOG.isDebugEnabled()) {
         LOG.debug(String.format(
             "Throttle tasks to be assigned to instance %s using limitation: Job Concurrent Task(%d), "
-                + "Participant Max Task(%d). Remaining capacity %d.", instance, jobCfgLimitation,
-            participantCapacity, numToAssign));
+                + "Participant Max Task(%d). Remaining capacity %d.",
+            instance, jobCfgLimitation, participantCapacity, numToAssign));
       }
+      Set<Integer> throttledSet = new HashSet<>();
       if (numToAssign > 0) {
-        Set<Integer> throttledSet = new HashSet<Integer>();
-        List<Integer> nextPartitions =
-            getNextPartitions(tgtPartitionAssignments.get(instance), excludeSet, throttledSet,
-                numToAssign);
+        List<Integer> nextPartitions = getNextPartitions(tgtPartitionAssignments.get(instance),
+            excludeSet, throttledSet, numToAssign);
         for (Integer pId : nextPartitions) {
           String pName = pName(jobResource, pId);
           paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.RUNNING.name()));
@@ -392,10 +529,33 @@ public abstract class AbstractTaskDispatcher {
         }
         cache.setParticipantActiveTaskCount(instance,
             cache.getParticipantActiveTaskCount(instance) + nextPartitions.size());
-        if (!throttledSet.isEmpty()) {
-          LOG.debug(
-              throttledSet.size() + "tasks are ready but throttled when assigned to participant.");
+      } else {
+        // No assignment was actually scheduled, so this assignment needs to be released
+        // Put all assignments in throttledSet. Be sure to subtract excludeSet because excludeSet is
+        // already applied at filteringPartitions (excludeSet may contain partitions that are
+        // currently running)
+        Set<Integer> throttledSetWithExcludeSet =
+            new HashSet<>(tgtPartitionAssignments.get(instance));
+        throttledSetWithExcludeSet.removeAll(excludeSet); // Remove excludeSet
+        throttledSet.addAll(throttledSetWithExcludeSet);
+      }
+      if (!throttledSet.isEmpty()) {
+        // Release the tasks in throttledSet because they weren't actually assigned
+        if (!cache.getAssignableInstanceManager().getAssignableInstanceMap()
+            .containsKey(instance)) {
+          continue;
         }
+        AssignableInstance assignableInstance =
+            cache.getAssignableInstanceManager().getAssignableInstanceMap().get(instance);
+        String quotaType = jobCfg.getQuotaType();
+        for (int partitionNum : throttledSet) {
+          // Get the TaskConfig for this partitionNumber
+          String taskId = getTaskId(jobCfg, jobCtx, partitionNum);
+          TaskConfig taskConfig = jobCfg.getTaskConfig(taskId);
+          assignableInstance.release(taskConfig, quotaType);
+        }
+        LOG.debug(
+            throttledSet.size() + "tasks are ready but throttled when assigned to participant.");
       }
     }
   }
@@ -408,9 +568,8 @@ public abstract class AbstractTaskDispatcher {
       long retryTime = jobCtx.getNextRetryTime(p);
       TaskPartitionState state = jobCtx.getPartitionState(p);
       state = (state != null) ? state : TaskPartitionState.INIT;
-      Set<TaskPartitionState> errorStates =
-          Sets.newHashSet(TaskPartitionState.ERROR, TaskPartitionState.TASK_ERROR,
-              TaskPartitionState.TIMED_OUT);
+      Set<TaskPartitionState> errorStates = Sets.newHashSet(TaskPartitionState.ERROR,
+          TaskPartitionState.TASK_ERROR, TaskPartitionState.TIMED_OUT);
       if (errorStates.contains(state) && retryTime > now && retryTime < earliestTime) {
         earliestTime = retryTime;
         shouldSchedule = true;
@@ -426,11 +585,9 @@ public abstract class AbstractTaskDispatcher {
     }
   }
 
-
-
   // add all partitions that have been tried maxNumberAttempts
-  protected static void addGiveupPartitions(Set<Integer> set, JobContext ctx, Iterable<Integer> pIds,
-      JobConfig cfg) {
+  protected static void addGiveupPartitions(Set<Integer> set, JobContext ctx,
+      Iterable<Integer> pIds, JobConfig cfg) {
     for (Integer pId : pIds) {
       if (isTaskGivenup(ctx, cfg, pId)) {
         set.add(pId);
@@ -462,6 +619,49 @@ public abstract class AbstractTaskDispatcher {
     }
   }
 
+  /**
+   * Returns a filtered Iterable of tasks. To filter tasks in this context means to only allow tasks
+   * whose contexts are either null or in STOPPED, TIMED_OUT, TASK_ERROR, or DROPPED state because
+   * only the
+   * tasks whose contexts are in these states are eligible to be assigned or re-tried.
+   * Also, for those tasks in non-terminal states whose previously assigned instances are no longer
+   * LiveInstances are re-added so that they could be re-assigned.
+   * @param allPartitions
+   * @param jobContext
+   * @return a filter Iterable of task partition numbers
+   */
+  private Set<Integer> filterTasks(Iterable<Integer> allPartitions, JobContext jobContext,
+      Collection<String> liveInstances) {
+    Set<Integer> filteredTasks = new HashSet<>();
+    for (int partitionNumber : allPartitions) {
+      TaskPartitionState state = jobContext.getPartitionState(partitionNumber);
+      // Allow tasks eligible for scheduling
+      if (state == null || state == TaskPartitionState.STOPPED
+          || state == TaskPartitionState.TIMED_OUT || state == TaskPartitionState.TASK_ERROR
+          || state == TaskPartitionState.DROPPED) {
+        filteredTasks.add(partitionNumber);
+      }
+      // Allow tasks whose assigned instances are no longer live for rescheduling
+      if (isTaskNotInTerminalState(state)) {
+        String assignedParticipant = jobContext.getAssignedParticipant(partitionNumber);
+        if (assignedParticipant != null && !liveInstances.contains(assignedParticipant)) {
+          filteredTasks.add(partitionNumber);
+        }
+      }
+    }
+    return filteredTasks;
+  }
+
+  /**
+   * Returns whether if the task is not in a terminal state and could be re-scheduled.
+   * @param state
+   * @return
+   */
+  private boolean isTaskNotInTerminalState(TaskPartitionState state) {
+    return state != TaskPartitionState.COMPLETED && state != TaskPartitionState.TASK_ABORTED
+        && state != TaskPartitionState.DROPPED && state != TaskPartitionState.ERROR;
+  }
+
   protected static boolean isTaskGivenup(JobContext ctx, JobConfig cfg, int pId) {
     TaskPartitionState state = ctx.getPartitionState(pId);
     if (state == TaskPartitionState.TASK_ABORTED || state == TaskPartitionState.ERROR) {
@@ -473,21 +673,38 @@ public abstract class AbstractTaskDispatcher {
     return false;
   }
 
-
   /**
    * If assignment is different from previous assignment, drop the old running task if it's no
    * longer assigned to the same instance, but not removing it from excludeSet because the same task
    * should not be assigned to the new instance right away.
+   * Also only drop if the old and the new assignments both have the partition (task) and they
+   * differ (because that means the task has been assigned to a different instance).
    */
   private void dropRebalancedRunningTasks(Map<String, SortedSet<Integer>> newAssignment,
       Map<String, SortedSet<Integer>> oldAssignment, Map<Integer, PartitionAssignment> paMap,
       JobContext jobContext) {
+
     for (String instance : oldAssignment.keySet()) {
-      for (Integer pId : oldAssignment.get(instance)) {
-        if (jobContext.getPartitionState(pId) == TaskPartitionState.RUNNING && !newAssignment
-            .get(instance).contains(pId)) {
-          paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
-          jobContext.setPartitionState(pId, TaskPartitionState.DROPPED);
+      for (int pId : oldAssignment.get(instance)) {
+        if (jobContext.getPartitionState(pId) == TaskPartitionState.RUNNING) {
+          // Check if the new assignment has this task on a different instance
+          boolean existsInNewAssignment = false;
+          for (Map.Entry<String, SortedSet<Integer>> entry : newAssignment.entrySet()) {
+            if (!entry.getKey().equals(instance) && entry.getValue().contains(pId)) {
+              // Found the partition number; new assignment has been made
+              existsInNewAssignment = true;
+              LOG.info(
+                  "Currently running task partition number: {} is being dropped from instance: {} and will be newly assigned to instance: {}. This is due to a LiveInstance/CurrentState change, and because this is a targeted task.",
+                  pId, instance, entry.getKey());
+              break;
+            }
+          }
+          if (existsInNewAssignment) {
+            // We need to drop this task in the old assignment
+            paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
+            jobContext.setPartitionState(pId, TaskPartitionState.DROPPED);
+            // Now it will be dropped and be rescheduled
+          }
         }
       }
     }
@@ -495,11 +712,11 @@ public abstract class AbstractTaskDispatcher {
 
   protected void markJobComplete(String jobName, JobContext jobContext,
       WorkflowConfig workflowConfig, WorkflowContext workflowContext,
-      Map<String, JobConfig> jobConfigMap) {
+      Map<String, JobConfig> jobConfigMap, ClusterDataCache clusterDataCache) {
     long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.COMPLETED);
     jobContext.setFinishTime(currentTime);
-    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap)) {
+    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap, clusterDataCache)) {
       workflowContext.setFinishTime(currentTime);
       updateWorkflowMonitor(workflowContext, workflowConfig);
     }
@@ -507,13 +724,14 @@ public abstract class AbstractTaskDispatcher {
   }
 
   protected void markJobFailed(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
-      WorkflowContext workflowContext, Map<String, JobConfig> jobConfigMap) {
+      WorkflowContext workflowContext, Map<String, JobConfig> jobConfigMap,
+      ClusterDataCache clusterDataCache) {
     long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.FAILED);
     if (jobContext != null) {
       jobContext.setFinishTime(currentTime);
     }
-    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap)) {
+    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap, clusterDataCache)) {
       workflowContext.setFinishTime(currentTime);
       updateWorkflowMonitor(workflowContext, workflowConfig);
     }
@@ -523,8 +741,7 @@ public abstract class AbstractTaskDispatcher {
   protected void scheduleJobCleanUp(JobConfig jobConfig, WorkflowConfig workflowConfig,
       long currentTime) {
     long currentScheduledTime =
-        _rebalanceScheduler.getRebalanceTime(workflowConfig.getWorkflowId()) == -1
-            ? Long.MAX_VALUE
+        _rebalanceScheduler.getRebalanceTime(workflowConfig.getWorkflowId()) == -1 ? Long.MAX_VALUE
             : _rebalanceScheduler.getRebalanceTime(workflowConfig.getWorkflowId());
     if (currentTime + jobConfig.getExpiry() < currentScheduledTime) {
       _rebalanceScheduler.scheduleRebalance(_manager, workflowConfig.getWorkflowId(),
@@ -532,25 +749,21 @@ public abstract class AbstractTaskDispatcher {
     }
   }
 
-
-
-
   // Workflow related methods
 
   /**
    * Checks if the workflow has finished (either completed or failed).
    * Set the state in workflow context properly.
-   *
    * @param ctx Workflow context containing job states
    * @param cfg Workflow config containing set of jobs
    * @return returns true if the workflow
-   *            1. completed (all tasks are {@link TaskState#COMPLETED})
-   *            2. failed (any task is {@link TaskState#FAILED}
-   *            3. workflow is {@link TaskState#TIMED_OUT}
+   *         1. completed (all tasks are {@link TaskState#COMPLETED})
+   *         2. failed (any task is {@link TaskState#FAILED}
+   *         3. workflow is {@link TaskState#TIMED_OUT}
    *         returns false otherwise.
    */
   protected boolean isWorkflowFinished(WorkflowContext ctx, WorkflowConfig cfg,
-      Map<String, JobConfig> jobConfigMap) {
+      Map<String, JobConfig> jobConfigMap, ClusterDataCache clusterDataCache) {
     boolean incomplete = false;
 
     TaskState workflowState = ctx.getWorkflowState();
@@ -568,13 +781,32 @@ public abstract class AbstractTaskDispatcher {
         failedJobs++;
         if (!cfg.isJobQueue() && failedJobs > cfg.getFailureThreshold()) {
           ctx.setWorkflowState(TaskState.FAILED);
+          LOG.info("Workflow {} reached the failure threshold, so setting its state to FAILED.", cfg.getWorkflowId());
           for (String jobToFail : cfg.getJobDag().getAllNodes()) {
             if (ctx.getJobState(jobToFail) == TaskState.IN_PROGRESS) {
               ctx.setJobState(jobToFail, TaskState.ABORTED);
+
               // Skip aborted jobs latency since they are not accurate latency for job running time
               if (_clusterStatusMonitor != null) {
-                _clusterStatusMonitor
-                    .updateJobCounters(jobConfigMap.get(jobToFail), TaskState.ABORTED);
+                _clusterStatusMonitor.updateJobCounters(jobConfigMap.get(jobToFail),
+                    TaskState.ABORTED);
+              }
+
+              // Since the job is aborted, release resources occupied by it
+              // Otherwise, we run the risk of resource leak
+              if (clusterDataCache != null) {
+                Iterable<AssignableInstance> assignableInstances = clusterDataCache
+                    .getAssignableInstanceManager().getAssignableInstanceMap().values();
+                JobConfig jobConfig = jobConfigMap.get(jobToFail);
+                String quotaType = jobConfig.getQuotaType();
+                Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
+                // Iterate over all tasks and release them
+                for (Map.Entry<String, TaskConfig> taskEntry : taskConfigMap.entrySet()) {
+                  TaskConfig taskConfig = taskEntry.getValue();
+                  for (AssignableInstance assignableInstance : assignableInstances) {
+                    assignableInstance.release(taskConfig, quotaType);
+                  }
+                }
               }
             }
           }
@@ -586,29 +818,25 @@ public abstract class AbstractTaskDispatcher {
         incomplete = true;
       }
     }
-
     if (!incomplete && cfg.isTerminable()) {
       ctx.setWorkflowState(TaskState.COMPLETED);
       return true;
     }
-
     return false;
   }
 
-  protected void updateWorkflowMonitor(WorkflowContext context,
-      WorkflowConfig config) {
+  protected void updateWorkflowMonitor(WorkflowContext context, WorkflowConfig config) {
     if (_clusterStatusMonitor != null) {
       _clusterStatusMonitor.updateWorkflowCounters(config, context.getWorkflowState(),
           context.getFinishTime() - context.getStartTime());
     }
   }
 
-
   // Common methods
 
   protected Set<String> getExcludedInstances(String currentJobName, WorkflowConfig workflowCfg,
-      ClusterDataCache cache) {
-    Set<String> ret = new HashSet<String>();
+      WorkflowContext workflowContext, ClusterDataCache cache) {
+    Set<String> ret = new HashSet<>();
 
     if (!workflowCfg.isAllowOverlapJobAssignment()) {
       // exclude all instances that has been assigned other jobs' tasks
@@ -618,6 +846,14 @@ public abstract class AbstractTaskDispatcher {
         }
         JobContext jobContext = cache.getJobContext(jobName);
         if (jobContext == null) {
+          continue;
+        }
+        // Also skip if the job is not currently running
+        // For example, if the job here is in a terminal state (such as ABORTED), then its tasks are
+        // practically not running, so we do not need to exclude instances who have tasks from dead
+        // jobs
+        TaskState jobState = workflowContext.getJobState(jobName);
+        if (jobState != TaskState.IN_PROGRESS) {
           continue;
         }
         for (int pId : jobContext.getPartitionSet()) {
@@ -634,44 +870,59 @@ public abstract class AbstractTaskDispatcher {
 
   /**
    * Schedule the rebalancer timer for task framework elements
-   * @param resourceId       The resource id
-   * @param startTime        The resource start time
-   * @param timeoutPeriod    The resource timeout period. Will be -1 if it is not set.
+   * @param resourceId The resource id
+   * @param startTime The resource start time
+   * @param timeoutPeriod The resource timeout period. Will be -1 if it is not set.
    */
   protected void scheduleRebalanceForTimeout(String resourceId, long startTime,
       long timeoutPeriod) {
     long nextTimeout = getTimeoutTime(startTime, timeoutPeriod);
     long nextRebalanceTime = _rebalanceScheduler.getRebalanceTime(resourceId);
-    if (nextTimeout >= System.currentTimeMillis() && (
-        nextRebalanceTime == TaskConstants.DEFAULT_NEVER_TIMEOUT
-            || nextTimeout < nextRebalanceTime)) {
+    if (nextTimeout >= System.currentTimeMillis()
+        && (nextRebalanceTime == TaskConstants.DEFAULT_NEVER_TIMEOUT
+        || nextTimeout < nextRebalanceTime)) {
       _rebalanceScheduler.scheduleRebalance(_manager, resourceId, nextTimeout);
     }
   }
 
   /**
    * Basic function to check task framework resources, workflow and job, are timeout
-   * @param startTime       Resources start time
-   * @param timeoutPeriod   Resources timeout period. Will be -1 if it is not set.
+   * @param startTime Resources start time
+   * @param timeoutPeriod Resources timeout period. Will be -1 if it is not set.
    * @return
    */
   protected boolean isTimeout(long startTime, long timeoutPeriod) {
     long nextTimeout = getTimeoutTime(startTime, timeoutPeriod);
-    return nextTimeout != TaskConstants.DEFAULT_NEVER_TIMEOUT && nextTimeout <= System
-        .currentTimeMillis();
+    return nextTimeout != TaskConstants.DEFAULT_NEVER_TIMEOUT
+        && nextTimeout <= System.currentTimeMillis();
   }
 
   private long getTimeoutTime(long startTime, long timeoutPeriod) {
     return (timeoutPeriod == TaskConstants.DEFAULT_NEVER_TIMEOUT
         || timeoutPeriod > Long.MAX_VALUE - startTime) // check long overflow
-        ? TaskConstants.DEFAULT_NEVER_TIMEOUT : startTime + timeoutPeriod;
+        ? TaskConstants.DEFAULT_NEVER_TIMEOUT
+        : startTime + timeoutPeriod;
   }
-
 
   /**
    * Set the ClusterStatusMonitor for metrics update
    */
   public void setClusterStatusMonitor(ClusterStatusMonitor clusterStatusMonitor) {
     _clusterStatusMonitor = clusterStatusMonitor;
+  }
+
+  /**
+   * Returns an appropriate TaskId depending on whether the job is targeted or not.
+   * @param jobCfg
+   * @param jobCtx
+   * @param partitionNum
+   * @return
+   */
+  private String getTaskId(JobConfig jobCfg, JobContext jobCtx, int partitionNum) {
+    if (TaskUtil.isGenericTaskJob(jobCfg)) {
+      return jobCtx.getTaskIdForPartition(partitionNum);
+    }
+    // This is a targeted task
+    return pName(jobCfg.getJobId(), partitionNum);
   }
 }

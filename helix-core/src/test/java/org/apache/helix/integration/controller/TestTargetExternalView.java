@@ -39,7 +39,7 @@ public class TestTargetExternalView extends TaskTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     _numDbs = 3;
-    _numParitions = 8;
+    _numPartitions = 8;
     _numNodes = 4;
     _numReplicas = 2;
     super.beforeClass();

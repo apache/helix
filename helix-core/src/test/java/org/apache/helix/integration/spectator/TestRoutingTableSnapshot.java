@@ -91,6 +91,7 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
       Assert.assertEquals(routingTableSnapshot.getInstanceConfigs().size(), NUM_NODES);
       Assert.assertEquals(routingTableSnapshot.getResources().size(), 1);
       Assert.assertEquals(routingTableSnapshot.getLiveInstances().size(), NUM_NODES);
+      Assert.assertEquals(routingTableSnapshot.getExternalViews().size(), 1); // 1 DB
 
       // add new DB and shutdown an instance
       String db2 = "TestDB-2";
@@ -112,6 +113,7 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
       Assert.assertEquals(newRoutingTableSnapshot.getInstanceConfigs().size(), NUM_NODES);
       Assert.assertEquals(newRoutingTableSnapshot.getResources().size(), 2);
       Assert.assertEquals(newRoutingTableSnapshot.getLiveInstances().size(), NUM_NODES - 1);
+      Assert.assertEquals(newRoutingTableSnapshot.getExternalViews().size(), 2); // 2 DBs
     } finally {
       routingTableProvider.shutdown();
     }
@@ -131,4 +133,3 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
     }
   }
 }
-

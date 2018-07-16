@@ -59,7 +59,7 @@ public class RoutingTableProvider
     implements ExternalViewChangeListener, InstanceConfigChangeListener, ConfigChangeListener,
                LiveInstanceChangeListener, CurrentStateChangeListener {
   private static final Logger logger = LoggerFactory.getLogger(RoutingTableProvider.class);
-  private static final long DEFAULT_PERIODIC_REFRESH_INTERVAL = 300000; // 5 minutes
+  private static final long DEFAULT_PERIODIC_REFRESH_INTERVAL = 300000L; // 5 minutes
   private final AtomicReference<RoutingTable> _routingTableRef;
   private final HelixManager _helixManager;
   private final RouterUpdater _routerUpdater;

@@ -22,6 +22,7 @@ package org.apache.helix.spectator;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 
@@ -147,5 +148,14 @@ public class RoutingTableSnapshot {
    */
   public Collection<String> getResources() {
     return _routingTable.getResources();
+  }
+
+  /**
+   * Returns a Collection of latest snapshot of ExternalViews. Note that if the RoutingTable is
+   * instantiated using CurrentStates, this Collection will be empty.
+   * @return
+   */
+  public Collection<ExternalView> getExternalViews() {
+    return _routingTable.getExternalViews();
   }
 }

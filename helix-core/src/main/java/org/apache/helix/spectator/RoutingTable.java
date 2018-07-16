@@ -49,6 +49,7 @@ class RoutingTable {
   private final Map<String, ResourceGroupInfo> _resourceGroupInfoMap;
   private final Collection<LiveInstance> _liveInstances;
   private final Collection<InstanceConfig> _instanceConfigs;
+  private final Collection<ExternalView> _externalViews;
 
   public RoutingTable() {
     this(Collections.<ExternalView>emptyList(), Collections.<InstanceConfig>emptyList(),
@@ -57,6 +58,7 @@ class RoutingTable {
 
   public RoutingTable(Collection<ExternalView> externalViews, Collection<InstanceConfig> instanceConfigs,
       Collection<LiveInstance> liveInstances) {
+    _externalViews = externalViews;
     _resourceInfoMap = new HashMap<>();
     _resourceGroupInfoMap = new HashMap<>();
     _liveInstances = new HashSet<>(liveInstances);
@@ -66,6 +68,7 @@ class RoutingTable {
 
   public RoutingTable(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
       Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
+    _externalViews = Collections.emptyList();
     _resourceInfoMap = new HashMap<>();
     _resourceGroupInfoMap = new HashMap<>();
     _liveInstances = liveInstances;
@@ -345,6 +348,14 @@ class RoutingTable {
   }
 
   /**
+   * Returns ExternalViews.
+   * @return a collection of ExternalViews
+   */
+  protected Collection<ExternalView> getExternalViews() {
+    return Collections.unmodifiableCollection(_externalViews);
+  }
+
+  /**
    * Class to store instances, partitions and their states for each resource.
    */
   class ResourceInfo {
@@ -474,7 +485,8 @@ class RoutingTable {
           if (config2 == null) {
             return 1;
           }
-          // IDs for InstanceConfigs are a concatenation of instance name, host, and port.
+          // HELIX-936: a NPE on the hostname; compare IDs instead. IDs for InstanceConfigs are
+          // concatenation of instance name, host, and port.
           return config1.getId().compareTo(config2.getId());
         }
       };

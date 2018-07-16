@@ -1,7 +1,7 @@
 [
   {
     "statemodel": "OnlineOffline",
-    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 0,
     "inputs": {
       "resource_0_0": {
         "currentStates": {
@@ -42,7 +42,7 @@
   },
   {
     "statemodel": "OnlineOffline",
-    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 0,
     "inputs": {
       "resource_0_0": {
         "currentStates": {
@@ -127,7 +127,7 @@
   },
   {
     "statemodel": "OnlineOffline",
-    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 0,
     "inputs": {
       "resource_0_0": {
         "currentStates": {
@@ -167,7 +167,7 @@
   },
   {
     "statemodel": "OnlineOffline",
-    "errorOrRecoveryPartitionThresholdForLoadBalance": 1,
+    "errorOrRecoveryPartitionThresholdForLoadBalance": 0,
     "inputs": {
       "resource_0_0": {
         "currentStates": {

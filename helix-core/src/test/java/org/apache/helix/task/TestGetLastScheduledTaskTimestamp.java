@@ -33,6 +33,7 @@ import org.testng.annotations.Test;
 
 public class TestGetLastScheduledTaskTimestamp extends TaskTestBase {
   private final static String TASK_START_TIME_KEY = "START_TIME";
+  private final static long INVALID_TIMESTAMP = -1L;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -44,8 +45,8 @@ public class TestGetLastScheduledTaskTimestamp extends TaskTestBase {
   public void testGetLastScheduledTaskTimestamp() throws InterruptedException {
     List<Long> startTimesWithStuckTasks = setupTasks("TestWorkflow_2", 5, 99999999);
     // First two must be -1 (two tasks are stuck), and API call must return the last value (most recent timestamp)
-    Assert.assertEquals(startTimesWithStuckTasks.get(0).longValue(), 0);
-    Assert.assertEquals(startTimesWithStuckTasks.get(1).longValue(), 0);
+    Assert.assertEquals(startTimesWithStuckTasks.get(0).longValue(), INVALID_TIMESTAMP);
+    Assert.assertEquals(startTimesWithStuckTasks.get(1).longValue(), INVALID_TIMESTAMP);
     Assert.assertEquals(startTimesWithStuckTasks.get(3).longValue(),
         _driver.getLastScheduledTaskTimestamp("TestWorkflow_2"));
 
@@ -97,7 +98,7 @@ public class TestGetLastScheduledTaskTimestamp extends TaskTestBase {
       for (Integer partition : allPartitions) {
         String timestamp = jobContext.getMapField(partition).get(TASK_START_TIME_KEY);
         if (timestamp == null) {
-          startTimes.add(0L);
+          startTimes.add(INVALID_TIMESTAMP);
         } else {
           startTimes.add(Long.parseLong(timestamp));
         }

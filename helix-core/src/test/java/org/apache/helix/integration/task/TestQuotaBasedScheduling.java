@@ -51,11 +51,11 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestQuotaBasedScheduling extends TaskTestBase {
-  private static final long LONG_RUNNING_TASK_DURATION = 100000L;
   private static final String DEFAULT_QUOTA_TYPE = "DEFAULT";
   private static final String JOB_COMMAND = "DummyCommand";
   private Map<String, String> _jobCommandMap;
   private Map<String, Integer> _quotaTypeExecutionCount = new ConcurrentHashMap<>();
+  private boolean _finishTask = false;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -129,6 +129,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
   @BeforeMethod
   public void beforeMethod() {
     _quotaTypeExecutionCount.clear();
+    _finishTask = false;
   }
 
   /**
@@ -280,6 +281,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     TaskState jobState =
         _driver.getWorkflowContext(workflowName).getJobState(workflowName + "_JOB_C");
     Assert.assertEquals(jobState, TaskState.IN_PROGRESS);
+
+    // Finish rest of the tasks
+    _finishTask = true;
+    Thread.sleep(2000L);
   }
 
   /**
@@ -351,6 +356,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     // due to thread pool saturation
     TaskState secondWorkflowState = _driver.getWorkflowContext("secondWorkflow").getWorkflowState();
     Assert.assertEquals(secondWorkflowState, TaskState.IN_PROGRESS);
+
+    // Finish rest of the tasks
+    _finishTask = true;
+    Thread.sleep(2000L);
   }
 
   /**
@@ -409,6 +418,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    * Tests that by repeatedly scheduling workflows and jobs that there is no thread leak when there
    * are a multidude of successful and failed tests. The number of total tasks run must be well
    * above the number of total thread capacity.
+   * Note: disabled because this is holding up mvn test due to its job/task load.
    * @throws InterruptedException
    */
   @Test(dependsOnMethods = "testSchedulingWithoutQuota")
@@ -452,6 +462,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       Assert.assertEquals(_driver.getWorkflowContext(_manager, workflowName).getWorkflowState(),
           state);
     }
+
+    // Finish rest of the tasks
+    _finishTask = true;
+    Thread.sleep(2000L);
   }
 
   /**
@@ -521,6 +535,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Assert.assertEquals((int) _quotaTypeExecutionCount.get("A"), 5);
     Assert.assertEquals((int) _quotaTypeExecutionCount.get("B"), 5);
     Assert.assertFalse(_quotaTypeExecutionCount.containsKey(DEFAULT_QUOTA_TYPE));
+
+    // Finish rest of the tasks
+    _finishTask = true;
+    Thread.sleep(2000L);
   }
 
   /**
@@ -605,10 +623,13 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       if (_quotaType != null) {
         _quotaTypeExecutionCount.put(_quotaType, _quotaTypeExecutionCount.get(_quotaType) + 1);
       }
-      try {
-        Thread.sleep(LONG_RUNNING_TASK_DURATION);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
+      // Only take long if finishTask is false
+      while (!_finishTask) {
+        try {
+          Thread.sleep(200L);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
       }
       return new TaskResult(TaskResult.Status.COMPLETED,
           generateInfoMessageForDebugging(_instanceName, _quotaType));

@@ -52,9 +52,6 @@ import com.google.common.collect.ImmutableMap;
  */
 public class JobRebalancer extends TaskRebalancer {
   private static final Logger LOG = LoggerFactory.getLogger(JobRebalancer.class);
-  private static TaskAssignmentCalculator _fixTaskAssignmentCal;
-  private static TaskAssignmentCalculator _threadCountBasedTaskAssignmentCal;
-
   private static final String PREV_RA_NODE = "PreviousResourceAssignment";
 
   @Override
@@ -434,14 +431,10 @@ public class JobRebalancer extends TaskRebalancer {
   private TaskAssignmentCalculator getAssignmentCalculator(JobConfig jobConfig,
       ClusterDataCache cache) {
     AssignableInstanceManager assignableInstanceManager = cache.getAssignableInstanceManager();
-    if (_threadCountBasedTaskAssignmentCal == null) {
-      _threadCountBasedTaskAssignmentCal = new ThreadCountBasedTaskAssignmentCalculator(
-          new ThreadCountBasedTaskAssigner(), assignableInstanceManager);
+    if (TaskUtil.isGenericTaskJob(jobConfig)) {
+      return new ThreadCountBasedTaskAssignmentCalculator(new ThreadCountBasedTaskAssigner(),
+          assignableInstanceManager);
     }
-    if (_fixTaskAssignmentCal == null) {
-      _fixTaskAssignmentCal = new FixedTargetTaskAssignmentCalculator(assignableInstanceManager);
-    }
-    return TaskUtil.isGenericTaskJob(jobConfig) ? _threadCountBasedTaskAssignmentCal
-        : _fixTaskAssignmentCal;
+    return new FixedTargetTaskAssignmentCalculator(assignableInstanceManager);
   }
 }

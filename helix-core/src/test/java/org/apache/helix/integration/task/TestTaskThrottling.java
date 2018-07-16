@@ -63,7 +63,7 @@ public class TestTaskThrottling extends TaskTestBase {
     _driver.pollForJobState(flow.getName(), TaskUtil.getNamespacedJobName(flow.getName(), jobName1),
         TaskState.IN_PROGRESS);
     // Wait for tasks to be picked up
-    Thread.sleep(1500);
+    Thread.sleep(2000);
 
     Assert.assertEquals(countRunningPartition(flow, jobName1), numTasks);
 

@@ -18,6 +18,7 @@ package org.apache.helix.task;
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,6 +46,12 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
   private int numJobs = 2;
   private int numTasks = 3;
 
+  /**
+   * Tests the duality of two AssignableInstanceManager instances to model the
+   * situation where there is a Controller switch and AssignableInstanceManager is
+   * built back from scratch.
+   * @throws InterruptedException
+   */
   @Test
   public void testControllerSwitch() throws InterruptedException {
     setupAndRunJobs();
@@ -71,7 +78,7 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
         accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs(), true);
 
     // Wait for the job pipeline
-    Thread.sleep(100);
+    Thread.sleep(1000);
     taskDataCache.refresh(accessor, resourceConfigMap);
 
     // Create prev manager and build
@@ -82,13 +89,6 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
         new HashMap<>(prevAssignableInstanceManager.getAssignableInstanceMap());
     Map<String, TaskAssignResult> prevTaskAssignResultMap =
         new HashMap<>(prevAssignableInstanceManager.getTaskAssignResultMap());
-
-    // Stop the current controller
-    _controller.syncStop();
-    // Start a new controller
-    String newControllerName = CONTROLLER_PREFIX + "_2";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, newControllerName);
-    _controller.syncStart();
 
     // Generate a new AssignableInstanceManager
     taskDataCache.refresh(accessor, resourceConfigMap);

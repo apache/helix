@@ -316,7 +316,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
             cache.getStateModelDef(resource.getStateModelDefRef()).getTopState());
 
     // Perform load balance upon checking conditions below
-    Set<Partition> loadbalanceThrottledPartitions = partitionsNeedLoadBalance;
+    Set<Partition> loadbalanceThrottledPartitions;
     ClusterConfig clusterConfig = cache.getClusterConfig();
 
     // If the threshold (ErrorOrRecovery) is set, then use it, if not, then check if the old
@@ -338,7 +338,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     // Perform regular load balance only if the number of partitions in recovery and in error is
     // less than the threshold. Otherwise, only allow downward-transition load balance
-    boolean onlyDownwardLoadBalance = partitionCount >= threshold;
+    boolean onlyDownwardLoadBalance = partitionCount > threshold;
 
     loadbalanceThrottledPartitions = loadRebalance(resource, currentStateOutput,
         bestPossiblePartitionStateMap, throttleController, intermediatePartitionStateMap,

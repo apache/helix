@@ -95,16 +95,15 @@ public class TestStateTransitionThrottle extends ZkTestBase {
         "localhost_" + (12918 + participantCount - 1));
     participants[participantCount - 1].syncStart();
 
-    // Load balance transition won't be scheduled since there is pending recovery balance transition
-    Assert.assertFalse(
-        pollForPartitionAssignment(accessor, participants[participantCount - 1], resourceName,
-            5000));
+    // Load balance transition (downward) will be scheduled even though there is pending recovery
+    // balance transition
+    Assert.assertTrue(pollForPartitionAssignment(accessor, participants[participantCount - 1],
+        resourceName, 5000));
 
     // Stop participant, so blocking transition is removed.
     participants[0].syncStop();
-    Assert.assertTrue(
-        pollForPartitionAssignment(accessor, participants[participantCount - 1], resourceName,
-            5000));
+    Assert.assertTrue(pollForPartitionAssignment(accessor, participants[participantCount - 1],
+        resourceName, 5000));
 
     // clean up
     controller.syncStop();
@@ -167,20 +166,19 @@ public class TestStateTransitionThrottle extends ZkTestBase {
     participants[participantCount - 1] = new MockParticipantManager(ZK_ADDR, clusterName,
         "localhost_" + (12918 + participantCount - 1));
     participants[participantCount - 1].syncStart();
-    // Since error partition exists, no load balance transition will be done
-    Assert.assertFalse(
-        pollForPartitionAssignment(accessor, participants[participantCount - 1], resourceName,
-            5000));
+    // Even though there is an error partition, downward load balance will take place
+    Assert.assertTrue(pollForPartitionAssignment(accessor, participants[participantCount - 1],
+        resourceName, 5000));
 
     // Update cluster config to tolerate error partition, so load balance transition will be done
     clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
     clusterConfig.setErrorPartitionThresholdForLoadBalance(1);
     accessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
+
     _gSetupTool.rebalanceResource(clusterName, resourceName, 3);
 
-    Assert.assertTrue(
-        pollForPartitionAssignment(accessor, participants[participantCount - 1], resourceName,
-            3000));
+    Assert.assertTrue(pollForPartitionAssignment(accessor, participants[participantCount - 1],
+        resourceName, 3000));
 
     // clean up
     controller.syncStop();
@@ -224,8 +222,8 @@ public class TestStateTransitionThrottle extends ZkTestBase {
       @Override
       public boolean verify() throws Exception {
         PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-        PropertyKey partitionStatusKey = keyBuilder
-            .currentState(participant.getInstanceName(), participant.getSessionId(), resourceName);
+        PropertyKey partitionStatusKey = keyBuilder.currentState(participant.getInstanceName(),
+            participant.getSessionId(), resourceName);
         CurrentState currentState = accessor.getProperty(partitionStatusKey);
         return currentState != null && !currentState.getPartitionStateMap().isEmpty();
       }

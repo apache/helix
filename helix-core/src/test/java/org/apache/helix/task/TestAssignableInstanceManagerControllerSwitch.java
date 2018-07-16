@@ -119,6 +119,9 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
       Assert.assertEquals(prevTaskAssignResultMap.get(taskID).toString(),
           taskAssignResultEntry.getValue().toString());
     }
+
+    // Shut down RoutingTableProvider so periodic update gets shut down
+    routingTableProvider.shutdown();
   }
 
   private void setupAndRunJobs() {

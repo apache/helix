@@ -309,17 +309,17 @@ public class TaskUtil {
   }
 
   /**
-   * Get user defined workflow or job level key-value pair data
-   * @param manager a connection to Helix
-   * @param workflowJobResource the name of workflow
-   * @param key the key of key-value pair
+   * Get user-defined workflow/job scope key-value pair data. This method takes
+   * HelixPropertyStore<ZNRecord>.
+   * @param propertyStore
+   * @param workflowJobResource
+   * @param key
    * @return null if there is no such pair, otherwise return a String
    */
-  protected static String getWorkflowJobUserContent(HelixManager manager,
+  protected static String getWorkflowJobUserContent(HelixPropertyStore<ZNRecord> propertyStore,
       String workflowJobResource, String key) {
-    ZNRecord r = manager.getHelixPropertyStore().get(Joiner.on("/")
-            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource, USER_CONTENT_NODE), null,
-        AccessOption.PERSISTENT);
+    ZNRecord r = propertyStore.get(Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT,
+        workflowJobResource, USER_CONTENT_NODE), null, AccessOption.PERSISTENT);
     return r != null ? r.getSimpleField(key) : null;
   }
 
@@ -346,15 +346,15 @@ public class TaskUtil {
 
   /**
    * Get user defined task level key-value pair data
-   * @param manager a connection to Helix
+   * @param propertyStore
    * @param job the name of job
    * @param task the name of the task
    * @param key the key of key-value pair
    * @return null if there is no such pair, otherwise return a String
    */
-  protected static String getTaskUserContent(HelixManager manager, String job, String task,
-      String key) {
-    ZNRecord r = manager.getHelixPropertyStore().get(
+  protected static String getTaskUserContent(HelixPropertyStore<ZNRecord> propertyStore, String job,
+      String task, String key) {
+    ZNRecord r = propertyStore.get(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, job, USER_CONTENT_NODE), null,
         AccessOption.PERSISTENT);
     return r != null ? (r.getMapField(task) != null ? r.getMapField(task).get(key) : null) : null;
@@ -383,6 +383,30 @@ public class TaskUtil {
         return znRecord;
       }
     }, AccessOption.PERSISTENT);
+  }
+
+  /**
+   * Helper method for looking up UserContentStore content.
+   * @param propertyStore
+   * @param key
+   * @param scope
+   * @param workflowName
+   * @param jobName
+   * @param taskName
+   * @return value corresponding to the key
+   */
+  protected static String getUserContent(HelixPropertyStore propertyStore, String key,
+      UserContentStore.Scope scope, String workflowName, String jobName, String taskName) {
+    switch (scope) {
+      case WORKFLOW:
+        return TaskUtil.getWorkflowJobUserContent(propertyStore, workflowName, key);
+      case JOB:
+        return TaskUtil.getWorkflowJobUserContent(propertyStore, jobName, key);
+      case TASK:
+        return TaskUtil.getTaskUserContent(propertyStore, jobName, taskName, key);
+      default:
+        throw new HelixException("Invalid scope : " + scope.name());
+    }
   }
 
   /**

@@ -988,6 +988,21 @@ public class TaskDriver {
   }
 
   /**
+   * Returns the lookup of UserContentStore by key.
+   * @param key key used at write time by a task implementing UserContentStore
+   * @param scope scope used at write time
+   * @param workflowName name of workflow. Must be supplied
+   * @param jobName name of job. Optional if scope is WORKFLOW
+   * @param taskName name of task. Optional if scope is WORKFLOW or JOB
+   * @return null if key-value pair not found or this content store does not exist. Otherwise,
+   *         return a String
+   */
+  public String getUserContent(String key, UserContentStore.Scope scope, String workflowName,
+      String jobName, String taskName) {
+    return TaskUtil.getUserContent(_propertyStore, key, scope, workflowName, jobName, taskName);
+  }
+
+  /**
    * Throw Exception if children nodes will exceed limitation after adding newNodesCount children.
    * @param newConfigNodeCount
    */

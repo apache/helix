@@ -155,6 +155,11 @@ public class DummyClusterManager implements HelixManager {
   }
 
   @Override
+  public String getMetadataStoreConnectionString() {
+    return null;
+  }
+
+  @Override
   public String getInstanceName() {
     // TODO Auto-generated method stub
     return null;

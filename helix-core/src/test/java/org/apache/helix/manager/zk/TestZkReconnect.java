@@ -84,6 +84,8 @@ public class TestZkReconnect {
               }
             });
 
+    Assert.assertEquals(controller.getMetadataStoreConnectionString(), zkAddr);
+
     try {
       controller.connect();
       // check onConnected() is triggered
@@ -112,6 +114,7 @@ public class TestZkReconnect {
       // Inject expire to test handler
       // onDisconnectedFlag should be set within onDisconnected handler
       controller.handleSessionEstablishmentError(new Exception("For testing"));
+      Thread.sleep(10);
       Assert.assertTrue(onDisconnectedFlag.get());
       Assert.assertFalse(onConnectedFlag.get());
       Assert.assertFalse(controller.isConnected());

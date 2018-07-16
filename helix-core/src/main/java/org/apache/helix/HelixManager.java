@@ -289,6 +289,13 @@ public interface HelixManager {
   String getClusterName();
 
   /**
+   * Returns a string that can be used to connect to metadata store for this HelixManager instance
+   * i.e. for ZkHelixManager, this will have format "{zookeeper-address}:{port}"
+   * @return a string used to connect to metadata store
+   */
+  String getMetadataStoreConnectionString();
+
+  /**
    * Returns the instanceName used to connect to the cluster
    * @return the associated instance name
    */

@@ -560,6 +560,16 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     return _clusterName;
   }
 
+  /**
+   * Returns a string that can be used to connect to metadata store for this HelixManager instance
+   * i.e. for ZkHelixManager, this will have format "{zookeeper-address}:{port}"
+   * @return a string used to connect to metadata store
+   */
+  @Override
+  public String getMetadataStoreConnectionString() {
+    return _zkAddress;
+  }
+
   @Override
   public String getInstanceName() {
     return _instanceName;

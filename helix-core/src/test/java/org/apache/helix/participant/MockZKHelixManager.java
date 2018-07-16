@@ -181,6 +181,11 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
+  public String getMetadataStoreConnectionString() {
+    return null;
+  }
+
+  @Override
   public String getInstanceName() {
     return _instanceName;
   }

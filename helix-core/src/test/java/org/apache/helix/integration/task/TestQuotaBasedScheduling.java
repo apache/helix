@@ -225,9 +225,9 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.resetTaskQuotaRatioMap();
     clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 1);
-    clusterConfig.setTaskQuotaRatio("A", 10); // Will get 19 threads
-    clusterConfig.setTaskQuotaRatio("B", 10); // Will get 19 threads
-    clusterConfig.setTaskQuotaRatio("C", 9); // Will get 1 thread
+    clusterConfig.setTaskQuotaRatio("A", 10);
+    clusterConfig.setTaskQuotaRatio("B", 10);
+    clusterConfig.setTaskQuotaRatio("C", 9);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     String workflowName = TestHelper.getTestMethodName();

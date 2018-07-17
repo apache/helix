@@ -94,7 +94,7 @@ public class ThreadCountBasedTaskAssignmentCalculator extends TaskAssignmentCalc
     Iterable<TaskConfig> taskConfigs = getFilteredTaskConfigs(partitionSet, jobCfg, jobContext);
 
     // Get the quota type to assign tasks to
-    String quotaType = jobCfg.getQuotaType();
+    String quotaType = getQuotaType(workflowCfg, jobCfg);
 
     // Assign tasks to AssignableInstances
     Map<String, TaskAssignResult> taskAssignResultMap =

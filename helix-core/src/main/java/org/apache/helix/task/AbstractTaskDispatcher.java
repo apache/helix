@@ -94,7 +94,7 @@ public abstract class AbstractTaskDispatcher {
         }
 
         // Get AssignableInstance for this instance and TaskConfig for releasing resources
-        String quotaType = jobCfg.getQuotaType();
+        String quotaType = jobCfg.getJobType();
         AssignableInstance assignableInstance = assignableInstanceMap.get(instance);
         String taskId;
         if (TaskUtil.isGenericTaskJob(jobCfg)) {
@@ -483,7 +483,7 @@ public abstract class AbstractTaskDispatcher {
         }
         AssignableInstance assignableInstance =
             cache.getAssignableInstanceManager().getAssignableInstanceMap().get(instance);
-        String quotaType = jobCfg.getQuotaType();
+        String quotaType = jobCfg.getJobType();
         for (int partitionNum : tgtPartitionAssignments.get(instance)) {
           // Get the TaskConfig for this partitionNumber
           String taskId = getTaskId(jobCfg, jobCtx, partitionNum);
@@ -547,7 +547,7 @@ public abstract class AbstractTaskDispatcher {
         }
         AssignableInstance assignableInstance =
             cache.getAssignableInstanceManager().getAssignableInstanceMap().get(instance);
-        String quotaType = jobCfg.getQuotaType();
+        String quotaType = jobCfg.getJobType();
         for (int partitionNum : throttledSet) {
           // Get the TaskConfig for this partitionNumber
           String taskId = getTaskId(jobCfg, jobCtx, partitionNum);
@@ -798,7 +798,7 @@ public abstract class AbstractTaskDispatcher {
                 Iterable<AssignableInstance> assignableInstances = clusterDataCache
                     .getAssignableInstanceManager().getAssignableInstanceMap().values();
                 JobConfig jobConfig = jobConfigMap.get(jobToFail);
-                String quotaType = jobConfig.getQuotaType();
+                String quotaType = jobConfig.getJobType();
                 Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
                 // Iterate over all tasks and release them
                 for (Map.Entry<String, TaskConfig> taskEntry : taskConfigMap.entrySet()) {

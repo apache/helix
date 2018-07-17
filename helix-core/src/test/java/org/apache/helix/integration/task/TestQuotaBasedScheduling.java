@@ -187,7 +187,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       List<TaskConfig> taskConfigs = new ArrayList<>();
       taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
       JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
-          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setQuotaType("A");
+          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setJobType("A");
       workflowBuilder.addJob("JOB" + i, jobConfigBulider);
     }
 
@@ -195,7 +195,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       List<TaskConfig> taskConfigs = new ArrayList<>();
       taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
       JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
-          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setQuotaType("B");
+          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setJobType("B");
       workflowBuilder.addJob("JOB" + i, jobConfigBulider);
     }
 
@@ -247,7 +247,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     }
     JobConfig.Builder jobBuilderA =
         new JobConfig.Builder().setCommand(JOB_COMMAND).setJobCommandConfigMap(_jobCommandMap)
-            .addTaskConfigs(taskConfigsA).setQuotaType("A").setNumConcurrentTasksPerInstance(20);
+            .addTaskConfigs(taskConfigsA).setJobType("A").setNumConcurrentTasksPerInstance(20);
     workflowBuilder.addJob("JOB_A", jobBuilderA);
 
     // JOB_B
@@ -258,7 +258,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     }
     JobConfig.Builder jobBuilderB =
         new JobConfig.Builder().setCommand(JOB_COMMAND).setJobCommandConfigMap(_jobCommandMap)
-            .addTaskConfigs(taskConfigsB).setQuotaType("B").setNumConcurrentTasksPerInstance(20);
+            .addTaskConfigs(taskConfigsB).setJobType("B").setNumConcurrentTasksPerInstance(20);
     workflowBuilder.addJob("JOB_B", jobBuilderB);
 
     // JOB_C
@@ -269,7 +269,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     }
     JobConfig.Builder jobBuilderC =
         new JobConfig.Builder().setCommand(JOB_COMMAND).setJobCommandConfigMap(_jobCommandMap)
-            .addTaskConfigs(taskConfigsC).setQuotaType("C").setNumConcurrentTasksPerInstance(20);
+            .addTaskConfigs(taskConfigsC).setJobType("C").setNumConcurrentTasksPerInstance(20);
     workflowBuilder.addJob("JOB_C", jobBuilderC);
 
     _driver.start(workflowBuilder.build());
@@ -315,7 +315,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     }
     JobConfig.Builder jobBuilderA =
         new JobConfig.Builder().setCommand(JOB_COMMAND).setJobCommandConfigMap(_jobCommandMap)
-            .addTaskConfigs(taskConfigsA).setQuotaType("A").setNumConcurrentTasksPerInstance(50);
+            .addTaskConfigs(taskConfigsA).setJobType("A").setNumConcurrentTasksPerInstance(50);
     workflowBuilder.addJob("JOB_A", jobBuilderA);
 
     // JOB_B
@@ -326,7 +326,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     }
     JobConfig.Builder jobBuilderB =
         new JobConfig.Builder().setCommand(JOB_COMMAND).setJobCommandConfigMap(_jobCommandMap)
-            .addTaskConfigs(taskConfigsB).setQuotaType("B").setNumConcurrentTasksPerInstance(50);
+            .addTaskConfigs(taskConfigsB).setJobType("B").setNumConcurrentTasksPerInstance(50);
     workflowBuilder.addJob("JOB_B", jobBuilderB);
 
     // JOB_C (DEFAULT type)
@@ -337,7 +337,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     }
     JobConfig.Builder jobBuilderC = new JobConfig.Builder().setCommand(JOB_COMMAND)
         .setJobCommandConfigMap(_jobCommandMap).addTaskConfigs(taskConfigsC)
-        .setQuotaType(DEFAULT_QUOTA_TYPE).setNumConcurrentTasksPerInstance(50);
+        .setJobType(DEFAULT_QUOTA_TYPE).setNumConcurrentTasksPerInstance(50);
     workflowBuilder.addJob("JOB_DEFAULT", jobBuilderC);
 
     _driver.start(workflowBuilder.build());
@@ -391,7 +391,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       taskConfigsA.add(new TaskConfig("ShortTask", taskConfigMap));
     }
     JobConfig.Builder jobBuilderA = new JobConfig.Builder().setCommand(JOB_COMMAND)
-        .setJobCommandConfigMap(_jobCommandMap).addTaskConfigs(taskConfigsA).setQuotaType("A");
+        .setJobCommandConfigMap(_jobCommandMap).addTaskConfigs(taskConfigsA).setJobType("A");
     workflowBuilder.addJob("JOB_A", jobBuilderA);
 
     // JOB_B
@@ -401,7 +401,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       taskConfigsB.add(new TaskConfig("ShortTask", taskConfigMap));
     }
     JobConfig.Builder jobBuilderB = new JobConfig.Builder().setCommand(JOB_COMMAND)
-        .setJobCommandConfigMap(_jobCommandMap).addTaskConfigs(taskConfigsB).setQuotaType("B");
+        .setJobCommandConfigMap(_jobCommandMap).addTaskConfigs(taskConfigsB).setJobType("B");
     workflowBuilder.addJob("JOB_B", jobBuilderB);
 
     _driver.start(workflowBuilder.build());
@@ -504,7 +504,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     List<TaskConfig> taskConfigs = new ArrayList<>();
     taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
     JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
-        .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setQuotaType("A");
+        .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setJobType("A");
 
     for (int i = 0; i < 5; i++) {
       String jobName = "JOB_" + i;
@@ -521,7 +521,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     taskConfigs = new ArrayList<>();
     taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
     jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND).addTaskConfigs(taskConfigs)
-        .setJobCommandConfigMap(_jobCommandMap).setQuotaType("B");
+        .setJobCommandConfigMap(_jobCommandMap).setJobType("B");
 
     for (int i = 5; i < 10; i++) {
       String jobName = "JOB_" + i;
@@ -568,7 +568,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       }
       JobConfig.Builder jobBuilder =
           new JobConfig.Builder().setCommand(JOB_COMMAND).setJobCommandConfigMap(_jobCommandMap)
-              .addTaskConfigs(taskConfigs).setQuotaType(quotaType);
+              .addTaskConfigs(taskConfigs).setJobType(quotaType);
       workflowBuilder.addJob(jobName, jobBuilder);
     }
     return workflowBuilder.build();
@@ -581,10 +581,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     private final String _instanceName;
     private final String _quotaType;
 
-    public ShortTask(TaskCallbackContext context, String instanceName) {
+    ShortTask(TaskCallbackContext context, String instanceName) {
       super(context);
       _instanceName = instanceName;
-      _quotaType = context.getJobConfig().getQuotaType();
+      _quotaType = context.getJobConfig().getJobType();
       // Initialize the count for this quotaType if not already done
       if (_quotaType != null && !_quotaTypeExecutionCount.containsKey(_quotaType)) {
         _quotaTypeExecutionCount.put(_quotaType, 0);
@@ -608,10 +608,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     private final String _instanceName;
     private final String _quotaType;
 
-    public LongTask(TaskCallbackContext context, String instanceName) {
+    LongTask(TaskCallbackContext context, String instanceName) {
       super(context);
       _instanceName = instanceName;
-      _quotaType = context.getJobConfig().getQuotaType();
+      _quotaType = context.getJobConfig().getJobType();
       // Initialize the count for this quotaType if not already done
       if (_quotaType != null && !_quotaTypeExecutionCount.containsKey(_quotaType)) {
         _quotaTypeExecutionCount.put(_quotaType, 0);
@@ -643,10 +643,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     private final String _instanceName;
     private final String _quotaType;
 
-    public FailTask(TaskCallbackContext context, String instanceName) {
+    FailTask(TaskCallbackContext context, String instanceName) {
       super(context);
       _instanceName = instanceName;
-      _quotaType = context.getJobConfig().getQuotaType();
+      _quotaType = context.getJobConfig().getJobType();
       // Initialize the count for this quotaType if not already done
       if (_quotaType != null && !_quotaTypeExecutionCount.containsKey(_quotaType)) {
         _quotaTypeExecutionCount.put(_quotaType, 0);

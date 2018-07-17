@@ -154,11 +154,6 @@ public class JobConfig extends ResourceConfig {
      * Whether or not enable running task rebalance
      */
     RebalanceRunningTask,
-
-    /**
-     * Quota type for this job used for quota-based scheduling
-     */
-    QuotaType
   }
 
   // Default property values
@@ -192,7 +187,7 @@ public class JobConfig extends ResourceConfig {
         jobConfig.isIgnoreDependentJobFailure(), jobConfig.getTaskConfigMap(),
         jobConfig.getJobType(), jobConfig.getInstanceGroupTag(), jobConfig.getExecutionDelay(),
         jobConfig.getExecutionStart(), jobId, jobConfig.getExpiry(),
-        jobConfig.isRebalanceRunningTask(), jobConfig.getQuotaType());
+        jobConfig.isRebalanceRunningTask());
   }
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
@@ -202,7 +197,7 @@ public class JobConfig extends ResourceConfig {
       boolean disableExternalView, boolean ignoreDependentJobFailure,
       Map<String, TaskConfig> taskConfigMap, String jobType, String instanceGroupTag,
       long executionDelay, long executionStart, String jobId, long expiry,
-      boolean rebalanceRunningTask, String quotaType) {
+      boolean rebalanceRunningTask) {
     super(jobId);
     putSimpleConfig(JobConfigProperty.WorkflowID.name(), workflow);
     putSimpleConfig(JobConfigProperty.JobID.name(), jobId);
@@ -266,9 +261,6 @@ public class JobConfig extends ResourceConfig {
         String.valueOf(WorkflowConfig.DEFAULT_MONITOR_DISABLE));
     getRecord().setBooleanField(JobConfigProperty.RebalanceRunningTask.name(),
         rebalanceRunningTask);
-    if (quotaType != null) {
-      putSimpleConfig(JobConfigProperty.QuotaType.name(), quotaType);
-    }
   }
 
   public String getWorkflow() {
@@ -293,7 +285,7 @@ public class JobConfig extends ResourceConfig {
 
   public Set<String> getTargetPartitionStates() {
     if (simpleConfigContains(JobConfigProperty.TargetPartitionStates.name())) {
-      return new HashSet<String>(Arrays
+      return new HashSet<>(Arrays
           .asList(getSimpleConfig(JobConfigProperty.TargetPartitionStates.name()).split(",")));
     }
     return null;
@@ -408,6 +400,11 @@ public class JobConfig extends ResourceConfig {
     return getSimpleConfigs();
   }
 
+  /**
+   * Returns the job type for this job. This type will be used as a quota type for quota-based
+   * scheduling.
+   * @return quota type. null if quota type is not set
+   */
   public String getJobType() {
     return getSimpleConfig(JobConfigProperty.JobType.name());
   }
@@ -423,14 +420,6 @@ public class JobConfig extends ResourceConfig {
   public boolean isRebalanceRunningTask() {
     return getRecord().getBooleanField(JobConfigProperty.RebalanceRunningTask.name(),
         DEFAULT_REBALANCE_RUNNING_TASK);
-  }
-
-  /**
-   * Returns the quota type for this job.
-   * @return quota type. null if quota type is not set
-   */
-  public String getQuotaType() {
-    return getSimpleConfig(JobConfigProperty.QuotaType.name());
   }
 
   public static JobConfig fromHelixProperty(HelixProperty property)
@@ -467,7 +456,6 @@ public class JobConfig extends ResourceConfig {
     private boolean _ignoreDependentJobFailure = DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE;
     private int _numberOfTasks = DEFAULT_NUMBER_OF_TASKS;
     private boolean _rebalanceRunningTask = DEFAULT_REBALANCE_RUNNING_TASK;
-    private String _quotaType;
 
     public JobConfig build() {
       if (_targetResource == null && _taskConfigMap.isEmpty()) {
@@ -487,7 +475,7 @@ public class JobConfig extends ResourceConfig {
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
           _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap, _jobType,
           _instanceGroupTag, _executionDelay, _executionStart, _jobId, _expiry,
-          _rebalanceRunningTask, _quotaType);
+          _rebalanceRunningTask);
     }
 
     /**
@@ -510,7 +498,7 @@ public class JobConfig extends ResourceConfig {
         b.setTargetPartitions(csvToStringList(cfg.get(JobConfigProperty.TargetPartitions.name())));
       }
       if (cfg.containsKey(JobConfigProperty.TargetPartitionStates.name())) {
-        b.setTargetPartitionStates(new HashSet<String>(
+        b.setTargetPartitionStates(new HashSet<>(
             Arrays.asList(cfg.get(JobConfigProperty.TargetPartitionStates.name()).split(","))));
       }
       if (cfg.containsKey(JobConfigProperty.Command.name())) {
@@ -567,9 +555,6 @@ public class JobConfig extends ResourceConfig {
       if (cfg.containsKey(JobConfigProperty.RebalanceRunningTask.name())) {
         b.setRebalanceRunningTask(
             Boolean.valueOf(cfg.get(JobConfigProperty.RebalanceRunningTask.name())));
-      }
-      if (cfg.containsKey(JobConfigProperty.QuotaType.name())) {
-        b.setQuotaType(cfg.get(JobConfigProperty.QuotaType.name()));
       }
       return b;
     }
@@ -705,11 +690,6 @@ public class JobConfig extends ResourceConfig {
       return this;
     }
 
-    public Builder setQuotaType(String quotaType) {
-      _quotaType = quotaType;
-      return this;
-    }
-
     private void validate() {
       if (_taskConfigMap.isEmpty() && _targetResource == null) {
         throw new IllegalArgumentException(
@@ -736,7 +716,7 @@ public class JobConfig extends ResourceConfig {
         for (TaskConfig taskConfig : _taskConfigMap.values()) {
           if (taskConfig.getCommand() == null) {
             throw new IllegalArgumentException(
-                String.format("Task % command cannot be null", taskConfig.getId()));
+                String.format("Task %s command cannot be null", taskConfig.getId()));
           }
         }
       }
@@ -781,7 +761,7 @@ public class JobConfig extends ResourceConfig {
           .setIgnoreDependentJobFailure(jobBean.ignoreDependentJobFailure)
           .setNumberOfTasks(jobBean.numberOfTasks).setExecutionDelay(jobBean.executionDelay)
           .setExecutionStart(jobBean.executionStart)
-          .setRebalanceRunningTask(jobBean.rebalanceRunningTask).setQuotaType(jobBean.quotaType);
+          .setRebalanceRunningTask(jobBean.rebalanceRunningTask);
 
       if (jobBean.jobCommandConfigMap != null) {
         b.setJobCommandConfigMap(jobBean.jobCommandConfigMap);
@@ -793,7 +773,7 @@ public class JobConfig extends ResourceConfig {
         b.setTargetResource(jobBean.targetResource);
       }
       if (jobBean.targetPartitionStates != null) {
-        b.setTargetPartitionStates(new HashSet<String>(jobBean.targetPartitionStates));
+        b.setTargetPartitionStates(new HashSet<>(jobBean.targetPartitionStates));
       }
       if (jobBean.targetPartitions != null) {
         b.setTargetPartitions(jobBean.targetPartitions);

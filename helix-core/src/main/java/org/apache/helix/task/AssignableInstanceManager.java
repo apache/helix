@@ -99,7 +99,7 @@ public class AssignableInstanceManager {
             jobName, jobConfig, jobContext);
         continue; // Ignore this job if either the config or context is null
       }
-      String quotaType = jobConfig.getQuotaType();
+      String quotaType = jobConfig.getJobType();
       Set<Integer> taskIndices = jobContext.getPartitionSet(); // Each integer represents a task in
       // this job (this is NOT taskId)
       for (int taskIndex : taskIndices) {

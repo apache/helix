@@ -32,16 +32,17 @@ import org.testng.annotations.Test;
 
 public class TestJobAndWorkflowType extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestJobAndWorkflowType.class);
+  private static final String DEFAULT_TYPE = "DEFAULT";
 
   @Test
   public void testJobAndWorkflowType() throws InterruptedException {
     LOG.info("Start testing job and workflow type");
     String jobName = TestHelper.getTestMethodName();
     JobConfig.Builder jobConfig = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG).setJobType("JobTestType");
+        .setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG).setJobType(DEFAULT_TYPE);
 
-    Map<String, String> tmp = new HashMap<String, String>();
-    tmp.put("WorkflowType", "WorkflowTestType");
+    Map<String, String> tmp = new HashMap<>();
+    tmp.put("WorkflowType", DEFAULT_TYPE);
     Workflow.Builder builder =
         WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName, jobConfig).fromMap(tmp);
 
@@ -54,7 +55,7 @@ public class TestJobAndWorkflowType extends TaskTestBase {
     String fetchedWorkflowType =
         _driver.getWorkflowConfig(jobName).getWorkflowType();
 
-    Assert.assertEquals(fetchedJobType, "JobTestType");
-    Assert.assertEquals(fetchedWorkflowType, "WorkflowTestType");
+    Assert.assertEquals(fetchedJobType, DEFAULT_TYPE);
+    Assert.assertEquals(fetchedWorkflowType, DEFAULT_TYPE);
   }
 }

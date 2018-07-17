@@ -83,8 +83,8 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
       ResourceAssignment prevAssignment, Collection<String> instances, JobConfig jobCfg,
       JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
       Set<Integer> partitionSet, Map<String, IdealState> idealStateMap) {
-    return computeAssignmentAndChargeResource(currStateOutput, prevAssignment, instances, jobCfg,
-        jobContext, partitionSet, idealStateMap);
+    return computeAssignmentAndChargeResource(currStateOutput, prevAssignment, instances,
+        workflowCfg, jobCfg, jobContext, partitionSet, idealStateMap);
   }
 
   /**
@@ -187,17 +187,14 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
    */
   private Map<String, SortedSet<Integer>> computeAssignmentAndChargeResource(
       CurrentStateOutput currStateOutput, ResourceAssignment prevAssignment,
-      Collection<String> liveInstances, JobConfig jobCfg, JobContext jobContext,
-      Set<Integer> taskPartitionSet, Map<String, IdealState> idealStateMap) {
+      Collection<String> liveInstances, WorkflowConfig workflowCfg, JobConfig jobCfg,
+      JobContext jobContext, Set<Integer> taskPartitionSet, Map<String, IdealState> idealStateMap) {
 
     // Note: targeted jobs also take up capacity in quota-based scheduling
     // "Charge" resources for the tasks
     Map<String, AssignableInstance> assignableInstanceMap =
         _assignableInstanceManager.getAssignableInstanceMap();
-    String quotaType = jobCfg.getQuotaType();
-    if (quotaType == null || quotaType.equals("") || quotaType.equals("null")) {
-      quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
-    }
+    String quotaType = getQuotaType(workflowCfg, jobCfg);
 
     // IdealState of the target resource
     IdealState targetIdealState = idealStateMap.get(jobCfg.getTargetResource());

@@ -65,10 +65,7 @@ public class WorkflowConfig extends ResourceConfig {
     JobPurgeInterval,
     /* Allow multiple jobs in this workflow to be assigned to a same instance or not */
     AllowOverlapJobAssignment,
-    Timeout,
-    /* Quota related fields */
-    QuotaType // Quota type for workflows is a syntactic sugar for setting
-    // all of the jobs to this quota type
+    Timeout
   }
 
   /* Default values */
@@ -93,7 +90,7 @@ public class WorkflowConfig extends ResourceConfig {
     this(workflowId, cfg.getJobDag(), cfg.getParallelJobs(), cfg.getTargetState(), cfg.getExpiry(),
         cfg.getFailureThreshold(), cfg.isTerminable(), cfg.getScheduleConfig(), cfg.getCapacity(),
         cfg.getWorkflowType(), cfg.isJobQueue(), cfg.getJobTypes(), cfg.getJobPurgeInterval(),
-        cfg.isAllowOverlapJobAssignment(), cfg.getTimeout(), cfg.getQuotaType());
+        cfg.isAllowOverlapJobAssignment(), cfg.getTimeout());
   }
 
   /* Member variables */
@@ -103,7 +100,7 @@ public class WorkflowConfig extends ResourceConfig {
       TargetState targetState, long expiry, int failureThreshold, boolean terminable,
       ScheduleConfig scheduleConfig, int capacity, String workflowType, boolean isJobQueue,
       Map<String, String> jobTypes, long purgeInterval, boolean allowOverlapJobAssignment,
-      long timeout, String quotaType) {
+      long timeout) {
     super(workflowId);
 
     putSimpleConfig(WorkflowConfigProperty.WorkflowID.name(), workflowId);
@@ -154,11 +151,6 @@ public class WorkflowConfig extends ResourceConfig {
     }
     putSimpleConfig(ResourceConfigProperty.MONITORING_DISABLED.toString(),
         String.valueOf(DEFAULT_MONITOR_DISABLE));
-
-    // Set the quota type for this workflow
-    if (quotaType != null) {
-      putSimpleConfig(WorkflowConfigProperty.QuotaType.name(), quotaType);
-    }
   }
 
   public String getWorkflowId() {
@@ -318,14 +310,6 @@ public class WorkflowConfig extends ResourceConfig {
     return null;
   }
 
-  /**
-   * Returns the quota type set for this workflow.
-   * @return quotaType string, null if quota type is not set
-   */
-  public String getQuotaType() {
-    return getSimpleConfig(WorkflowConfigProperty.QuotaType.name());
-  }
-
   public static WorkflowConfig fromHelixProperty(HelixProperty property)
       throws IllegalArgumentException {
     Map<String, String> configs = property.getRecord().getSimpleFields();
@@ -352,14 +336,13 @@ public class WorkflowConfig extends ResourceConfig {
     private long _jobPurgeInterval = DEFAULT_JOB_PURGE_INTERVAL;
     private boolean _allowOverlapJobAssignment = DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT;
     private long _timeout = TaskConstants.DEFAULT_NEVER_TIMEOUT;
-    private String _quotaType = null;
 
     public WorkflowConfig build() {
       validate();
 
       return new WorkflowConfig(_workflowId, _taskDag, _parallelJobs, _targetState, _expiry,
           _failureThreshold, _isTerminable, _scheduleConfig, _capacity, _workflowType, _isJobQueue,
-          _jobTypes, _jobPurgeInterval, _allowOverlapJobAssignment, _timeout, _quotaType);
+          _jobTypes, _jobPurgeInterval, _allowOverlapJobAssignment, _timeout);
     }
 
     public Builder() {
@@ -385,7 +368,6 @@ public class WorkflowConfig extends ResourceConfig {
       _jobPurgeInterval = workflowConfig.getJobPurgeInterval();
       _allowOverlapJobAssignment = workflowConfig.isAllowOverlapJobAssignment();
       _timeout = workflowConfig.getTimeout();
-      _quotaType = workflowConfig.getQuotaType();
     }
 
     public Builder setWorkflowId(String v) {
@@ -508,17 +490,6 @@ public class WorkflowConfig extends ResourceConfig {
       return this;
     }
 
-    /**
-     * Set the quota type for this workflow. If a workflow has a quota type set,
-     * all of its jobs will be of that quota type.
-     * @param quotaType
-     * @return
-     */
-    public Builder setQuotaType(String quotaType) {
-      _quotaType = quotaType;
-      return this;
-    }
-
     @Deprecated
     public static Builder fromMap(Map<String, String> cfg) {
       Builder builder = new Builder();
@@ -603,10 +574,6 @@ public class WorkflowConfig extends ResourceConfig {
         setTimeout(Long.parseLong(cfg.get(WorkflowConfigProperty.Timeout.name())));
       }
 
-      if (cfg.containsKey(WorkflowConfigProperty.QuotaType.name())) {
-        setQuotaType(cfg.get(WorkflowConfigProperty.QuotaType.name()));
-      }
-
       return this;
     }
 
@@ -656,7 +623,6 @@ public class WorkflowConfig extends ResourceConfig {
         b.setScheduleConfig(ScheduleConfig.from(workflowBean.schedule));
       }
       b.setExpiry(workflowBean.expiry);
-      b.setQuotaType(workflowBean.quotaType);
 
       return b;
     }

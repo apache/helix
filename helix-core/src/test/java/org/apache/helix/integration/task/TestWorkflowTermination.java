@@ -25,7 +25,7 @@ import org.testng.annotations.Test;
  */
 public class TestWorkflowTermination extends TaskTestBase {
   private final static String JOB_NAME = "TestJob";
-  private final static String WORKFLOW_TYPE = "TestWorkflow";
+  private final static String WORKFLOW_TYPE = "DEFAULT";
   private static final MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
 
   @BeforeClass

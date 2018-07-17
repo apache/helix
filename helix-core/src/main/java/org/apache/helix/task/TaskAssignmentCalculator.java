@@ -8,6 +8,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import org.apache.helix.task.assigner.AssignableInstance;
+
 
 public abstract class TaskAssignmentCalculator {
   /**
@@ -43,4 +45,25 @@ public abstract class TaskAssignmentCalculator {
       Collection<String> instances, JobConfig jobCfg, JobContext jobContext,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
       Map<String, IdealState> idealStateMap);
+
+  /**
+   * Returns the correct type for this job. Note that if the parent workflow has a type, then all of
+   * its jobs will inherit the type from the workflow.
+   * @param workflowConfig
+   * @param jobConfig
+   * @return
+   */
+  String getQuotaType(WorkflowConfig workflowConfig, JobConfig jobConfig) {
+    String workflowType = workflowConfig.getWorkflowType();
+    if (workflowType == null || workflowType.equals("")) {
+      // Workflow type is null, so we go by the job type
+      String jobType = jobConfig.getJobType();
+      if (jobType == null || jobType.equals("")) {
+        // Job type is null, so we use DEFAULT
+        return AssignableInstance.DEFAULT_QUOTA_TYPE;
+      }
+      return jobType;
+    }
+    return workflowType;
+  }
 }

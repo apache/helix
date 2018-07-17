@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
@@ -666,6 +665,11 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     for (String instanceName : instances) {
       InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+      if (config == null) {
+        throw new IllegalStateException(String
+            .format("Instance %s does not have a config, cluster might be in bad state",
+                instanceName));
+      }
       if (config.containsTag(tag)) {
         result.add(instanceName);
       }

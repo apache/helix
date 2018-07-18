@@ -21,99 +21,145 @@ package org.apache.helix.integration;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
-import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestSwapInstance extends ZkStandAloneCMTestBase {
   @Test
-  public void TestSwap() throws Exception {
+  public void testSwapInstance() throws Exception {
     HelixManager manager = _controller;
-    HelixDataAccessor helixAccessor = manager.getHelixDataAccessor();
-    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", 64, STATE_MODEL);
-    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", _replica);
+    HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
 
-    ZNRecord idealStateOld1 = new ZNRecord("TestDB");
-    ZNRecord idealStateOld2 = new ZNRecord("MyDB");
+    // Create semi auto resource
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "db-semi", 64, STATE_MODEL,
+        IdealState.RebalanceMode.SEMI_AUTO.name());
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "db-semi", _replica);
 
-    IdealState is1 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("TestDB"));
-    idealStateOld1.merge(is1.getRecord());
+    // Create customized resource
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "db-customized", 64, STATE_MODEL,
+        IdealState.RebalanceMode.CUSTOMIZED.name());
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "db-customized", _replica);
 
-    IdealState is2 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("MyDB"));
-    idealStateOld2.merge(is2.getRecord());
+    // Create full-auto resource
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "db-fa", 64, STATE_MODEL,
+        IdealState.RebalanceMode.FULL_AUTO.name(), RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "db-fa", _replica);
 
-    Assert.assertTrue(ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME)));
-
-    String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
-    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);
-
+    // Wait for cluster converge
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    String instanceName2 = PARTICIPANT_PREFIX + "_" + (START_PORT + 444);
-    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instanceName2);
+    // Get ideal states before swap
+    IdealState semiIS = dataAccessor.getProperty(dataAccessor.keyBuilder().idealStates("db-semi"));
+    IdealState customizedIS =
+        dataAccessor.getProperty(dataAccessor.keyBuilder().idealStates("db-customized"));
+    IdealState faIs =
+        dataAccessor.getProperty(dataAccessor.keyBuilder().idealStates("db-fa"));
 
-    boolean exception = false;
+    String oldInstanceName = String.format("%s_%s", PARTICIPANT_PREFIX, START_PORT);
+    String newInstanceName = String.format("%s_%s", PARTICIPANT_PREFIX, 66666);
+
     try {
-      _gSetupTool.swapInstance(CLUSTER_NAME, instanceName, instanceName2);
+      _gSetupTool.swapInstance(CLUSTER_NAME, oldInstanceName, newInstanceName);
+      Assert.fail("Cannot swap as new instance is not added to cluster yet");
     } catch (Exception e) {
-      exception = true;
+      // OK - new instance not added to cluster yet
     }
-    Assert.assertTrue(exception);
 
+    // Add new instance to cluster
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, newInstanceName);
+
+    try {
+      _gSetupTool.swapInstance(CLUSTER_NAME, oldInstanceName, newInstanceName);
+      Assert.fail("Cannot swap as old instance is still alive");
+    } catch (Exception e) {
+      // OK - old instance still alive
+    }
+
+    // Stop old instance
     _participants[0].syncStop();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    exception = false;
     try {
-      _gSetupTool.swapInstance(CLUSTER_NAME, instanceName, instanceName2);
+      _gSetupTool.swapInstance(CLUSTER_NAME, oldInstanceName, newInstanceName);
+      Assert.fail("Cannot swap as old instance is still enabled");
     } catch (Exception e) {
-      e.printStackTrace();
-      exception = true;
+      // OK - old instance still alive
     }
-    Assert.assertFalse(exception);
-    MockParticipantManager newParticipant =
-        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName2);
-    newParticipant.syncStart();
 
+    // disable old instance
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, oldInstanceName, false);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    is1 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("TestDB"));
+    // We can swap now
+    _gSetupTool.swapInstance(CLUSTER_NAME, oldInstanceName, newInstanceName);
 
-    is2 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("MyDB"));
+    // verify cluster
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    for (String key : idealStateOld1.getMapFields().keySet()) {
-      for (String host : idealStateOld1.getMapField(key).keySet()) {
-        if (host.equals(instanceName)) {
-          Assert.assertTrue(idealStateOld1.getMapField(key).get(instanceName)
-              .equals(is1.getRecord().getMapField(key).get(instanceName2)));
+    verifySwapInstance(dataAccessor, "db-semi", semiIS, oldInstanceName, newInstanceName, false);
+    verifySwapInstance(dataAccessor, "db-customized", customizedIS, oldInstanceName, newInstanceName,
+        false);
+    verifySwapInstance(dataAccessor, "db-fa", faIs, oldInstanceName, newInstanceName, true);
+
+    // Verify idempotency
+    _gSetupTool.swapInstance(CLUSTER_NAME, oldInstanceName, newInstanceName);
+    verifySwapInstance(dataAccessor, "db-semi", semiIS, oldInstanceName, newInstanceName, false);
+    verifySwapInstance(dataAccessor, "db-customized", customizedIS, oldInstanceName, newInstanceName,
+        false);
+    verifySwapInstance(dataAccessor, "db-fa", faIs, oldInstanceName, newInstanceName, true);
+
+  }
+
+  private void verifySwapInstance(HelixDataAccessor dataAccessor, String resourceName,
+      IdealState oldIs, String oldInstance, String newInstance, boolean isFullAuto) {
+    IdealState newIs = dataAccessor.getProperty(dataAccessor.keyBuilder().idealStates(resourceName));
+    if (isFullAuto) {
+      // Full auto resource should not contain new instance as it's not live yet
+      for (String key : newIs.getRecord().getMapFields().keySet()) {
+        Assert.assertFalse(newIs.getRecord().getMapField(key).keySet().contains(newInstance));
+      }
+
+      for (String key : newIs.getRecord().getListFields().keySet()) {
+        Assert.assertFalse(newIs.getRecord().getListField(key).contains(newInstance));
+      }
+    } else {
+      verifyIdealStateWithSwappedInstance(oldIs, newIs, oldInstance, newInstance);
+    }
+  }
+
+  private void verifyIdealStateWithSwappedInstance(IdealState oldIs, IdealState newIs,
+      String oldInstance, String newInstance) {
+
+    // Verify map fields
+    for (String key : oldIs.getRecord().getMapFields().keySet()) {
+      for (String host : oldIs.getRecord().getMapField(key).keySet()) {
+        if (host.equals(oldInstance)) {
+          Assert.assertTrue(oldIs.getRecord().getMapField(key).get(oldInstance)
+              .equals(newIs.getRecord().getMapField(key).get(newInstance)));
         } else {
-          Assert.assertTrue(idealStateOld1.getMapField(key).get(host)
-              .equals(is1.getRecord().getMapField(key).get(host)));
+          Assert.assertTrue(oldIs.getRecord().getMapField(key).get(host)
+              .equals(newIs.getRecord().getMapField(key).get(host)));
         }
       }
     }
 
-    for (String key : idealStateOld1.getListFields().keySet()) {
-      Assert.assertEquals(idealStateOld1.getListField(key).size(), is1.getRecord()
+    // verify list fields
+    for (String key : oldIs.getRecord().getListFields().keySet()) {
+      Assert.assertEquals(oldIs.getRecord().getListField(key).size(), newIs.getRecord()
           .getListField(key).size());
-      for (int i = 0; i < idealStateOld1.getListField(key).size(); i++) {
-        String host = idealStateOld1.getListField(key).get(i);
-        String newHost = is1.getRecord().getListField(key).get(i);
-        if (host.equals(instanceName)) {
-          Assert.assertTrue(newHost.equals(instanceName2));
+      for (int i = 0; i < oldIs.getRecord().getListField(key).size(); i++) {
+        String host = oldIs.getRecord().getListField(key).get(i);
+        String newHost = newIs.getRecord().getListField(key).get(i);
+        if (host.equals(oldInstance)) {
+          Assert.assertTrue(newHost.equals(newInstance));
         } else {
-          // System.out.println(key + " " + i+ " " + host + " "+newHost);
-          // System.out.println(idealStateOld1.getListField(key));
-          // System.out.println(is1.getRecord().getListField(key));
-
           Assert.assertTrue(host.equals(newHost));
         }
       }
     }
   }
+
 }

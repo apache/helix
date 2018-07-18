@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -46,10 +46,10 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
@@ -210,11 +210,11 @@ public class ClusterSetup {
     InstanceConfig instanceConfig = InstanceConfig.toInstanceConfig(instanceId);
     instanceId = instanceConfig.getInstanceName();
 
-    // ensure node is stopped
+    // ensure node is not live
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceId));
     if (liveInstance != null) {
-      throw new HelixException("Can't drop " + instanceId + ", please stop " + instanceId
-          + " before drop it");
+      throw new HelixException(String
+          .format("Cannot drop instance %s as it is still live. Please stop it first", instanceId));
     }
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceId));
@@ -235,18 +235,32 @@ public class ClusterSetup {
     _admin.dropInstance(clusterName, config);
   }
 
-  public void swapInstance(String clusterName, String oldInstanceName, String newInstanceName) {
+  /**
+   * For CUSTOMIZED and SEMI_AUTO resources, this tool is used to change instance mapping
+   * in the cluster. When a node is replaced in the cluster, we just change preference list
+   * and map field in IdealState lf all resource, to replace old instance with new instance
+   *
+   * This method will ignore all resource with FULL_AUTO.
+   * This method will ensure that old instance is disabled AND not alive, but it's OK that new
+   * instance is just created, not live / enabled yet
+   *
+   * @param clusterName cluster name
+   * @param oldInstanceName old instance to swap out
+   * @param newInstanceName new instance to add to
+   */
+  public void swapInstance(String clusterName, final String oldInstanceName, final String newInstanceName) {
+    if (oldInstanceName.equals(newInstanceName)) {
+      _logger.info("Old instance has same name as new instance, no need to swap");
+      return;
+    }
+
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    InstanceConfig oldConfig = accessor.getProperty(keyBuilder.instanceConfig(oldInstanceName));
-    if (oldConfig == null) {
-      String error = "Old instance " + oldInstanceName + " does not exist, cannot swap";
-      _logger.warn(error);
-      throw new HelixException(error);
-    }
-
+    // If new instance config is missing, new instance is not in good state and therefore
+    // should not perform swap.
+    // It is OK that we miss old instance config for idempotency of this method
     InstanceConfig newConfig = accessor.getProperty(keyBuilder.instanceConfig(newInstanceName));
     if (newConfig == null) {
       String error = "New instance " + newInstanceName + " does not exist, cannot swap";
@@ -254,36 +268,57 @@ public class ClusterSetup {
       throw new HelixException(error);
     }
 
-    ClusterConfig clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
-    // ensure old instance is disabled, otherwise fail
-    if (oldConfig.getInstanceEnabled() && (clusterConfig.getDisabledInstances() == null
-        || !clusterConfig.getDisabledInstances().containsKey(oldInstanceName))) {
-      String error =
-          "Old instance " + oldInstanceName + " is enabled, it need to be disabled and turned off";
-      _logger.warn(error);
-      throw new HelixException(error);
-    }
-    // ensure old instance is down, otherwise fail
-    List<String> liveInstanceNames = accessor.getChildNames(accessor.keyBuilder().liveInstances());
-
-    if (liveInstanceNames.contains(oldInstanceName)) {
-      String error =
-          "Old instance " + oldInstanceName + " is still on, it need to be disabled and turned off";
-      _logger.warn(error);
-      throw new HelixException(error);
+    try {
+      // drop instance will ensure the old instance is disabled, and not live, or it will
+      // throw exception
+      dropInstanceFromCluster(clusterName, oldInstanceName);
+    } catch (HelixException e) {
+      // If old instance is already gone, continue to swap. Note that it is possible
+      // that do to some error, we still keep a disabled record of old instance in
+      // cluster config, we don't strictly check and fix that
+      if (e.toString().contains("does not exist")) {
+        _logger.warn("Instance {} does not exist, continue to swap instance for cluster {}",
+            oldInstanceName, clusterName);
+      } else {
+        _logger.warn("Failed to drop instance {} from cluster {}", oldInstanceName, clusterName, e);
+        throw e;
+      }
     }
 
-    dropInstanceFromCluster(clusterName, oldInstanceName);
+    // When the amount of ideal state data is huge, we might only read partially from ZK
+    // so the safest way is to list first and read each individual ideal state
+    List<String> existingIdealStateNames =
+        accessor.getChildNames(accessor.keyBuilder().idealStates());
 
-    List<IdealState> existingIdealStates =
-        accessor.getChildValues(accessor.keyBuilder().idealStates());
-    for (IdealState idealState : existingIdealStates) {
-      swapInstanceInIdealState(idealState, oldInstanceName, newInstanceName);
-      accessor.setProperty(accessor.keyBuilder().idealStates(idealState.getResourceName()),
-          idealState);
+    for (String resourceName : existingIdealStateNames) {
+      IdealState resourceIdealState =
+          accessor.getProperty(accessor.keyBuilder().idealStates(resourceName));
+      if (resourceIdealState.getRebalanceMode().equals(RebalanceMode.FULL_AUTO)) {
+        _logger.warn("Resource {} is in FULL_AUTO rebalance mode, don't swap", resourceName);
+        continue;
+      }
+      // For CUSTOMIZED and SEMI_AUTO rebalance mode, swap instance
+      swapInstanceInIdealState(resourceIdealState, oldInstanceName, newInstanceName);
+
+      // Update ideal state
+      accessor.updateProperty(accessor.keyBuilder().idealStates(resourceName),
+          new DataUpdater<ZNRecord>() {
+            @Override public ZNRecord update(ZNRecord znRecord) {
+              // Need to swap again in case there are added partition with old instance
+              swapInstanceInIdealState(new IdealState(znRecord), oldInstanceName, newInstanceName);
+              return znRecord;
+            }
+          }, resourceIdealState);
+      _logger.info("Successfully swapped instance for resource {}", resourceName);
     }
   }
 
+  /**
+   * Replace old instance name in map field and list field with new instance name
+   * @param idealState ideal state object
+   * @param oldInstance old instance name
+   * @param newInstance new instance name
+   */
   void swapInstanceInIdealState(IdealState idealState, String oldInstance, String newInstance) {
     for (String partition : idealState.getRecord().getMapFields().keySet()) {
       Map<String, String> valMap = idealState.getRecord().getMapField(partition);

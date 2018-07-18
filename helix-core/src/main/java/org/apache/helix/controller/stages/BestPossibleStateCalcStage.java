@@ -103,35 +103,25 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     BestPossibleStateOutput output = new BestPossibleStateOutput();
 
-    PriorityQueue<ResourcePriority> resourcePriorityQueue = new PriorityQueue<>();
-    TaskDriver taskDriver = null;
     HelixManager helixManager = event.getAttribute(AttributeName.helixmanager.name());
-    if (helixManager != null) {
-      taskDriver = new TaskDriver(helixManager);
-    }
-    for (Resource resource : resourceMap.values()) {
-      resourcePriorityQueue.add(new ResourcePriority(resource, cache.getIdealState(resource.getResourceName()),
-          taskDriver));
-    }
 
     final List<String> failureResources = new ArrayList<>();
-    Iterator<ResourcePriority> itr = resourcePriorityQueue.iterator();
+    Iterator<Resource> itr = resourceMap.values().iterator();
     while (itr.hasNext()) {
-      Resource resource = itr.next().getResource();
+      Resource resource = itr.next();
       if (!computeResourceBestPossibleState(event, cache, currentStateOutput, resource, output)) {
         failureResources.add(resource.getResourceName());
-        LogUtil.logWarn(logger, _eventId, "Failed to calculate best possible states for " + resource.getResourceName());
+        LogUtil.logWarn(logger, _eventId,
+            "Failed to calculate best possible states for " + resource.getResourceName());
       }
     }
 
     // Check and report if resource rebalance has failure
-    if (!cache.isTaskCache()) {
-      ClusterStatusMonitor clusterStatusMonitor =
-          event.getAttribute(AttributeName.clusterStatusMonitor.name());
-      updateRebalanceStatus(!failureResources.isEmpty(), helixManager, cache, clusterStatusMonitor,
-          "Failed to calculate best possible states for " + failureResources.size()
-              + " resources.");
-    }
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    updateRebalanceStatus(!failureResources.isEmpty(), helixManager, cache, clusterStatusMonitor,
+        "Failed to calculate best possible states for " + failureResources.size() + " resources.");
+
     return output;
   }
 
@@ -355,34 +345,5 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
 
     return mappingCalculator;
-  }
-
-  class ResourcePriority implements Comparable<ResourcePriority> {
-    final Resource _resource;
-    // By default, non-job resources and new jobs are assigned lowest priority
-    Long _priority = Long.MAX_VALUE;
-
-    Resource getResource() {
-      return _resource;
-    }
-
-    public ResourcePriority(Resource resource, IdealState idealState, TaskDriver taskDriver) {
-      _resource = resource;
-
-      if (taskDriver != null && idealState != null
-          && idealState.getRebalancerClassName() != null
-          && idealState.getRebalancerClassName().equals(JobRebalancer.class.getName())) {
-        // Update priority for job resources, note that older jobs will be processed earlier
-        JobContext jobContext = taskDriver.getJobContext(resource.getResourceName());
-        if (jobContext != null && jobContext.getStartTime() != WorkflowContext.UNSTARTED) {
-          _priority = jobContext.getStartTime();
-        }
-      }
-    }
-
-    @Override
-    public int compareTo(ResourcePriority otherJob) {
-      return _priority.compareTo(otherJob._priority);
-    }
   }
 }

@@ -130,10 +130,10 @@ public class TestWorkflowTermination extends TaskTestBase {
   public void testWorkflowPausedTimeout() throws InterruptedException {
     String workflowName = TestHelper.getTestMethodName();
     long workflowExpiry = 2000; // 2sec expiry time
-    long timeout = 2000;
+    long timeout = 5000;
     String notStartedJobName = JOB_NAME + "-NotStarted";
 
-    JobConfig.Builder jobBuilder = createJobConfigBuilder(workflowName, false, 100);
+    JobConfig.Builder jobBuilder = createJobConfigBuilder(workflowName, false, 5000);
     jobBuilder.setWorkflow(workflowName);
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName)
         .setWorkflowConfig(
@@ -151,7 +151,7 @@ public class TestWorkflowTermination extends TaskTestBase {
 
     // Wait a bit for the job to get scheduled. Job runs for 100ms so this will very likely
     // to trigger a job stopped
-    Thread.sleep(40);
+    Thread.sleep(100);
 
     // Pause the queue
     _driver.waitToStop(workflowName, 10000L);
@@ -208,17 +208,17 @@ public class TestWorkflowTermination extends TaskTestBase {
     String job2 = JOB_NAME + "2";
     String job3 = JOB_NAME + "3";
     String job4 = JOB_NAME + "4";
-    long workflowExpiry = 2000;
-    long timeout = 5000;
+    long workflowExpiry = 10000;
+    long timeout = 8000;
 
-    JobConfig.Builder jobBuilder = createJobConfigBuilder(workflowName, false, 50);
-    JobConfig.Builder failedJobBuilder = createJobConfigBuilder(workflowName, true, 10);
+    JobConfig.Builder jobBuilder = createJobConfigBuilder(workflowName, false, 1);
+    JobConfig.Builder failedJobBuilder = createJobConfigBuilder(workflowName, true, 1);
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName)
         .setWorkflowConfig(
             new WorkflowConfig.Builder(workflowName)
                 .setWorkFlowType(WORKFLOW_TYPE)
-                .setTimeout(timeout)
+                .setTimeout(timeout).setParallelJobs(4)
                 .setFailureThreshold(1)
                 .build()
         )
@@ -234,26 +234,26 @@ public class TestWorkflowTermination extends TaskTestBase {
 
     _driver.start(workflowBuilder.build());
 
-    _driver.pollForWorkflowState(workflowName, 5000L, TaskState.FAILED);
+    _driver.pollForWorkflowState(workflowName, 10000L, TaskState.FAILED);
 
     // Timeout is longer than fail time, so the failover should occur earlier
     WorkflowContext context = _driver.getWorkflowContext(workflowName);
     Assert.assertTrue(context.getFinishTime() - context.getStartTime() < timeout);
 
     // job1 will complete
-    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, job1), 5000L,
+    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, job1), 10000L,
         TaskState.COMPLETED);
 
     // Possible race between 2 and 3 so it's likely for job2 to stay in either COMPLETED or ABORTED
-    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, job2), 5000L,
+    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, job2), 10000L,
         TaskState.COMPLETED, TaskState.ABORTED);
 
     // job3 meant to fail
-    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, job3), 5000L,
+    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, job3), 10000L,
         TaskState.FAILED);
 
     // because job4 has dependency over job3, it will fail as well
-    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, job4), 5000L,
+    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, job4), 10000L,
         TaskState.FAILED);
 
     // Check MBean is updated

@@ -306,7 +306,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       // TODO: Junkai will work on refactoring existing pipeline log into abstract logic and
       // extend the logic to separate pipeline
       Pipeline rebalancePipeline = new Pipeline(pipelineName);
-      rebalancePipeline.addStage(new BestPossibleStateCalcStage());
+      rebalancePipeline.addStage(new TaskSchedulingStage());
       rebalancePipeline.addStage(new IntermediateStateCalcStage());
       rebalancePipeline.addStage(new MessageGenerationPhase());
       rebalancePipeline.addStage(new MessageSelectionStage());

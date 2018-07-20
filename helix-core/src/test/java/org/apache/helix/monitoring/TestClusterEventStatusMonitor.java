@@ -35,7 +35,7 @@ import javax.management.ReflectionException;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.TaskAssignmentStage;
+import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
 import org.apache.helix.monitoring.mbeans.ClusterEventMonitor;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.testng.Assert;
@@ -75,7 +75,7 @@ public class TestClusterEventStatusMonitor {
       this.addTestEventMonitor(monitor, BestPossibleStateCalcStage.class.getSimpleName());
       this.addTestEventMonitor(monitor, ReadClusterDataStage.class.getSimpleName());
       this.addTestEventMonitor(monitor, IntermediateStateCalcStage.class.getSimpleName());
-      this.addTestEventMonitor(monitor, TaskAssignmentStage.class.getSimpleName());
+      this.addTestEventMonitor(monitor, ResourceMessageDispatchStage.class.getSimpleName());
     } catch (JMException jme) {
       Assert.assertTrue(false, "Failed to customize event monitors");
     }
@@ -88,7 +88,7 @@ public class TestClusterEventStatusMonitor {
       monitor.updateClusterEventDuration(BestPossibleStateCalcStage.class.getSimpleName(), 100 * i);
       monitor.updateClusterEventDuration(ReadClusterDataStage.class.getSimpleName(), 100 * i);
       monitor.updateClusterEventDuration(IntermediateStateCalcStage.class.getSimpleName(), 100 * i);
-      monitor.updateClusterEventDuration(TaskAssignmentStage.class.getSimpleName(), 100 * i);
+      monitor.updateClusterEventDuration(ResourceMessageDispatchStage.class.getSimpleName(), 100 * i);
       totalDuration += 100 * i;
     }
 

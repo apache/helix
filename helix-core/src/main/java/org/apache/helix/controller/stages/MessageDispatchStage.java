@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -41,17 +42,14 @@ import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TaskAssignmentStage extends AbstractBaseStage {
-  private static Logger logger = LoggerFactory.getLogger(TaskAssignmentStage.class);
+public abstract class MessageDispatchStage extends AbstractBaseStage {
+  private static Logger logger = LoggerFactory.getLogger(MessageDispatchStage.class);
 
-  @Override
-  public void process(ClusterEvent event) throws Exception {
+  protected void processEvent(ClusterEvent event, MessageOutput messageOutput) throws Exception {
     _eventId = event.getEventId();
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
-    MessageOutput messageOutput =
-        event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
 
@@ -62,11 +60,14 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     }
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
-    List<Message> messagesToSend = new ArrayList<Message>();
+    List<Message> messagesToSend = new ArrayList<>();
     for (String resourceName : resourceMap.keySet()) {
       Resource resource = resourceMap.get(resourceName);
       for (Partition partition : resource.getPartitions()) {
         List<Message> messages = messageOutput.getMessages(resourceName, partition);
+        if (messages == null || messages.isEmpty()) {
+          messages = Collections.emptyList();
+        }
         messagesToSend.addAll(messages);
       }
     }

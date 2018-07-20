@@ -29,7 +29,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 
 public class MessageOutput {
-
   private final Map<String, Map<Partition, List<Message>>> _messagesMap;
 
   public MessageOutput() {
@@ -63,7 +62,6 @@ public class MessageOutput {
       return map.get(resource);
     }
     return Collections.emptyList();
-
   }
 
   @Override

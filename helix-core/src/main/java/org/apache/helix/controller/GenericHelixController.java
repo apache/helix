@@ -46,6 +46,12 @@ import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
 import org.apache.helix.controller.stages.*;
+import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
+import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
+import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
+import org.apache.helix.controller.stages.task.TaskMessageDispatchStage;
+import org.apache.helix.controller.stages.task.TaskMessageGenerationPhase;
+import org.apache.helix.controller.stages.task.TaskSchedulingStage;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
@@ -259,10 +265,10 @@ public class GenericHelixController implements IdealStateChangeListener,
       Pipeline rebalancePipeline = new Pipeline(pipelineName);
       rebalancePipeline.addStage(new BestPossibleStateCalcStage());
       rebalancePipeline.addStage(new IntermediateStateCalcStage());
-      rebalancePipeline.addStage(new MessageGenerationPhase());
+      rebalancePipeline.addStage(new ResourceMessageGenerationPhase());
       rebalancePipeline.addStage(new MessageSelectionStage());
       rebalancePipeline.addStage(new MessageThrottleStage());
-      rebalancePipeline.addStage(new TaskAssignmentStage());
+      rebalancePipeline.addStage(new ResourceMessageDispatchStage());
       rebalancePipeline.addStage(new PersistAssignmentStage());
       rebalancePipeline.addStage(new TargetExteralViewCalcStage());
 
@@ -303,16 +309,11 @@ public class GenericHelixController implements IdealStateChangeListener,
       dataPreprocess.addStage(new CurrentStateComputationStage());
 
       // rebalance pipeline
-      // TODO: Junkai will work on refactoring existing pipeline log into abstract logic and
-      // extend the logic to separate pipeline
       Pipeline rebalancePipeline = new Pipeline(pipelineName);
       rebalancePipeline.addStage(new TaskSchedulingStage());
-      rebalancePipeline.addStage(new IntermediateStateCalcStage());
-      rebalancePipeline.addStage(new MessageGenerationPhase());
-      rebalancePipeline.addStage(new MessageSelectionStage());
-      rebalancePipeline.addStage(new MessageThrottleStage());
-      rebalancePipeline.addStage(new TaskAssignmentStage());
       rebalancePipeline.addStage(new TaskGarbageCollectionStage());
+      rebalancePipeline.addStage(new TaskMessageGenerationPhase());
+      rebalancePipeline.addStage(new TaskMessageDispatchStage());
 
       // backward compatibility check
       Pipeline liveInstancePipeline = new Pipeline(pipelineName);

@@ -31,6 +31,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
@@ -51,7 +52,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Compares the currentState, pendingState with IdealState and generate messages
  */
-public class MessageGenerationPhase extends AbstractBaseStage {
+public abstract class MessageGenerationPhase extends AbstractBaseStage {
   private final static String NO_DESIRED_STATE = "NoDesiredState";
 
   // If we see there is any invalid pending message leaving on host, i.e. message
@@ -64,19 +65,17 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
   private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
-  @Override
-  public void process(ClusterEvent event) throws Exception {
+  protected void processEvent(ClusterEvent event, ResourcesStateMap resourcesStateMap)
+      throws Exception {
     _eventId = event.getEventId();
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     Map<String, Map<String, Message>> pendingMessagesToCleanUp = new HashMap<>();
-    CurrentStateOutput currentStateOutput =
-        event.getAttribute(AttributeName.CURRENT_STATE.name());
-    IntermediateStateOutput intermediateStateOutput =
-        event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+    CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE.name());
     if (manager == null || cache == null || resourceMap == null || currentStateOutput == null
-        || intermediateStateOutput == null) {
+        || resourcesStateMap == null) {
       throw new StageException("Missing attributes in event:" + event
           + ". Requires HelixManager|DataCache|RESOURCES|CURRENT_STATE|INTERMEDIATE_STATE");
     }
@@ -100,9 +99,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       }
 
       for (Partition partition : resource.getPartitions()) {
-
         Map<String, String> instanceStateMap = new HashMap<>(
-            intermediateStateOutput.getInstanceStateMap(resourceName, partition));
+            resourcesStateMap.getInstanceStateMap(resourceName, partition));
         Map<String, String> pendingStateMap =
             currentStateOutput.getPendingStateMap(resourceName, partition);
 
@@ -269,19 +267,19 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       final Map<String, Map<String, Message>> pendingMessagesToPurge, ExecutorService workerPool,
       final HelixDataAccessor accessor) {
     workerPool.submit(new Callable<Object>() {
-        @Override
-        public Object call() {
-          for (Map.Entry<String, Map<String, Message>> entry : pendingMessagesToPurge.entrySet()) {
-            String instanceName = entry.getKey();
-            for (Message msg : entry.getValue().values()) {
-              if (accessor.removeProperty(msg.getKey(accessor.keyBuilder(), instanceName))) {
-                LogUtil.logInfo(logger, _eventId, String
-                    .format("Deleted message %s from instance %s", msg.getMsgId(), instanceName));
-              }
+      @Override
+      public Object call() {
+        for (Map.Entry<String, Map<String, Message>> entry : pendingMessagesToPurge.entrySet()) {
+          String instanceName = entry.getKey();
+          for (Message msg : entry.getValue().values()) {
+            if (accessor.removeProperty(msg.getKey(accessor.keyBuilder(), instanceName))) {
+              LogUtil.logInfo(logger, _eventId, String
+                  .format("Deleted message %s from instance %s", msg.getMsgId(), instanceName));
             }
           }
-          return null;
         }
+        return null;
+      }
     });
   }
 

@@ -38,7 +38,6 @@ import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
@@ -47,7 +46,7 @@ import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.TaskGarbageCollectionStage;
-import org.apache.helix.controller.stages.TaskSchedulingStage;
+import org.apache.helix.controller.stages.task.TaskSchedulingStage;
 import org.apache.helix.model.Message;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
@@ -320,7 +319,7 @@ public class TaskTestUtil {
     stages.add(new ReadClusterDataStage());
     stages.add(new ResourceComputationStage());
     stages.add(new CurrentStateComputationStage());
-    stages.add(new BestPossibleStateCalcStage());
+    stages.add(new TaskSchedulingStage());
     stages.add(new TaskGarbageCollectionStage());
 
     for (Stage stage : stages) {

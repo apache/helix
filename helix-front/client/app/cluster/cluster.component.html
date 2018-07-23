@@ -11,6 +11,6 @@
     <router-outlet></router-outlet>
   </section>
 </mat-sidenav-container>
-<button mat-mini-fab [ngClass]="['toggle-button', sidenav.opened ? 'open' : 'close']" color="" (click)="toggleSidenav(this)">
+<button mat-mini-fab [ngClass]="['toggle-button', sidenav.opened ? 'open' : 'close']" color="" (click)="toggleSidenav()">
   <mat-icon>chevron_{{ sidenav.opened ? 'left' : 'right' }}</mat-icon>
 </button>

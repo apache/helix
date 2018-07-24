@@ -662,26 +662,29 @@ public class TaskUtil {
     return expiredJobs;
   }
 
-  /* remove IS/EV, config and context of a job */
-  // Jobname is here should be NamespacedJobName.
+  /**
+   * Remove Job Config, IS/EV, and Context in order. Job name here must be a namespaced job name.
+   * @param accessor
+   * @param propertyStore
+   * @param job namespaced job name
+   * @return
+   */
   protected static boolean removeJob(HelixDataAccessor accessor, HelixPropertyStore propertyStore,
       String job) {
-    boolean success = true;
     if (!removeJobConfig(accessor, job)) {
       LOG.warn(String.format("Error occurred while trying to remove job config for %s.", job));
-      success = false;
+      return false;
     }
     if (!cleanupJobIdealStateExtView(accessor, job)) {
       LOG.warn(String.format(
           "Error occurred while trying to remove job idealstate/externalview for %s.", job));
-      success = false;
+      return false;
     }
     if (!removeJobContext(propertyStore, job)) {
       LOG.warn(String.format("Error occurred while trying to remove job context for %s.", job));
-      success = false;
+      return false;
     }
-
-    return success;
+    return true;
   }
 
   /** Remove the job name from the DAG from the queue configuration */

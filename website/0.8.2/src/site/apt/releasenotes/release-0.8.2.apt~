@@ -1,0 +1,100 @@
+ -----
+ Release Notes for Apache Helix 0.8.2
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 0.8.2
+
+  The Apache Helix team would like to announce the release of Apache Helix 0.8.2.
+
+  This is the fourteenth release under the Apache umbrella, and the tenth as a top-level project.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
+
+  In this release, Helix provides several performance improvements for rebalance pipeline:
+
+[]
+
+* Detailed Changes
+
+** New Features
+    * [ROUTER] Expose ExternalViews in RoutingTable and RoutingTableSnapshot
+
+    * [TASK] Expose UserContentStore in TaskDriver
+
+    * [TASK] Add ThreadCountBasedAssignmentCalculator and integrate with Workflow/JobRebalancer and fix rebalancing logic
+
+    * Should not start periodical refresh in RoutingTableProvider if helixmanager is not set.
+
+    * Allow downward state transition during recovery and add recovery threshold
+
+    * Support batch add jobs to JobQueue
+
+    * Add periodic refresh to RoutingTableProvider
+
+** Bug Fixes
+
+    * Make swap instance more robust and idempotent
+
+    * Fix the issue that resource MBean may not be cleaned up when the resource is dropped.
+
+    * Check NPE in getInstancesInClusterWithTag and throw more meaningful exception
+
+    * Fix GroupCommit issue for adding back current state
+
+    * Fix zkclient state related check and some potential bugs.
+
+    * Fix race condition in Helix messaging service.
+
+    * Fix bugs in ClusterStateVerifier and StrictMatchExternalViewVerifier.
+
+    * Verify downward load balance and fix TestPartitionMovementThrottle
+
+** Improvements
+
+    * Adding RoutingTableProvider monitor for tracking refresh actions and routing table update callbacks.
+
+    * Helix manager should support getting metadata store connection string
+
+    * Add missing replica partition metric into ClusterStatus.
+
+    * Improve BestPossibleExternalViewVerifier by avoid fully refreshing entire cluster data everytime and avoid to calulate bestpossible states for not required resources.
+
+    * Support event differentiated logging
+
+    * Helix job should fail immediately if the target resource is disabled
+
+    * Make ZkClient keep retrying connect on expiring.
+
+    * DelayedAutoRebalancer should calculate assignment based on full partition list.
+
+    * Change RoutingDataCache to use zk version based selective update when reading the ExternalViews and TargetExternalView.
+
+    * Change migration strategy to N -> N+1 -> N model
+
+    * Add ThreadPoolExecutor purge and shutdown to avoid memory leak in RoutingTableProvider 
+
+[]
+
+Cheers,
+--
+The Apache Helix Team

@@ -80,9 +80,8 @@ public class TestAssignableInstance extends AssignerTestBase {
     for (int i = 0; i < testResourceTypes.length; i++) {
       Assert.assertEquals(ai.getTotalCapacity().get(testResourceTypes[i]).size(), 1);
       Assert.assertEquals(ai.getUsedCapacity().get(testResourceTypes[i]).size(), 1);
-      Assert.assertEquals(
-          ai.getTotalCapacity().get(testResourceTypes[i]).get(AssignableInstance.DEFAULT_QUOTA_TYPE),
-          Integer.valueOf(testResourceCapacity[i]));
+      Assert.assertEquals(ai.getTotalCapacity().get(testResourceTypes[i])
+          .get(AssignableInstance.DEFAULT_QUOTA_TYPE), Integer.valueOf(testResourceCapacity[i]));
       Assert.assertEquals(
           ai.getUsedCapacity().get(testResourceTypes[i]).get(AssignableInstance.DEFAULT_QUOTA_TYPE),
           Integer.valueOf(0));
@@ -230,17 +229,11 @@ public class TestAssignableInstance extends AssignerTestBase {
     Assert.assertEquals(result.getFailureReason(),
         TaskAssignResult.FailureReason.NO_SUCH_RESOURCE_TYPE);
 
-    // No such quota type
     ai.updateConfigs(null, null, createLiveInstance(new String[] {
         LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name()
     }, new String[] {
         "1"
     }));
-
-    result = ai.tryAssign(task, AssignableInstance.DEFAULT_QUOTA_TYPE);
-    Assert.assertFalse(result.isSuccessful());
-    Assert.assertEquals(result.getFailureReason(),
-        TaskAssignResult.FailureReason.NO_SUCH_QUOTA_TYPE);
 
     ai.updateConfigs(createClusterConfig(testQuotaTypes, testQuotaRatio, true), null, null);
 
@@ -280,9 +273,11 @@ public class TestAssignableInstance extends AssignerTestBase {
   public void testRestoreTaskAssignResult() {
     AssignableInstance ai =
         new AssignableInstance(createClusterConfig(testQuotaTypes, testQuotaRatio, true),
-            new InstanceConfig(testInstanceName), createLiveInstance(
-            new String[] { LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name()},
-            new String[] { "40" }));
+            new InstanceConfig(testInstanceName), createLiveInstance(new String[] {
+            LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name()
+        }, new String[] {
+            "40"
+        }));
 
     Map<String, TaskConfig> currentAssignments = new HashMap<>();
     TaskConfig supportedTask = new TaskConfig("", null, "supportedTask", "");
@@ -298,8 +293,7 @@ public class TestAssignableInstance extends AssignerTestBase {
       String quotaType = (taskID.equals("supportedTask")) ? AssignableInstance.DEFAULT_QUOTA_TYPE
           : "UnsupportedQuotaType";
       // Restore TaskAssignResult
-      TaskAssignResult taskAssignResult =
-          ai.restoreTaskAssignResult(taskID, taskConfig, quotaType);
+      TaskAssignResult taskAssignResult = ai.restoreTaskAssignResult(taskID, taskConfig, quotaType);
       if (taskAssignResult.isSuccessful()) {
         results.put(taskID, taskAssignResult);
       }
@@ -310,10 +304,12 @@ public class TestAssignableInstance extends AssignerTestBase {
       Assert.assertEquals(rst.getAssignableInstance(), ai);
     }
     Assert.assertEquals(ai.getCurrentAssignments().size(), 2);
+    // The expected value for the following should be 2, not 1 because the unsupported task should
+    // also have been assigned as a DEFAULT task
     Assert.assertEquals(
         (int) ai.getUsedCapacity().get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name())
             .get(AssignableInstance.DEFAULT_QUOTA_TYPE),
-        1);
+        2);
   }
 
   private Map<String, Integer> createResourceQuotaPerTypeMap(String[] types, int[] quotas) {

@@ -21,9 +21,11 @@ package org.apache.helix.integration.task;
 
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -44,6 +46,7 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
+import org.apache.helix.task.assigner.AssignableInstance;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -55,6 +58,8 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
   private static final String JOB_COMMAND = "DummyCommand";
   private Map<String, String> _jobCommandMap;
   private Map<String, Integer> _quotaTypeExecutionCount = new ConcurrentHashMap<>();
+  private Set<String> _availableQuotaTypes =
+      Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
   private boolean _finishTask = false;
 
   @BeforeClass
@@ -129,6 +134,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
   @BeforeMethod
   public void beforeMethod() {
     _quotaTypeExecutionCount.clear();
+    _availableQuotaTypes.clear();
     _finishTask = false;
   }
 
@@ -165,6 +171,44 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
   }
 
   /**
+   * Tests whether jobs with undefined types (not found in ClusterConfig) run as DEFAULT.
+   * @throws InterruptedException
+   */
+  @Test(dependsOnMethods = "testSchedulingWithoutQuota")
+  public void testSchedulingUndefinedTypes() throws InterruptedException {
+    ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
+    clusterConfig.resetTaskQuotaRatioMap();
+    clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 1);
+    clusterConfig.setTaskQuotaRatio("A", 1);
+    clusterConfig.setTaskQuotaRatio("B", 1);
+    _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    _availableQuotaTypes = clusterConfig.getTaskQuotaRatioMap().keySet();
+
+    String workflowName = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
+    configBuilder.setAllowOverlapJobAssignment(true);
+    workflowBuilder.setWorkflowConfig(configBuilder.build());
+
+    for (int i = 0; i < 10; i++) {
+      List<TaskConfig> taskConfigs = new ArrayList<>();
+      taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
+      JobConfig.Builder jobConfigBulider =
+          new JobConfig.Builder().setCommand(JOB_COMMAND).addTaskConfigs(taskConfigs)
+              .setJobCommandConfigMap(_jobCommandMap).setJobType("UNDEFINED");
+      workflowBuilder.addJob("JOB" + i, jobConfigBulider);
+    }
+
+    _driver.start(workflowBuilder.build());
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
+
+    // Check run counts for each quota type
+    Assert.assertEquals((int) _quotaTypeExecutionCount.get("DEFAULT"), 10);
+    Assert.assertFalse(_quotaTypeExecutionCount.containsKey("A"));
+    Assert.assertFalse(_quotaTypeExecutionCount.containsKey("B"));
+  }
+
+  /**
    * Tests whether jobs with quotas can run successfully.
    * @throws InterruptedException
    */
@@ -176,6 +220,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     clusterConfig.setTaskQuotaRatio("A", 1);
     clusterConfig.setTaskQuotaRatio("B", 1);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    _availableQuotaTypes = clusterConfig.getTaskQuotaRatioMap().keySet();
 
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
@@ -229,6 +274,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     clusterConfig.setTaskQuotaRatio("B", 10);
     clusterConfig.setTaskQuotaRatio("C", 9);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    _availableQuotaTypes = clusterConfig.getTaskQuotaRatioMap().keySet();
 
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
@@ -300,6 +346,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     clusterConfig.setTaskQuotaRatio("A", 10);
     clusterConfig.setTaskQuotaRatio("B", 10);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    _availableQuotaTypes = clusterConfig.getTaskQuotaRatioMap().keySet();
 
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
@@ -363,58 +410,6 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
   }
 
   /**
-   * Tests that jobs belonging to a quota type that is not defined in ClusterConfig do not get
-   * scheduled. That is, the job with an invalid quota type should never complete (because its tasks
-   * may be assigned but never actually scheduled).
-   * @throws InterruptedException
-   */
-  @Test(dependsOnMethods = "testSchedulingWithoutQuota")
-  public void testNotSchedulingInvalidQuotaType() throws InterruptedException {
-    ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
-    clusterConfig.resetTaskQuotaRatioMap();
-    clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 1);
-    clusterConfig.setTaskQuotaRatio("A", 19);
-    _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
-
-    String workflowName = TestHelper.getTestMethodName();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
-    WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
-    configBuilder.setAllowOverlapJobAssignment(true);
-    workflowBuilder.setWorkflowConfig(configBuilder.build());
-
-    // Create two jobs, JOB_A belonging to quotaType A and JOB_B to quotaType B (not defined)
-
-    // JOB_A
-    List<TaskConfig> taskConfigsA = new ArrayList<>();
-    for (int i = 0; i < 1; i++) {
-      Map<String, String> taskConfigMap = Maps.newHashMap();
-      taskConfigsA.add(new TaskConfig("ShortTask", taskConfigMap));
-    }
-    JobConfig.Builder jobBuilderA = new JobConfig.Builder().setCommand(JOB_COMMAND)
-        .setJobCommandConfigMap(_jobCommandMap).addTaskConfigs(taskConfigsA).setJobType("A");
-    workflowBuilder.addJob("JOB_A", jobBuilderA);
-
-    // JOB_B
-    List<TaskConfig> taskConfigsB = new ArrayList<>();
-    for (int i = 0; i < 1; i++) {
-      Map<String, String> taskConfigMap = Maps.newHashMap();
-      taskConfigsB.add(new TaskConfig("ShortTask", taskConfigMap));
-    }
-    JobConfig.Builder jobBuilderB = new JobConfig.Builder().setCommand(JOB_COMMAND)
-        .setJobCommandConfigMap(_jobCommandMap).addTaskConfigs(taskConfigsB).setJobType("B");
-    workflowBuilder.addJob("JOB_B", jobBuilderB);
-
-    _driver.start(workflowBuilder.build());
-    // Wait until JOB_A is correctly scheduled and complete
-    _driver.pollForJobState(workflowName, workflowName + "_JOB_A", TaskState.COMPLETED);
-
-    // Check that JOB_B is still in progress and does not finish due to tasks not being scheduled
-    TaskState jobState =
-        _driver.getWorkflowContext(workflowName).getJobState(workflowName + "_JOB_B");
-    Assert.assertEquals(jobState, TaskState.IN_PROGRESS);
-  }
-
-  /**
    * Tests that by repeatedly scheduling workflows and jobs that there is no thread leak when there
    * are a multidude of successful and failed tests. The number of total tasks run must be well
    * above the number of total thread capacity.
@@ -428,6 +423,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 1);
     clusterConfig.setTaskQuotaRatio("A", 1);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    _availableQuotaTypes = clusterConfig.getTaskQuotaRatioMap().keySet();
 
     List<String> workflowNames = new ArrayList<>();
 
@@ -440,7 +436,6 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       boolean shouldOverlapJobAssign = i % 3 == 1; // Alternate between true and false
       String quotaType = (i % 2 == 1) ? null : "A"; // Alternate between null (DEFAULT) and A
       String taskType = (i % 3 == 1) ? "FailTask" : "ShortTask"; // Some tasks will fail
-      // String taskType = "ShortTask";
       String workflowName = TestHelper.getTestMethodName() + "_" + i;
       workflowNames.add(workflowName); // For polling the state for these workflows
 
@@ -458,7 +453,6 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     for (int i = 0; i < numWorkflows; i++) {
       String workflowName = workflowNames.get(i);
       TaskState state = (i % 3 == 1) ? TaskState.FAILED : TaskState.COMPLETED;
-      // TaskState state = TaskState.COMPLETED;
       Assert.assertEquals(_driver.getWorkflowContext(_manager, workflowName).getWorkflowState(),
           state);
     }
@@ -481,6 +475,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     clusterConfig.setTaskQuotaRatio("A", 1);
     clusterConfig.setTaskQuotaRatio("B", 1);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    _availableQuotaTypes = clusterConfig.getTaskQuotaRatioMap().keySet();
 
     String queueName = TestHelper.getTestMethodName();
 
@@ -566,9 +561,8 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
         Map<String, String> taskConfigMap = new HashMap<>();
         taskConfigs.add(new TaskConfig(taskType, taskConfigMap));
       }
-      JobConfig.Builder jobBuilder =
-          new JobConfig.Builder().setCommand(JOB_COMMAND).setJobCommandConfigMap(_jobCommandMap)
-              .addTaskConfigs(taskConfigs).setJobType(quotaType);
+      JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand(JOB_COMMAND)
+          .setJobCommandConfigMap(_jobCommandMap).addTaskConfigs(taskConfigs).setJobType(quotaType);
       workflowBuilder.addJob(jobName, jobBuilder);
     }
     return workflowBuilder.build();
@@ -579,12 +573,15 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    */
   private class ShortTask extends MockTask {
     private final String _instanceName;
-    private final String _quotaType;
+    private String _quotaType;
 
     ShortTask(TaskCallbackContext context, String instanceName) {
       super(context);
       _instanceName = instanceName;
       _quotaType = context.getJobConfig().getJobType();
+      if (_quotaType != null && !_availableQuotaTypes.contains(_quotaType)) {
+        _quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
+      }
       // Initialize the count for this quotaType if not already done
       if (_quotaType != null && !_quotaTypeExecutionCount.containsKey(_quotaType)) {
         _quotaTypeExecutionCount.put(_quotaType, 0);
@@ -606,12 +603,15 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    */
   private class LongTask extends MockTask {
     private final String _instanceName;
-    private final String _quotaType;
+    private String _quotaType;
 
     LongTask(TaskCallbackContext context, String instanceName) {
       super(context);
       _instanceName = instanceName;
       _quotaType = context.getJobConfig().getJobType();
+      if (_quotaType != null && !_availableQuotaTypes.contains(_quotaType)) {
+        _quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
+      }
       // Initialize the count for this quotaType if not already done
       if (_quotaType != null && !_quotaTypeExecutionCount.containsKey(_quotaType)) {
         _quotaTypeExecutionCount.put(_quotaType, 0);
@@ -641,12 +641,15 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    */
   private class FailTask extends MockTask {
     private final String _instanceName;
-    private final String _quotaType;
+    private String _quotaType;
 
     FailTask(TaskCallbackContext context, String instanceName) {
       super(context);
       _instanceName = instanceName;
       _quotaType = context.getJobConfig().getJobType();
+      if (_quotaType != null && !_availableQuotaTypes.contains(_quotaType)) {
+        _quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
+      }
       // Initialize the count for this quotaType if not already done
       if (_quotaType != null && !_quotaTypeExecutionCount.containsKey(_quotaType)) {
         _quotaTypeExecutionCount.put(_quotaType, 0);

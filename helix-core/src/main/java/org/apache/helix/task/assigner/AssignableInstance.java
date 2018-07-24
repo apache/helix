@@ -212,7 +212,8 @@ public class AssignableInstance {
             "Cannot update live instance with different instance name. Current: {}; new: {}",
             _instanceConfig.getInstanceName(), liveInstance.getInstanceName());
       } else {
-        if (liveInstance.getResourceCapacityMap() != null && !liveInstance.getResourceCapacityMap().equals(_liveInstance.getResourceCapacityMap())) {
+        if (liveInstance.getResourceCapacityMap() != null && !liveInstance.getResourceCapacityMap()
+            .equals(_liveInstance.getResourceCapacityMap())) {
           refreshCapacity = true;
         }
         _liveInstance = liveInstance;
@@ -281,20 +282,17 @@ public class AssignableInstance {
               resourceType, _totalCapacity.keySet()));
     }
 
-    // Fail when no such quota type. However, if quotaType is null, treat it as DEFAULT
+    // If quotaType is null, treat it as DEFAULT
     if (quotaType == null || quotaType.equals("")) {
       quotaType = DEFAULT_QUOTA_TYPE;
     }
     if (!_totalCapacity.get(resourceType).containsKey(quotaType)) {
 
       logger.warn(
-          "AssignableInstance does not support the given quotaType: {}. Task: {}, quotaType: {}, Instance name: {}",
+          "AssignableInstance does not support the given quotaType: {}. Task: {}, quotaType: {}, Instance name: {}. Task will be assigned as DEFAULT type.",
           quotaType, task.getId(), quotaType, getInstanceName());
+      quotaType = DEFAULT_QUOTA_TYPE;
 
-      return new TaskAssignResult(task, quotaType, this, false, 0,
-          TaskAssignResult.FailureReason.NO_SUCH_QUOTA_TYPE,
-          String.format("Requested quota type %s not defined. Available quota types: %s", quotaType,
-              _totalCapacity.get(resourceType).keySet()));
     }
 
     int capacity = _totalCapacity.get(resourceType).get(quotaType);
@@ -353,16 +351,25 @@ public class AssignableInstance {
     // Resource type / quota type might have already changed, i.e. we are recovering
     // current assignments for a live instance, but currently running tasks's quota
     // type has already been removed by user. So we do the deduction with best effort
-    if (_usedCapacity.containsKey(resourceType)
-        && _usedCapacity.get(resourceType).containsKey(quotaType)) {
-      int curUsage = _usedCapacity.get(resourceType).get(quotaType);
-      _usedCapacity.get(resourceType).put(quotaType, curUsage + 1);
+    // Note that if the quota type is not found within the resource, task must have been scheduled
+    // to DEFAULT type
+    // because we schedule undefined types to DEFAULT, so we increment usage to DEFAULT
+    if (_usedCapacity.containsKey(resourceType)) {
+      // Check that this resourceType contains the given quotaType
+      if (_usedCapacity.get(resourceType).containsKey(quotaType)) {
+        int curUsage = _usedCapacity.get(resourceType).get(quotaType);
+        _usedCapacity.get(resourceType).put(quotaType, curUsage + 1);
+      } else {
+        // quotaType is not found, treat it as DEFAULT
+        int curUsage = _usedCapacity.get(resourceType).get(AssignableInstance.DEFAULT_QUOTA_TYPE);
+        _usedCapacity.get(resourceType).put(AssignableInstance.DEFAULT_QUOTA_TYPE, curUsage + 1);
+      }
     } else {
+      // resourceType is not found. Leave a warning log and will not touch quota
       logger.warn(
-          "Task's requested resource type and quota type is no longer supported. TaskConfig: %s; UsedCapacity: %s",
-          result.getTaskConfig(), _usedCapacity);
+          "Task's requested resource type is not supported. TaskConfig: %s; UsedCapacity: %s; ResourceType: %s",
+          result.getTaskConfig(), _usedCapacity, resourceType);
     }
-
     logger.info("Assigned task {} to instance {}", result.getTaskConfig().getId(),
         _instanceConfig.getInstanceName());
   }
@@ -376,14 +383,15 @@ public class AssignableInstance {
    * @param taskConfig config of this task
    * @param quotaType quota type this task belongs to
    */
-  public synchronized boolean release(TaskConfig taskConfig, String quotaType) {
+  public synchronized void release(TaskConfig taskConfig, String quotaType) {
     if (!_currentAssignments.contains(taskConfig.getId())) {
       logger.warn("Task {} is not assigned on instance {}", taskConfig.getId(),
           _instanceConfig.getInstanceName());
-      return false;
+      return;
     }
     if (quotaType == null) {
-      logger.warn("Task {}'s quotaType is null. Trying to release as DEFAULT type.", taskConfig.getId());
+      logger.warn("Task {}'s quotaType is null. Trying to release as DEFAULT type.",
+          taskConfig.getId());
       quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
     }
 
@@ -391,16 +399,23 @@ public class AssignableInstance {
 
     // We might be releasing a task whose resource requirement / quota type is out-dated,
     // thus we need to check to avoid NPE
-    if (_usedCapacity.containsKey(resourceType)
-        && _usedCapacity.get(resourceType).containsKey(quotaType)) {
-      int curUsage = _usedCapacity.get(resourceType).get(quotaType);
-      _usedCapacity.get(resourceType).put(quotaType, curUsage - 1);
-      _currentAssignments.remove(taskConfig.getId());
-      logger.info("Released task {} from instance {}", taskConfig.getId(),
-          _instanceConfig.getInstanceName());
-      return true;
+    if (_usedCapacity.containsKey(resourceType)) {
+      if (_usedCapacity.get(resourceType).containsKey(quotaType)) {
+        int curUsage = _usedCapacity.get(resourceType).get(quotaType);
+        _usedCapacity.get(resourceType).put(quotaType, curUsage - 1);
+      } else {
+        // This task must have run as DEFAULT type because it was not found in the quota config
+        // So make adjustments for DEFAULT
+        int curUsage = _usedCapacity.get(resourceType).get(AssignableInstance.DEFAULT_QUOTA_TYPE);
+        _usedCapacity.get(resourceType).put(AssignableInstance.DEFAULT_QUOTA_TYPE, curUsage - 1);
+      }
     }
-    return false;
+
+    // If the resource type is not found, we just remove from currentAssignments since no adjustment
+    // can be made
+    _currentAssignments.remove(taskConfig.getId());
+    logger.info("Released task {} from instance {}", taskConfig.getId(),
+        _instanceConfig.getInstanceName());
   }
 
   /**

@@ -538,18 +538,24 @@ public class WorkflowRebalancer extends TaskRebalancer {
     if (purgeInterval > 0 && workflowContext.getLastJobPurgeTime() + purgeInterval <= currentTime) {
       Set<String> expiredJobs = TaskUtil.getExpiredJobs(_manager.getHelixDataAccessor(),
           _manager.getHelixPropertyStore(), workflowConfig, workflowContext);
-
       if (expiredJobs.isEmpty()) {
         LOG.info("No job to purge for the queue " + workflow);
       } else {
         LOG.info("Purge jobs " + expiredJobs + " from queue " + workflow);
+        Set<String> failedJobRemovals = new HashSet<>();
         for (String job : expiredJobs) {
           if (!TaskUtil.removeJob(_manager.getHelixDataAccessor(), _manager.getHelixPropertyStore(),
               job)) {
+            failedJobRemovals.add(job);
             LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
           }
           _rebalanceScheduler.removeScheduledRebalance(job);
         }
+
+        // If the job removal failed, make sure we do NOT prematurely delete it from DAG so that the
+        // removal will be tried again at next purge
+        expiredJobs.removeAll(failedJobRemovals);
+
         if (!TaskUtil.removeJobsFromDag(_manager.getHelixDataAccessor(), workflow, expiredJobs,
             true)) {
           LOG.warn("Error occurred while trying to remove jobs + " + expiredJobs

@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
@@ -41,21 +42,19 @@ public class AssignableInstanceManager {
   private Map<String, AssignableInstance> _assignableInstanceMap;
   // TaskID -> TaskAssignResult TODO: Hunter: Move this if not needed
   private Map<String, TaskAssignResult> _taskAssignResultMap;
-  private boolean _hasBeenBuilt; // Flag for whether AssignableInstances have been built
 
   /**
    * Basic constructor for AssignableInstanceManager to allow an empty instantiation.
    * buildAssignableInstances() must be explicitly called after instantiation.
    */
   public AssignableInstanceManager() {
-    _assignableInstanceMap = new HashMap<>();
-    _taskAssignResultMap = new HashMap<>();
-    _hasBeenBuilt = false; // AssignableInstances haven't been built
+    _assignableInstanceMap = new ConcurrentHashMap<>();
+    _taskAssignResultMap = new ConcurrentHashMap<>();
   }
 
   /**
    * Builds AssignableInstances and restores TaskAssignResults from scratch by reading from
-   * TaskDataCache.
+   * TaskDataCache. It re-computes current quota profile for each AssignableInstance.
    * @param clusterConfig
    * @param taskDataCache
    * @param liveInstances
@@ -63,13 +62,9 @@ public class AssignableInstanceManager {
    */
   public void buildAssignableInstances(ClusterConfig clusterConfig, TaskDataCache taskDataCache,
       Map<String, LiveInstance> liveInstances, Map<String, InstanceConfig> instanceConfigs) {
-    // Only need to build from scratch during Controller switch, etc.
-    // This keeps the pipeline from building from scratch every cache refresh
-    if (_hasBeenBuilt) {
-      // If it has been already built, just update (configs and LiveInstance changes may be present)
-      updateAssignableInstances(clusterConfig, liveInstances, instanceConfigs);
-      return;
-    }
+    // Reset all cached information
+    _assignableInstanceMap.clear();
+    _taskAssignResultMap.clear();
 
     // Create all AssignableInstance objects based on what's in liveInstances
     for (Map.Entry<String, LiveInstance> liveInstanceEntry : liveInstances.entrySet()) {
@@ -100,6 +95,9 @@ public class AssignableInstanceManager {
         continue; // Ignore this job if either the config or context is null
       }
       String quotaType = jobConfig.getJobType();
+      if (quotaType == null) {
+        quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
+      }
       Set<Integer> taskIndices = jobContext.getPartitionSet(); // Each integer represents a task in
       // this job (this is NOT taskId)
       for (int taskIndex : taskIndices) {
@@ -111,6 +109,11 @@ public class AssignableInstanceManager {
 
           String assignedInstance = jobContext.getAssignedParticipant(taskIndex);
           String taskId = jobContext.getTaskIdForPartition(taskIndex);
+          if (taskId == null) {
+            // For targeted tasks, taskId will be null
+            // We instead use pName (see FixedTargetTaskAssignmentCalculator)
+            taskId = String.format("%s_%s", jobConfig.getJobId(), taskIndex);
+          }
           if (assignedInstance == null) {
             LOG.warn(
                 "This task's TaskContext does not have an assigned instance! Task will be ignored. "
@@ -138,13 +141,13 @@ public class AssignableInstanceManager {
         }
       }
     }
-    _hasBeenBuilt = true; // Set the flag so that it's not re-building from cache every pipeline
-    // iteration
   }
 
   /**
-   * Updates AssignableInstances when there are any config changes. This update will be based on the
-   * list of LiveInstances provided.
+   * Updates AssignableInstances when there are changes in LiveInstances or InstanceConfig. This
+   * update only keeps an up-to-date count of AssignableInstances and does NOT re-build tasks
+   * (because it's costly).
+   * Call this when there is only LiveInstance/InstanceConfig change.
    * @param clusterConfig
    * @param liveInstances
    * @param instanceConfigs
@@ -156,6 +159,7 @@ public class AssignableInstanceManager {
     Collection<AssignableInstance> staleAssignableInstances =
         new HashSet<>(_assignableInstanceMap.values());
 
+    // Loop over new LiveInstances
     for (Map.Entry<String, LiveInstance> liveInstanceEntry : liveInstances.entrySet()) {
       // Prepare instance-specific metadata
       String instanceName = liveInstanceEntry.getKey();

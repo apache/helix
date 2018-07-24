@@ -72,7 +72,6 @@ public class TaskDataCache extends AbstractDataCache {
   public synchronized boolean refresh(HelixDataAccessor accessor,
       Map<String, ResourceConfig> resourceConfigMap) {
     refreshJobContexts(accessor);
-
     // update workflow and job configs.
     _workflowConfigMap.clear();
     _jobConfigMap.clear();
@@ -85,30 +84,7 @@ public class TaskDataCache extends AbstractDataCache {
         _jobConfigMap.put(entry.getKey(), new JobConfig(entry.getValue()));
       }
     }
-
     return true;
-  }
-
-  /**
-   * Refreshes Task Framework contexts and configs from ZooKeeper. This method also re-instantiates
-   * AssignableInstanceManager.
-   * @param accessor
-   * @param resourceConfigMap
-   * @param liveInstanceMap
-   * @param instanceConfigMap
-   * @return
-   */
-  public synchronized boolean refresh(HelixDataAccessor accessor,
-      Map<String, ResourceConfig> resourceConfigMap, ClusterConfig clusterConfig,
-      Map<String, LiveInstance> liveInstanceMap, Map<String, InstanceConfig> instanceConfigMap) {
-    // First, call the original refresh for contexts and configs
-    if (refresh(accessor, resourceConfigMap)) {
-      // Upon refresh success, re-instantiate AssignableInstanceManager from scratch
-      _assignableInstanceManager.buildAssignableInstances(clusterConfig, this, liveInstanceMap,
-          instanceConfigMap);
-      return true;
-    }
-    return false;
   }
 
   private void refreshJobContexts(HelixDataAccessor accessor) {

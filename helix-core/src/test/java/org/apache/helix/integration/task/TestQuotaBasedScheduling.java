@@ -35,6 +35,7 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
@@ -258,6 +259,49 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Assert.assertEquals((int) _quotaTypeExecutionCount.get("A"), 5);
     Assert.assertEquals((int) _quotaTypeExecutionCount.get("B"), 5);
     Assert.assertFalse(_quotaTypeExecutionCount.containsKey(DEFAULT_QUOTA_TYPE));
+  }
+
+  @Test(dependsOnMethods = "testSchedulingWithoutQuota")
+  public void testQuotaConfigChange() throws InterruptedException {
+    ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
+    clusterConfig.resetTaskQuotaRatioMap();
+    clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 38);
+    clusterConfig.setTaskQuotaRatio("A", 1);
+    clusterConfig.setTaskQuotaRatio("B", 1);
+    _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    // 2 nodes - create 4 workflows with LongTask so that only 2 would get scheduled and run
+    for (int i = 0; i < 4; i++) {
+      String workflowName = TestHelper.getTestMethodName() + "_" + i;
+      _driver.start(createWorkflow(workflowName, true, "A", 1, 1, "LongTask"));
+      Thread.sleep(500L);
+    }
+    // Test that only 2 of the workflows are executed
+    for (int i = 0; i < 2; i++) {
+      String workflowName = TestHelper.getTestMethodName() + "_" + i;
+      _driver.pollForWorkflowState(workflowName, TaskState.IN_PROGRESS);
+    }
+
+    // Test that the next two are not executing
+    JobContext context_2 = _driver.getJobContext("testQuotaConfigChange_2_testQuotaConfigChange_2_0");
+    JobContext context_3 = _driver.getJobContext("testQuotaConfigChange_3_testQuotaConfigChange_3_0");
+    Assert.assertNull(context_2.getPartitionState(0));
+    Assert.assertNull(context_3.getPartitionState(0));
+
+    // Change the quota config so that the rest of the workflows are in progress
+    clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
+    clusterConfig.resetTaskQuotaRatioMap();
+    clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 1);
+    clusterConfig.setTaskQuotaRatio("A", 38);
+    clusterConfig.setTaskQuotaRatio("B", 1);
+    _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    // Wait for the change to propagate through and test that the next two are not executing
+    Thread.sleep(1000L);
+    context_2 = _driver.getJobContext("testQuotaConfigChange_2_testQuotaConfigChange_2_0");
+    context_3 = _driver.getJobContext("testQuotaConfigChange_3_testQuotaConfigChange_3_0");
+    Assert.assertNotNull(context_2.getPartitionState(0));
+    Assert.assertNotNull(context_3.getPartitionState(0));
   }
 
   /**

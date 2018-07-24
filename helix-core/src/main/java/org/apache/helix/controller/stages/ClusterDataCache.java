@@ -114,7 +114,12 @@ public class ClusterDataCache {
   private String _clusterName;
 
   // For detecting liveinstance and target resource partition state change in task assignment
+  // Used in AbstractTaskDispatcher
   private boolean _existsLiveInstanceOrCurrentStateChange = false;
+
+  // These two flags are used to detect ClusterConfig change or LiveInstance/InstanceConfig change
+  private boolean _existsClusterConfigChange = false;
+  private boolean _existsInstanceChange = false;
 
   public ClusterDataCache() {
     this(null);
@@ -153,7 +158,6 @@ public class ClusterDataCache {
     }
 
     if (_propertyDataChangedMap.get(ChangeType.LIVE_INSTANCE)) {
-      _existsLiveInstanceOrCurrentStateChange = true;
       startTime = System.currentTimeMillis();
       _propertyDataChangedMap.put(ChangeType.LIVE_INSTANCE, false);
       clearCachedResourceAssignments();
@@ -166,6 +170,7 @@ public class ClusterDataCache {
     }
 
     if (_propertyDataChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
+      _existsInstanceChange = true;
       _propertyDataChangedMap.put(ChangeType.INSTANCE_CONFIG, false);
       clearCachedResourceAssignments();
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs(), true);
@@ -182,11 +187,18 @@ public class ClusterDataCache {
           + " for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
     }
 
-    // This is for target jobs' task assignment. It needs to watch for current state changes for
+    // This is for targeted jobs' task assignment. It needs to watch for current state changes for
     // when targeted resources' state transitions complete
     if (_propertyDataChangedMap.get(ChangeType.CURRENT_STATE)) {
       _existsLiveInstanceOrCurrentStateChange = true;
       _propertyDataChangedMap.put(ChangeType.CURRENT_STATE, false);
+    }
+
+    // This is for AssignableInstances. Whenever there is a quota config change in ClusterConfig, we
+    // must trigger an update to AssignableInstanceManager
+    if (_propertyDataChangedMap.get(ChangeType.CLUSTER_CONFIG)) {
+      _existsClusterConfigChange = true;
+      _propertyDataChangedMap.put(ChangeType.CLUSTER_CONFIG, false);
     }
 
     _liveInstanceMap = new HashMap<>(_liveInstanceCacheMap);
@@ -205,8 +217,23 @@ public class ClusterDataCache {
     _clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
 
     if (_isTaskCache) {
-      _taskDataCache.refresh(accessor, _resourceConfigMap, _clusterConfig, _liveInstanceMap,
-          _instanceConfigMap);
+      // Refresh TaskCache
+      _taskDataCache.refresh(accessor, _resourceConfigMap);
+
+      // Refresh AssignableInstanceManager
+      AssignableInstanceManager assignableInstanceManager =
+          _taskDataCache.getAssignableInstanceManager();
+      if (_existsClusterConfigChange) {
+        // Update both flags since buildAssignableInstances includes updateAssignableInstances
+        _existsClusterConfigChange = false;
+        _existsInstanceChange = false;
+        assignableInstanceManager.buildAssignableInstances(_clusterConfig, _taskDataCache,
+            _liveInstanceMap, _instanceConfigMap);
+      } else if (_existsInstanceChange) {
+        _existsInstanceChange = false;
+        assignableInstanceManager.updateAssignableInstances(_clusterConfig, _liveInstanceMap,
+            _instanceConfigMap);
+      }
     }
 
     _instanceMessagesCache.refresh(accessor, _liveInstanceMap);
@@ -423,6 +450,10 @@ public class ClusterDataCache {
     }
     _liveInstanceCacheMap = liveInstanceMap;
     _updateInstanceOfflineTime = true;
+
+    // TODO: Move this when listener for LiveInstance is being refactored
+    _existsInstanceChange = true;
+    _existsLiveInstanceOrCurrentStateChange = true;
   }
 
   /**

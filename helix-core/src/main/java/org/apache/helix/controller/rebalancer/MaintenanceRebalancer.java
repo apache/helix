@@ -38,7 +38,8 @@ public class MaintenanceRebalancer extends SemiAutoRebalancer {
           Collections.<String>emptyList()));
       currentIdealState.setPreferenceList(partition.getPartitionName(), preferenceList);
     }
-    LOG.info("End computing ideal state for resource %s in maintenance mode.");
+    LOG.info(String
+        .format("End computing ideal state for resource %s in maintenance mode.", resourceName));
     return currentIdealState;
   }
 }

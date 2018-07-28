@@ -74,7 +74,8 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     List<Message> outputMessages =
         batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveInstanceMap,
             manager.getProperties());
-    sendMessages(dataAccessor, outputMessages);
+
+    List<Message> messagesSent = sendMessages(dataAccessor, outputMessages);
     // TODO: Need also count messages from task rebalancer
     if (!cache.isTaskCache()) {
       ClusterStatusMonitor clusterStatusMonitor =
@@ -84,7 +85,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
       }
     }
     long cacheStart = System.currentTimeMillis();
-    cache.cacheMessages(outputMessages);
+    cache.cacheMessages(messagesSent);
     long cacheEnd = System.currentTimeMillis();
     LogUtil.logDebug(logger, _eventId, "Caching messages took " + (cacheEnd - cacheStart) + " ms");
   }
@@ -132,9 +133,11 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     return outputMessages;
   }
 
-  protected void sendMessages(HelixDataAccessor dataAccessor, List<Message> messages) {
+  // return the messages actually sent
+  protected List<Message> sendMessages(HelixDataAccessor dataAccessor, List<Message> messages) {
+    List<Message> messageSent = new ArrayList<>();
     if (messages == null || messages.isEmpty()) {
-      return;
+      return messageSent;
     }
 
     Builder keyBuilder = dataAccessor.keyBuilder();
@@ -146,6 +149,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
               + message.getResourceName() + "." + message.getPartitionName() + "|" + message
               .getPartitionNames() + " from:" + message.getFromState() + " to:" + message
               .getToState() + ", relayMessages: " + message.getRelayMessages().size());
+
       if (message.hasRelayMessages()) {
         for (Message msg : message.getRelayMessages().values()) {
           LogUtil.logInfo(logger, _eventId,
@@ -163,8 +167,12 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     boolean[] results = dataAccessor.createChildren(keys, new ArrayList<>(messages));
     for (int i = 0; i < results.length; i++) {
       if (!results[i]) {
-        LogUtil.logWarn(logger, _eventId, "Failed to send message: " + keys.get(i));
+        LogUtil.logError(logger, _eventId, "Failed to send message: " + keys.get(i));
+      } else {
+        messageSent.add(messages.get(i));
       }
     }
+
+    return messageSent;
   }
 }

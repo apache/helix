@@ -164,8 +164,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
               message.getMsgId(), resourceName, message.getPartitionName()));
         }
       } else {
-        LogUtil.logWarn(LOG, _eventId, String
-            .format("A relay message %s should not be batched, ignored!", message.getMsgId()));
+        LogUtil.logWarn(LOG, _eventId,
+            String.format("A relay message %s should not be batched, ignored!", message.getMsgId()));
       }
     }
   }
@@ -275,8 +275,9 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     // Check whether it is already passed threshold
     for (String resourceName : missingTopStateMap.keySet()) {
       for (String partitionName : missingTopStateMap.get(resourceName).keySet()) {
-        long startTime = missingTopStateMap.get(resourceName).get(partitionName);
-        if (startTime > 0 && System.currentTimeMillis() - startTime > durationThreshold) {
+        Long startTime = missingTopStateMap.get(resourceName).get(partitionName);
+        if (startTime != null && startTime > 0
+            && System.currentTimeMillis() - startTime > durationThreshold) {
           missingTopStateMap.get(resourceName).put(partitionName, TRANSITION_FAILED);
           if (clusterStatusMonitor != null) {
             clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, false);

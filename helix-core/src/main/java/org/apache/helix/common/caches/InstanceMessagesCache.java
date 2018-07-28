@@ -34,6 +34,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,10 +54,22 @@ public class InstanceMessagesCache {
   // <instance -> {<MessageId, Message>}>
   private Map<String, Map<String, Message>> _relayMessageCache = Maps.newHashMap();
 
+
+  // TODO: Temporary workaround to void participant receiving duplicated state transition messages when p2p is enable.
+  // should remove this once all clients are migrated to 0.8.2. -- Lei
+  private Map<String, Message> _committedRelayMessages = Maps.newHashMap();
+
+  public static final String COMMIT_MESSAGE_EXPIRY_CONFIG = "helix.controller.messagecache.commitmessageexpiry";
+
+  private static final int DEFAULT_COMMIT_RELAY_MESSAGE_EXPIRY = 20 * 1000; // 20 seconds
+  private final int _commitMessageExpiry;
+
   private String _clusterName;
 
   public InstanceMessagesCache(String clusterName) {
     _clusterName = clusterName;
+    _commitMessageExpiry = HelixUtil
+        .getSystemPropertyAsInt(COMMIT_MESSAGE_EXPIRY_CONFIG, DEFAULT_COMMIT_RELAY_MESSAGE_EXPIRY);
   }
 
   /**
@@ -203,14 +216,27 @@ public class InstanceMessagesCache {
         String targetState = message.getToState();
         String instanceSessionId = liveInstanceMap.get(instance).getSessionId();
 
-        if (_messageMap.get(instance).containsKey(message.getMsgId())) {
-          // relay message has already been sent to target host
-          // remove the message from relayMessageCache.
-          LOG.info(
-              "Relay message has already been sent to target host, remove relay message from the cache"
-                  + message.getId());
-          iterator.remove();
-          continue;
+        Map<String, Message> instanceMsgMap = _messageMap.get(instance);
+
+        if (instanceMsgMap != null && instanceMsgMap.containsKey(message.getMsgId())) {
+          Message commitMessage = instanceMsgMap.get(message.getMsgId());
+
+          if (!commitMessage.isRelayMessage()) {
+            LOG.info(
+                "Controller already sent the message to the target host, remove relay message from the cache"
+                    + message.getId());
+            iterator.remove();
+            _committedRelayMessages.remove(message.getMsgId());
+            continue;
+          } else {
+            // relay message has already been sent to target host
+            // remember when the relay messages get relayed to the target host.
+            if (!_committedRelayMessages.containsKey(message.getMsgId())) {
+              message.setRelayTime(System.currentTimeMillis());
+              _committedRelayMessages.put(message.getMsgId(), message);
+              LOG.info("Put message into committed relay messages " + message.getId());
+            }
+          }
         }
 
         if (!instanceSessionId.equals(sessionId)) {
@@ -227,6 +253,7 @@ public class InstanceMessagesCache {
               .getId());
           continue;
         }
+
         CurrentState currentState = sessionCurrentStateMap.get(resourceName);
         if (currentState != null && targetState.equals(currentState.getState(partitionName))) {
           LOG.info("CurrentState " + currentState
@@ -237,8 +264,8 @@ public class InstanceMessagesCache {
         }
 
         if (message.isExpired()) {
-          LOG.info("relay message " + message.getId() + " expired, remove it from cache."
-              + message.getId());
+          LOG.error("relay message has not been sent " + message.getId()
+              + " expired, remove it from cache. relay time: " + message.getRelayTime());
           iterator.remove();
           continue;
         }
@@ -251,6 +278,55 @@ public class InstanceMessagesCache {
     }
 
     _relayMessageMap = Collections.unmodifiableMap(relayMessageMap);
+
+    // TODO: this is a workaround, remove this once the participants are all in 0.8.2,
+    checkCommittedRelayMessages(currentStateMap);
+
+  }
+
+  // TODO: this is a workaround, once the participants are all in 0.8.2,
+  private void checkCommittedRelayMessages(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap) {
+    Iterator<Map.Entry<String, Message>> it = _committedRelayMessages.entrySet().iterator();
+    while (it.hasNext()) {
+      Message message = it.next().getValue();
+
+      String resourceName = message.getResourceName();
+      String partitionName = message.getPartitionName();
+      String targetState = message.getToState();
+      String instance = message.getTgtName();
+      String sessionId = message.getTgtSessionId();
+
+      long committedTime = message.getRelayTime();
+      if (committedTime + _commitMessageExpiry < System.currentTimeMillis()) {
+        LOG.info("relay message " + message.getMsgId()
+            + " is expired after committed, remove it from committed message cache.");
+        it.remove();
+        continue;
+      }
+
+      Map<String, Map<String, CurrentState>> instanceCurrentStateMap =
+          currentStateMap.get(instance);
+      if (instanceCurrentStateMap == null || instanceCurrentStateMap.get(sessionId) == null) {
+        LOG.info(
+            "No sessionCurrentStateMap found, remove it from committed message cache." + message
+                .getId());
+        it.remove();
+        continue;
+      }
+
+      Map<String, CurrentState> sessionCurrentStateMap = instanceCurrentStateMap.get(sessionId);
+      CurrentState currentState = sessionCurrentStateMap.get(resourceName);
+      if (currentState != null && targetState.equals(currentState.getState(partitionName))) {
+        LOG.info("CurrentState " + currentState
+            + " match the target state of the relay message, remove it from committed message cache."
+            + message.getId());
+        it.remove();
+        continue;
+      }
+
+      Map<String, Message> cachedMap = _messageMap.get(message.getTgtName());
+      cachedMap.put(message.getId(), message);
+    }
   }
 
   /**
@@ -303,6 +379,8 @@ public class InstanceMessagesCache {
       _relayMessageCache.put(instanceName, Maps.<String, Message>newHashMap());
     }
     _relayMessageCache.get(instanceName).put(message.getId(), message);
+
+    LOG.info("Add message to relay cache " + message.getMsgId());
   }
 
   @Override public String toString() {

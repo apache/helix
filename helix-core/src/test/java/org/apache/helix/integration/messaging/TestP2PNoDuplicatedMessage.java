@@ -80,8 +80,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   HelixDataAccessor _accessor;
 
   @BeforeClass
-  public void beforeClass()
-      throws InterruptedException {
+  public void beforeClass() {
     System.out.println(
         "START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
 
@@ -136,7 +135,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   }
 
   @Test
-  public void testP2PStateTransitionDisabled() throws InterruptedException {
+  public void testP2PStateTransitionDisabled() {
     enableP2PInCluster(CLUSTER_NAME, _configAccessor, false);
 
     MockHelixTaskExecutor.resetStats();
@@ -158,7 +157,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   }
 
   @Test (dependsOnMethods = {"testP2PStateTransitionDisabled"})
-  public void testP2PStateTransitionEnabled() throws InterruptedException {
+  public void testP2PStateTransitionEnabled() {
     enableP2PInCluster(CLUSTER_NAME, _configAccessor, true);
     long startTime = System.currentTimeMillis();
     MockHelixTaskExecutor.resetStats();
@@ -174,9 +173,9 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
     }
 
     double ratio = ((double) p2pTrigged) / ((double) total);
-    Assert.assertTrue(ratio > 0.7, String
-        .format("Only %d out of %d percent transitions to Master were triggered by expected host!",
-            p2pTrigged, total));
+    Assert.assertTrue(ratio > 0.6, String
+       .format("Only %d out of %d percent transitions to Master were triggered by expected host!",
+           p2pTrigged, total));
 
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessagesInProgress, 0,
         "There are duplicated transition messages sent while participant is handling the state-transition!");

@@ -25,8 +25,12 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
+import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.MockZkHelixDataAccessor;
+import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.TaskDriver;
+import org.apache.helix.task.Workflow;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -124,5 +128,19 @@ public class TestClusterDataCacheSelectiveUpdate extends ZkStandAloneCMTestBase 
     cache.notifyDataChange(HelixConstants.ChangeType.IDEAL_STATE);
     cache.refresh(accessor);
     Assert.assertEquals(accessor.getReadCount(PropertyType.IDEALSTATES), 2);
+
+    // Test WorkflowConfig/JobConfigs
+    TaskDriver driver = new TaskDriver(_manager);
+    Workflow.Builder workflow = WorkflowGenerator.generateSingleJobWorkflowBuilder("Job",
+        new JobConfig.Builder().setCommand("ReIndex").setTargetResource("TestDB_2"));
+    driver.start(workflow.build());
+
+    Thread.sleep(100);
+    accessor.clearReadCounters();
+
+    cache.notifyDataChange(HelixConstants.ChangeType.RESOURCE_CONFIG);
+    cache.refresh(accessor);
+    // 1 Cluster Config change + 2 Resource Config Changes
+    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 3);
   }
 }

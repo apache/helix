@@ -19,11 +19,13 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +35,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.CurrentStateCache;
 import org.apache.helix.common.caches.IdealStateCache;
 import org.apache.helix.common.caches.InstanceMessagesCache;
@@ -68,7 +71,7 @@ import static org.apache.helix.HelixConstants.ChangeType;
  * Reads the data from the cluster using data accessor. This output ClusterData which
  * provides useful methods to search/lookup properties
  */
-public class ClusterDataCache {
+public class ClusterDataCache extends AbstractDataCache {
   private static final Logger LOG = LoggerFactory.getLogger(ClusterDataCache.class.getName());
 
   private ClusterConfig _clusterConfig;
@@ -78,7 +81,7 @@ public class ClusterDataCache {
   private Map<String, InstanceConfig> _instanceConfigMap;
   private Map<String, InstanceConfig> _instanceConfigCacheMap;
   private Map<String, Long> _instanceOfflineTimeMap;
-  private Map<String, ResourceConfig> _resourceConfigMap;
+  private Map<String, ResourceConfig> _resourceConfigMap = new HashMap<>();
   private Map<String, ResourceConfig> _resourceConfigCacheMap;
   private Map<String, ClusterConstraints> _constraintMap;
   private Map<String, Map<String, String>> _idealStateRuleMap;
@@ -182,8 +185,8 @@ public class ClusterDataCache {
     if (_propertyDataChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
       _propertyDataChangedMap.put(ChangeType.RESOURCE_CONFIG, false);
       clearCachedResourceAssignments();
-      _resourceConfigCacheMap =
-          accessor.getChildValuesMap(accessor.keyBuilder().resourceConfigs(), true);
+
+      _resourceConfigCacheMap = refreshResourceConfigs(accessor);
       LogUtil.logInfo(LOG, _eventId, "Reload ResourceConfigs: " + _resourceConfigCacheMap.keySet()
           + " for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
     }
@@ -940,6 +943,43 @@ public class ClusterDataCache {
     boolean change = _existsLiveInstanceOrCurrentStateChange;
     _existsLiveInstanceOrCurrentStateChange = false;
     return change;
+  }
+
+  private Map<String, ResourceConfig> refreshResourceConfigs(HelixDataAccessor accessor) {
+    Map<String, ResourceConfig> refreshedResourceConfigs = Maps.newHashMap();
+
+    long startTime = System.currentTimeMillis();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    Set<PropertyKey> currentResourceConfigKeys = new HashSet<>();
+    for (String resourceConfig : accessor.getChildNames(keyBuilder.resourceConfigs())) {
+      currentResourceConfigKeys.add(keyBuilder.resourceConfig(resourceConfig));
+    }
+
+    Set<PropertyKey> cachedKeys = new HashSet<>();
+    Map<PropertyKey, ResourceConfig> cachedResourceConfigMap = Maps.newHashMap();
+
+    for (String resourceConfig : _resourceConfigMap.keySet()) {
+      cachedKeys.add(keyBuilder.resourceConfig(resourceConfig));
+      cachedResourceConfigMap
+          .put(keyBuilder.resourceConfig(resourceConfig), _resourceConfigMap.get(resourceConfig));
+    }
+    cachedKeys.retainAll(currentResourceConfigKeys);
+
+    Set<PropertyKey> reloadKeys = new HashSet<>(currentResourceConfigKeys);
+    reloadKeys.removeAll(cachedKeys);
+
+    Map<PropertyKey, ResourceConfig> updatedMap =
+        refreshProperties(accessor, new LinkedList<>(reloadKeys), new ArrayList<>(cachedKeys),
+            cachedResourceConfigMap);
+    for (ResourceConfig resourceConfig : updatedMap.values()) {
+      refreshedResourceConfigs.put(resourceConfig.getResourceName(), resourceConfig);
+    }
+
+    long endTime = System.currentTimeMillis();
+    LogUtil.logInfo(LOG, getEventId(),
+        "Refresh " + refreshedResourceConfigs.size() + " resource configs for cluster "
+            + _clusterName + ", took " + (endTime - startTime) + " ms");
+    return refreshedResourceConfigs;
   }
 
   /**

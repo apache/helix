@@ -83,8 +83,13 @@ public class TestCleanExpiredJobs extends TaskSynchronizedTestBase {
     _cache.setTaskCache(true);
     TaskUtil.setWorkflowContext(_manager, queue, workflowContext);
     TaskTestUtil.calculateBestPossibleState(_cache, _manager);
+    Thread.sleep(500);
     WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queue);
     Assert.assertEquals(workflowConfig.getJobDag().getAllNodes(), jobsLeft);
+    _cache.requireFullRefresh();
+    _cache.refresh(_manager.getHelixDataAccessor());
+    TaskTestUtil.calculateBestPossibleState(_cache, _manager);
+    Thread.sleep(500);
     workflowContext = _driver.getWorkflowContext(queue);
     Assert.assertTrue(workflowContext.getLastJobPurgeTime() > startTime
         && workflowContext.getLastJobPurgeTime() < System.currentTimeMillis());

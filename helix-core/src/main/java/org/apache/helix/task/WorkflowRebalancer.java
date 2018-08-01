@@ -161,9 +161,14 @@ public class WorkflowRebalancer extends TaskRebalancer {
       LOG.debug("Workflow " + workflow + " is not ready to be scheduled.");
     }
 
-    // clean up the expired jobs if it is a queue.
     if (!workflowCfg.isTerminable() || workflowCfg.isJobQueue()) {
-      purgeExpiredJobs(workflow, workflowCfg, workflowCtx);
+      Set<String> jobWithFinalStates = new HashSet<>(workflowCtx.getJobStates().keySet());
+      jobWithFinalStates.removeAll(workflowCfg.getJobDag().getAllNodes());
+      if (jobWithFinalStates.size() > 0) {
+        workflowCtx.setLastJobPurgeTime(System.currentTimeMillis());
+        workflowCtx.removeJobStates(jobWithFinalStates);
+        workflowCtx.removeJobStartTime(jobWithFinalStates);
+      }
     }
 
     clusterData.updateWorkflowContext(workflow, workflowCtx, _manager.getHelixDataAccessor());
@@ -520,62 +525,6 @@ public class WorkflowRebalancer extends TaskRebalancer {
     } else {
       LOG.info("Did not clean up workflow " + workflow
           + " because neither the workflow is non-terminable nor is set to DELETE.");
-    }
-  }
-
-  /**
-   * Clean up all jobs that are COMPLETED and passes its expiry time.
-   * @param workflowConfig
-   * @param workflowContext
-   */
-  // TODO: run this in a separate thread.
-  // Get all jobConfigs & jobContext from ClusterCache.
-  private void purgeExpiredJobs(String workflow, WorkflowConfig workflowConfig,
-      WorkflowContext workflowContext) {
-    long purgeInterval = workflowConfig.getJobPurgeInterval();
-    long currentTime = System.currentTimeMillis();
-
-    if (purgeInterval > 0 && workflowContext.getLastJobPurgeTime() + purgeInterval <= currentTime) {
-      Set<String> expiredJobs = TaskUtil.getExpiredJobs(_manager.getHelixDataAccessor(),
-          _manager.getHelixPropertyStore(), workflowConfig, workflowContext);
-      if (expiredJobs.isEmpty()) {
-        LOG.info("No job to purge for the queue " + workflow);
-      } else {
-        LOG.info("Purge jobs " + expiredJobs + " from queue " + workflow);
-        Set<String> failedJobRemovals = new HashSet<>();
-        for (String job : expiredJobs) {
-          if (!TaskUtil.removeJob(_manager.getHelixDataAccessor(), _manager.getHelixPropertyStore(),
-              job)) {
-            failedJobRemovals.add(job);
-            LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
-          }
-          _rebalanceScheduler.removeScheduledRebalance(job);
-        }
-
-        // If the job removal failed, make sure we do NOT prematurely delete it from DAG so that the
-        // removal will be tried again at next purge
-        expiredJobs.removeAll(failedJobRemovals);
-
-        if (!TaskUtil.removeJobsFromDag(_manager.getHelixDataAccessor(), workflow, expiredJobs,
-            true)) {
-          LOG.warn("Error occurred while trying to remove jobs + " + expiredJobs
-              + " from the workflow " + workflow);
-        }
-        // remove job states in workflowContext.
-        workflowContext.removeJobStates(expiredJobs);
-        workflowContext.removeJobStartTime(expiredJobs);
-      }
-      workflowContext.setLastJobPurgeTime(currentTime);
-    }
-
-    setNextJobPurgeTime(workflow, currentTime, purgeInterval);
-  }
-
-  private void setNextJobPurgeTime(String workflow, long currentTime, long purgeInterval) {
-    long nextPurgeTime = currentTime + purgeInterval;
-    long currentScheduledTime = _rebalanceScheduler.getRebalanceTime(workflow);
-    if (currentScheduledTime == -1 || currentScheduledTime > nextPurgeTime) {
-      _rebalanceScheduler.scheduleRebalance(_manager, workflow, nextPurgeTime);
     }
   }
 

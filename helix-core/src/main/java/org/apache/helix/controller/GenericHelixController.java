@@ -312,6 +312,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       rebalancePipeline.addStage(new MessageSelectionStage());
       rebalancePipeline.addStage(new MessageThrottleStage());
       rebalancePipeline.addStage(new TaskAssignmentStage());
+      rebalancePipeline.addStage(new TaskGarbageCollectionStage());
 
       // backward compatibility check
       Pipeline liveInstancePipeline = new Pipeline(pipelineName);

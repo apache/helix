@@ -29,5 +29,6 @@ package org.apache.helix.controller.pipeline;
 public enum AsyncWorkerType {
   TargetExternalViewCalcWorker,
   PersistAssignmentWorker,
-  ExternalViewComputeWorker
+  ExternalViewComputeWorker,
+  TaskJobPurgeWorker
 }

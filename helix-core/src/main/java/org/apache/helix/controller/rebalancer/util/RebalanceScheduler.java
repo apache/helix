@@ -5,6 +5,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.IdealState;
 
+import org.apache.helix.model.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,6 +143,24 @@ public class RebalanceScheduler {
       }
     } else {
       LOG.warn("Can't find ideal state for {}", resource);
+    }
+  }
+
+  /**
+   * Trigger the controller to perform rebalance for a given resource.
+   * @param accessor Helix data accessor
+   * @param resource the name of the resource changed to triggering the execution
+   */
+  public static void invokeRebalanceForResourceConfig(HelixDataAccessor accessor, String resource) {
+    LOG.info("invoke rebalance for " + resource);
+    PropertyKey key = accessor.keyBuilder().resourceConfig(resource);
+    ResourceConfig cfg = accessor.getProperty(key);
+    if (cfg != null) {
+      if (!accessor.updateProperty(key, cfg)) {
+        LOG.warn("Failed to invoke rebalance on resource config {}", resource);
+      }
+    } else {
+      LOG.warn("Can't find resource config for {}", resource);
     }
   }
 }

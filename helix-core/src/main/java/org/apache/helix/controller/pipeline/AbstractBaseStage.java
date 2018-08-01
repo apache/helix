@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+
 import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
@@ -63,10 +65,11 @@ public class AbstractBaseStage implements Stage {
     return className;
   }
 
-  public static <T> void asyncExecute(ExecutorService service, Callable<T> task) {
+  public static <T> Future asyncExecute(ExecutorService service, Callable<T> task) {
     if (service != null) {
-      service.submit(task);
+      return service.submit(task);
     }
+    return null;
   }
 
   protected DedupEventProcessor<String, Runnable> getAsyncWorkerFromClusterEvent(ClusterEvent event,

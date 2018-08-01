@@ -48,6 +48,7 @@ public class RoutingTableProviderMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _eventQueueSizeGauge;
   private SimpleDynamicMetric<Long> _dataRefreshCounter;
   private HistogramDynamicMetric _dataRefreshLatencyGauge;
+  private HistogramDynamicMetric _statePropLatencyGauge;
 
   public RoutingTableProviderMonitor(final PropertyType propertyType, String clusterName) {
     _propertyType = propertyType;
@@ -63,6 +64,10 @@ public class RoutingTableProviderMonitor extends DynamicMBeanProvider {
     _callbackCounter = new SimpleDynamicMetric("CallbackCounter", 0l);
     _eventQueueSizeGauge = new SimpleDynamicMetric("EventQueueSizeGauge", 0l);
     _dataRefreshCounter = new SimpleDynamicMetric("DataRefreshCounter", 0l);
+    if (propertyType.equals(PropertyType.CURRENTSTATES)) {
+      _statePropLatencyGauge = new HistogramDynamicMetric("StatePropagationLatencyGauge", new Histogram(
+          new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    }
   }
 
   @Override
@@ -86,6 +91,12 @@ public class RoutingTableProviderMonitor extends DynamicMBeanProvider {
     _dataRefreshLatencyGauge.updateValue(System.currentTimeMillis() - startTime);
   }
 
+  public void recordStatePropagationLatency(long latency) {
+    if (_statePropLatencyGauge != null) {
+      _statePropLatencyGauge.updateValue(latency);
+    }
+  }
+
   @Override
   public RoutingTableProviderMonitor register() throws JMException {
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
@@ -93,6 +104,9 @@ public class RoutingTableProviderMonitor extends DynamicMBeanProvider {
     attributeList.add(_callbackCounter);
     attributeList.add(_eventQueueSizeGauge);
     attributeList.add(_dataRefreshCounter);
+    if (_statePropLatencyGauge != null) {
+      attributeList.add(_statePropLatencyGauge);
+    }
 
     doRegister(attributeList, MBEAN_DESCRIPTION, getMBeanName());
     return this;

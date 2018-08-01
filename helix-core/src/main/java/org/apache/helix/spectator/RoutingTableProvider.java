@@ -18,35 +18,22 @@ package org.apache.helix.spectator;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.management.JMException;
-
 import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
-import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.NotificationContext;
-import org.apache.helix.PropertyKey;
+import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.api.listeners.RoutingTableChangeListener;
 import org.apache.helix.common.ClusterEventProcessor;
+import org.apache.helix.common.caches.CurrentStateSnapshot;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
@@ -57,6 +44,22 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.RoutingTableProviderMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.management.JMException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class RoutingTableProvider
     implements ExternalViewChangeListener, InstanceConfigChangeListener, ConfigChangeListener,
@@ -75,6 +78,10 @@ public class RoutingTableProvider
   private boolean _isPeriodicRefreshEnabled = true; // Default is enabled
   private long _periodRefreshInterval;
   private ScheduledThreadPoolExecutor _periodicRefreshExecutor;
+  // For computing intensive reporting logic
+  private ExecutorService _reportExecutor;
+  private Future _reportingTask = null;
+
 
   public RoutingTableProvider() {
     this(null);
@@ -190,6 +197,8 @@ public class RoutingTableProvider
     } else {
       _isPeriodicRefreshEnabled = false;
     }
+
+    _reportExecutor = Executors.newSingleThreadExecutor();
   }
 
   /**
@@ -495,12 +504,11 @@ public class RoutingTableProvider
           try {
             // add current-state listeners for new sessions
             manager.addCurrentStateChangeListener(this, instanceName, session);
-            logger.info(
-                "{} added current-state listener for instance: {}, session: {}, listener: {}",
+            logger.info("{} added current-state listener for instance: {}, session: {}, listener: {}",
                 manager.getInstanceName(), instanceName, session, this);
           } catch (Exception e) {
-            logger.error("Fail to add current state listener for instance: {} with session: {}",
-                instanceName, session, e);
+            logger.error("Fail to add current state listener for instance: {} with session: {}", instanceName, session,
+                e);
           }
         }
       }
@@ -601,24 +609,62 @@ public class RoutingTableProvider
 
         _dataCache.refresh(manager.getHelixDataAccessor());
         switch (_sourceDataType) {
-          case EXTERNALVIEW:
-            refresh(_dataCache.getExternalViews().values(),
-                _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values());
-            break;
-          case TARGETEXTERNALVIEW:
-            refresh(_dataCache.getTargetExternalViews().values(),
-                _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values());
-            break;
-          case CURRENTSTATES:
-            refresh(_dataCache.getCurrentStatesMap(), _dataCache.getInstanceConfigMap().values(),
-                _dataCache.getLiveInstances().values());
-            break;
-          default:
-            logger.warn("Unsupported source data type: {}, stop refreshing the routing table!",
-                _sourceDataType);
+        case EXTERNALVIEW:
+          refresh(_dataCache.getExternalViews().values(),
+              _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values());
+          break;
+        case TARGETEXTERNALVIEW:
+          refresh(_dataCache.getTargetExternalViews().values(),
+              _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values());
+          break;
+        case CURRENTSTATES:
+          refresh(_dataCache.getCurrentStatesMap(), _dataCache.getInstanceConfigMap().values(),
+              _dataCache.getLiveInstances().values());
+
+          recordPropagationLatency(System.currentTimeMillis(), _dataCache.getCurrentStateSnapshot());
+          break;
+        default:
+          logger.warn("Unsupported source data type: {}, stop refreshing the routing table!",
+              _sourceDataType);
         }
 
         _monitor.increaseDataRefreshCounters(startTime);
+      }
+    }
+
+    /**
+     * Report current state to routing table propagation latency
+     * This method is not threadsafe. Take care of _reportingTask atomicity if use in multi-threads.
+     */
+    private void recordPropagationLatency(final long currentTime, final CurrentStateSnapshot currentStateSnapshot) {
+      // Note that due to the extra mem footprint introduced by currentStateSnapshot ref, we restrict running report task count to be 1.
+      // Any parallel tasks will be skipped. So the reporting metric data is sampled.
+      if (_reportingTask == null || _reportingTask.isDone()) {
+        _reportingTask = _reportExecutor.submit(new Callable<Object>() {
+          @Override public Object call() {
+            // getNewCurrentStateEndTimes() needs to iterate all current states. Make it async to avoid performance impact.
+            Map<PropertyKey, Map<String, Long>> currentStateEndTimeMap =
+                currentStateSnapshot.getNewCurrentStateEndTimes();
+            for (PropertyKey key : currentStateEndTimeMap.keySet()) {
+              Map<String, Long> partitionStateEndTimes = currentStateEndTimeMap.get(key);
+              for (String partition : partitionStateEndTimes.keySet()) {
+                long endTime = partitionStateEndTimes.get(partition);
+                if (currentTime >= endTime) {
+                  _monitor.recordStatePropagationLatency(currentTime - endTime);
+                  logger.debug(
+                      "CurrentState updated in the routing table. Node Key {}, Partition {}, end time {}, Propagation latency {}",
+                      key.toString(), partition, endTime, currentTime - endTime);
+                } else {
+                  // Verbose log in case currentTime < endTime. This could be the case that Router clock is slower than the participant clock.
+                  logger.trace(
+                      "CurrentState updated in the routing table. Node Key {}, Partition {}, end time {}, Propagation latency {}",
+                      key.toString(), partition, endTime, currentTime - endTime);
+                }
+              }
+            }
+            return null;
+          }
+        });
       }
     }
 

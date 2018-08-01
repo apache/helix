@@ -82,6 +82,8 @@ public class TestRoutingTableProviderMonitor {
     Assert.assertEquals((long) _beanServer.getAttribute(name, "EventQueueSizeGauge"), 15);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshLatencyGauge.Max"), 0);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshCounter"), 0);
+    // StatePropagationLatencyGauge only apply for current state
+    Assert.assertEquals(_beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max"), null);
 
     long startTime = System.currentTimeMillis();
     Thread.sleep(5);
@@ -94,6 +96,25 @@ public class TestRoutingTableProviderMonitor {
     long newLatency = (long) _beanServer.getAttribute(name, "DataRefreshLatencyGauge.Max");
     Assert.assertTrue(newLatency >= latency);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshCounter"), 2);
+
+    monitor.unregister();
+  }
+
+  public void testCurrentStateMetrics() throws JMException, InterruptedException {
+    PropertyType type = PropertyType.CURRENTSTATES;
+    RoutingTableProviderMonitor monitor = new RoutingTableProviderMonitor(type, TEST_CLUSTER);
+    monitor.register();
+    ObjectName name = buildObjectName(type, TEST_CLUSTER);
+
+    monitor.increaseCallbackCounters(10);
+    Assert.assertEquals((long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max"), 0);
+
+    monitor.recordStatePropagationLatency(5);
+    long statelatency = (long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
+    Assert.assertEquals(statelatency, 5);
+    monitor.recordStatePropagationLatency(10);
+    statelatency = (long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
+    Assert.assertEquals(statelatency, 10);
 
     monitor.unregister();
   }

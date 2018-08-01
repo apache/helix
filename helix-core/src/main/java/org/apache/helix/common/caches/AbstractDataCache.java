@@ -20,15 +20,16 @@ package org.apache.helix.common.caches;
  */
 
 import com.google.common.collect.Maps;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractDataCache {
   private static Logger LOG = LoggerFactory.getLogger(AbstractDataCache.class.getName());
@@ -52,7 +53,7 @@ public abstract class AbstractDataCache {
    * @param <T> the type of metadata
    * @return updated properties map
    */
-  protected  <T extends HelixProperty> Map<PropertyKey, T> refreshProperties(
+  protected <T extends HelixProperty> Map<PropertyKey, T> refreshProperties(
       HelixDataAccessor accessor, List<PropertyKey> reloadKeys, List<PropertyKey> cachedKeys,
       Map<PropertyKey, T> cachedPropertyMap) {
     // All new entries from zk not cached locally yet should be read from ZK.
@@ -90,4 +91,8 @@ public abstract class AbstractDataCache {
     return refreshedPropertyMap;
   }
 
+  public AbstractDataSnapshot getSnapshot() {
+    throw new HelixException(String.format("DataCache %s does not support generating snapshot.",
+        getClass().getSimpleName()));
+  }
 }

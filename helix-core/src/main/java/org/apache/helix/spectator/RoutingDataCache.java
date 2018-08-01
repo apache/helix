@@ -20,11 +20,14 @@ package org.apache.helix.spectator;
  */
 
 import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.common.caches.BasicClusterDataCache;
 import org.apache.helix.common.caches.CurrentStateCache;
+import org.apache.helix.common.caches.CurrentStateSnapshot;
 import org.apache.helix.common.caches.TargetExternalViewCache;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -109,6 +112,10 @@ class RoutingDataCache extends BasicClusterDataCache {
    */
   public Map<String, Map<String, Map<String, CurrentState>>> getCurrentStatesMap() {
     return _currentStateCache.getCurrentStatesMap();
+  }
+
+  public CurrentStateSnapshot getCurrentStateSnapshot() {
+    return _currentStateCache.getSnapshot();
   }
 }
 

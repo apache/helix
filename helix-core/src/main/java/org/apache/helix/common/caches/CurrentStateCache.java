@@ -20,13 +20,6 @@ package org.apache.helix.common.caches;
  */
 
 import com.google.common.collect.Maps;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.LogUtil;
@@ -34,6 +27,14 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Cache to hold all CurrentStates of a cluster.
@@ -43,12 +44,15 @@ public class CurrentStateCache extends AbstractDataCache {
 
   private Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   private Map<PropertyKey, CurrentState> _currentStateCache = Maps.newHashMap();
-
   private String _clusterName;
+  // If the cache is already refreshed with current state data.
+  private boolean _initialized = false;
+  private CurrentStateSnapshot _snapshot;
 
   public CurrentStateCache(String clusterName) {
     _clusterName = clusterName;
     _currentStateMap = Collections.emptyMap();
+    _snapshot = new CurrentStateSnapshot(_currentStateCache);
   }
 
   /**
@@ -107,6 +111,7 @@ public class CurrentStateCache extends AbstractDataCache {
   // reload current states that has been changed from zk to local cache.
   private void refreshCurrentStatesCache(HelixDataAccessor accessor,
       Map<String, LiveInstance> liveInstanceMap) {
+
     long start = System.currentTimeMillis();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
@@ -127,9 +132,19 @@ public class CurrentStateCache extends AbstractDataCache {
     Set<PropertyKey> cachedKeys = new HashSet<>(_currentStateCache.keySet());
     cachedKeys.retainAll(currentStateKeys);
 
-    _currentStateCache = Collections.unmodifiableMap(
+    Map<PropertyKey, CurrentState> newStateCache = Collections.unmodifiableMap(
         refreshProperties(accessor, new ArrayList<>(reloadKeys), new ArrayList<>(cachedKeys),
             _currentStateCache));
+
+    // if the cache was not initialized, the previous state should not be included in the snapshot
+    if (_initialized) {
+      _snapshot = new CurrentStateSnapshot(newStateCache, _currentStateCache, reloadKeys);
+    } else {
+      _snapshot = new CurrentStateSnapshot(newStateCache);
+      _initialized = true;
+    }
+
+    _currentStateCache = newStateCache;
 
     if (LOG.isDebugEnabled()) {
       LogUtil.logDebug(LOG, getEventId(),
@@ -177,5 +192,10 @@ public class CurrentStateCache extends AbstractDataCache {
       return Collections.emptyMap();
     }
     return Collections.unmodifiableMap(_currentStateMap.get(instance).get(clientSessionId));
+  }
+
+  @Override
+  public CurrentStateSnapshot getSnapshot() {
+    return _snapshot;
   }
 }

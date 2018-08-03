@@ -1,17 +1,33 @@
 package org.apache.helix.integration.task;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.helix.TestHelper;
+import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
+import org.apache.helix.task.Task;
+import org.apache.helix.task.TaskCallbackContext;
+import org.apache.helix.task.TaskConfig;
+import org.apache.helix.task.TaskFactory;
+import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.TaskState;
+import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
+import org.apache.helix.task.Workflow;
+import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
 public class TestStopWorkflow extends TaskTestBase {
+  private boolean _taskFinishFlag = false;
+
   @BeforeClass
   public void beforeClass() throws Exception {
     _numPartitions = 1;
@@ -22,8 +38,7 @@ public class TestStopWorkflow extends TaskTestBase {
   public void testStopWorkflow() throws InterruptedException {
     String jobQueueName = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setMaxAttemptsPerTask(1)
-        .setWorkflow(jobQueueName)
+        .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.SUCCESS_COUNT_BEFORE_FAIL, "1"));
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
@@ -35,11 +50,230 @@ public class TestStopWorkflow extends TaskTestBase {
     _driver.pollForJobState(jobQueueName,
         TaskUtil.getNamespacedJobName(jobQueueName, "job2_will_fail"), TaskState.FAILED);
 
-    Assert.assertTrue(_driver.getWorkflowContext(jobQueueName).getWorkflowState().equals(TaskState.IN_PROGRESS));
+    Assert.assertTrue(
+        _driver.getWorkflowContext(jobQueueName).getWorkflowState().equals(TaskState.IN_PROGRESS));
 
     // Now stop the workflow, and it should be stopped because all jobs have completed or failed.
     _driver.waitToStop(jobQueueName, 4000);
+    _driver.pollForWorkflowState(jobQueueName, TaskState.STOPPED);
 
-    Assert.assertTrue(_driver.getWorkflowContext(jobQueueName).getWorkflowState().equals(TaskState.STOPPED));
+    Assert.assertTrue(
+        _driver.getWorkflowContext(jobQueueName).getWorkflowState().equals(TaskState.STOPPED));
+  }
+
+  /**
+   * Tests that stopping a workflow does result in its task ending up in STOPPED state.
+   * @throws InterruptedException
+   */
+  @Test
+  public void testStopTask() throws InterruptedException {
+    stopTestSetup(1);
+
+    String workflowName = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
+    configBuilder.setAllowOverlapJobAssignment(true);
+    workflowBuilder.setWorkflowConfig(configBuilder.build());
+
+    for (int i = 0; i < 1; i++) {
+      List<TaskConfig> taskConfigs = new ArrayList<>();
+      taskConfigs.add(new TaskConfig("StopTask", new HashMap<String, String>()));
+      JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand("Dummy")
+          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(new HashMap<String, String>());
+      workflowBuilder.addJob("JOB" + i, jobConfigBulider);
+    }
+
+    _driver.start(workflowBuilder.build());
+    _driver.pollForWorkflowState(workflowName, TaskState.IN_PROGRESS);
+
+    // Stop the workflow
+    _driver.stop(workflowName);
+    _driver.pollForWorkflowState(workflowName, TaskState.STOPPED);
+
+    Assert.assertEquals(_driver.getWorkflowContext(_manager, workflowName).getWorkflowState(),
+        TaskState.STOPPED);
+  }
+
+  /**
+   * Tests that stop() indeed frees up quotas for tasks belonging to the stopped workflow.
+   * @throws InterruptedException
+   */
+  @Test
+  public void testStopTaskForQuota() throws InterruptedException {
+    stopTestSetup(1);
+
+    String workflowNameToStop = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilderToStop = new Workflow.Builder(workflowNameToStop);
+    WorkflowConfig.Builder configBuilderToStop = new WorkflowConfig.Builder(workflowNameToStop);
+    configBuilderToStop.setAllowOverlapJobAssignment(true);
+    workflowBuilderToStop.setWorkflowConfig(configBuilderToStop.build());
+
+    // First create 50 jobs so that all 40 threads will be taken up
+    for (int i = 0; i < 50; i++) {
+      List<TaskConfig> taskConfigs = new ArrayList<>();
+      taskConfigs.add(new TaskConfig("StopTask", new HashMap<String, String>()));
+      JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand("Dummy")
+          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(new HashMap<String, String>());
+      workflowBuilderToStop.addJob("JOB" + i, jobConfigBulider);
+    }
+
+    _driver.start(workflowBuilderToStop.build());
+    _driver.pollForWorkflowState(workflowNameToStop, TaskState.IN_PROGRESS);
+
+    // Stop the workflow
+    _driver.stop(workflowNameToStop);
+
+    _driver.pollForWorkflowState(workflowNameToStop, TaskState.STOPPED);
+    Assert.assertEquals(_driver.getWorkflowContext(_manager, workflowNameToStop).getWorkflowState(),
+        TaskState.STOPPED); // Check that the workflow has been stopped
+
+    // Generate another workflow to be completed this time around
+    String workflowToComplete = TestHelper.getTestMethodName() + "ToComplete";
+    Workflow.Builder workflowBuilderToComplete = new Workflow.Builder(workflowToComplete);
+    WorkflowConfig.Builder configBuilderToComplete = new WorkflowConfig.Builder(workflowToComplete);
+    configBuilderToComplete.setAllowOverlapJobAssignment(true);
+    workflowBuilderToComplete.setWorkflowConfig(configBuilderToComplete.build());
+
+    // Create 20 jobs that should complete
+    for (int i = 0; i < 20; i++) {
+      List<TaskConfig> taskConfigs = new ArrayList<>();
+      taskConfigs.add(new TaskConfig("CompleteTask", new HashMap<String, String>()));
+      JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand("Dummy")
+          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(new HashMap<String, String>());
+      workflowBuilderToComplete.addJob("JOB" + i, jobConfigBulider);
+    }
+
+    // Start the workflow to be completed
+    _driver.start(workflowBuilderToComplete.build());
+    _driver.pollForWorkflowState(workflowToComplete, TaskState.COMPLETED);
+    Assert.assertEquals(_driver.getWorkflowContext(_manager, workflowToComplete).getWorkflowState(),
+        TaskState.COMPLETED);
+  }
+
+  /**
+   * Test that there is no thread leak when stopping and resuming.
+   * @throws InterruptedException
+   */
+  @Test
+  public void testResumeTaskForQuota() throws InterruptedException {
+    stopTestSetup(1);
+
+    String workflowName_1 = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilder_1 = new Workflow.Builder(workflowName_1);
+    WorkflowConfig.Builder configBuilder_1 = new WorkflowConfig.Builder(workflowName_1);
+    configBuilder_1.setAllowOverlapJobAssignment(true);
+    workflowBuilder_1.setWorkflowConfig(configBuilder_1.build());
+
+    // 30 jobs run first
+    for (int i = 0; i < 30; i++) {
+      List<TaskConfig> taskConfigs = new ArrayList<>();
+      taskConfigs.add(new TaskConfig("StopTask", new HashMap<String, String>()));
+      JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand("Dummy")
+          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(new HashMap<String, String>());
+      workflowBuilder_1.addJob("JOB" + i, jobConfigBulider);
+    }
+
+    _driver.start(workflowBuilder_1.build());
+
+    Thread.sleep(2000L); // Sleep until each task really is in progress
+    _driver.stop(workflowName_1);
+    _driver.pollForWorkflowState(workflowName_1, TaskState.STOPPED);
+
+    _taskFinishFlag = false;
+    _driver.resume(workflowName_1);
+    Thread.sleep(2000L); // Sleep until each task really is in progress
+
+    // By now there should only be 30 threads occupied
+
+    String workflowName_2 = TestHelper.getTestMethodName() + "_2";
+    Workflow.Builder workflowBuilder_2 = new Workflow.Builder(workflowName_2);
+    WorkflowConfig.Builder configBuilder_2 = new WorkflowConfig.Builder(workflowName_2);
+    configBuilder_2.setAllowOverlapJobAssignment(true);
+    workflowBuilder_2.setWorkflowConfig(configBuilder_2.build());
+
+    // Try to run 10 jobs that complete
+    int numJobs = 10;
+    for (int i = 0; i < numJobs; i++) {
+      List<TaskConfig> taskConfigs = new ArrayList<>();
+      taskConfigs.add(new TaskConfig("CompleteTask", new HashMap<String, String>()));
+      JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand("Dummy")
+          .addTaskConfigs(taskConfigs).setJobCommandConfigMap(new HashMap<String, String>());
+      workflowBuilder_2.addJob("JOB" + i, jobConfigBulider);
+    }
+
+    // If these jobs complete successfully, then that means there is no thread leak
+    _driver.start(workflowBuilder_2.build());
+    Assert.assertEquals(_driver.pollForWorkflowState(workflowName_2, TaskState.COMPLETED),
+        TaskState.COMPLETED);
+  }
+
+  /**
+   * Sets up an environment to make stop task testing easy. Shuts down all Participants and starts
+   * only one Participant.
+   */
+  private void stopTestSetup(int numNodes) {
+    // Set task callbacks
+    Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
+    TaskFactory taskFactory = new TaskFactory() {
+      @Override
+      public Task createNewTask(TaskCallbackContext context) {
+        return new StopTask(context);
+      }
+    };
+    TaskFactory taskFactoryComplete = new TaskFactory() {
+      @Override
+      public Task createNewTask(TaskCallbackContext context) {
+        return new MockTask(context);
+      }
+    };
+    taskFactoryReg.put("StopTask", taskFactory);
+    taskFactoryReg.put("CompleteTask", taskFactoryComplete);
+
+    stopParticipants();
+
+    for (int i = 0; i < numNodes; i++) {
+      String instanceName = _participants[i].getInstanceName();
+      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      // Register a Task state model factory.
+      StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
+      stateMachine.registerStateModelFactory("Task",
+          new TaskStateModelFactory(_participants[i], taskFactoryReg));
+
+      _participants[i].syncStart();
+    }
+  }
+
+  /**
+   * A mock task class that models a short-lived task to be stopped.
+   */
+  private class StopTask extends MockTask {
+    StopTask(TaskCallbackContext context) {
+      super(context);
+    }
+
+    @Override
+    public TaskResult run() {
+      while (!_taskFinishFlag) {
+        try {
+          Thread.sleep(1000L);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+
+      // This wait is to prevent the task from completing before being stopped
+      try {
+        Thread.sleep(500L);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+
+      return new TaskResult(TaskResult.Status.COMPLETED, "");
+    }
+
+    @Override
+    public void cancel() {
+      _taskFinishFlag = true;
+    }
   }
 }

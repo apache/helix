@@ -64,34 +64,18 @@ public abstract class AbstractTaskDispatcher {
         TaskPartitionState currState = updateJobContextAndGetTaskCurrentState(currStateOutput,
             jobResource, pId, pName, instance, jobCtx);
 
-        // Check for pending state transitions on this (partition, instance).
+        // Check for pending state transitions on this (partition, instance). If there is a pending
+        // state transition, we prioritize this pending state transition and set the assignment from
+        // this pending state transition, essentially "waiting" until this pending message clears
         Message pendingMessage =
             currStateOutput.getPendingMessage(jobResource, new Partition(pName), instance);
 
         if (pendingMessage != null && !pendingMessage.getToState().equals(currState.name())) {
+          // If there is a pending message whose destination state is different from the current
+          // state, just make the same assignment as the pending message. This is essentially
+          // "waiting" until this state transition is complete
           processTaskWithPendingMessage(prevTaskToInstanceStateAssignment, pId, pName, instance,
               pendingMessage, jobState, currState, paMap, assignedPartitions);
-          continue;
-        }
-
-        // Process any requested state transitions.
-        String requestedStateStr =
-            currStateOutput.getRequestedState(jobResource, new Partition(pName), instance);
-        if (requestedStateStr != null && !requestedStateStr.isEmpty()) {
-          TaskPartitionState requestedState = TaskPartitionState.valueOf(requestedStateStr);
-          if (requestedState.equals(currState)) {
-            LOG.warn(String.format(
-                "Requested state %s is the same as the current state for instance %s.",
-                requestedState, instance));
-          }
-
-          paMap.put(pId, new PartitionAssignment(instance, requestedState.name()));
-          assignedPartitions.add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(
-                String.format("Instance %s requested a state transition to %s for partition %s.",
-                    instance, requestedState, pName));
-          }
           continue;
         }
 
@@ -105,6 +89,36 @@ public abstract class AbstractTaskDispatcher {
           taskId = pName;
         }
         TaskConfig taskConfig = jobCfg.getTaskConfig(taskId);
+
+        // Process any requested state transitions. If there is a requested state transition, just
+        // "wait" until this state transition is complete
+        String requestedStateStr =
+            currStateOutput.getRequestedState(jobResource, new Partition(pName), instance);
+        if (requestedStateStr != null && !requestedStateStr.isEmpty()) {
+          TaskPartitionState requestedState = TaskPartitionState.valueOf(requestedStateStr);
+          if (requestedState.equals(currState)) {
+            LOG.warn(String.format(
+                "Requested state %s is the same as the current state for instance %s.",
+                requestedState, instance));
+          }
+
+          // For STOPPED tasks, if the targetState is STOP, we should not honor requestedState
+          // transition and make it a NOP
+          if (currState == TaskPartitionState.STOPPED && jobTgtState == TargetState.STOP) {
+            // This task is STOPPED and not going to be re-run, so release this task
+            assignableInstance.release(taskConfig, quotaType);
+            continue;
+          }
+
+          paMap.put(pId, new PartitionAssignment(instance, requestedState.name()));
+          assignedPartitions.add(pId);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(
+                String.format("Instance %s requested a state transition to %s for partition %s.",
+                    instance, requestedState, pName));
+          }
+          continue;
+        }
 
         switch (currState) {
           case RUNNING: {
@@ -128,23 +142,29 @@ public abstract class AbstractTaskDispatcher {
             }
           }
           break;
-          case STOPPED: {
-            TaskPartitionState nextState;
-            if (jobTgtState.equals(TargetState.START)) {
-              nextState = TaskPartitionState.RUNNING;
-            } else {
-              nextState = TaskPartitionState.STOPPED;
-              // This task is STOPPED and not going to be re-run, so release this task
-              assignableInstance.release(taskConfig, quotaType);
-            }
-
-            paMap.put(pId, new JobRebalancer.PartitionAssignment(instance, nextState.name()));
-            assignedPartitions.add(pId);
-            if (LOG.isDebugEnabled()) {
-              LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
-                  nextState, instance));
-            }
+        case STOPPED: {
+          // TODO: This case statement might be unreachable code - Hunter
+          // This code may need to be removed because once a task is STOPPED and its workflow's
+          // targetState is STOP, we do not assign that stopped task. Not assigning means it will
+          // not be included in previousAssignment map in the next rebalance. If it is not in
+          // prevInstanceToTaskAssignments, it will never hit this part of the code
+          // When the parent workflow is to be resumed (target state is START), then it will just be
+          // assigned as if it were being assigned for the first time
+          TaskPartitionState nextState;
+          if (jobTgtState.equals(TargetState.START)) {
+            nextState = TaskPartitionState.RUNNING;
+          } else {
+            nextState = TaskPartitionState.STOPPED;
+            // This task is STOPPED and not going to be re-run, so release this task
+            assignableInstance.release(taskConfig, quotaType);
           }
+          paMap.put(pId, new JobRebalancer.PartitionAssignment(instance, nextState.name()));
+          assignedPartitions.add(pId);
+
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName, nextState, instance));
+          }
+        }
           break;
           case COMPLETED: {
             // The task has completed on this partition. Mark as such in the context object.
@@ -288,11 +308,25 @@ public abstract class AbstractTaskDispatcher {
     return currentState;
   }
 
+  /**
+   * Create an assignment based on an already-existing pending message. This effectively lets the
+   * Controller to "wait" until the pending state transition has been processed.
+   * @param prevAssignment
+   * @param pId
+   * @param pName
+   * @param instance
+   * @param pendingMessage
+   * @param jobState
+   * @param currState
+   * @param paMap
+   * @param assignedPartitions
+   */
   private void processTaskWithPendingMessage(ResourceAssignment prevAssignment, Integer pId,
       String pName, String instance, Message pendingMessage, TaskState jobState,
       TaskPartitionState currState, Map<Integer, PartitionAssignment> paMap,
       Set<Integer> assignedPartitions) {
 
+    // stateMap is a mapping of Instance -> TaskPartitionState (String)
     Map<String, String> stateMap = prevAssignment.getReplicaMap(new Partition(pName));
     if (stateMap != null) {
       String prevState = stateMap.get(instance);
@@ -783,7 +817,8 @@ public abstract class AbstractTaskDispatcher {
         failedJobs++;
         if (!cfg.isJobQueue() && failedJobs > cfg.getFailureThreshold()) {
           ctx.setWorkflowState(TaskState.FAILED);
-          LOG.info("Workflow {} reached the failure threshold, so setting its state to FAILED.", cfg.getWorkflowId());
+          LOG.info("Workflow {} reached the failure threshold, so setting its state to FAILED.",
+              cfg.getWorkflowId());
           for (String jobToFail : cfg.getJobDag().getAllNodes()) {
             if (ctx.getJobState(jobToFail) == TaskState.IN_PROGRESS) {
               ctx.setJobState(jobToFail, TaskState.ABORTED);

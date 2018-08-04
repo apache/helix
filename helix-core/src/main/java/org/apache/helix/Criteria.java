@@ -66,6 +66,10 @@ public class Criteria {
    * Determine if use external view or ideal state as source of truth
    */
   DataSource _dataSource = DataSource.EXTERNALVIEW;
+  /**
+   * The name of target cluster. If null, means sending to the local cluster
+   */
+  String _clusterName = null;
 
   /**
    * Get the current source of truth
@@ -196,6 +200,22 @@ public class Criteria {
     this.partitionState = partitionState;
   }
 
+  /**
+   * Get the target cluster name
+   * @return the target cluster name if set or null if not set
+   */
+  public String getClusterName() {
+    return _clusterName;
+  }
+
+  /**
+   * Set the target cluster name
+   * @param clusterName target cluster name to send message
+   */
+  public void setClusterName(String clusterName) {
+    _clusterName = clusterName;
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
@@ -203,7 +223,9 @@ public class Criteria {
     sb.append("resourceName").append("=").append(resourceName);
     sb.append("partitionName").append("=").append(partitionName);
     sb.append("partitionState").append("=").append(partitionState);
+    if (_clusterName != null) {
+      sb.append("clusterName").append("=").append(_clusterName);
+    }
     return sb.toString();
   }
-
 }

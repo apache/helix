@@ -34,6 +34,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
@@ -112,6 +113,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
       _asyncCallbackService.registerAsyncCallback(correlationId, callbackOnReply);
     }
 
+    HelixDataAccessor targetDataAccessor = getRecipientDataAccessor(recipientCriteria);
     for (InstanceType receiverType : generateMessage.keySet()) {
       List<Message> list = generateMessage.get(receiverType);
       for (Message tempMessage : list) {
@@ -121,29 +123,39 @@ public class DefaultMessagingService implements ClusterMessagingService {
         if (correlationId != null) {
           tempMessage.setCorrelationId(correlationId);
         }
+        tempMessage.setSrcClusterName(_manager.getClusterName());
 
-        HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-        Builder keyBuilder = accessor.keyBuilder();
-
+        Builder keyBuilder = targetDataAccessor.keyBuilder();
         if (receiverType == InstanceType.CONTROLLER) {
-          // _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
-          // tempMessage,
-          // tempMessage.getId());
-          accessor.setProperty(keyBuilder.controllerMessage(tempMessage.getId()), tempMessage);
-        }
-
-        if (receiverType == InstanceType.PARTICIPANT) {
-          accessor.setProperty(keyBuilder.message(tempMessage.getTgtName(), tempMessage.getId()),
-              tempMessage);
+          targetDataAccessor
+              .setProperty(keyBuilder.controllerMessage(tempMessage.getId()), tempMessage);
+        } else if (receiverType == InstanceType.PARTICIPANT) {
+          targetDataAccessor
+              .setProperty(keyBuilder.message(tempMessage.getTgtName(), tempMessage.getId()),
+                  tempMessage);
         }
       }
     }
 
-    if (callbackOnReply != null) {
-      // start timer if timeout is set
-      callbackOnReply.startTimer();
+      if (callbackOnReply != null) {
+        // start timer if timeout is set
+        callbackOnReply.startTimer();
+      }
+      return totalMessageCount;
+  }
+
+  private HelixDataAccessor getRecipientDataAccessor(final Criteria recipientCriteria) {
+    HelixDataAccessor dataAccessor = _manager.getHelixDataAccessor();
+    String clusterName = recipientCriteria.getClusterName();
+    if (clusterName != null && !clusterName.equals(_manager.getClusterName())) {
+      // for cross cluster message, create new DataAccessor for sending message.
+      /*
+        TODO On frequent cross clsuter messaging request, keeping construct data accessor may cause
+        performance issue. We should consider adding cache in this service or HelixManager. --JJ
+       */
+      dataAccessor = new ZKHelixDataAccessor(clusterName, dataAccessor.getBaseDataAccessor());
     }
-    return totalMessageCount;
+    return dataAccessor;
   }
 
   public Map<InstanceType, List<Message>> generateMessage(final Criteria recipientCriteria,
@@ -151,51 +163,55 @@ public class DefaultMessagingService implements ClusterMessagingService {
     Map<InstanceType, List<Message>> messagesToSendMap = new HashMap<InstanceType, List<Message>>();
     InstanceType instanceType = recipientCriteria.getRecipientInstanceType();
 
-    if (instanceType == InstanceType.CONTROLLER) {
-      List<Message> messages = generateMessagesForController(message);
-      messagesToSendMap.put(InstanceType.CONTROLLER, messages);
-      // _dataAccessor.setControllerProperty(PropertyType.MESSAGES,
-      // newMessage.getRecord(), CreateMode.PERSISTENT);
-    } else if (instanceType == InstanceType.PARTICIPANT) {
-      List<Message> messages = new ArrayList<Message>();
-      List<Map<String, String>> matchedList =
-          _evaluator.evaluateCriteria(recipientCriteria, _manager);
+    HelixDataAccessor targetDataAccessor = getRecipientDataAccessor(recipientCriteria);
 
-      if (!matchedList.isEmpty()) {
-        Map<String, String> sessionIdMap = new HashMap<String, String>();
+      List<Message> messages = Collections.EMPTY_LIST;
+      if (instanceType == InstanceType.CONTROLLER) {
+        messages = generateMessagesForController(message);
+      } else if (instanceType == InstanceType.PARTICIPANT) {
+        messages =
+            generateMessagesForParticipant(recipientCriteria, message, targetDataAccessor);
+      }
+      messagesToSendMap.put(instanceType, messages);
+      return messagesToSendMap;
+  }
+
+  private List<Message> generateMessagesForParticipant(Criteria recipientCriteria, Message message,
+      HelixDataAccessor targetDataAccessor) {
+    List<Message> messages = new ArrayList<Message>();
+    List<Map<String, String>> matchedList =
+        _evaluator.evaluateCriteria(recipientCriteria, targetDataAccessor);
+
+    if (!matchedList.isEmpty()) {
+      Map<String, String> sessionIdMap = new HashMap<String, String>();
+      if (recipientCriteria.isSessionSpecific()) {
+        Builder keyBuilder = targetDataAccessor.keyBuilder();
+        List<LiveInstance> liveInstances = targetDataAccessor.getChildValues(keyBuilder.liveInstances());
+
+        for (LiveInstance liveInstance : liveInstances) {
+          sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId());
+        }
+      }
+      for (Map<String, String> map : matchedList) {
+        String id = UUID.randomUUID().toString();
+        Message newMessage = new Message(message.getRecord(), id);
+        String srcInstanceName = _manager.getInstanceName();
+        String tgtInstanceName = map.get("instanceName");
+        // Don't send message to self
+        if (recipientCriteria.isSelfExcluded() && srcInstanceName.equalsIgnoreCase(tgtInstanceName)) {
+          continue;
+        }
+        newMessage.setSrcName(srcInstanceName);
+        newMessage.setTgtName(tgtInstanceName);
+        newMessage.setResourceName(map.get("resourceName"));
+        newMessage.setPartitionName(map.get("partitionName"));
         if (recipientCriteria.isSessionSpecific()) {
-          HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-          Builder keyBuilder = accessor.keyBuilder();
-
-          List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances());
-
-          for (LiveInstance liveInstance : liveInstances) {
-            sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId());
-          }
+          newMessage.setTgtSessionId(sessionIdMap.get(tgtInstanceName));
         }
-        for (Map<String, String> map : matchedList) {
-          String id = UUID.randomUUID().toString();
-          Message newMessage = new Message(message.getRecord(), id);
-          String srcInstanceName = _manager.getInstanceName();
-          String tgtInstanceName = map.get("instanceName");
-          // Don't send message to self
-          if (recipientCriteria.isSelfExcluded()
-              && srcInstanceName.equalsIgnoreCase(tgtInstanceName)) {
-            continue;
-          }
-          newMessage.setSrcName(srcInstanceName);
-          newMessage.setTgtName(tgtInstanceName);
-          newMessage.setResourceName(map.get("resourceName"));
-          newMessage.setPartitionName(map.get("partitionName"));
-          if (recipientCriteria.isSessionSpecific()) {
-            newMessage.setTgtSessionId(sessionIdMap.get(tgtInstanceName));
-          }
-          messages.add(newMessage);
-        }
-        messagesToSendMap.put(InstanceType.PARTICIPANT, messages);
+        messages.add(newMessage);
       }
     }
-    return messagesToSendMap;
+    return messages;
   }
 
   private List<Message> generateMessagesForController(Message message) {
@@ -317,9 +333,10 @@ public class DefaultMessagingService implements ClusterMessagingService {
   }
 
   @Override
-  public int sendAndWait(Criteria receipientCriteria, Message message, AsyncCallback asyncCallback,
+  // TODO if the manager is not Participant or Controller, no reply, so should fail immediately
+  public int sendAndWait(Criteria recipientCriteria, Message message, AsyncCallback asyncCallback,
       int timeOut, int retryCount) {
-    int messagesSent = send(receipientCriteria, message, asyncCallback, timeOut, retryCount);
+    int messagesSent = send(recipientCriteria, message, asyncCallback, timeOut, retryCount);
     if (messagesSent > 0) {
       synchronized (asyncCallback) {
         while (!asyncCallback.isDone() && !asyncCallback.isTimedOut()) {
@@ -333,7 +350,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
         }
       }
     } else {
-      _logger.warn("No messages sent. For Criteria:" + receipientCriteria);
+      _logger.warn("No messages sent. For Criteria:" + recipientCriteria);
     }
     return messagesSent;
   }

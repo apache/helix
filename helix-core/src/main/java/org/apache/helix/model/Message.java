@@ -96,7 +96,8 @@ public class Message extends HelixProperty {
     RELAY_PARTICIPANTS,
     RELAY_TIME,
     RELAY_FROM,
-    EXPIRY_PERIOD
+    EXPIRY_PERIOD,
+    SRC_CLUSTER
   }
 
   /**
@@ -855,6 +856,22 @@ public class Message extends HelixProperty {
    */
   public void setExpiryPeriod(long expiry) {
     _record.setLongField(Attributes.EXPIRY_PERIOD.name(), expiry);
+  }
+
+  /**
+   * Get the source cluster name
+   * @return the source cluster from where the message was sent or null if the message was sent locally
+   */
+  public String getSrcClusterName() {
+    return _record.getStringField(Attributes.SRC_CLUSTER.name(), null);
+  }
+
+  /**
+   * Set the source cluster name
+   * @param clusterName source cluster name where message was sent from
+   */
+  public void setSrcClusterName(String clusterName) {
+    _record.setSimpleField(Attributes.SRC_CLUSTER.name(), clusterName);
   }
 
   /**

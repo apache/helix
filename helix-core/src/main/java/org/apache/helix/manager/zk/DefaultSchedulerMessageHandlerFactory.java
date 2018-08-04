@@ -28,29 +28,27 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
-import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.util.StatusUpdateUtil;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.codehaus.jackson.map.ObjectMapper;
-
-import com.google.common.collect.ImmutableList;
 
 /*
  * The current implementation supports throttling on STATE-TRANSITION type of message, transition SCHEDULED-COMPLETED.
@@ -168,6 +166,13 @@ public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHa
         String controllerMsgId) {
       HelixDataAccessor accessor = _manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
+
+      String clusterName = recipientCriteria.getClusterName();
+      if (clusterName != null && !clusterName.equals(_manager.getClusterName())) {
+        throw new HelixException(String.format(
+            "ScheduledTaskQueue cannot send message to another cluster. Local cluster name %s, remote cluster name %s.",
+            _manager.getClusterName(), clusterName));
+      }
 
       Map<String, String> sendSummary = new HashMap<String, String>();
       sendSummary.put("MessageCount", "0");

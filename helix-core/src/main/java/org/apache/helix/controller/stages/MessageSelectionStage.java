@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.helix.controller.LogUtil;
@@ -66,7 +65,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.name());
-    MessageGenerationOutput messageGenOutput =
+    MessageOutput messageGenOutput =
         event.getAttribute(AttributeName.MESSAGES_ALL.name());
     if (cache == null || resourceMap == null || currentStateOutput == null
         || messageGenOutput == null) {
@@ -74,7 +73,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
           + ". Requires DataCache|RESOURCES|CURRENT_STATE|MESSAGES_ALL");
     }
 
-    MessageSelectionStageOutput output = new MessageSelectionStageOutput();
+    MessageOutput output = new MessageOutput();
 
     for (String resourceName : resourceMap.keySet()) {
       Resource resource = resourceMap.get(resourceName);

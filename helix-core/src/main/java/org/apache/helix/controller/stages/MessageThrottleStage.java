@@ -118,7 +118,7 @@ public class MessageThrottleStage extends AbstractBaseStage {
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
-    MessageSelectionStageOutput msgSelectionOutput =
+    MessageOutput msgSelectionOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
 
@@ -127,7 +127,7 @@ public class MessageThrottleStage extends AbstractBaseStage {
           + ". Requires ClusterDataCache|RESOURCES|MESSAGES_SELECTED");
     }
 
-    MessageThrottleStageOutput output = new MessageThrottleStageOutput();
+    MessageOutput output = new MessageOutput();
 
     ClusterConstraints constraint = cache.getConstraint(ConstraintType.MESSAGE_CONSTRAINT);
     Map<String, Integer> throttleCounterMap = new HashMap<String, Integer>();

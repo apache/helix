@@ -34,7 +34,7 @@ import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageSelectionStage;
-import org.apache.helix.controller.stages.MessageSelectionStageOutput;
+import org.apache.helix.controller.stages.MessageOutput;
 import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -121,7 +121,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
 
     bestPossibleStateOutput = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
 
-    MessageSelectionStageOutput messageOutput =
+    MessageOutput messageOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     List<Message> messages = messageOutput.getMessages(db, p);
 
@@ -297,7 +297,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
 
     bestPossibleStateOutput = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
 
-    MessageSelectionStageOutput messageOutput =
+    MessageOutput messageOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     List<Message> messages = messageOutput.getMessages(db, p);
 

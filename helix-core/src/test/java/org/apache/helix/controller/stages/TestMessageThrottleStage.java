@@ -101,7 +101,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     } catch (Exception e) {
       // OK
     }
-    MessageSelectionStageOutput msgSelectOutput = new MessageSelectionStageOutput();
+    MessageOutput msgSelectOutput = new MessageOutput();
     List<Message> selectMessages = new ArrayList<Message>();
     Message msg =
         createMessage(MessageType.STATE_TRANSITION, "msgId-001", "OFFLINE", "SLAVE", "TestDB",
@@ -113,7 +113,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     runStage(event, throttleStage);
 
-    MessageThrottleStageOutput msgThrottleOutput =
+    MessageOutput msgThrottleOutput =
         event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
     Assert.assertEquals(msgThrottleOutput.getMessages("TestDB", new Partition("TestDB_0")).size(),
         1);
@@ -268,7 +268,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     dataRefresh.addStage(new ReadClusterDataStage());
     runPipeline(event, dataRefresh);
     runStage(event, new ResourceComputationStage());
-    MessageSelectionStageOutput msgSelectOutput = new MessageSelectionStageOutput();
+    MessageOutput msgSelectOutput = new MessageOutput();
 
     Message msg3 =
         createMessage(MessageType.STATE_TRANSITION, "msgId-003", "OFFLINE", "SLAVE", "TestDB",
@@ -299,7 +299,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     runStage(event, throttleStage);
 
-    MessageThrottleStageOutput msgThrottleOutput =
+    MessageOutput msgThrottleOutput =
         event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
     List<Message> throttleMessages =
         msgThrottleOutput.getMessages("TestDB", new Partition("TestDB_0"));

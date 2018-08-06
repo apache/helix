@@ -28,12 +28,12 @@ import java.util.Map;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 
-public class MessageGenerationOutput {
+public class MessageOutput {
 
   private final Map<String, Map<Partition, List<Message>>> _messagesMap;
 
-  public MessageGenerationOutput() {
-    _messagesMap = new HashMap<String, Map<Partition, List<Message>>>();
+  public MessageOutput() {
+    _messagesMap = new HashMap<>();
 
   }
 
@@ -49,9 +49,17 @@ public class MessageGenerationOutput {
 
   }
 
+  public void addMessages(String resourceName, Partition partition,
+      List<Message> messages) {
+    if (!_messagesMap.containsKey(resourceName)) {
+      _messagesMap.put(resourceName, new HashMap<Partition, List<Message>>());
+    }
+    _messagesMap.get(resourceName).put(partition, messages);
+  }
+
   public List<Message> getMessages(String resourceName, Partition resource) {
     Map<Partition, List<Message>> map = _messagesMap.get(resourceName);
-    if (map != null) {
+    if (map != null && map.get(resource) != null) {
       return map.get(resource);
     }
     return Collections.emptyList();

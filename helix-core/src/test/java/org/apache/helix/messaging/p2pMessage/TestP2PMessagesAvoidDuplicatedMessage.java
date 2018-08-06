@@ -39,7 +39,7 @@ import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.IntermediateStateOutput;
 import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageSelectionStage;
-import org.apache.helix.controller.stages.MessageSelectionStageOutput;
+import org.apache.helix.controller.stages.MessageOutput;
 import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -133,7 +133,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
     _bestpossibleState = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
 
-    MessageSelectionStageOutput messageOutput =
+    MessageOutput messageOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     List<Message> messages = messageOutput.getMessages(_db, _partition);
 

@@ -87,7 +87,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     for (LiveInstance liveInstance : liveInstances.values()) {
       sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId());
     }
-    MessageGenerationOutput output = new MessageGenerationOutput();
+    MessageOutput output = new MessageOutput();
 
     for (String resourceName : resourceMap.keySet()) {
       Resource resource = resourceMap.get(resourceName);

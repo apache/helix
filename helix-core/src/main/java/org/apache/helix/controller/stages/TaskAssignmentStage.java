@@ -50,7 +50,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
-    MessageThrottleStageOutput messageOutput =
+    MessageOutput messageOutput =
         event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();

@@ -83,7 +83,7 @@ public class ClusterDistributedController extends ZKHelixManager implements Runn
 
   @Override
   public ZkClient getZkClient() {
-    return _zkclient;
+    return (ZkClient) _zkclient;
   }
 
   @Override

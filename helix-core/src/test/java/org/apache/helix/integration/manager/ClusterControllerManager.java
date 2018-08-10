@@ -89,7 +89,7 @@ public class ClusterControllerManager extends ZKHelixManager implements Runnable
 
   @Override
   public ZkClient getZkClient() {
-    return _zkclient;
+    return (ZkClient) _zkclient;
   }
 
   @Override

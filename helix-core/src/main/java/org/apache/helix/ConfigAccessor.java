@@ -27,12 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.manager.zk.ZKUtil;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
@@ -66,13 +66,13 @@ public class ConfigAccessor {
     // @formatter:on
   }
 
-  private final ZkClient zkClient;
+  private final HelixZkClient zkClient;
 
   /**
    * Initialize an accessor with a Zookeeper client
    * @param zkClient
    */
-  public ConfigAccessor(ZkClient zkClient) {
+  public ConfigAccessor(HelixZkClient zkClient) {
     this.zkClient = zkClient;
   }
 

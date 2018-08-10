@@ -37,11 +37,12 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.zookeeper.common.PathUtils;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tool for copying a zk/file path to another zk/file path
@@ -99,7 +100,7 @@ public class ZkCopy {
    * @param dstRootPath
    * @param paths
    */
-  private static void copy(ZkClient srcClient, String srcRootPath, ZkClient dstClient,
+  private static void copy(HelixZkClient srcClient, String srcRootPath, HelixZkClient dstClient,
       String dstRootPath, List<String> paths) {
     BaseDataAccessor<Object> srcAccessor = new ZkBaseDataAccessor<Object>(srcClient);
     List<String> readPaths = new ArrayList<String>();
@@ -146,7 +147,8 @@ public class ZkCopy {
     }
   }
 
-  private static void zkCopy(ZkClient srcClient, String srcRootPath, ZkClient dstClient, String dstRootPath) {
+  private static void zkCopy(HelixZkClient srcClient, String srcRootPath, HelixZkClient dstClient,
+      String dstRootPath) {
     // Strip off tailing "/"
     if (!srcRootPath.equals("/") && srcRootPath.endsWith("/")) {
       srcRootPath = srcRootPath.substring(0, srcRootPath.length() - 1);
@@ -218,21 +220,21 @@ public class ZkCopy {
       String srcZkAddr = srcUri.getAuthority();
       String dstZkAddr = dstUri.getAuthority();
 
-      ZkClient srcClient = null;
-      ZkClient dstClient = null;
+      HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+      HelixZkClient srcClient = null;
+      HelixZkClient dstClient = null;
       try {
         if (srcZkAddr.equals(dstZkAddr)) {
-          srcClient =
-              dstClient =
-                  new ZkClient(srcZkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
-                      ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ByteArraySerializer());
+          clientConfig.setZkSerializer(new ByteArraySerializer());
+          srcClient = dstClient = SharedZkClientFactory.getInstance()
+              .buildZkClient(new HelixZkClient.ZkConnectionConfig(srcZkAddr), clientConfig);
         } else {
-          srcClient =
-              new ZkClient(srcZkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
-                  ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ByteArraySerializer());
-          dstClient =
-              new ZkClient(dstZkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
-                  ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ByteArraySerializer());
+          clientConfig.setZkSerializer(new ByteArraySerializer());
+          srcClient = SharedZkClientFactory.getInstance()
+              .buildZkClient(new HelixZkClient.ZkConnectionConfig(srcZkAddr), clientConfig);
+          clientConfig.setZkSerializer(new ByteArraySerializer());
+          dstClient = SharedZkClientFactory.getInstance()
+              .buildZkClient(new HelixZkClient.ZkConnectionConfig(dstZkAddr), clientConfig);
         }
         String srcPath = srcUri.getPath();
         String dstPath = dstUri.getPath();

@@ -36,13 +36,13 @@ import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
 import org.apache.zookeeper.CreateMode;
@@ -75,7 +75,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
     public AccessResult() {
       _retCode = RetCode.ERROR;
-      _pathCreated = new ArrayList<String>();
+      _pathCreated = new ArrayList<>();
       _stat = new Stat();
       _updatedValue = null;
     }
@@ -83,9 +83,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
   private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
-  private final ZkClient _zkClient;
+  private final HelixZkClient _zkClient;
 
-  public ZkBaseDataAccessor(ZkClient zkClient) {
+  public ZkBaseDataAccessor(HelixZkClient zkClient) {
     if (zkClient == null) {
       throw new NullPointerException("zkclient is null");
     }
@@ -431,7 +431,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     return getChildren(parentPath, stats, options, false);
   }
 
-
   @Override
   public List<T> getChildren(String parentPath, List<Stat> stats, int options, int retryCount,
       int retryInterval) throws HelixException {
@@ -587,7 +586,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       }
 
       List<String> parentPaths =
-          new ArrayList<String>(Collections.<String> nCopies(paths.size(), null));
+          new ArrayList<>(Collections.<String>nCopies(paths.size(), null));
       boolean failOnNoNode = false;
 
       for (int i = 0; i < paths.size(); i++) {
@@ -658,7 +657,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     boolean[] needCreate = new boolean[paths.size()];
     Arrays.fill(needCreate, true);
     List<List<String>> pathsCreated =
-        new ArrayList<List<String>>(Collections.<List<String>> nCopies(paths.size(), null));
+        new ArrayList<>(Collections.<List<String>>nCopies(paths.size(), null));
 
     long startT = System.nanoTime();
     try {
@@ -712,7 +711,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return success;
     }
 
-    List<Stat> setStats = new ArrayList<Stat>(Collections.<Stat> nCopies(paths.size(), null));
+    List<Stat> setStats = new ArrayList<>(Collections.<Stat>nCopies(paths.size(), null));
     SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[paths.size()];
     CreateCallbackHandler[] createCbList = null;
     boolean[] needSet = new boolean[paths.size()];
@@ -1104,69 +1103,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   @Override
   public void unsubscribeChildChanges(String path, IZkChildListener childListener) {
     _zkClient.unsubscribeChildChanges(path, childListener);
-  }
-
-  // simple test
-  public static void main(String[] args) {
-    ZkClient zkclient = new ZkClient("localhost:2191");
-    zkclient.setZkSerializer(new ZNRecordSerializer());
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(zkclient);
-
-    // test async create
-    List<String> createPaths = Arrays.asList("/test/child1/child1", "/test/child2/child2");
-    List<ZNRecord> createRecords = Arrays.asList(new ZNRecord("child1"), new ZNRecord("child2"));
-
-    boolean[] needCreate = new boolean[createPaths.size()];
-    Arrays.fill(needCreate, true);
-    List<List<String>> pathsCreated =
-        new ArrayList<List<String>>(Collections.<List<String>> nCopies(createPaths.size(), null));
-    accessor.create(createPaths, createRecords, needCreate, pathsCreated, AccessOption.PERSISTENT);
-    System.out.println("pathsCreated: " + pathsCreated);
-
-    // test async set
-    List<String> setPaths = Arrays.asList("/test/setChild1/setChild1", "/test/setChild2/setChild2");
-    List<ZNRecord> setRecords = Arrays.asList(new ZNRecord("setChild1"), new ZNRecord("setChild2"));
-
-    pathsCreated =
-        new ArrayList<List<String>>(Collections.<List<String>> nCopies(setPaths.size(), null));
-    boolean[] success =
-        accessor.set(setPaths, setRecords, pathsCreated, null, AccessOption.PERSISTENT);
-    System.out.println("pathsCreated: " + pathsCreated);
-    System.out.println("setSuccess: " + Arrays.toString(success));
-
-    // test async update
-    List<String> updatePaths =
-        Arrays.asList("/test/updateChild1/updateChild1", "/test/setChild2/setChild2");
-    class TestUpdater implements DataUpdater<ZNRecord> {
-      final ZNRecord _newData;
-
-      public TestUpdater(ZNRecord newData) {
-        _newData = newData;
-      }
-
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        return _newData;
-
-      }
-    }
-    List<DataUpdater<ZNRecord>> updaters =
-        Arrays.asList((DataUpdater<ZNRecord>) new TestUpdater(new ZNRecord("updateChild1")),
-            (DataUpdater<ZNRecord>) new TestUpdater(new ZNRecord("updateChild2")));
-
-    pathsCreated =
-        new ArrayList<List<String>>(Collections.<List<String>> nCopies(updatePaths.size(), null));
-
-    List<ZNRecord> updateRecords =
-        accessor.update(updatePaths, updaters, pathsCreated, null, AccessOption.PERSISTENT);
-    for (int i = 0; i < updatePaths.size(); i++) {
-      success[i] = updateRecords.get(i) != null;
-    }
-    System.out.println("pathsCreated: " + pathsCreated);
-    System.out.println("updateSuccess: " + Arrays.toString(success));
-
-    System.out.println("CLOSING");
-    zkclient.close();
   }
 
   /**

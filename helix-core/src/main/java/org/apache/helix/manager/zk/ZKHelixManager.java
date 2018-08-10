@@ -20,12 +20,11 @@ package org.apache.helix.manager.zk;
  */
 
 import org.I0Itec.zkclient.IZkStateListener;
-import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.*;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.listeners.*;
+import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
@@ -34,11 +33,15 @@ import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
+import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import org.apache.helix.healthcheck.ParticipantHealthReportTask;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -64,7 +67,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
-
 
 public class ZKHelixManager implements HelixManager, IZkStateListener {
   private static Logger LOG = LoggerFactory.getLogger(ZKHelixManager.class);
@@ -92,7 +94,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private final String _version;
   private int _reportLatency;
 
-  protected ZkClient _zkclient = null;
+  protected HelixZkClient _zkclient = null;
   private final DefaultMessagingService _messagingService;
   private Map<ChangeType, HelixCallbackMonitor> _callbackMonitors;
 
@@ -229,11 +231,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
             ZKHelixManager.DEFAULT_MAX_DISCONNECT_THRESHOLD);
 
     _sessionTimeout = HelixUtil.getSystemPropertyAsInt(SystemPropertyKeys.ZK_SESSION_TIMEOUT,
-        ZkClient.DEFAULT_SESSION_TIMEOUT);
+        HelixZkClient.DEFAULT_SESSION_TIMEOUT);
 
     _connectionInitTimeout = HelixUtil
         .getSystemPropertyAsInt(SystemPropertyKeys.ZK_CONNECTION_TIMEOUT,
-            ZkClient.DEFAULT_CONNECTION_TIMEOUT);
+            HelixZkClient.DEFAULT_CONNECTION_TIMEOUT);
 
     _waitForConnectedTimeout = HelixUtil
         .getSystemPropertyAsInt(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT,
@@ -594,17 +596,29 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     PathBasedZkSerializer zkSerializer =
         ChainedPathZkSerializer.builder(new ZNRecordStreamingSerializer()).build();
 
-    ZkClient.Builder zkClientBuilder = new ZkClient.Builder();
-    zkClientBuilder.setZkServer(_zkAddress)
-        .setSessionTimeout(_sessionTimeout)
-        .setConnectionTimeout(_connectionInitTimeout)
+    HelixZkClient.ZkConnectionConfig connectionConfig = new HelixZkClient.ZkConnectionConfig(_zkAddress);
+    connectionConfig.setSessionTimeout(_sessionTimeout);
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig
         .setZkSerializer(zkSerializer)
+        .setConnectInitTimeout(_connectionInitTimeout)
         .setMonitorType(_instanceType.name())
         .setMonitorKey(_clusterName)
         .setMonitorInstanceName(_instanceName)
-        .setMonitorRootPathOnly(!_instanceType.equals(InstanceType.CONTROLLER) &&
-            !_instanceType.equals(InstanceType.CONTROLLER_PARTICIPANT));
-    ZkClient newClient = zkClientBuilder.build();
+        .setMonitorRootPathOnly(!_instanceType.equals(InstanceType.CONTROLLER) && !_instanceType
+            .equals(InstanceType.CONTROLLER_PARTICIPANT));
+
+    HelixZkClient newClient;
+    switch (_instanceType) {
+    case ADMINISTRATOR:
+      newClient = SharedZkClientFactory.getInstance().buildZkClient(connectionConfig, clientConfig);
+      break;
+    default:
+      newClient = DedicatedZkClientFactory
+          .getInstance().buildZkClient(connectionConfig, clientConfig);
+      break;
+    }
+
     synchronized (this) {
       if (_zkclient != null) {
         _zkclient.close();
@@ -896,8 +910,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         continue;
       }
 
-      ZkConnection zkConnection = ((ZkConnection) _zkclient.getConnection());
-      _sessionId = Long.toHexString(zkConnection.getZookeeper().getSessionId());
+      _sessionId = Long.toHexString(_zkclient.getSessionId());
 
       /**
        * at the time we read session-id, zkconnection might be lost again
@@ -906,8 +919,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     } while (!isConnected || "0".equals(_sessionId));
 
     LOG.info("Handling new session, session id: " + _sessionId + ", instance: " + _instanceName
-        + ", instanceTye: " + _instanceType + ", cluster: " + _clusterName + ", zkconnection: "
-        + ((ZkConnection) _zkclient.getConnection()).getZookeeper());
+        + ", instanceTye: " + _instanceType + ", cluster: " + _clusterName);
   }
 
   void initHandlers(List<CallbackHandler> handlers) {
@@ -960,9 +972,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public void handleStateChanged(KeeperState state) {
     switch (state) {
     case SyncConnected:
-      ZkConnection zkConnection = (ZkConnection) _zkclient.getConnection();
-      LOG.info("KeeperState: " + state + ", instance: " + _instanceName + ", type: " + _instanceType
-          + ", zookeeper:" + zkConnection.getZookeeper());
+      LOG.info("KeeperState: " + state + ", instance: " + _instanceName + ", type: " + _instanceType);
       break;
     case Disconnected:
       /**
@@ -1084,7 +1094,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       _participantManager.reset();
     }
     _participantManager =
-        new ParticipantManager(this, _zkclient, _sessionTimeout, _liveInstanceInfoProvider,
+        new ParticipantManager(this, (ZkClient) _zkclient, _sessionTimeout, _liveInstanceInfoProvider,
             _preConnectCallbacks);
     _participantManager.handleNewSession();
   }

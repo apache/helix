@@ -57,6 +57,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -70,8 +71,8 @@ public class ZkClient implements Watcher {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
   private static long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
 
-  protected final IZkConnection _connection;
-  protected final long _operationRetryTimeoutInMillis;
+  private final IZkConnection _connection;
+  private final long _operationRetryTimeoutInMillis;
   private final Map<String, Set<IZkChildListener>> _childListener =
       new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, Set<IZkDataListenerEntry>> _dataListener =
@@ -86,7 +87,6 @@ public class ZkClient implements Watcher {
   private volatile boolean _closed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
-
 
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
@@ -130,7 +130,6 @@ public class ZkClient implements Watcher {
     }
   }
 
-
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       String monitorInstanceName, boolean monitorRootPathOnly) {
@@ -140,6 +139,7 @@ public class ZkClient implements Watcher {
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
+
     connect(connectionTimeout, this);
 
     // initiate monitor
@@ -510,7 +510,7 @@ public class ZkClient implements Watcher {
       String actualPath = retryUntilConnected(new Callable<String>() {
         @Override
         public String call() throws Exception {
-          return _connection.create(path, data, acl, mode);
+          return getConnection().create(path, data, acl, mode);
         }
       });
       record(path, data, startT, ZkClientMonitor.AccessType.WRITE);
@@ -695,7 +695,7 @@ public class ZkClient implements Watcher {
       List<String> children = retryUntilConnected(new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {
-          return _connection.getChildren(path, watch);
+          return getConnection().getChildren(path, watch);
         }
       });
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
@@ -737,7 +737,7 @@ public class ZkClient implements Watcher {
       boolean exists = retryUntilConnected(new Callable<Boolean>() {
         @Override
         public Boolean call() throws Exception {
-          return _connection.exists(path, watch);
+          return getConnection().exists(path, watch);
         }
       });
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
@@ -759,7 +759,7 @@ public class ZkClient implements Watcher {
       Stat stat = retryUntilConnected(new Callable<Stat>() {
         @Override
         public Stat call() throws Exception {
-          Stat stat = ((ZkConnection) _connection).getZookeeper().exists(path, false);
+          Stat stat = ((ZkConnection) getConnection()).getZookeeper().exists(path, false);
           return stat;
         }
       });
@@ -776,14 +776,14 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void processStateChanged(WatchedEvent event) {
+  protected void processStateChanged(WatchedEvent event) {
     LOG.info("zookeeper state changed (" + event.getState() + ")");
     setCurrentState(event.getState());
     if (getShutdownTrigger()) {
       return;
     }
     fireStateChangedEvent(event.getState());
-    if (event.getState() == KeeperState.Expired) {
+    if (isManagingZkConnection() && event.getState() == KeeperState.Expired) {
       reconnectOnExpiring();
     }
   }
@@ -794,7 +794,7 @@ public class ZkClient implements Watcher {
         new ExponentialBackoffStrategy(MAX_RECONNECT_INTERVAL_MS, true);
 
     Exception reconnectException = new ZkException("Shutdown triggered.");
-    while (!_closed) {
+    while (!isClosed()) {
       try {
         reconnect();
         fireNewSessionEvents();
@@ -820,6 +820,19 @@ public class ZkClient implements Watcher {
     fireSessionEstablishmentError(reconnectException);
   }
 
+  private void reconnect() {
+    getEventLock().lock();
+    try {
+      IZkConnection connection = getConnection();
+      connection.close();
+      connection.connect(this);
+    } catch (InterruptedException e) {
+      throw new ZkInterruptedException(e);
+    } finally {
+      getEventLock().unlock();
+    }
+  }
+
   private void fireNewSessionEvents() {
     for (final IZkStateListener stateListener : _stateListener) {
       _eventThread.send(new ZkEvent("New session event sent to " + stateListener) {
@@ -831,7 +844,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void fireStateChangedEvent(final KeeperState state) {
+  protected void fireStateChangedEvent(final KeeperState state) {
     for (final IZkStateListener stateListener : _stateListener) {
       _eventThread.send(new ZkEvent("State changed to " + state + " sent to " + stateListener) {
 
@@ -1073,7 +1086,7 @@ public class ZkClient implements Watcher {
     }
     final long operationStartTime = System.currentTimeMillis();
     while (true) {
-      if (_closed) {
+      if (isClosed()) {
         throw new IllegalStateException("ZkClient already closed!");
       }
       try {
@@ -1147,7 +1160,7 @@ public class ZkClient implements Watcher {
 
           @Override
           public Object call() throws Exception {
-            _connection.delete(path);
+            getConnection().delete(path);
             return null;
           }
         });
@@ -1226,7 +1239,7 @@ public class ZkClient implements Watcher {
       data = retryUntilConnected(new Callable<byte[]>() {
 
         @Override public byte[] call() throws Exception {
-          return _connection.readData(path, stat, watch);
+          return getConnection().readData(path, stat, watch);
         }
       });
       record(path, data, startT, ZkClientMonitor.AccessType.READ);
@@ -1299,7 +1312,7 @@ public class ZkClient implements Watcher {
       checkDataSizeLimit(data);
       final Stat stat = (Stat) retryUntilConnected(new Callable<Object>() {
         @Override public Object call() throws Exception {
-          return _connection.writeDataReturnStat(path, data, expectedVersion);
+          return getConnection().writeDataReturnStat(path, data, expectedVersion);
         }
       });
       record(path, data, startT, ZkClientMonitor.AccessType.WRITE);
@@ -1326,7 +1339,7 @@ public class ZkClient implements Watcher {
     final byte[] data = (datat == null ? null : serialize(datat, path));
     retryUntilConnected(new Callable<Object>() {
       @Override public Object call() throws Exception {
-        ((ZkConnection) _connection).getZookeeper().create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        ((ZkConnection) getConnection()).getZookeeper().create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
             // Arrays.asList(DEFAULT_ACL),
             mode, cb, new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
                 data == null ? 0 : data.length, false));
@@ -1342,7 +1355,7 @@ public class ZkClient implements Watcher {
     final byte[] data = serialize(datat, path);
     retryUntilConnected(new Callable<Object>() {
       @Override public Object call() throws Exception {
-        ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb,
+        ((ZkConnection) getConnection()).getZookeeper().setData(path, data, version, cb,
             new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
                 data == null ? 0 : data.length, false));
         return null;
@@ -1354,7 +1367,7 @@ public class ZkClient implements Watcher {
     final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
       @Override public Object call() throws Exception {
-        ((ZkConnection) _connection).getZookeeper().getData(path, null, cb,
+        ((ZkConnection) getConnection()).getZookeeper().getData(path, null, cb,
             new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, true));
         return null;
       }
@@ -1365,7 +1378,7 @@ public class ZkClient implements Watcher {
     final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
       @Override public Object call() throws Exception {
-        ((ZkConnection) _connection).getZookeeper().exists(path, null, cb,
+        ((ZkConnection) getConnection()).getZookeeper().exists(path, null, cb,
             new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, true));
         return null;
       }
@@ -1376,7 +1389,7 @@ public class ZkClient implements Watcher {
     final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
       @Override public Object call() throws Exception {
-        ((ZkConnection) _connection).getZookeeper().delete(path, -1, cb,
+        ((ZkConnection) getConnection()).getZookeeper().delete(path, -1, cb,
             new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, false));
         return null;
       }
@@ -1394,7 +1407,7 @@ public class ZkClient implements Watcher {
   public void watchForData(final String path) {
     retryUntilConnected(new Callable<Object>() {
       @Override public Object call() throws Exception {
-        _connection.exists(path, true);
+        getConnection().exists(path, true);
         return null;
       }
     });
@@ -1433,7 +1446,7 @@ public class ZkClient implements Watcher {
   public void addAuthInfo(final String scheme, final byte[] auth) {
     retryUntilConnected(new Callable<Object>() {
       @Override public Object call() throws Exception {
-        _connection.addAuthInfo(scheme, auth);
+        getConnection().addAuthInfo(scheme, auth);
         return null;
       }
     });
@@ -1453,22 +1466,34 @@ public class ZkClient implements Watcher {
    */
   public void connect(final long maxMsToWaitUntilConnected, Watcher watcher)
       throws ZkInterruptedException, ZkTimeoutException, IllegalStateException {
-    if (_closed) {
+    if (isClosed()) {
       throw new IllegalStateException("ZkClient already closed!");
     }
     boolean started = false;
     acquireEventLock();
     try {
       setShutdownTrigger(false);
-      _eventThread = new ZkEventThread(_connection.getServers());
-      _eventThread.start();
-      _connection.connect(watcher);
 
-      LOG.debug("Awaiting connection to Zookeeper server");
-      if (!waitUntilConnected(maxMsToWaitUntilConnected, TimeUnit.MILLISECONDS)) {
-        throw new ZkTimeoutException(
-            "Unable to connect to zookeeper server within timeout: " + maxMsToWaitUntilConnected);
+      IZkConnection zkConnection = getConnection();
+      _eventThread = new ZkEventThread(zkConnection.getServers());
+      _eventThread.start();
+
+      if (isManagingZkConnection()) {
+        zkConnection.connect(watcher);
+        LOG.debug("Awaiting connection to Zookeeper server");
+        if (!waitUntilConnected(maxMsToWaitUntilConnected, TimeUnit.MILLISECONDS)) {
+          throw new ZkTimeoutException(
+              "Unable to connect to zookeeper server within timeout: " + maxMsToWaitUntilConnected);
+        }
+      } else {
+        // if the client is not managing connection, the input connection is supposed to connect.
+        if (isConnectionClosed()) {
+          throw new HelixException(
+              "Unable to connect to zookeeper server with the specified ZkConnection");
+        }
+        setCurrentState(KeeperState.SyncConnected);
       }
+
       started = true;
     } finally {
       getEventLock().unlock();
@@ -1484,7 +1509,7 @@ public class ZkClient implements Watcher {
   public long getCreationTime(String path) {
     acquireEventLock();
     try {
-      return _connection.getCreateTime(path);
+      return getConnection().getCreateTime(path);
     } catch (KeeperException e) {
       throw ZkException.create(e);
     } catch (InterruptedException e) {
@@ -1495,7 +1520,7 @@ public class ZkClient implements Watcher {
   }
 
   public String getServers() {
-    return _connection.getServers();
+    return getConnection().getServers();
   }
 
   /**
@@ -1509,15 +1534,18 @@ public class ZkClient implements Watcher {
       LOG.trace("closing a zkclient. callStack: " + Arrays.asList(calls));
     }
     getEventLock().lock();
+    IZkConnection connection = getConnection();
     try {
-      if (_connection == null || _closed) {
+      if (connection == null || _closed) {
         return;
       }
-      LOG.info("Closing zkclient: " + ((ZkConnection) _connection).getZookeeper());
       setShutdownTrigger(true);
       _eventThread.interrupt();
       _eventThread.join(2000);
-      _connection.close();
+      if (isManagingZkConnection()) {
+        LOG.info("Closing zkclient: " + ((ZkConnection) connection).getZookeeper());
+        connection.close();
+      }
       _closed = true;
 
       // send state change notification to unlock any wait
@@ -1529,7 +1557,7 @@ public class ZkClient implements Watcher {
        * Workaround for HELIX-264: calling ZkClient#close() in its own eventThread context will
        * throw ZkInterruptedException and skip ZkConnection#close()
        */
-      if (_connection != null) {
+      if (connection != null) {
         try {
           /**
            * ZkInterruptedException#construct() honors InterruptedException by calling
@@ -1537,7 +1565,9 @@ public class ZkClient implements Watcher {
            * zk-connection
            */
           Thread.interrupted();
-          _connection.close();
+          if (isManagingZkConnection()) {
+            connection.close();
+          }
           /**
            * restore interrupted status of current thread
            */
@@ -1556,24 +1586,18 @@ public class ZkClient implements Watcher {
   }
 
   public boolean isClosed() {
-    return _closed;
-  }
-
-  public boolean isConnectionClosed() {
-    return (_connection == null || _connection.getZookeeperState() == null ||
-        !_connection.getZookeeperState().isAlive());
-  }
-
-  private void reconnect() {
-    getEventLock().lock();
     try {
-      _connection.close();
-      _connection.connect(this);
-    } catch (InterruptedException e) {
-      throw new ZkInterruptedException(e);
+      getEventLock().lock();
+      return _closed;
     } finally {
       getEventLock().unlock();
     }
+  }
+
+  public boolean isConnectionClosed() {
+    IZkConnection connection = getConnection();
+    return (connection == null || connection.getZookeeperState() == null ||
+        !connection.getZookeeperState().isAlive());
   }
 
   public void setShutdownTrigger(boolean triggerState) {
@@ -1605,9 +1629,27 @@ public class ZkClient implements Watcher {
     return retryUntilConnected(new Callable<List<OpResult>>() {
 
       @Override public List<OpResult> call() throws Exception {
-        return _connection.multi(ops);
+        return getConnection().multi(ops);
       }
     });
+  }
+
+  /**
+   * @return true if this ZkClient is managing the ZkConnection.
+   */
+  protected boolean isManagingZkConnection() {
+    return true;
+  }
+
+  public long getSessionId() {
+    ZkConnection zkConnection = ((ZkConnection) getConnection());
+    ZooKeeper zk = zkConnection.getZookeeper();
+    if (zk == null) {
+      throw new HelixException(
+          "ZooKeeper connection information is not available now. ZkClient might be disconnected.");
+    } else {
+      return zkConnection.getZookeeper().getSessionId();
+    }
   }
 
   // operations to update monitor's counters

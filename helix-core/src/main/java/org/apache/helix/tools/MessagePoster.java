@@ -24,15 +24,17 @@ import java.util.UUID;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.Message;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 
 public class MessagePoster {
   public void post(String zkServer, Message message, String clusterName, String instanceName) {
-    ZkClient client = new ZkClient(zkServer);
+    HelixZkClient client = SharedZkClientFactory.getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(
+        zkServer));
     client.setZkSerializer(new ZNRecordSerializer());
     String path = PropertyPathBuilder.instanceMessage(clusterName, instanceName, message.getId());
     client.delete(path);

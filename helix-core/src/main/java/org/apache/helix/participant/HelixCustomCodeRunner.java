@@ -31,7 +31,8 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.slf4j.Logger;
@@ -129,14 +130,15 @@ public class HelixCustomCodeRunner {
 
     StateMachineEngine stateMach = _manager.getStateMachineEngine();
     stateMach.registerStateModelFactory(LEADER_STANDBY, _stateModelFty, _resourceName);
-    ZkClient zkClient = null;
+    HelixZkClient zkClient = null;
     try {
       // manually add ideal state for participant leader using LeaderStandby
       // model
+      HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+      clientConfig.setZkSerializer(new ZNRecordSerializer());
+      zkClient = SharedZkClientFactory
+          .getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
 
-      zkClient =
-          new ZkClient(_zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
-              ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
       HelixDataAccessor accessor =
           new ZKHelixDataAccessor(_manager.getClusterName(), new ZkBaseDataAccessor<ZNRecord>(
               zkClient));
@@ -161,9 +163,7 @@ public class HelixCustomCodeRunner {
       LOG.info("Set idealState for participantLeader:" + _resourceName + ", idealState:"
           + idealState);
     } finally {
-      if (zkClient != null && zkClient.getConnection() != null)
-
-      {
+      if (zkClient != null && !zkClient.isClosed()) {
         zkClient.close();
       }
     }

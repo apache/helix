@@ -32,6 +32,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.zookeeper.WatchedEvent;
@@ -94,7 +95,7 @@ public class TestZkReconnect {
       // 1. shutdown zkServer and check if handler trigger callback
       zkServer.shutdown();
       // Simulate a retry in ZkClient that will not succeed
-      injectExpire(controller._zkclient);
+      injectExpire((ZkClient) controller._zkclient);
       Assert.assertFalse(controller._zkclient.waitUntilConnected(5000, TimeUnit.MILLISECONDS));
       // While retrying, onDisconnectedFlag = false
       Assert.assertFalse(onDisconnectedFlag.get());
@@ -102,7 +103,7 @@ public class TestZkReconnect {
       // 2. restart zkServer and check if handler will recover connection
       zkServer.start();
       Assert.assertTrue(controller._zkclient
-          .waitUntilConnected(ZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS));
+          .waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS));
       Assert.assertTrue(controller.isConnected());
 
       // New propertyStore should be in good state

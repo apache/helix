@@ -28,6 +28,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.CreateMode;
@@ -40,7 +41,7 @@ public final class ZKUtil {
   private ZKUtil() {
   }
 
-  public static boolean isClusterSetup(String clusterName, ZkClient zkClient) {
+  public static boolean isClusterSetup(String clusterName, HelixZkClient zkClient) {
     if (clusterName == null) {
       logger.info("Fail to check cluster setup : cluster name is null!");
       return false;
@@ -86,7 +87,7 @@ public final class ZKUtil {
     return isValid;
   }
 
-  public static boolean isInstanceSetup(ZkClient zkclient, String clusterName, String instanceName,
+  public static boolean isInstanceSetup(HelixZkClient zkclient, String clusterName, String instanceName,
       InstanceType type) {
     if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT) {
       ArrayList<String> requiredPaths = new ArrayList<>();
@@ -119,7 +120,7 @@ public final class ZKUtil {
     return true;
   }
 
-  public static void createChildren(ZkClient client, String parentPath, List<ZNRecord> list) {
+  public static void createChildren(HelixZkClient client, String parentPath, List<ZNRecord> list) {
     client.createPersistent(parentPath, true);
     if (list != null) {
       for (ZNRecord record : list) {
@@ -128,7 +129,7 @@ public final class ZKUtil {
     }
   }
 
-  public static void createChildren(ZkClient client, String parentPath, ZNRecord nodeRecord) {
+  public static void createChildren(HelixZkClient client, String parentPath, ZNRecord nodeRecord) {
     client.createPersistent(parentPath, true);
 
     String id = nodeRecord.getId();
@@ -136,7 +137,7 @@ public final class ZKUtil {
     client.createPersistent(temp, nodeRecord);
   }
 
-  public static void dropChildren(ZkClient client, String parentPath, List<ZNRecord> list) {
+  public static void dropChildren(HelixZkClient client, String parentPath, List<ZNRecord> list) {
     // TODO: check if parentPath exists
     if (list != null) {
       for (ZNRecord record : list) {
@@ -145,14 +146,14 @@ public final class ZKUtil {
     }
   }
 
-  public static void dropChildren(ZkClient client, String parentPath, ZNRecord nodeRecord) {
+  public static void dropChildren(HelixZkClient client, String parentPath, ZNRecord nodeRecord) {
     // TODO: check if parentPath exists
     String id = nodeRecord.getId();
     String temp = parentPath + "/" + id;
     client.deleteRecursively(temp);
   }
 
-  public static List<ZNRecord> getChildren(ZkClient client, String path) {
+  public static List<ZNRecord> getChildren(HelixZkClient client, String path) {
     // parent watch will be set by zkClient
     List<String> children = client.getChildren(path);
     if (children == null || children.size() == 0) {
@@ -174,7 +175,7 @@ public final class ZKUtil {
     return childRecords;
   }
 
-  public static void updateIfExists(ZkClient client, String path, final ZNRecord record,
+  public static void updateIfExists(HelixZkClient client, String path, final ZNRecord record,
       boolean mergeOnUpdate) {
     if (client.exists(path)) {
       DataUpdater<Object> updater = new DataUpdater<Object>() {
@@ -187,7 +188,7 @@ public final class ZKUtil {
     }
   }
 
-  public static void createOrMerge(ZkClient client, String path, final ZNRecord record,
+  public static void createOrMerge(HelixZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     int retryCount = 0;
     while (retryCount < RETRYLIMIT) {
@@ -223,7 +224,7 @@ public final class ZKUtil {
     }
   }
 
-  public static void createOrUpdate(ZkClient client, String path, final ZNRecord record,
+  public static void createOrUpdate(HelixZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     int retryCount = 0;
     while (retryCount < RETRYLIMIT) {
@@ -252,7 +253,7 @@ public final class ZKUtil {
     }
   }
 
-  public static void asyncCreateOrMerge(ZkClient client, String path, final ZNRecord record,
+  public static void asyncCreateOrMerge(HelixZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     try {
       if (client.exists(path)) {
@@ -287,7 +288,7 @@ public final class ZKUtil {
     }
   }
 
-  public static void createOrReplace(ZkClient client, String path, final ZNRecord record,
+  public static void createOrReplace(HelixZkClient client, String path, final ZNRecord record,
       final boolean persistent) {
     int retryCount = 0;
     while (retryCount < RETRYLIMIT) {
@@ -313,7 +314,7 @@ public final class ZKUtil {
     }
   }
 
-  public static void subtract(ZkClient client, String path, final ZNRecord recordTosubtract) {
+  public static void subtract(HelixZkClient client, String path, final ZNRecord recordTosubtract) {
     int retryCount = 0;
     while (retryCount < RETRYLIMIT) {
       try {

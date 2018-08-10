@@ -50,8 +50,8 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZkClient extends ZkUnitTestBase {
-  private static Logger LOG = LoggerFactory.getLogger(TestZkClient.class);
+public class TestRawZkClient extends ZkUnitTestBase {
+  private static Logger LOG = LoggerFactory.getLogger(TestRawZkClient.class);
 
   ZkClient _zkClient;
 

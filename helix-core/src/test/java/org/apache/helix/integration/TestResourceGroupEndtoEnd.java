@@ -427,7 +427,7 @@ public class TestResourceGroupEndtoEnd extends ZkTestBase {
 
     @Override
     public ZkClient getZkClient() {
-      return _zkclient;
+      return (ZkClient) _zkclient;
     }
 
     @Override

@@ -57,6 +57,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.DedupEventProcessor;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -94,7 +95,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private final Set<EventType> _eventTypes;
   private final HelixDataAccessor _accessor;
   private final ChangeType _changeType;
-  private final ZkClient _zkClient;
+  private final HelixZkClient _zkClient;
   private final AtomicLong _lastNotificationTimeStamp;
   private final HelixManager _manager;
   private final PropertyKey _propertyKey;
@@ -178,14 +179,22 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    */
   private List<NotificationContext.Type> _expectTypes = nextNotificationType.get(Type.FINALIZE);
 
+  @Deprecated
   public CallbackHandler(HelixManager manager, ZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType) {
     this(manager, client, propertyKey, listener, eventTypes, changeType, null);
   }
 
+  @Deprecated
   public CallbackHandler(HelixManager manager, ZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType,
       HelixCallbackMonitor monitor) {
+    this(manager, (HelixZkClient) client, propertyKey, listener, eventTypes, changeType, monitor);
+  }
+
+  public CallbackHandler(HelixManager manager, HelixZkClient client, PropertyKey propertyKey,
+        Object listener, EventType[] eventTypes, ChangeType changeType,
+        HelixCallbackMonitor monitor) {
     if (listener == null) {
       throw new HelixException("listener could not be null");
     }

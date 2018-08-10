@@ -38,14 +38,15 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.helix.manager.zk.ByteArraySerializer;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 
 /**
  * Dumps the Zookeeper file structure on to Disk
  */
 @SuppressWarnings("static-access")
 public class ZKDumper {
-  private ZkClient client;
+  private HelixZkClient client;
   private FilenameFilter filter;
   static Options options;
   private String suffix = "";
@@ -110,7 +111,8 @@ public class ZKDumper {
   }
 
   public ZKDumper(String zkAddress) {
-    client = new ZkClient(zkAddress, ZkClient.DEFAULT_CONNECTION_TIMEOUT);
+    client = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress));
 
     ZkSerializer zkSerializer = new ByteArraySerializer();
     client.setZkSerializer(zkSerializer);

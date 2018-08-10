@@ -24,17 +24,36 @@ import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.HelixException;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
- * This is a wrapper of {@link org.apache.helix.manager.zk.zookeeper.ZkClient},
+ * Raw ZkClient that wraps {@link org.apache.helix.manager.zk.zookeeper.ZkClient},
  * with additional constructors and builder.
  *
- * // TODO: we will need to merge two ZkClient into just one class.
+ * Note that, instead of directly constructing a raw ZkClient, applications should always use
+ * HelixZkClientFactory to build shared or dedicated HelixZkClient instances.
+ * Only constructing a raw ZkClient when advanced usage is required.
+ * For example, application need to access/manage ZkConnection directly.
+ *
+ * Both SharedZKClient and DedicatedZkClient are built based on the raw ZkClient. As shown below.
+ *                ----------------------------
+ *               |                            |
+ *     ---------------------                  |
+ *    |                     |                 | *implements
+ *  SharedZkClient  DedicatedZkClient           ----> HelixZkClient Interface
+ *    |                     |                 |
+ *     ---------------------                  |
+ *               |                            |
+ *           Raw ZkClient (this class)--------
+ *               |
+ *         Native ZkClient
+ *
+ * TODO Completely replace usage of the raw ZkClient within helix-core. Instead, using HelixZkClient. --JJ
  */
-public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient {
+
+public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient implements HelixZkClient {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
 
   public static final int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;

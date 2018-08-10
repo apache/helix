@@ -30,9 +30,27 @@ import org.apache.helix.view.dataprovider.SourceClusterDataProvider;
 
 public class MockSourceClusterDataProvider extends SourceClusterDataProvider {
 
+  static class MockExternalViewCache extends ExternalViewCache {
+
+    public MockExternalViewCache(String clusterName) {
+      super(clusterName);
+    }
+
+    public void setExternalView(List<ExternalView> externalViews) {
+      Map<String, ExternalView> evMap = new HashMap<>();
+      for (ExternalView ev : externalViews) {
+        evMap.put(ev.getId(), ev);
+      }
+      // Set _externalViewMap instead of _externalViewCache as we serve ExternalViewCache
+      // APIs using data inside the map
+      _externalViewMap = evMap;
+    }
+  }
+
   public MockSourceClusterDataProvider(ViewClusterSourceConfig config,
       ClusterEventProcessor processor) {
     super(config, processor);
+    _externalViewCache = new MockExternalViewCache("Test");
   }
 
   @Override
@@ -80,5 +98,6 @@ public class MockSourceClusterDataProvider extends SourceClusterDataProvider {
     for (ExternalView ev : externalViewList) {
       _externalViewMap.put(ev.getResourceName(), ev);
     }
+    ((MockExternalViewCache) _externalViewCache).setExternalView(externalViewList);
   }
 }

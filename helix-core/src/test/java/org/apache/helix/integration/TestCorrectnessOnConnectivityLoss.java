@@ -44,7 +44,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestCorrectnessOnConnectivityLoss {
-  private static final String ZK_ADDR = "localhost:2189";
+  private static final String ZK_ADDR = "localhost:21892";
   private ZkServer _zkServer;
   private String _clusterName;
   private ClusterControllerManager _controller;

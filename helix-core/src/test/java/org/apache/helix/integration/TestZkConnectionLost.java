@@ -38,7 +38,7 @@ public class TestZkConnectionLost extends TaskTestBase {
 
   private final AtomicReference<ZkServer> _zkServerRef = new AtomicReference<>();
 
-  private String _zkAddr = "localhost:2189";
+  private String _zkAddr = "localhost:21893";
   ClusterSetup _setupTool;
   ZkClient _zkClient;
 
@@ -75,7 +75,7 @@ public class TestZkConnectionLost extends TaskTestBase {
       _manager.disconnect();
     }
     stopParticipants();
-    
+
     TestHelper.dropCluster(CLUSTER_NAME, _zkClient, _setupTool);
 
     _zkClient.close();

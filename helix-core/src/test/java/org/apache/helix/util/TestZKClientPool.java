@@ -35,7 +35,7 @@ public class TestZKClientPool {
     String testName = "TestZKClientPool";
     System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
-    String zkAddr = "localhost:2189";
+    String zkAddr = "localhost:21891";
     ZkServer zkServer = TestHelper.startZkServer(zkAddr);
     ZkClient zkClient = ZKClientPool.getZkClient(zkAddr);
 

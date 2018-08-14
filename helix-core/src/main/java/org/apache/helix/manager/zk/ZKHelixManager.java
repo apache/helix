@@ -681,7 +681,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public void disconnect() {
-    if (_zkclient == null && _zkclient.isClosed()) {
+    if (_zkclient == null || _zkclient.isClosed()) {
       LOG.info("instanceName: " + _instanceName + " already disconnected");
       return;
     }

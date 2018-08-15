@@ -8,6 +8,7 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.Rebalancer;
+import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
@@ -131,13 +132,15 @@ public class TaskSchedulingStage extends AbstractBaseStage {
                 + resourceName);
       }
     } else {
-      return false;
+      // Create dummy rebalancer for dropping existing current states
+      rebalancer = new SemiAutoRebalancer();
     }
 
-    TaskRebalancer taskRebalancer = TaskRebalancer.class.cast(rebalancer);
-    taskRebalancer.setClusterStatusMonitor(
-        (ClusterStatusMonitor) event.getAttribute(AttributeName.clusterStatusMonitor.name()));
-
+    if (rebalancer instanceof TaskRebalancer) {
+      TaskRebalancer taskRebalancer = TaskRebalancer.class.cast(rebalancer);
+      taskRebalancer.setClusterStatusMonitor(
+          (ClusterStatusMonitor) event.getAttribute(AttributeName.clusterStatusMonitor.name()));
+    }
     ResourceAssignment partitionStateAssignment = null;
     try {
       HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());

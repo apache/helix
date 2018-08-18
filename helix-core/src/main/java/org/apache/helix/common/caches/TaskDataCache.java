@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
@@ -51,7 +52,7 @@ public class TaskDataCache extends AbstractDataCache {
 
   private String _clusterName;
   private Map<String, JobConfig> _jobConfigMap = new HashMap<>();
-  private Map<String, WorkflowConfig> _workflowConfigMap = new HashMap<>();
+  private Map<String, WorkflowConfig> _workflowConfigMap = new ConcurrentHashMap<>();
   private Map<String, ZNRecord> _contextMap = new HashMap<>();
   // The following fields have been added for quota-based task scheduling
   private final AssignableInstanceManager _assignableInstanceManager = new AssignableInstanceManager();

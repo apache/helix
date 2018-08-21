@@ -160,16 +160,18 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       int offlineCount = cache.getAllInstances().size() - cache.getEnabledLiveInstances().size();
       if (offlineCount > maxOfflineInstancesAllowed) {
         String errMsg = String.format(
-            "Offline Instances count %d greater than allowed count %d. Stop rebalance pipeline and pause the cluster %s",
+            "Offline Instances count %d greater than allowed count %d. Stop rebalance and put the cluster %s into maintenance mode.",
             offlineCount, maxOfflineInstancesAllowed, cache.getClusterName());
         if (manager != null) {
           if (manager.getHelixDataAccessor()
               .getProperty(manager.getHelixDataAccessor().keyBuilder().maintenance()) == null) {
             manager.getClusterManagmentTool()
                 .enableMaintenanceMode(manager.getClusterName(), true, errMsg);
+            LogUtil.logWarn(logger, _eventId, errMsg);
           }
         } else {
-          LogUtil.logError(logger, _eventId, "Failed to pause cluster, HelixManager is not set!");
+          LogUtil.logError(logger, _eventId, "Failed to put cluster " + cache.getClusterName()
+              + " into maintenance mode, HelixManager is not set!");
         }
         if (!cache.isTaskCache()) {
           updateRebalanceStatus(true, manager, cache, clusterStatusMonitor, errMsg);

@@ -199,11 +199,12 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
             String errMsg = String.format(
                 "Problem: according to this assignment, instance %s contains more "
                     + "replicas/partitions than the maximum number allowed (%d). Pipeline will "
-                    + "stop the rebalance and pause the cluster %s",
+                    + "stop the rebalance and put the cluster %s into maintenance mode",
                 instance, maxPartitionPerInstance, cache.getClusterName());
             if (manager != null) {
               manager.getClusterManagmentTool().enableMaintenanceMode(manager.getClusterName(),
                   true, errMsg);
+              LogUtil.logWarn(logger, _eventId, errMsg);
             } else {
               LogUtil.logError(logger, _eventId,
                   "HelixManager is not set/null! Failed to pause this cluster/enable maintenance"

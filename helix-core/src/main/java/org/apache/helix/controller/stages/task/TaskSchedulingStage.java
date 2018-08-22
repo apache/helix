@@ -134,6 +134,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     } else {
       // Create dummy rebalancer for dropping existing current states
       rebalancer = new SemiAutoRebalancer();
+      mappingCalculator = new SemiAutoRebalancer();
     }
 
     if (rebalancer instanceof TaskRebalancer) {

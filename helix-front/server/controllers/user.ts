@@ -14,24 +14,20 @@ export class UserCtrl {
     router.route('/user/can').get(this.can);
   }
 
-  // please rewrite this function to support your own authorization logic
   protected authorize(req: Request, res: Response) {
-    if (req.query.name) {
-      // since it's bypass mode, skip admin check
-      req.session.username = req.query.name;
 
-      if (req.query.url) {
-        res.redirect(req.query.url);
-      } else {
-        res.redirect('/');
-      }
+    // you can rewrite this function to support your own authorization logic
+    // by default, doing nothing but redirection
+
+    if (req.query.url) {
+      res.redirect(req.query.url);
     } else {
-      res.status(401).send('Unauthorized');
+      res.redirect('/');
     }
   }
 
   protected current(req: Request, res: Response) {
-    res.json(req.session.username || 'Guest');
+    res.json(req.session.username || 'Sign In');
   }
 
   protected can(req: Request, res: Response) {

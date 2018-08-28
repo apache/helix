@@ -530,18 +530,27 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * sync remove
+   * Sync remove. it tries to remove the ZNode and all its descendants if any, node does not exist
+   * is regarded as success
    */
   @Override
   public boolean remove(String path, int options) {
     try {
-      // optimize on common path
-      return _zkClient.delete(path);
+      // operation will not throw exception  when path successfully deleted or does not exist
+      // despite real error, operation will throw exception when path not empty, and in this
+      // case, we try to delete recursively
+      _zkClient.delete(path);
     } catch (ZkException e) {
-      LOG.warn(String.format("Caught exception when deleting %s with options %s.", path, options),
-          e);
-      return _zkClient.deleteRecursive(path);
+      LOG.debug("Failed to delete {} with opts {}, err: {}. Try recursive delete", path, options,
+          e.getMessage());
+      try {
+        _zkClient.deleteRecursively(path);
+      } catch (HelixException he) {
+        LOG.error("Failed to delete {} recursively with opts {}.", path, options, he);
+        return false;
+      }
     }
+    return true;
   }
 
   /**

@@ -243,8 +243,9 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     ZNRecord record = new ZNRecord("msg_0");
     ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
+    // Base data accessor shall not fail when remove a non-exist path
     boolean success = accessor.remove(path, 0);
-    Assert.assertFalse(success);
+    Assert.assertTrue(success);
 
     success = accessor.create(path, record, AccessOption.PERSISTENT);
     Assert.assertTrue(success);

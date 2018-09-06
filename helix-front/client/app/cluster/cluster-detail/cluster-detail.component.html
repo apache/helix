@@ -3,6 +3,7 @@
     <mat-toolbar-row>
       <hi-detail-header [cluster]="clusterName"></hi-detail-header>
       <hi-disabled-label *ngIf="!cluster?.enabled" text="DISABLED"></hi-disabled-label>
+      <hi-disabled-label *ngIf="cluster?.inMaintenance" text="In Maintenance Mode"></hi-disabled-label>
     </mat-toolbar-row>
     <mat-toolbar-row class="information">
       <mat-spinner *ngIf="isLoading" diameter="30"></mat-spinner>
@@ -17,6 +18,14 @@
         <button mat-menu-item *ngIf="cluster?.controller == 'No Lead Controller!'" (click)="activateCluster()">
           <mat-icon>settings_input_antenna</mat-icon>
           <span>Activate this Cluster</span>
+        </button>
+        <button mat-menu-item *ngIf="!cluster?.inMaintenance" (click)="enableMaintenanceMode()">
+          <mat-icon>music_off</mat-icon>
+          <span>Enable maintenance mode</span>
+        </button>
+        <button mat-menu-item *ngIf="cluster?.inMaintenance" (click)="disableMaintenanceMode()">
+          <mat-icon>music_note</mat-icon>
+          <span>Disable maintenance mode</span>
         </button>
         <button mat-menu-item *ngIf="cluster?.enabled" (click)="disableCluster()">
           <mat-icon>not_interested</mat-icon>

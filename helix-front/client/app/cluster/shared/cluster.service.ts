@@ -49,4 +49,16 @@ export class ClusterService extends HelixService {
     return this
       .post(`/clusters/${ name }?command=activate&superCluster=${ superCluster }`, null);
   }
+
+  public enableMaintenanceMode(name: string, reason: string) {
+    return this
+      .post(`/clusters/${ name }?command=enableMaintenanceMode`, JSON.stringify({
+        reason: reason
+      }));
+  }
+
+  public disableMaintenanceMode(name: string) {
+    return this
+      .post(`/clusters/${ name }?command=disableMaintenanceMode`, null);
+  }
 }

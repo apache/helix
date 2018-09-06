@@ -6,6 +6,7 @@ export class Cluster {
   readonly controller: string;
   readonly enabled: boolean;
   readonly instances: Instance[];
+  readonly inMaintenance: boolean;
 
   // TODO vxu: Resources are useless here. Remove it please.
   readonly resources: string[];
@@ -20,6 +21,7 @@ export class Cluster {
     this.controller = obj.controller;
     this.enabled = !obj.paused;
     this.resources = obj.resources;
+    this.inMaintenance = obj.maintenance;
 
     let ins: Instance[] = [];
     for (let instance of obj.instances) {

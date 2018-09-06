@@ -156,6 +156,41 @@ export class ClusterDetailComponent implements OnInit {
       });
   }
 
+  enableMaintenanceMode() {
+    this.dialog
+      .open(InputDialogComponent, {
+        data: {
+          title: 'Enable maintenance mode',
+          message: 'What reason do you want to use to put the cluster in maintenance mode?',
+          values: {
+            reason: {
+              label: 'reason'
+            }
+          }
+        }
+      })
+      .afterClosed()
+      .subscribe(result => {
+        if (result && result.reason.value) {
+          this.clusterService
+            .enableMaintenanceMode(this.clusterName, result.reason.value)
+            .subscribe(
+              () => this.loadCluster(),
+              error => this.helperService.showError(error)
+            );
+        }
+      });
+  }
+
+  disableMaintenanceMode() {
+    this.clusterService
+      .disableMaintenanceMode(this.clusterName)
+      .subscribe(
+        () => this.loadCluster(),
+        error => this.helperService.showError(error)
+      );
+  }
+
   deleteCluster() {
     this.helperService
       .showConfirmation('Are you sure you want to delete this cluster?')

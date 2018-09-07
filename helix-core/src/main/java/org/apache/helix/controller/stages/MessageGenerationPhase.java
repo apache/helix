@@ -99,8 +99,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       }
 
       for (Partition partition : resource.getPartitions()) {
-        Map<String, String> instanceStateMap = new HashMap<>(
-            resourcesStateMap.getInstanceStateMap(resourceName, partition));
+        Map<String, String> instanceStateMap =
+            new HashMap<>(resourcesStateMap.getInstanceStateMap(resourceName, partition));
         Map<String, String> pendingStateMap =
             currentStateOutput.getPendingStateMap(resourceName, partition);
 
@@ -114,7 +114,6 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
           }
         }
 
-
         // we should generate message based on the desired-state priority
         // so keep generated messages in a temp map keyed by state
         // desired-state->list of generated-messages
@@ -123,17 +122,17 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
         for (String instanceName : instanceStateMap.keySet()) {
           String desiredState = instanceStateMap.get(instanceName);
 
-          String currentState = currentStateOutput.getCurrentState(resourceName, partition,
-              instanceName);
+          String currentState =
+              currentStateOutput.getCurrentState(resourceName, partition, instanceName);
           if (currentState == null) {
             currentState = stateModelDef.getInitialState();
           }
 
-          Message pendingMessage = currentStateOutput.getPendingMessage(resourceName, partition,
-              instanceName);
+          Message pendingMessage =
+              currentStateOutput.getPendingMessage(resourceName, partition, instanceName);
           boolean isCancellationEnabled = cache.getClusterConfig().isStateTransitionCancelEnabled();
-          Message cancellationMessage = currentStateOutput.getCancellationMessage(resourceName,
-              partition, instanceName);
+          Message cancellationMessage =
+              currentStateOutput.getCancellationMessage(resourceName, partition, instanceName);
           String nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
 
           Message message = null;
@@ -151,7 +150,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
                 .put(pendingMessage.getMsgId(), pendingMessage);
           }
 
-          if (desiredState.equals(NO_DESIRED_STATE) || desiredState.equalsIgnoreCase(currentState)) {
+          if (desiredState.equals(NO_DESIRED_STATE) || desiredState
+              .equalsIgnoreCase(currentState)) {
             if (desiredState.equals(NO_DESIRED_STATE) || pendingMessage != null && !currentState
                 .equalsIgnoreCase(pendingMessage.getToState())) {
               message = createStateTransitionCancellationMessage(manager, resource,
@@ -202,7 +202,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
               if (logger.isDebugEnabled()) {
                 LogUtil.logDebug(logger, _eventId, String.format(
                     "Resource %s partition %s for instance %s with currentState %s and nextState %s",
-                    resource, partition.getPartitionName(), instanceName, currentState, nextState));
+                    resource.getResourceName(), partition.getPartitionName(), instanceName,
+                    currentState, nextState));
               }
             }
           }
@@ -256,19 +257,18 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
 
   /**
    * Start a job in worker pool that asynchronously clean up pending message. Since it is possible
-   * that participant failed to clean up message after processing, it is important for controller
-   * to try to clean them up as well to unblock further rebalance
+   * that participant failed to clean up message after processing, it is important for controller to
+   * try to clean them up as well to unblock further rebalance
    *
    * @param pendingMessagesToPurge key: instance name, value: list of pending message to cleanup
-   * @param workerPool ExecutorService that job can be submitted to
-   * @param accessor Data accessor used to clean up message
+   * @param workerPool             ExecutorService that job can be submitted to
+   * @param accessor               Data accessor used to clean up message
    */
   private void schedulePendingMessageCleanUp(
       final Map<String, Map<String, Message>> pendingMessagesToPurge, ExecutorService workerPool,
       final HelixDataAccessor accessor) {
     workerPool.submit(new Callable<Object>() {
-      @Override
-      public Object call() {
+      @Override public Object call() {
         for (Map.Entry<String, Map<String, Message>> entry : pendingMessagesToPurge.entrySet()) {
           String instanceName = entry.getKey();
           for (Message msg : entry.getValue().values()) {
@@ -302,9 +302,9 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     }
   }
 
-  private Message createStateTransitionMessage(HelixManager manager, Resource resource, String partitionName,
-      String instanceName, String currentState, String nextState, String sessionId,
-      String stateModelDefName) {
+  private Message createStateTransitionMessage(HelixManager manager, Resource resource,
+      String partitionName, String instanceName, String currentState, String nextState,
+      String sessionId, String stateModelDefName) {
     String uuid = UUID.randomUUID().toString();
     Message message = new Message(MessageType.STATE_TRANSITION, uuid);
     message.setSrcName(manager.getInstanceName());
@@ -332,8 +332,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
 
   private Message createStateTransitionCancellationMessage(HelixManager manager, Resource resource,
       String partitionName, String instanceName, String sessionId, String stateModelDefName,
-      String fromState, String toState, String nextState, Message cancellationMessage, boolean isCancellationEnabled,
-      String currentState) {
+      String fromState, String toState, String nextState, Message cancellationMessage,
+      boolean isCancellationEnabled, String currentState) {
 
     if (isCancellationEnabled && cancellationMessage == null) {
       LogUtil.logInfo(logger, _eventId,

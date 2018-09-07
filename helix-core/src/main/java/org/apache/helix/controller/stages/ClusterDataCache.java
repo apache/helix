@@ -181,8 +181,9 @@ public class ClusterDataCache extends AbstractDataCache {
       _propertyDataChangedMap.put(ChangeType.INSTANCE_CONFIG, false);
       clearCachedResourceAssignments();
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs(), true);
-      LogUtil.logInfo(LOG, _eventId, "Reload InstanceConfig: " + _instanceConfigCacheMap.keySet()
-          + " for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
+      LogUtil.logInfo(LOG, _eventId,
+          "Reload InstanceConfig for cluster " + _clusterName + " : " + _instanceConfigCacheMap
+              .keySet() + " for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
     }
 
     if (_propertyDataChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
@@ -190,8 +191,9 @@ public class ClusterDataCache extends AbstractDataCache {
       clearCachedResourceAssignments();
 
       _resourceConfigCacheMap = refreshResourceConfigs(accessor);
-      LogUtil.logInfo(LOG, _eventId, "Reload ResourceConfigs: " + _resourceConfigCacheMap.keySet()
-          + " for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
+      LogUtil.logInfo(LOG, _eventId,
+          "Reload ResourceConfigs for cluster " + _clusterName + " : " + _resourceConfigCacheMap
+              .keySet() + " for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
     }
 
     // This is for targeted jobs' task assignment. It needs to watch for current state changes for
@@ -230,23 +232,11 @@ public class ClusterDataCache extends AbstractDataCache {
       AssignableInstanceManager assignableInstanceManager =
           _taskDataCache.getAssignableInstanceManager();
       // Build from scratch every time
-      assignableInstanceManager.buildAssignableInstances(_clusterConfig, _taskDataCache,
-          _liveInstanceMap, _instanceConfigMap);
-      /**
-       * TODO: (Hunter) Consider this for optimization after fixing the problem of quotas not being
-       * properly released for targeted tasks
-       * if (_existsClusterConfigChange) {
-       * // Update both flags since buildAssignableInstances includes updateAssignableInstances
-       * _existsClusterConfigChange = false;
-       * _existsInstanceChange = false;
-       * assignableInstanceManager.buildAssignableInstances(_clusterConfig, _taskDataCache,
-       * _liveInstanceMap, _instanceConfigMap);
-       * } else if (_existsInstanceChange) {
-       * _existsInstanceChange = false;
-       * assignableInstanceManager.updateAssignableInstances(_clusterConfig, _liveInstanceMap,
-       * _instanceConfigMap);
-       * }
-       **/
+      assignableInstanceManager
+          .buildAssignableInstances(_clusterConfig, _taskDataCache, _liveInstanceMap,
+              _instanceConfigMap);
+      // TODO: (Hunter) Consider this for optimization after fixing the problem of quotas not being
+
       assignableInstanceManager.logQuotaProfileJSON(false);
     }
 

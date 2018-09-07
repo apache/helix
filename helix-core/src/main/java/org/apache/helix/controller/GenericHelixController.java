@@ -199,7 +199,7 @@ public class GenericHelixController implements IdealStateChangeListener,
         forceRebalance(_manager, _clusterEventType);
       } catch (Throwable ex) {
         logger.error("Time task failed. Rebalance task type: " + _clusterEventType + ", cluster: "
-            + _clusterName);
+            + _clusterName, ex);
       }
     }
   }
@@ -208,7 +208,8 @@ public class GenericHelixController implements IdealStateChangeListener,
   private void forceRebalance(HelixManager manager, ClusterEventType eventType) {
     NotificationContext changeContext = new NotificationContext(manager);
     changeContext.setType(NotificationContext.Type.CALLBACK);
-    ClusterEvent event = new ClusterEvent(_clusterName, eventType);
+    String uid = UUID.randomUUID().toString().substring(0, 8);
+    ClusterEvent event = new ClusterEvent(_clusterName, eventType, uid);
     event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
     event.addAttribute(AttributeName.changeContext.name(), changeContext);
     event.addAttribute(AttributeName.eventData.name(), new ArrayList<>());
@@ -217,7 +218,9 @@ public class GenericHelixController implements IdealStateChangeListener,
     _taskEventQueue.put(event);
     _eventQueue.put(event);
 
-    logger.info("Controller rebalance event triggered with event type: " + eventType);
+    logger.info(String
+        .format("Controller rebalance event triggered with event type: %s for cluster %s",
+            eventType, _clusterName));
   }
 
   // TODO who should stop this timer

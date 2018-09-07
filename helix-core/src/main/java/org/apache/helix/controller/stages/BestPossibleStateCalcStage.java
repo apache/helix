@@ -200,6 +200,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       idealState.setStateModelDefRef(resource.getStateModelDefRef());
     }
 
+    // Skip resources are tasks for regular pipeline
+    if (idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
+      LogUtil.logWarn(logger, _eventId, String
+          .format("Resource %s should not be processed by %s pipeline", resourceName,
+              cache.isTaskCache() ? "TASK" : "DEFAULT"));
+      return false;
+    }
+
     Rebalancer rebalancer =
         getRebalancer(idealState, resourceName, cache.isMaintenanceModeEnabled());
     MappingCalculator mappingCalculator = getMappingCalculator(rebalancer, resourceName);

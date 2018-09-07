@@ -22,6 +22,7 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobRebalancer;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskRebalancer;
 import org.apache.helix.task.WorkflowContext;
@@ -104,6 +105,14 @@ public class TaskSchedulingStage extends AbstractBaseStage {
       LogUtil.logInfo(logger, _eventId, "resource:" + resourceName + " does not exist anymore");
       idealState = new IdealState(resourceName);
       idealState.setStateModelDefRef(resource.getStateModelDefRef());
+    }
+
+    // Skip the resources are not belonging to task pipeline
+    if (!idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
+      LogUtil.logWarn(logger, _eventId, String
+          .format("Resource %s should not be processed by %s pipeline", resourceName,
+              cache.isTaskCache() ? "TASK" : "DEFAULT"));
+      return false;
     }
 
     Rebalancer rebalancer = null;

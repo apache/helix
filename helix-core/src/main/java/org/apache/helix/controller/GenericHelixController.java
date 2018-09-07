@@ -216,7 +216,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
 
     _taskEventQueue.put(event);
-    _eventQueue.put(event);
+    _eventQueue.put(event.clone(uid));
 
     logger.info(String
         .format("Controller rebalance event triggered with event type: %s for cluster %s",

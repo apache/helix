@@ -214,14 +214,14 @@ public class TaskDataCache extends AbstractDataCache {
     _contextToUpdate.removeAll(_contextToRemove);
     List<String> contextUpdateNames = new ArrayList<>(_contextToUpdate);
     for (String resourceName : contextUpdateNames) {
-      if (_contextMap.get(resourceName) != null && !_contextToRemove.contains(resourceName)) {
+      if (_contextMap.get(resourceName) != null) {
         contextUpdatePaths.add(getContextPath(resourceName));
         contextUpdateData.add(_contextMap.get(resourceName));
       }
     }
 
-    boolean[] updateSuccess = accessor.getBaseDataAccessor()
-        .setChildren(contextUpdatePaths, contextUpdateData, AccessOption.PERSISTENT);
+    boolean[] updateSuccess =
+        accessor.getBaseDataAccessor().setChildren(contextUpdatePaths, contextUpdateData, AccessOption.PERSISTENT);
 
     for (int i = 0; i < updateSuccess.length; i++) {
       if (updateSuccess[i]) {
@@ -230,18 +230,21 @@ public class TaskDataCache extends AbstractDataCache {
     }
 
     // Delete contexts
-    List<String> contextToRemove = new ArrayList<>();
-    List<String> contextToRemoveNames = new ArrayList<>(_contextToRemove);
-    for (String resourceName : contextToRemoveNames) {
-      contextToRemove.add(getContextPath(resourceName));
+    // We can not leave the context here since some of the deletion happens for cleaning workflow
+    // If we leave it in the memory, Helix will not allow user create it with same name.
+    // TODO: Let's have periodical clean up thread that could remove deletion failed contexts.
+    List<String> contextPathsToRemove = new ArrayList<>();
+    List<String> contextNamesToRemove = new ArrayList<>(_contextToRemove);
+    for (String resourceName : contextNamesToRemove) {
+      contextPathsToRemove.add(getContextPath(resourceName));
     }
 
+    // TODO: current behavior is when you delete non-existing data will return false.
+    // Once the behavior fixed, we can add retry logic back. Otherwise, it will stay in memory and
+    // not allow same workflow name recreation.
+    accessor.getBaseDataAccessor().remove(contextPathsToRemove, AccessOption.PERSISTENT);
 
-    // Current implementation is stateless operation, since Helix read all the contexts back
-    // and redo the works. If it is failed to remove this round, it could be removed in next round.
-
-    // Also if the context has already been removed, it should be fine.
-    accessor.getBaseDataAccessor().remove(contextToRemove, AccessOption.PERSISTENT);
+    _contextToRemove.clear();
   }
 
   /**

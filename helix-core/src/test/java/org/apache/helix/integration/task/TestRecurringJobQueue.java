@@ -50,7 +50,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
     LOG.info("Starting job-queue: " + queueName);
     JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName);
     List<String> currentJobNames = createAndEnqueueJob(queueBuild, 2);
-
+    queueBuild.setExpiry(1);
     _driver.start(queueBuild.build());
 
     WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
@@ -61,20 +61,21 @@ public class TestRecurringJobQueue extends TaskTestBase {
     _driver.pollForJobState(scheduledQueue, namedSpaceJob1, TaskState.IN_PROGRESS);
 
     _driver.stop(queueName);
-    _driver.delete(queueName);
-    Thread.sleep(500);
+    _driver.deleteAndWaitForCompletion(queueName, 5000);
 
     JobQueue.Builder queueBuilder = TaskTestUtil.buildRecurrentJobQueue(queueName, 5);
     currentJobNames.clear();
     currentJobNames = createAndEnqueueJob(queueBuilder, 2);
 
-    _driver.createQueue(queueBuilder.build());
-
-
-    wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+    _driver.start(queueBuilder.build());
 
     // ensure jobs are started and completed
-    scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+    scheduledQueue = null;
+    while (scheduledQueue == null) {
+      wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+      scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+    }
+
     namedSpaceJob1 = String.format("%s_%s", scheduledQueue, currentJobNames.get(0));
     _driver.pollForJobState(scheduledQueue, namedSpaceJob1, TaskState.COMPLETED);
 
@@ -97,8 +98,13 @@ public class TestRecurringJobQueue extends TaskTestBase {
     List<String> currentJobNames = createAndEnqueueJob(queueBuilder, 5);
     _driver.createQueue(queueBuilder.build());
 
-    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
-    String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+    WorkflowContext wCtx = null;
+    String scheduledQueue = null;
+
+    while (scheduledQueue == null) {
+      wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+      scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+    }
 
     // ensure job 1 is started before deleting it
     String deletedJob1 = currentJobNames.get(0);

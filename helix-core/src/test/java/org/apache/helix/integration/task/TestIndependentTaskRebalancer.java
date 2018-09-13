@@ -240,7 +240,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     // Check that the workflow only started after the start time (with a 1 second buffer)
     WorkflowContext workflowCtx = _driver.getWorkflowContext(jobName);
     long startTime = workflowCtx.getStartTime();
-    Assert.assertTrue((startTime + 1000) >= inFiveSeconds);
+    Assert.assertTrue(startTime <= inFiveSeconds);
   }
 
   @Test

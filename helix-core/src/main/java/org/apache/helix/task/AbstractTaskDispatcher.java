@@ -1,15 +1,19 @@
 package org.apache.helix.task;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
+import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -412,7 +416,7 @@ public abstract class AbstractTaskDispatcher {
       WorkflowConfig workflowConfig, Map<String, JobConfig> jobConfigMap,
       ClusterDataCache clusterDataCache) {
     markJobFailed(jobName, jobContext, workflowConfig, workflowContext, jobConfigMap,
-        clusterDataCache);
+        clusterDataCache.getTaskDataCache());
     // Mark all INIT task to TASK_ABORTED
     for (int pId : jobContext.getPartitionSet()) {
       if (jobContext.getPartitionState(pId) == TaskPartitionState.INIT) {
@@ -752,7 +756,7 @@ public abstract class AbstractTaskDispatcher {
     long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.COMPLETED);
     jobContext.setFinishTime(currentTime);
-    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap, clusterDataCache)) {
+    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap, clusterDataCache.getTaskDataCache())) {
       workflowContext.setFinishTime(currentTime);
       updateWorkflowMonitor(workflowContext, workflowConfig);
     }
@@ -761,7 +765,7 @@ public abstract class AbstractTaskDispatcher {
 
   protected void markJobFailed(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
       WorkflowContext workflowContext, Map<String, JobConfig> jobConfigMap,
-      ClusterDataCache clusterDataCache) {
+      TaskDataCache clusterDataCache) {
     long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.FAILED);
     if (jobContext != null) {
@@ -799,7 +803,7 @@ public abstract class AbstractTaskDispatcher {
    *         returns false otherwise.
    */
   protected boolean isWorkflowFinished(WorkflowContext ctx, WorkflowConfig cfg,
-      Map<String, JobConfig> jobConfigMap, ClusterDataCache clusterDataCache) {
+      Map<String, JobConfig> jobConfigMap, TaskDataCache clusterDataCache) {
     boolean incomplete = false;
 
     TaskState workflowState = ctx.getWorkflowState();
@@ -962,5 +966,122 @@ public abstract class AbstractTaskDispatcher {
     }
     // This is a targeted task
     return pName(jobCfg.getJobId(), partitionNum);
+  }
+
+  /**
+   * Checks if the workflow has been stopped.
+   * @param ctx Workflow context containing task states
+   * @param cfg Workflow config containing set of tasks
+   * @return returns true if all tasks are {@link TaskState#STOPPED}, false otherwise.
+   */
+  protected boolean isWorkflowStopped(WorkflowContext ctx, WorkflowConfig cfg) {
+    for (String job : cfg.getJobDag().getAllNodes()) {
+      TaskState jobState = ctx.getJobState(job);
+      if (jobState != null
+          && (jobState.equals(TaskState.IN_PROGRESS) || jobState.equals(TaskState.STOPPING))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  protected ResourceAssignment buildEmptyAssignment(String name,
+      CurrentStateOutput currStateOutput) {
+    ResourceAssignment assignment = new ResourceAssignment(name);
+    Set<Partition> partitions = currStateOutput.getCurrentStateMappedPartitions(name);
+    for (Partition partition : partitions) {
+      Map<String, String> currentStateMap = currStateOutput.getCurrentStateMap(name, partition);
+      Map<String, String> replicaMap = Maps.newHashMap();
+      for (String instanceName : currentStateMap.keySet()) {
+        replicaMap.put(instanceName, HelixDefinedState.DROPPED.toString());
+      }
+      assignment.addReplicaMap(partition, replicaMap);
+    }
+    return assignment;
+  }
+
+  /**
+   * Check all the dependencies of a job to determine whether the job is ready to be scheduled.
+   * @param job
+   * @param workflowCfg
+   * @param workflowCtx
+   * @return
+   */
+  protected boolean isJobReadyToSchedule(String job, WorkflowConfig workflowCfg,
+      WorkflowContext workflowCtx, int incompleteAllCount, Map<String, JobConfig> jobConfigMap,
+      TaskDataCache clusterDataCache) {
+    int notStartedCount = 0;
+    int failedOrTimeoutCount = 0;
+    int incompleteParentCount = 0;
+
+    for (String parent : workflowCfg.getJobDag().getDirectParents(job)) {
+      TaskState jobState = workflowCtx.getJobState(parent);
+      if (jobState == null || jobState == TaskState.NOT_STARTED) {
+        ++notStartedCount;
+      } else if (jobState == TaskState.FAILED || jobState == TaskState.TIMED_OUT) {
+        ++failedOrTimeoutCount;
+      } else if (jobState != TaskState.COMPLETED) {
+        incompleteParentCount++;
+      }
+    }
+
+    // If there is any parent job not started, this job should not be scheduled
+    if (notStartedCount > 0) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(String.format("Job %s is not ready to start, notStartedParent(s)=%d.", job,
+            notStartedCount));
+      }
+      return false;
+    }
+
+    // If there is parent job failed, schedule the job only when ignore dependent
+    // job failure enabled
+    JobConfig jobConfig = jobConfigMap.get(job);
+    if (jobConfig == null) {
+      LOG.error(String.format("The job config is missing for job %s", job));
+      return false;
+    }
+    if (failedOrTimeoutCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
+      markJobFailed(job, null, workflowCfg, workflowCtx, jobConfigMap, clusterDataCache);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(String.format("Job %s is not ready to start, failedCount(s)=%d.", job,
+            failedOrTimeoutCount));
+      }
+      return false;
+    }
+
+    if (workflowCfg.isJobQueue()) {
+      // If job comes from a JobQueue, it should apply the parallel job logics
+      if (incompleteAllCount >= workflowCfg.getParallelJobs()) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(String.format("Job %s is not ready to schedule, inCompleteJobs(s)=%d.", job,
+              incompleteAllCount));
+        }
+        return false;
+      }
+    } else {
+      // If this job comes from a generic workflow, job will not be scheduled until
+      // all the direct parent jobs finished
+      if (incompleteParentCount > 0) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(String.format("Job %s is not ready to start, notFinishedParent(s)=%d.", job,
+              incompleteParentCount));
+        }
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Check if a workflow is ready to schedule.
+   * @param workflowCfg the workflow to check
+   * @return true if the workflow is ready for schedule, false if not ready
+   */
+  protected boolean isWorkflowReadyForSchedule(WorkflowConfig workflowCfg) {
+    Date startTime = workflowCfg.getStartTime();
+    // Workflow with non-scheduled config or passed start time is ready to schedule.
+    return (startTime == null || startTime.getTime() <= System.currentTimeMillis());
   }
 }

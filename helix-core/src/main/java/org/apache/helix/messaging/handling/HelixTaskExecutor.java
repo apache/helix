@@ -952,22 +952,25 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     if (readMsgs.size() > 0) {
       updateMessageState(readMsgs, accessor, instanceName);
 
+      // Remove message if schedule tasks are failed.
       for (Map.Entry<String, MessageHandler> handlerEntry : stateTransitionHandlers.entrySet()) {
         MessageHandler handler = handlerEntry.getValue();
         NotificationContext context = stateTransitionContexts.get(handlerEntry.getKey());
         Message msg = handler._message;
-        scheduleTask(
-            new HelixTask(msg, context, handler, this)
-        );
+        if (!scheduleTask(new HelixTask(msg, context, handler, this))) {
+          removeMessageFromTaskAndFutureMap(msg);
+          removeMessageFromZK(accessor, msg, instanceName);
+        }
       }
 
       for (int i = 0; i < nonStateTransitionHandlers.size(); i++) {
         MessageHandler handler = nonStateTransitionHandlers.get(i);
         NotificationContext context = nonStateTransitionContexts.get(i);
         Message msg = handler._message;
-        scheduleTask(
-            new HelixTask(msg, context, handler, this)
-        );
+        if (!scheduleTask(new HelixTask(msg, context, handler, this))) {
+          removeMessageFromTaskAndFutureMap(msg);
+          removeMessageFromZK(accessor, msg, instanceName);
+        }
       }
     }
   }

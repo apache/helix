@@ -210,6 +210,8 @@ public class TaskDataCache extends AbstractDataCache {
     // Flush Context
     List<String> contextUpdatePaths = new ArrayList<>();
     List<ZNRecord> contextUpdateData = new ArrayList<>();
+    // Do not update it if the is need to be remove
+    _contextToUpdate.removeAll(_contextToRemove);
     List<String> contextUpdateNames = new ArrayList<>(_contextToUpdate);
     for (String resourceName : contextUpdateNames) {
       if (_contextMap.get(resourceName) != null && !_contextToRemove.contains(resourceName)) {

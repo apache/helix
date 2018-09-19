@@ -31,9 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public class ThreadCountBasedTaskAssigner implements TaskAssigner {
   private static final Logger logger = LoggerFactory.getLogger(ThreadCountBasedTaskAssigner.class);
-
   private static final int SCHED_QUEUE_INIT_CAPACITY = 200;
-  private static final String DEFAULT_QUOTA_TYPE = "DEFAULT";
 
   /**
    * Assigns given tasks to given AssignableInstances assuming the DEFAULT quota type for all tasks.
@@ -43,7 +41,7 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
    */
   public Map<String, TaskAssignResult> assignTasks(Iterable<AssignableInstance> assignableInstances,
       Iterable<TaskConfig> tasks) {
-    return assignTasks(assignableInstances, tasks, DEFAULT_QUOTA_TYPE);
+    return assignTasks(assignableInstances, tasks, AssignableInstance.DEFAULT_QUOTA_TYPE);
   }
 
   /**
@@ -74,7 +72,7 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
     if (quotaType == null || quotaType.equals("") || quotaType.equals("null")) {
       // Sometimes null is stored as a String literal
       logger.warn("Quota type is null. Assigning it as DEFAULT type!");
-      quotaType = DEFAULT_QUOTA_TYPE;
+      quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
     }
 
     logger.info("Assigning tasks with quota type {}", quotaType);
@@ -94,8 +92,10 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
       }
 
       // TODO: Review this logic
-      // TODO: 1. It assumes that the only mode of failure is due to insufficient capacity. This assumption may not always be true. Verify
-      // TODO: 2. All TaskAssignResults will get failureReason/Description/TaskID for the first task that failed. This will need correction
+      // TODO: 1. It assumes that the only mode of failure is due to insufficient capacity. This
+      // assumption may not always be true. Verify
+      // TODO: 2. All TaskAssignResults will get failureReason/Description/TaskID for the first task
+      // that failed. This will need correction
       // Every time we try to assign the task to the least-used instance, if that fails,
       // we assume all subsequent tasks will fail with same reason
       if (lastFailure != null) {
@@ -180,10 +180,14 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
 
     private Integer getRemainingUsage(Map<String, Map<String, Integer>> capacity,
         Map<String, Map<String, Integer>> used) {
-      if (capacity.containsKey(RESOURCE_TYPE)
-          && capacity.get(RESOURCE_TYPE).containsKey(_quotaType)) {
-        return capacity.get(RESOURCE_TYPE).get(_quotaType)
-            - used.get(RESOURCE_TYPE).get(_quotaType);
+      if (capacity.containsKey(RESOURCE_TYPE)) {
+        String quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
+        if (capacity.get(RESOURCE_TYPE).containsKey(_quotaType)) {
+          // If the quotaType is not supported, sort as DEFAULT because it will be assigned as
+          // DEFAULT
+          quotaType = _quotaType;
+        }
+        return capacity.get(RESOURCE_TYPE).get(quotaType) - used.get(RESOURCE_TYPE).get(quotaType);
       }
       return 0;
     }

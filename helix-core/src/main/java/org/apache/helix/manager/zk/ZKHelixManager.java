@@ -594,7 +594,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   void createClient() throws Exception {
     PathBasedZkSerializer zkSerializer =
-        ChainedPathZkSerializer.builder(new ZNRecordStreamingSerializer()).build();
+        ChainedPathZkSerializer.builder(new ZNRecordSerializer()).build();
 
     HelixZkClient.ZkConnectionConfig connectionConfig = new HelixZkClient.ZkConnectionConfig(_zkAddress);
     connectionConfig.setSessionTimeout(_sessionTimeout);

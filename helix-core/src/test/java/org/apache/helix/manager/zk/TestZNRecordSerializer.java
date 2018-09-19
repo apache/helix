@@ -2,9 +2,19 @@ package org.apache.helix.manager.zk;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -44,6 +54,147 @@ public class TestZNRecordSerializer {
     ZNRecordSerializer serializer = new ZNRecordSerializer();
     ZNRecord result = (ZNRecord) serializer.deserialize(serializer.serialize(record));
     Assert.assertEquals(result, record);
+  }
+
+
+  @Test
+  public void testNullFields() {
+    ZNRecord record = new ZNRecord("testId");
+    record.setMapField("K1", null);
+    record.setListField("k2", null);
+    record.setSimpleField("k3", null);
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
+    byte [] data = serializer.serialize(record);
+    ZNRecord result = (ZNRecord) serializer.deserialize(data);
+
+    Assert.assertEquals(result, record);
+    Assert.assertNull(result.getMapField("K1"));
+    Assert.assertNull(result.getListField("K2"));
+    Assert.assertNull(result.getSimpleField("K3"));
+    Assert.assertNull(result.getListField("K4"));
+  }
+
+
+  @Test (enabled = false)
+  public void testPerformance() {
+    ZNRecord record = createZnRecord();
+
+    ZNRecordSerializer serializer1 = new ZNRecordSerializer();
+    ZNRecordStreamingSerializer serializer2 = new ZNRecordStreamingSerializer();
+
+    int loop = 100000;
+
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < loop; i++) {
+      serializer1.serialize(record);
+    }
+    System.out.println("ZNRecordSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
+
+    byte[] data = serializer1.serialize(record);
+    start = System.currentTimeMillis();
+    for (int i = 0; i < loop; i++) {
+      serializer1.deserialize(data);
+    }
+    System.out.println("ZNRecordSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
+
+
+    start = System.currentTimeMillis();
+    for (int i = 0; i < loop; i++) {
+      data = serializer2.serialize(record);
+    }
+    System.out.println("ZNRecordStreamingSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
+
+    start = System.currentTimeMillis();
+    for (int i = 0; i < loop; i++) {
+      ZNRecord result = (ZNRecord) serializer2.deserialize(data);
+    }
+    System.out.println("ZNRecordStreamingSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
+  }
+
+
+  ZNRecord createZnRecord() {
+    ZNRecord record = new ZNRecord("testId");
+    for (int i = 0; i < 400; i++) {
+      Map<String, String> map = new HashMap<>();
+      map.put("localhost_" + i, "Master");
+      map.put("localhost_" + (i+1), "Slave");
+      map.put("localhost_" + (i+2), "Slave");
+
+      record.setMapField("partition_" + i, map);
+      record.setListField("partition_" + i, Lists.<String>newArrayList(map.keySet()));
+      record.setSimpleField("partition_" + i,  UUID.randomUUID().toString());
+    }
+
+    return record;
+  }
+
+
+  @Test (enabled = false)
+  public void testParallelPerformance() throws ExecutionException, InterruptedException {
+    final ZNRecord record = createZnRecord();
+
+    final ZNRecordSerializer serializer1 = new ZNRecordSerializer();
+    final ZNRecordStreamingSerializer serializer2 = new ZNRecordStreamingSerializer();
+
+    int loop = 100000;
+
+    ExecutorService executorService = Executors.newFixedThreadPool(10000);
+
+    long start = System.currentTimeMillis();
+    batchSerialize(serializer1, executorService, loop, record);
+    System.out.println("ZNRecordSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
+
+    byte[] data = serializer1.serialize(record);
+    start = System.currentTimeMillis();
+    batchSerialize(serializer2, executorService, loop, record);
+    System.out.println("ZNRecordSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
+
+
+    start = System.currentTimeMillis();
+    for (int i = 0; i < loop; i++) {
+      data = serializer2.serialize(record);
+    }
+    System.out.println("ZNRecordStreamingSerializer serialize took " + (System.currentTimeMillis() - start) + " ms");
+
+    start = System.currentTimeMillis();
+    for (int i = 0; i < loop; i++) {
+      ZNRecord result = (ZNRecord) serializer2.deserialize(data);
+    }
+    System.out.println("ZNRecordStreamingSerializer deserialize took " + (System.currentTimeMillis() - start) + " ms");
+  }
+
+
+  private void batchSerialize(final ZkSerializer serializer, ExecutorService executorService, int repeatTime, final ZNRecord record)
+      throws ExecutionException, InterruptedException {
+    List<Future> futures = new ArrayList<>();
+    for (int i = 0; i < repeatTime; i++) {
+      Future f = executorService.submit(new Runnable() {
+        @Override public void run() {
+          serializer.serialize(record);
+        }
+      });
+      futures.add(f);
+    }
+    for (Future f : futures) {
+      f.get();
+    }
+  }
+
+
+  private void batchDeSerialize(final ZkSerializer serializer, ExecutorService executorService, int repeatTime, final byte [] data)
+      throws ExecutionException, InterruptedException {
+    List<Future> futures = new ArrayList<>();
+    for (int i = 0; i < repeatTime; i++) {
+      Future f = executorService.submit(new Runnable() {
+        @Override public void run() {
+          serializer.deserialize(data);
+        }
+      });
+      futures.add(f);
+    }
+    for (Future f : futures) {
+      f.get();
+    }
   }
 
   /**

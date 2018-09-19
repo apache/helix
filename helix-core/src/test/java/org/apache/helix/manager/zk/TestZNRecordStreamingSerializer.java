@@ -46,6 +46,25 @@ public class TestZNRecordStreamingSerializer {
     Assert.assertEquals(result, record);
   }
 
+
+  // TODO: need to fix ZnRecordStreamingSerializer before enabling this test.
+  @Test (enabled = false)
+  public void testNullFields() {
+    ZNRecord record = new ZNRecord("testId");
+    record.setMapField("K1", null);
+    record.setListField("k2", null);
+    record.setSimpleField("k3", null);
+    ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
+    byte [] data = serializer.serialize(record);
+    ZNRecord result = (ZNRecord) serializer.deserialize(data);
+
+    Assert.assertEquals(result, record);
+    Assert.assertNull(result.getMapField("K1"));
+    Assert.assertNull(result.getListField("K2"));
+    Assert.assertNull(result.getSimpleField("K3"));
+    Assert.assertNull(result.getListField("K4"));
+  }
+
   /**
    * Check that the ZNRecord is not constructed if there is no id in the json
    */

@@ -46,4 +46,7 @@ public class TaskConstants {
 
   public static final long DEFAULT_NEVER_TIMEOUT = -1; // never timeout
 
+  public static final String PREV_RA_NODE = "PreviousResourceAssignment";
+
+
 }

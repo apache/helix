@@ -93,11 +93,13 @@ public class ClusterEvent {
 
   @SuppressWarnings("unchecked")
   public <T extends Object> T getAttribute(String attrName) {
+    return getAttributeWithDefault(attrName, null);
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T extends Object> T getAttributeWithDefault(String attrName, T defaultVal) {
     Object ret = _eventAttributeMap.get(attrName);
-    if (ret != null) {
-      return (T) ret;
-    }
-    return null;
+    return ret == null ? defaultVal : (T) ret;
   }
 
   @Override

@@ -37,5 +37,6 @@ public enum AttributeName {
   instanceName,
   eventData,
   AsyncFIFOWorkerPool,
-  PipelineType
+  PipelineType,
+  LastRebalanceFinishTimeStamp
 }

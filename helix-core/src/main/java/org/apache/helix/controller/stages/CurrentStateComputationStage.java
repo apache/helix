@@ -19,19 +19,18 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.*;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -42,14 +41,16 @@ import java.util.Map;
 public class CurrentStateComputationStage extends AbstractBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(CurrentStateComputationStage.class);
 
-  public final long NOT_RECORDED = -1L;
-  public final long TRANSITION_FAILED = -2L;
-  public final String TASK_STATE_MODEL_NAME = "Task";
+  public static final long NOT_RECORDED = -1L;
+  public static final long TRANSITION_FAILED = -2L;
+  public static final String TASK_STATE_MODEL_NAME = "Task";
 
   @Override
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    final Long lastPipelineFinishTimestamp = event
+        .getAttributeWithDefault(AttributeName.LastRebalanceFinishTimeStamp.name(), NOT_RECORDED);
     final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
 
     if (cache == null || resourceMap == null) {
@@ -79,7 +80,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       ClusterStatusMonitor clusterStatusMonitor =
           event.getAttribute(AttributeName.clusterStatusMonitor.name());
       // TODO Update the status async -- jjwang
-      updateTopStateStatus(cache, clusterStatusMonitor, resourceMap, currentStateOutput);
+      updateTopStateStatus(cache, clusterStatusMonitor, resourceMap, currentStateOutput,
+          lastPipelineFinishTimestamp);
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
   }
@@ -220,7 +222,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
   private void updateTopStateStatus(ClusterDataCache cache,
       ClusterStatusMonitor clusterStatusMonitor, Map<String, Resource> resourceMap,
-      CurrentStateOutput currentStateOutput) {
+      CurrentStateOutput currentStateOutput,
+      long lastPipelineFinishTimestamp) {
     Map<String, Map<String, Long>> missingTopStateMap = cache.getMissingTopStateMap();
     Map<String, Map<String, String>> lastTopStateMap = cache.getLastTopStateLocationMap();
 
@@ -244,53 +247,232 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String resourceName = resource.getResourceName();
 
       for (Partition partition : resource.getPartitions()) {
-        Map<String, String> stateMap =
-            currentStateOutput.getCurrentStateMap(resourceName, partition);
+        String currentTopStateInstance =
+            findCurrentTopStateLocation(currentStateOutput, resourceName, partition, stateModelDef);
+        String lastTopStateInstance = findCachedTopStateLocation(cache, resourceName, partition);
 
-        for (String instance : stateMap.keySet()) {
-          if (stateMap.get(instance).equals(stateModelDef.getTopState())) {
-            if (!lastTopStateMap.containsKey(resourceName)) {
-              lastTopStateMap.put(resourceName, new HashMap<String, String>());
-            }
-            // recording any top state, it is enough for tracking the top state changes.
-            lastTopStateMap.get(resourceName).put(partition.getPartitionName(), instance);
-            break;
-          }
-        }
-
-        if (stateMap.values().contains(stateModelDef.getTopState())) {
-          // Top state comes back
-          // The first time participant started or controller switched will be ignored
-          reportTopStateComesBack(cache, stateMap, missingTopStateMap, resourceName, partition,
-              clusterStatusMonitor, durationThreshold, stateModelDef.getTopState());
+        if (currentTopStateInstance != null) {
+          reportTopStateExistance(cache, currentStateOutput, stateModelDef, resourceName, partition,
+              lastTopStateInstance, currentTopStateInstance, clusterStatusMonitor,
+              durationThreshold, lastPipelineFinishTimestamp);
+          updateCachedTopStateLocation(cache, resourceName, partition, currentTopStateInstance);
         } else {
-          // TODO: improve following with MIN_ACTIVE_TOP_STATE logic
-          // Missing top state need to record
-          reportNewTopStateMissing(cache, missingTopStateMap, lastTopStateMap, resourceName,
+          reportTopStateMissing(cache, missingTopStateMap, lastTopStateMap, resourceName,
               partition, stateModelDef.getTopState(), currentStateOutput);
+          reportTopStateHandoffFailIfNecessary(cache, resourceName, partition, durationThreshold,
+              clusterStatusMonitor);
         }
       }
     }
 
-    // Check whether it is already passed threshold
-    for (String resourceName : missingTopStateMap.keySet()) {
-      for (String partitionName : missingTopStateMap.get(resourceName).keySet()) {
-        Long startTime = missingTopStateMap.get(resourceName).get(partitionName);
-        if (startTime != null && startTime > 0
-            && System.currentTimeMillis() - startTime > durationThreshold) {
-          missingTopStateMap.get(resourceName).put(partitionName, TRANSITION_FAILED);
-          if (clusterStatusMonitor != null) {
-            clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, false);
-          }
-        }
-      }
-    }
     if (clusterStatusMonitor != null) {
       clusterStatusMonitor.resetMaxMissingTopStateGauge();
     }
   }
 
-  private void reportNewTopStateMissing(ClusterDataCache cache,
+  /**
+   * From current state output, find out the location of the top state of given resource
+   * and partition
+   *
+   * @param currentStateOutput current state output
+   * @param resourceName resource name
+   * @param partition partition of the resource
+   * @param stateModelDef state model def object
+   * @return name of the node that contains top state, null if there is not top state recorded
+   */
+  private String findCurrentTopStateLocation(CurrentStateOutput currentStateOutput,
+      String resourceName, Partition partition, StateModelDefinition stateModelDef) {
+    Map<String, String> stateMap = currentStateOutput.getCurrentStateMap(resourceName, partition);
+    for (String instance : stateMap.keySet()) {
+      if (stateMap.get(instance).equals(stateModelDef.getTopState())) {
+        return instance;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Find cached top state location of the given resource and partition
+   *
+   * @param cache cluster data cache object
+   * @param resourceName resource name
+   * @param partition partition of the given resource
+   * @return cached name of the node that contains top state, null if not previously cached
+   */
+  private String findCachedTopStateLocation(ClusterDataCache cache, String resourceName, Partition partition) {
+    Map<String, Map<String, String>> lastTopStateMap = cache.getLastTopStateLocationMap();
+    return lastTopStateMap.containsKey(resourceName) && lastTopStateMap.get(resourceName)
+        .containsKey(partition.getPartitionName()) ? lastTopStateMap.get(resourceName)
+        .get(partition.getPartitionName()) : null;
+  }
+
+  /**
+   * Update top state location cache of the given resource and partition
+   *
+   * @param cache cluster data cache object
+   * @param resourceName resource name
+   * @param partition partition of the given resource
+   * @param currentTopStateInstance name of the instance that currently has the top state
+   */
+  private void updateCachedTopStateLocation(ClusterDataCache cache, String resourceName,
+      Partition partition, String currentTopStateInstance) {
+    Map<String, Map<String, String>> lastTopStateMap = cache.getLastTopStateLocationMap();
+    if (!lastTopStateMap.containsKey(resourceName)) {
+      lastTopStateMap.put(resourceName, new HashMap<String, String>());
+    }
+    lastTopStateMap.get(resourceName).put(partition.getPartitionName(), currentTopStateInstance);
+  }
+
+  /**
+   * When we observe a top state of a given resource and partition, we need to report for the
+   * following 2 scenarios:
+   *  1. This is a top state come back, i.e. we have a previously missing top state record
+   *  2. Top state location change, i.e. current top state location is different from what
+   *     we saw previously
+   *
+   * @param cache cluster data cache
+   * @param currentStateOutput generated after computiting current state
+   * @param stateModelDef State model definition object of the given resource
+   * @param resourceName resource name
+   * @param partition partition of the given resource
+   * @param lastTopStateInstance our cached top state location
+   * @param currentTopStateInstance top state location we observed during this pipeline run
+   * @param clusterStatusMonitor monitor object
+   * @param durationThreshold top state handoff duration threshold
+   * @param lastPipelineFinishTimestamp timestamp when last pipeline run finished
+   */
+  private void reportTopStateExistance(ClusterDataCache cache, CurrentStateOutput currentStateOutput,
+      StateModelDefinition stateModelDef, String resourceName, Partition partition,
+      String lastTopStateInstance, String currentTopStateInstance,
+      ClusterStatusMonitor clusterStatusMonitor, long durationThreshold,
+      long lastPipelineFinishTimestamp) {
+
+    Map<String, Map<String, Long>> missingTopStateMap = cache.getMissingTopStateMap();
+
+    if (missingTopStateMap.containsKey(resourceName) && missingTopStateMap.get(resourceName)
+        .containsKey(partition.getPartitionName())) {
+      // We previously recorded a top state missing, and it's not coming back
+      reportTopStateComesBack(cache, currentStateOutput.getCurrentStateMap(resourceName, partition),
+          missingTopStateMap, resourceName, partition, clusterStatusMonitor, durationThreshold,
+          stateModelDef.getTopState());
+    } else if (lastTopStateInstance != null && !lastTopStateInstance
+        .equals(currentTopStateInstance)) {
+      // With no missing top state record, but top state instance changed,
+      // we observed an entire top state handoff process
+      reportSingleTopStateHandoff(cache, lastTopStateInstance, currentTopStateInstance,
+          resourceName, partition, clusterStatusMonitor, lastPipelineFinishTimestamp);
+    } else {
+      // else, there is not top state change, or top state first came up, do nothing
+      LogUtil.logDebug(LOG, _eventId, String.format(
+          "No top state hand off or first-seen top state for %s. CurNode: %s, LastNode: %s.",
+          partition.getPartitionName(), currentTopStateInstance, lastTopStateInstance));
+    }
+  }
+
+  /**
+   * This function calculates duration of a full top state handoff, observed in 1 pipeline run,
+   * i.e. current top state instance loaded from ZK is different than the one we cached during
+   * last pipeline run.
+   *
+   * @param cache ClusterDataCache
+   * @param lastTopStateInstance Name of last top state instance we cached
+   * @param curTopStateInstance Name of current top state instance we refreshed from ZK
+   * @param resourceName resource name
+   * @param partition partition object
+   * @param clusterStatusMonitor cluster state monitor object
+   * @param lastPipelineFinishTimestamp last pipeline run finish timestamp
+   */
+  private void reportSingleTopStateHandoff(ClusterDataCache cache, String lastTopStateInstance,
+      String curTopStateInstance, String resourceName, Partition partition,
+      ClusterStatusMonitor clusterStatusMonitor, long lastPipelineFinishTimestamp) {
+    if (curTopStateInstance.equals(lastTopStateInstance)) {
+      return;
+    }
+
+    // Current state output generation logic guarantees that current top state instance
+    // must be a live instance
+    String curTopStateSession = cache.getLiveInstances().get(curTopStateInstance).getSessionId();
+    long endTime =
+        cache.getCurrentState(curTopStateInstance, curTopStateSession).get(resourceName)
+            .getEndTime(partition.getPartitionName());
+
+    long startTime = NOT_RECORDED;
+    if (cache.getLiveInstances().containsKey(lastTopStateInstance)) {
+      String lastTopStateSession =
+          cache.getLiveInstances().get(lastTopStateInstance).getSessionId();
+      // Make sure last top state instance has not bounced during cluster data cache refresh
+      // We need this null check as there are test cases creating incomplete current state
+      if (cache.getCurrentState(lastTopStateInstance, lastTopStateSession).get(resourceName)
+          != null) {
+        startTime =
+            cache.getCurrentState(lastTopStateInstance, lastTopStateSession).get(resourceName)
+                .getStartTime(partition.getPartitionName());
+      }
+    }
+    if (startTime == NOT_RECORDED) {
+      // either cached last top state instance is no longer alive, or it bounced during cluster
+      // data cache refresh, we use last pipeline run end time for best guess. Though we can
+      // calculate this number in a more precise way by refreshing data from ZK, given the rarity
+      // of this corner case, it's not worthy.
+      startTime = lastPipelineFinishTimestamp;
+    }
+
+    if (startTime == NOT_RECORDED || startTime > endTime) {
+      // Top state handoff finished before end of last pipeline run, and instance contains
+      // previous top state is no longer alive, so our best guess did not work, ignore the
+      // data point for now.
+      LogUtil.logWarn(LOG, _eventId, String
+          .format("Cannot confirm top state missing start time. %s:%s->%s. Likely it was very fast",
+              partition.getPartitionName(), lastTopStateInstance, curTopStateInstance));
+      return;
+    }
+
+    LogUtil.logInfo(LOG, _eventId, String.format("Missing topstate duration is %d for partition %s",
+        endTime - startTime, partition.getPartitionName()));
+    if (clusterStatusMonitor != null) {
+      clusterStatusMonitor
+          .updateMissingTopStateDurationStats(resourceName, endTime - startTime,
+              true);
+    }
+  }
+
+  /**
+   * Check if the given partition of the given resource has a missing top state duration larger
+   * than the threshold, if so, report a top state transition failure
+   *
+   * @param cache cluster data cache
+   * @param resourceName resource name
+   * @param partition partition of the given resource
+   * @param durationThreshold top state handoff duration threshold
+   * @param clusterStatusMonitor monitor object
+   */
+  private void reportTopStateHandoffFailIfNecessary(ClusterDataCache cache, String resourceName,
+      Partition partition, long durationThreshold, ClusterStatusMonitor clusterStatusMonitor) {
+    Map<String, Map<String, Long>> missingTopStateMap = cache.getMissingTopStateMap();
+    String partitionName = partition.getPartitionName();
+    Long startTime = missingTopStateMap.get(resourceName).get(partitionName);
+    if (startTime != null && startTime > 0
+        && System.currentTimeMillis() - startTime > durationThreshold) {
+      missingTopStateMap.get(resourceName).put(partitionName, TRANSITION_FAILED);
+      if (clusterStatusMonitor != null) {
+        clusterStatusMonitor.updateMissingTopStateDurationStats(resourceName, 0L, false);
+      }
+    }
+  }
+
+  /**
+   * When we find a top state missing of the given partition, we find out when it started to miss
+   * top state, then we record it in cache
+   *
+   * @param cache cluster data cache
+   * @param missingTopStateMap missing top state record
+   * @param lastTopStateMap our cached last top state locations
+   * @param resourceName resource name
+   * @param partition partition of the given resource
+   * @param topState top state name
+   * @param currentStateOutput current state output
+   */
+  private void reportTopStateMissing(ClusterDataCache cache,
       Map<String, Map<String, Long>> missingTopStateMap,
       Map<String, Map<String, String>> lastTopStateMap, String resourceName, Partition partition,
       String topState, CurrentStateOutput currentStateOutput) {
@@ -365,14 +547,23 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
   }
 
+  /**
+   * When we see a top state come back, i.e. we observe a top state in this pipeline run,
+   * but have a top state missing record before, we need to remove the top state missing
+   * record and report top state handoff duration
+   *
+   * @param cache cluster data cache
+   * @param stateMap state map of the given partition of the given resource
+   * @param missingTopStateMap missing top state record
+   * @param resourceName resource name
+   * @param partition partition of the resource
+   * @param clusterStatusMonitor monitor object
+   * @param threshold top state handoff threshold
+   * @param topState name of the top state
+   */
   private void reportTopStateComesBack(ClusterDataCache cache, Map<String, String> stateMap,
       Map<String, Map<String, Long>> missingTopStateMap, String resourceName, Partition partition,
       ClusterStatusMonitor clusterStatusMonitor, long threshold, String topState) {
-    if (!missingTopStateMap.containsKey(resourceName) || !missingTopStateMap.get(resourceName)
-        .containsKey(partition.getPartitionName())) {
-      // there is no previous missing recorded
-      return;
-    }
 
     long handOffStartTime = missingTopStateMap.get(resourceName).get(partition.getPartitionName());
 

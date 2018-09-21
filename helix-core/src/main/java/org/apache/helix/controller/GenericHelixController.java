@@ -142,6 +142,11 @@ public class GenericHelixController implements IdealStateChangeListener,
   private ClusterDataCache _taskCache;
   private ScheduledExecutorService _asyncTasksThreadPool;
 
+  /**
+   * A record of last pipeline finish duration
+   */
+  private long _lastPipelineEndTimestamp;
+
   private String _clusterName;
 
   enum PipelineTypes {
@@ -371,6 +376,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     _taskEventThread = new ClusterEventProcessor(_taskCache, _taskEventQueue);
 
     _forceRebalanceTimer = new Timer();
+    _lastPipelineEndTimestamp = CurrentStateComputationStage.NOT_RECORDED;
 
     initializeAsyncFIFOWorkers();
     initPipelines(_eventThread, _cache, false);
@@ -461,6 +467,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     // add the cache
     _cache.setEventId(event.getEventId());
     event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.LastRebalanceFinishTimeStamp.name(), _lastPipelineEndTimestamp);
 
     List<Pipeline> pipelines = cache.isTaskCache() ?
         _taskRegistry.getPipelinesForEvent(event.getEventType()) : _registry
@@ -516,11 +523,12 @@ public class GenericHelixController implements IdealStateChangeListener,
     if (!rebalanceFail) {
       _continousRebalanceFailureCount = 0;
     }
-    long endTime = System.currentTimeMillis();
+
+    _lastPipelineEndTimestamp = System.currentTimeMillis();
     logger.info(String
         .format("END: Invoking %s controller pipeline for event: %s %s for cluster %s, took %d ms",
             getPipelineType(cache.isTaskCache()), event.getEventType(), event.getEventId(),
-            manager.getClusterName(), (endTime - startTime)));
+            manager.getClusterName(), (_lastPipelineEndTimestamp - startTime)));
 
     if (!cache.isTaskCache()) {
       // report event process durations
@@ -546,13 +554,14 @@ public class GenericHelixController implements IdealStateChangeListener,
                 startTime - enqueueTime);
         _clusterStatusMonitor
             .updateClusterEventDuration(ClusterEventMonitor.PhaseName.TotalProcessed.name(),
-                endTime - startTime);
+                _lastPipelineEndTimestamp - startTime);
       }
       sb.append(String.format(
           "InQueue time for event: " + event.getEventType() + " took: " + (startTime - enqueueTime)
               + " ms\n"));
       sb.append(String.format(
-          "TotalProcessed time for event: " + event.getEventType() + " took: " + (endTime
+          "TotalProcessed time for event: " + event.getEventType() + " took: " + (
+              _lastPipelineEndTimestamp
               - startTime) + " ms"));
       logger.info(sb.toString());
     } else if (_isMonitoring) {

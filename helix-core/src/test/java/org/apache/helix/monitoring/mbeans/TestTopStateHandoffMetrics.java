@@ -19,6 +19,7 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import com.google.common.collect.Range;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -51,7 +52,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
   public final static String TEST_RESOURCE = "TestResource";
   public final static String PARTITION = "PARTITION";
 
-  public void preSetup() {
+  private void preSetup() {
     setupLiveInstances(3);
     setupStateModel();
     Resource resource = new Resource(TEST_RESOURCE);
@@ -59,6 +60,8 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     resource.addPartition(PARTITION);
     event.addAttribute(AttributeName.RESOURCES.name(),
         Collections.singletonMap(TEST_RESOURCE, resource));
+    event.addAttribute(AttributeName.LastRebalanceFinishTimeStamp.name(),
+        CurrentStateComputationStage.NOT_RECORDED);
     ClusterStatusMonitor monitor = new ClusterStatusMonitor("TestCluster");
     monitor.active();
     event.addAttribute(AttributeName.clusterStatusMonitor.name(), monitor);
@@ -69,20 +72,49 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
       Map<String, Map<String, String>> missingTopStates,
       Map<String, Map<String, String>> handOffCurrentStates, Long expectedDuration) {
     preSetup();
-    runCurrentStage(initialCurrentStates, missingTopStates, handOffCurrentStates, null);
-    ClusterStatusMonitor clusterStatusMonitor =
-        event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    ResourceMonitor monitor = clusterStatusMonitor.getResourceMonitor(TEST_RESOURCE);
+    runStageAndVerify(initialCurrentStates, missingTopStates, handOffCurrentStates, null, 1, 0,
+        Range.closed(expectedDuration, expectedDuration),
+        Range.closed(expectedDuration, expectedDuration));
+  }
 
-    // Should have 1 transition succeeded due to threshold.
-    Assert.assertEquals(monitor.getSucceededTopStateHandoffCounter(), 1);
-    Assert.assertEquals(monitor.getFailedTopStateHandoffCounter(), 0);
+  @Test(dataProvider = "fastCurrentStateInput")
+  public void testFastTopStateHandoffWithNoMissingTopState(
+      Map<String, Map<String, String>> initialCurrentStates,
+      Map<String, Map<String, String>> missingTopStates,
+      Map<String, Map<String, String>> handOffCurrentStates, Long expectedDuration
+  ) {
+    preSetup();
+    runStageAndVerify(initialCurrentStates, missingTopStates, handOffCurrentStates, null, 1, 0,
+        Range.closed(expectedDuration, expectedDuration),
+        Range.closed(expectedDuration, expectedDuration));
+  }
 
-    // Duration should match the expected result
-    Assert.assertEquals(monitor.getSuccessfulTopStateHandoffDurationCounter(),
-        (long) expectedDuration);
-    Assert.assertEquals(monitor.getMaxSinglePartitionTopStateHandoffDurationGauge(),
-        (long) expectedDuration);
+  @Test(dataProvider = "fastCurrentStateInput")
+  public void testFastTopStateHandoffWithNoMissingTopStateAndOldInstanceCrash(
+      Map<String, Map<String, String>> initialCurrentStates,
+      Map<String, Map<String, String>> missingTopStates,
+      Map<String, Map<String, String>> handOffCurrentStates, Long expectedDuration
+  ) {
+    preSetup();
+    event.addAttribute(AttributeName.LastRebalanceFinishTimeStamp.name(), 7500L);
+    // By simulating last master instance crash, we now have:
+    //  - M->S from 6000 to 7000
+    //  - lastPipelineFinishTimestamp is 7500
+    //  - S->M from 8000 to 9000
+    // Therefore the recorded latency should be 9000 - 7500 = 1500
+    runStageAndVerify(
+        initialCurrentStates, missingTopStates, handOffCurrentStates,
+        new MissingStatesDataCacheInject() {
+          @Override
+          public void doInject(ClusterDataCache cache) {
+            cache.getLiveInstances().remove("localhost_1");
+          }
+        }, 1, 0,
+        Range.closed(1500L, 1500L),
+        Range.closed(1500L, 1500L)
+    );
+    event.addAttribute(AttributeName.LastRebalanceFinishTimeStamp.name(),
+        CurrentStateComputationStage.NOT_RECORDED);
   }
 
   @Test(dataProvider = "failedCurrentStateInput")
@@ -93,20 +125,10 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
     clusterConfig.setMissTopStateDurationThreshold(5000L);
     setClusterConfig(clusterConfig);
-    runCurrentStage(initialCurrentStates, missingTopStates, handOffCurrentStates, null);
-    ClusterStatusMonitor clusterStatusMonitor =
-        event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    ResourceMonitor monitor = clusterStatusMonitor.getResourceMonitor(TEST_RESOURCE);
 
-    // Should have 1 transition failed due to threshold.
-    Assert.assertEquals(monitor.getSucceededTopStateHandoffCounter(), 0);
-    Assert.assertEquals(monitor.getFailedTopStateHandoffCounter(), 1);
-
-    // No duration updated.
-    Assert.assertEquals(monitor.getSuccessfulTopStateHandoffDurationCounter(),
-        (long) expectedDuration);
-    Assert.assertEquals(monitor.getMaxSinglePartitionTopStateHandoffDurationGauge(),
-        (long) expectedDuration);
+    runStageAndVerify(initialCurrentStates, missingTopStates, handOffCurrentStates, null, 0, 1,
+        Range.closed(expectedDuration, expectedDuration),
+        Range.closed(expectedDuration, expectedDuration));
   }
 
   // Test handoff that are triggered by an offline master instance
@@ -118,7 +140,8 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     final long offlineTimeBeforeMasterless = 125;
 
     preSetup();
-    runCurrentStage(initialCurrentStates, missingTopStates, handOffCurrentStates,
+    long durationToVerify = expectedDuration + offlineTimeBeforeMasterless;
+    runStageAndVerify(initialCurrentStates, missingTopStates, handOffCurrentStates,
         new MissingStatesDataCacheInject() {
           @Override
           public void doInject(ClusterDataCache cache) {
@@ -139,20 +162,8 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
               }
             }
           }
-        });
-    ClusterStatusMonitor clusterStatusMonitor =
-        event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    ResourceMonitor monitor = clusterStatusMonitor.getResourceMonitor(TEST_RESOURCE);
-
-    // Should have 1 transition succeeded due to threshold.
-    Assert.assertEquals(monitor.getSucceededTopStateHandoffCounter(), 1);
-    Assert.assertEquals(monitor.getFailedTopStateHandoffCounter(), 0);
-
-    // Duration should match the expected result
-    Assert.assertEquals(monitor.getSuccessfulTopStateHandoffDurationCounter(),
-        expectedDuration + offlineTimeBeforeMasterless);
-    Assert.assertEquals(monitor.getMaxSinglePartitionTopStateHandoffDurationGauge(),
-        expectedDuration + offlineTimeBeforeMasterless);
+        }, 1, 0, Range.closed(durationToVerify, durationToVerify),
+        Range.closed(durationToVerify, durationToVerify));
   }
 
   // Test success with no available clue about previous master.
@@ -173,21 +184,8 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     }
 
     // No initialCurrentStates means no input can be used as the clue of the previous master.
-    runCurrentStage(Collections.EMPTY_MAP, missingTopStates, handOffCurrentStates, null);
-    ClusterStatusMonitor clusterStatusMonitor =
-        event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    ResourceMonitor monitor = clusterStatusMonitor.getResourceMonitor(TEST_RESOURCE);
-
-    // Should have 1 transition succeeded due to threshold.
-    Assert.assertEquals(monitor.getSucceededTopStateHandoffCounter(), 1);
-    Assert.assertEquals(monitor.getFailedTopStateHandoffCounter(), 0);
-
-    // Duration should match the expected result.
-    // Note that the gap between expectedDuration calculated and monitor calculates the value should be allowed
-    Assert.assertTrue(
-        expectedDuration - monitor.getSuccessfulTopStateHandoffDurationCounter() < 1500);
-    Assert.assertTrue(
-        expectedDuration - monitor.getMaxSinglePartitionTopStateHandoffDurationGauge() < 1500);
+    runStageAndVerify(Collections.EMPTY_MAP, missingTopStates, handOffCurrentStates, null, 1, 0,
+        Range.atMost(1500L), Range.atMost(1500L));
   }
 
   /**
@@ -205,11 +203,12 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
       Map<String, Map<String, String>> handOffCurrentStates, Long expectedDuration) {
     final long messageTimeBeforeMasterless = 145;
     preSetup();
+
+    long durationToVerify = expectedDuration + messageTimeBeforeMasterless;
     // No initialCurrentStates means no input can be used as the clue of the previous master.
-    runCurrentStage(Collections.EMPTY_MAP, missingTopStates, handOffCurrentStates,
+    runStageAndVerify(Collections.EMPTY_MAP, missingTopStates, handOffCurrentStates,
         new MissingStatesDataCacheInject() {
-          @Override
-          public void doInject(ClusterDataCache cache) {
+          @Override public void doInject(ClusterDataCache cache) {
             String topStateNode = null;
             for (String instance : initialCurrentStates.keySet()) {
               if (initialCurrentStates.get(instance).get("CurrentState").equals("MASTER")) {
@@ -233,21 +232,8 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
               cache.cacheMessages(Collections.singletonList(message));
             }
           }
-        });
-
-    ClusterStatusMonitor clusterStatusMonitor =
-        event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    ResourceMonitor monitor = clusterStatusMonitor.getResourceMonitor(TEST_RESOURCE);
-
-    // Should have 1 transition succeeded due to threshold.
-    Assert.assertEquals(monitor.getSucceededTopStateHandoffCounter(), 1);
-    Assert.assertEquals(monitor.getFailedTopStateHandoffCounter(), 0);
-
-    // Duration should match the expected result
-    Assert.assertEquals(monitor.getSuccessfulTopStateHandoffDurationCounter(),
-        expectedDuration + messageTimeBeforeMasterless);
-    Assert.assertEquals(monitor.getMaxSinglePartitionTopStateHandoffDurationGauge(),
-        expectedDuration + messageTimeBeforeMasterless);
+        }, 1, 0, Range.closed(durationToVerify, durationToVerify),
+        Range.closed(durationToVerify, durationToVerify));
   }
 
   private final String CURRENT_STATE = "CurrentState";
@@ -263,6 +249,11 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
   @DataProvider(name = "failedCurrentStateInput")
   public Object[][] failedCurrentState() {
     return loadInputData("failed");
+  }
+
+  @DataProvider(name = "fastCurrentStateInput")
+  public Object[][] fastCurrentState() {
+    return loadInputData("fast");
   }
 
   private Object[][] loadInputData(String inputEntry) {
@@ -322,17 +313,42 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
       runStage(event, new CurrentStateComputationStage());
     }
 
-    setupCurrentStates(generateCurrentStateMap(missingTopStates));
-    runStage(event, new ReadClusterDataStage());
-    if (testInjection != null) {
-      ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
-      testInjection.doInject(cache);
+    if (missingTopStates != null && !missingTopStates.isEmpty()) {
+      setupCurrentStates(generateCurrentStateMap(missingTopStates));
+      runStage(event, new ReadClusterDataStage());
+      if (testInjection != null) {
+        ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+        testInjection.doInject(cache);
+      }
+      runStage(event, new CurrentStateComputationStage());
     }
-    runStage(event, new CurrentStateComputationStage());
 
-    setupCurrentStates(generateCurrentStateMap(handOffCurrentStates));
-    runStage(event, new ReadClusterDataStage());
-    runStage(event, new CurrentStateComputationStage());
+    if (handOffCurrentStates != null && !handOffCurrentStates.isEmpty()) {
+      setupCurrentStates(generateCurrentStateMap(handOffCurrentStates));
+      runStage(event, new ReadClusterDataStage());
+      runStage(event, new CurrentStateComputationStage());
+    }
+  }
+
+  private void runStageAndVerify(
+      Map<String, Map<String, String>> initialCurrentStates,
+      Map<String, Map<String, String>> missingTopStates,
+      Map<String, Map<String, String>> handOffCurrentStates, MissingStatesDataCacheInject inject,
+      int successCnt, int failCnt,
+      Range<Long> expectedDuration, Range<Long> expectedMaxDuration
+  ) {
+    runCurrentStage(initialCurrentStates, missingTopStates, handOffCurrentStates, inject);
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    ResourceMonitor monitor = clusterStatusMonitor.getResourceMonitor(TEST_RESOURCE);
+
+    Assert.assertEquals(monitor.getSucceededTopStateHandoffCounter(), successCnt);
+    Assert.assertEquals(monitor.getFailedTopStateHandoffCounter(), failCnt);
+
+    Assert.assertTrue(
+        expectedDuration.contains(monitor.getSuccessfulTopStateHandoffDurationCounter()));
+    Assert.assertTrue(
+        expectedMaxDuration.contains(monitor.getMaxSinglePartitionTopStateHandoffDurationGauge()));
   }
 
   interface MissingStatesDataCacheInject {

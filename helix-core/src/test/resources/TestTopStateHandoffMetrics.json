@@ -254,5 +254,53 @@
       },
       "expectedDuration": "0"
     }
+  ],
+  "fast": [
+    {
+      "initialCurrentStates": {
+        "localhost_0": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "OFFLINE",
+          "StartTime": "1000",
+          "EndTime": "2000"
+        },
+        "localhost_1": {
+          "CurrentState": "MASTER",
+          "PreviousState": "SLAVE",
+          "StartTime": "2500",
+          "EndTime": "5000"
+        },
+        "localhost_2": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "OFFLINE",
+          "StartTime": "1000",
+          "EndTime": "2000"
+        }
+      },
+      "MissingTopStates": {
+        "localhost_0": {
+          "CurrentState": "MASTER",
+          "PreviousState": "SLAVE",
+          "StartTime": "8000",
+          "EndTime": "9000"
+        },
+        "localhost_1": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "MASTER",
+          "StartTime": "6000",
+          "EndTime": "7000"
+        },
+        "localhost_2": {
+          "CurrentState": "SLAVE",
+          "PreviousState": "OFFLINE",
+          "StartTime": "1000",
+          "EndTime": "2000"
+        }
+      },
+      "handoffCurrentStates": {
+
+      },
+      "expectedDuration": "3000"
+    }
   ]
 }

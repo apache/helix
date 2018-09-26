@@ -179,17 +179,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    */
   private List<NotificationContext.Type> _expectTypes = nextNotificationType.get(Type.FINALIZE);
 
-  @Deprecated
-  public CallbackHandler(HelixManager manager, ZkClient client, PropertyKey propertyKey,
+  public CallbackHandler(HelixManager manager, HelixZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType) {
     this(manager, client, propertyKey, listener, eventTypes, changeType, null);
-  }
-
-  @Deprecated
-  public CallbackHandler(HelixManager manager, ZkClient client, PropertyKey propertyKey,
-      Object listener, EventType[] eventTypes, ChangeType changeType,
-      HelixCallbackMonitor monitor) {
-    this(manager, (HelixZkClient) client, propertyKey, listener, eventTypes, changeType, monitor);
   }
 
   public CallbackHandler(HelixManager manager, HelixZkClient client, PropertyKey propertyKey,

@@ -19,10 +19,10 @@ package org.apache.helix.tools;
  * under the License.
  */
 
-import org.apache.helix.manager.zk.ZkClient;
-
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.helix.manager.zk.client.HelixZkClient;
 
 /**
  * Please use the class is in tools.ClusterVerifiers.
@@ -32,7 +32,7 @@ public class ClusterLiveNodesVerifier extends ClusterVerifier {
 
   final List<String> _expectSortedLiveNodes; // always sorted
 
-  public ClusterLiveNodesVerifier(ZkClient zkclient, String clusterName,
+  public ClusterLiveNodesVerifier(HelixZkClient zkclient, String clusterName,
       List<String> expectLiveNodes) {
     super(zkclient, clusterName);
     _expectSortedLiveNodes = expectLiveNodes;

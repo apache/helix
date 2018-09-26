@@ -22,7 +22,8 @@ package org.apache.helix.examples;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -31,7 +32,7 @@ import org.apache.helix.tools.StateModelConfigGenerator;
 /**
  * Ideal state json format file used in this example for CUSTOMIZED ideal state mode
  * <p>
- * 
+ *
  * <pre>
  * {
  * "id" : "TestDB",
@@ -93,10 +94,11 @@ public class IdealStateExample {
     }
 
     // add cluster {clusterName}
-    ZkClient zkclient =
-        new ZkClient(zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
-            new ZNRecordSerializer());
-    ZKHelixAdmin admin = new ZKHelixAdmin(zkclient);
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(new ZNRecordSerializer());
+    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr), clientConfig);
+    ZKHelixAdmin admin = new ZKHelixAdmin(zkClient);
     admin.addCluster(clusterName, true);
 
     // add MasterSlave state mode definition

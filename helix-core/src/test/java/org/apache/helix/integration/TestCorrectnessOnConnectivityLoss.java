@@ -20,6 +20,8 @@ package org.apache.helix.integration;
  */
 
 import com.google.common.collect.Maps;
+
+import java.lang.reflect.Method;
 import java.util.Map;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixManager;
@@ -50,11 +52,11 @@ public class TestCorrectnessOnConnectivityLoss {
   private ClusterControllerManager _controller;
 
   @BeforeMethod
-  public void beforeMethod() throws Exception {
-    _zkServer = TestHelper.startZkServer(ZK_ADDR);
+  public void beforeMethod(Method testMethod) throws Exception {
+    _zkServer = TestHelper.startZkServer(ZK_ADDR, null, false);
 
     String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
+    String methodName = testMethod.getName();
     _clusterName = className + "_" + methodName;
     TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, // participant start port
         "localhost", // participant host
@@ -69,6 +71,11 @@ public class TestCorrectnessOnConnectivityLoss {
 
     _controller = new ClusterControllerManager(ZK_ADDR, _clusterName, "controller0");
     _controller.connect();
+  }
+
+  @AfterMethod
+  public void afterMethod() {
+    TestHelper.stopZkServer(_zkServer);
   }
 
   @Test
@@ -134,11 +141,6 @@ public class TestCorrectnessOnConnectivityLoss {
     } finally {
       routingTableProvider.shutdown();
     }
-  }
-
-  @AfterMethod
-  public void afterMethod() throws Exception {
-    TestHelper.stopZkServer(_zkServer);
   }
 
   @StateModelInfo(initialState = "OFFLINE", states = {

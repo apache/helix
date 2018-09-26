@@ -45,7 +45,8 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
@@ -135,22 +136,24 @@ public class ClusterSetup {
 
   static Logger _logger = LoggerFactory.getLogger(ClusterSetup.class);
   String _zkServerAddress;
-  ZkClient _zkClient;
+  HelixZkClient _zkClient;
   HelixAdmin _admin;
 
   public ClusterSetup(String zkServerAddress) {
     _zkServerAddress = zkServerAddress;
-    _zkClient = ZKClientPool.getZkClient(_zkServerAddress);
+    _zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkServerAddress));
+    _zkClient.setZkSerializer(new ZNRecordSerializer());
     _admin = new ZKHelixAdmin(_zkClient);
   }
 
-  public ClusterSetup(ZkClient zkClient) {
+  public ClusterSetup(HelixZkClient zkClient) {
     _zkServerAddress = zkClient.getServers();
     _zkClient = zkClient;
     _admin = new ZKHelixAdmin(_zkClient);
   }
 
-  public ClusterSetup(ZkClient zkClient, HelixAdmin zkHelixAdmin) {
+  public ClusterSetup(HelixZkClient zkClient, HelixAdmin zkHelixAdmin) {
     _zkServerAddress = zkClient.getServers();
     _zkClient = zkClient;
     _admin = zkHelixAdmin;

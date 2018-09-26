@@ -40,7 +40,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKUtil;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.LeaderHistory;
@@ -391,7 +391,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   private boolean isClusterExist(String cluster) {
-    ZkClient zkClient = getZkClient();
+    HelixZkClient zkClient = getHelixZkClient();
     if (ZKUtil.isClusterSetup(cluster, zkClient)) {
       return true;
     }

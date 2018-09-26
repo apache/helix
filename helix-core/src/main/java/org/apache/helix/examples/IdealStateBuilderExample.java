@@ -22,7 +22,8 @@ package org.apache.helix.examples;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -51,10 +52,11 @@ public class IdealStateBuilderExample {
     final String clusterName = args[1];
     RebalanceMode idealStateMode = RebalanceMode.valueOf(args[2].toUpperCase());
 
-    ZkClient zkclient =
-        new ZkClient(zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
-            new ZNRecordSerializer());
-    ZKHelixAdmin admin = new ZKHelixAdmin(zkclient);
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(new ZNRecordSerializer());
+    final HelixZkClient zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr), clientConfig);
+    ZKHelixAdmin admin = new ZKHelixAdmin(zkClient);
 
     // add cluster
     admin.addCluster(clusterName, true);

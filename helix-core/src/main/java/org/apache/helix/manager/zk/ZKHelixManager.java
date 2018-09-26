@@ -715,6 +715,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       _messagingService.getExecutor().shutdown();
 
       // TODO reset user defined handlers only
+      // TODO Fix the issue that when connection disconnected, reset handlers will be blocked. -- JJ
+      // This is because reset logic contains ZK operations.
       resetHandlers();
 
       if (_leaderElectionHandler != null) {
@@ -902,10 +904,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     boolean isConnected;
     do {
       isConnected =
-          _zkclient.waitUntilConnected(ZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
+          _zkclient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
       if (!isConnected) {
         LOG.error("fail to connect zkserver: " + _zkAddress + " in "
-            + ZkClient.DEFAULT_CONNECTION_TIMEOUT + "ms. expiredSessionId: " + _sessionId
+            + HelixZkClient.DEFAULT_CONNECTION_TIMEOUT + "ms. expiredSessionId: " + _sessionId
             + ", clusterName: " + _clusterName);
         continue;
       }
@@ -998,6 +1000,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         }
 
         try {
+          // TODO Call disconnect in another thread.
+          // handleStateChanged is triggered in ZkClient eventThread. The disconnect logic will
+          // interrupt this thread. This issue prevents the ZkClient.close() from complete. So the
+          // client is left in a strange state.
           disconnect();
         } catch (Exception ex) {
           LOG.error("Disconnect HelixManager is not completely done.", ex);
@@ -1094,7 +1100,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       _participantManager.reset();
     }
     _participantManager =
-        new ParticipantManager(this, (ZkClient) _zkclient, _sessionTimeout, _liveInstanceInfoProvider,
+        new ParticipantManager(this, _zkclient, _sessionTimeout, _liveInstanceInfoProvider,
             _preConnectCallbacks);
     _participantManager.handleNewSession();
   }

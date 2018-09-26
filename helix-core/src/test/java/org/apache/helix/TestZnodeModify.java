@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.TestCommand;
@@ -210,10 +209,8 @@ public class TestZnodeModify extends ZkUnitTestBase {
       public void run() {
         try {
           Thread.sleep(3000);
-          final ZkClient zkClient = new ZkClient(ZK_ADDR);
-          zkClient.setZkSerializer(new ZNRecordSerializer());
-          zkClient.createPersistent(pathChild1, true);
-          zkClient.writeData(pathChild1, record);
+          _gZkClient.createPersistent(pathChild1, true);
+          _gZkClient.writeData(pathChild1, record);
         } catch (InterruptedException e) {
           logger.error("Interrupted sleep", e);
         }
@@ -228,28 +225,19 @@ public class TestZnodeModify extends ZkUnitTestBase {
 
   }
 
-  ZkClient _zkClient;
-
   @BeforeClass()
   public void beforeClass() {
     System.out.println("START " + getShortClassName() + " at "
         + new Date(System.currentTimeMillis()));
-
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
-    if (_zkClient.exists(PREFIX)) {
-      _zkClient.deleteRecursively(PREFIX);
+    if (_gZkClient.exists(PREFIX)) {
+      _gZkClient.deleteRecursively(PREFIX);
     }
-
   }
 
   @AfterClass
   public void afterClass() {
-    _zkClient.close();
-
     System.out
         .println("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   private ZNRecord getExampleZNRecord() {
@@ -267,5 +255,4 @@ public class TestZnodeModify extends ZkUnitTestBase {
     record.setListField("TestDB_0", list);
     return record;
   }
-
 }

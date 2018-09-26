@@ -24,16 +24,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 
 public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
 
   final Set<String> _expectLiveNodes;
 
-  public ClusterLiveNodesVerifier(ZkClient zkclient, String clusterName,
+  public ClusterLiveNodesVerifier(HelixZkClient zkclient, String clusterName,
       List<String> expectLiveNodes) {
     super(zkclient, clusterName);
-    _expectLiveNodes = new HashSet<String>(expectLiveNodes);
+    _expectLiveNodes = new HashSet<>(expectLiveNodes);
   }
 
   @Override

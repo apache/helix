@@ -25,6 +25,8 @@ import com.google.common.collect.Sets;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.commons.codec.binary.Hex;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -37,15 +39,17 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
-import org.apache.helix.util.ZKClientPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -332,7 +336,7 @@ public class TestFullAutoNodeTagging extends ZkUnitTestBase {
     private final String _resourceName;
     private final String[] _taggedNodes;
     private final boolean _isEmptyAllowed;
-    private final ZkClient _zkClient;
+    private final HelixZkClient _zkClient;
 
     /**
      * Create a verifier for a specific cluster and resource
@@ -347,7 +351,10 @@ public class TestFullAutoNodeTagging extends ZkUnitTestBase {
       _resourceName = resourceName;
       _taggedNodes = taggedNodes;
       _isEmptyAllowed = isEmptyAllowed;
-      _zkClient = ZKClientPool.getZkClient(ZK_ADDR);
+
+      _zkClient = DedicatedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+      _zkClient.setZkSerializer(new ZNRecordSerializer());
     }
 
     @Override
@@ -477,7 +484,7 @@ public class TestFullAutoNodeTagging extends ZkUnitTestBase {
 
     @Override
     public ZkClient getZkClient() {
-      return _zkClient;
+      return (ZkClient) _zkClient;
     }
 
     @Override

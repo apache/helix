@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,16 +42,16 @@ public class HierarchicalDataHolder<T> {
    * currentVersion, gets updated when data is read from original source
    */
   AtomicLong currentVersion;
-  private final ZkClient _zkClient;
+  private final HelixZkClient _zkClient;
   private final String _rootPath;
   private final FileFilter _filter;
 
-  public HierarchicalDataHolder(ZkClient client, String rootPath, FileFilter filter) {
+  public HierarchicalDataHolder(HelixZkClient client, String rootPath, FileFilter filter) {
     this._zkClient = client;
     this._rootPath = rootPath;
     this._filter = filter;
     // Node<T> initialValue = new Node<T>();
-    root = new AtomicReference<HierarchicalDataHolder.Node<T>>();
+    root = new AtomicReference<>();
     currentVersion = new AtomicLong(1);
     refreshData();
   }
@@ -99,7 +99,7 @@ public class HierarchicalDataHolder<T> {
           Node<T> oldChild =
               (oldRoot != null && oldRoot.children != null) ? oldRoot.children.get(child) : null;
           if (newRoot.children == null) {
-            newRoot.children = new ConcurrentHashMap<String, HierarchicalDataHolder.Node<T>>();
+            newRoot.children = new ConcurrentHashMap<>();
           }
           if (!newRoot.children.contains(child)) {
             newRoot.children.put(child, new Node<T>());

@@ -19,7 +19,6 @@ package org.apache.helix.tools;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 import org.apache.helix.BaseDataAccessor;
@@ -35,7 +34,6 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
@@ -57,7 +55,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
   protected static final String STATE_MODEL = "MasterSlave";
   protected static final String TEST_NODE = "testnode_1";
 
-  ZkClient _zkClient;
   ClusterSetup _clusterSetup;
 
   private static String[] createArgs(String str) {
@@ -67,24 +64,20 @@ public class TestClusterSetup extends ZkUnitTestBase {
   }
 
   @BeforeClass()
-  public void beforeClass() throws IOException, Exception {
+  public void beforeClass() throws Exception {
     System.out.println("START TestClusterSetup.beforeClass() "
         + new Date(System.currentTimeMillis()));
-
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
   }
 
   @AfterClass()
   public void afterClass() {
-    _zkClient.close();
     System.out.println("END TestClusterSetup.afterClass() " + new Date(System.currentTimeMillis()));
   }
 
   @BeforeMethod()
   public void setup() {
 
-    _zkClient.deleteRecursively("/" + CLUSTER_NAME);
+    _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
     _clusterSetup = new ClusterSetup(ZK_ADDR);
     _clusterSetup.addCluster(CLUSTER_NAME, true);
   }
@@ -123,11 +116,11 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     // verify instances
     for (String instance : instanceAddresses) {
-      verifyInstance(_zkClient, CLUSTER_NAME, instance, true);
+      verifyInstance(_gZkClient, CLUSTER_NAME, instance, true);
     }
 
     _clusterSetup.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
-    verifyInstance(_zkClient, CLUSTER_NAME, nextInstanceAddress, true);
+    verifyInstance(_gZkClient, CLUSTER_NAME, nextInstanceAddress, true);
     // re-add
     boolean caughtException = false;
     try {
@@ -160,11 +153,11 @@ public class TestClusterSetup extends ZkUnitTestBase {
     // disable
     _clusterSetup.getClusterManagementTool().enableInstance(CLUSTER_NAME, nextInstanceAddress,
         false);
-    verifyEnabled(_zkClient, CLUSTER_NAME, nextInstanceAddress, false);
+    verifyEnabled(_gZkClient, CLUSTER_NAME, nextInstanceAddress, false);
 
     // drop
     _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
-    verifyInstance(_zkClient, CLUSTER_NAME, nextInstanceAddress, false);
+    verifyInstance(_gZkClient, CLUSTER_NAME, nextInstanceAddress, false);
 
     // re-drop
     caughtException = false;
@@ -206,15 +199,15 @@ public class TestClusterSetup extends ZkUnitTestBase {
       _clusterSetup.addResourceToCluster(CLUSTER_NAME, TEST_DB, 16, STATE_MODEL);
     } catch (Exception e) {
     }
-    verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, true);
+    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
   }
 
   @Test()
   public void testRemoveResource() throws Exception {
     _clusterSetup.setupTestCluster(CLUSTER_NAME);
-    verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, true);
+    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
     _clusterSetup.dropResourceFromCluster(CLUSTER_NAME, TEST_DB);
-    verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, false);
+    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, false);
   }
 
   @Test()
@@ -223,7 +216,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     // testAddInstancesToCluster();
     testAddResource();
     _clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 4);
-    verifyReplication(_zkClient, CLUSTER_NAME, TEST_DB, 4);
+    verifyReplication(_gZkClient, CLUSTER_NAME, TEST_DB, 4);
   }
 
   /*
@@ -238,33 +231,33 @@ public class TestClusterSetup extends ZkUnitTestBase {
     // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+ " help"));
 
     // wipe ZK
-    _zkClient.deleteRecursively("/" + CLUSTER_NAME);
+    _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
     _clusterSetup = new ClusterSetup(ZK_ADDR);
 
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addCluster "
         + CLUSTER_NAME));
 
     // wipe again
-    _zkClient.deleteRecursively("/" + CLUSTER_NAME);
+    _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
     _clusterSetup = new ClusterSetup(ZK_ADDR);
 
     _clusterSetup.setupTestCluster(CLUSTER_NAME);
 
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addNode "
         + CLUSTER_NAME + " " + TEST_NODE));
-    verifyInstance(_zkClient, CLUSTER_NAME, TEST_NODE, true);
+    verifyInstance(_gZkClient, CLUSTER_NAME, TEST_NODE, true);
     try {
       ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addResource "
           + CLUSTER_NAME + " " + TEST_DB + " 4 " + STATE_MODEL));
     } catch (Exception e) {
 
     }
-    verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, true);
+    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
     // ClusterSetup
     // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --addNode node-1"));
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --enableInstance "
         + CLUSTER_NAME + " " + TEST_NODE + " true"));
-    verifyEnabled(_zkClient, CLUSTER_NAME, TEST_NODE, true);
+    verifyEnabled(_gZkClient, CLUSTER_NAME, TEST_NODE, true);
 
     // TODO: verify list commands
     /*
@@ -291,7 +284,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --rebalance "+CLUSTER_NAME+" "+TEST_DB+" 1"));
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --enableInstance "
         + CLUSTER_NAME + " " + TEST_NODE + " false"));
-    verifyEnabled(_zkClient, CLUSTER_NAME, TEST_NODE, false);
+    verifyEnabled(_gZkClient, CLUSTER_NAME, TEST_NODE, false);
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --dropNode "
         + CLUSTER_NAME + " " + TEST_NODE));
   }

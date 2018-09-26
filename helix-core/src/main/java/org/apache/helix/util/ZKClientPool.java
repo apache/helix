@@ -27,7 +27,7 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.zookeeper.ZooKeeper.States;
 
 public class ZKClientPool {
-  static final Map<String, ZkClient> _zkClientMap = new ConcurrentHashMap<String, ZkClient>();
+  static final Map<String, ZkClient> _zkClientMap = new ConcurrentHashMap<>();
   static final int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
   public static ZkClient getZkClient(String zkServer) {

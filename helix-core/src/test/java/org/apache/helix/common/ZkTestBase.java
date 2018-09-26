@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.ZkServer;
@@ -56,6 +57,8 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
@@ -72,7 +75,6 @@ import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
-import org.apache.helix.util.ZKClientPool;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
@@ -90,7 +92,7 @@ public class ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(ZkTestBase.class);
 
   protected static ZkServer _zkServer;
-  protected static ZkClient _gZkClient;
+  protected static HelixZkClient _gZkClient;
   protected static ClusterSetup _gSetupTool;
   protected static BaseDataAccessor<ZNRecord> _baseAccessor;
 
@@ -113,17 +115,17 @@ public class ZkTestBase {
 
     _zkServer = TestHelper.startZkServer(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
-    ZKClientPool.reset();
 
-    _gZkClient = new ZkClient(ZK_ADDR);
-    _gZkClient.setZkSerializer(new ZNRecordSerializer());
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(new ZNRecordSerializer());
+    _gZkClient = DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR), clientConfig);
     _gSetupTool = new ClusterSetup(_gZkClient);
     _baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
   }
 
   @AfterSuite
   public void afterSuite() {
-    ZKClientPool.reset();
     _gZkClient.close();
     TestHelper.stopZkServer(_zkServer);
   }
@@ -149,7 +151,7 @@ public class ZkTestBase {
     return this.getClass().getSimpleName();
   }
 
-  protected String getCurrentLeader(ZkClient zkClient, String clusterName) {
+  protected String getCurrentLeader(HelixZkClient zkClient, String clusterName) {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
@@ -161,7 +163,7 @@ public class ZkTestBase {
     return leader.getInstanceName();
   }
 
-  protected void stopCurrentLeader(ZkClient zkClient, String clusterName,
+  protected void stopCurrentLeader(HelixZkClient zkClient, String clusterName,
       Map<String, Thread> threadMap, Map<String, HelixManager> managerMap) {
     String leader = getCurrentLeader(zkClient, clusterName);
     Assert.assertTrue(leader != null);
@@ -202,7 +204,7 @@ public class ZkTestBase {
     new ConfigAccessor(_gZkClient).set(scope, "healthChange" + ".enabled", "" + true);
   }
 
-  protected void enablePersistBestPossibleAssignment(ZkClient zkClient, String clusterName,
+  protected void enablePersistBestPossibleAssignment(HelixZkClient zkClient, String clusterName,
       Boolean enabled) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
@@ -210,7 +212,7 @@ public class ZkTestBase {
     configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
-  protected void enablePersistIntermediateAssignment(ZkClient zkClient, String clusterName,
+  protected void enablePersistIntermediateAssignment(HelixZkClient zkClient, String clusterName,
       Boolean enabled) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
@@ -218,7 +220,7 @@ public class ZkTestBase {
     configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
-  protected void enableTopologyAwareRebalance(ZkClient zkClient, String clusterName,
+  protected void enableTopologyAwareRebalance(HelixZkClient zkClient, String clusterName,
       Boolean enabled) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
@@ -226,7 +228,7 @@ public class ZkTestBase {
     configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
-  protected void enableDelayRebalanceInCluster(ZkClient zkClient, String clusterName,
+  protected void enableDelayRebalanceInCluster(HelixZkClient zkClient, String clusterName,
       boolean enabled) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
@@ -234,7 +236,7 @@ public class ZkTestBase {
     configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
-  protected void enableDelayRebalanceInInstance(ZkClient zkClient, String clusterName,
+  protected void enableDelayRebalanceInInstance(HelixZkClient zkClient, String clusterName,
       String instanceName, boolean enabled) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
     InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
@@ -274,7 +276,7 @@ public class ZkTestBase {
     }
   }
 
-  protected void setDelayTimeInCluster(ZkClient zkClient, String clusterName, long delay) {
+  protected void setDelayTimeInCluster(HelixZkClient zkClient, String clusterName, long delay) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
     clusterConfig.setRebalanceDelayTime(delay);
@@ -412,7 +414,7 @@ public class ZkTestBase {
     stage.postProcess();
   }
 
-  public void verifyInstance(ZkClient zkClient, String clusterName, String instance,
+  public void verifyInstance(HelixZkClient zkClient, String clusterName, String instance,
       boolean wantExists) {
     // String instanceConfigsPath = HelixUtil.getConfigPath(clusterName);
     String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
@@ -422,13 +424,13 @@ public class ZkTestBase {
     AssertJUnit.assertEquals(wantExists, zkClient.exists(instancePath));
   }
 
-  public void verifyResource(ZkClient zkClient, String clusterName, String resource,
+  public void verifyResource(HelixZkClient zkClient, String clusterName, String resource,
       boolean wantExists) {
     String resourcePath = PropertyPathBuilder.idealState(clusterName, resource);
     AssertJUnit.assertEquals(wantExists, zkClient.exists(resourcePath));
   }
 
-  public void verifyEnabled(ZkClient zkClient, String clusterName, String instance,
+  public void verifyEnabled(HelixZkClient zkClient, String clusterName, String instance,
       boolean wantEnabled) {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
@@ -438,7 +440,7 @@ public class ZkTestBase {
     AssertJUnit.assertEquals(wantEnabled, config.getInstanceEnabled());
   }
 
-  public void verifyReplication(ZkClient zkClient, String clusterName, String resource, int repl) {
+  public void verifyReplication(HelixZkClient zkClient, String clusterName, String resource, int repl) {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
@@ -476,8 +478,10 @@ public class ZkTestBase {
     LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
   }
 
-  protected void simulateSessionExpiry(ZkClient zkClient)
+  protected void simulateSessionExpiry(HelixZkClient client)
       throws IOException, InterruptedException, IOException {
+    ZkClient zkClient = (ZkClient) client;
+
     IZkStateListener listener = new IZkStateListener() {
       @Override
       public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
@@ -667,17 +671,21 @@ public class ZkTestBase {
   protected static class EmptyZkVerifier implements ClusterStateVerifier.ZkVerifier {
     private final String _clusterName;
     private final String _resourceName;
-    private final ZkClient _zkClient;
+    private final HelixZkClient _zkClient;
 
     /**
      * Instantiate the verifier
-     * @param clusterName the cluster to verify
+     *
+     * @param clusterName  the cluster to verify
      * @param resourceName the resource to verify
      */
     public EmptyZkVerifier(String clusterName, String resourceName) {
       _clusterName = clusterName;
       _resourceName = resourceName;
-      _zkClient = ZKClientPool.getZkClient(ZK_ADDR);
+
+      _zkClient = DedicatedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+      _zkClient.setZkSerializer(new ZNRecordSerializer());
     }
 
     @Override
@@ -717,7 +725,7 @@ public class ZkTestBase {
 
     @Override
     public ZkClient getZkClient() {
-      return _zkClient;
+      return (ZkClient) _gZkClient;
     }
 
     @Override

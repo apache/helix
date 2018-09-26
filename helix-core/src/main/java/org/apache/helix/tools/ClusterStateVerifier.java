@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.Sets;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
@@ -57,18 +58,18 @@ import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.task.TaskConstants;
-import org.apache.helix.util.ZKClientPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Sets;
 
 /**
  * This class is deprecated, please use dedicated verifier classes, such as BestPossibleExternViewVerifier, etc, in tools.ClusterVerifiers
@@ -98,10 +99,11 @@ public class ClusterStateVerifier {
   @Deprecated
   static class ExtViewVeriferZkListener implements IZkChildListener, IZkDataListener {
     final CountDownLatch _countDown;
-    final ZkClient _zkClient;
+    final HelixZkClient _zkClient;
     final Verifier _verifier;
 
-    public ExtViewVeriferZkListener(CountDownLatch countDown, ZkClient zkClient, ZkVerifier verifier) {
+    public ExtViewVeriferZkListener(CountDownLatch countDown, HelixZkClient zkClient,
+        ZkVerifier verifier) {
       _countDown = countDown;
       _zkClient = zkClient;
       _verifier = verifier;
@@ -136,17 +138,20 @@ public class ClusterStateVerifier {
     }
   }
 
-  private static ZkClient validateAndGetClient(String zkAddr, String clusterName) {
+  private static HelixZkClient validateAndGetClient(String zkAddr, String clusterName) {
     if (zkAddr == null || clusterName == null) {
       throw new IllegalArgumentException("requires zkAddr|clusterName");
     }
-    return ZKClientPool.getZkClient(zkAddr);
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(new ZNRecordSerializer());
+    return DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr), clientConfig);
   }
 
   public static class BestPossAndExtViewZkVerifier implements ZkVerifier {
     private final String clusterName;
     private final Map<String, Map<String, String>> errStates;
-    private final ZkClient zkClient;
+    private final HelixZkClient zkClient;
     private final Set<String> resources;
 
     public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName) {
@@ -163,7 +168,7 @@ public class ClusterStateVerifier {
       this(validateAndGetClient(zkAddr, clusterName), clusterName, errStates, resources);
     }
 
-    public BestPossAndExtViewZkVerifier(ZkClient zkClient, String clusterName,
+    public BestPossAndExtViewZkVerifier(HelixZkClient zkClient, String clusterName,
         Map<String, Map<String, String>> errStates, Set<String> resources) {
       if (zkClient == null || clusterName == null) {
         throw new IllegalArgumentException("requires zkClient|clusterName");
@@ -406,7 +411,7 @@ public class ClusterStateVerifier {
 
     @Override
     public ZkClient getZkClient() {
-      return zkClient;
+      return (ZkClient) zkClient;
     }
 
     @Override
@@ -425,13 +430,13 @@ public class ClusterStateVerifier {
 
   public static class MasterNbInExtViewVerifier implements ZkVerifier {
     private final String clusterName;
-    private final ZkClient zkClient;
+    private final HelixZkClient zkClient;
 
     public MasterNbInExtViewVerifier(String zkAddr, String clusterName) {
       this(validateAndGetClient(zkAddr, clusterName), clusterName);
     }
 
-    public MasterNbInExtViewVerifier(ZkClient zkClient, String clusterName) {
+    public MasterNbInExtViewVerifier(HelixZkClient zkClient, String clusterName) {
       if (zkClient == null || clusterName == null) {
         throw new IllegalArgumentException("requires zkClient|clusterName");
       }
@@ -454,7 +459,7 @@ public class ClusterStateVerifier {
 
     @Override
     public ZkClient getZkClient() {
-      return zkClient;
+      return (ZkClient) zkClient;
     }
 
     @Override
@@ -555,7 +560,7 @@ public class ClusterStateVerifier {
   public static boolean verifyByZkCallback(ZkVerifier verifier, long timeout) {
     long startTime = System.currentTimeMillis();
     CountDownLatch countDown = new CountDownLatch(1);
-    ZkClient zkClient = verifier.getZkClient();
+    HelixZkClient zkClient = verifier.getZkClient();
     String clusterName = verifier.getClusterName();
 
     // add an ephemeral node to /{clusterName}/CONFIGS/CLUSTER/verify

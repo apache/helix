@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixRollbackException;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.ClusterDataCache;
@@ -33,6 +34,7 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -190,10 +192,12 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
   public static class ExternalViewBalancedVerifier implements ZkVerifier {
     String _clusterName;
     String _resourceName;
+    HelixZkClient _client;
 
-    public ExternalViewBalancedVerifier(ZkClient client, String clusterName, String resourceName) {
+    public ExternalViewBalancedVerifier(HelixZkClient client, String clusterName, String resourceName) {
       _clusterName = clusterName;
       _resourceName = resourceName;
+      _client = client;
     }
 
     @Override
@@ -217,7 +221,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
 
     @Override
     public ZkClient getZkClient() {
-      return _gZkClient;
+      return (ZkClient) _client;
     }
 
     @Override

@@ -41,7 +41,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
@@ -75,7 +75,7 @@ public class ResourceAccessor extends AbstractHelixResource {
     ObjectNode root = JsonNodeFactory.instance.objectNode();
     root.put(Properties.id.name(), JsonNodeFactory.instance.textNode(clusterId));
 
-    ZkClient zkClient = getZkClient();
+    HelixZkClient zkClient = getHelixZkClient();
 
     ArrayNode idealStatesNode = root.putArray(ResourceProperties.idealStates.name());
     ArrayNode externalViewsNode = root.putArray(ResourceProperties.externalViews.name());
@@ -106,7 +106,7 @@ public class ResourceAccessor extends AbstractHelixResource {
   @Path("health")
   public Response getResourceHealth(@PathParam("clusterId") String clusterId) {
 
-    ZkClient zkClient = getZkClient();
+    HelixZkClient zkClient = getHelixZkClient();
 
     List<String> resourcesInIdealState = zkClient.getChildren(PropertyPathBuilder.idealState(clusterId));
     List<String> resourcesInExternalView = zkClient.getChildren(PropertyPathBuilder.externalView(clusterId));

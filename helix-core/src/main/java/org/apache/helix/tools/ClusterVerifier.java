@@ -27,7 +27,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class ClusterVerifier implements IZkChildListener, IZkDataListener {
   private static Logger LOG = LoggerFactory.getLogger(ClusterVerifier.class);
 
-  protected final ZkClient _zkclient;
+  protected final HelixZkClient _zkclient;
   protected final String _clusterName;
   protected final HelixDataAccessor _accessor;
   protected final PropertyKey.Builder _keyBuilder;
@@ -58,7 +58,7 @@ public abstract class ClusterVerifier implements IZkChildListener, IZkDataListen
     }
   }
 
-  public ClusterVerifier(ZkClient zkclient, String clusterName) {
+  public ClusterVerifier(HelixZkClient zkclient, String clusterName) {
     _zkclient = zkclient;
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkclient));

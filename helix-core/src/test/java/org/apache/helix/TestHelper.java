@@ -37,6 +37,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
@@ -50,7 +51,8 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -144,7 +146,7 @@ public class TestHelper {
     }
   }
 
-  public static void setupEmptyCluster(ZkClient zkClient, String clusterName) {
+  public static void setupEmptyCluster(HelixZkClient zkClient, String clusterName) {
     ZKHelixAdmin admin = new ZKHelixAdmin(zkClient);
     admin.addCluster(clusterName, true);
   }
@@ -211,7 +213,8 @@ public class TestHelper {
 
   public static boolean verifyEmptyCurStateAndExtView(String clusterName, String resourceName,
       Set<String> instanceNames, String zkAddr) {
-    ZkClient zkClient = new ZkClient(zkAddr);
+    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     zkClient.setZkSerializer(new ZNRecordSerializer());
 
     try {
@@ -257,17 +260,18 @@ public class TestHelper {
         RebalanceMode.SEMI_AUTO, doRebalance);
   }
 
-  public static void setupCluster(String clusterName, String ZkAddr, int startPort,
+  public static void setupCluster(String clusterName, String zkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
       int nodesNb, int replica, String stateModelDef, RebalanceMode mode, boolean doRebalance)
       throws Exception {
-    ZkClient zkClient = new ZkClient(ZkAddr);
+    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     if (zkClient.exists("/" + clusterName)) {
       LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
       zkClient.deleteRecursively("/" + clusterName);
     }
 
-    ClusterSetup setupTool = new ClusterSetup(ZkAddr);
+    ClusterSetup setupTool = new ClusterSetup(zkAddr);
     setupTool.addCluster(clusterName, true);
 
     for (int i = 0; i < nodesNb; i++) {
@@ -286,12 +290,12 @@ public class TestHelper {
     zkClient.close();
   }
 
-  public static void dropCluster(String clusterName, ZkClient zkClient) throws Exception {
+  public static void dropCluster(String clusterName, HelixZkClient zkClient) throws Exception {
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     dropCluster(clusterName, zkClient, setupTool);
   }
 
-  public static void dropCluster(String clusterName, ZkClient zkClient, ClusterSetup setup) {
+  public static void dropCluster(String clusterName, HelixZkClient zkClient, ClusterSetup setup) {
     String namespace = "/" + clusterName;
     if (zkClient.exists(namespace)) {
       try {
@@ -310,7 +314,8 @@ public class TestHelper {
    */
   public static void verifyState(String clusterName, String zkAddr,
       Map<String, Set<String>> stateMap, String state) {
-    ZkClient zkClient = new ZkClient(zkAddr);
+    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     zkClient.setZkSerializer(new ZNRecordSerializer());
 
     try {
@@ -513,7 +518,7 @@ public class TestHelper {
     System.out.println("END:Print cache");
   }
 
-  public static void readZkRecursive(String path, Map<String, ZNode> map, ZkClient zkclient) {
+  public static void readZkRecursive(String path, Map<String, ZNode> map, HelixZkClient zkclient) {
     try {
       Stat stat = new Stat();
       ZNRecord record = zkclient.readData(path, stat);
@@ -554,7 +559,7 @@ public class TestHelper {
   }
 
   public static boolean verifyZkCache(List<String> paths, BaseDataAccessor<ZNRecord> zkAccessor,
-      ZkClient zkclient, boolean needVerifyStat) {
+      HelixZkClient zkclient, boolean needVerifyStat) {
     // read everything
     Map<String, ZNode> zkMap = new HashMap<String, ZNode>();
     Map<String, ZNode> cache = new HashMap<String, ZNode>();
@@ -568,12 +573,12 @@ public class TestHelper {
   }
 
   public static boolean verifyZkCache(List<String> paths, Map<String, ZNode> cache,
-      ZkClient zkclient, boolean needVerifyStat) {
+      HelixZkClient zkclient, boolean needVerifyStat) {
     return verifyZkCache(paths, null, cache, zkclient, needVerifyStat);
   }
 
   public static boolean verifyZkCache(List<String> paths, List<String> pathsExcludeForStat,
-      Map<String, ZNode> cache, ZkClient zkclient, boolean needVerifyStat) {
+      Map<String, ZNode> cache, HelixZkClient zkclient, boolean needVerifyStat) {
     // read everything on zk under paths
     Map<String, ZNode> zkMap = new HashMap<String, ZNode>();
     for (String path : paths) {
@@ -799,7 +804,7 @@ public class TestHelper {
     return sb.toString();
   }
 
-  public static void printZkListeners(ZkClient client) throws Exception {
+  public static void printZkListeners(HelixZkClient client) throws Exception {
     Map<String, Set<IZkDataListener>> datalisteners = ZkTestHelper.getZkDataListener(client);
     Map<String, Set<IZkChildListener>> childListeners = ZkTestHelper.getZkChildListener(client);
 

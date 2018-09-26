@@ -36,7 +36,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
@@ -341,7 +341,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     }
   }
 
-  private void setNodes(ZkClient zkClient, String root, char c, boolean needTimestamp) {
+  private void setNodes(HelixZkClient zkClient, String root, char c, boolean needTimestamp) {
     char[] data = new char[bufSize];
 
     for (int i = 0; i < bufSize; i++) {

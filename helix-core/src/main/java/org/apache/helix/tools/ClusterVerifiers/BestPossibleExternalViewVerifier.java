@@ -33,6 +33,7 @@ import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
@@ -73,7 +74,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _clusterDataCache = new ClusterDataCache();
   }
 
-  public BestPossibleExternalViewVerifier(ZkClient zkClient, String clusterName,
+  public BestPossibleExternalViewVerifier(HelixZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,
       Set<String> expectLiveInstances) {
     super(zkClient, clusterName);
@@ -89,7 +90,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     private Set<String> _resources;
     private Set<String> _expectLiveInstances;
     private String _zkAddr;
-    private ZkClient _zkClient;
+    private HelixZkClient _zkClient;
 
     public Builder(String clusterName) {
       _clusterName = clusterName;
@@ -148,11 +149,15 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       return this;
     }
 
-    public ZkClient getZkClient() {
+    public HelixZkClient getHelixZkClient() {
       return _zkClient;
     }
 
-    public Builder setZkClient(ZkClient zkClient) {
+    @Deprecated
+    public ZkClient getZkClient() {
+      return (ZkClient) getHelixZkClient();
+    }
+    public Builder setZkClient(HelixZkClient zkClient) {
       _zkClient = zkClient;
       return this;
     }

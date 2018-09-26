@@ -45,7 +45,7 @@ import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
@@ -57,7 +57,7 @@ public class MockZKHelixManager implements HelixManager {
   private final InstanceType _type;
 
   public MockZKHelixManager(String clusterName, String instanceName, InstanceType type,
-      ZkClient zkClient) {
+      HelixZkClient zkClient) {
     _instanceName = instanceName;
     _clusterName = clusterName;
     _type = type;

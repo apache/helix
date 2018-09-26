@@ -24,7 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.participant.DistClusterControllerStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.slf4j.Logger;
@@ -82,8 +82,8 @@ public class ClusterDistributedController extends ZKHelixManager implements Runn
   }
 
   @Override
-  public ZkClient getZkClient() {
-    return (ZkClient) _zkclient;
+  public HelixZkClient getZkClient() {
+    return _zkclient;
   }
 
   @Override

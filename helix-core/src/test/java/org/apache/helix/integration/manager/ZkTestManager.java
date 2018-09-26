@@ -21,10 +21,10 @@ package org.apache.helix.integration.manager;
 
 import java.util.List;
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 
 public interface ZkTestManager {
-  ZkClient getZkClient();
+  HelixZkClient getZkClient();
 
   List<CallbackHandler> getHandlers();
 

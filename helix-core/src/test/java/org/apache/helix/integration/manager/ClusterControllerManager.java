@@ -25,7 +25,7 @@ import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,8 +88,8 @@ public class ClusterControllerManager extends ZKHelixManager implements Runnable
   }
 
   @Override
-  public ZkClient getZkClient() {
-    return (ZkClient) _zkclient;
+  public HelixZkClient getZkClient() {
+    return _zkclient;
   }
 
   @Override

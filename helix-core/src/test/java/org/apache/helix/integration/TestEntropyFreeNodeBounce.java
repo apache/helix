@@ -188,7 +188,7 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
 
     @Override
     public ZkClient getZkClient() {
-      return _gZkClient;
+      return (ZkClient) _gZkClient;
     }
 
     @Override

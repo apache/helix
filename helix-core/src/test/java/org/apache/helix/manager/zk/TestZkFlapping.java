@@ -20,9 +20,7 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.Date;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.SystemPropertyKeys;
@@ -41,82 +39,6 @@ import org.testng.annotations.Test;
 
 public class TestZkFlapping extends ZkUnitTestBase {
   private final int _disconnectThreshold = 5;
-
-  @Test
-  public void testZkSessionExpiry() throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
-    ZkClient client =
-        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_SESSION_TIMEOUT,
-            ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
-
-    String path = String.format("/%s", clusterName);
-    client.createEphemeral(path);
-    String oldSessionId = ZkTestHelper.getSessionId(client);
-    ZkTestHelper.expireSession(client);
-    String newSessionId = ZkTestHelper.getSessionId(client);
-    Assert.assertNotSame(newSessionId, oldSessionId);
-    Assert.assertFalse(client.exists(path), "Ephemeral znode should be gone after session expiry");
-    client.close();
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-  }
-
-  @Test
-  public void testCloseZkClient() {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
-    ZkClient client =
-        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_SESSION_TIMEOUT,
-            ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
-    String path = String.format("/%s", clusterName);
-    client.createEphemeral(path);
-
-    client.close();
-    Assert.assertFalse(_gZkClient.exists(path), "Ephemeral node: " + path
-        + " should be removed after ZkClient#close()");
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-  }
-
-  @Test
-  public void testCloseZkClientInZkClientEventThread() throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
-    final CountDownLatch waitCallback = new CountDownLatch(1);
-    final ZkClient client =
-        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_SESSION_TIMEOUT,
-            ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
-    String path = String.format("/%s", clusterName);
-    client.createEphemeral(path);
-    client.subscribeDataChanges(path, new IZkDataListener() {
-
-      @Override
-      public void handleDataDeleted(String dataPath) throws Exception {
-      }
-
-      @Override
-      public void handleDataChange(String dataPath, Object data) throws Exception {
-        client.close();
-        waitCallback.countDown();
-      }
-    });
-
-    client.writeData(path, new ZNRecord("test"));
-    waitCallback.await();
-    Assert.assertFalse(_gZkClient.exists(path), "Ephemeral node: " + path
-        + " should be removed after ZkClient#close() in its own event-thread");
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
-  }
 
   class ZkStateCountListener implements IZkStateListener {
     int count = 0;
@@ -165,7 +87,7 @@ public class TestZkFlapping extends ZkUnitTestBase {
           new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participant.syncStart();
 
-      final ZkClient client = participant.getZkClient();
+      final ZkClient client = (ZkClient) participant.getZkClient();
       final ZkStateCountListener listener = new ZkStateCountListener();
       client.subscribeStateChanges(listener);
 
@@ -249,7 +171,7 @@ public class TestZkFlapping extends ZkUnitTestBase {
           new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
       controller.syncStart();
 
-      final ZkClient client = controller.getZkClient();
+      final ZkClient client = (ZkClient) controller.getZkClient();
       final ZkStateCountListener listener = new ZkStateCountListener();
       client.subscribeStateChanges(listener);
 

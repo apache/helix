@@ -25,6 +25,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.resources.AbstractResource;
@@ -39,9 +40,14 @@ import org.apache.helix.tools.ClusterSetup;
  */
 public class AbstractHelixResource extends AbstractResource{
 
-  public ZkClient getZkClient() {
+  public HelixZkClient getHelixZkClient() {
     ServerContext serverContext = getServerContext();
-    return serverContext.getZkClient();
+    return serverContext.getHelixZkClient();
+  }
+
+  @Deprecated
+  public ZkClient getZkClient() {
+    return (ZkClient) getHelixZkClient();
   }
 
   public HelixAdmin getHelixAdmin() {

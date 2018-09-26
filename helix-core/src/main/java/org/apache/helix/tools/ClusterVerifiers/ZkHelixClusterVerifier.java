@@ -29,9 +29,11 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.util.ZKClientPool;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +48,7 @@ public abstract class ZkHelixClusterVerifier
   protected static int DEFAULT_PERIOD = 100;
 
 
-  protected final ZkClient _zkClient;
+  protected final HelixZkClient _zkClient;
   protected final String _clusterName;
   protected final HelixDataAccessor _accessor;
   protected final PropertyKey.Builder _keyBuilder;
@@ -90,7 +92,7 @@ public abstract class ZkHelixClusterVerifier
     }
   }
 
-  public ZkHelixClusterVerifier(ZkClient zkClient, String clusterName) {
+  public ZkHelixClusterVerifier(HelixZkClient zkClient, String clusterName) {
     if (zkClient == null || clusterName == null) {
       throw new IllegalArgumentException("requires zkClient|clusterName");
     }
@@ -104,7 +106,9 @@ public abstract class ZkHelixClusterVerifier
     if (zkAddr == null || clusterName == null) {
       throw new IllegalArgumentException("requires zkAddr|clusterName");
     }
-    _zkClient = ZKClientPool.getZkClient(zkAddr);
+    _zkClient = DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
+    _zkClient.setZkSerializer(new ZNRecordSerializer());
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
@@ -285,8 +289,13 @@ public abstract class ZkHelixClusterVerifier
     }
   }
 
-  public ZkClient getZkClient() {
+  public HelixZkClient getHelixZkClient() {
     return _zkClient;
+  }
+
+  @Deprecated
+  public ZkClient getZkClient() {
+    return (ZkClient) getHelixZkClient();
   }
 
   public String getClusterName() {

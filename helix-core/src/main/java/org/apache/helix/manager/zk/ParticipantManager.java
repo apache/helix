@@ -77,7 +77,7 @@ public class ParticipantManager {
   final LiveInstanceInfoProvider _liveInstanceInfoProvider;
   final List<PreConnectCallback> _preConnectCallbacks;
 
-  public ParticipantManager(HelixManager manager, ZkClient zkclient, int sessionTimeout,
+  public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
       LiveInstanceInfoProvider liveInstanceInfoProvider, List<PreConnectCallback> preConnectCallbacks) {
     _zkclient = zkclient;
     _manager = manager;

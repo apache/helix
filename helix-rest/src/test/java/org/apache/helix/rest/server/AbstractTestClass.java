@@ -31,7 +31,8 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
@@ -82,7 +83,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static int NUM_PARTITIONS = 10;
   protected static int NUM_REPLICA = 3;
   protected static ZkServer _zkServer;
-  protected static ZkClient _gZkClient;
+  protected static HelixZkClient _gZkClient;
   protected static ClusterSetup _gSetupTool;
   protected static ConfigAccessor _configAccessor;
   protected static BaseDataAccessor<ZNRecord> _baseAccessor;
@@ -93,7 +94,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static ZkServer _zkServerTestNS;
   protected static final String _zkAddrTestNS = "localhost:2124";
   protected static final String TEST_NAMESPACE = "test-namespace";
-  protected static ZkClient _gZkClientTestNS;
+  protected static HelixZkClient _gZkClientTestNS;
   protected static BaseDataAccessor<ZNRecord> _baseAccessorTestNS;
 
   protected static Set<String> _clusters;
@@ -202,10 +203,16 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
       topJavaLogger.setLevel(Level.WARNING);
 
-      _gZkClient = new ZkClient(ZK_ADDR, ZkClient.DEFAULT_SESSION_TIMEOUT,
-          ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
-      _gZkClientTestNS = new ZkClient(_zkAddrTestNS, ZkClient.DEFAULT_SESSION_TIMEOUT,
-          ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+      HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+
+      clientConfig.setZkSerializer(new ZNRecordSerializer());
+      _gZkClient = DedicatedZkClientFactory
+          .getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR), clientConfig);
+
+      clientConfig.setZkSerializer(new ZNRecordSerializer());
+      _gZkClientTestNS = DedicatedZkClientFactory
+          .getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddrTestNS), clientConfig);
+
       _gSetupTool = new ClusterSetup(_gZkClient);
       _configAccessor = new ConfigAccessor(_gZkClient);
       _baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);

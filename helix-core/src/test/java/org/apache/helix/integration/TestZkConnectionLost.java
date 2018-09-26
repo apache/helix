@@ -1,12 +1,13 @@
 package org.apache.helix.integration;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixException;
 import org.apache.helix.SystemPropertyKeys;
@@ -18,7 +19,8 @@ import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
@@ -40,17 +42,17 @@ public class TestZkConnectionLost extends TaskTestBase {
 
   private String _zkAddr = "localhost:21893";
   ClusterSetup _setupTool;
-  ZkClient _zkClient;
-
+  HelixZkClient _zkClient;
 
   @BeforeClass
   public void beforeClass() throws Exception {
     ZkServer zkServer = TestHelper.startZkServer(_zkAddr);
     _zkServerRef.set(zkServer);
-    _zkClient = new ZkClient(_zkAddr);
+    _zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr));
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     _setupTool = new ClusterSetup(_zkClient);
-    _participants =  new MockParticipantManager[_numNodes];
+    _participants = new MockParticipantManager[_numNodes];
     _setupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants(_setupTool);
     setupDBs(_setupTool);

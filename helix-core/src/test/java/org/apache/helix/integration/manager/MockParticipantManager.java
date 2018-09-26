@@ -24,7 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.mock.participant.MockMSModelFactory;
@@ -127,8 +127,8 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
   }
 
   @Override
-  public ZkClient getZkClient() {
-    return (ZkClient) _zkclient;
+  public HelixZkClient getZkClient() {
+    return _zkclient;
   }
 
   @Override

@@ -19,10 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.I0Itec.zkclient.ZkServer;
@@ -32,11 +28,10 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZkTestHelper;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -44,7 +39,6 @@ import org.testng.annotations.Test;
 
 public class TestZkReconnect {
   private static final Logger LOG = LoggerFactory.getLogger(TestZkReconnect.class);
-  ExecutorService _executor = Executors.newSingleThreadExecutor();
 
   @Test
   public void testHelixManagerStateListenerCallback() throws Exception {
@@ -95,7 +89,7 @@ public class TestZkReconnect {
       // 1. shutdown zkServer and check if handler trigger callback
       zkServer.shutdown();
       // Simulate a retry in ZkClient that will not succeed
-      injectExpire((ZkClient) controller._zkclient);
+      ZkTestHelper.injectExpire(controller._zkclient);
       Assert.assertFalse(controller._zkclient.waitUntilConnected(5000, TimeUnit.MILLISECONDS));
       // While retrying, onDisconnectedFlag = false
       Assert.assertFalse(onDisconnectedFlag.get());
@@ -141,18 +135,5 @@ public class TestZkReconnect {
       zkServer.shutdown();
       System.clearProperty(SystemPropertyKeys.ZK_CONNECTION_TIMEOUT);
     }
-  }
-
-  private void injectExpire(final ZkClient zkClient)
-      throws ExecutionException, InterruptedException {
-    Future future = _executor.submit(new Runnable() {
-      @Override
-      public void run() {
-        WatchedEvent event =
-            new WatchedEvent(Watcher.Event.EventType.None, Watcher.Event.KeeperState.Expired, null);
-        zkClient.process(event);
-      }
-    });
-    future.get();
   }
 }

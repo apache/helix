@@ -35,11 +35,12 @@ import org.apache.commons.cli.ParseException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.tools.ClusterExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,11 +63,11 @@ public class IntegrationTestUtil {
   public static final String readLeader = "readLeader";
   public static final String verifyClusterState = "verifyClusterState";
 
-  final ZkClient _zkclient;
+  final HelixZkClient _zkclient;
   final ZNRecordSerializer _serializer;
   final long _timeoutValue;
 
-  public IntegrationTestUtil(ZkClient zkclient, long timeoutValue) {
+  public IntegrationTestUtil(HelixZkClient zkclient, long timeoutValue) {
     _zkclient = zkclient;
     _timeoutValue = timeoutValue;
     _serializer = new ZNRecordSerializer();
@@ -213,10 +214,10 @@ public class IntegrationTestUtil {
       System.exit(1);
     }
 
-    String zkServer = cmd.getOptionValue(zkSvr);
-    ZkClient zkclient =
-        new ZkClient(zkServer, ZkClient.DEFAULT_SESSION_TIMEOUT,
-            ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(new ZNRecordSerializer());
+    HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(cmd.getOptionValue(zkSvr)), clientConfig);
 
     long timeoutValue = DEFAULT_TIMEOUT;
     if (cmd.hasOption(timeout)) {
@@ -229,7 +230,7 @@ public class IntegrationTestUtil {
       }
     }
 
-    IntegrationTestUtil util = new IntegrationTestUtil(zkclient, timeoutValue);
+    IntegrationTestUtil util = new IntegrationTestUtil(zkClient, timeoutValue);
 
     if (cmd != null) {
       if (cmd.hasOption(verifyExternalView)) {

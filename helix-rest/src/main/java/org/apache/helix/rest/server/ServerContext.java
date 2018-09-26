@@ -32,12 +32,14 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
 
 public class ServerContext {
   private final String _zkAddr;
-  private ZkClient _zkClient;
+  private HelixZkClient _zkClient;
   private ZKHelixAdmin _zkHelixAdmin;
   private ClusterSetup _clusterSetup;
   private ConfigAccessor _configAccessor;
@@ -59,24 +61,31 @@ public class ServerContext {
     _taskDriverPool = new HashMap<>();
   }
 
-  public ZkClient getZkClient() {
+  public HelixZkClient getHelixZkClient() {
     if (_zkClient == null) {
-      _zkClient = new ZkClient(_zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
-          ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+      HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+      clientConfig.setZkSerializer(new ZNRecordSerializer());
+      _zkClient = SharedZkClientFactory
+          .getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
     }
     return _zkClient;
   }
 
+  @Deprecated
+  public ZkClient getZkClient() {
+    return (ZkClient) getHelixZkClient();
+  }
+
   public HelixAdmin getHelixAdmin() {
     if (_zkHelixAdmin == null) {
-      _zkHelixAdmin = new ZKHelixAdmin(getZkClient());
+      _zkHelixAdmin = new ZKHelixAdmin(getHelixZkClient());
     }
     return _zkHelixAdmin;
   }
 
   public ClusterSetup getClusterSetup() {
     if (_clusterSetup == null) {
-      _clusterSetup = new ClusterSetup(getZkClient(), getHelixAdmin());
+      _clusterSetup = new ClusterSetup(getHelixZkClient(), getHelixAdmin());
     }
     return _clusterSetup;
   }
@@ -84,7 +93,7 @@ public class ServerContext {
   public TaskDriver getTaskDriver(String clusterName) {
     synchronized (_taskDriverPool) {
       if (!_taskDriverPool.containsKey(clusterName)) {
-        _taskDriverPool.put(clusterName, new TaskDriver(getZkClient(), clusterName));
+        _taskDriverPool.put(clusterName, new TaskDriver(getHelixZkClient(), clusterName));
       }
       return _taskDriverPool.get(clusterName);
     }
@@ -92,7 +101,7 @@ public class ServerContext {
 
   public ConfigAccessor getConfigAccessor() {
     if (_configAccessor == null) {
-      _configAccessor = new ConfigAccessor(getZkClient());
+      _configAccessor = new ConfigAccessor(getHelixZkClient());
     }
     return _configAccessor;
   }
@@ -100,7 +109,7 @@ public class ServerContext {
   public HelixDataAccessor getDataAccssor(String clusterName) {
     synchronized (_helixDataAccessorPool) {
       if (!_helixDataAccessorPool.containsKey(clusterName)) {
-        ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(getZkClient());
+        ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(getHelixZkClient());
         _helixDataAccessorPool.put(clusterName,
             new ZKHelixDataAccessor(clusterName, InstanceType.ADMINISTRATOR, baseDataAccessor));
       }

@@ -34,7 +34,6 @@ import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.store.PropertyJsonComparator;
@@ -536,7 +535,7 @@ public class TestExecutor {
     return result;
   }
 
-  private static boolean compareAndSetZnode(ZnodeValue expect, ZnodeOpArg arg, ZkClient zkClient,
+  private static boolean compareAndSetZnode(ZnodeValue expect, ZnodeOpArg arg, HelixZkClient zkClient,
       ZNRecord diff) {
     String path = arg._znodePath;
     ZnodePropertyType type = arg._propertyType;
@@ -639,12 +638,12 @@ public class TestExecutor {
   private static class ExecuteCommand implements Runnable {
     private final TestCommand _command;
     private final long _startTime;
-    private final ZkClient _zkClient;
+    private final HelixZkClient _zkClient;
     private final CountDownLatch _countDown;
     private final Map<TestCommand, Boolean> _testResults;
 
     public ExecuteCommand(long startTime, TestCommand command, CountDownLatch countDown,
-        ZkClient zkClient, Map<TestCommand, Boolean> testResults) {
+        HelixZkClient zkClient, Map<TestCommand, Boolean> testResults) {
       _startTime = startTime;
       _command = command;
       _countDown = countDown;
@@ -735,9 +734,7 @@ public class TestExecutor {
         }
         _countDown.countDown();
         if (_countDown.getCount() == 0) {
-          if (_zkClient != null && _zkClient.getConnection() != null)
-
-          {
+          if (_zkClient != null && !_zkClient.isClosed()) {
             _zkClient.close();
           }
         }
@@ -768,7 +765,7 @@ public class TestExecutor {
 
       TestTrigger trigger = command._trigger;
       command._startTimestamp = System.currentTimeMillis() + trigger._startTime;
-      new Thread(new ExecuteCommand(command._startTimestamp, command, countDown, (ZkClient) zkClient,
+      new Thread(new ExecuteCommand(command._startTimestamp, command, countDown, zkClient,
           testResults)).start();
     }
 

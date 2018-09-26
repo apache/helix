@@ -29,7 +29,7 @@ import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.Partition;
 import org.slf4j.Logger;
@@ -54,7 +54,7 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
 
   final List<String> _expectSortedLiveNodes; // always sorted
 
-  public ClusterExternalViewVerifier(ZkClient zkclient, String clusterName,
+  public ClusterExternalViewVerifier(HelixZkClient zkclient, String clusterName,
       List<String> expectLiveNodes) {
     super(zkclient, clusterName);
     _expectSortedLiveNodes = expectLiveNodes;

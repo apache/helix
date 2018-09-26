@@ -1491,6 +1491,10 @@ public class ZkClient implements Watcher {
           throw new HelixException(
               "Unable to connect to zookeeper server with the specified ZkConnection");
         }
+        // TODO Refine the init state here. Here we pre-config it to be connected. This may not be
+        // the case, if the connection is connecting or recovering. -- JJ
+        // For shared client, the event notification will not be forwarded before wather add to the
+        // connection manager.
         setCurrentState(KeeperState.SyncConnected);
       }
 

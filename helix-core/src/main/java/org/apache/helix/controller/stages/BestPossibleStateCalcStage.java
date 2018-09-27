@@ -19,6 +19,13 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -29,16 +36,18 @@ import org.apache.helix.controller.rebalancer.MaintenanceRebalancer;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
-import org.apache.helix.model.*;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.helix.task.*;
+import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.TaskRebalancer;
 import org.apache.helix.util.HelixUtil;
-import org.apache.helix.util.StatusUpdateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.concurrent.Callable;
 
 /**
  * For partition compute best possible (instance,state) pair based on
@@ -46,7 +55,6 @@ import java.util.concurrent.Callable;
  */
 public class BestPossibleStateCalcStage extends AbstractBaseStage {
   private static final Logger logger = LoggerFactory.getLogger(BestPossibleStateCalcStage.class.getName());
-  private final StatusUpdateUtil _statusUpdateUtil = new StatusUpdateUtil();
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -109,7 +117,16 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     Iterator<Resource> itr = resourceMap.values().iterator();
     while (itr.hasNext()) {
       Resource resource = itr.next();
-      if (!computeResourceBestPossibleState(event, cache, currentStateOutput, resource, output)) {
+      boolean result = false;
+      try {
+        result =
+            computeResourceBestPossibleState(event, cache, currentStateOutput, resource, output);
+      } catch (HelixException ex) {
+        LogUtil.logError(logger, _eventId,
+            "Exception when calculating best possible states for " + resource.getResourceName(),
+            ex);
+      }
+      if (!result) {
         failureResources.add(resource.getResourceName());
         LogUtil.logWarn(logger, _eventId,
             "Failed to calculate best possible states for " + resource.getResourceName());
@@ -215,7 +232,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     if (rebalancer == null || mappingCalculator == null) {
       LogUtil.logError(logger, _eventId,
           "Error computing assignment for resource " + resourceName + ". no rebalancer found. rebalancer: " + rebalancer
-              + " mappingCaculator: " + mappingCalculator);
+              + " mappingCalculator: " + mappingCalculator);
     }
 
     if (rebalancer != null && mappingCalculator != null) {

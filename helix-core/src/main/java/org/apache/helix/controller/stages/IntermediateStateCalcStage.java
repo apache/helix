@@ -19,6 +19,16 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -28,12 +38,15 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.model.*;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 /**
  * For partition compute the Intermediate State (instance,state) pair based on the BestPossibleState
@@ -122,7 +135,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       Collections.sort(prioritizedResourceList, new ResourcePriorityComparator());
     }
 
-    // Re-load ClusterStatusMonitor MBean
     ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
 
@@ -130,6 +142,14 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     // decreasing priority
     for (ResourcePriority resourcePriority : prioritizedResourceList) {
       String resourceName = resourcePriority.getResourceName();
+
+      if (!bestPossibleStateOutput.containsResource(resourceName)) {
+        logger.warn(
+            "Skip calculating intermediate state for resource {} because the best possible state is not available.",
+            resourceName);
+        continue;
+      }
+
       Resource resource = resourceMap.get(resourceName);
       IdealState idealState = dataCache.getIdealState(resourceName);
       if (idealState == null) {
@@ -140,11 +160,17 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         idealState = new IdealState(resourceName);
         idealState.setStateModelDefRef(resource.getStateModelDefRef());
       }
-      PartitionStateMap intermediatePartitionStateMap = computeIntermediatePartitionState(dataCache,
-          clusterStatusMonitor, idealState, resourceMap.get(resourceName), currentStateOutput,
-          bestPossibleStateOutput.getPartitionStateMap(resourceName),
-          bestPossibleStateOutput.getPreferenceLists(resourceName), throttleController);
-      output.setState(resourceName, intermediatePartitionStateMap);
+
+      try {
+        output.setState(resourceName,
+            computeIntermediatePartitionState(dataCache, clusterStatusMonitor, idealState,
+                resourceMap.get(resourceName), currentStateOutput,
+                bestPossibleStateOutput.getPartitionStateMap(resourceName),
+                bestPossibleStateOutput.getPreferenceLists(resourceName), throttleController));
+      } catch (HelixException ex) {
+        LogUtil.logInfo(logger, _eventId,
+            "Failed to calculate intermediate partition states for resource " + resourceName, ex);
+      }
     }
     return output;
   }

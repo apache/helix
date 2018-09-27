@@ -111,7 +111,7 @@ public class MessageThrottleStage extends AbstractBaseStage {
         }
       }
     }
-    return new HashSet<ConstraintItem>(selectedItems.values());
+    return new HashSet<>(selectedItems.values());
   }
 
   @Override
@@ -135,7 +135,7 @@ public class MessageThrottleStage extends AbstractBaseStage {
     if (constraint != null) {
       // go through all pending messages, they should be counted but not throttled
       for (String instance : cache.getLiveInstances().keySet()) {
-        throttle(throttleCounterMap, constraint, new ArrayList<Message>(cache.getMessages(instance)
+        throttle(throttleCounterMap, constraint, new ArrayList<>(cache.getMessages(instance)
             .values()), false);
       }
     }

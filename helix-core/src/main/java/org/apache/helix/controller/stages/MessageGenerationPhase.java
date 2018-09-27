@@ -26,7 +26,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
@@ -88,171 +90,180 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     }
     MessageOutput output = new MessageOutput();
 
-    for (String resourceName : resourceMap.keySet()) {
-      Resource resource = resourceMap.get(resourceName);
-
-      StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
-      if (stateModelDef == null) {
+    for (Resource resource : resourceMap.values()) {
+      try {
+        generateMessage(resource, cache, resourcesStateMap, currentStateOutput, manager,
+            sessionIdMap, event.getEventType(), output, pendingMessagesToCleanUp);
+      } catch (HelixException ex) {
         LogUtil.logError(logger, _eventId,
-            "State Model Definition null, skip generating messages for resource: " + resourceName);
-        continue;
+            "Failed to generate message for resource " + resource.getResourceName(), ex);
       }
-
-      for (Partition partition : resource.getPartitions()) {
-        Map<String, String> instanceStateMap =
-            new HashMap<>(resourcesStateMap.getInstanceStateMap(resourceName, partition));
-        Map<String, String> pendingStateMap =
-            currentStateOutput.getPendingStateMap(resourceName, partition);
-
-        // The operation is combing pending state with best possible state. Since some replicas have
-        // been moved from one instance to another, the instance will exist in pending state but not
-        // best possible. Thus Helix need to check the pending state and cancel it.
-
-        for (String instance : pendingStateMap.keySet()) {
-          if (!instanceStateMap.containsKey(instance)) {
-            instanceStateMap.put(instance, NO_DESIRED_STATE);
-          }
-        }
-
-        // we should generate message based on the desired-state priority
-        // so keep generated messages in a temp map keyed by state
-        // desired-state->list of generated-messages
-        Map<String, List<Message>> messageMap = new HashMap<>();
-
-        for (String instanceName : instanceStateMap.keySet()) {
-          String desiredState = instanceStateMap.get(instanceName);
-
-          String currentState =
-              currentStateOutput.getCurrentState(resourceName, partition, instanceName);
-          if (currentState == null) {
-            currentState = stateModelDef.getInitialState();
-          }
-
-          Message pendingMessage =
-              currentStateOutput.getPendingMessage(resourceName, partition, instanceName);
-          boolean isCancellationEnabled = cache.getClusterConfig().isStateTransitionCancelEnabled();
-          Message cancellationMessage =
-              currentStateOutput.getCancellationMessage(resourceName, partition, instanceName);
-          String nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
-
-          Message message = null;
-
-          if (pendingMessage != null && shouldCleanUpPendingMessage(pendingMessage, currentState,
-              currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
-            LogUtil.logInfo(logger, _eventId, String.format(
-                "Adding pending message %s on instance %s to clean up. Msg: %s->%s, current state of resource %s:%s is %s",
-                pendingMessage.getMsgId(), instanceName, pendingMessage.getFromState(),
-                pendingMessage.getToState(), resourceName, partition, currentState));
-            if (!pendingMessagesToCleanUp.containsKey(instanceName)) {
-                pendingMessagesToCleanUp.put(instanceName, new HashMap<String, Message>());
-            }
-            pendingMessagesToCleanUp.get(instanceName)
-                .put(pendingMessage.getMsgId(), pendingMessage);
-          }
-
-          if (desiredState.equals(NO_DESIRED_STATE) || desiredState
-              .equalsIgnoreCase(currentState)) {
-            if (desiredState.equals(NO_DESIRED_STATE) || pendingMessage != null && !currentState
-                .equalsIgnoreCase(pendingMessage.getToState())) {
-              message = createStateTransitionCancellationMessage(manager, resource,
-                  partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
-                  stateModelDef.getId(), pendingMessage.getFromState(), pendingMessage.getToState(),
-                  null, cancellationMessage, isCancellationEnabled, currentState);
-            }
-          } else {
-            if (nextState == null) {
-              LogUtil.logError(logger, _eventId,
-                  "Unable to find a next state for resource: " + resource.getResourceName()
-                      + " partition: " + partition.getPartitionName() + " from stateModelDefinition"
-                      + stateModelDef.getClass() + " from:" + currentState + " to:" + desiredState);
-              continue;
-            }
-
-            if (pendingMessage != null) {
-              String pendingState = pendingMessage.getToState();
-              if (nextState.equalsIgnoreCase(pendingState)) {
-                LogUtil.logDebug(logger, _eventId,
-                    "Message already exists for " + instanceName + " to transit " + resource
-                        .getResourceName() + "." + partition.getPartitionName() + " from "
-                        + currentState + " to " + nextState);
-              } else if (currentState.equalsIgnoreCase(pendingState)) {
-                LogUtil.logInfo(logger, _eventId,
-                    "Message hasn't been removed for " + instanceName + " to transit " + resource
-                        .getResourceName() + "." + partition.getPartitionName() + " to "
-                        + pendingState + ", desiredState: " + desiredState);
-              } else {
-                LogUtil.logInfo(logger, _eventId,
-                    "IdealState changed before state transition completes for " + resource
-                        .getResourceName() + "." + partition.getPartitionName() + " on "
-                        + instanceName + ", pendingState: " + pendingState + ", currentState: "
-                        + currentState + ", nextState: " + nextState);
-
-                message = createStateTransitionCancellationMessage(manager, resource,
-                    partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
-                    stateModelDef.getId(), pendingMessage.getFromState(), pendingState, nextState,
-                    cancellationMessage, isCancellationEnabled, currentState);
-              }
-            } else {
-              // Create new state transition message
-              message =
-                  createStateTransitionMessage(manager, resource, partition.getPartitionName(),
-                      instanceName, currentState, nextState, sessionIdMap.get(instanceName),
-                      stateModelDef.getId());
-
-              if (logger.isDebugEnabled()) {
-                LogUtil.logDebug(logger, _eventId, String.format(
-                    "Resource %s partition %s for instance %s with currentState %s and nextState %s",
-                    resource.getResourceName(), partition.getPartitionName(), instanceName,
-                    currentState, nextState));
-              }
-            }
-          }
-
-          if (message != null) {
-            IdealState idealState = cache.getIdealState(resourceName);
-            if (idealState != null && idealState.getStateModelDefRef()
-                .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-              if (idealState.getRecord().getMapField(partition.getPartitionName()) != null) {
-                message.getRecord().setMapField(Message.Attributes.INNER_MESSAGE.toString(),
-                    idealState.getRecord().getMapField(partition.getPartitionName()));
-              }
-            }
-
-            int timeout =
-                getTimeOut(cache.getClusterConfig(), cache.getResourceConfig(resourceName),
-                    currentState, nextState, idealState, partition);
-            if (timeout > 0) {
-              message.setExecutionTimeout(timeout);
-            }
-
-            message.setAttribute(Message.Attributes.ClusterEventName, event.getEventType().name());
-            // output.addMessage(resourceName, partition, message);
-            if (!messageMap.containsKey(desiredState)) {
-              messageMap.put(desiredState, new ArrayList<Message>());
-            }
-            messageMap.get(desiredState).add(message);
-          }
-        }
-
-        // add generated messages to output according to state priority
-        List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-        for (String state : statesPriorityList) {
-          if (messageMap.containsKey(state)) {
-            for (Message message : messageMap.get(state)) {
-              output.addMessage(resourceName, partition, message);
-            }
-          }
-        }
-
-      } // end of for-each-partition
     }
 
-    // Asynchronously clean up pending messages if necessary
+    // Asynchronously GC pending messages if necessary
     if (!pendingMessagesToCleanUp.isEmpty()) {
       schedulePendingMessageCleanUp(pendingMessagesToCleanUp, cache.getAsyncTasksThreadPool(),
           manager.getHelixDataAccessor());
     }
     event.addAttribute(AttributeName.MESSAGES_ALL.name(), output);
+  }
+
+  private void generateMessage(final Resource resource, final ClusterDataCache cache,
+      final ResourcesStateMap resourcesStateMap, final CurrentStateOutput currentStateOutput,
+      final HelixManager manager, final Map<String, String> sessionIdMap,
+      final ClusterEventType eventType, MessageOutput output,
+      Map<String, Map<String, Message>> pendingMessagesToCleanUp) {
+    String resourceName = resource.getResourceName();
+
+    StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
+    if (stateModelDef == null) {
+      LogUtil.logError(logger, _eventId,
+          "State Model Definition null, skip generating messages for resource: " + resourceName);
+      return;
+    }
+
+    for (Partition partition : resource.getPartitions()) {
+      Map<String, String> instanceStateMap =
+          new HashMap<>(resourcesStateMap.getInstanceStateMap(resourceName, partition));
+      Map<String, String> pendingStateMap =
+          currentStateOutput.getPendingStateMap(resourceName, partition);
+
+      // The operation is combing pending state with best possible state. Since some replicas have
+      // been moved from one instance to another, the instance will exist in pending state but not
+      // best possible. Thus Helix need to check the pending state and cancel it.
+
+      for (String instance : pendingStateMap.keySet()) {
+        if (!instanceStateMap.containsKey(instance)) {
+          instanceStateMap.put(instance, NO_DESIRED_STATE);
+        }
+      }
+
+      // we should generate message based on the desired-state priority
+      // so keep generated messages in a temp map keyed by state
+      // desired-state->list of generated-messages
+      Map<String, List<Message>> messageMap = new HashMap<>();
+
+      for (String instanceName : instanceStateMap.keySet()) {
+        String desiredState = instanceStateMap.get(instanceName);
+
+        String currentState =
+            currentStateOutput.getCurrentState(resourceName, partition, instanceName);
+        if (currentState == null) {
+          currentState = stateModelDef.getInitialState();
+        }
+
+        Message pendingMessage =
+            currentStateOutput.getPendingMessage(resourceName, partition, instanceName);
+        boolean isCancellationEnabled = cache.getClusterConfig().isStateTransitionCancelEnabled();
+        Message cancellationMessage =
+            currentStateOutput.getCancellationMessage(resourceName, partition, instanceName);
+        String nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
+
+        Message message = null;
+
+        if (pendingMessage != null && shouldCleanUpPendingMessage(pendingMessage, currentState,
+            currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
+          LogUtil.logInfo(logger, _eventId, String.format(
+              "Adding pending message %s on instance %s to clean up. Msg: %s->%s, current state of resource %s:%s is %s",
+              pendingMessage.getMsgId(), instanceName, pendingMessage.getFromState(),
+              pendingMessage.getToState(), resourceName, partition, currentState));
+          if (!pendingMessagesToCleanUp.containsKey(instanceName)) {
+            pendingMessagesToCleanUp.put(instanceName, new HashMap<String, Message>());
+          }
+          pendingMessagesToCleanUp.get(instanceName).put(pendingMessage.getMsgId(), pendingMessage);
+        }
+
+        if (desiredState.equals(NO_DESIRED_STATE) || desiredState.equalsIgnoreCase(currentState)) {
+          if (desiredState.equals(NO_DESIRED_STATE) || pendingMessage != null && !currentState
+              .equalsIgnoreCase(pendingMessage.getToState())) {
+            message = createStateTransitionCancellationMessage(manager, resource,
+                partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
+                stateModelDef.getId(), pendingMessage.getFromState(), pendingMessage.getToState(),
+                null, cancellationMessage, isCancellationEnabled, currentState);
+          }
+        } else {
+          if (nextState == null) {
+            LogUtil.logError(logger, _eventId,
+                "Unable to find a next state for resource: " + resource.getResourceName()
+                    + " partition: " + partition.getPartitionName() + " from stateModelDefinition"
+                    + stateModelDef.getClass() + " from:" + currentState + " to:" + desiredState);
+            continue;
+          }
+
+          if (pendingMessage != null) {
+            String pendingState = pendingMessage.getToState();
+            if (nextState.equalsIgnoreCase(pendingState)) {
+              LogUtil.logDebug(logger, _eventId,
+                  "Message already exists for " + instanceName + " to transit " + resource
+                      .getResourceName() + "." + partition.getPartitionName() + " from "
+                      + currentState + " to " + nextState);
+            } else if (currentState.equalsIgnoreCase(pendingState)) {
+              LogUtil.logInfo(logger, _eventId,
+                  "Message hasn't been removed for " + instanceName + " to transit " + resource
+                      .getResourceName() + "." + partition.getPartitionName() + " to "
+                      + pendingState + ", desiredState: " + desiredState);
+            } else {
+              LogUtil.logInfo(logger, _eventId,
+                  "IdealState changed before state transition completes for " + resource
+                      .getResourceName() + "." + partition.getPartitionName() + " on "
+                      + instanceName + ", pendingState: " + pendingState + ", currentState: "
+                      + currentState + ", nextState: " + nextState);
+
+              message = createStateTransitionCancellationMessage(manager, resource,
+                  partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
+                  stateModelDef.getId(), pendingMessage.getFromState(), pendingState, nextState,
+                  cancellationMessage, isCancellationEnabled, currentState);
+            }
+          } else {
+            // Create new state transition message
+            message = createStateTransitionMessage(manager, resource, partition.getPartitionName(),
+                instanceName, currentState, nextState, sessionIdMap.get(instanceName),
+                stateModelDef.getId());
+
+            if (logger.isDebugEnabled()) {
+              LogUtil.logDebug(logger, _eventId, String.format(
+                  "Resource %s partition %s for instance %s with currentState %s and nextState %s",
+                  resource.getResourceName(), partition.getPartitionName(), instanceName,
+                  currentState, nextState));
+            }
+          }
+        }
+
+        if (message != null) {
+          IdealState idealState = cache.getIdealState(resourceName);
+          if (idealState != null && idealState.getStateModelDefRef()
+              .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+            if (idealState.getRecord().getMapField(partition.getPartitionName()) != null) {
+              message.getRecord().setMapField(Message.Attributes.INNER_MESSAGE.toString(),
+                  idealState.getRecord().getMapField(partition.getPartitionName()));
+            }
+          }
+
+          int timeout = getTimeOut(cache.getClusterConfig(), cache.getResourceConfig(resourceName),
+              currentState, nextState, idealState, partition);
+          if (timeout > 0) {
+            message.setExecutionTimeout(timeout);
+          }
+
+          message.setAttribute(Message.Attributes.ClusterEventName, eventType.name());
+          // output.addMessage(resourceName, partition, message);
+          if (!messageMap.containsKey(desiredState)) {
+            messageMap.put(desiredState, new ArrayList<Message>());
+          }
+          messageMap.get(desiredState).add(message);
+        }
+      }
+
+      // add generated messages to output according to state priority
+      List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+      for (String state : statesPriorityList) {
+        if (messageMap.containsKey(state)) {
+          for (Message message : messageMap.get(state)) {
+            output.addMessage(resourceName, partition, message);
+          }
+        }
+      }
+    } // end of for-each-partition
   }
 
   /**

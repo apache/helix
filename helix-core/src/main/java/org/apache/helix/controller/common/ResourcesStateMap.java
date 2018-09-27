@@ -35,7 +35,7 @@ public class ResourcesStateMap {
   protected Map<String, PartitionStateMap> _resourceStateMap;
 
   public ResourcesStateMap() {
-    _resourceStateMap = new HashMap<String, PartitionStateMap>();
+    _resourceStateMap = new HashMap<>();
   }
 
   public Set<String> resourceSet() {

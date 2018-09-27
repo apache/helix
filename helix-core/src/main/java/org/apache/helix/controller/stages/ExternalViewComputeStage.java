@@ -19,8 +19,19 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
@@ -44,16 +55,6 @@ import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 
 public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(ExternalViewComputeStage.class);
@@ -88,78 +89,13 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
 
     Map<String, ExternalView> curExtViews = cache.getExternalViews();
 
-    for (String resourceName : resourceMap.keySet()) {
-      ExternalView view = new ExternalView(resourceName);
-      // view.setBucketSize(currentStateOutput.getBucketSize(resourceName));
-      // if resource ideal state has bucket size, set it
-      // otherwise resource has been dropped, use bucket size from current state instead
-      Resource resource = resourceMap.get(resourceName);
-      if (resource.getBucketSize() > 0) {
-        view.setBucketSize(resource.getBucketSize());
-      } else {
-        view.setBucketSize(currentStateOutput.getBucketSize(resourceName));
-      }
-
-      int totalPendingMessageCount = 0;
-
-      for (Partition partition : resource.getPartitions()) {
-        Map<String, String> currentStateMap =
-            currentStateOutput.getCurrentStateMap(resourceName, partition);
-        if (currentStateMap != null && currentStateMap.size() > 0) {
-          // Set<String> disabledInstances
-          // = cache.getDisabledInstancesForResource(resource.toString());
-          for (String instance : currentStateMap.keySet()) {
-            // if (!disabledInstances.contains(instance))
-            // {
-            view.setState(partition.getPartitionName(), instance, currentStateMap.get(instance));
-            // }
-          }
-        }
-        totalPendingMessageCount +=
-            currentStateOutput.getPendingMessageMap(resource.getResourceName(), partition).size();
-      }
-
-      // Update cluster status monitor mbean
-      IdealState idealState = cache.getIdealState(resourceName);
-      if (!cache.isTaskCache()) {
-        ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
-        if (clusterStatusMonitor != null) {
-          if (idealState != null // has ideal state
-              && (resourceConfig == null || !resourceConfig.isMonitoringDisabled()) // monitoring not disabled
-              && !idealState.getStateModelDefRef() // and not a job resource
-              .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-            StateModelDefinition stateModelDef =
-                cache.getStateModelDef(idealState.getStateModelDefRef());
-            clusterStatusMonitor
-                .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
-                    stateModelDef);
-            clusterStatusMonitor
-                .updatePendingMessages(resource.getResourceName(), totalPendingMessageCount);
-            monitoringResources.add(resourceName);
-          }
-        }
-      }
-      ExternalView curExtView = curExtViews.get(resourceName);
-      // copy simplefields from IS, in cases where IS is deleted copy it from existing ExternalView
-      if (idealState != null) {
-        view.getRecord().getSimpleFields().putAll(idealState.getRecord().getSimpleFields());
-      } else if (curExtView != null) {
-        view.getRecord().getSimpleFields().putAll(curExtView.getRecord().getSimpleFields());
-      }
-
-      // compare the new external view with current one, set only on different
-      if (curExtView == null || !curExtView.getRecord().equals(view.getRecord())) {
-        // Add external view to the list which will be written to ZK later.
-        newExtViews.add(view);
-
-        // For SCHEDULER_TASK_RESOURCE resource group (helix task queue), we need to find out which
-        // task partitions are finished (COMPLETED or ERROR), update the status update of the original
-        // scheduler message, and then remove the partitions from the ideal state
-        if (idealState != null
-            && idealState.getStateModelDefRef().equalsIgnoreCase(
-            DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-          updateScheduledTaskStatus(view, manager, idealState);
-        }
+    for (Resource resource : resourceMap.values()) {
+      try {
+        computeExternalView(resource, currentStateOutput, cache, clusterStatusMonitor, curExtViews,
+            manager, monitoringResources, newExtViews);
+      } catch (HelixException ex) {
+        LogUtil.logError(LOG, _eventId,
+            "Failed to calculate external view for resource " + resource.getResourceName(), ex);
       }
     }
 
@@ -208,6 +144,78 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
       }
     }
     cache.removeExternalViews(externalViewsToRemove);
+  }
+
+  private void computeExternalView(final Resource resource,
+      final CurrentStateOutput currentStateOutput, final ClusterDataCache cache,
+      final ClusterStatusMonitor clusterStatusMonitor, final Map<String, ExternalView> curExtViews,
+      final HelixManager manager, Set<String> monitoringResources, List<ExternalView> newExtViews) {
+    String resourceName = resource.getResourceName();
+    ExternalView view = new ExternalView(resource.getResourceName());
+    // if resource ideal state has bucket size, set it
+    // otherwise resource has been dropped, use bucket size from current state instead
+    if (resource.getBucketSize() > 0) {
+      view.setBucketSize(resource.getBucketSize());
+    } else {
+      view.setBucketSize(currentStateOutput.getBucketSize(resourceName));
+    }
+
+    int totalPendingMessageCount = 0;
+
+    for (Partition partition : resource.getPartitions()) {
+      Map<String, String> currentStateMap =
+          currentStateOutput.getCurrentStateMap(resourceName, partition);
+      if (currentStateMap != null && currentStateMap.size() > 0) {
+        for (String instance : currentStateMap.keySet()) {
+          view.setState(partition.getPartitionName(), instance, currentStateMap.get(instance));
+        }
+      }
+      totalPendingMessageCount +=
+          currentStateOutput.getPendingMessageMap(resource.getResourceName(), partition).size();
+    }
+
+    // Update cluster status monitor mbean
+    IdealState idealState = cache.getIdealState(resourceName);
+    if (!cache.isTaskCache()) {
+      ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
+      if (clusterStatusMonitor != null) {
+        if (idealState != null // has ideal state
+            && (resourceConfig == null || !resourceConfig.isMonitoringDisabled()) // monitoring not disabled
+            && !idealState.getStateModelDefRef() // and not a job resource
+            .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+          StateModelDefinition stateModelDef =
+              cache.getStateModelDef(idealState.getStateModelDefRef());
+          clusterStatusMonitor
+              .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
+                  stateModelDef);
+          clusterStatusMonitor
+              .updatePendingMessages(resource.getResourceName(), totalPendingMessageCount);
+          monitoringResources.add(resourceName);
+        }
+      }
+    }
+    ExternalView curExtView = curExtViews.get(resourceName);
+    // copy simplefields from IS, in cases where IS is deleted copy it from existing ExternalView
+    if (idealState != null) {
+      view.getRecord().getSimpleFields().putAll(idealState.getRecord().getSimpleFields());
+    } else if (curExtView != null) {
+      view.getRecord().getSimpleFields().putAll(curExtView.getRecord().getSimpleFields());
+    }
+
+    // compare the new external view with current one, set only on different
+    if (curExtView == null || !curExtView.getRecord().equals(view.getRecord())) {
+      // Add external view to the list which will be written to ZK later.
+      newExtViews.add(view);
+
+      // For SCHEDULER_TASK_RESOURCE resource group (helix task queue), we need to find out which
+      // task partitions are finished (COMPLETED or ERROR), update the status update of the original
+      // scheduler message, and then remove the partitions from the ideal state
+      if (idealState != null
+          && idealState.getStateModelDefRef().equalsIgnoreCase(
+          DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+        updateScheduledTaskStatus(view, manager, idealState);
+      }
+    }
   }
 
   private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager,

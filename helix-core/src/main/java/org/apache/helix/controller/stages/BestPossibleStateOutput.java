@@ -105,4 +105,8 @@ public class BestPossibleStateOutput extends ResourcesStateMap {
     }
     _preferenceLists.put(resource, resourcePreferenceLists);
   }
+
+  protected boolean containsResource(String resource) {
+    return _preferenceLists != null && _preferenceLists.containsKey(resource);
+  }
 }

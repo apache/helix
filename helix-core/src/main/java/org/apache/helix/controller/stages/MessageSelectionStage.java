@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -77,21 +78,25 @@ public class MessageSelectionStage extends AbstractBaseStage {
 
     for (String resourceName : resourceMap.keySet()) {
       Resource resource = resourceMap.get(resourceName);
-      StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
-
-      Map<String, Integer> stateTransitionPriorities = getStateTransitionPriorityMap(stateModelDef);
-      IdealState idealState = cache.getIdealState(resourceName);
-      Map<String, Bounds> stateConstraints =
-          computeStateConstraints(stateModelDef, idealState, cache);
-      for (Partition partition : resource.getPartitions()) {
-        List<Message> messages = messageGenOutput.getMessages(resourceName, partition);
-        List<Message> selectedMessages = selectMessages(cache.getLiveInstances(),
-            currentStateOutput.getCurrentStateMap(resourceName, partition),
-            currentStateOutput.getPendingMessageMap(resourceName, partition), messages,
-            currentStateOutput.getPendingRelayMessageMap(resourceName, partition).values(),
-            stateConstraints, stateTransitionPriorities, stateModelDef,
-            resource.isP2PMessageEnabled());
-        output.addMessages(resourceName, partition, selectedMessages);
+      try {
+        StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
+        Map<String, Integer> stateTransitionPriorities = getStateTransitionPriorityMap(stateModelDef);
+        IdealState idealState = cache.getIdealState(resourceName);
+        Map<String, Bounds> stateConstraints =
+            computeStateConstraints(stateModelDef, idealState, cache);
+        for (Partition partition : resource.getPartitions()) {
+          List<Message> messages = messageGenOutput.getMessages(resourceName, partition);
+          List<Message> selectedMessages = selectMessages(cache.getLiveInstances(),
+              currentStateOutput.getCurrentStateMap(resourceName, partition),
+              currentStateOutput.getPendingMessageMap(resourceName, partition), messages,
+              currentStateOutput.getPendingRelayMessageMap(resourceName, partition).values(),
+              stateConstraints, stateTransitionPriorities, stateModelDef,
+              resource.isP2PMessageEnabled());
+          output.addMessages(resourceName, partition, selectedMessages);
+        }
+      } catch (HelixException ex) {
+        LogUtil.logError(LOG, _eventId,
+            "Failed to finish message selection for resource " + resourceName, ex);
       }
     }
     event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), output);

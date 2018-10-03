@@ -21,6 +21,7 @@ package org.apache.helix.rest.server.resources.helix;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -34,24 +35,26 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
-
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobDag;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskDriver;
+import org.apache.helix.task.UserContentStore;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.type.TypeFactory;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 import org.codehaus.jackson.node.TextNode;
+import org.codehaus.jackson.type.TypeReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/clusters/{clusterId}/workflows")
 public class WorkflowAccessor extends AbstractHelixResource {
@@ -260,6 +263,63 @@ public class WorkflowAccessor extends AbstractHelixResource {
     }
 
     return OK();
+  }
+
+  @GET
+  @Path("{workflowId}/userContent")
+  public Response getWorkflowUserContent(
+      @PathParam("clusterId") String clusterId,
+      @PathParam("workflowId") String workflowId
+  ) {
+    TaskDriver taskDriver = getTaskDriver(clusterId);
+    try {
+      Map<String, String> contentStore =
+          taskDriver.getWorkflowUserContentMap(workflowId);
+      if (contentStore == null) {
+        return JSONRepresentation(Collections.emptyMap());
+      }
+      return JSONRepresentation(contentStore);
+    } catch (ZkNoNodeException e) {
+      return notFound("Unable to find content store");
+    } catch (Exception e) {
+      return serverError(e);
+    }
+  }
+
+  @POST
+  @Path("{workflowId}/userContent")
+  public Response updateWorkflowUserContent(
+      @PathParam("clusterId") String clusterId,
+      @PathParam("workflowId") String workflowId,
+      @QueryParam("command") String commandStr,
+      String content
+  ) {
+    Command cmd;
+    Map<String, String> contentMap = Collections.emptyMap();
+    try {
+      contentMap = OBJECT_MAPPER.readValue(content, new TypeReference<Map<String, String>>() {});
+      cmd = Command.valueOf(commandStr);
+    } catch (IOException e) {
+      return badRequest(String.format("Content %s cannot be deserialized to Map<String, String>. Err: %s", content, e.getMessage()));
+    } catch (IllegalArgumentException ie) {
+      return badRequest(String.format("Invalid command: %s. Err: %s", commandStr, ie.getMessage()));
+    } catch (NullPointerException npe) {
+      cmd = Command.update;
+    }
+
+    TaskDriver driver = getTaskDriver(clusterId);
+    try {
+      switch (cmd) {
+      case update:
+        driver.addOrUpdateWorkflowUserContentMap(workflowId, contentMap);
+        return OK();
+      default:
+        return badRequest(String.format("Command \"%s\" is not supported!", cmd));
+      }
+    } catch (Exception e) {
+      _logger.error("Failed to update user content store", e);
+      return serverError(e);
+    }
   }
 
   @GET

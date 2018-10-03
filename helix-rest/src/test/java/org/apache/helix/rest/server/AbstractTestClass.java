@@ -23,6 +23,7 @@ import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -39,12 +40,15 @@ import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.filters.AuditLogFilter;
 import org.apache.helix.rest.server.resources.AbstractResource;
+import org.apache.helix.store.HelixPropertyStore;
+import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
+import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
@@ -61,6 +65,7 @@ import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
+import com.google.common.base.Joiner;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Application;
@@ -337,6 +342,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
   protected Map<String, Workflow> createWorkflows(String cluster, int numWorkflows) {
     Map<String, Workflow> workflows = new HashMap<>();
+    HelixPropertyStore<ZNRecord> propertyStore = new ZkHelixPropertyStore<>((ZkBaseDataAccessor<ZNRecord>) _baseAccessor,
+        PropertyPathBuilder.propertyStore(cluster), null);
+
     for (int i = 0; i < numWorkflows; i++) {
       Workflow.Builder workflow = new Workflow.Builder(WORKFLOW_PREFIX + i);
       int j = 0;
@@ -352,11 +360,20 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
           TaskConstants.REBALANCER_CONTEXT_ROOT, WORKFLOW_PREFIX + i, TaskConstants.CONTEXT_NODE),
           workflowContext.getRecord(), AccessOption.PERSISTENT);
       _configAccessor.setResourceConfig(cluster, WORKFLOW_PREFIX + i, workflow.getWorkflowConfig());
+
+      // Add workflow user content
+      propertyStore.create(Joiner.on("/")
+              .join(TaskConstants.REBALANCER_CONTEXT_ROOT, WORKFLOW_PREFIX + i,
+                  TaskUtil.USER_CONTENT_NODE), new ZNRecord(TaskUtil.USER_CONTENT_NODE),
+          AccessOption.PERSISTENT);
     }
     return workflows;
   }
 
   protected Set<JobConfig.Builder> createJobs(String cluster, String workflowName, int numJobs) {
+    HelixPropertyStore<ZNRecord> propertyStore =
+        new ZkHelixPropertyStore<>((ZkBaseDataAccessor<ZNRecord>) _baseAccessor,
+            PropertyPathBuilder.propertyStore(cluster), null);
     Set<JobConfig.Builder> jobCfgs = new HashSet<>();
     for (int i = 0; i < numJobs; i++) {
       JobConfig.Builder job =
@@ -370,6 +387,12 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
           TaskConstants.REBALANCER_CONTEXT_ROOT, workflowName + "_" + JOB_PREFIX + i,
           TaskConstants.CONTEXT_NODE), jobContext.getRecord(), AccessOption.PERSISTENT);
       _configAccessor.setResourceConfig(cluster, workflowName + "_" + JOB_PREFIX + i, job.build());
+
+      // add job content stores
+      propertyStore.create(Joiner.on("/")
+              .join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowName + "_" + JOB_PREFIX + i,
+                  TaskUtil.USER_CONTENT_NODE), new ZNRecord(TaskUtil.USER_CONTENT_NODE),
+          AccessOption.PERSISTENT);
     }
     return jobCfgs;
   }

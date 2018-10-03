@@ -2,6 +2,8 @@ package org.apache.helix.rest.server;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
@@ -15,6 +17,7 @@ import org.apache.helix.task.TaskExecutionInfo;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -135,6 +138,41 @@ public class TestWorkflowAccessor extends AbstractTestClass {
         ImmutableMap.of("command", "resume"), entity, Response.Status.OK.getStatusCode());
     Assert.assertEquals(driver.getWorkflowConfig(TEST_QUEUE_NAME).getTargetState(),
         TargetState.START);
+  }
+
+  @Test(dependsOnMethods = "testCreateWorkflow")
+  public void testGetAndUpdateWorkflowContentStore() throws IOException, InterruptedException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String workflowName = "Workflow_0";
+    TaskDriver driver = getTaskDriver(CLUSTER_NAME);
+    // Wait for workflow to start processing
+    driver.pollForWorkflowState(workflowName, TaskState.IN_PROGRESS, TaskState.COMPLETED, TaskState.FAILED);
+    String uri = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/userContent";
+
+    String body =
+        get(uri, Response.Status.OK.getStatusCode(), true);
+    Map<String, String> contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
+    Assert.assertTrue(contentStore.isEmpty());
+
+    Map<String, String> map1 = new HashMap<>();
+    map1.put("k1", "v1");
+    Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(map1), MediaType.APPLICATION_JSON_TYPE);
+    post(uri, ImmutableMap.of("command", "delete"), entity, Response.Status.BAD_REQUEST.getStatusCode());
+    post(uri, ImmutableMap.of("command", "update"), entity, Response.Status.OK.getStatusCode());
+
+    // update (add items) workflow content store
+    body = get(uri, Response.Status.OK.getStatusCode(), true);
+    contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
+    Assert.assertEquals(contentStore, map1);
+
+    // modify map1 and verify
+    map1.put("k1", "v2");
+    map1.put("k2", "v2");
+    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(map1), MediaType.APPLICATION_JSON_TYPE);
+    post(uri, ImmutableMap.of("command", "update"), entity, Response.Status.OK.getStatusCode());
+    body = get(uri, Response.Status.OK.getStatusCode(), true);
+    contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
+    Assert.assertEquals(contentStore, map1);
   }
 
   @Test(dependsOnMethods = "testUpdateWorkflow")

@@ -24,7 +24,12 @@ public class MaintenanceRebalancer extends SemiAutoRebalancer {
     if (currentStateMap == null || currentStateMap.size() == 0) {
       LOG.warn(String
           .format("No new partition will be assigned for %s in maintenance mode", resourceName));
-      currentIdealState.setPreferenceLists(Collections.EMPTY_MAP);
+
+      // Clear all preference lists, if the resource has not yet been rebalanced,
+      // leave it as is
+      for (List<String> pList : currentIdealState.getPreferenceLists().values()) {
+        pList.clear();
+      }
       return currentIdealState;
     }
 

@@ -13,6 +13,8 @@ import org.testng.annotations.Test;
 
 public class TestClusterMaintenanceMode extends TaskTestBase {
   MockParticipantManager _newInstance;
+  private String newResourceAddedDuringMaintenanceMode =
+      String.format("%s_%s", WorkflowGenerator.DEFAULT_TGT_DB, 1);
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -53,13 +55,13 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   @Test (dependsOnMethods = "testMaintenanceModeAddNewInstance")
   public void testMaintenanceModeAddNewResource() throws InterruptedException {
     _gSetupTool.getClusterManagementTool()
-        .addResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + 1, 7, "MasterSlave",
+        .addResource(CLUSTER_NAME, newResourceAddedDuringMaintenanceMode, 7, "MasterSlave",
             IdealState.RebalanceMode.FULL_AUTO.name());
     _gSetupTool.getClusterManagementTool()
-        .rebalance(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + 1, 3);
+        .rebalance(CLUSTER_NAME, newResourceAddedDuringMaintenanceMode, 3);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
-        .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + 1);
+        .getResourceExternalView(CLUSTER_NAME, newResourceAddedDuringMaintenanceMode);
     Assert.assertNull(externalView);
   }
 
@@ -86,6 +88,18 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
       if (stateMap.containsKey(_participants[0].getInstanceName())) {
         Assert.assertTrue(stateMap.get(_participants[0].getInstanceName()).equals("SLAVE"));
       }
+    }
+  }
+
+  @Test (dependsOnMethods = "testMaintenanceModeInstanceBack")
+  public void testExitMaintenanceModeNewResourceRecovery() throws InterruptedException {
+    _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, false);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    ExternalView externalView = _gSetupTool.getClusterManagementTool()
+        .getResourceExternalView(CLUSTER_NAME, newResourceAddedDuringMaintenanceMode);
+    Assert.assertEquals(externalView.getRecord().getMapFields().size(), 7);
+    for (Map<String, String> stateMap : externalView.getRecord().getMapFields().values()) {
+      Assert.assertTrue(stateMap.values().contains("MASTER"));
     }
   }
 }

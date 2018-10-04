@@ -223,14 +223,13 @@ public class GenericHelixController implements IdealStateChangeListener,
             eventType, _clusterName));
   }
 
-  // TODO who should stop this timer
   /**
    * Starts the rebalancing timer with the specified period. Start the timer if necessary; If the
    * period is smaller than the current period, cancel the current timer and use the new period.
    */
-  void startRebalancingTimer(long period, HelixManager manager) {
+  void startPeriodRebalance(long period, HelixManager manager) {
     if (period != _timerPeriod) {
-      logger.info("Controller starting timer at period " + period);
+      logger.info("Controller starting periodical rebalance timer at period " + period);
       if (_periodicalRebalanceTimer != null) {
         _periodicalRebalanceTimer.cancel();
       }
@@ -240,19 +239,21 @@ public class GenericHelixController implements IdealStateChangeListener,
           .scheduleAtFixedRate(new RebalanceTask(manager, ClusterEventType.PeriodicalRebalance),
               _timerPeriod, _timerPeriod);
     } else {
-      logger.info("Controller already has timer at period " + _timerPeriod);
+      logger.info("Controller already has periodical rebalance timer at period " + _timerPeriod);
     }
   }
 
   /**
-   * Stops the rebalancing timer
+   * Stops the rebalancing timer.
    */
-  void stopRebalancingTimers() {
+  void stopPeriodRebalance() {
+    logger.info("Controller stopping periodical rebalance timer at period " + _timerPeriod);
     if (_periodicalRebalanceTimer != null) {
       _periodicalRebalanceTimer.cancel();
       _periodicalRebalanceTimer = null;
+      _timerPeriod = Long.MAX_VALUE;
+      logger.info("Controller stopped periodical rebalance timer at period " + _timerPeriod);
     }
-    _timerPeriod = Integer.MAX_VALUE;
   }
 
   private static PipelineRegistry createDefaultRegistry(String pipelineName) {
@@ -457,7 +458,7 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     if (context != null) {
       if (context.getType() == Type.FINALIZE) {
-        stopRebalancingTimers();
+        stopPeriodRebalance();
         logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getEventType());
         return;
       } else {
@@ -685,7 +686,9 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
 
     if (minPeriod != Long.MAX_VALUE) {
-      startRebalancingTimer(minPeriod, manager);
+      startPeriodRebalance(minPeriod, manager);
+    } else {
+      stopPeriodRebalance();
     }
   }
 
@@ -885,7 +888,7 @@ public class GenericHelixController implements IdealStateChangeListener,
   }
 
   public void shutdown() throws InterruptedException {
-    stopRebalancingTimers();
+    stopPeriodRebalance();
 
     terminateEventThread(_eventThread);
     terminateEventThread(_taskEventThread);

@@ -124,6 +124,12 @@ public class HelixProperty {
       result = 31 * result + (int) (_modifiedTime ^ (_modifiedTime >>> 32));
       return result;
     }
+
+    @Override
+    public String toString() {
+      return "Stat {" + "_version=" + _version + ", _creationTime=" + _creationTime
+          + ", _modifiedTime=" + _modifiedTime + '}';
+    }
   }
 
   private Stat _stat;
@@ -180,7 +186,7 @@ public class HelixProperty {
 
   @Override
   public String toString() {
-    return _record.toString();
+    return "ZnRecord=" + _record.toString() + ", Stat=" + _stat.toString() ;
   }
 
   /**

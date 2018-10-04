@@ -77,6 +77,8 @@ public abstract class AbstractDataCache {
       }
     }
 
+
+
     List<T> reloadedProperty = accessor.getProperty(reloadKeys, true);
     Iterator<PropertyKey> csKeyIter = reloadKeys.iterator();
     for (T property : reloadedProperty) {
@@ -86,6 +88,11 @@ public abstract class AbstractDataCache {
       } else {
         LOG.warn("znode is null for key: " + key);
       }
+    }
+
+    LOG.info(reloadKeys.size() + " properties refreshed from zk.");
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("refreshed keys: " + reloadKeys);
     }
 
     return refreshedPropertyMap;

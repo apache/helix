@@ -1022,7 +1022,12 @@ public class TaskDriver {
    * @param taskName name of task. Optional if scope is WORKFLOW or JOB
    * @return null if key-value pair not found or this content store does not exist. Otherwise,
    *         return a String
+   *
+   * @deprecated use the following equivalents: {@link #getWorkflowUserContentMap(String)},
+   * {@link #getJobUserContentMap(String, String)},
+   * @{{@link #getTaskContentMap(String, String, String)}}
    */
+  @Deprecated
   public String getUserContent(String key, UserContentStore.Scope scope, String workflowName,
       String jobName, String taskName) {
     return TaskUtil.getUserContent(_propertyStore, key, scope, workflowName, jobName, taskName);
@@ -1055,36 +1060,53 @@ public class TaskDriver {
    * @param taskPartitionId task partition id
    * @return user content map
    */
-  public Map<String, String> getTaskContentMap(String workflowName, String jobName, String taskPartitionId) {
+  public Map<String, String> getTaskUserContentMap(String workflowName, String jobName,
+      String taskPartitionId) {
     String namespacedJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
     String namespacedTaskName = TaskUtil.getNamespacedTaskName(namespacedJobName, taskPartitionId);
     return TaskUtil.getTaskUserContentMap(_propertyStore, namespacedJobName, namespacedTaskName);
   }
 
-
+  /**
+   * Add or update workflow user content with the given map - new keys will be added, and old
+   * keys will be updated
+   * @param workflowName workflow name
+   * @param contentToAddOrUpdate map containing items to add or update
+   */
+  public void addOrUpdateWorkflowUserContentMap(String workflowName,
+      final Map<String, String> contentToAddOrUpdate) {
+    TaskUtil
+        .addOrUpdateWorkflowJobUserContentMap(_propertyStore, workflowName, contentToAddOrUpdate);
+  }
 
   /**
-   * Set user content defined by the given key and string
-   * @param key content key
-   * @param value content value
-   * @param workflowName name of the workflow - must provide when scope is WORKFLOW
-   * @param jobName name of the job - must provide when scope is JOB or TASK
-   * @param taskName name of the task - must provide when scope is TASK
-   * @param scope scope of the content
+   * Add or update job user content with the given map - new keys will be added, and old keys will
+   * be updated
+   * @param workflowName workflow name
+   * @param jobName Un-namespaced job name
+   * @param contentToAddOrUpdate map containing items to add or update
    */
-  public void addUserContent(String key, String value, String workflowName, String jobName, String taskName,
-      UserContentStore.Scope scope) {
-    switch (scope) {
-    case WORKFLOW:
-      TaskUtil.addWorkflowJobUserContent(_propertyStore, workflowName, key, value);
-      break;
-    case JOB:
-      TaskUtil.addWorkflowJobUserContent(_propertyStore, jobName, key, value);
-      break;
-    default:
-      TaskUtil.addTaskUserContent(_propertyStore, jobName, taskName, key, value);
-      break;
-    }
+  public void addOrUpdateJobUserContentMap(String workflowName, String jobName,
+      final Map<String, String> contentToAddOrUpdate) {
+    String namespacedJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    TaskUtil.addOrUpdateWorkflowJobUserContentMap(_propertyStore, namespacedJobName,
+        contentToAddOrUpdate);
+  }
+
+  /**
+   * Add or update task user content with the given map - new keys will be added, and old keys
+   * will be updated
+   * @param workflowName workflow name
+   * @param jobName Un-namespaced job name
+   * @param taskPartitionId task partition id
+   * @param contentToAddOrUpdate map containing items to add or update
+   */
+  public void addOrUpdateTaskUserContentMap(String workflowName, String jobName,
+      String taskPartitionId, final Map<String, String> contentToAddOrUpdate) {
+    String namespacedJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    String namespacedTaskName = TaskUtil.getNamespacedTaskName(namespacedJobName, taskPartitionId);
+    TaskUtil.addOrUpdateTaskUserContentMap(_propertyStore, namespacedJobName, namespacedTaskName,
+        contentToAddOrUpdate);
   }
 
   /**

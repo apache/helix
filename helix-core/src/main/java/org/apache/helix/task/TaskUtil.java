@@ -346,12 +346,13 @@ public class TaskUtil {
    */
   protected static void addWorkflowJobUserContent(final HelixManager manager,
       String workflowJobResource, final String key, final String value) {
-   addWorkflowJobUserContent(manager.getHelixPropertyStore(), workflowJobResource, key, value);
+    addOrUpdateWorkflowJobUserContentMap(manager.getHelixPropertyStore(), workflowJobResource,
+        Collections.singletonMap(key, value));
   }
 
   /* package */
-  static void addWorkflowJobUserContent(final HelixPropertyStore<ZNRecord> propertyStore,
-      String workflowJobResource, final String key, final String value) {
+  static void addOrUpdateWorkflowJobUserContentMap(final HelixPropertyStore<ZNRecord> propertyStore,
+      String workflowJobResource, final Map<String, String> contentToAddOrUpdate) {
     if (workflowJobResource == null) {
       throw new IllegalArgumentException("workflowJobResource must be not null when adding workflow / job user content");
     }
@@ -361,7 +362,7 @@ public class TaskUtil {
     propertyStore.update(path, new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord znRecord) {
-        znRecord.setSimpleField(key, value);
+        znRecord.getSimpleFields().putAll(contentToAddOrUpdate);
         return znRecord;
       }
     }, AccessOption.PERSISTENT);
@@ -407,12 +408,13 @@ public class TaskUtil {
    */
   protected static void addTaskUserContent(final HelixManager manager, String job,
       final String task, final String key, final String value) {
-    addTaskUserContent(manager.getHelixPropertyStore(), job, task, key, value);
+    addOrUpdateTaskUserContentMap(manager.getHelixPropertyStore(), job, task,
+        Collections.singletonMap(key, value));
   }
 
   /* package */
-  static void addTaskUserContent(final HelixPropertyStore<ZNRecord> propertyStore,
-      final String job, final String task, final String key, final String value) {
+  static void addOrUpdateTaskUserContentMap(final HelixPropertyStore<ZNRecord> propertyStore,
+      final String job, final String task, final Map<String, String> contentToAddOrUpdate) {
     if (job == null || task == null) {
       throw new IllegalArgumentException("job and task must be not null when adding task user content");
     }
@@ -425,7 +427,7 @@ public class TaskUtil {
         if (znRecord.getMapField(task) == null) {
           znRecord.setMapField(task, new HashMap<String, String>());
         }
-        znRecord.getMapField(task).put(key, value);
+        znRecord.getMapField(task).putAll(contentToAddOrUpdate);
         return znRecord;
       }
     }, AccessOption.PERSISTENT);

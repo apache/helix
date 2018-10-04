@@ -20,6 +20,7 @@ package org.apache.helix.task;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,12 +55,12 @@ public class TestGetSetUserContentStore extends TaskTestBase {
   private class TaskRecord {
     String workflowName;
     String jobName;
-    String taskName;
+    String taskPartitionId;
 
     public TaskRecord(String workflow, String job, String task) {
       workflowName = workflow;
       jobName = job;
-      taskName = task;
+      taskPartitionId = task;
     }
   }
 
@@ -131,11 +132,10 @@ public class TestGetSetUserContentStore extends TaskTestBase {
       taskConfigs.add(new TaskConfig("WriteTask", new HashMap<String, String>()));
       JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
           .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap);
-      String jobSuffix = "JOB" + i;
-      String jobName = workflowName + "_" + jobSuffix;
-      String taskName = jobName + "_0";
-      workflowBuilder.addJob("JOB" + i, jobConfigBulider);
-      recordMap.put(jobName, new TaskRecord(workflowName, jobName, taskName));
+      String jobName = "JOB" + i;
+      String taskPartitionId = "0";
+      workflowBuilder.addJob(jobName, jobConfigBulider);
+      recordMap.put(jobName, new TaskRecord(workflowName, jobName, taskPartitionId));
     }
 
     // Start the workflow and wait for all tasks started
@@ -143,33 +143,40 @@ public class TestGetSetUserContentStore extends TaskTestBase {
     allTasksReady.await();
 
     // add "workflow":"workflow" to the workflow's user content
-    _driver.addUserContent(workflowName, workflowName, workflowName, null, null, UserContentStore.Scope.WORKFLOW);
+    _driver.addOrUpdateWorkflowUserContentMap(workflowName,
+        Collections.singletonMap(workflowName, workflowName));
     for (TaskRecord rec : recordMap.values()) {
       // add "job":"job" to the job's user content
-      _driver.addUserContent(rec.jobName, rec.jobName, null, rec.jobName, null, UserContentStore.Scope.JOB);
-      // String taskId = _driver.getJobContext(rec.jobName).getTaskIdForPartition(0);
+      String namespacedJobName = TaskUtil.getNamespacedJobName(rec.workflowName, rec.jobName);
+      _driver.addOrUpdateJobUserContentMap(rec.workflowName, rec.jobName,
+          Collections.singletonMap(namespacedJobName, namespacedJobName));
 
-
+      String namespacedTaskName =
+          TaskUtil.getNamespacedTaskName(namespacedJobName, rec.taskPartitionId);
       // add "taskId":"taskId" to the task's user content
-      _driver.addUserContent(rec.taskName, rec.taskName, null, rec.jobName, rec.taskName, UserContentStore.Scope.TASK);
+      _driver.addOrUpdateTaskUserContentMap(rec.workflowName, rec.jobName, rec.taskPartitionId,
+          Collections.singletonMap(namespacedTaskName, namespacedTaskName));
     }
     adminReady.countDown();
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     // Aggregate key-value mappings in UserContentStore
     for (TaskRecord rec : recordMap.values()) {
-      Assert.assertEquals(_driver
-              .getUserContent(TaskDumpResultKey.WorkflowContent.name(), UserContentStore.Scope.WORKFLOW,
-                  rec.workflowName, rec.jobName, rec.taskName),
+      Assert.assertEquals(_driver.getWorkflowUserContentMap(rec.workflowName)
+              .get(TaskDumpResultKey.WorkflowContent.name()),
           constructContentStoreResultString(rec.workflowName, rec.workflowName));
-      Assert.assertEquals(_driver
-              .getUserContent(TaskDumpResultKey.JobContent.name(), UserContentStore.Scope.JOB,
-                  rec.workflowName, rec.jobName, rec.taskName),
-          constructContentStoreResultString(rec.jobName, rec.jobName));
-      Assert.assertEquals(_driver
-              .getUserContent(TaskDumpResultKey.TaskContent.name(), UserContentStore.Scope.TASK,
-                  rec.workflowName, rec.jobName, rec.taskName),
-          constructContentStoreResultString(rec.taskName, rec.taskName));
+
+      String namespacedJobName = TaskUtil.getNamespacedJobName(rec.workflowName, rec.jobName);
+      Assert.assertEquals(_driver.getJobUserContentMap(rec.workflowName, rec.jobName)
+              .get(TaskDumpResultKey.JobContent.name()),
+          constructContentStoreResultString(namespacedJobName, namespacedJobName));
+
+      String namespacedTaskName =
+          TaskUtil.getNamespacedTaskName(namespacedJobName, rec.taskPartitionId);
+      Assert.assertEquals(
+          _driver.getTaskUserContentMap(rec.workflowName, rec.jobName, rec.taskPartitionId)
+              .get(TaskDumpResultKey.TaskContent.name()),
+          constructContentStoreResultString(namespacedTaskName, namespacedTaskName));
     }
   }
 

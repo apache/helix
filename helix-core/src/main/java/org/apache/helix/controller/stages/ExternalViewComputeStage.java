@@ -187,9 +187,7 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
               cache.getStateModelDef(idealState.getStateModelDefRef());
           clusterStatusMonitor
               .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
-                  stateModelDef);
-          clusterStatusMonitor
-              .updatePendingMessages(resource.getResourceName(), totalPendingMessageCount);
+                  stateModelDef, totalPendingMessageCount);
           monitoringResources.add(resourceName);
         }
       }

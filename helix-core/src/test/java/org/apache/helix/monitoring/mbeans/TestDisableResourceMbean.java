@@ -88,9 +88,9 @@ public class TestDisableResourceMbean extends ZkUnitTestBase {
     Assert.assertTrue(clusterVerifier.verifyByPolling());
 
     // Verify the bean was created for TestDB0, but not for TestDB1.
-    Assert.assertTrue(_mbeanServer.isRegistered(getMbeanName("TestDB0", clusterName)));
-    Assert.assertFalse(_mbeanServer.isRegistered(getMbeanName("TestDB1", clusterName)));
-    Assert.assertTrue(_mbeanServer.isRegistered(getMbeanName("TestDB2", clusterName)));
+    pollForMBeanExistance(getMbeanName("TestDB0", clusterName), true);
+    pollForMBeanExistance(getMbeanName("TestDB1", clusterName), false);
+    pollForMBeanExistance(getMbeanName("TestDB2", clusterName), true);
 
     controller.syncStop();
     for (MockParticipantManager participant : participants) {
@@ -98,6 +98,17 @@ public class TestDisableResourceMbean extends ZkUnitTestBase {
     }
     TestHelper.dropCluster(clusterName, _gZkClient);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  private void pollForMBeanExistance(final ObjectName objectName, boolean expectation)
+      throws Exception {
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        return _mbeanServer.isRegistered(objectName);
+      }
+    }, 3000);
+    Assert.assertEquals(result, expectation);
   }
 
   private ObjectName getMbeanName(String resourceName, String clusterName)

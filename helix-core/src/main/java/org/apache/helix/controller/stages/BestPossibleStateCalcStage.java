@@ -43,6 +43,7 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.monitoring.mbeans.ResourceMonitor;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskRebalancer;
 import org.apache.helix.util.HelixUtil;
@@ -74,11 +75,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     // Reset current INIT/RUNNING tasks on participants for throttling
     cache.resetActiveTaskCount(currentStateOutput);
-
-    // Check whether the offline/disabled instance count in the cluster reaches the set limit,
-    // if yes, pause the rebalancer.
-    validateOfflineInstancesLimit(cache,
-        (HelixManager) event.getAttribute(AttributeName.helixmanager.name()), clusterStatusMonitor);
 
     final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
@@ -112,6 +108,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     BestPossibleStateOutput output = new BestPossibleStateOutput();
 
     HelixManager helixManager = event.getAttribute(AttributeName.helixmanager.name());
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
+
+    // Check whether the offline/disabled instance count in the cluster reaches the set limit,
+    // if yes, pause the rebalancer.
+    boolean isValid = validateOfflineInstancesLimit(cache,
+        (HelixManager) event.getAttribute(AttributeName.helixmanager.name()));
 
     final List<String> failureResources = new ArrayList<>();
     Iterator<Resource> itr = resourceMap.values().iterator();
@@ -125,6 +128,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         LogUtil.logError(logger, _eventId,
             "Exception when calculating best possible states for " + resource.getResourceName(),
             ex);
+
       }
       if (!result) {
         failureResources.add(resource.getResourceName());
@@ -134,31 +138,34 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
 
     // Check and report if resource rebalance has failure
-    ClusterStatusMonitor clusterStatusMonitor =
-        event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    updateRebalanceStatus(!failureResources.isEmpty(), helixManager, cache, clusterStatusMonitor,
+    updateRebalanceStatus(!isValid || !failureResources.isEmpty(), failureResources, helixManager,
+        cache, clusterStatusMonitor,
         "Failed to calculate best possible states for " + failureResources.size() + " resources.");
 
     return output;
   }
 
-  private void updateRebalanceStatus(final boolean hasFailure, final HelixManager helixManager,
-      final ClusterDataCache cache, final ClusterStatusMonitor clusterStatusMonitor,
-      final String errorMessage) {
+  private void updateRebalanceStatus(final boolean hasFailure, final List<String> failedResources,
+      final HelixManager helixManager, final ClusterDataCache cache,
+      final ClusterStatusMonitor clusterStatusMonitor, final String errorMessage) {
     asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
       @Override
       public Object call() {
         try {
-          // TODO re-enable logging error after ticket HELIX-631 is resolved
-          /*
-          if (hasFailure && _statusUpdateUtil != null) {
-            _statusUpdateUtil
-                .logError(StatusUpdateUtil.ErrorType.RebalanceResourceFailure, this.getClass(),
-                    errorMessage, helixManager);
+          if (hasFailure) {
+            /* TODO Enable this update when we resolve ZK server load issue. This will cause extra write to ZK.
+            if (_statusUpdateUtil != null) {
+              _statusUpdateUtil
+                  .logError(StatusUpdateUtil.ErrorType.RebalanceResourceFailure, this.getClass(),
+                      errorMessage, helixManager);
+            }
+            */
+            LogUtil.logWarn(logger, _eventId, errorMessage);
           }
-          */
           if (clusterStatusMonitor != null) {
             clusterStatusMonitor.setRebalanceFailureGauge(hasFailure);
+            clusterStatusMonitor.setResourceRebalanceStates(failedResources,
+                ResourceMonitor.RebalanceStatus.BEST_POSSIBLE_STATE_CAL_FAILED);
           }
         } catch (Exception e) {
           LogUtil.logError(logger, _eventId, "Could not update cluster status!", e);
@@ -170,8 +177,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
   // Check whether the offline/disabled instance count in the cluster reaches the set limit,
   // if yes, pause the rebalancer, and throw exception to terminate rebalance cycle.
-  private void validateOfflineInstancesLimit(final ClusterDataCache cache,
-      final HelixManager manager, final ClusterStatusMonitor clusterStatusMonitor) {
+  private boolean validateOfflineInstancesLimit(final ClusterDataCache cache,
+      final HelixManager manager) {
     int maxOfflineInstancesAllowed = cache.getClusterConfig().getMaxOfflineInstancesAllowed();
     if (maxOfflineInstancesAllowed >= 0) {
       int offlineCount = cache.getAllInstances().size() - cache.getEnabledLiveInstances().size();
@@ -190,11 +197,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           LogUtil.logError(logger, _eventId, "Failed to put cluster " + cache.getClusterName()
               + " into maintenance mode, HelixManager is not set!");
         }
-        if (!cache.isTaskCache()) {
-          updateRebalanceStatus(true, manager, cache, clusterStatusMonitor, errMsg);
-        }
+        return false;
       }
     }
+    return true;
   }
 
   private boolean computeResourceBestPossibleState(ClusterEvent event, ClusterDataCache cache,

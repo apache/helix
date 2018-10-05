@@ -51,14 +51,15 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * @param domain         the MBean domain name
    * @param keyValuePairs  the MBean object name components
    */
-  protected synchronized void doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+  protected synchronized boolean doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       String description, String domain, String... keyValuePairs) throws JMException {
     if (_objectName != null) {
-      throw new HelixException(
-          "Mbean has been registered before. Please create new object for new registration.");
+      _logger.warn("Mbean has been registered before. Please create new object for new registration.");
+      return false;
     }
     updateAttributtInfos(dynamicMetrics, description);
     _objectName = MBeanRegistrar.register(this, domain, keyValuePairs);
+    return true;
   }
 
   /**
@@ -68,19 +69,20 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * @param description    the MBean description
    * @param objectName     the proposed MBean ObjectName
    */
-  protected synchronized void doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+  protected synchronized boolean doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       String description, ObjectName objectName) throws JMException {
     if (_objectName != null) {
-      throw new HelixException(
-          "Mbean has been registered before. Please create new object for new registration.");
+      _logger.warn("Mbean has been registered before. Please create new object for new registration.");
+      return false;
     }
     updateAttributtInfos(dynamicMetrics, description);
     _objectName = MBeanRegistrar.register(this, objectName);
+    return true;
   }
 
-  protected synchronized void doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+  protected synchronized boolean doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       ObjectName objectName) throws JMException {
-    doRegister(dynamicMetrics, null, objectName);
+    return doRegister(dynamicMetrics, null, objectName);
   }
 
   /**

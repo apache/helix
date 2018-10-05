@@ -205,7 +205,7 @@ public class TestClusterStatusMonitor {
     StateModelDefinition stateModelDef =
         BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition();
 
-    monitor.setResourceStatus(externalView, idealState, stateModelDef);
+    monitor.setResourceStatus(externalView, idealState, stateModelDef, 0);
 
     Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
     Assert.assertEquals(monitor.getTotalResourceGauge(), 1);
@@ -238,7 +238,7 @@ public class TestClusterStatusMonitor {
       externalView.setStateMap(partition, map);
     }
 
-    monitor.setResourceStatus(externalView, idealState, stateModelDef);
+    monitor.setResourceStatus(externalView, idealState, stateModelDef, 0);
     Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
     Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), lessMinActiveReplica);
     Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), 0);
@@ -266,7 +266,7 @@ public class TestClusterStatusMonitor {
       externalView.setStateMap(partition, map);
     }
 
-    monitor.setResourceStatus(externalView, idealState, stateModelDef);
+    monitor.setResourceStatus(externalView, idealState, stateModelDef, 0);
     Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
     Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
     Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), missTopState);
@@ -291,7 +291,7 @@ public class TestClusterStatusMonitor {
       externalView.setStateMap(partition, map);
     }
 
-    monitor.setResourceStatus(externalView, idealState, stateModelDef);
+    monitor.setResourceStatus(externalView, idealState, stateModelDef, 0);
     Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
     Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
     Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), 0);
@@ -313,7 +313,7 @@ public class TestClusterStatusMonitor {
 
     // test pending state transition message report and read
     messageCount = new Random().nextInt(numPartition) + 1;
-    monitor.updatePendingMessages(testDB, messageCount);
+    monitor.setResourceStatus(externalView, idealState, stateModelDef, messageCount);
     Assert.assertEquals(monitor.getPendingStateTransitionGuage(), messageCount);
   }
 }

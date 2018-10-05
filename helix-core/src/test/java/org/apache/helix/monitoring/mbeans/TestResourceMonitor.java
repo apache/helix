@@ -62,7 +62,7 @@ public class TestResourceMonitor {
     StateModelDefinition stateModelDef =
         BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition();
 
-    monitor.updateResource(externalView, idealState, stateModelDef);
+    monitor.updateResourceState(externalView, idealState, stateModelDef);
 
     Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
     Assert.assertEquals(monitor.getErrorPartitionGauge(), 0);
@@ -88,7 +88,7 @@ public class TestResourceMonitor {
       externalView.setStateMap(partition, map);
     }
 
-    monitor.updateResource(externalView, idealState, stateModelDef);
+    monitor.updateResourceState(externalView, idealState, stateModelDef);
 
     Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), errorCount);
     Assert.assertEquals(monitor.getErrorPartitionGauge(), errorCount);
@@ -119,7 +119,7 @@ public class TestResourceMonitor {
       externalView.setStateMap(partition, map);
     }
 
-    monitor.updateResource(externalView, idealState, stateModelDef);
+    monitor.updateResourceState(externalView, idealState, stateModelDef);
 
     Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), lessMinActiveReplica);
     Assert.assertEquals(monitor.getErrorPartitionGauge(), 0);
@@ -151,7 +151,7 @@ public class TestResourceMonitor {
       externalView.setStateMap(partition, map);
     }
 
-    monitor.updateResource(externalView, idealState, stateModelDef);
+    monitor.updateResourceState(externalView, idealState, stateModelDef);
 
     Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), lessReplica);
     Assert.assertEquals(monitor.getErrorPartitionGauge(), 0);
@@ -181,7 +181,7 @@ public class TestResourceMonitor {
       externalView.setStateMap(partition, map);
     }
 
-    monitor.updateResource(externalView, idealState, stateModelDef);
+    monitor.updateResourceState(externalView, idealState, stateModelDef);
 
     Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), missTopState);
     Assert.assertEquals(monitor.getErrorPartitionGauge(), 0);
@@ -196,6 +196,17 @@ public class TestResourceMonitor {
     int messageCount = new Random().nextInt(_partitions) + 1;
     monitor.updatePendingStateTransitionMessages(messageCount);
     Assert.assertEquals(monitor.getNumPendingStateTransitionGauge(), messageCount);
+
+    Assert
+        .assertEquals(monitor.getRebalanceState(), ResourceMonitor.RebalanceStatus.UNKNOWN.name());
+    monitor.setRebalanceState(ResourceMonitor.RebalanceStatus.NORMAL);
+    Assert.assertEquals(monitor.getRebalanceState(), ResourceMonitor.RebalanceStatus.NORMAL.name());
+    monitor.setRebalanceState(ResourceMonitor.RebalanceStatus.BEST_POSSIBLE_STATE_CAL_FAILED);
+    Assert.assertEquals(monitor.getRebalanceState(),
+        ResourceMonitor.RebalanceStatus.BEST_POSSIBLE_STATE_CAL_FAILED.name());
+    monitor.setRebalanceState(ResourceMonitor.RebalanceStatus.INTERMEDIATE_STATE_CAL_FAILED);
+    Assert.assertEquals(monitor.getRebalanceState(),
+        ResourceMonitor.RebalanceStatus.INTERMEDIATE_STATE_CAL_FAILED.name());
   }
 
   /**

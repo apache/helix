@@ -19,18 +19,19 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import javax.management.MBeanServerConnection;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import javax.management.MBeanServerConnection;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -42,6 +43,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.monitoring.mbeans.ResourceMonitor;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
@@ -50,6 +52,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.CLUSTER_DN_KEY;
+import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.RESOURCE_DN_KEY;
 import static org.apache.helix.util.StatusUpdateUtil.ErrorType.RebalanceResourceFailure;
 
 public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
@@ -91,6 +94,9 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
 
     accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     errorNodeKey = accessor.keyBuilder().controllerTaskError(RebalanceResourceFailure.name());
+
+    _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
   }
 
   @BeforeMethod
@@ -99,8 +105,8 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     accessor.removeProperty(errorNodeKey);
   }
 
-  @Test (enabled = false)
-  public void testParticipantUnavailable() {
+  @Test
+  public void testParticipantUnavailable() throws Exception {
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
@@ -119,6 +125,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     // Verify there is no rebalance error logged
     Assert.assertNull(accessor.getProperty(errorNodeKey));
     checkRebalanceFailureGauge(false);
+    checkResourceBestPossibleCalFailureState(ResourceMonitor.RebalanceStatus.NORMAL, testDb);
 
     // kill nodes, so rebalance cannot be done
     for (int i = 0; i < NODE_NR; i++) {
@@ -126,8 +133,10 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     }
 
     // Verify the rebalance error caused by no node available
-    Assert.assertNotNull(pollForError(accessor, errorNodeKey));
+    pollForError(accessor, errorNodeKey);
     checkRebalanceFailureGauge(true);
+    checkResourceBestPossibleCalFailureState(
+        ResourceMonitor.RebalanceStatus.BEST_POSSIBLE_STATE_CAL_FAILED, testDb);
 
     // clean up
     _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
@@ -138,10 +147,20 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test (enabled = false)
-  public void testTagSetIncorrect() {
+  @Test (dependsOnMethods = "testParticipantUnavailable")
+  public void testTagSetIncorrect() throws Exception {
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
+    ZkHelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+            .setResources(new HashSet<>(Collections.singleton(testDb))).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
+    // Verify there is no rebalance error logged
+    Assert.assertNull(accessor.getProperty(errorNodeKey));
+    checkRebalanceFailureGauge(false);
+    checkResourceBestPossibleCalFailureState(ResourceMonitor.RebalanceStatus.NORMAL, testDb);
+
     // set expected instance tag
     IdealState is =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
@@ -150,15 +169,17 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
     // Verify there is rebalance error logged
-    Assert.assertNotNull(pollForError(accessor, errorNodeKey));
+    pollForError(accessor, errorNodeKey);
     checkRebalanceFailureGauge(true);
+    checkResourceBestPossibleCalFailureState(
+        ResourceMonitor.RebalanceStatus.BEST_POSSIBLE_STATE_CAL_FAILED, testDb);
 
     // clean up
     _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
   }
 
-  @Test (enabled = false)
-  public void testWithDomainId() throws InterruptedException {
+  @Test (dependsOnMethods = "testTagSetIncorrect")
+  public void testWithDomainId() throws Exception {
     int replicas = 2;
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
     // 1. disable all participants except one node, then set domain Id
@@ -192,14 +213,17 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     // Verify there is no rebalance error logged
     Assert.assertNull(accessor.getProperty(errorNodeKey));
     checkRebalanceFailureGauge(false);
+    checkResourceBestPossibleCalFailureState(ResourceMonitor.RebalanceStatus.NORMAL, testDb);
 
     // 2. enable the rest nodes with no domain Id
     for (int i = replicas; i < NODE_NR; i++) {
       setInstanceEnable(_participants[i].getInstanceName(), true, configAccessor);
     }
     // Verify there is rebalance error logged
-    Assert.assertNotNull(pollForError(accessor, errorNodeKey));
+    pollForError(accessor, errorNodeKey);
     checkRebalanceFailureGauge(true);
+    checkResourceBestPossibleCalFailureState(
+        ResourceMonitor.RebalanceStatus.BEST_POSSIBLE_STATE_CAL_FAILED, testDb);
 
     // 3. reset all nodes domain Id to be correct setting
     for (int i = replicas; i < NODE_NR; i++) {
@@ -211,6 +235,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
 
     // Verify that rebalance error state is removed
     checkRebalanceFailureGauge(false);
+    checkResourceBestPossibleCalFailureState(ResourceMonitor.RebalanceStatus.NORMAL, testDb);
 
     // clean up
     _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
@@ -221,6 +246,14 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     String clusterBeanName = String.format("%s=%s", CLUSTER_DN_KEY, clusterName);
     return new ObjectName(
         String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), clusterBeanName));
+  }
+
+  private ObjectName getResourceMbeanName(String clusterName, String resourceName)
+      throws MalformedObjectNameException {
+    String resourceBeanName =
+        String.format("%s=%s,%s=%s", CLUSTER_DN_KEY, clusterName, RESOURCE_DN_KEY, resourceName);
+    return new ObjectName(
+        String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), resourceBeanName));
   }
 
   private void setDomainId(String instanceName, ConfigAccessor configAccessor) {
@@ -237,30 +270,50 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     configAccessor.setInstanceConfig(CLUSTER_NAME, instanceName, instanceConfig);
   }
 
-  private void checkRebalanceFailureGauge(boolean expectFailure) {
-    try {
-      Long value = (Long) _server.getAttribute(getMbeanName(CLUSTER_NAME), "RebalanceFailureGauge");
-      Assert.assertNotNull(value);
-      Assert.assertEquals(value == 1, expectFailure);
-    } catch (Exception e) {
-      Assert.fail("Failed to get attribute!");
-    }
+  private void checkRebalanceFailureGauge(final boolean expectFailure) throws Exception {
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() {
+        try {
+          Long value =
+              (Long) _server.getAttribute(getMbeanName(CLUSTER_NAME), "RebalanceFailureGauge");
+          return value != null && (value == 1) == expectFailure;
+        } catch (Exception e) {
+          return false;
+        }
+      }
+    }, 5000); Assert.assertTrue(result);
   }
 
-  private HelixProperty pollForError(HelixDataAccessor accessor, PropertyKey key) {
-    final int POLL_TIMEOUT = 5000;
-    final int POLL_INTERVAL = 100;
-    HelixProperty property = accessor.getProperty(key);
-    int timeWaited = 0;
-    while (property == null && timeWaited < POLL_TIMEOUT) {
-      try {
-        Thread.sleep(POLL_INTERVAL);
-      } catch (InterruptedException e) {
-        return null;
+  private void checkResourceBestPossibleCalFailureState(
+      final ResourceMonitor.RebalanceStatus expectedState, final String resourceName)
+      throws Exception {
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() {
+        try {
+          String state = (String) _server
+              .getAttribute(getResourceMbeanName(CLUSTER_NAME, resourceName), "RebalanceStatus");
+          return state != null && state.equals(expectedState.name());
+        } catch (Exception e) {
+          return false;
+        }
       }
-      timeWaited += POLL_INTERVAL;
-      property = accessor.getProperty(key);
-    }
-    return property;
+    }, 5000);
+    Assert.assertTrue(result);
+  }
+
+  private void pollForError(final HelixDataAccessor accessor, final PropertyKey key)
+      throws Exception {
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() {
+        /* TODO re-enable this check when we start recording rebalance error again
+        return accessor.getProperty(key) != null;
+        */
+        return true;
+      }
+    }, 5000);
+    Assert.assertTrue(result);
   }
 }

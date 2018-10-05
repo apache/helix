@@ -19,9 +19,10 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,10 +34,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.management.JMException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -61,7 +62,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   static final String RESOURCE_STATUS_KEY = "ResourceStatus";
   public static final String PARTICIPANT_STATUS_KEY = "ParticipantStatus";
   public static final String CLUSTER_DN_KEY = "cluster";
-  static final String RESOURCE_DN_KEY = "resourceName";
+  public static final String RESOURCE_DN_KEY = "resourceName";
   static final String INSTANCE_DN_KEY = "instanceName";
   static final String MESSAGE_QUEUE_DN_KEY = "messageQueue";
   static final String WORKFLOW_TYPE_DN_KEY = "workflowType";
@@ -158,6 +159,16 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   public void setRebalanceFailureGauge(boolean isFailure) {
     this._rebalanceFailure = isFailure;
+  }
+
+  public void setResourceRebalanceStates(Collection<String> resources,
+      ResourceMonitor.RebalanceStatus state) {
+    for (String resource : resources) {
+      ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resource);
+      if (resourceMonitor != null) {
+        resourceMonitor.setRebalanceState(state);
+      }
+    }
   }
 
   @Override
@@ -421,9 +432,17 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   public void retainResourceMonitor(Set<String> resourceNames) {
     Set<String> resourcesToRemove = new HashSet<>();
     synchronized (this) {
+      resourceNames.retainAll(_resourceMbeanMap.keySet());
       resourcesToRemove.addAll(_resourceMbeanMap.keySet());
     }
     resourcesToRemove.removeAll(resourceNames);
+
+    try {
+      registerResources(resourceNames);
+    } catch (JMException e) {
+      LOG.error(String.format("Could not register beans for the following resources: %s",
+          Joiner.on(',').join(resourceNames)), e);
+    }
 
     try {
       unregisterResources(resourcesToRemove);
@@ -433,12 +452,14 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void setResourceStatus(ExternalView externalView, IdealState idealState, StateModelDefinition stateModelDef) {
+  public void setResourceStatus(ExternalView externalView, IdealState idealState,
+      StateModelDefinition stateModelDef, int messageCount) {
     try {
       ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(externalView.getId());
 
       if (resourceMonitor != null) {
-        resourceMonitor.updateResource(externalView, idealState, stateModelDef);
+        resourceMonitor.updateResourceState(externalView, idealState, stateModelDef);
+        resourceMonitor.updatePendingStateTransitionMessages(messageCount);
       }
     } catch (Exception e) {
       LOG.error("Fail to set resource status, resource: " + idealState.getResourceName(), e);
@@ -461,21 +482,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
 
     if (resourceMonitor != null) {
-      resourceMonitor.updateRebalancerStat(numPendingRecoveryRebalancePartitions,
+      resourceMonitor.updateRebalancerStats(numPendingRecoveryRebalancePartitions,
           numPendingLoadRebalancePartitions, numRecoveryRebalanceThrottledPartitions,
           numLoadRebalanceThrottledPartitions);
-    }
-  }
-
-  public synchronized void updatePendingMessages(String resourceName, int messageCount) {
-    try {
-      ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
-
-      if (resourceMonitor != null) {
-        resourceMonitor.updatePendingStateTransitionMessages(messageCount);
-      }
-    } catch (Exception e) {
-      LOG.error("Fail to update resource pending messages, resource: " + resourceName, e);
     }
   }
 
@@ -487,7 +496,6 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
             String beanName = getResourceBeanName(resourceName);
             ResourceMonitor bean =
                 new ResourceMonitor(_clusterName, resourceName, getObjectName(beanName));
-            bean.register();
             _resourceMbeanMap.put(resourceName, bean);
           }
         }
@@ -663,6 +671,15 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     _instanceMbeanMap.keySet().removeAll(instances);
   }
 
+  private synchronized void registerResources(Collection<String> resources) throws JMException {
+    for (String resourceName : resources) {
+      ResourceMonitor monitor = _resourceMbeanMap.get(resourceName);
+      if (monitor != null) {
+        monitor.register();
+      }
+    }
+  }
+
   private synchronized void unregisterResources(Collection<String> resources) throws MalformedObjectNameException {
     for (String resourceName : resources) {
       ResourceMonitor monitor = _resourceMbeanMap.get(resourceName);
@@ -729,6 +746,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
+  // For test only
   protected ResourceMonitor getResourceMonitor(String resourceName) {
     return _resourceMbeanMap.get(resourceName);
   }

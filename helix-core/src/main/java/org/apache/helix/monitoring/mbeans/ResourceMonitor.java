@@ -41,6 +41,13 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
 public class ResourceMonitor extends DynamicMBeanProvider {
 
+  public enum RebalanceStatus {
+    UNKNOWN,
+    NORMAL,
+    BEST_POSSIBLE_STATE_CAL_FAILED,
+    INTERMEDIATE_STATE_CAL_FAILED
+  }
+
   // Gauges
   private SimpleDynamicMetric<Long> _numOfPartitions;
   private SimpleDynamicMetric<Long> _numOfPartitionsInExternalView;
@@ -66,6 +73,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge;
   private HistogramDynamicMetric _partitionTopStateHandoffUserLatencyGauge;
   private HistogramDynamicMetric _partitionTopStateNonGracefulHandoffDurationGauge;
+
+  private SimpleDynamicMetric<String> _rebalanceState;
 
   private String _tag = ClusterStatusMonitor.DEFAULT_TAG;
   private long _lastResetTime;
@@ -96,6 +105,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     attributeList.add(_partitionTopStateNonGracefulHandoffDurationGauge);
     attributeList.add(_totalMessageReceived);
     attributeList.add(_numPendingStateTransitions);
+    attributeList.add(_rebalanceState);
     doRegister(attributeList, _initObjectName);
     return this;
   }
@@ -146,6 +156,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _successTopStateHandoffCounter = new SimpleDynamicMetric("SucceededTopStateHandoffCounter", 0L);
     _successfulTopStateHandoffDurationCounter =
         new SimpleDynamicMetric("SuccessfulTopStateHandoffDurationCounter", 0L);
+
+    _rebalanceState = new SimpleDynamicMetric<>("RebalanceStatus", RebalanceStatus.UNKNOWN.name());
   }
 
   @Override
@@ -214,7 +226,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     return _clusterName + " " + _resourceName;
   }
 
-  public void updateResource(ExternalView externalView, IdealState idealState,
+  public void updateResourceState(ExternalView externalView, IdealState idealState,
       StateModelDefinition stateModelDef) {
     if (externalView == null) {
       _logger.warn("External view is null");
@@ -229,7 +241,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
       }
     }
 
-    resetGauges();
+    resetResourceStateGauges();
 
     if (idealState == null) {
       _logger.warn("ideal state is null for {}", _resourceName);
@@ -319,20 +331,13 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     }
   }
 
-  private void resetGauges() {
+  private void resetResourceStateGauges() {
     _numOfErrorPartitions.updateValue(0L);
     _numNonTopStatePartitions.updateValue(0L);
     _externalViewIdealStateDiff.updateValue(0L);
     _numOfPartitionsInExternalView.updateValue(0L);
-
-    // The following gauges are computed each call to updateResource by way of looping so need to be reset.
     _numLessMinActiveReplicaPartitions.updateValue(0L);
     _numLessReplicaPartitions.updateValue(0L);
-    _numPendingRecoveryRebalancePartitions.updateValue(0L);
-    _numPendingLoadRebalancePartitions.updateValue(0L);
-    _numRecoveryRebalanceThrottledPartitions.updateValue(0L);
-    _numLoadRebalanceThrottledPartitions.updateValue(0L);
-    _numPendingStateTransitions.updateValue(0L);
   }
 
   public void updatePendingStateTransitionMessages(int messageCount) {
@@ -367,13 +372,17 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     }
   }
 
-  public void updateRebalancerStat(long numPendingRecoveryRebalancePartitions,
+  public void updateRebalancerStats(long numPendingRecoveryRebalancePartitions,
       long numPendingLoadRebalancePartitions, long numRecoveryRebalanceThrottledPartitions,
       long numLoadRebalanceThrottledPartitions) {
     _numPendingRecoveryRebalancePartitions.updateValue(numPendingRecoveryRebalancePartitions);
     _numPendingLoadRebalancePartitions.updateValue(numPendingLoadRebalancePartitions);
     _numRecoveryRebalanceThrottledPartitions.updateValue(numRecoveryRebalanceThrottledPartitions);
     _numLoadRebalanceThrottledPartitions.updateValue(numLoadRebalanceThrottledPartitions);
+  }
+
+  public void setRebalanceState(RebalanceStatus state) {
+    _rebalanceState.updateValue(state.name());
   }
 
   public long getExternalViewPartitionGauge() {
@@ -406,6 +415,10 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   public long getNumPendingStateTransitionGauge() {
     return _numPendingStateTransitions.getValue();
+  }
+
+  public String getRebalanceState() {
+    return _rebalanceState.getValue();
   }
 
   public void resetMaxTopStateHandoffGauge() {

@@ -45,6 +45,7 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.monitoring.mbeans.ResourceMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -137,6 +138,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    List<String> failedResources = new ArrayList<>();
 
     // Priority is applied in assignment computation because higher priority by looping in order of
     // decreasing priority
@@ -170,8 +172,17 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       } catch (HelixException ex) {
         LogUtil.logInfo(logger, _eventId,
             "Failed to calculate intermediate partition states for resource " + resourceName, ex);
+        failedResources.add(resourceName);
       }
     }
+
+    if (clusterStatusMonitor != null) {
+      clusterStatusMonitor.setResourceRebalanceStates(failedResources,
+          ResourceMonitor.RebalanceStatus.INTERMEDIATE_STATE_CAL_FAILED);
+      clusterStatusMonitor
+          .setResourceRebalanceStates(output.resourceSet(), ResourceMonitor.RebalanceStatus.NORMAL);
+    }
+
     return output;
   }
 
@@ -237,6 +248,14 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
                       + " mode due to an instance being assigned more replicas/partitions than "
                       + "the limit.");
             }
+
+            ClusterStatusMonitor clusterStatusMonitor =
+                event.getAttribute(AttributeName.clusterStatusMonitor.name());
+            if (clusterStatusMonitor != null) {
+              clusterStatusMonitor.setResourceRebalanceStates(Collections.singletonList(resource),
+                  ResourceMonitor.RebalanceStatus.INTERMEDIATE_STATE_CAL_FAILED);
+            }
+
             throw new HelixException(errMsg);
           }
           instancePartitionCounts.put(instance, partitionCount);

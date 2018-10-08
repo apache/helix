@@ -19,8 +19,11 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
@@ -36,6 +39,7 @@ import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -132,6 +136,40 @@ public class TestJobAccessor extends AbstractTestClass {
 
     WorkflowConfig workflowConfig = driver.getWorkflowConfig(TEST_QUEUE_NAME);
     Assert.assertTrue(workflowConfig.getJobDag().getAllNodes().contains(jobName));
+  }
+
+  @Test(dependsOnMethods = "testCreateJob")
+  public void testGetAddJobContent() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String uri = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/Job_0/userContent";
+
+    // Empty user content
+    String body =
+        get(uri, Response.Status.OK.getStatusCode(), true);
+    Map<String, String> contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
+    Assert.assertTrue(contentStore.isEmpty());
+
+    // Post user content
+    Map<String, String> map1 = new HashMap<>();
+    map1.put("k1", "v1");
+    Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(map1), MediaType.APPLICATION_JSON_TYPE);
+    post(uri, ImmutableMap.of("command", "delete"), entity, Response.Status.BAD_REQUEST.getStatusCode());
+    post(uri, ImmutableMap.of("command", "update"), entity, Response.Status.OK.getStatusCode());
+
+    // update (add items) workflow content store
+    body = get(uri, Response.Status.OK.getStatusCode(), true);
+    contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
+    Assert.assertEquals(contentStore, map1);
+
+    // modify map1 and verify
+    map1.put("k1", "v2");
+    map1.put("k2", "v2");
+    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(map1), MediaType.APPLICATION_JSON_TYPE);
+    post(uri, ImmutableMap.of("command", "update"), entity, Response.Status.OK.getStatusCode());
+    body = get(uri, Response.Status.OK.getStatusCode(), true);
+    contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
+    Assert.assertEquals(contentStore, map1);
+
   }
 
   @Test(dependsOnMethods = "testCreateJob")

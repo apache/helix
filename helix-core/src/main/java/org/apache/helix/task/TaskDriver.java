@@ -420,8 +420,8 @@ public class TaskDriver {
         Set<String> allNodes = jobDag.getAllNodes();
         if (capacity > 0 && allNodes.size() + jobConfigs.size() >= capacity) {
           throw new IllegalStateException(String
-              .format("Queue %s already reaches its max capacity %f, failed to add %s", capacity,
-                  queue, jobs.toString()));
+              .format("Queue %s already reaches its max capacity %f, failed to add %s", queue,
+                  capacity, jobs.toString()));
         }
 
         String lastNodeName = null;

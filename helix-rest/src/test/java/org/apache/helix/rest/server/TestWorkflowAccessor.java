@@ -18,6 +18,7 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.type.TypeReference;
+import org.glassfish.jersey.server.spi.ResponseErrorMapper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -140,7 +141,7 @@ public class TestWorkflowAccessor extends AbstractTestClass {
         TargetState.START);
   }
 
-  @Test(dependsOnMethods = "testCreateWorkflow")
+  @Test(dependsOnMethods = "testUpdateWorkflow")
   public void testGetAndUpdateWorkflowContentStore() throws IOException, InterruptedException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String workflowName = "Workflow_0";
@@ -157,7 +158,6 @@ public class TestWorkflowAccessor extends AbstractTestClass {
     Map<String, String> map1 = new HashMap<>();
     map1.put("k1", "v1");
     Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(map1), MediaType.APPLICATION_JSON_TYPE);
-    post(uri, ImmutableMap.of("command", "delete"), entity, Response.Status.BAD_REQUEST.getStatusCode());
     post(uri, ImmutableMap.of("command", "update"), entity, Response.Status.OK.getStatusCode());
 
     // update (add items) workflow content store
@@ -175,7 +175,24 @@ public class TestWorkflowAccessor extends AbstractTestClass {
     Assert.assertEquals(contentStore, map1);
   }
 
-  @Test(dependsOnMethods = "testUpdateWorkflow")
+  @Test(dependsOnMethods = "testGetAndUpdateWorkflowContentStore")
+  public void testInvalidGetAndUpdateWorkflowContentStore() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String validURI = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/userContent";
+    String invalidURI = "clusters/" + CLUSTER_NAME + "/workflows/xxx/userContent"; // workflow not exist
+    Entity validEntity = Entity.entity("{\"k1\":\"v1\"}", MediaType.APPLICATION_JSON_TYPE);
+    Entity invalidEntity = Entity.entity("{\"k1\":{}}", MediaType.APPLICATION_JSON_TYPE); // not Map<String, String>
+    Map<String, String> validCmd = ImmutableMap.of("command", "update");
+    Map<String, String> invalidCmd = ImmutableMap.of("command", "delete"); // cmd not supported
+
+    get(invalidURI, Response.Status.NOT_FOUND.getStatusCode(), false);
+    post(invalidURI, validCmd, validEntity, Response.Status.NOT_FOUND.getStatusCode());
+
+    post(validURI, invalidCmd, validEntity, Response.Status.BAD_REQUEST.getStatusCode());
+    post(validURI, validCmd, invalidEntity, Response.Status.BAD_REQUEST.getStatusCode());
+  }
+
+  @Test(dependsOnMethods = "testInvalidGetAndUpdateWorkflowContentStore")
   public void testDeleteWorkflow() throws InterruptedException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     TaskDriver driver = getTaskDriver(CLUSTER_NAME);

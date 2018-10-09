@@ -181,7 +181,9 @@ public class JobAccessor extends AbstractHelixResource {
       Map<String, String> contentStore =
           taskDriver.getJobUserContentMap(workflowName, jobName);
       if (contentStore == null) {
-        return JSONRepresentation(Collections.emptyMap());
+        return notFound(String.format(
+            "Unable to find content store. Workflow (%s) or Job (%s) does not exist.",
+            workflowName, jobName));
       }
       return JSONRepresentation(contentStore);
     } catch (ZkNoNodeException e) {
@@ -193,7 +195,7 @@ public class JobAccessor extends AbstractHelixResource {
 
   @POST
   @Path("{jobName}/userContent")
-  public Response updateWorkflowUserContent(
+  public Response updateJobUserContent(
       @PathParam("clusterId") String clusterId,
       @PathParam("workflowName") String workflowName,
       @PathParam("jobName") String jobName,
@@ -225,6 +227,11 @@ public class JobAccessor extends AbstractHelixResource {
       default:
         return badRequest(String.format("Command \"%s\" is not supported!", cmd));
       }
+    } catch (NullPointerException npe) {
+      // ZkCacheBasedDataAccessor would throw npe if workflow or job does not exist
+      return notFound(String.format(
+          "Unable to find content store. Workflow (%s) or Job (%s) does not exist.",
+          workflowName, jobName));
     } catch (Exception e) {
       _logger.error("Failed to update user content store", e);
       return serverError(e);

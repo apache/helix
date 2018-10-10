@@ -121,7 +121,7 @@ public class TestBucketizedResource extends ZkTestBase {
   }
 
   @Test
-  public void testBounceDisableAndDrop() {
+  public void testBounceDisableAndDrop() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -154,7 +154,7 @@ public class TestBucketizedResource extends ZkTestBase {
     participants[0].syncStop();
     participants[0] = new MockParticipantManager(ZK_ADDR, clusterName, instanceNames.get(0));
     participants[0].syncStart();
-    
+
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // make sure participants[0]'s current state is bucketzied correctly during carryover
@@ -176,8 +176,16 @@ public class TestBucketizedResource extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // make sure external-view is cleaned up
-    path = keyBuilder.externalView(dbName).getPath();
-    boolean result = _baseAccessor.exists(path, 0);
+    final String evPath = keyBuilder.externalView(dbName).getPath();
+
+    TestHelper.verify(new TestHelper.Verifier() {
+        @Override
+        public boolean verify() {
+          return !_baseAccessor.exists(evPath, 0);
+        }
+      }, 3000);
+
+    boolean result = _baseAccessor.exists(evPath, 0);
     Assert.assertFalse(result);
 
     // clean up

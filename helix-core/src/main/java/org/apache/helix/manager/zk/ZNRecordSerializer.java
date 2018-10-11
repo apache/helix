@@ -36,7 +36,6 @@ import org.codehaus.jackson.map.SerializationConfig;
 
 public class ZNRecordSerializer implements ZkSerializer {
   private static Logger logger = LoggerFactory.getLogger(ZNRecordSerializer.class);
-  private final ObjectMapper _mapper = new ObjectMapper();
 
   private static int getListFieldBound(ZNRecord record) {
     int max = Integer.MAX_VALUE;
@@ -75,14 +74,15 @@ public class ZNRecordSerializer implements ZkSerializer {
     }
 
     // do serialization
-    SerializationConfig serializationConfig = _mapper.getSerializationConfig();
+    ObjectMapper mapper = new ObjectMapper();
+    SerializationConfig serializationConfig = mapper.getSerializationConfig();
     serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
     serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
     serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     byte[] serializedBytes;
     try {
-      _mapper.writeValue(baos, data);
+      mapper.writeValue(baos, data);
       serializedBytes = baos.toByteArray();
       // apply compression if needed
       if (record.getBooleanField("enableCompression", false) || serializedBytes.length > ZNRecord.SIZE_LIMIT) {
@@ -111,7 +111,8 @@ public class ZNRecordSerializer implements ZkSerializer {
 
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
 
-    DeserializationConfig deserializationConfig = _mapper.getDeserializationConfig();
+    ObjectMapper mapper = new ObjectMapper();
+    DeserializationConfig deserializationConfig = mapper.getDeserializationConfig();
     deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
     deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
     deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
@@ -121,7 +122,7 @@ public class ZNRecordSerializer implements ZkSerializer {
         byte[] uncompressedBytes = GZipCompressionUtil.uncompress(bais);
         bais = new ByteArrayInputStream(uncompressedBytes);
       }
-      ZNRecord zn = _mapper.readValue(bais, ZNRecord.class);
+      ZNRecord zn = mapper.readValue(bais, ZNRecord.class);
 
       return zn;
     } catch (Exception e) {

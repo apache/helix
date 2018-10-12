@@ -19,7 +19,6 @@ package org.apache.helix.integration.rebalancer;
  * under the License.
  */
 
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Date;
@@ -30,6 +29,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -197,19 +197,22 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
-  private void checkForRebalanceError(boolean expectError)
-      throws MalformedObjectNameException, AttributeNotFoundException, MBeanException,
-      ReflectionException, InstanceNotFoundException, IOException {
-    /* TODO re-enable this check when we start recording rebalance error again
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-    PropertyKey errorNodeKey =
-        accessor.keyBuilder().controllerTaskError(RebalanceResourceFailure.name());
-    Assert.assertEquals(accessor.getProperty(errorNodeKey) != null, expectError);
-    */
-
-    Long value =
-        (Long) _server.getAttribute(getClusterMbeanName(CLUSTER_NAME), "RebalanceFailureGauge");
-    Assert.assertEquals(value != null && value.longValue() > 0, expectError);
+  private void checkForRebalanceError(final boolean expectError) throws Exception {
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        /* TODO re-enable this check when we start recording rebalance error again
+        ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+        PropertyKey errorNodeKey =
+            accessor.keyBuilder().controllerTaskError(RebalanceResourceFailure.name());
+        Assert.assertEquals(accessor.getProperty(errorNodeKey) != null, expectError);
+        */
+        Long value =
+            (Long) _server.getAttribute(getClusterMbeanName(CLUSTER_NAME), "RebalanceFailureGauge");
+        return expectError == (value != null && value.longValue() > 0);
+      }
+    }, 5000);
+    Assert.assertTrue(result);
   }
 
   private void cleanupRebalanceError() {

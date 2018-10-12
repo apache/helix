@@ -28,6 +28,8 @@ import org.slf4j.LoggerFactory;
 public class JobDispatcher extends AbstractTaskDispatcher {
   private static final Logger LOG = LoggerFactory.getLogger(JobDispatcher.class);
   private ClusterDataCache _clusterDataCache;
+  private static final Set<TaskState> intemediateStates = new HashSet<>(
+      Arrays.asList(TaskState.IN_PROGRESS, TaskState.NOT_STARTED, TaskState.STOPPING, TaskState.STOPPED));
 
   public void updateCache(ClusterDataCache cache) {
     _clusterDataCache = cache;
@@ -125,7 +127,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     jobState = workflowCtx.getJobState(jobName);
     workflowState = workflowCtx.getWorkflowState();
 
-    if (jobState == TaskState.IN_PROGRESS && (isTimeout(jobCtx.getStartTime(), jobCfg.getTimeout())
+    if (intemediateStates.contains(jobState) && (isTimeout(jobCtx.getStartTime(), jobCfg.getTimeout())
         || TaskState.TIMED_OUT.equals(workflowState))) {
       jobState = TaskState.TIMING_OUT;
       workflowCtx.setJobState(jobName, TaskState.TIMING_OUT);

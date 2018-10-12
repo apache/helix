@@ -102,7 +102,8 @@ public class TestTaskThrottling extends TaskTestBase {
         TaskState.COMPLETED);
   }
 
-  @Test(dependsOnMethods = {"testTaskThrottle"})
+  // Disable this test since helix will have priority map when integrate with JobIterator.
+  @Test(dependsOnMethods = {"testTaskThrottle"}, enabled = false)
   public void testJobPriority() throws InterruptedException {
     int numTasks = 30 * _numNodes;
     int perNodeTaskLimitation = 5;

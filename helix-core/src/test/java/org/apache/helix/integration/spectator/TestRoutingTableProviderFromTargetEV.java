@@ -3,12 +3,14 @@ package org.apache.helix.integration.spectator;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyType;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -111,7 +113,7 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
   }
 
   @Test (dependsOnMethods = "testTargetExternalViewWithoutEnable")
-  public void testExternalViewDiffFromTargetExternalView() throws InterruptedException {
+  public void testExternalViewDiffFromTargetExternalView() throws Exception {
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.enableTargetExternalView(true);
     clusterConfig.setPersistBestPossibleAssignment(true);
@@ -120,7 +122,7 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
 
     RoutingTableProvider externalViewProvider =
         new RoutingTableProvider(_manager, PropertyType.EXTERNALVIEW);
-    RoutingTableProvider targetExternalViewProvider =
+    final RoutingTableProvider targetExternalViewProvider =
         new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW);
 
     try {
@@ -129,9 +131,17 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
       Set<InstanceConfig> externalViewMasters =
           externalViewProvider.getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER");
       Assert.assertEquals(externalViewMasters.size(), 0);
-      Set<InstanceConfig> targetExternalViewMasters = targetExternalViewProvider
-          .getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER");
-      Assert.assertEquals(targetExternalViewMasters.size(), NUM_NODES);
+
+      final Set<InstanceConfig> targetExternalViewMasters = new HashSet<>();
+      Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
+        @Override
+        public boolean verify() {
+          targetExternalViewMasters.clear();
+          targetExternalViewMasters.addAll(targetExternalViewProvider
+              .getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER"));
+          return targetExternalViewMasters.size() == NUM_NODES;
+        }
+      }, 3000));
 
       // TargetExternalView MASTERS mapping should exactly match IdealState MASTERS mapping
       Map<String, Map<String, String>> stateMap = _gSetupTool.getClusterManagementTool()

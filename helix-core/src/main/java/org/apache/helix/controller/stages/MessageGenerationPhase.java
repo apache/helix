@@ -28,6 +28,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
@@ -150,6 +151,13 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
             currentStateOutput.getCurrentState(resourceName, partition, instanceName);
         if (currentState == null) {
           currentState = stateModelDef.getInitialState();
+          if (desiredState.equals(HelixDefinedState.DROPPED.name())) {
+            LogUtil.logDebug(logger, _eventId, String
+                .format("No current state for partition %s in resource %s, skip the drop message",
+                    partition.getPartitionName(), resourceName));
+            cache.invalidCachedIdealStateMapping(resourceName);
+            continue;
+          }
         }
 
         Message pendingMessage =

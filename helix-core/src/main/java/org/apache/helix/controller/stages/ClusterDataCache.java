@@ -871,6 +871,14 @@ public class ClusterDataCache extends AbstractDataCache {
   }
 
   /**
+   * Invalid the cached resourceAssignment (ideal mapping) for a resource
+   * @param resource
+   */
+  public void invalidCachedIdealStateMapping(String resource) {
+    _idealMappingCache.remove(resource);
+  }
+
+  /**
    * Get cached idealmapping
    * @return
    */

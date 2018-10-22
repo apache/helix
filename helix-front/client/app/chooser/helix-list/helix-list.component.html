@@ -1,6 +1,6 @@
 <mat-card *ngFor="let group of keys(groups)">
   <mat-card-header>
-    <mat-card-title>{{ group }}</mat-card-title>
+    <mat-card-title>{{ group | titlecase }}</mat-card-title>
   </mat-card-header>
   <mat-card-content>
     <section *ngFor="let section of groups[group]" class="section">

@@ -19,7 +19,13 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.caches.TaskDataCache;
+import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
+import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.model.builder.IdealStateBuilder;
 import org.slf4j.Logger;
@@ -29,10 +35,17 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
   private static final Logger LOG = LoggerFactory.getLogger(WorkflowDispatcher.class);
   private static final Set<TaskState> finalStates = new HashSet<>(
       Arrays.asList(TaskState.COMPLETED, TaskState.FAILED, TaskState.ABORTED, TaskState.TIMED_OUT));
-  private TaskDataCache _taskDataCache;
+  private ClusterDataCache _clusterDataCache;
+  private JobDispatcher _jobDispatcher;
 
-  public void updateCache(TaskDataCache cache) {
-    _taskDataCache = cache;
+  public void updateCache(ClusterDataCache cache) {
+    _clusterDataCache = cache;
+    if (_jobDispatcher == null) {
+      _jobDispatcher = new JobDispatcher();
+    }
+    _jobDispatcher.init(_manager);
+    _jobDispatcher.updateCache(cache);
+    _jobDispatcher.setClusterStatusMonitor(_clusterStatusMonitor);
   }
 
   // Split it into status update and assign. But there are couple of data need
@@ -63,7 +76,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
       if (!TaskState.TIMED_OUT.equals(workflowCtx.getWorkflowState()) && isTimeout(workflowCtx.getStartTime(), workflowCfg.getTimeout())) {
         workflowCtx.setWorkflowState(TaskState.TIMED_OUT);
-        _taskDataCache.updateWorkflowContext(workflow, workflowCtx);
+        _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
       }
 
       // We should not return after setting timeout, as in case the workflow is stopped already
@@ -79,7 +92,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       LOG.info("Workflow " + workflow + "is marked as stopped.");
       if (isWorkflowStopped(workflowCtx, workflowCfg)) {
         workflowCtx.setWorkflowState(TaskState.STOPPED);
-        _taskDataCache.updateWorkflowContext(workflow, workflowCtx);
+        _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
       }
       return;
     }
@@ -93,10 +106,10 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // Note that COMPLETE and FAILED will be marked in markJobComplete / markJobFailed
     // This is to handle TIMED_OUT only
     if (workflowCtx.getFinishTime() == WorkflowContext.UNFINISHED && isWorkflowFinished(workflowCtx,
-        workflowCfg, _taskDataCache.getJobConfigMap(), _taskDataCache)) {
+        workflowCfg, _clusterDataCache.getJobConfigMap(), _clusterDataCache.getTaskDataCache())) {
       workflowCtx.setFinishTime(currentTime);
       updateWorkflowMonitor(workflowCtx, workflowCfg);
-      _taskDataCache.updateWorkflowContext(workflow, workflowCtx);
+      _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
     }
 
     // Step 5: Handle finished workflows
@@ -125,11 +138,12 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       }
     }
 
-    _taskDataCache.updateWorkflowContext(workflow, workflowCtx);
+    _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
   }
 
   public void assignWorkflow(String workflow, WorkflowConfig workflowCfg,
-      WorkflowContext workflowCtx) {
+      WorkflowContext workflowCtx, CurrentStateOutput currentStateOutput,
+      BestPossibleStateOutput bestPossibleOutput, Map<String, Resource> resourceMap) {
     // Fetch workflow configuration and context
     if (workflowCfg == null) {
       // Already logged in status update.
@@ -144,16 +158,17 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       return;
     }
 
-
     // Check for readiness, and stop processing if it's not ready
-    boolean isReady = scheduleWorkflowIfReady(workflow, workflowCfg, workflowCtx, _taskDataCache);
+    boolean isReady = scheduleWorkflowIfReady(workflow, workflowCfg, workflowCtx,
+        _clusterDataCache.getTaskDataCache());
     if (isReady) {
       // Schedule jobs from this workflow.
-      scheduleJobs(workflow, workflowCfg, workflowCtx, _taskDataCache.getJobConfigMap(), _taskDataCache);
+      scheduleJobs(workflow, workflowCfg, workflowCtx, _clusterDataCache.getJobConfigMap(),
+          _clusterDataCache, currentStateOutput, bestPossibleOutput, resourceMap);
     } else {
       LOG.debug("Workflow " + workflow + " is not ready to be scheduled.");
     }
-    _taskDataCache.updateWorkflowContext(workflow, workflowCtx);
+    _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
   }
 
   public WorkflowContext getOrInitializeWorkflowContext(
@@ -174,7 +189,8 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
    */
   private void scheduleJobs(String workflow, WorkflowConfig workflowCfg,
       WorkflowContext workflowCtx, Map<String, JobConfig> jobConfigMap,
-      TaskDataCache clusterDataCache) {
+      ClusterDataCache clusterDataCache, CurrentStateOutput currentStateOutput,
+      BestPossibleStateOutput bestPossibleOutput, Map<String, Resource> resourceMap) {
     ScheduleConfig scheduleConfig = workflowCfg.getScheduleConfig();
     if (scheduleConfig != null && scheduleConfig.isRecurring()) {
       LOG.debug("Jobs from recurring workflow are not schedule-able");
@@ -190,6 +206,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Job " + job + " is already started or completed.");
         }
+        processJob(job, currentStateOutput, bestPossibleOutput, workflowCtx);
         continue;
       }
 
@@ -203,7 +220,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
       // check ancestor job status
       if (isJobReadyToSchedule(job, workflowCfg, workflowCtx, inCompleteAllJobCount, jobConfigMap,
-          clusterDataCache)) {
+          clusterDataCache.getTaskDataCache())) {
         JobConfig jobConfig = jobConfigMap.get(job);
         if (jobConfig == null) {
           LOG.error(String.format("The job config is missing for job %s", job));
@@ -231,6 +248,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         } else {
           scheduleSingleJob(job, jobConfig);
           workflowCtx.setJobState(job, TaskState.NOT_STARTED);
+          processJob(job, currentStateOutput, bestPossibleOutput, workflowCtx);
           scheduledJobs++;
         }
       }
@@ -240,6 +258,19 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
             : _rebalanceScheduler.getRebalanceTime(workflow);
     if (timeToSchedule < currentScheduledTime) {
       _rebalanceScheduler.scheduleRebalance(_manager, workflow, timeToSchedule);
+    }
+  }
+
+  private void processJob(String job, CurrentStateOutput currentStateOutput,
+      BestPossibleStateOutput bestPossibleOutput, WorkflowContext workflowCtx) {
+    _clusterDataCache.dispatchJob(job);
+    try {
+      ResourceAssignment resourceAssignment =
+          _jobDispatcher.processJobStatusUpdateandAssignment(job, currentStateOutput, workflowCtx);
+      updateBestPossibleStateOutput(job, resourceAssignment, bestPossibleOutput);
+    } catch (Exception e) {
+      LogUtil.logWarn(LOG, _clusterDataCache.getEventId(),
+          String.format("Failed to compute job assignment for job %s", job));
     }
   }
 
@@ -491,7 +522,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
    */
   private void cleanupWorkflow(String workflow) {
     LOG.info("Cleaning up workflow: " + workflow);
-    WorkflowConfig workflowcfg = _taskDataCache.getWorkflowConfig(workflow);
+    WorkflowConfig workflowcfg = _clusterDataCache.getWorkflowConfig(workflow);
 
     if (workflowcfg.isTerminable() || workflowcfg.getTargetState() == TargetState.DELETE) {
       Set<String> jobs = workflowcfg.getJobDag().getAllNodes();
@@ -507,7 +538,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         // Only remove from cache when remove all workflow success. Otherwise, batch write will
         // clean all the contexts even if Configs and IdealStates are exists. Then all the workflows
         // and jobs will rescheduled again.
-        removeContexts(workflow, jobs, _taskDataCache);
+        removeContexts(workflow, jobs, _clusterDataCache.getTaskDataCache());
       }
      } else {
       LOG.info("Did not clean up workflow " + workflow
@@ -523,4 +554,5 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     }
     cache.removeContext(workflow);
   }
+
 }

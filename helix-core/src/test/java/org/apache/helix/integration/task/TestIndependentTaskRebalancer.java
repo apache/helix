@@ -245,7 +245,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap);
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();
-    jobCommandMap.put("Timeout", "1000");
+    jobCommandMap.put(MockTask.JOB_DELAY, "1000");
 
     JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
         .addTaskConfigs(taskConfigs).setJobCommandConfigMap(jobCommandMap);

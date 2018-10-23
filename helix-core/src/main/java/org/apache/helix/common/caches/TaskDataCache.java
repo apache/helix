@@ -56,10 +56,15 @@ public class TaskDataCache extends AbstractDataCache {
   private Set<String> _contextToUpdate = new HashSet<>();
   private Set<String> _contextToRemove = new HashSet<>();
   // The following fields have been added for quota-based task scheduling
-  private final AssignableInstanceManager _assignableInstanceManager = new AssignableInstanceManager();
+  private final AssignableInstanceManager _assignableInstanceManager =
+      new AssignableInstanceManager();
+  // Current usage for this scheduled jobs is used for differentiate the jobs has been processed in
+  // JobDispatcher from RESOURCE_TO_BALANCE to reduce the redundant computation.
+  private Set<String> _dispatchedJobs = new HashSet<>();
 
   /**
    * Original constructor for TaskDataCache.
+   *
    * @param clusterName
    */
   public TaskDataCache(String clusterName) {
@@ -68,7 +73,9 @@ public class TaskDataCache extends AbstractDataCache {
 
   /**
    * This refreshes the cluster data by re-fetching the data from zookeeper in an efficient way
+   *
    * @param accessor
+   *
    * @return
    */
   public synchronized boolean refresh(HelixDataAccessor accessor,
@@ -86,6 +93,8 @@ public class TaskDataCache extends AbstractDataCache {
         _jobConfigMap.put(entry.getKey(), new JobConfig(entry.getValue()));
       }
     }
+    _dispatchedJobs.clear();
+
     return true;
   }
 
@@ -128,6 +137,7 @@ public class TaskDataCache extends AbstractDataCache {
 
   /**
    * Returns job config map
+   *
    * @return
    */
   public Map<String, JobConfig> getJobConfigMap() {
@@ -136,7 +146,9 @@ public class TaskDataCache extends AbstractDataCache {
 
   /**
    * Returns job config
+   *
    * @param resource
+   *
    * @return
    */
   public JobConfig getJobConfig(String resource) {
@@ -145,6 +157,7 @@ public class TaskDataCache extends AbstractDataCache {
 
   /**
    * Returns workflow config map
+   *
    * @return
    */
   public Map<String, WorkflowConfig> getWorkflowConfigMap() {
@@ -153,7 +166,9 @@ public class TaskDataCache extends AbstractDataCache {
 
   /**
    * Returns workflow config
+   *
    * @param resource
+   *
    * @return
    */
   public WorkflowConfig getWorkflowConfig(String resource) {
@@ -162,7 +177,9 @@ public class TaskDataCache extends AbstractDataCache {
 
   /**
    * Return the JobContext by resource name
+   *
    * @param resourceName
+   *
    * @return
    */
   public JobContext getJobContext(String resourceName) {
@@ -174,7 +191,9 @@ public class TaskDataCache extends AbstractDataCache {
 
   /**
    * Return the WorkflowContext by resource name
+   *
    * @param resourceName
+   *
    * @return
    */
   public WorkflowContext getWorkflowContext(String resourceName) {
@@ -249,6 +268,7 @@ public class TaskDataCache extends AbstractDataCache {
 
   /**
    * Return map of WorkflowContexts or JobContexts
+   *
    * @return
    */
   public Map<String, ZNRecord> getContexts() {
@@ -257,6 +277,7 @@ public class TaskDataCache extends AbstractDataCache {
 
   /**
    * Returns the current AssignableInstanceManager instance.
+   *
    * @return
    */
   public AssignableInstanceManager getAssignableInstanceManager() {
@@ -265,6 +286,7 @@ public class TaskDataCache extends AbstractDataCache {
 
   /**
    * Remove Workflow or Job context from cache
+   *
    * @param resourceName
    */
   public void removeContext(String resourceName) {
@@ -276,16 +298,25 @@ public class TaskDataCache extends AbstractDataCache {
 
   @Override
   public String toString() {
-    return "TaskDataCache{"
-        + "_jobConfigMap=" + _jobConfigMap
-        + ", _workflowConfigMap=" + _workflowConfigMap
-        + ", _contextMap=" + _contextMap
-        + ", _clusterName='" + _clusterName
+    return "TaskDataCache{" + "_jobConfigMap=" + _jobConfigMap + ", _workflowConfigMap="
+        + _workflowConfigMap + ", _contextMap=" + _contextMap + ", _clusterName='" + _clusterName
         + '\'' + '}';
   }
 
   private String getContextPath(String resourceName) {
     return String.format("/%s/%s%s/%s/%s", _clusterName, PropertyType.PROPERTYSTORE.name(),
         TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, TaskConstants.CONTEXT_NODE);
+  }
+
+  public void dispatchJob(String jobName) {
+    _dispatchedJobs.add(jobName);
+  }
+
+  public void removeDispatchedJob(String jobName) {
+    _dispatchedJobs.remove(jobName);
+  }
+
+  public Set<String> getDispatchedJobs() {
+    return _dispatchedJobs;
   }
 }

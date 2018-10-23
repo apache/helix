@@ -68,8 +68,9 @@ public class JobRebalancer extends TaskRebalancer {
     _jobDispatcher.init(_manager);
     _jobDispatcher.updateCache(clusterData);
     _jobDispatcher.setClusterStatusMonitor(_clusterStatusMonitor);
-    ResourceAssignment resourceAssignment =
-        _jobDispatcher.processJobStatusUpdateandAssignment(jobName, currStateOutput, taskIs);
+    ResourceAssignment resourceAssignment = _jobDispatcher
+        .processJobStatusUpdateandAssignment(jobName, currStateOutput,
+            clusterData.getWorkflowContext(clusterData.getJobConfig(jobName).getWorkflow()));
     LOG.debug(String.format("JobRebalancer computation takes %d ms for Job %s",
         System.currentTimeMillis() - startTime, jobName));
     return resourceAssignment;

@@ -36,7 +36,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
   }
 
   public ResourceAssignment processJobStatusUpdateandAssignment(String jobName,
-      CurrentStateOutput currStateOutput, IdealState taskIs) {
+      CurrentStateOutput currStateOutput, WorkflowContext workflowCtx) {
     // Fetch job configuration
     JobConfig jobCfg = _clusterDataCache.getJobConfig(jobName);
     if (jobCfg == null) {
@@ -52,7 +52,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
-    WorkflowContext workflowCtx = _clusterDataCache.getWorkflowContext(workflowResource);
+
     if (workflowCtx == null) {
       LOG.error("Workflow context is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -157,18 +157,6 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     ResourceAssignment newAssignment =
         computeResourceMapping(jobName, workflowCfg, jobCfg, jobState, jobTgtState, prevAssignment,
             liveInstances, currStateOutput, workflowCtx, jobCtx, partitionsToDrop, _clusterDataCache);
-
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    PropertyKey propertyKey = accessor.keyBuilder().idealStates(jobName);
-
-    // TODO: will be removed when we are trying to get rid of IdealState
-    taskIs = _clusterDataCache.getIdealState(jobName);
-    if (!partitionsToDrop.isEmpty() && taskIs != null) {
-      for (Integer pId : partitionsToDrop) {
-        taskIs.getRecord().getMapFields().remove(pName(jobName, pId));
-      }
-      accessor.setProperty(propertyKey, taskIs);
-    }
 
     // Update Workflow and Job context in data cache and ZK.
     _clusterDataCache.updateJobContext(jobName, jobCtx);

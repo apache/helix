@@ -7,6 +7,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -73,12 +75,14 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     BestPossibleStateOutput output = new BestPossibleStateOutput();
     final List<String> failureResources = new ArrayList<>();
     // Queues only for Workflows
-    scheduleWorkflows(resourceMap, cache, restOfResources, failureResources);
+    scheduleWorkflows(resourceMap, cache, restOfResources, failureResources, currentStateOutput, output);
+    for (String jobName : cache.getDispatchedJobs()) {
+      updateResourceMap(jobName, resourceMap, output.getPartitionStateMap(jobName).partitionSet());
+      restOfResources.remove(jobName);
+    }
 
-    // Current rest of resources including: jobs + only current state left over ones
-    Iterator<Resource> itr = restOfResources.values().iterator();
-    while (itr.hasNext()) {
-      Resource resource = itr.next();
+    // Current rest of resources including: only current state left over ones
+    for (Resource resource : restOfResources.values()) {
       if (!computeResourceBestPossibleState(event, cache, currentStateOutput, resource, output)) {
         failureResources.add(resource.getResourceName());
         LogUtil.logWarn(logger, _eventId,
@@ -160,7 +164,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
       rebalancer.init(manager);
         partitionStateAssignment = mappingCalculator
             .computeBestPossiblePartitionState(cache, idealState, resource, currentStateOutput);
-        updateOutput(resource, partitionStateAssignment, output);
+        _workflowDispatcher.updateBestPossibleStateOutput(resource.getResourceName(), partitionStateAssignment, output);
 
         // Check if calculation is done successfully
         return true;
@@ -231,21 +235,12 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     }
     _workflowDispatcher.init(manager);
     _workflowDispatcher.setClusterStatusMonitor(monitor);
-    _workflowDispatcher.updateCache(cache.getTaskDataCache());
-  }
-
-  private void updateOutput(Resource resource, ResourceAssignment partitionStateAssignment,
-      BestPossibleStateOutput output) {
-    // Use the internal MappingCalculator interface to compute the final assignment
-    // The next release will support rebalancers that compute the mapping from start to finish
-    for (Partition partition : resource.getPartitions()) {
-      Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
-      output.setState(resource.getResourceName(), partition, newStateMap);
-    }
+    _workflowDispatcher.updateCache(cache);
   }
 
   private void scheduleWorkflows(Map<String, Resource> resourceMap, ClusterDataCache cache,
-      Map<String, Resource> restOfResources, List<String> failureResources) {
+      Map<String, Resource> restOfResources, List<String> failureResources,
+      CurrentStateOutput currentStateOutput, BestPossibleStateOutput bestPossibleOutput) {
     for (PriorityQueue<WorkflowObject> quotaBasedWorkflowPQ : _quotaBasedWorkflowPQs.values()) {
       Iterator<WorkflowObject> it = quotaBasedWorkflowPQ.iterator();
       while (it.hasNext()) {
@@ -260,7 +255,8 @@ public class TaskSchedulingStage extends AbstractBaseStage {
             _workflowDispatcher
                 .updateWorkflowStatus(workflowId, cache.getWorkflowConfig(workflowId), context);
             _workflowDispatcher
-                .assignWorkflow(workflowId, cache.getWorkflowConfig(workflowId), context);
+                .assignWorkflow(workflowId, cache.getWorkflowConfig(workflowId), context,
+                    currentStateOutput, bestPossibleOutput, resourceMap);
             restOfResources.remove(workflowId);
           } catch (Exception e) {
             LogUtil.logError(logger, _eventId,
@@ -270,5 +266,16 @@ public class TaskSchedulingStage extends AbstractBaseStage {
         }
       }
     }
+  }
+
+  private void updateResourceMap(String jobName, Map<String, Resource> resourceMap,
+      Set<Partition> partitionSet) {
+    Resource resource = new Resource(jobName);
+    for (Partition partition : partitionSet) {
+      resource.addPartition(partition.getPartitionName());
+    }
+    resource.setStateModelDefRef(TaskConstants.STATE_MODEL_NAME);
+    resource.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+    resourceMap.put(jobName, resource);
   }
 }

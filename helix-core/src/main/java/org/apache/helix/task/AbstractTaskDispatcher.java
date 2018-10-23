@@ -15,11 +15,13 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.assigner.AssignableInstance;
@@ -1093,5 +1095,15 @@ public abstract class AbstractTaskDispatcher {
     Date startTime = workflowCfg.getStartTime();
     // Workflow with non-scheduled config or passed start time is ready to schedule.
     return (startTime == null || startTime.getTime() <= System.currentTimeMillis());
+  }
+
+  public void updateBestPossibleStateOutput(String resource,
+      ResourceAssignment partitionStateAssignment, BestPossibleStateOutput output) {
+    // Use the internal MappingCalculator interface to compute the final assignment
+    // The next release will support rebalancers that compute the mapping from start to finish
+    for (Partition partition : partitionStateAssignment.getMappedPartitions()) {
+      Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
+      output.setState(resource, partition, newStateMap);
+    }
   }
 }

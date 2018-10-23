@@ -1022,4 +1022,17 @@ public class ClusterDataCache extends AbstractDataCache {
 
     return sb.toString();
   }
+
+
+  public void dispatchJob(String jobName) {
+    _taskDataCache.dispatchJob(jobName);
+  }
+
+  public void removeDispatchedJob(String jobName) {
+    _taskDataCache.removeDispatchedJob(jobName);
+  }
+
+  public Set<String> getDispatchedJobs() {
+    return _taskDataCache.getDispatchedJobs();
+  }
 }

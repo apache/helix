@@ -48,7 +48,7 @@ public class TestDeleteWorkflow extends TaskTestBase  {
 
     // Pause the Controller so that the job queue won't get deleted
     admin.enableCluster(CLUSTER_NAME, false);
-
+    Thread.sleep(1000);
     // Attempt the deletion and time out
     try {
       _driver.deleteAndWaitForCompletion(jobQueueName, DELETE_DELAY);

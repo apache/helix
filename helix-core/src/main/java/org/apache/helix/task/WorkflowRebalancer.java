@@ -19,6 +19,8 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.HashMap;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
@@ -46,9 +48,10 @@ public class WorkflowRebalancer extends TaskRebalancer {
     WorkflowConfig workflowCfg = clusterData.getWorkflowConfig(workflow);
 
     _workflowDispatcher.setClusterStatusMonitor(_clusterStatusMonitor);
-    _workflowDispatcher.updateCache(clusterData.getTaskDataCache());
+    _workflowDispatcher.updateCache(clusterData);
     _workflowDispatcher.updateWorkflowStatus(workflow, workflowCfg, workflowCtx);
-    _workflowDispatcher.assignWorkflow(workflow, workflowCfg, workflowCtx);
+    _workflowDispatcher.assignWorkflow(workflow, workflowCfg, workflowCtx, currStateOutput,
+        new BestPossibleStateOutput(), new HashMap<String, Resource>());
 
     LOG.debug(String.format("WorkflowRebalancer computation takes %d ms for workflow %s",
         System.currentTimeMillis() - startTime, workflow));

@@ -154,7 +154,7 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);
     }
-    Thread.sleep(500);
+    Thread.sleep(1000);
     updateMetrics();
     Assert.assertEquals(_beanValueMap.get(PARTITION_COUNT), 5L);
     Assert.assertEquals(_beanValueMap.get(ERROR_PARTITION_COUNT), 0L);
@@ -166,7 +166,7 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, true);
     }
-    Thread.sleep(500);
+    Thread.sleep(1000);
     updateMetrics();
     Assert.assertEquals(_beanValueMap.get(PARTITION_COUNT), 5L);
     Assert.assertEquals(_beanValueMap.get(ERROR_PARTITION_COUNT), 0L);
@@ -175,7 +175,7 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
 
     // Drop the resource and check that all metrics are zero.
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, TEST_DB);
-    Thread.sleep(500);
+    Thread.sleep(1000);
     updateMetrics();
     Assert.assertEquals(_beanValueMap.get(PARTITION_COUNT), 0L);
     Assert.assertEquals(_beanValueMap.get(ERROR_PARTITION_COUNT), 0L);

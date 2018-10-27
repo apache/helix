@@ -151,6 +151,9 @@ public class ClusterDataCache extends AbstractDataCache {
     long startTime = System.currentTimeMillis();
     Builder keyBuilder = accessor.keyBuilder();
 
+    // Reset the LiveInstance/CurrentState change flag
+    _existsLiveInstanceOrCurrentStateChange = false;
+
     if (_propertyDataChangedMap.get(ChangeType.IDEAL_STATE)) {
       _propertyDataChangedMap.put(ChangeType.IDEAL_STATE, false);
       clearCachedResourceAssignments();
@@ -935,14 +938,12 @@ public class ClusterDataCache extends AbstractDataCache {
   }
 
   /**
-   * Returns whether there has been LiveInstance change. Once called, it will be set to false. To be
-   * used for task-assigning.
+   * Returns whether there has been LiveInstance or CurrentState change. To be used for
+   * task-assigning in AbstractTaskDispatcher.
    * @return
    */
   public boolean getExistsLiveInstanceOrCurrentStateChange() {
-    boolean change = _existsLiveInstanceOrCurrentStateChange;
-    _existsLiveInstanceOrCurrentStateChange = false;
-    return change;
+    return _existsLiveInstanceOrCurrentStateChange;
   }
 
   private Map<String, ResourceConfig> refreshResourceConfigs(HelixDataAccessor accessor) {
@@ -960,17 +961,16 @@ public class ClusterDataCache extends AbstractDataCache {
 
     for (String resourceConfig : _resourceConfigMap.keySet()) {
       cachedKeys.add(keyBuilder.resourceConfig(resourceConfig));
-      cachedResourceConfigMap
-          .put(keyBuilder.resourceConfig(resourceConfig), _resourceConfigMap.get(resourceConfig));
+      cachedResourceConfigMap.put(keyBuilder.resourceConfig(resourceConfig),
+          _resourceConfigMap.get(resourceConfig));
     }
     cachedKeys.retainAll(currentResourceConfigKeys);
 
     Set<PropertyKey> reloadKeys = new HashSet<>(currentResourceConfigKeys);
     reloadKeys.removeAll(cachedKeys);
 
-    Map<PropertyKey, ResourceConfig> updatedMap =
-        refreshProperties(accessor, new LinkedList<>(reloadKeys), new ArrayList<>(cachedKeys),
-            cachedResourceConfigMap);
+    Map<PropertyKey, ResourceConfig> updatedMap = refreshProperties(accessor,
+        new LinkedList<>(reloadKeys), new ArrayList<>(cachedKeys), cachedResourceConfigMap);
     for (ResourceConfig resourceConfig : updatedMap.values()) {
       refreshedResourceConfigs.put(resourceConfig.getResourceName(), resourceConfig);
     }

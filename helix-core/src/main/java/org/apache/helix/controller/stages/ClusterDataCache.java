@@ -233,7 +233,8 @@ public class ClusterDataCache extends AbstractDataCache {
       assignableInstanceManager.buildAssignableInstances(_clusterConfig, _taskDataCache,
           _liveInstanceMap, _instanceConfigMap);
       /**
-       * TODO: Consider this for optimization after sufficient testing
+       * TODO: (Hunter) Consider this for optimization after fixing the problem of quotas not being
+       * properly released for targeted tasks
        * if (_existsClusterConfigChange) {
        * // Update both flags since buildAssignableInstances includes updateAssignableInstances
        * _existsClusterConfigChange = false;
@@ -246,6 +247,7 @@ public class ClusterDataCache extends AbstractDataCache {
        * _instanceConfigMap);
        * }
        **/
+      assignableInstanceManager.logQuotaProfileJSON(false);
     }
 
     _instanceMessagesCache.refresh(accessor, _liveInstanceMap);

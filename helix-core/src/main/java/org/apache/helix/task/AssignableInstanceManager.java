@@ -31,6 +31,9 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.task.assigner.AssignableInstance;
 import org.apache.helix.task.assigner.TaskAssignResult;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,8 +148,8 @@ public class AssignableInstanceManager {
                 assignableInstance.restoreTaskAssignResult(taskId, taskConfig, quotaType);
             if (taskAssignResult.isSuccessful()) {
               _taskAssignResultMap.put(taskId, taskAssignResult);
-              LOG.debug("TaskAssignResult restored for taskId: {}, assigned on instance: {}", taskId,
-                  assignedInstance);
+              LOG.debug("TaskAssignResult restored for taskId: {}, assigned on instance: {}",
+                  taskId, assignedInstance);
             }
           } else {
             LOG.debug(
@@ -158,6 +161,8 @@ public class AssignableInstanceManager {
         }
       }
     }
+    LOG.info(
+        "AssignableInstanceManager built AssignableInstances from scratch based on contexts in TaskDataCache due to Controller switch or ClusterConfig change.");
   }
 
   /**
@@ -224,6 +229,8 @@ public class AssignableInstanceManager {
           "Non-live AssignableInstance removed for instance: {} during updateAssignableInstances",
           instanceToBeRemoved.getInstanceName());
     }
+    LOG.info(
+        "AssignableInstanceManager updated AssignableInstances due to LiveInstance/InstanceConfig change.");
   }
 
   /**
@@ -276,5 +283,49 @@ public class AssignableInstanceManager {
         return true;
     }
     return false;
+  }
+
+  /*
+   * Creates a JSON-style String that shows the quota profile and logs it.
+   * TODO: Make this with an associated event ID if this becomes a performance bottleneck
+   * @param onlyDisplayIfFull if true, this String will only contain the profile for instances whose
+   * quota capacity is at its full to avoid cluttering up the log
+   */
+  public void logQuotaProfileJSON(boolean onlyDisplayIfFull) {
+    // Create a String to use as the log for quota status
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode instanceNode = mapper.createObjectNode();
+
+    // Loop through all instances
+    for (Map.Entry<String, AssignableInstance> instanceEntry : _assignableInstanceMap.entrySet()) {
+      AssignableInstance assignableInstance = instanceEntry.getValue();
+      boolean capacityFull = false;
+      JsonNode resourceTypeNode = mapper.createObjectNode();
+      for (Map.Entry<String, Map<String, Integer>> capacityEntry : assignableInstance
+          .getTotalCapacity().entrySet()) {
+        String resourceType = capacityEntry.getKey();
+        Map<String, Integer> quotaTypeMap = capacityEntry.getValue();
+        JsonNode quotaTypeNode = mapper.createObjectNode();
+        for (Map.Entry<String, Integer> typeEntry : quotaTypeMap.entrySet()) {
+          String quotaType = typeEntry.getKey();
+          int totalCapacity = typeEntry.getValue();
+          int usedCapacity = assignableInstance.getUsedCapacity().get(resourceType).get(quotaType);
+          if (!capacityFull) {
+            capacityFull = totalCapacity <= usedCapacity;
+          }
+          String capacityString = String.format("%d/%d", usedCapacity, totalCapacity);
+          ((ObjectNode) quotaTypeNode).put(quotaType, capacityString);
+        }
+        ((ObjectNode) resourceTypeNode).put(resourceType, quotaTypeNode);
+      }
+      // If onlyDisplayIfFull, do not add the JsonNode to the parent node
+      if (onlyDisplayIfFull && !capacityFull) {
+        continue;
+      }
+      ((ObjectNode) instanceNode).put(instanceEntry.getKey(), resourceTypeNode);
+    }
+    if (instanceNode.size() > 0) {
+      LOG.info("Current quota capacity: {}", instanceNode.toString());
+    }
   }
 }

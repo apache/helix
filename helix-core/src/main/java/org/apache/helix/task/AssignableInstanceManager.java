@@ -21,7 +21,6 @@ package org.apache.helix.task;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -94,6 +93,24 @@ public class AssignableInstanceManager {
             jobName, jobConfig, jobContext);
         continue; // Ignore this job if either the config or context is null
       }
+
+      // First, check that the workflow and job are in valid states. This is important because
+      // sometimes aborted jobs do not get a proper update of their task states, meaning there could
+      // be INIT and RUNNING tasks we want to ignore
+      String workflowName = jobConfig.getWorkflow();
+      WorkflowConfig workflowConfig = taskDataCache.getWorkflowConfig(workflowName);
+      WorkflowContext workflowContext = taskDataCache.getWorkflowContext(workflowName);
+      if (workflowConfig == null || workflowContext == null) {
+        // There is no workflow config or context - meaning no tasks are currently scheduled and
+        // invalid, so skip this job
+        continue;
+      }
+      TaskState workflowState = workflowContext.getWorkflowState();
+      TaskState jobState = workflowContext.getJobState(jobName);
+      if (isResourceTerminalOrStopped(workflowState) || isResourceTerminalOrStopped(jobState)) {
+        continue;
+      }
+
       String quotaType = jobConfig.getJobType();
       if (quotaType == null) {
         quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
@@ -235,5 +252,29 @@ public class AssignableInstanceManager {
    */
   public Map<String, TaskAssignResult> getTaskAssignResultMap() {
     return _taskAssignResultMap;
+  }
+
+  /**
+   * Determines whether it's possible for a given workflow or a job to have any running tasks. In
+   * other words, rule out all resources that are in terminal states or have been stopped.
+   * @param state
+   * @return
+   */
+  private boolean isResourceTerminalOrStopped(TaskState state) {
+    if (state == null) {
+      // If the state is null, it cannot have currently-running tasks either, so consider it
+      // inactive
+      return true;
+    }
+    switch (state) {
+      case ABORTED:
+      case FAILED:
+      case STOPPED:
+      case COMPLETED:
+      case TIMED_OUT:
+      case NOT_STARTED:
+        return true;
+    }
+    return false;
   }
 }

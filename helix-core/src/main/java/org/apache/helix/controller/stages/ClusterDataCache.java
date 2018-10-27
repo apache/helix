@@ -209,7 +209,6 @@ public class ClusterDataCache extends AbstractDataCache {
     }
 
     _liveInstanceMap = new HashMap<>(_liveInstanceCacheMap);
-    _liveInstanceMap = new HashMap<>(_liveInstanceCacheMap);
     _instanceConfigMap = new ConcurrentHashMap<>(_instanceConfigCacheMap);
     _resourceConfigMap = new HashMap<>(_resourceConfigCacheMap);
 
@@ -230,17 +229,23 @@ public class ClusterDataCache extends AbstractDataCache {
       // Refresh AssignableInstanceManager
       AssignableInstanceManager assignableInstanceManager =
           _taskDataCache.getAssignableInstanceManager();
-      if (_existsClusterConfigChange) {
-        // Update both flags since buildAssignableInstances includes updateAssignableInstances
-        _existsClusterConfigChange = false;
-        _existsInstanceChange = false;
-        assignableInstanceManager.buildAssignableInstances(_clusterConfig, _taskDataCache,
-            _liveInstanceMap, _instanceConfigMap);
-      } else if (_existsInstanceChange) {
-        _existsInstanceChange = false;
-        assignableInstanceManager.updateAssignableInstances(_clusterConfig, _liveInstanceMap,
-            _instanceConfigMap);
-      }
+      // Build from scratch every time
+      assignableInstanceManager.buildAssignableInstances(_clusterConfig, _taskDataCache,
+          _liveInstanceMap, _instanceConfigMap);
+      /**
+       * TODO: Consider this for optimization after sufficient testing
+       * if (_existsClusterConfigChange) {
+       * // Update both flags since buildAssignableInstances includes updateAssignableInstances
+       * _existsClusterConfigChange = false;
+       * _existsInstanceChange = false;
+       * assignableInstanceManager.buildAssignableInstances(_clusterConfig, _taskDataCache,
+       * _liveInstanceMap, _instanceConfigMap);
+       * } else if (_existsInstanceChange) {
+       * _existsInstanceChange = false;
+       * assignableInstanceManager.updateAssignableInstances(_clusterConfig, _liveInstanceMap,
+       * _instanceConfigMap);
+       * }
+       **/
     }
 
     _instanceMessagesCache.refresh(accessor, _liveInstanceMap);

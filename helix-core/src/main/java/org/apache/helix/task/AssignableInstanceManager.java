@@ -80,7 +80,7 @@ public class AssignableInstanceManager {
       AssignableInstance assignableInstance =
           new AssignableInstance(clusterConfig, instanceConfig, liveInstance);
       _assignableInstanceMap.put(instanceConfig.getInstanceName(), assignableInstance);
-      LOG.info("AssignableInstance created for instance: {}", instanceName);
+      LOG.debug("AssignableInstance created for instance: {}", instanceName);
     }
 
     // Update task profiles by traversing all TaskContexts
@@ -89,7 +89,7 @@ public class AssignableInstanceManager {
       JobConfig jobConfig = jobConfigMap.get(jobName);
       JobContext jobContext = taskDataCache.getJobContext(jobName);
       if (jobConfig == null || jobContext == null) {
-        LOG.warn(
+        LOG.debug(
             "JobConfig or JobContext for this job is null. Skipping this job! Job name: {}, JobConfig: {}, JobContext: {}",
             jobName, jobConfig, jobContext);
         continue; // Ignore this job if either the config or context is null
@@ -115,7 +115,7 @@ public class AssignableInstanceManager {
             taskId = String.format("%s_%s", jobConfig.getJobId(), taskIndex);
           }
           if (assignedInstance == null) {
-            LOG.warn(
+            LOG.debug(
                 "This task's TaskContext does not have an assigned instance! Task will be ignored. "
                     + "Job: {}, TaskId: {}, TaskIndex: {}",
                 jobContext.getName(), taskId, taskIndex);
@@ -128,11 +128,11 @@ public class AssignableInstanceManager {
                 assignableInstance.restoreTaskAssignResult(taskId, taskConfig, quotaType);
             if (taskAssignResult.isSuccessful()) {
               _taskAssignResultMap.put(taskId, taskAssignResult);
-              LOG.info("TaskAssignResult restored for taskId: {}, assigned on instance: {}", taskId,
+              LOG.debug("TaskAssignResult restored for taskId: {}, assigned on instance: {}", taskId,
                   assignedInstance);
             }
           } else {
-            LOG.warn(
+            LOG.debug(
                 "While building AssignableInstance map, discovered that the instance a task is assigned to is no "
                     + "longer a LiveInstance! TaskAssignResult will not be created and no resource will be taken "
                     + "up for this task. Job: {}, TaskId: {}, TaskIndex: {}, Instance: {}",
@@ -179,7 +179,7 @@ public class AssignableInstanceManager {
         AssignableInstance assignableInstance =
             new AssignableInstance(clusterConfig, instanceConfig, liveInstance);
         _assignableInstanceMap.put(instanceName, assignableInstance);
-        LOG.info("AssignableInstance created for instance: {} during updateAssignableInstances",
+        LOG.debug("AssignableInstance created for instance: {} during updateAssignableInstances",
             instanceName);
       }
       // Remove because we've confirmed that this AssignableInstance is a LiveInstance as well
@@ -196,14 +196,14 @@ public class AssignableInstanceManager {
           if (_taskAssignResultMap.get(taskToRemove).getAssignableInstance().getInstanceName()
               .equals(instanceToBeRemoved.getInstanceName())) {
             _taskAssignResultMap.remove(taskToRemove); // TODO: Hunter: Move this if necessary
-            LOG.info(
+            LOG.debug(
                 "TaskAssignResult removed because its assigned instance is no longer live. TaskID: {}, instance: {}",
                 taskToRemove, instanceToBeRemoved.getInstanceName());
           }
         }
       }
       _assignableInstanceMap.remove(instanceToBeRemoved.getInstanceName());
-      LOG.info(
+      LOG.debug(
           "Non-live AssignableInstance removed for instance: {} during updateAssignableInstances",
           instanceToBeRemoved.getInstanceName());
     }

@@ -113,18 +113,18 @@ public class AssignableInstance {
       resourceCapacity = new HashMap<>();
       resourceCapacity.put(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name(),
           Integer.toString(TaskStateModelFactory.TASK_THREADPOOL_SIZE));
-      logger.info("No resource capacity provided in LiveInstance {}, assuming default capacity: {}",
+      logger.debug("No resource capacity provided in LiveInstance {}, assuming default capacity: {}",
           _instanceConfig.getInstanceName(), resourceCapacity);
     }
 
     if (typeQuotaRatio == null) {
       typeQuotaRatio = new HashMap<>();
       typeQuotaRatio.put(DEFAULT_QUOTA_TYPE, Integer.toString(1));
-      logger.info("No quota type ratio provided in LiveInstance {}, assuming default ratio: {}",
+      logger.debug("No quota type ratio provided in LiveInstance {}, assuming default ratio: {}",
           _instanceConfig.getInstanceName(), typeQuotaRatio);
     }
 
-    logger.info(
+    logger.debug(
         "Updating capacity for AssignableInstance {}. Resource Capacity: {}; Type Quota Ratio: {}",
         _instanceConfig.getInstanceName(), resourceCapacity, typeQuotaRatio);
 
@@ -135,7 +135,7 @@ public class AssignableInstance {
         int capacity = Integer.valueOf(resEntry.getValue());
 
         if (!_totalCapacity.containsKey(resourceType)) {
-          logger.info("Adding InstanceResourceType {}", resourceType);
+          logger.debug("Adding InstanceResourceType {}", resourceType);
           _usedCapacity.put(resourceType, new HashMap<String, Integer>());
         }
         tempTotalCapacity.put(resourceType, new HashMap<String, Integer>());
@@ -162,7 +162,7 @@ public class AssignableInstance {
 
           // Add quota for new quota type
           if (!_usedCapacity.get(resourceType).containsKey(quotaType)) {
-            logger.info("Adding QuotaType {} for resource {}", quotaType, resourceType);
+            logger.debug("Adding QuotaType {} for resource {}", quotaType, resourceType);
             _usedCapacity.get(resourceType).put(quotaType, 0);
           }
         }
@@ -177,13 +177,13 @@ public class AssignableInstance {
       // Purge used capacity for resource deleted
       _usedCapacity.keySet().retainAll(resourceCapacity.keySet());
 
-      logger.info(
+      logger.debug(
           "Finished updating capacity for AssignableInstance {}. Current capacity {}. Current usage: {}",
           _instanceConfig.getInstanceName(), _totalCapacity, _usedCapacity);
     } catch (Exception e) {
       // TODO: properly escalate error
       logger.error(
-          "Failed to update capacity for Assignableinstance {}, still using current capacity {}. Current usage: {}",
+          "Failed to update capacity for AssignableInstance {}, still using current capacity {}. Current usage: {}",
           _instanceConfig.getInstanceName(), _totalCapacity, _usedCapacity, e);
     }
   }
@@ -196,14 +196,14 @@ public class AssignableInstance {
    */
   public void updateConfigs(ClusterConfig clusterConfig, InstanceConfig instanceConfig,
       LiveInstance liveInstance) {
-    logger.info("Updating configs for AssignableInstance {}", _instanceConfig.getInstanceName());
+    logger.debug("Updating configs for AssignableInstance {}", _instanceConfig.getInstanceName());
     boolean refreshCapacity = false;
     if (clusterConfig != null && clusterConfig.getTaskQuotaRatioMap() != null) {
       if (!clusterConfig.getTaskQuotaRatioMap().equals(_clusterConfig.getTaskQuotaRatioMap())) {
         refreshCapacity = true;
       }
       _clusterConfig = clusterConfig;
-      logger.info("Updated cluster config");
+      logger.debug("Updated cluster config");
     }
 
     if (liveInstance != null) {
@@ -217,7 +217,7 @@ public class AssignableInstance {
           refreshCapacity = true;
         }
         _liveInstance = liveInstance;
-        logger.info("Updated live instance");
+        logger.debug("Updated live instance");
       }
     }
 
@@ -228,7 +228,7 @@ public class AssignableInstance {
             _instanceConfig.getInstanceName(), instanceConfig.getInstanceName());
       } else {
         _instanceConfig = instanceConfig;
-        logger.info("Updated instance config");
+        logger.debug("Updated instance config");
       }
     }
 
@@ -236,7 +236,7 @@ public class AssignableInstance {
       refreshTotalCapacity();
     }
 
-    logger.info("Updated configs for AssignableInstance {}", _instanceConfig.getInstanceName());
+    logger.debug("Updated configs for AssignableInstance {}", _instanceConfig.getInstanceName());
   }
 
   /**
@@ -256,7 +256,7 @@ public class AssignableInstance {
     }
 
     if (_currentAssignments.contains(task.getId())) {
-      logger.warn(
+      logger.debug(
           "Task: {} of quotaType: {} is already assigned to this instance. Instance name: {}",
           task.getId(), quotaType, getInstanceName());
 
@@ -272,7 +272,7 @@ public class AssignableInstance {
     // Fail when no such resource type
     if (!_totalCapacity.containsKey(resourceType)) {
 
-      logger.warn(
+      logger.debug(
           "AssignableInstance does not support the given resourceType: {}. Task: {}, quotaType: {}, Instance name: {}",
           resourceType, task.getId(), quotaType, getInstanceName());
 
@@ -288,7 +288,7 @@ public class AssignableInstance {
     }
     if (!_totalCapacity.get(resourceType).containsKey(quotaType)) {
 
-      logger.warn(
+      logger.debug(
           "AssignableInstance does not support the given quotaType: {}. Task: {}, quotaType: {}, Instance name: {}. Task will be assigned as DEFAULT type.",
           quotaType, task.getId(), quotaType, getInstanceName());
       quotaType = DEFAULT_QUOTA_TYPE;
@@ -301,8 +301,8 @@ public class AssignableInstance {
     // Fail with insufficient quota
     if (capacity <= usage) {
 
-      logger.warn(
-          "AssignableInstance does not have enough capacity for quotaType: {}. Task: {}, quotaType: {}, Instance name: {}. Current capacity: {} capacity needed to schedule: {}",
+      logger.debug(
+          "AssignableInstance does not have enough capacity for quotaType: {}. Task: {}, quotaType: {}, Instance name: {}. Total capacity: {} Current usage: {}",
           quotaType, task.getId(), quotaType, getInstanceName(), capacity, usage);
 
       return new TaskAssignResult(task, quotaType, this, false, 0,
@@ -366,11 +366,11 @@ public class AssignableInstance {
       }
     } else {
       // resourceType is not found. Leave a warning log and will not touch quota
-      logger.warn(
+      logger.debug(
           "Task's requested resource type is not supported. TaskConfig: %s; UsedCapacity: %s; ResourceType: %s",
           result.getTaskConfig(), _usedCapacity, resourceType);
     }
-    logger.info("Assigned task {} to instance {}", result.getTaskConfig().getId(),
+    logger.debug("Assigned task {} to instance {}", result.getTaskConfig().getId(),
         _instanceConfig.getInstanceName());
   }
 
@@ -385,12 +385,12 @@ public class AssignableInstance {
    */
   public synchronized void release(TaskConfig taskConfig, String quotaType) {
     if (!_currentAssignments.contains(taskConfig.getId())) {
-      logger.warn("Task {} is not assigned on instance {}", taskConfig.getId(),
+      logger.debug("Task {} is not assigned on instance {}", taskConfig.getId(),
           _instanceConfig.getInstanceName());
       return;
     }
     if (quotaType == null) {
-      logger.warn("Task {}'s quotaType is null. Trying to release as DEFAULT type.",
+      logger.debug("Task {}'s quotaType is null. Trying to release as DEFAULT type.",
           taskConfig.getId());
       quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
     }
@@ -414,7 +414,7 @@ public class AssignableInstance {
     // If the resource type is not found, we just remove from currentAssignments since no adjustment
     // can be made
     _currentAssignments.remove(taskConfig.getId());
-    logger.info("Released task {} from instance {}", taskConfig.getId(),
+    logger.debug("Released task {} from instance {}", taskConfig.getId(),
         _instanceConfig.getInstanceName());
   }
 

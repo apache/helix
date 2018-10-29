@@ -623,7 +623,7 @@ public class WorkflowConfig extends ResourceConfig {
         b.setScheduleConfig(ScheduleConfig.from(workflowBean.schedule));
       }
       b.setExpiry(workflowBean.expiry);
-
+      b.setWorkFlowType(workflowBean.workflowType);
       return b;
     }
 

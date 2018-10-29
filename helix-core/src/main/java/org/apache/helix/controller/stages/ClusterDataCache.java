@@ -87,8 +87,8 @@ public class ClusterDataCache extends AbstractDataCache {
   private Map<String, Map<String, String>> _idealStateRuleMap;
   private Map<String, Map<String, MissingTopStateRecord>> _missingTopStateMap = new HashMap<>();
   private Map<String, Map<String, String>> _lastTopStateLocationMap = new HashMap<>();
-  private Map<String, ExternalView> _targetExternalViewMap = new HashMap<>();
-  private Map<String, ExternalView> _externalViewMap = new HashMap<>();
+  private Map<String, ExternalView> _targetExternalViewMap;
+  private Map<String, ExternalView> _externalViewMap;
   private Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
   private Set<String> _disabledInstanceSet = new HashSet<>();
   private String _eventId = "NO_ID";
@@ -260,6 +260,15 @@ public class ClusterDataCache extends AbstractDataCache {
     _isMaintenanceModeEnabled = maintenanceSignal != null;
 
     updateDisabledInstances();
+
+    if (_externalViewMap == null) {
+      _externalViewMap = accessor.getChildValuesMap(accessor.keyBuilder().externalViews());
+    }
+
+    if (_clusterConfig.isTargetExternalViewEnabled() && _targetExternalViewMap == null) {
+      _targetExternalViewMap =
+          accessor.getChildValuesMap(accessor.keyBuilder().targetExternalViews());
+    }
 
     long endTime = System.currentTimeMillis();
     LogUtil.logInfo(LOG, _eventId,
@@ -782,7 +791,7 @@ public class ClusterDataCache extends AbstractDataCache {
   }
 
   public ExternalView getTargetExternalView(String resourceName) {
-    return _targetExternalViewMap.get(resourceName);
+    return _targetExternalViewMap == null ? null : _targetExternalViewMap.get(resourceName);
   }
 
   public void updateTargetExternalView(String resourceName, ExternalView targetExternalView) {
@@ -794,6 +803,9 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public Map<String, ExternalView> getExternalViews() {
+    if (_externalViewMap == null) {
+      return Collections.emptyMap();
+    }
     return Collections.unmodifiableMap(_externalViewMap);
   }
 
@@ -802,6 +814,9 @@ public class ClusterDataCache extends AbstractDataCache {
    * @param externalViews
    */
   public void updateExternalViews(List<ExternalView> externalViews) {
+    if (_externalViewMap == null) {
+      _externalViewMap = new HashMap<>();
+    }
     for (ExternalView externalView : externalViews) {
       _externalViewMap.put(externalView.getResourceName(), externalView);
     }

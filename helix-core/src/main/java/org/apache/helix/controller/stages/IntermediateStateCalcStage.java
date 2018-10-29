@@ -267,12 +267,13 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       // logic doesn't need to check for more details.
       boolean isRebalanceNeeded = false;
 
+      // Check whether partition has any ERROR state replicas
+      if (currentStateMap.values().contains(HelixDefinedState.ERROR.name())) {
+        partitionsWithErrorStateReplica.add(partition);
+      }
+
       // Number of states required by StateModelDefinition are not satisfied, need recovery
       if (rebalanceType.equals(RebalanceType.RECOVERY_BALANCE)) {
-        // Check whether partition is in ERROR state
-        if (currentStateMap.values().contains(HelixDefinedState.ERROR.name())) {
-          partitionsWithErrorStateReplica.add(partition);
-        }
         // Check if recovery is needed for this partition
         if (!currentStateMap.equals(bestPossibleMap)) {
           partitionsNeedRecovery.add(partition);
@@ -284,6 +285,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         partitionsNeedLoadBalance.add(partition);
         isRebalanceNeeded = true;
       }
+
       // Currently at BestPossibleState, no further action necessary
       if (!isRebalanceNeeded) {
         Map<String, String> intermediateMap = new HashMap<>(bestPossibleMap);
@@ -388,6 +390,12 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       if (bestPossibleState != null) {
         // Compare priority values and return if an upward transition is found
         // Note that lower integer value implies higher priority
+        if (!statePriorityMap.containsKey(currentState)
+            || !statePriorityMap.containsKey(bestPossibleState)) {
+          // If the state is not found in statePriorityMap, consider it not strictly downward by
+          // default because we can't determine whether it is downward
+          return false;
+        }
         if (statePriorityMap.get(currentState) > statePriorityMap.get(bestPossibleState)) {
           return false;
         }

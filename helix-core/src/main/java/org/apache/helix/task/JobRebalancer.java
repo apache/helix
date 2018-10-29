@@ -194,9 +194,8 @@ public class JobRebalancer extends TaskRebalancer {
     }
 
     // Update Workflow and Job context in data cache and ZK.
-    clusterData.updateJobContext(jobName, jobCtx, _manager.getHelixDataAccessor());
-    clusterData.updateWorkflowContext(workflowResource, workflowCtx,
-        _manager.getHelixDataAccessor());
+    clusterData.updateJobContext(jobName, jobCtx);
+    clusterData.updateWorkflowContext(workflowResource, workflowCtx);
 
     setPrevResourceAssignment(jobName, newAssignment);
 

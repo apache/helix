@@ -37,6 +37,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
@@ -77,7 +78,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {
       LOG.info("Workflow is marked as deleted " + workflow + " cleaning up the workflow context.");
-      cleanupWorkflow(workflow, workflowCfg);
+      cleanupWorkflow(workflow, workflowCfg, clusterData.getTaskDataCache());
       return buildEmptyAssignment(workflow, currStateOutput);
     }
 
@@ -91,7 +92,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       if (!TaskState.TIMED_OUT.equals(workflowCtx.getWorkflowState())
           && isTimeout(workflowCtx.getStartTime(), workflowCfg.getTimeout())) {
         workflowCtx.setWorkflowState(TaskState.TIMED_OUT);
-        clusterData.updateWorkflowContext(workflow, workflowCtx, _manager.getHelixDataAccessor());
+        clusterData.updateWorkflowContext(workflow, workflowCtx);
       }
 
       // We should not return after setting timeout, as in case the workflow is stopped already
@@ -108,7 +109,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       LOG.info("Workflow " + workflow + "is marked as stopped.");
       if (isWorkflowStopped(workflowCtx, workflowCfg)) {
         workflowCtx.setWorkflowState(TaskState.STOPPED);
-        clusterData.updateWorkflowContext(workflow, workflowCtx, _manager.getHelixDataAccessor());
+        clusterData.updateWorkflowContext(workflow, workflowCtx);
       }
       return buildEmptyAssignment(workflow, currStateOutput);
     }
@@ -125,7 +126,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
         workflowCfg, clusterData.getJobConfigMap(), clusterData)) {
       workflowCtx.setFinishTime(currentTime);
       updateWorkflowMonitor(workflowCtx, workflowCfg);
-      clusterData.updateWorkflowContext(workflow, workflowCtx, _manager.getHelixDataAccessor());
+      clusterData.updateWorkflowContext(workflow, workflowCtx);
     }
 
     // Step 5: Handle finished workflows
@@ -135,7 +136,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       // Check if this workflow has been finished past its expiry.
       if (workflowCtx.getFinishTime() + expiryTime <= currentTime) {
         LOG.info("Workflow " + workflow + " passed expiry time, cleaning up the workflow context.");
-        cleanupWorkflow(workflow, workflowCfg);
+        cleanupWorkflow(workflow, workflowCfg, clusterData.getTaskDataCache());
       } else {
         // schedule future cleanup work
         long cleanupTime = workflowCtx.getFinishTime() + expiryTime;
@@ -171,7 +172,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       }
     }
 
-    clusterData.updateWorkflowContext(workflow, workflowCtx, _manager.getHelixDataAccessor());
+    clusterData.updateWorkflowContext(workflow, workflowCtx);
     return buildEmptyAssignment(workflow, currStateOutput);
   }
 
@@ -394,13 +395,14 @@ public class WorkflowRebalancer extends TaskRebalancer {
           Workflow clonedWf =
               cloneWorkflow(_manager, workflow, newWorkflowName, new Date(timeToSchedule));
           TaskDriver driver = new TaskDriver(_manager);
-          try {
-            // Start the cloned workflow
-            driver.start(clonedWf);
-          } catch (Exception e) {
-            LOG.error("Failed to schedule cloned workflow " + newWorkflowName, e);
-            _clusterStatusMonitor.updateWorkflowCounters(clonedWf.getWorkflowConfig(),
-                TaskState.FAILED);
+          if (clonedWf != null) {
+            try {
+              // Start the cloned workflow
+              driver.start(clonedWf);
+            } catch (Exception e) {
+              LOG.error("Failed to schedule cloned workflow " + newWorkflowName, e);
+              _clusterStatusMonitor.updateWorkflowCounters(clonedWf.getWorkflowConfig(), TaskState.FAILED);
+            }
           }
           // Persist workflow start regardless of success to avoid retrying and failing
           workflowCtx.setLastScheduledSingleWorkflow(newWorkflowName);
@@ -508,7 +510,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
    * contexts associated with this workflow, and all jobs information, including their configs,
    * context, IS and EV.
    */
-  private void cleanupWorkflow(String workflow, WorkflowConfig workflowcfg) {
+  private void cleanupWorkflow(String workflow, WorkflowConfig workflowcfg,
+      TaskDataCache taskDataCache) {
     LOG.info("Cleaning up workflow: " + workflow);
 
     if (workflowcfg.isTerminable() || workflowcfg.getTargetState() == TargetState.DELETE) {
@@ -521,11 +524,25 @@ public class WorkflowRebalancer extends TaskRebalancer {
       if (!TaskUtil.removeWorkflow(_manager.getHelixDataAccessor(),
           _manager.getHelixPropertyStore(), workflow, jobs)) {
         LOG.warn("Failed to clean up workflow " + workflow);
+      } else {
+        // Only remove from cache when remove all workflow success. Otherwise, batch write will
+        // clean all the contexts even if Configs and IdealStates are exists. Then all the workflows
+        // and jobs will rescheduled again.
+        removeContexts(workflow, jobs, taskDataCache);
       }
     } else {
       LOG.info("Did not clean up workflow " + workflow
           + " because neither the workflow is non-terminable nor is set to DELETE.");
     }
+  }
+
+  private void removeContexts(String workflow, Set<String> jobs, TaskDataCache cache) {
+    if (jobs != null) {
+      for (String job : jobs) {
+        cache.removeContext(job);
+      }
+    }
+    cache.removeContext(workflow);
   }
 
   @Override

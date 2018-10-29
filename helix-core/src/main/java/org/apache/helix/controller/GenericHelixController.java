@@ -51,6 +51,7 @@ import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.controller.stages.task.TaskMessageDispatchStage;
 import org.apache.helix.controller.stages.task.TaskMessageGenerationPhase;
+import org.apache.helix.controller.stages.task.TaskPersistDataStage;
 import org.apache.helix.controller.stages.task.TaskSchedulingStage;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
@@ -316,6 +317,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       // rebalance pipeline
       Pipeline rebalancePipeline = new Pipeline(pipelineName);
       rebalancePipeline.addStage(new TaskSchedulingStage());
+      rebalancePipeline.addStage(new TaskPersistDataStage());
       rebalancePipeline.addStage(new TaskGarbageCollectionStage());
       rebalancePipeline.addStage(new TaskMessageGenerationPhase());
       rebalancePipeline.addStage(new TaskMessageDispatchStage());

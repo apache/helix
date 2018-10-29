@@ -22,16 +22,16 @@ package org.apache.helix.common.caches;
 import com.google.common.base.Joiner;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.JobConfig;
@@ -39,7 +39,6 @@ import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +53,8 @@ public class TaskDataCache extends AbstractDataCache {
   private Map<String, JobConfig> _jobConfigMap = new HashMap<>();
   private Map<String, WorkflowConfig> _workflowConfigMap = new ConcurrentHashMap<>();
   private Map<String, ZNRecord> _contextMap = new HashMap<>();
+  private Set<String> _contextToUpdate = new HashSet<>();
+  private Set<String> _contextToRemove = new HashSet<>();
   // The following fields have been added for quota-based task scheduling
   private final AssignableInstanceManager _assignableInstanceManager = new AssignableInstanceManager();
 
@@ -186,27 +187,59 @@ public class TaskDataCache extends AbstractDataCache {
   /**
    * Update context of the Job
    */
-  public void updateJobContext(String resourceName, JobContext jobContext,
-      HelixDataAccessor accessor) {
-    updateContext(resourceName, jobContext.getRecord(), accessor);
+  public void updateJobContext(String resourceName, JobContext jobContext) {
+    updateContext(resourceName, jobContext.getRecord());
   }
 
   /**
    * Update context of the Workflow
    */
-  public void updateWorkflowContext(String resourceName, WorkflowContext workflowContext,
-      HelixDataAccessor accessor) {
-    updateContext(resourceName, workflowContext.getRecord(), accessor);
+  public void updateWorkflowContext(String resourceName, WorkflowContext workflowContext) {
+    updateContext(resourceName, workflowContext.getRecord());
   }
 
   /**
    * Update context of the Workflow or Job
    */
-  private void updateContext(String resourceName, ZNRecord record, HelixDataAccessor accessor) {
-    String path = String.format("/%s/%s%s/%s/%s", _clusterName, PropertyType.PROPERTYSTORE.name(),
-        TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, TaskConstants.CONTEXT_NODE);
-    accessor.getBaseDataAccessor().set(path, record, AccessOption.PERSISTENT);
+  private void updateContext(String resourceName, ZNRecord record) {
     _contextMap.put(resourceName, record);
+    _contextToUpdate.add(resourceName);
+  }
+
+  public void persistDataChanges(HelixDataAccessor accessor) {
+    // Flush Context
+    List<String> contextUpdatePaths = new ArrayList<>();
+    List<ZNRecord> contextUpdateData = new ArrayList<>();
+    List<String> contextUpdateNames = new ArrayList<>(_contextToUpdate);
+    for (String resourceName : contextUpdateNames) {
+      if (_contextMap.get(resourceName) != null && !_contextToRemove.contains(resourceName)) {
+        contextUpdatePaths.add(getContextPath(resourceName));
+        contextUpdateData.add(_contextMap.get(resourceName));
+      }
+    }
+
+    boolean[] updateSuccess = accessor.getBaseDataAccessor()
+        .setChildren(contextUpdatePaths, contextUpdateData, AccessOption.PERSISTENT);
+
+    for (int i = 0; i < updateSuccess.length; i++) {
+      if (updateSuccess[i]) {
+        _contextToUpdate.remove(contextUpdateNames.get(i));
+      }
+    }
+
+    // Delete contexts
+    List<String> contextToRemove = new ArrayList<>();
+    List<String> contextToRemoveNames = new ArrayList<>(_contextToRemove);
+    for (String resourceName : contextToRemoveNames) {
+      contextToRemove.add(getContextPath(resourceName));
+    }
+
+
+    // Current implementation is stateless operation, since Helix read all the contexts back
+    // and redo the works. If it is failed to remove this round, it could be removed in next round.
+
+    // Also if the context has already been removed, it should be fine.
+    accessor.getBaseDataAccessor().remove(contextToRemove, AccessOption.PERSISTENT);
   }
 
   /**
@@ -225,6 +258,17 @@ public class TaskDataCache extends AbstractDataCache {
     return _assignableInstanceManager;
   }
 
+  /**
+   * Remove Workflow or Job context from cache
+   * @param resourceName
+   */
+  public void removeContext(String resourceName) {
+    if (_contextMap.containsKey(resourceName)) {
+      _contextMap.remove(resourceName);
+      _contextToRemove.add(resourceName);
+    }
+  }
+
   @Override
   public String toString() {
     return "TaskDataCache{"
@@ -233,5 +277,10 @@ public class TaskDataCache extends AbstractDataCache {
         + ", _contextMap=" + _contextMap
         + ", _clusterName='" + _clusterName
         + '\'' + '}';
+  }
+
+  private String getContextPath(String resourceName) {
+    return String.format("/%s/%s%s/%s/%s", _clusterName, PropertyType.PROPERTYSTORE.name(),
+        TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, TaskConstants.CONTEXT_NODE);
   }
 }

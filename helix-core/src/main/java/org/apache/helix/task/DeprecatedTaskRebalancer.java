@@ -248,9 +248,9 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     }
 
     // Update Workflow and Job context in data cache and ZK.
-    clusterData.updateJobContext(resourceName, jobCtx, _manager.getHelixDataAccessor());
+    clusterData.updateJobContext(resourceName, jobCtx);
     clusterData
-        .updateWorkflowContext(workflowResource, workflowCtx, _manager.getHelixDataAccessor());
+        .updateWorkflowContext(workflowResource, workflowCtx);
 
     setPrevResourceAssignment(_manager, resourceName, newAssignment);
 
@@ -639,8 +639,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
           }
           // Persist workflow start regardless of success to avoid retrying and failing
           workflowCtx.setLastScheduledSingleWorkflow(newWorkflowName);
-          cache.updateWorkflowContext(workflowResource, workflowCtx,
-              _manager.getHelixDataAccessor());
+          cache.updateWorkflowContext(workflowResource, workflowCtx);
         }
 
         // Change the time to trigger the pipeline to that of the next run

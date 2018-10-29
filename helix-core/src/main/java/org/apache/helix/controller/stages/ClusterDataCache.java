@@ -760,17 +760,19 @@ public class ClusterDataCache extends AbstractDataCache {
   /**
    * Update context of the Job
    */
-  public void updateJobContext(String resourceName, JobContext jobContext,
-      HelixDataAccessor accessor) {
-    _taskDataCache.updateJobContext(resourceName, jobContext, accessor);
+  public void updateJobContext(String resourceName, JobContext jobContext) {
+    _taskDataCache.updateJobContext(resourceName, jobContext);
   }
 
   /**
    * Update context of the Workflow
    */
-  public void updateWorkflowContext(String resourceName, WorkflowContext workflowContext,
-      HelixDataAccessor accessor) {
-    _taskDataCache.updateWorkflowContext(resourceName, workflowContext, accessor);
+  public void updateWorkflowContext(String resourceName, WorkflowContext workflowContext) {
+    _taskDataCache.updateWorkflowContext(resourceName, workflowContext);
+  }
+
+  public TaskDataCache getTaskDataCache() {
+    return _taskDataCache;
   }
 
   /**

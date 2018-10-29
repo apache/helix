@@ -46,6 +46,7 @@ import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.TaskGarbageCollectionStage;
+import org.apache.helix.controller.stages.task.TaskPersistDataStage;
 import org.apache.helix.controller.stages.task.TaskSchedulingStage;
 import org.apache.helix.model.Message;
 import org.apache.helix.task.JobContext;
@@ -320,6 +321,7 @@ public class TaskTestUtil {
     stages.add(new ResourceComputationStage());
     stages.add(new CurrentStateComputationStage());
     stages.add(new TaskSchedulingStage());
+    stages.add(new TaskPersistDataStage());
     stages.add(new TaskGarbageCollectionStage());
 
     for (Stage stage : stages) {

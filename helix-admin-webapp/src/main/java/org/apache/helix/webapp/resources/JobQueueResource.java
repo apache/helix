@@ -46,7 +46,7 @@ import java.util.Map;
  * Class for server-side resource at <code>"/clusters/{clusterName}/jobQueues/{jobQueue}"
  * <p>
  * <li>GET list job queue info
- * <li>POST start a new job in a job queue, or stop/resume/flush/delete a job queue
+ * <li>POST start a new job in a job queue, or stop/resume/persistDataChanges/delete a job queue
  */
 public class JobQueueResource extends ServerResource {
   private final static Logger LOG = LoggerFactory.getLogger(JobQueueResource.class);
@@ -113,7 +113,7 @@ public class JobQueueResource extends ServerResource {
   }
 
   /**
-   * Start a new job in a job queue, or stop/resume/flush/delete a job queue
+   * Start a new job in a job queue, or stop/resume/persistDataChanges/delete a job queue
    * <p>
    * Usage:
    * <p>
@@ -124,8 +124,8 @@ public class JobQueueResource extends ServerResource {
    * input.txt: <code>jsonParameters={"command":"start"}&newJob={newJobConfig.yaml}
    * <p>
    * For newJobConfig.yaml, see {@link Workflow#parse(String)}
-   * <li>Stop/resume/flush/delete a job queue:
-   * <code>curl -d 'jsonParameters={"command":"{stop/resume/flush/delete}"}'
+   * <li>Stop/resume/persistDataChanges/delete a job queue:
+   * <code>curl -d 'jsonParameters={"command":"{stop/resume/persistDataChanges/delete}"}'
    * -H "Content-Type: application/json" http://{host:port}/clusters/{clusterName}/jobQueues/{jobQueue}
    */
   @Override

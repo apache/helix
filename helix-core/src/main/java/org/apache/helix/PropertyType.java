@@ -64,8 +64,16 @@ public enum PropertyType {
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true),
   ERRORS_CONTROLLER(Type.CONTROLLER, true, true, true),
 
-  // TASK PROPERTY
-  WORKFLOWCONTEXT(Type.TASK, true, false, false, false, false);
+  // TASK PROPERTIES
+  @Deprecated // This returns the old path for WorkflowContext
+  WORKFLOWCONTEXT(Type.TASK, true, false, false, false, false),
+
+  TASK_CONFIG_ROOT(Type.TASK, true, false, false, false, false),
+  TASK_CONTEXT_ROOT(Type.TASK, true, false, false, false, false),
+  WORKFLOW_CONFIG(Type.TASK, true, false, false, false, false),
+  WORKFLOW_CONTEXT(Type.TASK, true, false, false, false, false),
+  JOB_CONFIG(Type.TASK, true, false, false, false, false),
+  JOB_CONTEXT(Type.TASK, true, false, false, false, false);
 
   // @formatter:on
 
@@ -85,26 +93,26 @@ public enum PropertyType {
    */
   boolean isCached;
 
-  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate) {
+  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate) {
     this(type, isPersistent, mergeOnUpdate, false);
   }
 
-  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
+  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
       boolean updateOnlyOnExists) {
     this(type, isPersistent, mergeOnUpdate, false, false);
   }
 
-  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
+  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
       boolean updateOnlyOnExists, boolean createOnlyIfAbsent) {
     this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, false);
   }
 
-  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
+  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
       boolean updateOnlyOnExists, boolean createOnlyIfAbsent, boolean isCached) {
     this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, isCached, false);
   }
 
-  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
+  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
       boolean updateOnlyOnExists, boolean createOnlyIfAbsent, boolean isCached, boolean isAsyncWrite) {
     this.type = type;
     this.isPersistent = isPersistent;

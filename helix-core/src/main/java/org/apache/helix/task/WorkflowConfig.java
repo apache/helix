@@ -493,8 +493,7 @@ public class WorkflowConfig extends ResourceConfig {
     @Deprecated
     public static Builder fromMap(Map<String, String> cfg) {
       Builder builder = new Builder();
-      builder.setConfigMap(cfg);
-      return builder;
+      return builder.setConfigMap(cfg);
     }
 
     // TODO: Add user customized simple field clone.

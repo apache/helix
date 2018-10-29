@@ -138,6 +138,7 @@ public class WorkflowAccessor extends AbstractHelixResource {
       }
 
       Workflow.Builder workflow = new Workflow.Builder(workflowId);
+      workflow.setWorkflowConfig(workflowConfig);
 
       if (root.get(WorkflowProperties.Jobs.name()) != null) {
         Map<String, JobConfig.Builder> jobConfigs =

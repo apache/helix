@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
@@ -56,6 +57,7 @@ import org.testng.collections.Sets;
 public class TestIndependentTaskRebalancer extends TaskTestBase {
   private Set<String> _invokedClasses = Sets.newHashSet();
   private Map<String, Integer> _runCounts = Maps.newHashMap();
+  private static final AtomicBoolean _failureCtl = new AtomicBoolean(true);
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -83,6 +85,25 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
         @Override
         public Task createNewTask(TaskCallbackContext context) {
           return new TaskTwo(context, instanceName);
+        }
+      });
+      taskFactoryReg.put("ControllableFailTask", new TaskFactory() {
+        @Override public Task createNewTask(TaskCallbackContext context) {
+          return new Task() {
+            @Override
+            public TaskResult run() {
+              if (_failureCtl.get()) {
+                return new TaskResult(Status.FAILED, null);
+              } else {
+                return new TaskResult(Status.COMPLETED, null);
+              }
+            }
+
+            @Override
+            public void cancel() {
+
+            }
+          };
         }
       });
       taskFactoryReg.put("SingleFailTask", new TaskFactory() {
@@ -179,15 +200,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
 
-    // This is error prone as ThreadCountBasedTaskAssigner will always be re-assign
-    // task to same instance given we only have 1 task to assign and the order or
-    // iterating all nodes during assignment is always the same. Rarely some change
-    // will alter the order of iteration debug assignment so we need to change
-    // this instance name to keep on testing this functionality.
-    final String failInstance = "localhost_12919";
-    Map<String, String> taskConfigMap = Maps.newHashMap(ImmutableMap.of("fail", "" + true,
-        "failInstance", failInstance));
-    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap);
+    TaskConfig taskConfig1 = new TaskConfig("ControllableFailTask", new HashMap<String, String>());
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();
     jobCommandMap.put("Timeout", "1000");
@@ -212,17 +225,15 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     }
 
     if (trial == 1000) {
+      // Fail if no re-attempts
       Assert.fail("Job " + jobName + " is not retried");
     }
 
-    // disable failed instance
-    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, failInstance, false);
-    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
+    // Signal the next retry to be successful
+    _failureCtl.set(false);
 
-    // Ensure that the class was invoked
-    Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
-    Assert.assertNotSame(_driver.getJobContext(jobName).getAssignedParticipant(0), failInstance);
-    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, failInstance, true);
+    // Verify that retry will go on and the workflow will finally complete
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
   }
 
   @Test

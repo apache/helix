@@ -19,8 +19,26 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.I0Itec.zkclient.DataUpdater;
-import org.apache.helix.*;
+import org.apache.helix.AccessOption;
+import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -34,8 +52,6 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 /**
  * CLI for scheduling/canceling workflows
@@ -1000,6 +1016,30 @@ public class TaskDriver {
   public String getUserContent(String key, UserContentStore.Scope scope, String workflowName,
       String jobName, String taskName) {
     return TaskUtil.getUserContent(_propertyStore, key, scope, workflowName, jobName, taskName);
+  }
+
+  /**
+   * Set user content defined by the given key and string
+   * @param key content key
+   * @param value content value
+   * @param workflowName name of the workflow - must provide when scope is WORKFLOW
+   * @param jobName name of the job - must provide when scope is JOB or TASK
+   * @param taskName name of the task - must provide when scope is TASK
+   * @param scope scope of the content
+   */
+  public void addUserContent(String key, String value, String workflowName, String jobName, String taskName,
+      UserContentStore.Scope scope) {
+    switch (scope) {
+    case WORKFLOW:
+      TaskUtil.addWorkflowJobUserContent(_propertyStore, workflowName, key, value);
+      break;
+    case JOB:
+      TaskUtil.addWorkflowJobUserContent(_propertyStore, jobName, key, value);
+      break;
+    default:
+      TaskUtil.addTaskUserContent(_propertyStore, jobName, taskName, key, value);
+      break;
+    }
   }
 
   /**

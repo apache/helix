@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
@@ -36,9 +37,31 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestGetUserContentStore extends TaskTestBase {
+public class TestGetSetUserContentStore extends TaskTestBase {
   private static final String JOB_COMMAND = "DummyCommand";
+  private static final int NUM_JOB = 5;
   private Map<String, String> _jobCommandMap;
+
+  private final CountDownLatch allTasksReady = new CountDownLatch(NUM_JOB);
+  private final CountDownLatch adminReady = new CountDownLatch(1);
+
+  private enum TaskDumpResultKey {
+    WorkflowContent,
+    JobContent,
+    TaskContent
+  }
+
+  private class TaskRecord {
+    String workflowName;
+    String jobName;
+    String taskName;
+
+    public TaskRecord(String workflow, String job, String task) {
+      workflowName = workflow;
+      jobName = job;
+      taskName = task;
+    }
+  }
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -101,29 +124,53 @@ public class TestGetUserContentStore extends TaskTestBase {
     configBuilder.setAllowOverlapJobAssignment(true);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
-    List<String> jobsThatRan = new ArrayList<>();
+    Map<String, TaskRecord> recordMap = new HashMap<>();
     // Create 5 jobs with 1 WriteTask each
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < NUM_JOB; i++) {
       List<TaskConfig> taskConfigs = new ArrayList<>();
       taskConfigs.add(new TaskConfig("WriteTask", new HashMap<String, String>()));
       JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
           .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap);
+      String jobSuffix = "JOB" + i;
+      String jobName = workflowName + "_" + jobSuffix;
+      String taskName = jobName + "_0";
       workflowBuilder.addJob("JOB" + i, jobConfigBulider);
-      jobsThatRan.add(workflowName + "_JOB" + i);
+      recordMap.put(jobName, new TaskRecord(workflowName, jobName, taskName));
     }
 
-    // Start the workflow and wait until completion
+    // Start the workflow and wait for all tasks started
     _driver.start(workflowBuilder.build());
+    allTasksReady.await();
+
+    // add "workflow":"workflow" to the workflow's user content
+    _driver.addUserContent(workflowName, workflowName, workflowName, null, null, UserContentStore.Scope.WORKFLOW);
+    for (TaskRecord rec : recordMap.values()) {
+      // add "job":"job" to the job's user content
+      _driver.addUserContent(rec.jobName, rec.jobName, null, rec.jobName, null, UserContentStore.Scope.JOB);
+      // String taskId = _driver.getJobContext(rec.jobName).getTaskIdForPartition(0);
+
+
+      // add "taskId":"taskId" to the task's user content
+      _driver.addUserContent(rec.taskName, rec.taskName, null, rec.jobName, rec.taskName, UserContentStore.Scope.TASK);
+    }
+    adminReady.countDown();
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     // Aggregate key-value mappings in UserContentStore
-    int runCount = 0;
-    for (String jobName : jobsThatRan) {
-      String value = _driver.getUserContent(jobName, UserContentStore.Scope.WORKFLOW, workflowName,
-          jobName, null);
-      runCount += Integer.parseInt(value);
+    for (TaskRecord rec : recordMap.values()) {
+      Assert.assertEquals(_driver
+              .getUserContent(TaskDumpResultKey.WorkflowContent.name(), UserContentStore.Scope.WORKFLOW,
+                  rec.workflowName, rec.jobName, rec.taskName),
+          constructContentStoreResultString(rec.workflowName, rec.workflowName));
+      Assert.assertEquals(_driver
+              .getUserContent(TaskDumpResultKey.JobContent.name(), UserContentStore.Scope.JOB,
+                  rec.workflowName, rec.jobName, rec.taskName),
+          constructContentStoreResultString(rec.jobName, rec.jobName));
+      Assert.assertEquals(_driver
+              .getUserContent(TaskDumpResultKey.TaskContent.name(), UserContentStore.Scope.TASK,
+                  rec.workflowName, rec.jobName, rec.taskName),
+          constructContentStoreResultString(rec.taskName, rec.taskName));
     }
-    Assert.assertEquals(runCount, 5);
   }
 
   /**
@@ -137,8 +184,23 @@ public class TestGetUserContentStore extends TaskTestBase {
 
     @Override
     public TaskResult run() {
-      putUserContent(_jobName, Integer.toString(1), Scope.WORKFLOW);
+      allTasksReady.countDown();
+      try {
+        adminReady.await();
+      } catch (Exception e) {
+        return new TaskResult(TaskResult.Status.FATAL_FAILED, e.getMessage());
+      }
+      String workflowStoreContent = constructContentStoreResultString(_workflowName, getUserContent(_workflowName, Scope.WORKFLOW));
+      String jobStoreContent = constructContentStoreResultString(_jobName, getUserContent(_jobName, Scope.JOB));
+      String taskStoreContent = constructContentStoreResultString(_taskName, getUserContent(_taskName, Scope.TASK));
+      putUserContent(TaskDumpResultKey.WorkflowContent.name(), workflowStoreContent, Scope.WORKFLOW);
+      putUserContent(TaskDumpResultKey.JobContent.name(), jobStoreContent, Scope.JOB);
+      putUserContent(TaskDumpResultKey.TaskContent.name(), taskStoreContent, Scope.TASK);
       return new TaskResult(TaskResult.Status.COMPLETED, "");
     }
+  }
+
+  private static String constructContentStoreResultString(String key, String value) {
+    return String.format("%s::%s", key, value);
   }
 }

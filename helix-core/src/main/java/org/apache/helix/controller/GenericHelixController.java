@@ -269,6 +269,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       dataPreprocess.addStage(new ResourceComputationStage());
       dataPreprocess.addStage(new ResourceValidationStage());
       dataPreprocess.addStage(new CurrentStateComputationStage());
+      dataPreprocess.addStage(new TopStateHandoffReportStage());
 
       // rebalance pipeline
       Pipeline rebalancePipeline = new Pipeline(pipelineName);
@@ -381,7 +382,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     _taskEventThread = new ClusterEventProcessor(_taskCache, _taskEventQueue);
 
     _forceRebalanceTimer = new Timer();
-    _lastPipelineEndTimestamp = CurrentStateComputationStage.NOT_RECORDED;
+    _lastPipelineEndTimestamp = TopStateHandoffReportStage.TIMESTAMP_NOT_RECORDED;
 
     initializeAsyncFIFOWorkers();
     initPipelines(_eventThread, _cache, false);

@@ -24,6 +24,14 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
   public void execute(ClusterEvent event) {
     ClusterDataCache clusterDataCache = event.getAttribute(AttributeName.ClusterDataCache.name());
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
+
+    if (clusterDataCache == null || manager == null) {
+      LOG.warn(
+          "ClusterDataCache or HelixManager is null for event {}({}) in cluster {}. Skip TaskGarbageCollectionStage.",
+          event.getEventId(), event.getEventType(), event.getClusterName());
+      return;
+    }
+
     Set<WorkflowConfig> existingWorkflows =
         new HashSet<>(clusterDataCache.getWorkflowConfigMap().values());
     for (WorkflowConfig workflowConfig : existingWorkflows) {

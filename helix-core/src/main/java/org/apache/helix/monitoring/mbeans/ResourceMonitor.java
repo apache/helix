@@ -21,7 +21,15 @@ package org.apache.helix.monitoring.mbeans;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import javax.management.JMException;
+import javax.management.ObjectName;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -30,10 +38,6 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
-
-import javax.management.JMException;
-import javax.management.ObjectName;
-import java.util.*;
 
 public class ResourceMonitor extends DynamicMBeanProvider {
 
@@ -60,6 +64,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   // Histograms
   private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge;
+  private HistogramDynamicMetric _partitionTopStateHandoffUserLatencyGauge;
+  private HistogramDynamicMetric _partitionTopStateNonGracefulHandoffDurationGauge;
 
   private String _tag = ClusterStatusMonitor.DEFAULT_TAG;
   private long _lastResetTime;
@@ -86,6 +92,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     attributeList.add(_failedTopStateHandoffCounter);
     attributeList.add(_maxSinglePartitionTopStateHandoffDuration);
     attributeList.add(_partitionTopStateHandoffDurationGauge);
+    attributeList.add(_partitionTopStateHandoffUserLatencyGauge);
+    attributeList.add(_partitionTopStateNonGracefulHandoffDurationGauge);
     attributeList.add(_totalMessageReceived);
     attributeList.add(_numPendingStateTransitions);
     doRegister(attributeList, _initObjectName);
@@ -96,6 +104,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     TOP_STATE
   }
 
+  @SuppressWarnings("unchecked")
   public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName) {
     _clusterName = clusterName;
     _resourceName = resourceName;
@@ -122,6 +131,14 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _partitionTopStateHandoffDurationGauge =
         new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", new Histogram(
             new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+
+    _partitionTopStateHandoffUserLatencyGauge =
+        new HistogramDynamicMetric("PartitionTopStateHandoffUserLatencyGauge", new Histogram(
+            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    _partitionTopStateNonGracefulHandoffDurationGauge =
+        new HistogramDynamicMetric("PartitionTopStateNonGracefulHandoffGauge", new Histogram(
+            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+
     _totalMessageReceived = new SimpleDynamicMetric("TotalMessageReceived", 0L);
     _maxSinglePartitionTopStateHandoffDuration =
         new SimpleDynamicMetric("MaxSinglePartitionTopStateHandoffDurationGauge", 0L);
@@ -163,6 +180,18 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   public long getMaxSinglePartitionTopStateHandoffDurationGauge() {
     return _maxSinglePartitionTopStateHandoffDuration.getValue();
+  }
+
+  public HistogramDynamicMetric getPartitionTopStateHandoffDurationGauge() {
+    return _partitionTopStateHandoffDurationGauge;
+  }
+
+  public HistogramDynamicMetric getPartitionTopStateNonGracefulHandoffDurationGauge() {
+    return _partitionTopStateNonGracefulHandoffDurationGauge;
+  }
+
+  public HistogramDynamicMetric getPartitionTopStateHandoffUserLatencyGauge() {
+    return _partitionTopStateHandoffUserLatencyGauge;
   }
 
   public long getFailedTopStateHandoffCounter() {
@@ -310,25 +339,31 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numPendingStateTransitions.updateValue((long) messageCount);
   }
 
-  public void updateStateHandoffStats(MonitorState monitorState, long duration, boolean succeeded) {
+  public void updateStateHandoffStats(MonitorState monitorState, long totalDuration,
+      long userLatency, boolean isGraceful, boolean succeeded) {
     switch (monitorState) {
-      case TOP_STATE:
-        if (succeeded) {
-          _successTopStateHandoffCounter.updateValue(_successTopStateHandoffCounter.getValue() + 1);
-          _successfulTopStateHandoffDurationCounter
-              .updateValue(_successfulTopStateHandoffDurationCounter.getValue() + duration);
-          _partitionTopStateHandoffDurationGauge.updateValue(duration);
-          if (duration > _maxSinglePartitionTopStateHandoffDuration.getValue()) {
-            _maxSinglePartitionTopStateHandoffDuration.updateValue(duration);
-            _lastResetTime = System.currentTimeMillis();
-          }
+    case TOP_STATE:
+      if (succeeded) {
+        _successTopStateHandoffCounter.updateValue(_successTopStateHandoffCounter.getValue() + 1);
+        _successfulTopStateHandoffDurationCounter
+            .updateValue(_successfulTopStateHandoffDurationCounter.getValue() + totalDuration);
+        if (isGraceful) {
+          _partitionTopStateHandoffDurationGauge.updateValue(totalDuration);
+          _partitionTopStateHandoffUserLatencyGauge.updateValue(userLatency);
         } else {
-          _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
+          _partitionTopStateNonGracefulHandoffDurationGauge.updateValue(totalDuration);
         }
-        break;
-      default:
-        _logger.warn(
-            String.format("Wrong monitor state \"%s\" that not supported ", monitorState.name()));
+        if (totalDuration > _maxSinglePartitionTopStateHandoffDuration.getValue()) {
+          _maxSinglePartitionTopStateHandoffDuration.updateValue(totalDuration);
+          _lastResetTime = System.currentTimeMillis();
+        }
+      } else {
+        _failedTopStateHandoffCounter.updateValue(_failedTopStateHandoffCounter.getValue() + 1);
+      }
+      break;
+    default:
+      _logger.warn(
+          String.format("Wrong monitor state \"%s\" that not supported ", monitorState.name()));
     }
   }
 

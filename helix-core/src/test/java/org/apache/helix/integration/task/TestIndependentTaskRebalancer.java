@@ -173,42 +173,56 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
 
   @Test
   public void testReassignment() throws Exception {
-    final int NUM_INSTANCES = 5;
-    String jobName = TestHelper.getTestMethodName();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
+    String workflowName = TestHelper.getTestMethodName();
+    String jobNameSuffix = "job";
+    String jobName = String.format("%s_%s", workflowName, jobNameSuffix);
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
+
+    // This is error prone as ThreadCountBasedTaskAssigner will always be re-assign
+    // task to same instance given we only have 1 task to assign and the order or
+    // iterating all nodes during assignment is always the same. Rarely some change
+    // will alter the order of iteration debug assignment so we need to change
+    // this instance name to keep on testing this functionality.
+    final String failInstance = "localhost_12919";
     Map<String, String> taskConfigMap = Maps.newHashMap(ImmutableMap.of("fail", "" + true,
-        "failInstance", PARTICIPANT_PREFIX + '_' + (_startPort + 1)));
+        "failInstance", failInstance));
     TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap);
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();
     jobCommandMap.put("Timeout", "1000");
 
-    JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
-        .addTaskConfigs(taskConfigs).setJobCommandConfigMap(jobCommandMap);
-    workflowBuilder.addJob(jobName, jobBuilder);
+    // Retry forever
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
+            .setJobCommandConfigMap(jobCommandMap).setMaxAttemptsPerTask(Integer.MAX_VALUE);
+    workflowBuilder.addJob(jobNameSuffix, jobBuilder);
 
     _driver.start(workflowBuilder.build());
 
-    // Ensure the job completes
-    _driver.pollForWorkflowState(jobName, TaskState.IN_PROGRESS);
-    _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
+    // Poll to ensure that the gets re-attempted first
+    int trial = 0;
+    while (trial < 1000) { // 100 sec
+      JobContext jctx = _driver.getJobContext(jobName);
+      if (jctx != null && jctx.getPartitionNumAttempts(0) > 1) {
+        break;
+      }
+      Thread.sleep(100);
+      trial += 1;
+    }
+
+    if (trial == 1000) {
+      Assert.fail("Job " + jobName + " is not retried");
+    }
+
+    // disable failed instance
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, failInstance, false);
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     // Ensure that the class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
-
-    // Ensure that this was tried on two different instances, the first of which exhausted the
-    // attempts number, and the other passes on the first try -> See below
-
-    // TEST FIX: After quota-based scheduling support, we use a different assignment strategy (not
-    // consistent hashing), which does not necessarily guarantee that failed tasks will be assigned
-    // on a different instance. The parameters for this test are adjusted accordingly
-    // Also, hard-coding the instance name (line 184) is not a reliable way of testing whether
-    // re-assignment took place, so this test is no longer valid and will always pass
-    Assert.assertEquals(_runCounts.size(), 1);
-    // Assert.assertTrue(
-    // _runCounts.values().contains(JobConfig.DEFAULT_MAX_ATTEMPTS_PER_TASK / NUM_INSTANCES));
-    Assert.assertTrue(_runCounts.values().contains(1));
+    Assert.assertNotSame(_driver.getJobContext(jobName).getAssignedParticipant(0), failInstance);
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, failInstance, true);
   }
 
   @Test

@@ -85,7 +85,7 @@ public class ClusterDataCache extends AbstractDataCache {
   private Map<String, ResourceConfig> _resourceConfigCacheMap;
   private Map<String, ClusterConstraints> _constraintMap;
   private Map<String, Map<String, String>> _idealStateRuleMap;
-  private Map<String, Map<String, Long>> _missingTopStateMap = new HashMap<>();
+  private Map<String, Map<String, MissingTopStateRecord>> _missingTopStateMap = new HashMap<>();
   private Map<String, Map<String, String>> _lastTopStateLocationMap = new HashMap<>();
   private Map<String, ExternalView> _targetExternalViewMap = new HashMap<>();
   private Map<String, ExternalView> _externalViewMap = new HashMap<>();
@@ -678,7 +678,7 @@ public class ClusterDataCache extends AbstractDataCache {
     return null;
   }
 
-  public Map<String, Map<String, Long>> getMissingTopStateMap() {
+  public Map<String, Map<String, MissingTopStateRecord>> getMissingTopStateMap() {
     return _missingTopStateMap;
   }
 

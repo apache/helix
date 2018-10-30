@@ -31,7 +31,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
-public class TestGetLastScheduledTaskTimestamp extends TaskTestBase {
+public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   private final static String TASK_START_TIME_KEY = "START_TIME";
   private final static long INVALID_TIMESTAMP = -1L;
 
@@ -42,18 +42,30 @@ public class TestGetLastScheduledTaskTimestamp extends TaskTestBase {
   }
 
   @Test
-  public void testGetLastScheduledTaskTimestamp() throws InterruptedException {
+  public void testGetLastScheduledTaskExecInfo() throws InterruptedException {
     List<Long> startTimesWithStuckTasks = setupTasks("TestWorkflow_2", 5, 99999999);
+
     // First two must be -1 (two tasks are stuck), and API call must return the last value (most recent timestamp)
     Assert.assertEquals(startTimesWithStuckTasks.get(0).longValue(), INVALID_TIMESTAMP);
     Assert.assertEquals(startTimesWithStuckTasks.get(1).longValue(), INVALID_TIMESTAMP);
-    Assert.assertEquals(startTimesWithStuckTasks.get(3).longValue(),
-        _driver.getLastScheduledTaskTimestamp("TestWorkflow_2"));
+    TaskExecutionInfo execInfo = _driver.getLastScheduledTaskExecutionInfo("TestWorkflow_2");
+    Long lastScheduledTaskTs = _driver.getLastScheduledTaskTimestamp("TestWorkflow_2");
+    Assert.assertEquals(startTimesWithStuckTasks.get(3), lastScheduledTaskTs);
+
+    Assert.assertEquals(execInfo.getJobName(), "TestWorkflow_2_job_0");
+    // Workflow 2 will stuck, so its partition state will be RUNNING
+    Assert.assertEquals(execInfo.getTaskPartitionState(), TaskPartitionState.RUNNING);
+    Assert.assertEquals(execInfo.getStartTimeStamp(), lastScheduledTaskTs);
 
     List<Long> startTimesFastTasks = setupTasks("TestWorkflow_3", 4, 10);
     // API call needs to return the most recent timestamp (value at last index)
-    Assert.assertEquals(startTimesFastTasks.get(startTimesFastTasks.size() - 1).longValue(),
-        _driver.getLastScheduledTaskTimestamp("TestWorkflow_3"));
+    lastScheduledTaskTs = _driver.getLastScheduledTaskTimestamp("TestWorkflow_3");
+    execInfo = _driver.getLastScheduledTaskExecutionInfo("TestWorkflow_3");
+
+    Assert.assertEquals(startTimesFastTasks.get(startTimesFastTasks.size() - 1), lastScheduledTaskTs);
+    Assert.assertEquals(execInfo.getJobName(), "TestWorkflow_3_job_0");
+    Assert.assertEquals(execInfo.getTaskPartitionState(), TaskPartitionState.COMPLETED);
+    Assert.assertEquals(execInfo.getStartTimeStamp(), lastScheduledTaskTs);
   }
 
   /**

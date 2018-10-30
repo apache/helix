@@ -85,7 +85,6 @@ public class TaskDriver {
   // TODO Implement or configure the limitation in ZK server.
   private final static long DEFAULT_CONFIGS_LIMITATION =
       HelixUtil.getSystemPropertyAsLong(SystemPropertyKeys.TASK_CONFIG_LIMITATION, 100000L);
-  private final static long TIMESTAMP_NOT_SET = -1L;
   private final static String TASK_START_TIME_KEY = "START_TIME";
   protected long _configsLimitation = DEFAULT_CONFIGS_LIMITATION;
 
@@ -977,14 +976,22 @@ public class TaskDriver {
    * -1L if timestamp is not set (either nothing is scheduled or no start time recorded).
    */
   public long getLastScheduledTaskTimestamp(String workflowName) {
-    long lastScheduledTaskTimestamp = TIMESTAMP_NOT_SET;
+    return getLastScheduledTaskExecutionInfo(workflowName).getStartTimeStamp();
+  }
+
+  public TaskExecutionInfo getLastScheduledTaskExecutionInfo(String workflowName) {
+    long lastScheduledTaskTimestamp = TaskExecutionInfo.TIMESTAMP_NOT_SET;
+    String jobName = null;
+    Integer taskPartitionIndex = null;
+    TaskPartitionState state = null;
+
 
     WorkflowContext workflowContext = getWorkflowContext(workflowName);
     if (workflowContext != null) {
       Map<String, TaskState> allJobStates = workflowContext.getJobStates();
-      for (String job : allJobStates.keySet()) {
-        if (!allJobStates.get(job).equals(TaskState.NOT_STARTED)) {
-          JobContext jobContext = getJobContext(job);
+      for (Map.Entry<String, TaskState> jobState : allJobStates.entrySet()) {
+        if (!jobState.getValue().equals(TaskState.NOT_STARTED)) {
+          JobContext jobContext = getJobContext(jobState.getKey());
           if (jobContext != null) {
             Set<Integer> allPartitions = jobContext.getPartitionSet();
             for (Integer partition : allPartitions) {
@@ -993,6 +1000,9 @@ public class TaskDriver {
                 long startTimeLong = Long.parseLong(startTime);
                 if (startTimeLong > lastScheduledTaskTimestamp) {
                   lastScheduledTaskTimestamp = startTimeLong;
+                  jobName = jobState.getKey();
+                  taskPartitionIndex = partition;
+                  state = jobContext.getPartitionState(partition);
                 }
               }
             }
@@ -1000,7 +1010,7 @@ public class TaskDriver {
         }
       }
     }
-    return lastScheduledTaskTimestamp;
+    return new TaskExecutionInfo(jobName, taskPartitionIndex, state, lastScheduledTaskTimestamp);
   }
 
   /**

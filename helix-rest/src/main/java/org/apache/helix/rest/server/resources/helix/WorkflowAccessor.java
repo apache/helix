@@ -62,7 +62,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     WorkflowConfig,
     WorkflowContext,
     Jobs,
-    ParentJobs
+    ParentJobs,
+    LastScheduledTask
   }
 
   public enum TaskCommand {
@@ -112,7 +113,7 @@ public class WorkflowAccessor extends AbstractHelixResource {
     ObjectNode parentJobs = OBJECT_MAPPER.valueToTree(jobDag.getChildrenToParents());
     root.put(WorkflowProperties.Jobs.name(), jobs);
     root.put(WorkflowProperties.ParentJobs.name(), parentJobs);
-
+    root.put(WorkflowProperties.LastScheduledTask.name(), OBJECT_MAPPER.valueToTree(taskDriver.getLastScheduledTaskExecutionInfo(workflowId)));
     return JSONRepresentation(root);
   }
 

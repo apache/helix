@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -320,9 +319,22 @@ public class TaskUtil {
    */
   protected static String getWorkflowJobUserContent(HelixPropertyStore<ZNRecord> propertyStore,
       String workflowJobResource, String key) {
-    ZNRecord r = propertyStore.get(Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT,
-        workflowJobResource, USER_CONTENT_NODE), null, AccessOption.PERSISTENT);
-    return r != null ? r.getSimpleField(key) : null;
+    Map<String, String> userContentMap = getWorkflowJobUserContentMap(propertyStore, workflowJobResource);
+    return userContentMap != null ? userContentMap.get(key) : null;
+  }
+
+  /**
+   * get workflow/job user content map
+   * @param propertyStore property store
+   * @param workflowJobResource workflow name or namespaced job name
+   * @return user content map
+   */
+  protected static Map<String, String> getWorkflowJobUserContentMap(
+      HelixPropertyStore<ZNRecord> propertyStore, String workflowJobResource) {
+    ZNRecord record = propertyStore.get(Joiner.on("/")
+            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource, USER_CONTENT_NODE), null,
+        AccessOption.PERSISTENT);
+    return record != null ? record.getSimpleFields() : null;
   }
 
   /**
@@ -365,10 +377,24 @@ public class TaskUtil {
    */
   protected static String getTaskUserContent(HelixPropertyStore<ZNRecord> propertyStore, String job,
       String task, String key) {
-    ZNRecord r = propertyStore.get(
-        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, job, USER_CONTENT_NODE), null,
+    Map<String, String> userContentStore = getTaskUserContentMap(propertyStore, job, task);
+    return userContentStore != null ? userContentStore.get(key) : null;
+  }
+
+  /**
+   * Return full task user content map
+   * @param propertyStore property store
+   * @param namespacedJobName namespaced job name
+   * @param taskPartitionId task partition id
+   * @return
+   */
+  protected static Map<String, String> getTaskUserContentMap(
+      HelixPropertyStore<ZNRecord> propertyStore, String namespacedJobName,
+      String taskPartitionId) {
+    ZNRecord record = propertyStore.get(Joiner.on("/")
+            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, namespacedJobName, USER_CONTENT_NODE), null,
         AccessOption.PERSISTENT);
-    return r != null ? (r.getMapField(task) != null ? r.getMapField(task).get(key) : null) : null;
+    return record != null ? record.getMapField(taskPartitionId) : null;
   }
 
   /**
@@ -446,6 +472,16 @@ public class TaskUtil {
    */
   public static String getNamespacedJobName(String workflow, String jobName) {
     return workflow + "_" + jobName;
+  }
+
+  /**
+   * get a task name, namespaced by it's job and workflow
+   * @param namespacedJobName namespaced job name
+   * @param taskPartitionId task partition id
+   * @return
+   */
+  public static String getNamespacedTaskName(String namespacedJobName, String taskPartitionId) {
+    return String.format("%s_%s", namespacedJobName, taskPartitionId);
   }
 
   /**

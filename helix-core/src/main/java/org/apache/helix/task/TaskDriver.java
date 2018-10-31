@@ -1029,6 +1029,41 @@ public class TaskDriver {
   }
 
   /**
+   * Return the full user content map for workflow
+   * @param workflowName workflow name
+   * @return user content map
+   */
+  public Map<String, String> getWorkflowUserContentMap(String workflowName) {
+    return TaskUtil.getWorkflowJobUserContentMap(_propertyStore, workflowName);
+  }
+
+  /**
+   * Return full user content map for job
+   * @param workflowName workflow name
+   * @param jobName Un-namespaced job name
+   * @return user content map
+   */
+  public Map<String, String> getJobUserContentMap(String workflowName, String jobName) {
+    String namespacedJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    return TaskUtil.getWorkflowJobUserContentMap(_propertyStore, namespacedJobName);
+  }
+
+  /**
+   * Return full user content map for task
+   * @param workflowName workflow name
+   * @param jobName Un-namespaced job name
+   * @param taskPartitionId task partition id
+   * @return user content map
+   */
+  public Map<String, String> getTaskContentMap(String workflowName, String jobName, String taskPartitionId) {
+    String namespacedJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    String namespacedTaskName = TaskUtil.getNamespacedTaskName(namespacedJobName, taskPartitionId);
+    return TaskUtil.getTaskUserContentMap(_propertyStore, namespacedJobName, namespacedTaskName);
+  }
+
+
+
+  /**
    * Set user content defined by the given key and string
    * @param key content key
    * @param value content value

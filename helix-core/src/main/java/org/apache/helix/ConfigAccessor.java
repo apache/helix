@@ -765,6 +765,12 @@ public class ConfigAccessor {
             .forParticipant(instanceName).build();
     String zkPath = scope.getZkPath();
 
+    if (!zkClient.exists(zkPath)) {
+      throw new HelixException(
+          "updateInstanceConfig failed. Given InstanceConfig does not already exist. instance: "
+              + instanceName);
+    }
+
     if (overwrite) {
       ZKUtil.createOrReplace(zkClient, zkPath, instanceConfig.getRecord(), true);
     } else {

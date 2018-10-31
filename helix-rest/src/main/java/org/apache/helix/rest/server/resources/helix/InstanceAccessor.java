@@ -41,10 +41,12 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.HealthStat;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonNode;
@@ -321,7 +323,19 @@ public class InstanceAccessor extends AbstractHelixResource {
   @POST
   @Path("{instanceName}/configs")
   public Response updateInstanceConfig(@PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName, String content) {
+      @PathParam("instanceName") String instanceName, @QueryParam("command") String commandStr,
+      String content) {
+    Command command;
+    if (commandStr == null || commandStr.isEmpty()) {
+      command = Command.update; // Default behavior to keep it backward-compatible
+    } else {
+      try {
+        command = getCommand(commandStr);
+      } catch (HelixException ex) {
+        return badRequest(ex.getMessage());
+      }
+    }
+
     ZNRecord record;
     try {
       record = toZNRecord(content);
@@ -332,11 +346,25 @@ public class InstanceAccessor extends AbstractHelixResource {
     InstanceConfig instanceConfig = new InstanceConfig(record);
     ConfigAccessor configAccessor = getConfigAccessor();
     try {
-      configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
+      switch (command) {
+      case update:
+        configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
+        break;
+      case delete: {
+        HelixConfigScope instanceScope =
+            new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
+                .forCluster(clusterId).forParticipant(instanceName).build();
+        configAccessor.remove(instanceScope, record);
+      }
+        break;
+      default:
+        return badRequest(String.format("Unsupported command: %s", command));
+      }
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error(String.format("Error in update instance config for instance: %s", instanceName), ex);
+      _logger.error(String.format("Error in update instance config for instance: %s", instanceName),
+          ex);
       return serverError(ex);
     }
     return OK();

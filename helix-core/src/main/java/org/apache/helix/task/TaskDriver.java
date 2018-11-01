@@ -129,7 +129,6 @@ public class TaskDriver {
    * @param flow
    */
   public void start(Workflow flow) {
-    // TODO: check that namespace for workflow is available
     LOG.info("Starting workflow " + flow.getName());
     flow.validate();
 
@@ -154,8 +153,17 @@ public class TaskDriver {
     newWorkflowConfig.setJobTypes(jobTypes);
 
     // add workflow config.
-    if (!TaskUtil.setWorkflowConfig(_accessor, flow.getName(), newWorkflowConfig)) {
-      LOG.error("Failed to add workflow configuration for workflow " + flow.getName());
+    if (!TaskUtil.createWorkflowConfig(_accessor, flow.getName(), newWorkflowConfig)) {
+      // workflow config creation failed; try to delete job configs back
+      Set<String> failedJobRemoval = new HashSet<>();
+      for (String job : flow.getJobConfigs().keySet()) {
+        if (!TaskUtil.removeJobConfig(_accessor, job)) {
+          failedJobRemoval.add(job);
+        }
+      }
+      throw new HelixException(String.format(
+          "Failed to add workflow configuration for workflow %s. It's possible that a workflow of the same name already exists or there was a connection issue. JobConfig deletion attempted but failed for the following jobs: %s",
+          flow.getName(), failedJobRemoval));
     }
 
     // Finally add workflow resource.
@@ -171,19 +179,14 @@ public class TaskDriver {
    * the new configuration will be applied to the next scheduled runs of the workflow.
    * For non-recurrent workflow, the new configuration may (or may not) be applied
    * on the current running jobs, but it will be applied on the following unscheduled jobs.
-   *
    * Example:
-   *
    * _driver = new TaskDriver ...
    * WorkflowConfig currentWorkflowConfig = _driver.getWorkflowCfg(_manager, workflow);
    * WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(currentWorkflowConfig);
-
    * // make needed changes to the config here
    * configBuilder.setXXX();
-   *
    * // update workflow configuration
    * _driver.updateWorkflow(workflow, configBuilder.build());
-   *
    * @param workflow
    * @param newWorkflowConfig
    */
@@ -575,21 +578,21 @@ public class TaskDriver {
   }
 
   /**
-   * Add new job config to cluster
+   * Add new job config to cluster by way of create
    */
   private void addJobConfig(String job, JobConfig jobConfig) {
     LOG.info("Add job configuration " + job);
 
     // Set the job configuration
     JobConfig newJobCfg = new JobConfig(job, jobConfig);
-    if (!TaskUtil.setJobConfig(_accessor, job, newJobCfg)) {
-      throw new HelixException("Failed to add job configuration for job " + job);
+    if (!TaskUtil.createJobConfig(_accessor, job, newJobCfg)) {
+      throw new HelixException("Failed to add job configuration for job " + job
+          + ". It's possible that a job of the same name already exists or there was a connection issue");
     }
   }
 
   /**
    * Public method to resume a workflow/queue.
-   *
    * @param workflow
    */
   public void resume(String workflow) {

@@ -86,15 +86,15 @@ public class TaskUtil {
   }
 
   /**
-   * Set the job config
+   * Creates a job config. Returns false if the job of the same name already exists.
    * @param accessor Accessor to Helix configs
    * @param job The job name
    * @param jobConfig The job config to be set
    * @return True if set successfully, otherwise false
    */
-  protected static boolean setJobConfig(HelixDataAccessor accessor, String job,
+  protected static boolean createJobConfig(HelixDataAccessor accessor, String job,
       JobConfig jobConfig) {
-    return setResourceConfig(accessor, job, jobConfig);
+    return createResourceConfig(accessor, job, jobConfig);
   }
 
   /**
@@ -136,6 +136,18 @@ public class TaskUtil {
    */
   protected static WorkflowConfig getWorkflowConfig(HelixManager manager, String workflow) {
     return getWorkflowConfig(manager.getHelixDataAccessor(), workflow);
+  }
+
+  /**
+   * Create the workflow config. Fails if the ZNode already exists.
+   * @param accessor
+   * @param workflow
+   * @param workflowConfig
+   * @return
+   */
+  protected static boolean createWorkflowConfig(HelixDataAccessor accessor, String workflow,
+      WorkflowConfig workflowConfig) {
+    return createResourceConfig(accessor, workflow, workflowConfig);
   }
 
   /**
@@ -851,6 +863,20 @@ public class TaskUtil {
     }
 
     return true;
+  }
+
+  /**
+   * Create the resource config. Fails if it already exists in ZK.
+   * @param accessor
+   * @param resource
+   * @param resourceConfig
+   * @return
+   */
+  private static boolean createResourceConfig(HelixDataAccessor accessor, String resource,
+      ResourceConfig resourceConfig) {
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    return accessor.getBaseDataAccessor().create(keyBuilder.resourceConfig(resource).getPath(),
+        resourceConfig.getRecord(), AccessOption.PERSISTENT);
   }
 
   /**

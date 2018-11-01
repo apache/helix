@@ -1,11 +1,24 @@
 package org.apache.helix.controller.rebalancer.strategy.crushMapping;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeMap;
+
+import org.apache.helix.controller.rebalancer.topology.InstanceNode;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 
-import java.util.*;
-
-public class CardDealingAdjustmentAlgorithmV2 implements CardDealer {
+public class CardDealingAdjustmentAlgorithmV2 {
   private static int MAX_ADJUSTMENT = 2;
 
   public enum Mode {
@@ -14,35 +27,35 @@ public class CardDealingAdjustmentAlgorithmV2 implements CardDealer {
   }
 
   private Mode _mode;
-  private int _replica;
+  protected int _replica;
   // Instance -> FaultZone Tag
-  private Map<String, String> _instanceFaultZone = new HashMap<>();
-  private Map<String, Long> _instanceWeight = new HashMap<>();
-  private long _totalWeight = 0;
-  private Map<String, Long> _faultZoneWeight = new HashMap<>();
+  protected Map<Node, Node> _instanceFaultZone = new HashMap<>();
+  protected Map<Node, Long> _instanceWeight = new HashMap<>();
+  protected long _totalWeight = 0;
+  protected Map<Node, Long> _faultZoneWeight = new HashMap<>();
   // Record existing partitions that are assigned to a fault zone
-  private Map<String, Set<String>> _faultZonePartitionMap = new HashMap<>();
+  protected Map<Node, Set<String>> _faultZonePartitionMap = new HashMap<>();
 
   public CardDealingAdjustmentAlgorithmV2(Topology topology, int replica, Mode mode) {
     _mode = mode;
     _replica = replica;
     // Get all instance related information.
     for (Node zone : topology.getFaultZones()) {
-      _faultZoneWeight.put(zone.getName(), zone.getWeight());
-      if (!_faultZonePartitionMap.containsKey(zone.getName())) {
-        _faultZonePartitionMap.put(zone.getName(), new HashSet<String>());
+      _faultZoneWeight.put(zone, zone.getWeight());
+      if (!_faultZonePartitionMap.containsKey(zone)) {
+        _faultZonePartitionMap.put(zone, new HashSet<String>());
       }
       for (Node instance : Topology.getAllLeafNodes(zone)) {
-        if (!instance.isFailed()) {
-          _instanceWeight.put(instance.getName(), instance.getWeight());
+        if (instance instanceof InstanceNode && !instance.isFailed()) {
+          _instanceWeight.put(instance, instance.getWeight());
           _totalWeight += instance.getWeight();
-          _instanceFaultZone.put(instance.getName(), zone.getName());
+          _instanceFaultZone.put(instance, zone);
         }
       }
     }
   }
 
-  public boolean computeMapping(Map<String, List<String>> nodeToPartitionMap, int randomSeed) {
+  public boolean computeMapping(Map<Node, List<String>> nodeToPartitionMap, int randomSeed) {
     // Records exceed partitions
     TreeMap<String, Integer> toBeReassigned = new TreeMap<>();
 
@@ -56,8 +69,8 @@ public class CardDealingAdjustmentAlgorithmV2 implements CardDealer {
     }
 
     // instance -> target (ideal) partition count
-    Map<String, Float> targetPartitionCount = new HashMap<>();
-    for (String liveInstance : _instanceFaultZone.keySet()) {
+    Map<Node, Float> targetPartitionCount = new HashMap<>();
+    for (Node liveInstance : _instanceFaultZone.keySet()) {
       long zoneWeight = _faultZoneWeight.get(_instanceFaultZone.get(liveInstance));
       float instanceRatioInZone = ((float) _instanceWeight.get(liveInstance)) / zoneWeight;
       // 1. if replica = fault zone, fault zone weight does not count, so calculate according to fault zone count.
@@ -72,22 +85,22 @@ public class CardDealingAdjustmentAlgorithmV2 implements CardDealer {
     }
 
     int totalOverflows = 0;
-    Map<String, Integer> maxZoneOverflows = new HashMap<>();
+    Map<Node, Integer> maxZoneOverflows = new HashMap<>();
     if (_mode.equals(Mode.MINIMIZE_MOVEMENT)) {
+      // Note that keep the spikes if possible will hurt evenness. So only do this for MINIMIZE_MOVEMENT mode
+
       // Calculate the expected spikes
       // Assign spikes to each zone according to zone weight
       totalOverflows = (int) totalReplicaCount % _instanceFaultZone.size();
-      for (String faultZoneName : _faultZoneWeight.keySet()) {
-        float zoneWeight = _faultZoneWeight.get(faultZoneName);
-        maxZoneOverflows.put(faultZoneName,
+      for (Node faultZone : _faultZoneWeight.keySet()) {
+        float zoneWeight = _faultZoneWeight.get(faultZone);
+        maxZoneOverflows.put(faultZone,
             (int) Math.ceil(((float) totalOverflows) * zoneWeight / _totalWeight));
       }
     }
-    // Note that keep the spikes if possible will hurt evenness. So only do this for MINIMIZE_MOVEMENT mode
-
-    Iterator<String> nodeIter = nodeToPartitionMap.keySet().iterator();
+    Iterator<Node> nodeIter = nodeToPartitionMap.keySet().iterator();
     while (nodeIter.hasNext()) {
-      String instance = nodeIter.next();
+      Node instance = nodeIter.next();
       // Cleanup the existing mapping. Remove all non-active nodes from the mapping
       if (!_instanceFaultZone.containsKey(instance)) {
         List<String> partitions = nodeToPartitionMap.get(instance);
@@ -97,10 +110,10 @@ public class CardDealingAdjustmentAlgorithmV2 implements CardDealer {
       }
     }
 
-    List<String> orderedInstances = new ArrayList<>(_instanceFaultZone.keySet());
+    List<Node> orderedInstances = new ArrayList<>(_instanceFaultZone.keySet());
     // Different resource should shuffle nodes in different ways.
     Collections.shuffle(orderedInstances, new Random(randomSeed));
-    for (String instance : orderedInstances) {
+    for (Node instance : orderedInstances) {
       if (!nodeToPartitionMap.containsKey(instance)) {
         continue;
       }
@@ -139,24 +152,27 @@ public class CardDealingAdjustmentAlgorithmV2 implements CardDealer {
     return toBeReassigned.isEmpty();
   }
 
-  private void partitionDealing(Collection<String> instances,
-      TreeMap<String, Integer> toBeReassigned, Map<String, Set<String>> faultZonePartitionMap,
-      Map<String, String> faultZoneMap, final Map<String, List<String>> assignmentMap,
-      final Map<String, Float> targetPartitionCount, final int randomSeed, final int targetAdjustment) {
-    PriorityQueue<String> instanceQueue =
-        new PriorityQueue<>(instances.size(), new Comparator<String>() {
+  private void partitionDealing(Collection<Node> instances,
+      TreeMap<String, Integer> toBeReassigned, Map<Node, Set<String>> faultZonePartitionMap,
+      Map<Node, Node> faultZoneMap, final Map<Node, List<String>> assignmentMap,
+      final Map<Node, Float> targetPartitionCount, final int randomSeed, int targetAdjustment) {
+    PriorityQueue<Node> instanceQueue =
+        new PriorityQueue<>(instances.size(), new Comparator<Node>() {
           @Override
-          public int compare(String node1, String node2) {
+          public int compare(Node node1, Node node2) {
             int node1Load = assignmentMap.containsKey(node1) ? assignmentMap.get(node1).size() : 0;
             int node2Load = assignmentMap.containsKey(node2) ? assignmentMap.get(node2).size() : 0;
             if (node1Load == node2Load) {
-              Float node1Target = targetPartitionCount.get(node1);
-              Float node2Target = targetPartitionCount.get(node2);
-              if (node1Target == node2Target) {
-                return new Integer((node1 + randomSeed).hashCode()).compareTo((node2 + randomSeed).hashCode());
-              } else {
-                return node2Target.compareTo(node1Target);
+              if (_mode.equals(Mode.EVENNESS)) {
+                // Also consider node target load if mode is evenness
+                Float node1Target = targetPartitionCount.get(node1);
+                Float node2Target = targetPartitionCount.get(node2);
+                if (node1Target != node2Target) {
+                  return node2Target.compareTo(node1Target);
+                }
               }
+              return new Integer((node1.getName() + randomSeed).hashCode())
+                  .compareTo((node2.getName() + randomSeed).hashCode());
             } else {
               return node1Load - node2Load;
             }
@@ -166,14 +182,14 @@ public class CardDealingAdjustmentAlgorithmV2 implements CardDealer {
 
     while (!toBeReassigned.isEmpty()) {
       boolean anyPartitionAssigned = false;
-      Iterator<String> instanceIter = instanceQueue.iterator();
+      Iterator<Node> instanceIter = instanceQueue.iterator();
       while (instanceIter.hasNext()) {
-        String instance = instanceIter.next();
+        Node instance = instanceIter.next();
         // Temporary remove the node from queue.
         // If any partition assigned to the instance, add it back to reset priority.
         instanceIter.remove();
         boolean partitionAssignedToInstance = false;
-        String faultZoneStr = faultZoneMap.get(instance);
+        Node faultZone = faultZoneMap.get(instance);
         List<String> partitions = assignmentMap.containsKey(instance) ?
             assignmentMap.get(instance) :
             new ArrayList<String>();
@@ -183,12 +199,12 @@ public class CardDealingAdjustmentAlgorithmV2 implements CardDealer {
         if (space > 0) {
           // Find a pending partition to locate
           for (String pendingPartition : toBeReassigned.navigableKeySet()) {
-            if (!faultZonePartitionMap.get(faultZoneStr).contains(pendingPartition)) {
+            if (!faultZonePartitionMap.get(faultZone).contains(pendingPartition)) {
               if (!assignmentMap.containsKey(instance)) {
                 assignmentMap.put(instance, partitions);
               }
               partitions.add(pendingPartition);
-              faultZonePartitionMap.get(faultZoneStr).add(pendingPartition);
+              faultZonePartitionMap.get(faultZone).add(pendingPartition);
               if (toBeReassigned.get(pendingPartition) == 1) {
                 toBeReassigned.remove(pendingPartition);
               } else {

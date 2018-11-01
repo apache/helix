@@ -20,10 +20,8 @@ package org.apache.helix.controller.rebalancer.topology;
  */
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Node implements Comparable<Node> {
   private String _name;
@@ -31,21 +29,23 @@ public class Node implements Comparable<Node> {
   private long _id;
   private long _weight;
 
-  private LinkedHashMap<String, Node> _children = new LinkedHashMap<String, Node>();
+  private LinkedHashMap<String, Node> _children = new LinkedHashMap<>();
   private Node _parent;
 
   private boolean _failed;
 
-  public Node() {
+  public Node() { }
 
-  }
-
-  public Node(Node node) {
+  protected Node(Node node) {
     _name = node.getName();
     _type = node.getType();
     _id = node.getId();
     _weight = node.getWeight();
     _failed = node.isFailed();
+  }
+
+  public Node clone() {
+    return new Node(this);
   }
 
   public String getName() {

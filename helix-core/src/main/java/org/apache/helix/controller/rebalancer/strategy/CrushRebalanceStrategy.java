@@ -19,19 +19,6 @@ package org.apache.helix.controller.rebalancer.strategy;
  * under the License.
  */
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.rebalancer.strategy.crushMapping.CRUSHPlacementAlgorithm;
-import org.apache.helix.util.JenkinsHash;
-import org.apache.helix.controller.rebalancer.topology.Node;
-import org.apache.helix.controller.rebalancer.topology.Topology;
-import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.model.InstanceConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +26,21 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import org.apache.helix.HelixException;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.rebalancer.strategy.crushMapping.CRUSHPlacementAlgorithm;
+import org.apache.helix.controller.rebalancer.topology.InstanceNode;
+import org.apache.helix.controller.rebalancer.topology.Node;
+import org.apache.helix.controller.rebalancer.topology.Topology;
+import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.util.JenkinsHash;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * CRUSH-based partition mapping strategy.
@@ -78,23 +80,32 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
         new Topology(allNodes, liveNodes, instanceConfigMap, clusterData.getClusterConfig());
     Node topNode = _clusterTopo.getRootNode();
 
-    Map<String, List<String>> newPreferences = new HashMap<String, List<String>>();
+    // for log only
+    String eventId = clusterData.getEventId();
+
+    Map<String, List<String>> newPreferences = new HashMap<>();
     for (int i = 0; i < _partitions.size(); i++) {
       String partitionName = _partitions.get(i);
       long data = partitionName.hashCode();
 
       // apply the placement rules
-      List<Node> selected = select(topNode, data, _replicas);
+      List<Node> selected = select(topNode, data, _replicas, eventId);
 
       if (selected.size() < _replicas) {
-        Log.error(String
+        LogUtil.logError(Log, eventId, String
             .format("Can not find enough node for resource %s partition %s, required %d, find %d",
                 _resourceName, partitionName, _replicas, selected.size()));
       }
 
-      List<String> nodeList = new ArrayList<String>();
+      List<String> nodeList = new ArrayList<>();
       for (int j = 0; j < selected.size(); j++) {
-        nodeList.add(selected.get(j).getName());
+        Node selectedNode = selected.get(j);
+        if (selectedNode instanceof InstanceNode) {
+          nodeList.add(((InstanceNode) selectedNode).getInstanceName());
+        } else {
+          LogUtil.logError(Log, eventId,
+              "Selected node is not associated with an instance: " + selectedNode.toString());
+        }
       }
 
       newPreferences.put(partitionName, nodeList);
@@ -118,10 +129,10 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
    * The caller will try to get the expected number of selected nodes as a result,
    * if no enough nodes can be found, could return any number of nodes than required.
    */
-  private List<Node> select(Node topNode, long data, int rf)
+  private List<Node> select(Node topNode, long data, int rf, String eventId)
       throws HelixException {
-    List<Node> nodes = new ArrayList<Node>(rf);
-    Set<Node> selectedZones = new HashSet<Node>();
+    List<Node> nodes = new ArrayList<>(rf);
+    Set<Node> selectedZones = new HashSet<>();
     long input = data;
     int count = rf;
     int tries = 0;
@@ -132,7 +143,8 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
         input = hashFun.hash(input); // create a different hash value for retrying
         tries++;
         if (tries >= MAX_RETRY) {
-          Log.error(String.format("Could not find all mappings after %d tries", tries));
+          LogUtil.logError(Log, eventId,
+              String.format("Could not find all mappings after %d tries", tries));
           break;
         }
       }

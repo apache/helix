@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.HelixProperty;
-import org.apache.helix.NotificationContext;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
@@ -52,20 +50,21 @@ public class Topology {
   private static final int DEFAULT_NODE_WEIGHT = 1000;
 
   private final MessageDigest _md;
-  private Node _root; // root of the tree structure of all nodes;
-  private List<String> _allInstances;
-  private List<String> _liveInstances;
-  private Map<String, InstanceConfig> _instanceConfigMap;
-  private ClusterConfig _clusterConfig;
+  private final Node _root; // root of the tree structure of all nodes;
+  private final List<String> _allInstances;
+  private final List<String> _liveInstances;
+  private final Map<String, InstanceConfig> _instanceConfigMap;
+  private final ClusterConfig _clusterConfig;
+  private final boolean _topologyAwareEnabled;
+
   private String _faultZoneType;
   private String _endNodeType;
   private boolean _useDefaultTopologyDef;
-  private boolean _topologyAwareEnabled;
   private LinkedHashSet<String> _types;
 
   /* default names for domain paths, if value is not specified for a domain path, the default one is used */
   // TODO: default values can be defined in clusterConfig.
-  private Map<String, String> _defaultDomainPathValues = new HashMap<String, String>();
+  private Map<String, String> _defaultDomainPathValues = new HashMap<>();
 
   public Topology(final List<String> allNodes, final List<String> liveNodes,
       final Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
@@ -78,8 +77,13 @@ public class Topology {
     _allInstances = allNodes;
     _liveInstances = liveNodes;
     _instanceConfigMap = instanceConfigMap;
+    if (_instanceConfigMap == null || !_instanceConfigMap.keySet().containsAll(allNodes)) {
+      throw new HelixException(String.format("Config for instances %s is not found!",
+          _allInstances.removeAll(_instanceConfigMap.keySet())));
+    }
+
     _clusterConfig = clusterConfig;
-    _types = new LinkedHashSet<String>();
+    _types = new LinkedHashSet<>();
     _topologyAwareEnabled = clusterConfig.isTopologyAwareEnabled();
 
     if (_topologyAwareEnabled) {
@@ -160,7 +164,7 @@ public class Topology {
    * @return
    */
   public static List<Node> getAllLeafNodes(Node root) {
-    List<Node> nodes = new ArrayList<Node>();
+    List<Node> nodes = new ArrayList<>();
     if (root.isLeaf()) {
       nodes.add(root);
     } else {
@@ -180,18 +184,18 @@ public class Topology {
    * @param failedNodes   set of nodes that need to be failed.
    * @return new root node.
    */
-  public static Node clone(Node root, Map<String, Integer> newNodeWeight, Set<String> failedNodes) {
+  public static Node clone(Node root, Map<Node, Integer> newNodeWeight, Set<Node> failedNodes) {
     Node newRoot = cloneTree(root, newNodeWeight, failedNodes);
     computeWeight(newRoot);
     return newRoot;
   }
 
-  private static Node cloneTree(Node root, Map<String, Integer> newNodeWeight, Set<String> failedNodes) {
-    Node newRoot = new Node(root);
-    if (newNodeWeight.containsKey(root.getName())) {
-      newRoot.setWeight(newNodeWeight.get(root.getName()));
+  private static Node cloneTree(Node root, Map<Node, Integer> newNodeWeight, Set<Node> failedNodes) {
+    Node newRoot = root.clone();
+    if (newNodeWeight.containsKey(root)) {
+      newRoot.setWeight(newNodeWeight.get(root));
     }
-    if (failedNodes.contains(root.getName())) {
+    if (failedNodes.contains(root)) {
       newRoot.setFailed(true);
       newRoot.setWeight(0);
     }
@@ -221,9 +225,6 @@ public class Topology {
 
     for (String ins : _allInstances) {
       InstanceConfig config = _instanceConfigMap.get(ins);
-      if (config == null) {
-        throw new HelixException(String.format("Config for instance %s is not found!", ins));
-      }
       Map<String, String> pathValueMap = new HashMap<>();
       if (_topologyAwareEnabled) {
         String zone = config.getZoneId();
@@ -253,7 +254,6 @@ public class Topology {
       }
       root = addEndNode(root, ins, pathValueMap, weight, _liveInstances);
     }
-
     return root;
   }
 
@@ -270,9 +270,6 @@ public class Topology {
 
     for (String ins : _allInstances) {
       InstanceConfig insConfig = _instanceConfigMap.get(ins);
-      if (insConfig == null) {
-        throw new HelixException(String.format("Config for instance %s is not found!", ins));
-      }
       String domain = insConfig.getDomain();
       if (domain == null) {
         if (insConfig.getInstanceEnabled() && (_clusterConfig.getDisabledInstances() == null
@@ -290,7 +287,7 @@ public class Topology {
       }
 
       String[] pathPairs = domain.trim().split(",");
-      Map<String, String> pathValueMap = new HashMap<String, String>();
+      Map<String, String> pathValueMap = new HashMap<>();
       for (String pair : pathPairs) {
         String[] values = pair.trim().split("=");
         if (values.length != 2 || values[0].isEmpty() || values[1].isEmpty()) {
@@ -314,10 +311,8 @@ public class Topology {
       if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
         weight = DEFAULT_NODE_WEIGHT;
       }
-
       root = addEndNode(root, ins, pathValueMap, weight, _liveInstances);
     }
-
     return root;
   }
 
@@ -328,7 +323,7 @@ public class Topology {
   private Node addEndNode(Node root, String instanceName, Map<String, String> pathNameMap,
       int instanceWeight, List<String> liveInstances) {
     Node current = root;
-    List<Node> pathNodes = new ArrayList<Node>();
+    List<Node> pathNodes = new ArrayList<>();
     for (String path : _types) {
       String pathValue = pathNameMap.get(path);
       if (pathValue == null || pathValue.isEmpty()) {
@@ -336,31 +331,42 @@ public class Topology {
       }
       pathNodes.add(current);
       if (!current.hasChild(pathValue)) {
-        Node n = new Node();
-        n.setName(pathValue);
-        n.setId(computeId(pathValue));
-        n.setType(path);
-        n.setParent(current);
-
-        // if it is leaf node.
-        if (path.equals(_endNodeType)) {
-          if (liveInstances.contains(instanceName)) {
-            // node is alive
-            n.setWeight(instanceWeight);
-            // add instance weight to all of its parent nodes.
-            for (Node node :  pathNodes) {
-              node.addWeight(instanceWeight);
-            }
-          } else {
-            n.setFailed(true);
-            n.setWeight(0);
-          }
-        }
-        current.addChild(n);
+        buildNewNode(pathValue, path, current, instanceName, instanceWeight,
+            liveInstances.contains(instanceName), pathNodes);
+      } else if (path.equals(_endNodeType)) {
+        throw new HelixException(
+            "Failed to add topology node because duplicate leaf nodes are not allowed. Duplicate node name: "
+                + pathValue);
       }
       current = current.getChild(pathValue);
     }
     return root;
+  }
+
+  private Node buildNewNode(String name, String type, Node parent, String instanceName,
+      int instanceWeight, boolean isLiveInstance, List<Node> pathNodes) {
+    Node n = new Node();
+    n.setName(name);
+    n.setId(computeId(name));
+    n.setType(type);
+    n.setParent(parent);
+    // if it is leaf node, create an InstanceNode instead
+    if (type.equals(_endNodeType)) {
+      n = new InstanceNode(n, instanceName);
+      if (isLiveInstance) {
+        // node is alive
+        n.setWeight(instanceWeight);
+        // add instance weight to all of its parent nodes.
+        for (Node node : pathNodes) {
+          node.addWeight(instanceWeight);
+        }
+      } else {
+        n.setFailed(true);
+        n.setWeight(0);
+      }
+    }
+    parent.addChild(n);
+    return n;
   }
 
   private long computeId(String name) {

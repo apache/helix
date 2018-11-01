@@ -419,7 +419,7 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public Set<String> getEnabledInstances() {
-    Set<String> enabledNodes = new HashSet<>(getInstanceConfigMap().keySet());
+    Set<String> enabledNodes = getAllInstances();
     enabledNodes.removeAll(getDisabledInstances());
 
     return enabledNodes;

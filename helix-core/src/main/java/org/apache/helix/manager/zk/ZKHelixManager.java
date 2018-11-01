@@ -797,12 +797,18 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public boolean isLeader() {
+    String warnLogPrefix = String
+        .format("Instance %s is not leader of cluster %s due to", _instanceName, _clusterName);
     if (_instanceType != InstanceType.CONTROLLER
         && _instanceType != InstanceType.CONTROLLER_PARTICIPANT) {
+      LOG.warn(String
+          .format("%s instance type %s does not match to CONTROLLER/CONTROLLER_PARTICIPANT",
+              warnLogPrefix, _instanceType.name()));
       return false;
     }
 
     if (!isConnected()) {
+      LOG.warn(String.format("%s HelixManager is not connected", warnLogPrefix));
       return false;
     }
 
@@ -811,13 +817,19 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       if (leader != null) {
         String leaderName = leader.getInstanceName();
         String sessionId = leader.getSessionId();
-        if (leaderName != null && leaderName.equals(_instanceName) && sessionId != null
-            && sessionId.equals(_sessionId)) {
+        if (leaderName != null && leaderName.equals(_instanceName) && sessionId != null && sessionId
+            .equals(_sessionId)) {
           return true;
         }
+        LOG.warn(String
+            .format("%s current session %s does not match leader session %s", warnLogPrefix,
+                _sessionId, sessionId));
       }
+      LOG.warn(String.format("%s leader ZNode is null", warnLogPrefix));
+
     } catch (Exception e) {
       // log
+      LOG.warn(String.format("%s exception happen when session check", warnLogPrefix), e);
     }
     return false;
   }

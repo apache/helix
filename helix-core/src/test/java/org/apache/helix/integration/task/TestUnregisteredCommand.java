@@ -37,7 +37,8 @@ public class TestUnregisteredCommand extends TaskTestBase {
     super.beforeClass();
   }
 
-  @Test public void testUnregisteredCommand() throws InterruptedException {
+  @Test
+  public void testUnregisteredCommand() throws InterruptedException {
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder builder = new Workflow.Builder(workflowName);
 

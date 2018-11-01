@@ -67,6 +67,16 @@ public abstract class AbstractTaskDispatcher {
         TaskPartitionState currState = updateJobContextAndGetTaskCurrentState(currStateOutput,
             jobResource, pId, pName, instance, jobCtx);
 
+        // This avoids a race condition in the case that although currentState is in the following
+        // error condition, the pending message (INIT->RUNNNING) might still be present.
+        // This is undesirable because this prevents JobContext from getting the proper update of
+        // fields including task state and task's NUM_ATTEMPTS
+        if (currState == TaskPartitionState.ERROR || currState == TaskPartitionState.TASK_ERROR
+            || currState == TaskPartitionState.TIMED_OUT
+            || currState == TaskPartitionState.TASK_ABORTED) {
+          markPartitionError(jobCtx, pId, currState, true);
+        }
+
         // Check for pending state transitions on this (partition, instance). If there is a pending
         // state transition, we prioritize this pending state transition and set the assignment from
         // this pending state transition, essentially "waiting" until this pending message clears
@@ -197,7 +207,6 @@ public abstract class AbstractTaskDispatcher {
                 "Task partition %s has error state %s with msg %s. Marking as such in rebalancer context.",
                 pName, currState, jobCtx.getPartitionInfo(pId)));
           }
-          markPartitionError(jobCtx, pId, currState, true);
           // The error policy is to fail the task as soon a single partition fails for a specified
           // maximum number of attempts or task is in ABORTED state.
           // But notice that if job is TIMED_OUT, aborted task won't be treated as fail and won't
@@ -239,7 +248,6 @@ public abstract class AbstractTaskDispatcher {
 
             // Also release resources for these tasks
             assignableInstance.release(taskConfig, quotaType);
-
           } else if (jobState == TaskState.IN_PROGRESS
               && (jobTgtState != TargetState.STOP && jobTgtState != TargetState.DELETE)) {
             // Job is in progress, implying that tasks are being re-tried, so set it to RUNNING
@@ -940,7 +948,8 @@ public abstract class AbstractTaskDispatcher {
 
   private long getTimeoutTime(long startTime, long timeoutPeriod) {
     return (timeoutPeriod == TaskConstants.DEFAULT_NEVER_TIMEOUT
-        || timeoutPeriod > Long.MAX_VALUE - startTime) // check long overflow
+        || timeoutPeriod > Long.MAX_VALUE - startTime)
+            // check long overflow
             ? TaskConstants.DEFAULT_NEVER_TIMEOUT
             : startTime + timeoutPeriod;
   }

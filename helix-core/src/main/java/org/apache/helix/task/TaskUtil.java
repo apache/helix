@@ -719,7 +719,11 @@ public class TaskUtil {
         JobConfig jobConfig = TaskUtil.getJobConfig(dataAccessor, job);
         JobContext jobContext = TaskUtil.getJobContext(propertyStore, job);
         if (jobConfig == null) {
-          LOG.error(String.format("Job %s exists in JobDAG but JobConfig is missing!", job));
+          LOG.error(String.format(
+              "Job %s exists in JobDAG but JobConfig is missing! Job might have been deleted manually from the JobQueue: %s, or left in the DAG due to a failed clean-up attempt from last purge.",
+              job, workflowConfig.getWorkflowId()));
+          // Add the job name to expiredJobs so that purge operation will be tried again on this job
+          expiredJobs.add(job);
           continue;
         }
         long expiry = jobConfig.getExpiry();

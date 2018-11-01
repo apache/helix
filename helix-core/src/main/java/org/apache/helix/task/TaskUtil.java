@@ -943,7 +943,8 @@ public class TaskUtil {
     int inCompleteCount = 0;
     for (String jobName : workflowCfg.getJobDag().getAllNodes()) {
       TaskState jobState = workflowCtx.getJobState(jobName);
-      if (jobState == TaskState.IN_PROGRESS || jobState == TaskState.STOPPED) {
+      if (jobState == TaskState.IN_PROGRESS || jobState == TaskState.STOPPED
+          || jobState == TaskState.STOPPING) {
         ++inCompleteCount;
       }
     }

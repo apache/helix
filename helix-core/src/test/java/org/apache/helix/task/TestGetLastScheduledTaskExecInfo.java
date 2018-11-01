@@ -53,7 +53,7 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
     Assert.assertEquals(startTimesWithStuckTasks.get(3), lastScheduledTaskTs);
 
     Assert.assertEquals(execInfo.getJobName(), "TestWorkflow_2_job_0");
-    // Workflow 2 will stuck, so its partition state will be RUNNING
+    // Workflow 2 will be stuck, so its partition state will be RUNNING
     Assert.assertEquals(execInfo.getTaskPartitionState(), TaskPartitionState.RUNNING);
     Assert.assertEquals(execInfo.getStartTimeStamp(), lastScheduledTaskTs);
 
@@ -61,6 +61,7 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
     // API call needs to return the most recent timestamp (value at last index)
     lastScheduledTaskTs = _driver.getLastScheduledTaskTimestamp("TestWorkflow_3");
     execInfo = _driver.getLastScheduledTaskExecutionInfo("TestWorkflow_3");
+    Thread.sleep(200); // Let the tasks run
 
     Assert.assertEquals(startTimesFastTasks.get(startTimesFastTasks.size() - 1), lastScheduledTaskTs);
     Assert.assertEquals(execInfo.getJobName(), "TestWorkflow_3_job_0");

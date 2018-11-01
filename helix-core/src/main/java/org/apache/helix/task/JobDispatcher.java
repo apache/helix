@@ -133,7 +133,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       // TIMING_OUT/FAILING/ABORTING job can't be stopped, because all tasks are being aborted
       // Update running status in workflow context
       if (jobTgtState == TargetState.STOP) {
-        if (TaskUtil.checkJobStopped(jobCtx)) {
+        if (jobState != TaskState.NOT_STARTED && TaskUtil.checkJobStopped(jobCtx)) {
           workflowCtx.setJobState(jobName, TaskState.STOPPED);
         } else {
           workflowCtx.setJobState(jobName, TaskState.STOPPING);

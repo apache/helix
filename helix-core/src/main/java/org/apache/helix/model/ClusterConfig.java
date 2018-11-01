@@ -20,6 +20,7 @@ package org.apache.helix.model;
  */
 
 import com.google.common.collect.Maps;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
+import org.apache.helix.api.config.ViewClusterSourceConfig;
 
 /**
  * Cluster configurations
@@ -46,13 +48,13 @@ public class ClusterConfig extends HelixProperty {
     PERSIST_INTERMEDIATE_ASSIGNMENT,
     TOPOLOGY, // cluster topology definition, for example, "/zone/rack/host/instance"
     FAULT_ZONE_TYPE, // the type in which isolation should be applied on when Helix places the
-    // replicas from same partition.
+                     // replicas from same partition.
     TOPOLOGY_AWARE_ENABLED, // whether topology aware rebalance is enabled.
     @Deprecated
     DELAY_REBALANCE_DISABLED, // disabled the delayed rebalaning in case node goes offline.
     DELAY_REBALANCE_ENABLED, // whether the delayed rebalaning is enabled.
     DELAY_REBALANCE_TIME, // delayed time in ms that the delay time Helix should hold until
-    // rebalancing.
+                          // rebalancing.
     STATE_TRANSITION_THROTTLE_CONFIGS,
     STATE_TRANSITION_CANCELLATION_ENABLED,
     MISS_TOP_STATE_DURATION_THRESHOLD,
@@ -63,14 +65,14 @@ public class ClusterConfig extends HelixProperty {
     MAX_OFFLINE_INSTANCES_ALLOWED,
     TARGET_EXTERNALVIEW_ENABLED,
     @Deprecated // ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE will take
-        // precedence if it is set
-        ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
-    // transition if the number of partitons that need
-    // recovery exceeds this limitation
+                // precedence if it is set
+    ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
+                                                // transition if the number of partitons that need
+                                                // recovery exceeds this limitation
     ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance
-    // state transition if the number of
-    // partitons that need recovery or in
-    // error exceeds this limitation
+                                                            // state transition if the number of
+                                                            // partitons that need recovery or in
+                                                            // error exceeds this limitation
     DISABLED_INSTANCES,
     VIEW_CLUSTER, // Set to "true" to indicate this is a view cluster
     VIEW_CLUSTER_SOURCES, // Map field, key is the name of source cluster, value is
@@ -121,6 +123,23 @@ public class ClusterConfig extends HelixProperty {
   public boolean isViewCluster() {
     return _record
         .getBooleanField(ClusterConfigProperty.VIEW_CLUSTER.name(), false);
+  }
+
+  /**
+   * Set a list of ViewClusterSourceConfig to ClusterConfig. Current source config will be
+   * overwritten
+   * @param sourceConfigList
+   */
+  public void setViewClusterSourceConfigs(List<ViewClusterSourceConfig> sourceConfigList) {
+    List<String> sourceConfigs = new ArrayList<>();
+    for (ViewClusterSourceConfig config : sourceConfigList) {
+      try {
+        sourceConfigs.add(config.toJson());
+      } catch (IOException e) {
+        throw new IllegalArgumentException("Invalid source config. Error: " + e.toString());
+      }
+    }
+    _record.setListField(ClusterConfigProperty.VIEW_CLUSTER_SOURCES.name(), sourceConfigs);
   }
 
   /**
@@ -199,6 +218,16 @@ public class ClusterConfig extends HelixProperty {
   public void setViewClusterRefreshPeriod(int refreshPeriod) {
     _record.setIntField(ClusterConfigProperty.VIEW_CLUSTER_REFRESH_PERIOD.name(),
         refreshPeriod);
+  }
+
+  public List<ViewClusterSourceConfig> getViewClusterSourceConfigs() {
+    List<ViewClusterSourceConfig> sourceConfigList = new ArrayList<>();
+    for (String configJSON : _record
+        .getListField(ClusterConfigProperty.VIEW_CLUSTER_SOURCES.name())) {
+      ViewClusterSourceConfig config = ViewClusterSourceConfig.fromJson(configJSON);
+      sourceConfigList.add(config);
+    }
+    return sourceConfigList;
   }
 
   public int getViewClusterRefershPeriod() {

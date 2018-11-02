@@ -41,6 +41,7 @@ import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.view.common.ClusterViewEvent;
 import org.apache.helix.view.dataprovider.SourceClusterDataProvider;
+import org.apache.helix.view.monitoring.ViewAggregatorMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +67,7 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
   private ClusterConfig _curViewClusterConfig;
   private Timer _viewClusterRefreshTimer;
   private ViewClusterRefresher _viewClusterRefresher;
+  private ViewAggregatorMonitor _monitor;
 
   public HelixViewAggregator(String viewClusterName, String zkAddr) {
     _viewClusterName = viewClusterName;
@@ -74,11 +76,13 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
         .getZKHelixManager(_viewClusterName, generateHelixManagerInstanceName(_viewClusterName),
             InstanceType.SPECTATOR, zkAddr);
     _refreshViewCluster = new AtomicBoolean(false);
+    _monitor = new ViewAggregatorMonitor(viewClusterName);
     _aggregator = new DedupEventProcessor<ClusterViewEvent.Type, ClusterViewEvent>(_viewClusterName,
         "Aggregator") {
       @Override
       public void handleEvent(ClusterViewEvent event) {
         handleSourceClusterEvent(event);
+        _monitor.recordProcessedSourceEvent();
       }
     };
 
@@ -101,6 +105,8 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
    *                   exception is thrown out
    */
   public void start() throws Exception {
+    _monitor.register();
+
     // Start workers
     _aggregator.start();
     _viewConfigProcessor.start();
@@ -160,6 +166,9 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
                 _viewClusterName), e);
       }
     }
+
+    logger.info("Unregistering monitor.");
+    _monitor.unregister();
 
     logger.info("HelixViewAggregator shutdown " + (success ? "cleanly" : "with error"));
   }
@@ -235,6 +244,7 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
 
       // If we fail to process action and should retry, re-queue event to retry
       if (!success) {
+        _monitor.recordViewConfigProcessFailure();
         long backoff = computeNextEventProcessBackoff(event.getEventProcessBackoff());
         logger.info("Failed to process view cluster config change. Will retry in {} ms", backoff);
         event.setEventProcessBackoff(backoff);
@@ -344,6 +354,7 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
     logger.info(String.format("START RefreshViewCluster: Refresh view cluster %s at timestamp %s",
         _viewClusterName, startRefreshMs));
     boolean dataProviderFailure = false;
+    boolean viewClusterFailure = false;
 
     // Generate a view of providers so refresh won't block cluster config update
     // When a data provider is shutdown while we are reloading cache / generating diff,
@@ -380,6 +391,7 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
           // We try to refresh all properties with best effort, and don't break when
           // failed to refresh a particular property
           if (!_viewClusterRefresher.refreshPropertiesInViewCluster(propertyType)) {
+            viewClusterFailure = true;
             _refreshViewCluster.set(true);
           }
         } catch (IllegalArgumentException e) {
@@ -389,6 +401,26 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
         }
       }
     }
+
+    recordRefreshResults(dataProviderFailure, viewClusterFailure,
+        System.currentTimeMillis() - startRefreshMs);
+  }
+
+  private void recordRefreshResults(boolean recordSourceFailure, boolean recordViewFailure,
+      long latency) {
+    if (recordSourceFailure) {
+      _monitor.recordReadSourceFailure();
+    }
+
+    if (recordViewFailure) {
+      _monitor.recordViewRefreshFailure();
+    }
+
+    _monitor.recordRefreshViewLatency(latency);
+
+    logger.info(String
+        .format("END RefreshViewCluster: finished refresh %s. Time spent: %s ms. Success: %s",
+            _viewClusterName, latency, !recordSourceFailure && !recordViewFailure));
   }
 
   private static String generateHelixManagerInstanceName(String viewClusterName) {

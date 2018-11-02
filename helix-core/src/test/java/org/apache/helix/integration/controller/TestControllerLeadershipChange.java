@@ -33,6 +33,8 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -51,6 +53,10 @@ public class TestControllerLeadershipChange extends ZkTestBase {
 
     // Create cluster
     _gSetupTool.addCluster(clusterName, true);
+
+    // Create cluster verifier
+    ZkHelixClusterVerifier clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
 
     // Create participant
     _gSetupTool.addInstanceToCluster(clusterName, instanceName);
@@ -72,20 +78,20 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     // Rebalance Resource
     _gSetupTool
         .rebalanceResource(clusterName, resourceName, numReplica);
+
     // Wait for rebalance
-    Thread.sleep(2000);
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
 
     // Trigger missing top state in manager1
     participant.syncStop();
 
-    Thread.sleep(2000);
+    Thread.sleep(1000);
 
     // Starting manager2
     HelixManager manager2 = HelixManagerFactory
         .getZKHelixManager(clusterName, clusterName + "-manager2", InstanceType.CONTROLLER,
             ZK_ADDR);
     manager2.connect();
-    Assert.assertFalse(manager2.isLeader());
 
     // Set leader to manager2
     setLeader(manager2);
@@ -93,30 +99,33 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     Assert.assertFalse(manager1.isLeader());
     Assert.assertTrue(manager2.isLeader());
 
-    // Make resource top state to come back
-    participant = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
-    participant.syncStart();
-
     // Wait for rebalance
-    Thread.sleep(2000);
+    Assert.assertTrue(clusterVerifier.verify());
+
+    Thread.sleep(1000);
     setLeader(manager1);
 
     Assert.assertTrue(manager1.isLeader());
     Assert.assertFalse(manager2.isLeader());
 
+    // Make resource top state to come back by restarting participant
+    participant = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+    participant.syncStart();
+
+
     _gSetupTool.rebalanceResource(clusterName, resourceName, numReplica);
 
-    // Wait for manager1 to update
-    Thread.sleep(2000);
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
 
-    // Resource lost top state, and manager1 lost leadership for 4000ms, because manager1 will
+    // Resource lost top state, and manager1 lost leadership for 2000ms, because manager1 will
     // clean monitoring cache after re-gaining leadership, so max value of hand off duration should
     // not have such a large value
     Assert.assertTrue((long) beanServer
         .getAttribute(resourceMBeanObjectName, "PartitionTopStateHandoffDurationGauge.Max") < 500);
+
   }
 
-  private void setLeader(HelixManager manager) {
+  private void setLeader(HelixManager manager) throws Exception {
     System.out.println("Setting controller " + manager.getInstanceName() + " as leader");
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     final LiveInstance leader = new LiveInstance(manager.getInstanceName());
@@ -125,12 +134,11 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     leader.setHelixVersion(manager.getVersion());
 
     // Delete the current controller leader node so it will trigger leader election
-    accessor.getBaseDataAccessor().remove(PropertyPathBuilder.controllerLeader(manager.getClusterName()), AccessOption.EPHEMERAL);
-
-    // No matter who gets leadership, force the given manager to become leader
-    // Note there is theoretically a racing condition that GenericHelixController.onControllerChange()
-    // will not catch this new value when it's double checking leadership, but it's stable enough
-    accessor.getBaseDataAccessor().set(PropertyPathBuilder.controllerLeader(manager.getClusterName()), leader.getRecord(), AccessOption.EPHEMERAL);
+    while (!manager.isLeader()) {
+      accessor.getBaseDataAccessor()
+          .remove(PropertyPathBuilder.controllerLeader(manager.getClusterName()), AccessOption.EPHEMERAL);
+      Thread.sleep(50);
+    }
   }
 
   private ObjectName getResourceMonitorObjectName(String clusterName, String resourceName)

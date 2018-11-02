@@ -176,7 +176,8 @@ public class TestStateTransitionPrirority extends BaseStageTest {
 
     event.addAttribute(AttributeName.RESOURCES.name(),
         Collections.singletonMap(resourceName, resource));
-    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resource);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
+        Collections.singletonMap(resourceName, resource));
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
     runStage(event, new ReadClusterDataStage());

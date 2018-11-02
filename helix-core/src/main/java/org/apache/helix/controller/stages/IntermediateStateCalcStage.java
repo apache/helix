@@ -64,18 +64,19 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     BestPossibleStateOutput bestPossibleStateOutput =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    Map<String, Resource> resourceToRebalance =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
 
-    if (currentStateOutput == null || bestPossibleStateOutput == null || resourceMap == null
+    if (currentStateOutput == null || bestPossibleStateOutput == null || resourceToRebalance == null
         || cache == null) {
       throw new StageException(String.format("Missing attributes in event: %s. "
-              + "Requires CURRENT_STATE (%s) |BEST_POSSIBLE_STATE (%s) |RESOURCES (%s) |DataCache (%s)",
-          event, currentStateOutput, bestPossibleStateOutput, resourceMap, cache));
+          + "Requires CURRENT_STATE (%s) |BEST_POSSIBLE_STATE (%s) |RESOURCES (%s) |DataCache (%s)",
+          event, currentStateOutput, bestPossibleStateOutput, resourceToRebalance, cache));
     }
 
     IntermediateStateOutput intermediateStateOutput =
-        compute(event, resourceMap, currentStateOutput, bestPossibleStateOutput);
+        compute(event, resourceToRebalance, currentStateOutput, bestPossibleStateOutput);
     event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), intermediateStateOutput);
 
     // Make sure no instance has more replicas/partitions assigned than maxPartitionPerInstance. If
@@ -146,9 +147,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       String resourceName = resourcePriority.getResourceName();
 
       if (!bestPossibleStateOutput.containsResource(resourceName)) {
-        logger.warn(
-            "Skip calculating intermediate state for resource {} because the best possible state is not available.",
-            resourceName);
+        LogUtil.logInfo(logger, _eventId, String.format(
+            "Skip calculating intermediate state for resource %s because the best possible state is not available.",
+            resourceName));
         continue;
       }
 
@@ -228,8 +229,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
             instancePartitionCounts.put(instance, 0);
           }
           int partitionCount = instancePartitionCounts.get(instance); // Number of replicas (from
-          // different partitions) held
-          // in this instance
+                                                                      // different partitions) held
+                                                                      // in this instance
           partitionCount++;
           if (partitionCount > maxPartitionPerInstance) {
             HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
@@ -376,7 +377,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       // ErrorOrRecovery is set
       threshold = clusterConfig.getErrorOrRecoveryPartitionThresholdForLoadBalance();
       partitionCount += partitionsNeedRecovery.size(); // Only add this count when the threshold is
-      // set
+                                                       // set
     } else {
       if (clusterConfig.getErrorPartitionThresholdForLoadBalance() != 0) {
         // 0 is the default value so the old threshold has been set
@@ -736,8 +737,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       return RebalanceType.NONE; // No further action required
     } else {
       return RebalanceType.LOAD_BALANCE; // Required state counts are satisfied, but in order to
-      // achieve BestPossibleState, load balance may be required
-      // to shift replicas around
+                                         // achieve BestPossibleState, load balance may be required
+                                         // to shift replicas around
     }
   }
 

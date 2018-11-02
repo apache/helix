@@ -54,7 +54,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
     Map<String, IdealState> idealStates = cache.getIdealStates();
 
-    Map<String, Resource> resourceMap = new LinkedHashMap<String, Resource>();
+    Map<String, Resource> resourceMap = new LinkedHashMap<>();
     Map<String, Resource> resourceToRebalance = new LinkedHashMap<>();
 
     if (idealStates != null && idealStates.size() > 0) {

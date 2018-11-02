@@ -467,12 +467,12 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   public synchronized void updateMissingTopStateDurationStats(String resourceName,
-      long totalDuration, long userLatency, boolean isGraceful, boolean succeeded) {
+      long totalDuration, long helixLatency, boolean isGraceful, boolean succeeded) {
     ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
 
     if (resourceMonitor != null) {
       resourceMonitor.updateStateHandoffStats(ResourceMonitor.MonitorState.TOP_STATE, totalDuration,
-          userLatency, isGraceful, succeeded);
+          helixLatency, isGraceful, succeeded);
     }
   }
 

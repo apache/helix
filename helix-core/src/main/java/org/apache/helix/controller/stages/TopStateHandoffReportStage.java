@@ -287,13 +287,13 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     }
 
     long duration = endTime - startTime;
-    long userLatency = fromTopStateUserLatency + toTopStateuserLatency;
+    long helixLatency = duration - fromTopStateUserLatency - toTopStateuserLatency;
     // We always treat such top state handoff as graceful as if top state handoff is triggered
     // by instance crash, we cannot observe the entire handoff process within 1 pipeline run
-    logMissingTopStateInfo(duration, userLatency, true, partition.getPartitionName());
+    logMissingTopStateInfo(duration, helixLatency, true, partition.getPartitionName());
     if (clusterStatusMonitor != null) {
       clusterStatusMonitor
-          .updateMissingTopStateDurationStats(resourceName, duration, userLatency, true, true);
+          .updateMissingTopStateDurationStats(resourceName, duration, helixLatency, true, true);
     }
   }
 
@@ -468,17 +468,17 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
 
     if (handOffStartTime > 0 && handOffEndTime - handOffStartTime <= threshold) {
       long duration = handOffEndTime - handOffStartTime;
-      long userLatency = fromTopStateUserLatency + toTopStateUserLatency;
+      long helixLatency = duration - fromTopStateUserLatency - toTopStateUserLatency;
       // It is possible that during controller leader switch, we lost previous master information
       // and use current time to approximate missing top state start time. If we see the actual
       // user latency is larger than the duration we estimated, we use user latency to start with
-      duration = Math.max(duration, userLatency);
+      duration = Math.max(duration, helixLatency);
       boolean isGraceful = record.isGracefulHandoff();
-      logMissingTopStateInfo(duration, userLatency, isGraceful, partition.getPartitionName());
+      logMissingTopStateInfo(duration, helixLatency, isGraceful, partition.getPartitionName());
 
       if (clusterStatusMonitor != null) {
         clusterStatusMonitor
-            .updateMissingTopStateDurationStats(resourceName, duration, userLatency, isGraceful,
+            .updateMissingTopStateDurationStats(resourceName, duration, helixLatency, isGraceful,
                 true);
       }
     }

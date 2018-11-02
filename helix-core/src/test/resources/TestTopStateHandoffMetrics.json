@@ -62,7 +62,7 @@
         }
       },
       "Duration": 7000,
-      "UserLatency": 5000,
+      "HelixLatency": 2000,
       "IsGraceful": true
     },
     {
@@ -127,7 +127,7 @@
         }
       },
       "Duration": 14000,
-      "UserLatency": 4000,
+      "HelixLatency": 10000,
       "IsGraceful": true
     }
   ],
@@ -182,7 +182,7 @@
         }
       },
       "Duration": 7000,
-      "UserLatency": 5000,
+      "HelixLatency": 2000,
       "IsGraceful": false
     }
   ],
@@ -249,7 +249,7 @@
         }
       },
       "Duration": 0,
-      "UserLatency": 0,
+      "HelixLatency": 0,
       "IsGraceful": false
     },
     {
@@ -314,7 +314,7 @@
         }
       },
       "Duration": 0,
-      "UserLatency": 0,
+      "HelixLatency": 0,
       "IsGraceful": false
     }
   ],
@@ -364,7 +364,7 @@
 
       },
       "Duration": 3000,
-      "UserLatency": 2000,
+      "HelixLatency": 1000,
       "IsGraceful": true
     }
   ]

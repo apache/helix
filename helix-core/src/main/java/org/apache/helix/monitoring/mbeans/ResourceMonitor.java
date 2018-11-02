@@ -71,7 +71,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   // Histograms
   private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge;
-  private HistogramDynamicMetric _partitionTopStateHandoffUserLatencyGauge;
+  private HistogramDynamicMetric _partitionTopStateHandoffHelixLatencyGauge;
   private HistogramDynamicMetric _partitionTopStateNonGracefulHandoffDurationGauge;
 
   private SimpleDynamicMetric<String> _rebalanceState;
@@ -101,7 +101,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     attributeList.add(_failedTopStateHandoffCounter);
     attributeList.add(_maxSinglePartitionTopStateHandoffDuration);
     attributeList.add(_partitionTopStateHandoffDurationGauge);
-    attributeList.add(_partitionTopStateHandoffUserLatencyGauge);
+    attributeList.add(_partitionTopStateHandoffHelixLatencyGauge);
     attributeList.add(_partitionTopStateNonGracefulHandoffDurationGauge);
     attributeList.add(_totalMessageReceived);
     attributeList.add(_numPendingStateTransitions);
@@ -142,8 +142,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
         new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", new Histogram(
             new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
 
-    _partitionTopStateHandoffUserLatencyGauge =
-        new HistogramDynamicMetric("PartitionTopStateHandoffUserLatencyGauge", new Histogram(
+    _partitionTopStateHandoffHelixLatencyGauge =
+        new HistogramDynamicMetric("PartitionTopStateHandoffHelixLatencyGauge", new Histogram(
             new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
     _partitionTopStateNonGracefulHandoffDurationGauge =
         new HistogramDynamicMetric("PartitionTopStateNonGracefulHandoffGauge", new Histogram(
@@ -202,8 +202,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     return _partitionTopStateNonGracefulHandoffDurationGauge;
   }
 
-  public HistogramDynamicMetric getPartitionTopStateHandoffUserLatencyGauge() {
-    return _partitionTopStateHandoffUserLatencyGauge;
+  public HistogramDynamicMetric getPartitionTopStateHandoffHelixLatencyGauge() {
+    return _partitionTopStateHandoffHelixLatencyGauge;
   }
 
   public long getFailedTopStateHandoffCounter() {
@@ -345,7 +345,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   }
 
   public void updateStateHandoffStats(MonitorState monitorState, long totalDuration,
-      long userLatency, boolean isGraceful, boolean succeeded) {
+      long helixLatency, boolean isGraceful, boolean succeeded) {
     switch (monitorState) {
     case TOP_STATE:
       if (succeeded) {
@@ -354,7 +354,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
             .updateValue(_successfulTopStateHandoffDurationCounter.getValue() + totalDuration);
         if (isGraceful) {
           _partitionTopStateHandoffDurationGauge.updateValue(totalDuration);
-          _partitionTopStateHandoffUserLatencyGauge.updateValue(userLatency);
+          _partitionTopStateHandoffHelixLatencyGauge.updateValue(helixLatency);
         } else {
           _partitionTopStateNonGracefulHandoffDurationGauge.updateValue(totalDuration);
         }

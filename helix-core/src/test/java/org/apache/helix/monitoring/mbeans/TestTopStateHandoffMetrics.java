@@ -52,7 +52,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final String NON_GRACEFUL_HANDOFF_DURATION = "PartitionTopStateNonGracefulHandoffGauge.Max";
   private static final String GRACEFUL_HANDOFF_DURATION = "PartitionTopStateHandoffDurationGauge.Max";
-  private static final String HANDOFF_USER_LATENCY = "PartitionTopStateHandoffUserLatencyGauge.Max";
+  private static final String HANDOFF_HELIX_LATENCY = "PartitionTopStateHandoffHelixLatencyGauge.Max";
   private static final Range<Long> DURATION_ZERO = Range.closed(0L, 0L);
   private TestConfig config;
 
@@ -93,7 +93,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     final Map<String, CurrentStateInfo> finalCurrentState;
     final long duration;
     final boolean isGraceful;
-    final long userLatency;
+    final long helixLatency;
 
     @JsonCreator
     public TestCaseConfig(
@@ -101,14 +101,14 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
         @JsonProperty("MissingTopStates") Map<String, CurrentStateInfo> missing,
         @JsonProperty("HandoffCurrentStates") Map<String, CurrentStateInfo> handoff,
         @JsonProperty("Duration") long d,
-        @JsonProperty("UserLatency") long user,
+        @JsonProperty("HelixLatency") long helix,
         @JsonProperty("IsGraceful") boolean graceful
     ) {
       initialCurrentStates = initial;
       currentStateWithMissingTopState = missing;
       finalCurrentState = handoff;
       duration = d;
-      userLatency = user;
+      helixLatency = helix;
       isGraceful = graceful;
     }
   }
@@ -170,7 +170,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     // since this is a single top state handoff observed within 1 pipeline, we treat it as graceful,
     // and only record user latency for transiting to master
     Range<Long> expectedDuration = Range.closed(1500L, 1500L);
-    Range<Long> expectedUserLatency = Range.closed(1000L, 1000L);
+    Range<Long> expectedHelixLatency = Range.closed(500L, 500L);
     runStageAndVerify(
         cfg.initialCurrentStates, cfg.currentStateWithMissingTopState, cfg.finalCurrentState,
         new MissingStatesDataCacheInject() {
@@ -181,8 +181,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
         }, 1, 0,
         expectedDuration,
         DURATION_ZERO,
-        expectedDuration,
-        expectedUserLatency
+        expectedDuration, expectedHelixLatency
     );
     event.addAttribute(AttributeName.LastRebalanceFinishTimeStamp.name(),
         TopStateHandoffReportStage.TIMESTAMP_NOT_RECORDED);
@@ -235,26 +234,24 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     // in such case, reportTopStateMissing will use current system time as missing top state
     // start time, and we assume it is a graceful handoff, and only "to top state" user latency
     // will be recorded
-    long userLatency = 0;
-    for (CurrentStateInfo info : cfg.currentStateWithMissingTopState.values()) {
-      if (info.previousState.equals("MASTER")) {
-        userLatency = cfg.userLatency - (info.endTime - info.startTime);
-      }
-      info.previousState = "OFFLINE";
-    }
+    long helixLatency = 1000;
+    long userLatency = 1000;
     for (CurrentStateInfo states : cfg.finalCurrentState.values()) {
       if (states.currentState.equals("MASTER")) {
-        states.endTime = System.currentTimeMillis();
-        states.startTime = System.currentTimeMillis() - userLatency;
+        states.endTime = System.currentTimeMillis() + helixLatency + userLatency;
+        states.startTime = System.currentTimeMillis() + helixLatency;
         break;
       }
     }
+
+    // actual timestamp when running the stage will be later than current time, so the expected
+    // helix latency will be less than the mocked helix latency
     runStageAndVerify(Collections.EMPTY_MAP, cfg.currentStateWithMissingTopState,
         cfg.finalCurrentState, null, 1, 0,
-        Range.closed(userLatency, userLatency),
+        Range.closed(0L, helixLatency + userLatency),
         DURATION_ZERO,
-        Range.closed(userLatency, userLatency),
-        Range.closed(userLatency, userLatency)
+        Range.closed(0L, helixLatency + userLatency),
+        Range.closed(0L, helixLatency)
     );
   }
 
@@ -277,6 +274,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
         userLatency = info.endTime - info.startTime;
       }
     }
+    long helixLatency = durationToVerify - userLatency;
 
     // No initialCurrentStates means no input can be used as the clue of the previous master.
     // in this case, we will treat the handoff as graceful and only to-master user latency
@@ -311,7 +309,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
         Range.closed(durationToVerify, durationToVerify),
         DURATION_ZERO,
         Range.closed(durationToVerify, durationToVerify),
-        Range.closed(userLatency, userLatency));
+        Range.closed(helixLatency, helixLatency));
   }
 
   @DataProvider(name = "successCurrentStateInput")
@@ -347,11 +345,11 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
     Range<Long> duration = Range.closed(cfg.duration, cfg.duration);
     Range<Long> expectedDuration = cfg.isGraceful ? duration : DURATION_ZERO;
     Range<Long> expectedNonGracefulDuration = cfg.isGraceful ? DURATION_ZERO : duration;
-    Range<Long> expectedUserLatency =
-        cfg.isGraceful ? Range.closed(cfg.userLatency, cfg.userLatency) : DURATION_ZERO;
+    Range<Long> expectedHelixLatency =
+        cfg.isGraceful ? Range.closed(cfg.helixLatency, cfg.helixLatency) : DURATION_ZERO;
     runStageAndVerify(cfg.initialCurrentStates, cfg.currentStateWithMissingTopState,
         cfg.finalCurrentState, null, expectFail ? 0 : 1, expectFail ? 1 : 0, expectedDuration, expectedNonGracefulDuration,
-        expectedDuration, expectedUserLatency);
+        expectedDuration, expectedHelixLatency);
   }
 
   private Map<String, CurrentState> generateCurrentStateMap(
@@ -410,7 +408,7 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
       Range<Long> expectedDuration,
       Range<Long> expectedNonGracefulDuration,
       Range<Long> expectedMaxDuration,
-      Range<Long> expectedUserLatency
+      Range<Long> expectedHelixLatency
   ) {
     runPipeLine(initialCurrentStates, missingTopStates, handOffCurrentStates, inject);
     ClusterStatusMonitor clusterStatusMonitor =
@@ -424,12 +422,12 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
         .getAttributeValue(GRACEFUL_HANDOFF_DURATION).longValue();
     long nonGraceful = monitor.getPartitionTopStateNonGracefulHandoffDurationGauge()
         .getAttributeValue(NON_GRACEFUL_HANDOFF_DURATION).longValue();
-    long user = monitor.getPartitionTopStateHandoffUserLatencyGauge()
-        .getAttributeValue(HANDOFF_USER_LATENCY).longValue();
+    long helix = monitor.getPartitionTopStateHandoffHelixLatencyGauge()
+        .getAttributeValue(HANDOFF_HELIX_LATENCY).longValue();
     long max = monitor.getMaxSinglePartitionTopStateHandoffDurationGauge();
     Assert.assertTrue(expectedDuration.contains(graceful));
     Assert.assertTrue(expectedNonGracefulDuration.contains(nonGraceful));
-    Assert.assertTrue(expectedUserLatency.contains(user));
+    Assert.assertTrue(expectedHelixLatency.contains(helix));
     Assert.assertTrue(expectedMaxDuration.contains(max));
   }
 

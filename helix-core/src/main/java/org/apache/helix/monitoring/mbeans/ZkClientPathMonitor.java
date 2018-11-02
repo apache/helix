@@ -19,23 +19,21 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import javax.management.JMException;
+import javax.management.ObjectName;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
-import java.util.concurrent.TimeUnit;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
-import javax.management.JMException;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-import java.util.ArrayList;
-import java.util.List;
-
 public class ZkClientPathMonitor extends DynamicMBeanProvider {
   public static final String MONITOR_PATH = "PATH";
-  private static final String MBEAN_DESCRIPTION = "Helix Zookeeper Client Monitor";
   private final String _sensorName;
   private final String _type;
   private final String _key;
@@ -128,15 +126,16 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     attributeList.add(_readBytesGauge);
     attributeList.add(_writeBytesGauge);
 
-    ObjectName objectName = new ObjectName(String.format("%s,%s=%s",
-        ZkClientMonitor.getObjectName(_type, _key, _instanceName).toString(),
-        MONITOR_PATH, _path.name()));
-    doRegister(attributeList, MBEAN_DESCRIPTION, objectName);
+    ObjectName objectName = new ObjectName(String
+        .format("%s,%s=%s", ZkClientMonitor.getObjectName(_type, _key, _instanceName).toString(),
+            MONITOR_PATH, _path.name()));
+    doRegister(attributeList, ZkClientMonitor.MBEAN_DESCRIPTION, objectName);
 
     return this;
   }
 
-  protected void record(int bytes, long latencyMilliSec, boolean isFailure, boolean isRead) {
+  protected synchronized void record(int bytes, long latencyMilliSec, boolean isFailure,
+      boolean isRead) {
     if (isFailure) {
       increaseFailureCounter(isRead);
     } else {

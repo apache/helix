@@ -20,6 +20,9 @@ package org.apache.helix.manager.zk;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -29,7 +32,9 @@ import javax.management.ObjectName;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
+import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixException;
+import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
@@ -52,6 +57,12 @@ import org.testng.annotations.Test;
 
 public class TestRawZkClient extends ZkUnitTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestRawZkClient.class);
+
+  private final String TEST_TAG = "test_monitor";
+  private final String TEST_DATA = "testData";
+  private final String TEST_ROOT = "/my_cluster/IDEALSTATES";
+  private final String TEST_NODE = "/test_zkclient_monitor";
+  private final String TEST_PATH = TEST_ROOT + TEST_NODE;
 
   ZkClient _zkClient;
 
@@ -129,21 +140,9 @@ public class TestRawZkClient extends ZkUnitTestBase {
     System.out.println("After session expiry sessionId= " + zookeeper.getSessionId());
   }
 
-  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Data size larger than 1M.*")
-  void testDataSizeLimit() {
-    ZNRecord data = new ZNRecord(new String(new char[1024 * 1024]));
-    _zkClient.writeData("/test", data, -1);
-  }
-
   @Test
   public void testZkClientMonitor() throws Exception {
-    final String TEST_TAG = "test_monitor";
-    final String TEST_KEY = "test_key";
-    final String TEST_DATA = "testData";
-    final String TEST_ROOT = "/my_cluster/IDEALSTATES";
-    final String TEST_NODE = "/test_zkclient_monitor";
-    final String TEST_PATH = TEST_ROOT + TEST_NODE;
-
+    final String TEST_KEY = "testZkClientMonitor";
     ZkClient.Builder builder = new ZkClient.Builder();
     builder.setZkServer(ZK_ADDR).setMonitorKey(TEST_KEY).setMonitorType(TEST_TAG)
         .setMonitorRootPathOnly(false);
@@ -173,6 +172,11 @@ public class TestRawZkClient extends ZkUnitTestBase {
             "IdealStates");
     Assert.assertTrue(beanServer.isRegistered(rootname));
     Assert.assertTrue(beanServer.isRegistered(idealStatename));
+
+    Assert.assertEquals((long) beanServer.getAttribute(name, "DataChangeEventCounter"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "StateChangeEventCounter"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 0);
 
     // Test exists
     Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 0);
@@ -290,5 +294,62 @@ public class TestRawZkClient extends ZkUnitTestBase {
     _zkClient.delete(TEST_PATH);
     Assert.assertTrue(callbackFinish.await(10, TimeUnit.SECONDS));
     Assert.assertEquals((long) beanServer.getAttribute(name, "DataChangeEventCounter"), 1);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 1);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackHandledCounter"), 1);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "PendingCallbackGauge"), 0);
+  }
+
+  @Test(dependsOnMethods = "testZkClientMonitor")
+  void testPendingRequestGauge() throws Exception {
+    final String TEST_KEY = "testPendingRequestGauge";
+
+    final MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
+    final ObjectName name = MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            TEST_TAG, ZkClientMonitor.MONITOR_KEY, TEST_KEY);
+
+    final int zkPort = TestHelper.getRandomPort();
+    final String zkAddr = String.format("localhost:%d", zkPort);
+    final ZkServer zkServer = TestHelper.startZkServer(zkAddr);
+
+    try {
+      ZkClient.Builder builder = new ZkClient.Builder();
+      builder.setZkServer(zkAddr).setMonitorKey(TEST_KEY).setMonitorType(TEST_TAG).setMonitorRootPathOnly(true);
+      final ZkClient zkClient = builder.build();
+
+      zkServer.shutdown();
+      zkClient.waitForKeeperState(KeeperState.Disconnected, 5000, TimeUnit.MILLISECONDS);
+      Assert.assertFalse(zkClient.waitUntilConnected(0, TimeUnit.MILLISECONDS));
+
+      Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
+
+      // Request a read in a separate thread. This will be a pending request
+      ExecutorService executorService = Executors.newSingleThreadExecutor();
+      executorService.submit(new Runnable() {
+        @Override
+        public void run() {
+          zkClient.exists(TEST_ROOT);
+        }
+      });
+      Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
+        @Override
+        public boolean verify() throws Exception {
+          return (long) beanServer.getAttribute(name, "OutstandingRequestGauge") == 1;
+        }
+      }, 1000));
+
+      zkServer.start();
+      Assert.assertTrue(zkClient.waitUntilConnected(5000, TimeUnit.MILLISECONDS));
+      Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
+        @Override
+        public boolean verify() throws Exception {
+          return (long) beanServer.getAttribute(name, "OutstandingRequestGauge") == 0;
+        }
+      }, 2000));
+      zkClient.close();
+    } finally {
+      zkServer.shutdown();
+    }
   }
 }

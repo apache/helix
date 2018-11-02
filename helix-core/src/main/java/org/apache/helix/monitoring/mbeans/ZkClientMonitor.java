@@ -19,36 +19,49 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import org.apache.helix.HelixException;
-
 import javax.management.JMException;
+import javax.management.MBeanAttributeInfo;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.helix.manager.zk.zookeeper.ZkEventThread;
 
-public class ZkClientMonitor implements ZkClientMonitorMBean {
+import org.apache.helix.HelixException;
+import org.apache.helix.manager.zk.zookeeper.ZkEventThread;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+
+public class ZkClientMonitor extends DynamicMBeanProvider {
   public static final String MONITOR_TYPE = "Type";
   public static final String MONITOR_KEY = "Key";
+  protected static final String MBEAN_DESCRIPTION = "Helix Zookeeper Client Monitor";
 
   public enum AccessType {
-    READ,
-    WRITE
+    READ, WRITE
   }
 
-  private ObjectName _objectName;
   private String _sensorName;
+  private String _monitorType;
+  private String _monitorKey;
+  private String _monitorInstanceName;
+  private boolean _monitorRootOnly;
 
-  private long _stateChangeEventCounter;
-  private long _dataChangeEventCounter;
-  private ZkEventThread _zkEventThread;
+  private SimpleDynamicMetric<Long> _stateChangeEventCounter;
+  private SimpleDynamicMetric<Long> _dataChangeEventCounter;
+  private SimpleDynamicMetric<Long> _outstandingRequestGauge;
+
+  private ZkThreadMetric _zkEventThreadMetric;
 
   private Map<ZkClientPathMonitor.PredefinedPath, ZkClientPathMonitor> _zkClientPathMonitorMap =
       new ConcurrentHashMap<>();
 
   public ZkClientMonitor(String monitorType, String monitorKey, String monitorInstanceName,
-      boolean monitorRootPathOnly) throws JMException {
+      boolean monitorRootOnly, ZkEventThread zkEventThread) {
     if (monitorKey == null || monitorKey.isEmpty() || monitorType == null || monitorType
         .isEmpty()) {
       throw new HelixException("Cannot create ZkClientMonitor without monitor key and type.");
@@ -56,22 +69,17 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
 
     _sensorName =
         String.format("%s.%s.%s", MonitorDomainNames.HelixZkClient.name(), monitorType, monitorKey);
+    _monitorType = monitorType;
+    _monitorKey = monitorKey;
+    _monitorInstanceName = monitorInstanceName;
+    _monitorRootOnly = monitorRootOnly;
 
-    _objectName =
-        MBeanRegistrar.register(this, getObjectName(monitorType, monitorKey, monitorInstanceName));
-
-    for (ZkClientPathMonitor.PredefinedPath path : ZkClientPathMonitor.PredefinedPath.values()) {
-      // If monitor root path only, check if the current path is Root.
-      // Otherwise, add monitors for every path.
-      if (!monitorRootPathOnly || path.equals(ZkClientPathMonitor.PredefinedPath.Root)) {
-        _zkClientPathMonitorMap.put(path,
-            new ZkClientPathMonitor(path, monitorType, monitorKey, monitorInstanceName).register());
-      }
+    _stateChangeEventCounter = new SimpleDynamicMetric("StateChangeEventCounter", 0l);
+    _dataChangeEventCounter = new SimpleDynamicMetric("DataChangeEventCounter", 0l);
+    _outstandingRequestGauge = new SimpleDynamicMetric("OutstandingRequestGauge", 0l);
+    if (zkEventThread != null) {
+      _zkEventThreadMetric = new ZkThreadMetric(zkEventThread);
     }
-  }
-
-  public void setZkEventThread(ZkEventThread zkEventThread) {
-    _zkEventThread = zkEventThread;
   }
 
   protected static ObjectName getObjectName(String monitorType, String monitorKey,
@@ -82,11 +90,34 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
             (monitorKey + (monitorInstanceName == null ? "" : "." + monitorInstanceName)));
   }
 
+  @Override
+  public DynamicMBeanProvider register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_dataChangeEventCounter);
+    attributeList.add(_outstandingRequestGauge);
+    attributeList.add(_stateChangeEventCounter);
+    if (_zkEventThreadMetric != null) {
+      attributeList.add(_zkEventThreadMetric);
+    }
+    doRegister(attributeList, MBEAN_DESCRIPTION,
+        getObjectName(_monitorType, _monitorKey, _monitorInstanceName));
+    for (ZkClientPathMonitor.PredefinedPath path : ZkClientPathMonitor.PredefinedPath.values()) {
+      // If monitor root path only, check if the current path is Root.
+      // Otherwise, add monitors for every path.
+      if (!_monitorRootOnly || path.equals(ZkClientPathMonitor.PredefinedPath.Root)) {
+        _zkClientPathMonitorMap.put(path,
+            new ZkClientPathMonitor(path, _monitorType, _monitorKey, _monitorInstanceName)
+                .register());
+      }
+    }
+    return this;
+  }
+
   /**
    * After unregistered, the MBean can't be registered again, a new monitor has be to created.
    */
   public void unregister() {
-    MBeanRegistrar.unregister(_objectName);
+    super.unregister();
     for (ZkClientPathMonitor zkClientPathMonitor : _zkClientPathMonitorMap.values()) {
       zkClientPathMonitor.unregister();
     }
@@ -98,48 +129,27 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   }
 
   public void increaseStateChangeEventCounter() {
-    _stateChangeEventCounter++;
-  }
-
-  @Override
-  public long getStateChangeEventCounter() {
-    return _stateChangeEventCounter;
+    synchronized (_stateChangeEventCounter) {
+      _stateChangeEventCounter.updateValue(_stateChangeEventCounter.getValue() + 1);
+    }
   }
 
   public void increaseDataChangeEventCounter() {
-    _dataChangeEventCounter++;
-  }
-
-  @Override
-  public long getDataChangeEventCounter() {
-    return _dataChangeEventCounter;
-  }
-
-  @Override
-  public long getPendingCallbackGauge() {
-    if (_zkEventThread != null) {
-      return _zkEventThread.getPendingEventsCount();
+    synchronized (_dataChangeEventCounter) {
+      _dataChangeEventCounter.updateValue(_dataChangeEventCounter.getValue() + 1);
     }
-
-    return -1;
   }
 
-  @Override
-  public long getTotalCallbackCounter() {
-    if (_zkEventThread != null) {
-      return _zkEventThread.getTotalEventCount();
+  public void increaseOutstandingRequestGauge() {
+    synchronized (_outstandingRequestGauge) {
+      _outstandingRequestGauge.updateValue(_outstandingRequestGauge.getValue() + 1);
     }
-
-    return -1;
   }
 
-  @Override
-  public long getTotalCallbackHandledCounter() {
-    if (_zkEventThread != null) {
-      return _zkEventThread.getTotalHandledEventCount();
+  public void decreaseOutstandingRequestGauge() {
+    synchronized (_outstandingRequestGauge) {
+      _outstandingRequestGauge.updateValue(_outstandingRequestGauge.getValue() - 1);
     }
-
-    return -1;
   }
 
   private void record(String path, int bytes, long latencyMilliSec, boolean isFailure,
@@ -163,7 +173,6 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
     case WRITE:
       record(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, false);
       return;
-
     default:
       return;
     }
@@ -179,6 +188,45 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
       return;
     default:
       return;
+    }
+  }
+
+  class ZkThreadMetric extends DynamicMetric<ZkEventThread, ZkEventThread> {
+    public ZkThreadMetric(ZkEventThread eventThread) {
+      super("ZkEventThead", eventThread);
+    }
+
+    @Override
+    protected Set<MBeanAttributeInfo> generateAttributeInfos(String metricName,
+        ZkEventThread eventThread) {
+      Set<MBeanAttributeInfo> attributeInfoSet = new HashSet<>();
+      attributeInfoSet.add(new MBeanAttributeInfo("PendingCallbackGauge", Long.TYPE.getName(),
+          DEFAULT_ATTRIBUTE_DESCRIPTION, true, false, false));
+      attributeInfoSet.add(new MBeanAttributeInfo("TotalCallbackCounter", Long.TYPE.getName(),
+          DEFAULT_ATTRIBUTE_DESCRIPTION, true, false, false));
+      attributeInfoSet.add(
+          new MBeanAttributeInfo("TotalCallbackHandledCounter", Long.TYPE.getName(),
+              DEFAULT_ATTRIBUTE_DESCRIPTION, true, false, false));
+      return attributeInfoSet;
+    }
+
+    @Override
+    public Object getAttributeValue(String attributeName) {
+      switch (attributeName) {
+      case "PendingCallbackGauge":
+        return getMetricObject().getPendingEventsCount();
+      case "TotalCallbackCounter":
+        return getMetricObject().getTotalEventCount();
+      case "TotalCallbackHandledCounter":
+        return getMetricObject().getTotalHandledEventCount();
+      default:
+        throw new HelixException("Unknown attribute name: " + attributeName);
+      }
+    }
+
+    @Override
+    public void updateValue(ZkEventThread newEventThread) {
+      setMetricObject(newEventThread);
     }
   }
 }

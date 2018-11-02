@@ -147,8 +147,9 @@ public class ZkClient implements Watcher {
       if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null && !monitorType
           .isEmpty()) {
         _monitor =
-            new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly);
-        _monitor.setZkEventThread(_eventThread);
+            new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly,
+                _eventThread);
+        _monitor.register();
       } else {
         LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
       }
@@ -1085,38 +1086,46 @@ public class ZkClient implements Watcher {
       throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
     }
     final long operationStartTime = System.currentTimeMillis();
-    while (true) {
-      if (isClosed()) {
-        throw new IllegalStateException("ZkClient already closed!");
-      }
-      try {
-        final ZkConnection zkConnection = (ZkConnection) getConnection();
-        // Validate that the connection is not null before trigger callback
-        if (zkConnection == null || zkConnection.getZookeeper() == null) {
-          throw new IllegalStateException(
-              "ZkConnection is in invalid state! Please close this ZkClient and create new client.");
+    if (_monitor != null) {
+      _monitor.increaseOutstandingRequestGauge();
+    }
+    try {
+      while (true) {
+        if (isClosed()) {
+          throw new IllegalStateException("ZkClient already closed!");
         }
-        return callable.call();
-      } catch (ConnectionLossException e) {
-        // we give the event thread some time to update the status to 'Disconnected'
-        Thread.yield();
-        waitForRetry();
-      } catch (SessionExpiredException e) {
-        // we give the event thread some time to update the status to 'Expired'
-        Thread.yield();
-        waitForRetry();
-      } catch (KeeperException e) {
-        throw ZkException.create(e);
-      } catch (InterruptedException e) {
-        throw new ZkInterruptedException(e);
-      } catch (Exception e) {
-        throw ExceptionUtil.convertToRuntimeException(e);
+        try {
+          final ZkConnection zkConnection = (ZkConnection) getConnection();
+          // Validate that the connection is not null before trigger callback
+          if (zkConnection == null || zkConnection.getZookeeper() == null) {
+            throw new IllegalStateException(
+                "ZkConnection is in invalid state! Please close this ZkClient and create new client.");
+          }
+          return callable.call();
+        } catch (ConnectionLossException e) {
+          // we give the event thread some time to update the status to 'Disconnected'
+          Thread.yield();
+          waitForRetry();
+        } catch (SessionExpiredException e) {
+          // we give the event thread some time to update the status to 'Expired'
+          Thread.yield();
+          waitForRetry();
+        } catch (KeeperException e) {
+          throw ZkException.create(e);
+        } catch (InterruptedException e) {
+          throw new ZkInterruptedException(e);
+        } catch (Exception e) {
+          throw ExceptionUtil.convertToRuntimeException(e);
+        }
+        // before attempting a retry, check whether retry timeout has elapsed
+        if (System.currentTimeMillis() - operationStartTime > _operationRetryTimeoutInMillis) {
+          throw new ZkTimeoutException("Operation cannot be retried because of retry timeout (" + _operationRetryTimeoutInMillis
+              + " milli seconds)");
+        }
       }
-      // before attempting a retry, check whether retry timeout has elapsed
-      if (System.currentTimeMillis() - operationStartTime > _operationRetryTimeoutInMillis) {
-        throw new ZkTimeoutException(
-            "Operation cannot be retried because of retry timeout (" + _operationRetryTimeoutInMillis
-                + " milli seconds)");
+    } finally {
+      if (_monitor != null) {
+        _monitor.decreaseOutstandingRequestGauge();
       }
     }
   }

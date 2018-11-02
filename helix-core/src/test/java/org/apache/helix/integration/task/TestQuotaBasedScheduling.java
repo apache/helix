@@ -374,7 +374,6 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
 
     // Finish rest of the tasks
     _finishTask = true;
-    Thread.sleep(2000L);
   }
 
   /**
@@ -441,16 +440,13 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow secondWorkflow =
         createWorkflow("secondWorkflow", true, DEFAULT_QUOTA_TYPE, 1, 1, "ShortTask");
     _driver.start(secondWorkflow);
-    Thread.sleep(1000L); // Wait so that the Controller will try to process the workflow
 
     // At this point, secondWorkflow should still be in progress due to its task not being scheduled
     // due to thread pool saturation
-    TaskState secondWorkflowState = _driver.getWorkflowContext("secondWorkflow").getWorkflowState();
-    Assert.assertEquals(secondWorkflowState, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState("secondWorkflow", 2000L, TaskState.IN_PROGRESS);
 
     // Finish rest of the tasks
     _finishTask = true;
-    Thread.sleep(2000L);
   }
 
   /**
@@ -503,7 +499,6 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
 
     // Finish rest of the tasks
     _finishTask = true;
-    Thread.sleep(2000L);
   }
 
   /**
@@ -577,7 +572,6 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
 
     // Finish rest of the tasks
     _finishTask = true;
-    Thread.sleep(2000L);
   }
 
   /**

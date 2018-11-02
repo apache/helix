@@ -490,10 +490,9 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       Partition partition) {
     if (missingTopStateMap.containsKey(resourceName)) {
       missingTopStateMap.get(resourceName).remove(partition.getPartitionName());
-    }
-
-    if (missingTopStateMap.get(resourceName).size() == 0) {
-      missingTopStateMap.remove(resourceName);
+      if (missingTopStateMap.get(resourceName).isEmpty()) {
+        missingTopStateMap.remove(resourceName);
+      }
     }
   }
 

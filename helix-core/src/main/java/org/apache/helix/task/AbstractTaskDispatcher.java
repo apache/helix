@@ -693,6 +693,8 @@ public abstract class AbstractTaskDispatcher {
       if (isTaskNotInTerminalState(state)) {
         String assignedParticipant = jobContext.getAssignedParticipant(partitionNumber);
         if (assignedParticipant != null && !liveInstances.contains(assignedParticipant)) {
+          // The assigned instance is no longer live, so mark it as DROPPED in the context
+          jobContext.setPartitionState(partitionNumber, TaskPartitionState.DROPPED);
           filteredTasks.add(partitionNumber);
         }
       }

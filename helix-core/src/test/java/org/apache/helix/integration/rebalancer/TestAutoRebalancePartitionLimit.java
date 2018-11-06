@@ -118,7 +118,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
 
     _participants[1].syncStop();
 
-    // verifyBalanziceExternalView();
+    // verifyBalanceExternalView();
     result =
         ClusterStateVerifier.verifyByPolling(new ExternalViewBalancedVerifier(_gZkClient,
             CLUSTER_NAME, TEST_DB));

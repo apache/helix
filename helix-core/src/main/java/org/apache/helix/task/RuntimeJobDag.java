@@ -20,7 +20,9 @@ package org.apache.helix.task;
  */
 
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
@@ -42,14 +44,18 @@ import org.slf4j.LoggerFactory;
  */
 public class RuntimeJobDag extends JobDag {
   private static final Logger LOG = LoggerFactory.getLogger(RuntimeJobDag.class);
+  private static final int DEFAULT_NUM_PARALLEL_JOBS = 1;
 
   // For job iterator functionality
-  private Queue<String> _readyJobList; // Jobs ready to be scheduled
+  private ArrayDeque<String> _readyJobList; // Jobs ready to be scheduled
   private Set<String> _inflightJobList; // Jobs that are scheduled but not yet finished
   private boolean _hasDagChanged; // Flag for DAG modification for job queues; if true, ready-list
                                   // must be re-computed
   private Map<String, Set<String>> _successorMap; // Two dependency maps for populating ready-list
   private Map<String, Set<String>> _predecessorMap; // when jobs are finished
+  private boolean _isJobQueue;
+  private int _numParallelJobs;
+  private String _lastJob;
 
   /**
    * Constructor for Job DAG.
@@ -59,6 +65,15 @@ public class RuntimeJobDag extends JobDag {
     _readyJobList = new ArrayDeque<>();
     _inflightJobList = new HashSet<>();
     _hasDagChanged = true;
+  }
+
+  public RuntimeJobDag(JobDag jobDag, boolean isJobQueue, int numParallelJobs) {
+    this._childrenToParents = jobDag.getChildrenToParents();
+    this._parentsToChildren = jobDag.getParentsToChildren();
+    this._allNodes = jobDag.getAllNodes();
+    this._isJobQueue = isJobQueue;
+    this._numParallelJobs = numParallelJobs <= 0 ? DEFAULT_NUM_PARALLEL_JOBS : numParallelJobs;
+    generateJobList();
   }
 
   @Override
@@ -103,6 +118,7 @@ public class RuntimeJobDag extends JobDag {
    * re-generates ready-list.
    * @return job name. Null if the readyJobList is empty.
    */
+  @Override
   public String getNextJob() {
     if (_hasDagChanged) {
       generateJobList(); // Regenerate the ready list
@@ -113,6 +129,7 @@ public class RuntimeJobDag extends JobDag {
     }
     String nextJob = _readyJobList.poll();
     _inflightJobList.add(nextJob);
+    _lastJob = nextJob;
     return nextJob;
   }
 
@@ -131,9 +148,13 @@ public class RuntimeJobDag extends JobDag {
           String.format("Job: %s has either finished already, never been scheduled, or been removed from DAG", job));
     }
     // Add finished job's successors to ready-list
-    if (_successorMap.containsKey(job)) {
-      for (String successor : _successorMap.get(job)) {
-        // Remove finished job from predecessor map
+    if (_isJobQueue) {
+      if (_lastJob != null && _parentsToChildren.containsKey(_lastJob)) {
+        _readyJobList.offer(_parentsToChildren.get(_lastJob).iterator().next());
+      }
+    } else if (_successorMap.containsKey(job)) {
+        for (String successor : _successorMap.get(job)) {
+          // Remove finished job from predecessor map
         if (_predecessorMap.containsKey(successor)) {
           Set<String> predecessors = _predecessorMap.get(successor);
           predecessors.remove(job);
@@ -160,6 +181,14 @@ public class RuntimeJobDag extends JobDag {
     resetJobListAndDependencyMaps();
     computeIndependentNodes();
     _readyJobList.addAll(_independentNodes);
+    if (_isJobQueue && _readyJobList.size() > 0) {
+      // For job queue, only get number of parallel jobs to run in the ready list.
+      for (int i = 1; i < _numParallelJobs; i++) {
+        if (_parentsToChildren.containsKey(_readyJobList.peekLast())) {
+          _readyJobList.offer(_parentsToChildren.get(_readyJobList.peekLast()).iterator().next());
+        }
+      }
+    }
     _hasDagChanged = false;
   }
 
@@ -179,4 +208,9 @@ public class RuntimeJobDag extends JobDag {
       _predecessorMap.put(entry.getKey(), new HashSet<>(entry.getValue()));
     }
   }
+
+  public Set<String> getInflightJobList() {
+    return new HashSet<>(_inflightJobList);
+  }
+
 }

@@ -49,7 +49,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
     _workflowDispatcher.setClusterStatusMonitor(_clusterStatusMonitor);
     _workflowDispatcher.updateCache(clusterData);
-    _workflowDispatcher.updateWorkflowStatus(workflow, workflowCfg, workflowCtx);
+    _workflowDispatcher.updateWorkflowStatus(workflow, workflowCfg, workflowCtx, currStateOutput,
+        new BestPossibleStateOutput());
     _workflowDispatcher.assignWorkflow(workflow, workflowCfg, workflowCtx, currStateOutput,
         new BestPossibleStateOutput(), new HashMap<String, Resource>());
 

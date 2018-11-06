@@ -21,12 +21,15 @@ package org.apache.helix.task;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 
 import java.util.TreeMap;
 import java.util.TreeSet;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -46,11 +49,13 @@ public class JobDag {
   protected Map<String, Set<String>> _childrenToParents;
 
   @JsonProperty("allNodes")
-  private Set<String> _allNodes;
+  protected Set<String> _allNodes;
   protected Set<String> _independentNodes; // Un-parented nodes are stored to avoid repeated calculation
   // unless there is a DAG modification
 
   public static final JobDag EMPTY_DAG = new JobDag();
+
+  protected Iterator<String> _jobIterator;
 
   /**
    * Constructor for Job DAG.
@@ -262,5 +267,16 @@ public class JobDag {
         _independentNodes.add(node);
       }
     }
+  }
+
+  @JsonIgnore
+  public String getNextJob() {
+    if (_jobIterator == null) {
+      _jobIterator = _allNodes.iterator();
+    }
+    if (_jobIterator.hasNext()) {
+      return _jobIterator.next();
+    }
+    return null;
   }
 }

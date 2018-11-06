@@ -39,6 +39,7 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     _numDbs = 4;
+    _partitionVary = false;
     super.beforeClass();
   }
 
@@ -47,7 +48,8 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
    * (1) the number of running job does not exceed configured max allowed parallel jobs
    * (2) one instance can only be assigned to one job in the workflow
    */
-  @Test public void testWhenDisallowOverlapJobAssignment() throws Exception {
+  @Test
+  public void testWhenDisallowOverlapJobAssignment() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(queueName);
@@ -63,7 +65,8 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     for (String testDbName : _testDbs) {
       jobConfigBuilders.add(
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(testDbName)
-              .setTargetPartitionStates(Collections.singleton("SLAVE")));
+              .setTargetPartitionStates(Collections.singleton("SLAVE"))
+              .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "1000")));
     }
 
     _driver.stop(queueName);
@@ -71,7 +74,7 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
       _driver.enqueueJob(queueName, "job_" + (i + 1), jobConfigBuilders.get(i));
     }
     _driver.resume(queueName);
-    Thread.sleep(2000);
+    Thread.sleep(1000L);
     Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));
   }
 

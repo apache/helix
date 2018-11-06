@@ -58,6 +58,8 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
+import org.apache.helix.task.JobDag;
+import org.apache.helix.task.RuntimeJobDag;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.WorkflowConfig;
@@ -1034,5 +1036,9 @@ public class ClusterDataCache extends AbstractDataCache {
 
   public Set<String> getDispatchedJobs() {
     return _taskDataCache.getDispatchedJobs();
+  }
+
+  public RuntimeJobDag getRuntimeJobDag(String workflowName) {
+    return _taskDataCache.getRuntimeJobDag(workflowName);
   }
 }

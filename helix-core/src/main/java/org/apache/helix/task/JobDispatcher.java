@@ -35,7 +35,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     _clusterDataCache = cache;
   }
 
-  public ResourceAssignment processJobStatusUpdateandAssignment(String jobName,
+  public ResourceAssignment processJobStatusUpdateAndAssignment(String jobName,
       CurrentStateOutput currStateOutput, WorkflowContext workflowCtx) {
     // Fetch job configuration
     JobConfig jobCfg = _clusterDataCache.getJobConfig(jobName);
@@ -51,7 +51,6 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       LOG.error("Workflow configuration is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
-
 
     if (workflowCtx == null) {
       LOG.error("Workflow context is NULL for " + jobName);
@@ -75,6 +74,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       LOG.info(String.format(
           "Workflow %s or job %s is already failed or completed, workflow state (%s), job state (%s), clean up job IS.",
           workflowResource, jobName, workflowState, jobState));
+      finishJobInRuntimeJobDag(_clusterDataCache, workflowResource, jobName);
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
       _rebalanceScheduler.removeScheduledRebalance(jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -87,7 +87,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
 
     if (!TaskUtil.isJobStarted(jobName, workflowCtx) && !isJobReadyToSchedule(jobName, workflowCfg,
         workflowCtx, TaskUtil.getInCompleteJobCount(workflowCfg, workflowCtx),
-        _clusterDataCache.getJobConfigMap(), _clusterDataCache.getTaskDataCache())) {
+        _clusterDataCache.getJobConfigMap(), _clusterDataCache)) {
       LOG.info("Job is not ready to run " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
@@ -267,6 +267,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // can be dropped(note that Helix doesn't track whether the drop is success or not).
     if (jobState == TaskState.TIMING_OUT && isJobFinished(jobCtx, jobResource, currStateOutput)) {
       handleJobTimeout(jobCtx, workflowCtx, jobResource, jobCfg);
+      finishJobInRuntimeJobDag(cache, workflowConfig.getWorkflowId(), jobResource);
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
 

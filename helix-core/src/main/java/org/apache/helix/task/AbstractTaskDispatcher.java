@@ -424,7 +424,7 @@ public abstract class AbstractTaskDispatcher {
       WorkflowConfig workflowConfig, Map<String, JobConfig> jobConfigMap,
       ClusterDataCache clusterDataCache) {
     markJobFailed(jobName, jobContext, workflowConfig, workflowContext, jobConfigMap,
-        clusterDataCache.getTaskDataCache());
+        clusterDataCache);
     // Mark all INIT task to TASK_ABORTED
     for (int pId : jobContext.getPartitionSet()) {
       if (jobContext.getPartitionState(pId) == TaskPartitionState.INIT) {
@@ -761,10 +761,11 @@ public abstract class AbstractTaskDispatcher {
   protected void markJobComplete(String jobName, JobContext jobContext,
       WorkflowConfig workflowConfig, WorkflowContext workflowContext,
       Map<String, JobConfig> jobConfigMap, ClusterDataCache clusterDataCache) {
+    finishJobInRuntimeJobDag(clusterDataCache, workflowConfig.getWorkflowId(), jobName);
     long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.COMPLETED);
     jobContext.setFinishTime(currentTime);
-    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap, clusterDataCache.getTaskDataCache())) {
+    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap, clusterDataCache)) {
       workflowContext.setFinishTime(currentTime);
       updateWorkflowMonitor(workflowContext, workflowConfig);
     }
@@ -773,7 +774,8 @@ public abstract class AbstractTaskDispatcher {
 
   protected void markJobFailed(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
       WorkflowContext workflowContext, Map<String, JobConfig> jobConfigMap,
-      TaskDataCache clusterDataCache) {
+      ClusterDataCache clusterDataCache) {
+    finishJobInRuntimeJobDag(clusterDataCache, workflowConfig.getWorkflowId(), jobName);
     long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.FAILED);
     if (jobContext != null) {
@@ -811,7 +813,7 @@ public abstract class AbstractTaskDispatcher {
    *         returns false otherwise.
    */
   protected boolean isWorkflowFinished(WorkflowContext ctx, WorkflowConfig cfg,
-      Map<String, JobConfig> jobConfigMap, TaskDataCache clusterDataCache) {
+      Map<String, JobConfig> jobConfigMap, ClusterDataCache clusterDataCache) {
     boolean incomplete = false;
 
     TaskState workflowState = ctx.getWorkflowState();
@@ -1019,7 +1021,7 @@ public abstract class AbstractTaskDispatcher {
    */
   protected boolean isJobReadyToSchedule(String job, WorkflowConfig workflowCfg,
       WorkflowContext workflowCtx, int incompleteAllCount, Map<String, JobConfig> jobConfigMap,
-      TaskDataCache clusterDataCache) {
+      ClusterDataCache clusterDataCache) {
     int notStartedCount = 0;
     int failedOrTimeoutCount = 0;
     int incompleteParentCount = 0;
@@ -1102,6 +1104,20 @@ public abstract class AbstractTaskDispatcher {
     for (Partition partition : partitionStateAssignment.getMappedPartitions()) {
       Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
       output.setState(resource, partition, newStateMap);
+    }
+  }
+
+  protected void finishJobInRuntimeJobDag(ClusterDataCache clusterDataCache, String workflowName,
+      String jobName) {
+    RuntimeJobDag runtimeJobDag = clusterDataCache.getRuntimeJobDag(workflowName);
+    if (runtimeJobDag != null) {
+      runtimeJobDag.finishJob(jobName);
+      LOG.debug(
+          String.format("Finish job %s of workflow %s for runtime job DAG", jobName, workflowName));
+    } else {
+      LOG.warn(String
+          .format("Failed to find runtime job DAG for workflow %s and job %s", workflowName,
+              jobName));
     }
   }
 }

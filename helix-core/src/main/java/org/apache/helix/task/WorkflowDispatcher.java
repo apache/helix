@@ -50,7 +50,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
   // Split it into status update and assign. But there are couple of data need
   // to pass around.
-  public void updateWorkflowStatus(String workflow, WorkflowConfig workflowCfg, WorkflowContext workflowCtx) {
+  public void updateWorkflowStatus(String workflow, WorkflowConfig workflowCfg, WorkflowContext workflowCtx, CurrentStateOutput currentStateOutput, BestPossibleStateOutput bestPossibleOutput) {
 
     // Fetch workflow configuration and context
     if (workflowCfg == null) {
@@ -106,7 +106,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // Note that COMPLETE and FAILED will be marked in markJobComplete / markJobFailed
     // This is to handle TIMED_OUT only
     if (workflowCtx.getFinishTime() == WorkflowContext.UNFINISHED && isWorkflowFinished(workflowCtx,
-        workflowCfg, _clusterDataCache.getJobConfigMap(), _clusterDataCache.getTaskDataCache())) {
+        workflowCfg, _clusterDataCache.getJobConfigMap(), _clusterDataCache)) {
       workflowCtx.setFinishTime(currentTime);
       updateWorkflowMonitor(workflowCtx, workflowCfg);
       _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
@@ -138,6 +138,18 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       }
     }
 
+    // Update jobs already inflight
+    RuntimeJobDag runtimeJobDag = _clusterDataCache.getRuntimeJobDag(workflow);
+    if (runtimeJobDag != null) {
+      for (String inflightJob : runtimeJobDag.getInflightJobList()) {
+        processJob(inflightJob, currentStateOutput, bestPossibleOutput, workflowCtx);
+      }
+    } else {
+      LOG.warn(String.format(
+          "Failed to find runtime job DAG for workflow %s, existing runtime jobs may not be processed correctly for it",
+          workflow));
+    }
+
     _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
   }
 
@@ -164,7 +176,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     if (isReady) {
       // Schedule jobs from this workflow.
       scheduleJobs(workflow, workflowCfg, workflowCtx, _clusterDataCache.getJobConfigMap(),
-          _clusterDataCache, currentStateOutput, bestPossibleOutput, resourceMap);
+          _clusterDataCache, currentStateOutput, bestPossibleOutput);
     } else {
       LOG.debug("Workflow " + workflow + " is not ready to be scheduled.");
     }
@@ -190,7 +202,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
   private void scheduleJobs(String workflow, WorkflowConfig workflowCfg,
       WorkflowContext workflowCtx, Map<String, JobConfig> jobConfigMap,
       ClusterDataCache clusterDataCache, CurrentStateOutput currentStateOutput,
-      BestPossibleStateOutput bestPossibleOutput, Map<String, Resource> resourceMap) {
+      BestPossibleStateOutput bestPossibleOutput) {
     ScheduleConfig scheduleConfig = workflowCfg.getScheduleConfig();
     if (scheduleConfig != null && scheduleConfig.isRecurring()) {
       LOG.debug("Jobs from recurring workflow are not schedule-able");
@@ -200,7 +212,16 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     int inCompleteAllJobCount = TaskUtil.getInCompleteJobCount(workflowCfg, workflowCtx);
     int scheduledJobs = 0;
     long timeToSchedule = Long.MAX_VALUE;
-    for (String job : workflowCfg.getJobDag().getAllNodes()) {
+    JobDag jobDag = clusterDataCache.getRuntimeJobDag(workflow);
+    if (jobDag == null) {
+      jobDag = workflowCfg.getJobDag();
+    }
+
+    String nextJob = jobDag.getNextJob();
+    // Assign new jobs
+    while (nextJob != null) {
+      String job = nextJob;
+      nextJob = jobDag.getNextJob();
       TaskState jobState = workflowCtx.getJobState(job);
       if (jobState != null && !jobState.equals(TaskState.NOT_STARTED)) {
         if (LOG.isDebugEnabled()) {
@@ -220,7 +241,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
       // check ancestor job status
       if (isJobReadyToSchedule(job, workflowCfg, workflowCtx, inCompleteAllJobCount, jobConfigMap,
-          clusterDataCache.getTaskDataCache())) {
+          clusterDataCache)) {
         JobConfig jobConfig = jobConfigMap.get(job);
         if (jobConfig == null) {
           LOG.error(String.format("The job config is missing for job %s", job));
@@ -253,6 +274,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         }
       }
     }
+
     long currentScheduledTime =
         _rebalanceScheduler.getRebalanceTime(workflow) == -1 ? Long.MAX_VALUE
             : _rebalanceScheduler.getRebalanceTime(workflow);
@@ -266,7 +288,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     _clusterDataCache.dispatchJob(job);
     try {
       ResourceAssignment resourceAssignment =
-          _jobDispatcher.processJobStatusUpdateandAssignment(job, currentStateOutput, workflowCtx);
+          _jobDispatcher.processJobStatusUpdateAndAssignment(job, currentStateOutput, workflowCtx);
       updateBestPossibleStateOutput(job, resourceAssignment, bestPossibleOutput);
     } catch (Exception e) {
       LogUtil.logWarn(LOG, _clusterDataCache.getEventId(),

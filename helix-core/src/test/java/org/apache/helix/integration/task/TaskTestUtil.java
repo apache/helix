@@ -21,6 +21,8 @@ package org.apache.helix.integration.task;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -131,42 +133,46 @@ public class TaskTestUtil {
         maxRunningCount = runningCount;
       }
 
-      List<JobContext> jobContextList = new ArrayList<JobContext>();
-      for (String jobName : workflowConfig.getJobDag().getAllNodes()) {
-        JobContext jobContext = driver.getJobContext(jobName);
-        if (jobContext != null) {
-          jobContextList.add(driver.getJobContext(jobName));
-        }
-      }
-
-      if (!workflowConfig.isAllowOverlapJobAssignment()) {
-        Set<String> instances = new HashSet<String>();
-        for (JobContext jobContext : jobContextList) {
-          for (int partition : jobContext.getPartitionSet()) {
-            String instance = jobContext.getAssignedParticipant(partition);
-            TaskPartitionState taskPartitionState = jobContext.getPartitionState(partition);
-
-            if (instance == null) {
-              continue;
-            }
-            if (taskPartitionState != TaskPartitionState.INIT && taskPartitionState != TaskPartitionState.RUNNING) {
-              continue;
-            }
-            if (instances.contains(instance)) {
-              return false;
-            }
-
-            TaskPartitionState state = jobContext.getPartitionState(partition);
-            if (state != TaskPartitionState.COMPLETED) {
-              instances.add(instance);
-            }
-          }
-        }
-      }
-
       Thread.sleep(100);
     }
 
+    List<JobContext> jobContextList = new ArrayList<>();
+    for (String jobName : workflowConfig.getJobDag().getAllNodes()) {
+      JobContext jobContext = driver.getJobContext(jobName);
+      if (jobContext != null) {
+        jobContextList.add(driver.getJobContext(jobName));
+      }
+    }
+    Map<String, List<long[]>> rangeMap = new HashMap<>();
+
+    if (!workflowConfig.isAllowOverlapJobAssignment()) {
+      for (JobContext jobContext : jobContextList) {
+        for (int partition : jobContext.getPartitionSet()) {
+          String instance = jobContext.getAssignedParticipant(partition);
+          if (!rangeMap.containsKey(instance)) {
+            rangeMap.put(instance, new ArrayList<long[]>());
+          }
+          rangeMap.get(instance).add(new long[] { jobContext.getPartitionStartTime(partition),
+              jobContext.getPartitionFinishTime(partition)
+          });
+        }
+      }
+    }
+
+    for (List<long[]> timeRange : rangeMap.values()) {
+      Collections.sort(timeRange, new Comparator<long[]>() {
+        @Override
+        public int compare(long[] o1, long[] o2) {
+          return (int) (o1[0] - o2[0]);
+        }
+      });
+
+      for (int i = 0; i < timeRange.size() - 1; i++) {
+        if (timeRange.get(i)[1] > timeRange.get(i + 1)[0]) {
+          return false;
+        }
+      }
+    }
     return maxRunningCount > 1 && (workflowConfig.isJobQueue() ? maxRunningCount <= workflowConfig
         .getParallelJobs() : true);
   }
@@ -296,16 +302,18 @@ public class TaskTestUtil {
     stage.postProcess();
   }
 
-  public static BestPossibleStateOutput calculateBestPossibleState(ClusterDataCache cache,
+  public static BestPossibleStateOutput calculateTaskSchedulingStage(ClusterDataCache cache,
       HelixManager manager) throws Exception {
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.PipelineType.name(), "TASK");
 
-    Map<AsyncWorkerType, DedupEventProcessor<String, Runnable>> asyncFIFOWorkerPool = new HashMap<>();
+    Map<AsyncWorkerType, DedupEventProcessor<String, Runnable>> asyncFIFOWorkerPool =
+        new HashMap<>();
     DedupEventProcessor<String, Runnable> worker =
-        new DedupEventProcessor<String, Runnable>("ClusterName", AsyncWorkerType.TaskJobPurgeWorker.name()) {
+        new DedupEventProcessor<String, Runnable>("ClusterName",
+            AsyncWorkerType.TaskJobPurgeWorker.name()) {
           @Override
           protected void handleEvent(Runnable event) {
             // TODO: retry when queue is empty and event.run() failed?

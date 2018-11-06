@@ -209,7 +209,7 @@ public class TestWorkflowTermination extends TaskTestBase {
     String job3 = JOB_NAME + "3";
     String job4 = JOB_NAME + "4";
     long workflowExpiry = 10000;
-    long timeout = 8000;
+    long timeout = 10000;
 
     JobConfig.Builder jobBuilder = createJobConfigBuilder(workflowName, false, 1);
     JobConfig.Builder failedJobBuilder = createJobConfigBuilder(workflowName, true, 1);

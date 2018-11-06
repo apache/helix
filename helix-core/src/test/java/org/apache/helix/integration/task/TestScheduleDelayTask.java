@@ -62,11 +62,11 @@ public class TestScheduleDelayTask extends TaskTestBase {
     long jobFinishTime = 0L;
     for (int i = 1; i <= 3; i++) {
       jobFinishTime = Math.max(jobFinishTime,
-          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "Job1"))
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "Job" + i))
               .getFinishTime());
     }
-    long jobTwoStartTime =
-        _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "Job4")).getStartTime();
+    long jobTwoStartTime = _driver.getWorkflowContext(workflowName)
+        .getJobStartTime(TaskUtil.getNamespacedJobName(workflowName, "Job4"));
 
     Assert.assertTrue(jobTwoStartTime - jobFinishTime >= 2000L);
   }
@@ -90,8 +90,8 @@ public class TestScheduleDelayTask extends TaskTestBase {
     _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, "Job2"),
         TaskState.COMPLETED);
 
-    long jobTwoStartTime =
-        _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "Job2")).getStartTime();
+    long jobTwoStartTime = _driver.getWorkflowContext(workflowName)
+        .getJobStartTime(TaskUtil.getNamespacedJobName(workflowName, "Job2"));
 
     Assert.assertTrue(jobTwoStartTime - currentTime >= 5000L);
   }
@@ -118,8 +118,8 @@ public class TestScheduleDelayTask extends TaskTestBase {
     long jobFinishTime =
         _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "Job3")).getFinishTime();
 
-    long jobTwoStartTime =
-        _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "Job4")).getStartTime();
+    long jobTwoStartTime = _driver.getWorkflowContext(workflowName)
+        .getJobStartTime(TaskUtil.getNamespacedJobName(workflowName, "Job4"));
 
     Assert.assertTrue(jobTwoStartTime - jobFinishTime >= 2000L);
   }
@@ -145,8 +145,8 @@ public class TestScheduleDelayTask extends TaskTestBase {
     _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, "Job2"),
         TaskState.COMPLETED);
 
-    long jobTwoStartTime =
-        _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "Job2")).getStartTime();
+    long jobTwoStartTime = _driver.getWorkflowContext(workflowName)
+        .getJobStartTime(TaskUtil.getNamespacedJobName(workflowName, "Job2"));
 
     Assert.assertTrue(jobTwoStartTime - currentTime >= 5000L);
   }

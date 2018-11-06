@@ -82,13 +82,13 @@ public class TestCleanExpiredJobs extends TaskSynchronizedTestBase {
     _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
     _cache.setTaskCache(true);
     TaskUtil.setWorkflowContext(_manager, queue, workflowContext);
-    TaskTestUtil.calculateBestPossibleState(_cache, _manager);
+    TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
     Thread.sleep(500);
     WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queue);
     Assert.assertEquals(workflowConfig.getJobDag().getAllNodes(), jobsLeft);
     _cache.requireFullRefresh();
     _cache.refresh(_manager.getHelixDataAccessor());
-    TaskTestUtil.calculateBestPossibleState(_cache, _manager);
+    TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
     Thread.sleep(500);
     workflowContext = _driver.getWorkflowContext(queue);
     Assert.assertTrue(workflowContext.getLastJobPurgeTime() > startTime
@@ -117,7 +117,7 @@ public class TestCleanExpiredJobs extends TaskSynchronizedTestBase {
     _driver.start(builder.build());
     _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
     TaskUtil.setWorkflowContext(_manager, queue, workflowContext);
-    TaskTestUtil.calculateBestPossibleState(_cache, _manager);
+    TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
     WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queue);
     Assert.assertEquals(workflowConfig.getJobDag().getAllNodes().size(), 2);
   }

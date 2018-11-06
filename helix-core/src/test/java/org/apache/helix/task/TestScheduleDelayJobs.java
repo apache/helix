@@ -56,7 +56,8 @@ public class TestScheduleDelayJobs extends TaskSynchronizedTestBase {
     _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
     long currentTime = System.currentTimeMillis();
     TaskUtil.setWorkflowContext(_manager, workflowName, workflowContext);
-    TaskTestUtil.calculateBestPossibleState(_cache, _manager);
+    TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
+    TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
     Assert.assertTrue(_testRebalancer.getRebalanceTime(workflowName) - currentTime >= 10000L);
   }
 
@@ -80,7 +81,8 @@ public class TestScheduleDelayJobs extends TaskSynchronizedTestBase {
     _driver.start(builder.build());
     _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
     TaskUtil.setWorkflowContext(_manager, workflowName, workflowContext);
-    TaskTestUtil.calculateBestPossibleState(_cache, _manager);
+    TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
+    TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
     Assert.assertTrue(_testRebalancer.getRebalanceTime(workflowName) == currentTime);
   }
 

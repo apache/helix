@@ -36,6 +36,7 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
+import org.apache.helix.task.RuntimeJobDag;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
@@ -51,6 +52,7 @@ public class TaskDataCache extends AbstractDataCache {
 
   private String _clusterName;
   private Map<String, JobConfig> _jobConfigMap = new HashMap<>();
+  private Map<String, RuntimeJobDag> _runtimeJobDagMap = new HashMap<>();
   private Map<String, WorkflowConfig> _workflowConfigMap = new ConcurrentHashMap<>();
   private Map<String, ZNRecord> _contextMap = new HashMap<>();
   private Set<String> _contextToUpdate = new HashSet<>();
@@ -83,18 +85,53 @@ public class TaskDataCache extends AbstractDataCache {
     refreshJobContexts(accessor);
     // update workflow and job configs.
     _workflowConfigMap.clear();
-    _jobConfigMap.clear();
+    Map<String, JobConfig> newJobConfigs = new HashMap<>();
+    Set<String> workflowsUpdated = new HashSet<>();
     for (Map.Entry<String, ResourceConfig> entry : resourceConfigMap.entrySet()) {
       if (entry.getValue().getRecord().getSimpleFields()
           .containsKey(WorkflowConfig.WorkflowConfigProperty.Dag.name())) {
         _workflowConfigMap.put(entry.getKey(), new WorkflowConfig(entry.getValue()));
+        if (!_runtimeJobDagMap.containsKey(entry.getKey())) {
+          WorkflowConfig workflowConfig = _workflowConfigMap.get(entry.getKey());
+          _runtimeJobDagMap.put(entry.getKey(), new RuntimeJobDag(workflowConfig.getJobDag(),
+              workflowConfig.isJobQueue() || !workflowConfig.isTerminable(),
+              workflowConfig.getParallelJobs()));
+        }
       } else if (entry.getValue().getRecord().getSimpleFields()
           .containsKey(WorkflowConfig.WorkflowConfigProperty.WorkflowID.name())) {
-        _jobConfigMap.put(entry.getKey(), new JobConfig(entry.getValue()));
+        newJobConfigs.put(entry.getKey(), new JobConfig(entry.getValue()));
       }
     }
-    _dispatchedJobs.clear();
 
+    // The following 3 blocks is for finding a list of workflows whose JobDAGs have been changed
+    // because their RuntimeJobDags would need to be re-built
+    // newly added jobs
+    for (String jobName : newJobConfigs.keySet()) {
+      if (!_jobConfigMap.containsKey(jobName) && newJobConfigs.get(jobName).getWorkflow() != null) {
+        workflowsUpdated.add(newJobConfigs.get(jobName).getWorkflow());
+      }
+    }
+
+    // Removed jobs
+    for (String jobName : _jobConfigMap.keySet()) {
+      if (!newJobConfigs.containsKey(jobName) && _jobConfigMap.get(jobName).getWorkflow() != null) {
+        workflowsUpdated.add(_jobConfigMap.get(jobName).getWorkflow());
+      }
+    }
+
+    // Combine all the workflows' job dag which need update
+    for (String changedWorkflow : workflowsUpdated) {
+      if (_workflowConfigMap.containsKey(changedWorkflow)) {
+        WorkflowConfig workflowConfig = _workflowConfigMap.get(changedWorkflow);
+        _runtimeJobDagMap.put(changedWorkflow, new RuntimeJobDag(workflowConfig.getJobDag(),
+            workflowConfig.isJobQueue() || !workflowConfig.isTerminable(),
+            workflowConfig.getParallelJobs()));
+      }
+    }
+
+    _dispatchedJobs.clear();
+    _runtimeJobDagMap.keySet().retainAll(_workflowConfigMap.keySet());
+    _jobConfigMap = newJobConfigs;
     return true;
   }
 
@@ -318,5 +355,12 @@ public class TaskDataCache extends AbstractDataCache {
 
   public Set<String> getDispatchedJobs() {
     return _dispatchedJobs;
+  }
+
+  public RuntimeJobDag getRuntimeJobDag(String workflowName) {
+    if (_runtimeJobDagMap.containsKey(workflowName)) {
+      return _runtimeJobDagMap.get(workflowName);
+    }
+    return null;
   }
 }

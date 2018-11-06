@@ -65,12 +65,12 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
-
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
       CurrentStateOutput currentStateOutput) {
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    // After compute all workflows and jobs, there are still task resources need to be DROPPED
     Map<String, Resource> restOfResources = new HashMap<>(resourceMap);
     BestPossibleStateOutput output = new BestPossibleStateOutput();
     final List<String> failureResources = new ArrayList<>();
@@ -253,7 +253,8 @@ public class TaskSchedulingStage extends AbstractBaseStage {
             WorkflowContext context = _workflowDispatcher
                 .getOrInitializeWorkflowContext(workflowId, cache.getTaskDataCache());
             _workflowDispatcher
-                .updateWorkflowStatus(workflowId, cache.getWorkflowConfig(workflowId), context);
+                .updateWorkflowStatus(workflowId, cache.getWorkflowConfig(workflowId), context,
+                    currentStateOutput, bestPossibleOutput);
             _workflowDispatcher
                 .assignWorkflow(workflowId, cache.getWorkflowConfig(workflowId), context,
                     currentStateOutput, bestPossibleOutput, resourceMap);

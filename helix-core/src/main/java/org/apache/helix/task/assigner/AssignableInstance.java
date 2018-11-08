@@ -389,11 +389,6 @@ public class AssignableInstance {
           _instanceConfig.getInstanceName());
       return;
     }
-    if (quotaType == null) {
-      logger.debug("Task {}'s quotaType is null. Trying to release as DEFAULT type.",
-          taskConfig.getId());
-      quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
-    }
 
     String resourceType = LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name();
 

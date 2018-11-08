@@ -21,6 +21,7 @@ package org.apache.helix.task;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -40,10 +41,18 @@ import org.slf4j.LoggerFactory;
 public class AssignableInstanceManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(AssignableInstanceManager.class);
+  public static final int QUOTA_TYPE_NOT_EXIST = -1;
   // Instance name -> AssignableInstance
   private Map<String, AssignableInstance> _assignableInstanceMap;
   // TaskID -> TaskAssignResult TODO: Hunter: Move this if not needed
   private Map<String, TaskAssignResult> _taskAssignResultMap;
+
+  // With one dimentional quota, and every task only needs 1 quota, this map will save some work
+  // in case quota is full. But if there is multi-dimential quota, such aggregated quota map may not
+  // help in most of the cases, as this global view does not mean that a single instance has all
+  // these quota available.
+  // This map is quota type -> remaining global quota
+  private Map<String, Integer> _globalThreadBasedQuotaMap;
 
   /**
    * Basic constructor for AssignableInstanceManager to allow an empty instantiation.
@@ -52,6 +61,7 @@ public class AssignableInstanceManager {
   public AssignableInstanceManager() {
     _assignableInstanceMap = new ConcurrentHashMap<>();
     _taskAssignResultMap = new ConcurrentHashMap<>();
+    _globalThreadBasedQuotaMap = new ConcurrentHashMap<>();
   }
 
   /**
@@ -163,6 +173,7 @@ public class AssignableInstanceManager {
     }
     LOG.info(
         "AssignableInstanceManager built AssignableInstances from scratch based on contexts in TaskDataCache due to Controller switch or ClusterConfig change.");
+    computeGlobalThreadBasedCapacity();
   }
 
   /**
@@ -231,6 +242,8 @@ public class AssignableInstanceManager {
     }
     LOG.info(
         "AssignableInstanceManager updated AssignableInstances due to LiveInstance/InstanceConfig change.");
+
+    computeGlobalThreadBasedCapacity();
   }
 
   /**
@@ -259,6 +272,80 @@ public class AssignableInstanceManager {
    */
   public Map<String, TaskAssignResult> getTaskAssignResultMap() {
     return _taskAssignResultMap;
+  }
+
+  /**
+   * Get remained global quota of certain quota type for skipping redundant computation
+   * @param quotaType
+   * @return
+   */
+  public int getGlobalCapacity(String quotaType) {
+    if (_globalThreadBasedQuotaMap.containsKey(quotaType)) {
+      return _globalThreadBasedQuotaMap.get(quotaType);
+    }
+    return QUOTA_TYPE_NOT_EXIST;
+  }
+
+  /**
+   * Wrapper for AssignableInstance release
+   * @param instanceName
+   * @param taskConfig
+   * @param quotaType
+   */
+  public void release(String instanceName, TaskConfig taskConfig, String quotaType) {
+    if (quotaType == null) {
+      LOG.debug("Task {}'s quotaType is null. Trying to release as DEFAULT type.",
+          taskConfig.getId());
+      quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
+    }
+    if (_assignableInstanceMap.containsKey(instanceName)) {
+      _assignableInstanceMap.get(instanceName).release(taskConfig, quotaType);
+    }
+
+    if (_globalThreadBasedQuotaMap.containsKey(quotaType)) {
+      _globalThreadBasedQuotaMap.put(quotaType, _globalThreadBasedQuotaMap.get(quotaType) + 1);
+    }
+  }
+
+  /**
+   * Wrapper for AssignableInstance tryAssign
+   * @param instanceName
+   * @param task
+   * @param quotaType
+   * @return
+   * @throws IllegalArgumentException
+   */
+  public TaskAssignResult tryAssign(String instanceName, TaskConfig task, String quotaType)
+      throws IllegalArgumentException {
+    if (_assignableInstanceMap.containsKey(instanceName)) {
+      return _assignableInstanceMap.get(instanceName).tryAssign(task, quotaType);
+    }
+    return null;
+  }
+
+  /**
+   * Wrapper for AssignableInstance assign
+   * @param instanceName
+   * @param result
+   * @throws IllegalStateException
+   */
+  public void assign(String instanceName, TaskAssignResult result) throws IllegalStateException {
+    if (result != null && _assignableInstanceMap.containsKey(instanceName)) {
+      _assignableInstanceMap.get(instanceName).assign(result);
+    }
+
+    if (_globalThreadBasedQuotaMap.containsKey(result.getQuotaType())) {
+      _globalThreadBasedQuotaMap
+          .put(result.getQuotaType(), _globalThreadBasedQuotaMap.get(result.getQuotaType()) - 1);
+    }
+  }
+
+  /**
+   * Get all the AssignableInstance names
+   * @return
+   */
+  public Set<String> getAssignableInstanceNames() {
+    return Collections.unmodifiableSet(_assignableInstanceMap.keySet());
   }
 
   /**
@@ -326,6 +413,21 @@ public class AssignableInstanceManager {
     }
     if (instanceNode.size() > 0) {
       LOG.info("Current quota capacity: {}", instanceNode.toString());
+    }
+  }
+
+  private void computeGlobalThreadBasedCapacity() {
+    _globalThreadBasedQuotaMap.clear();
+    for (AssignableInstance assignableInstance : _assignableInstanceMap.values()) {
+      Map<String, Map<String, Integer>> capacityMap = assignableInstance.getTotalCapacity();
+      for (Map.Entry<String, Integer> entry : capacityMap
+          .get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name()).entrySet()) {
+        int value = entry.getValue();
+        if (_globalThreadBasedQuotaMap.containsKey(entry.getKey())) {
+          value += _globalThreadBasedQuotaMap.get(entry.getKey());
+        }
+        _globalThreadBasedQuotaMap.put(entry.getKey(), value);
+      }
     }
   }
 }

@@ -192,8 +192,6 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
 
     // Note: targeted jobs also take up capacity in quota-based scheduling
     // "Charge" resources for the tasks
-    Map<String, AssignableInstance> assignableInstanceMap =
-        _assignableInstanceManager.getAssignableInstanceMap();
     String quotaType = getQuotaType(workflowCfg, jobCfg);
 
     // IdealState of the target resource
@@ -263,8 +261,9 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
               if (!prevInstance.equals(instance)) {
                 // Old and new assignments are different. We need to release from prevInstance, and
                 // this task will be assigned to a different instance
-                if (assignableInstanceMap.containsKey(prevInstance)) {
-                  assignableInstanceMap.get(prevInstance).release(taskConfig, quotaType);
+                if (_assignableInstanceManager.getAssignableInstanceNames()
+                    .contains(prevInstance)) {
+                  _assignableInstanceManager.release(prevInstance, taskConfig, quotaType);
                 } else {
                   // This instance must be no longer live
                   LOG.warn(
@@ -279,14 +278,13 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
             }
 
             // Actual assignment logic: try to charge resources first and assign if successful
-            if (assignableInstanceMap.containsKey(instance)) {
-              AssignableInstance assignableInstance = assignableInstanceMap.get(instance);
+            if (_assignableInstanceManager.getAssignableInstanceNames().contains(instance)) {
               // Try to assign first
               TaskAssignResult taskAssignResult =
-                  assignableInstance.tryAssign(taskConfig, quotaType);
+                  _assignableInstanceManager.tryAssign(instance, taskConfig, quotaType);
               if (taskAssignResult.isSuccessful()) {
                 // There exists a partition, the states match up, and tryAssign successful. Assign!
-                assignableInstance.assign(taskAssignResult);
+                _assignableInstanceManager.assign(instance, taskAssignResult);
                 result.get(instance).add(targetPartitionId);
                 // To prevent double assign of the tasks on other replicas of the targetResource
                 // partition

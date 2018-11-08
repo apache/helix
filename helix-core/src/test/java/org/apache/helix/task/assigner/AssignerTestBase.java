@@ -26,7 +26,7 @@ import org.apache.helix.model.LiveInstance;
 
 /* package */ class AssignerTestBase {
 
-  private static final String testClusterName = "testCluster";
+  public static final String testClusterName = "testCluster";
   static final String testInstanceName = "testInstance";
 
   static final String[] testResourceTypes = new String[] {"Resource1", "Resource2", "Resource3"};

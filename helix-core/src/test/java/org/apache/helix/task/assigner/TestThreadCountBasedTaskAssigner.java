@@ -21,11 +21,15 @@ package org.apache.helix.task.assigner;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.helix.common.caches.TaskDataCache;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.TaskConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -38,20 +42,23 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
     int taskCountPerType = 150;
     int instanceCount = 20;
     int threadCount = 50;
-    List<AssignableInstance> instances = createAssignableInstances(instanceCount, threadCount);
+    AssignableInstanceManager assignableInstanceManager =
+        createAssignableInstanceManager(instanceCount, threadCount);
 
     for (String quotaType : testQuotaTypes) {
       // Create tasks
       List<TaskConfig> tasks = createTaskConfigs(taskCountPerType);
 
       // Assign
-      Map<String, TaskAssignResult> results = assigner.assignTasks(instances, tasks, quotaType);
+      Map<String, TaskAssignResult> results =
+          assigner.assignTasks(assignableInstanceManager, tasks, quotaType);
 
       // Check success
       assertAssignmentResults(results.values(), true);
 
       // Check evenness
-      for (AssignableInstance instance : instances) {
+      for (AssignableInstance instance : assignableInstanceManager.getAssignableInstanceMap()
+          .values()) {
         int assignedCount = instance.getUsedCapacity()
             .get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name()).get(quotaType);
         Assert.assertTrue(assignedCount <= taskCountPerType / instanceCount + 1
@@ -66,7 +73,7 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
     int taskCount = 10;
     List<TaskConfig> tasks = createTaskConfigs(taskCount);
     Map<String, TaskAssignResult> results =
-        assigner.assignTasks(Collections.<AssignableInstance>emptyList(), tasks, "Dummy");
+        assigner.assignTasks(new AssignableInstanceManager(), tasks, "Dummy");
     Assert.assertEquals(results.size(), taskCount);
     for (TaskAssignResult result : results.values()) {
       Assert.assertFalse(result.isSuccessful());
@@ -79,9 +86,10 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
   @Test
   public void testAssignmentFailureNoTask() {
     TaskAssigner assigner = new ThreadCountBasedTaskAssigner();
-    List<AssignableInstance> instances = createAssignableInstances(1, 10);
-    Map<String, TaskAssignResult> results =
-        assigner.assignTasks(instances, Collections.<TaskConfig>emptyList());
+    AssignableInstanceManager assignableInstanceManager = createAssignableInstanceManager(1, 10);
+    Map<String, TaskAssignResult> results = assigner
+        .assignTasks(assignableInstanceManager, Collections.<TaskConfig>emptyList(),
+            AssignableInstance.DEFAULT_QUOTA_TYPE);
     Assert.assertTrue(results.isEmpty());
   }
 
@@ -90,10 +98,11 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
     TaskAssigner assigner = new ThreadCountBasedTaskAssigner();
 
     // 10 * Type1 quota
-    List<AssignableInstance> instances = createAssignableInstances(2, 10);
+    AssignableInstanceManager assignableInstanceManager = createAssignableInstanceManager(2, 10);
     List<TaskConfig> tasks = createTaskConfigs(20);
 
-    Map<String, TaskAssignResult> results = assigner.assignTasks(instances, tasks, testQuotaTypes[0]);
+    Map<String, TaskAssignResult> results =
+        assigner.assignTasks(assignableInstanceManager, tasks, testQuotaTypes[0]);
     int successCnt = 0;
     int failCnt = 0;
     for (TaskAssignResult rst : results.values()) {
@@ -112,14 +121,15 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
   @Test
   public void testAssignmentFailureDuplicatedTask() {
     TaskAssigner assigner = new ThreadCountBasedTaskAssigner();
-    List<AssignableInstance> instances = createAssignableInstances(1, 20);
+    AssignableInstanceManager assignableInstanceManager = createAssignableInstanceManager(1, 20);
     List<TaskConfig> tasks = createTaskConfigs(10, false);
 
     // Duplicate all tasks
     tasks.addAll(createTaskConfigs(10, false));
     Collections.shuffle(tasks);
 
-    Map<String, TaskAssignResult> results = assigner.assignTasks(instances, tasks, testQuotaTypes[0]);
+    Map<String, TaskAssignResult> results =
+        assigner.assignTasks(assignableInstanceManager, tasks, testQuotaTypes[0]);
     Assert.assertEquals(results.size(), 10);
     assertAssignmentResults(results.values(), true);
   }
@@ -141,15 +151,16 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
       TaskAssigner assigner = new ThreadCountBasedTaskAssigner();
 
       // 50 * instanceCount number of tasks
-      List<AssignableInstance> instances = createAssignableInstances(instanceCount, 100);
+      AssignableInstanceManager assignableInstanceManager =
+          createAssignableInstanceManager(instanceCount, 100);
       List<TaskConfig> tasks = createTaskConfigs(taskCount);
       List<Map<String, TaskAssignResult>> allResults = new ArrayList<>();
 
       // Assign
       long start = System.currentTimeMillis();
       for (int j = 0; j < taskCount / assignBatchSize; j++) {
-        allResults.add(assigner
-            .assignTasks(instances, tasks.subList(j * assignBatchSize, (j + 1) * assignBatchSize), testQuotaTypes[0]));
+        allResults.add(assigner.assignTasks(assignableInstanceManager,
+            tasks.subList(j * assignBatchSize, (j + 1) * assignBatchSize), testQuotaTypes[0]));
       }
       long duration = System.currentTimeMillis() - start;
       totalTime += duration;
@@ -184,22 +195,25 @@ public class TestThreadCountBasedTaskAssigner extends AssignerTestBase {
     return tasks;
   }
 
-  private List<AssignableInstance> createAssignableInstances(int count, int threadCount) {
+  private AssignableInstanceManager createAssignableInstanceManager(int count, int threadCount) {
+    AssignableInstanceManager assignableInstanceManager = new AssignableInstanceManager();
     List<AssignableInstance> instances = new ArrayList<>();
+    ClusterConfig clusterConfig = createClusterConfig(testQuotaTypes, testQuotaRatio, false);
     String instanceNameFormat = "instance-%s";
+    Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     for (int i = 0; i < count; i++) {
       String instanceName = String.format(instanceNameFormat, i);
-      instances.add(
-          new AssignableInstance(
-              createClusterConfig(testQuotaTypes, testQuotaRatio, false),
-              new InstanceConfig(instanceName),
-              createLiveInstance(
-                  new String[] { LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name() },
-                  new String[] { Integer.toString(threadCount) },
-                  instanceName)
-          )
-      );
+      liveInstanceMap.put(instanceName, createLiveInstance(
+          new String[] { LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name() },
+          new String[] { Integer.toString(threadCount) }, instanceName));
+      instanceConfigMap.put(instanceName, new InstanceConfig(instanceName));
+
     }
-    return instances;
+
+    assignableInstanceManager
+        .buildAssignableInstances(clusterConfig, new TaskDataCache(testClusterName),
+            liveInstanceMap, instanceConfigMap);
+    return assignableInstanceManager;
   }
 }

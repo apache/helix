@@ -13,7 +13,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
-import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
@@ -21,7 +20,6 @@ import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.assigner.AssignableInstance;
@@ -1021,10 +1019,28 @@ public abstract class AbstractTaskDispatcher {
    */
   protected boolean isJobReadyToSchedule(String job, WorkflowConfig workflowCfg,
       WorkflowContext workflowCtx, int incompleteAllCount, Map<String, JobConfig> jobConfigMap,
-      ClusterDataCache clusterDataCache) {
+      ClusterDataCache clusterDataCache, AssignableInstanceManager assignableInstanceManager) {
     int notStartedCount = 0;
     int failedOrTimeoutCount = 0;
     int incompleteParentCount = 0;
+    JobConfig jobConfig = jobConfigMap.get(job);
+
+    if (jobConfig == null) {
+      LOG.error(String.format("The job config is missing for job %s", job));
+      return false;
+    }
+
+    String quotaType = TaskAssignmentCalculator.getQuotaType(workflowCfg, jobConfig);
+    if (quotaType == null || !assignableInstanceManager.hasQuotaType(quotaType)) {
+      quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
+    }
+
+    if (!assignableInstanceManager.hasGlobalCapacity(quotaType)) {
+      LOG.info(String
+          .format("Job %s not ready to schedule due to not having enough quota for quota type %s",
+              job, quotaType));
+      return false;
+    }
 
     for (String parent : workflowCfg.getJobDag().getDirectParents(job)) {
       TaskState jobState = workflowCtx.getJobState(parent);
@@ -1048,11 +1064,6 @@ public abstract class AbstractTaskDispatcher {
 
     // If there is parent job failed, schedule the job only when ignore dependent
     // job failure enabled
-    JobConfig jobConfig = jobConfigMap.get(job);
-    if (jobConfig == null) {
-      LOG.error(String.format("The job config is missing for job %s", job));
-      return false;
-    }
     if (failedOrTimeoutCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
       markJobFailed(job, null, workflowCfg, workflowCtx, jobConfigMap, clusterDataCache);
       if (LOG.isDebugEnabled()) {

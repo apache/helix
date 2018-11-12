@@ -26,6 +26,7 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskRebalancer;
 import org.apache.helix.task.WorkflowConfig;
@@ -82,6 +83,8 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     }
 
     // Current rest of resources including: only current state left over ones
+    // Original resource map contains workflows + jobs + other invalid resources
+    // After removing workflows + jobs, only leftover ones will go over old rebalance pipeline.
     for (Resource resource : restOfResources.values()) {
       if (!computeResourceBestPossibleState(event, cache, currentStateOutput, resource, output)) {
         failureResources.add(resource.getResourceName());
@@ -222,10 +225,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
 
     for (String workflowId : cache.getWorkflowConfigMap().keySet()) {
       WorkflowConfig workflowConfig = cache.getWorkflowConfig(workflowId);
-      String workflowType = workflowConfig.getWorkflowType();
-      if (workflowType == null || !_quotaBasedWorkflowPQs.containsKey(workflowType)) {
-        workflowType = AssignableInstance.DEFAULT_QUOTA_TYPE;
-      }
+      String workflowType = getQuotaType(workflowConfig);
       // TODO: We can support customized sorting field for user. Currently sort by creation time
       _quotaBasedWorkflowPQs.get(workflowType)
           .add(new WorkflowObject(workflowId, workflowConfig.getRecord().getCreationTime()));
@@ -241,6 +241,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
   private void scheduleWorkflows(Map<String, Resource> resourceMap, ClusterDataCache cache,
       Map<String, Resource> restOfResources, List<String> failureResources,
       CurrentStateOutput currentStateOutput, BestPossibleStateOutput bestPossibleOutput) {
+    AssignableInstanceManager assignableInstanceManager = cache.getAssignableInstanceManager();
     for (PriorityQueue<WorkflowObject> quotaBasedWorkflowPQ : _quotaBasedWorkflowPQs.values()) {
       Iterator<WorkflowObject> it = quotaBasedWorkflowPQ.iterator();
       while (it.hasNext()) {
@@ -255,10 +256,17 @@ public class TaskSchedulingStage extends AbstractBaseStage {
             _workflowDispatcher
                 .updateWorkflowStatus(workflowId, cache.getWorkflowConfig(workflowId), context,
                     currentStateOutput, bestPossibleOutput);
-            _workflowDispatcher
-                .assignWorkflow(workflowId, cache.getWorkflowConfig(workflowId), context,
-                    currentStateOutput, bestPossibleOutput, resourceMap);
+            String quotaType = getQuotaType(cache.getWorkflowConfig(workflowId));
             restOfResources.remove(workflowId);
+            if (assignableInstanceManager.hasGlobalCapacity(quotaType)) {
+              _workflowDispatcher
+                  .assignWorkflow(workflowId, cache.getWorkflowConfig(workflowId), context,
+                      currentStateOutput, bestPossibleOutput, resourceMap);
+            } else {
+              LogUtil.logInfo(logger, _eventId, String.format(
+                  "Fail to schedule new jobs assignment for Workflow %s due to quota %s is full",
+                  workflowId, quotaType));
+            }
           } catch (Exception e) {
             LogUtil.logError(logger, _eventId,
                 "Error computing assignment for Workflow " + workflowId + ". Skipping.", e);
@@ -278,5 +286,13 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     resource.setStateModelDefRef(TaskConstants.STATE_MODEL_NAME);
     resource.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
     resourceMap.put(jobName, resource);
+  }
+
+  private String getQuotaType(WorkflowConfig workflowConfig) {
+    String workflowType = workflowConfig.getWorkflowType();
+    if (workflowType == null || !_quotaBasedWorkflowPQs.containsKey(workflowType)) {
+      workflowType = AssignableInstance.DEFAULT_QUOTA_TYPE;
+    }
+    return workflowType;
   }
 }

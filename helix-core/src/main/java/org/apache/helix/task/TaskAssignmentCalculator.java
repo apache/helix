@@ -53,7 +53,7 @@ public abstract class TaskAssignmentCalculator {
    * @param jobConfig
    * @return
    */
-  String getQuotaType(WorkflowConfig workflowConfig, JobConfig jobConfig) {
+  public static String getQuotaType(WorkflowConfig workflowConfig, JobConfig jobConfig) {
     String workflowType = workflowConfig.getWorkflowType();
     if (workflowType == null || workflowType.equals("")) {
       // Workflow type is null, so we go by the job type

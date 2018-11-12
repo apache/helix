@@ -87,7 +87,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
 
     if (!TaskUtil.isJobStarted(jobName, workflowCtx) && !isJobReadyToSchedule(jobName, workflowCfg,
         workflowCtx, TaskUtil.getInCompleteJobCount(workflowCfg, workflowCtx),
-        _clusterDataCache.getJobConfigMap(), _clusterDataCache)) {
+        _clusterDataCache.getJobConfigMap(), _clusterDataCache,
+        _clusterDataCache.getAssignableInstanceManager())) {
       LOG.info("Job is not ready to run " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }

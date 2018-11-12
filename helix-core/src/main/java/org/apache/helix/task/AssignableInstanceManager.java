@@ -275,15 +275,22 @@ public class AssignableInstanceManager {
   }
 
   /**
-   * Get remained global quota of certain quota type for skipping redundant computation
+   * Check remained global quota of certain quota type for skipping redundant computation
    * @param quotaType
    * @return
    */
-  public int getGlobalCapacity(String quotaType) {
-    if (_globalThreadBasedQuotaMap.containsKey(quotaType)) {
-      return _globalThreadBasedQuotaMap.get(quotaType);
-    }
-    return QUOTA_TYPE_NOT_EXIST;
+  public boolean hasGlobalCapacity(String quotaType) {
+    return _globalThreadBasedQuotaMap.containsKey(quotaType)
+        && _globalThreadBasedQuotaMap.get(quotaType) > 0;
+  }
+
+  /**
+   * Check whether quota maps contains the quota type or not
+   * @param quotaType
+   * @return
+   */
+  public boolean hasQuotaType(String quotaType) {
+    return _globalThreadBasedQuotaMap.containsKey(quotaType);
   }
 
   /**

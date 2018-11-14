@@ -42,6 +42,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
   private static final long DEFAULT_HANDOFF_USER_LATENCY = 0L;
   private static Logger LOG = LoggerFactory.getLogger(TopStateHandoffReportStage.class);
   public static final long TIMESTAMP_NOT_RECORDED = -1L;
+  private static final String TASK_STATE_MODEL_NAME = "Task";
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -88,7 +89,8 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
 
     for (Resource resource : resourceMap.values()) {
       StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
-      if (stateModelDef == null) {
+      if (stateModelDef == null || resource.getStateModelDefRef()
+          .equalsIgnoreCase(TASK_STATE_MODEL_NAME)) {
         // Resource does not have valid state model, just skip processing
         continue;
       }

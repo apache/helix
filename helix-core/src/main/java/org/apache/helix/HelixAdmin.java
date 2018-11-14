@@ -209,6 +209,22 @@ public interface HelixAdmin {
   void setResourceIdealState(String clusterName, String resourceName, IdealState idealState);
 
   /**
+   * Selectively updates fields for an existing resource's IdealState ZNode.
+   * @param clusterName
+   * @param resourceName
+   * @param idealState
+   */
+  void updateIdealState(String clusterName, String resourceName, IdealState idealState);
+
+  /**
+   * Selectively removes fields for an existing resource's IdealState ZNode.
+   * @param clusterName
+   * @param resourceName
+   * @param idealState
+   */
+  void removeFromIdealState(String clusterName, String resourceName, IdealState idealState);
+
+  /**
    * Disable or enable an instance
    * @param clusterName
    * @param instanceName

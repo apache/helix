@@ -154,13 +154,12 @@ public class AbstractResource {
 
   protected Command getCommand(String commandStr) throws HelixException {
     if (commandStr == null) {
-      throw new HelixException("Unknown command " + commandStr);
+      throw new HelixException("Command string is null!");
     }
     try {
-      Command command = Command.valueOf(commandStr);
-      return command;
+      return Command.valueOf(commandStr);
     } catch (IllegalArgumentException ex) {
-      throw new HelixException("Unknown command " + commandStr);
+      throw new HelixException("Unknown command: " + commandStr);
     }
   }
 }

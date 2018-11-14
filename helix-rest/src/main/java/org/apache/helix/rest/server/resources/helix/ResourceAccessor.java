@@ -355,6 +355,54 @@ public class ResourceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @POST
+  @Path("{resourceName}/idealState")
+  public Response updateResourceIdealState(@PathParam("clusterId") String clusterId,
+      @PathParam("resourceName") String resourceName, @QueryParam("command") String commandStr,
+      String content) {
+    Command command;
+    if (commandStr == null || commandStr.isEmpty()) {
+      command = Command.update; // Default behavior is update
+    } else {
+      try {
+        command = getCommand(commandStr);
+      } catch (HelixException ex) {
+        return badRequest(ex.getMessage());
+      }
+    }
+
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      return badRequest("Input is not a vaild ZNRecord!");
+    }
+    IdealState idealState = new IdealState(record);
+    HelixAdmin helixAdmin = getHelixAdmin();
+    try {
+      switch (command) {
+      case update:
+        helixAdmin.updateIdealState(clusterId, resourceName, idealState);
+        break;
+      case delete: {
+        helixAdmin.removeFromIdealState(clusterId, resourceName, idealState);
+      }
+        break;
+      default:
+        return badRequest(String.format("Unsupported command: %s", command));
+      }
+    } catch (HelixException ex) {
+      return notFound(ex.getMessage()); // HelixAdmin throws a HelixException if it doesn't
+                                        // exist already
+    } catch (Exception ex) {
+      _logger.error(String.format("Failed to update the IdealState for resource: %s", resourceName),
+          ex);
+      return serverError(ex);
+    }
+    return OK();
+  }
+
   @GET
   @Path("{resourceName}/externalView")
   public Response getResourceExternalView(@PathParam("clusterId") String clusterId,

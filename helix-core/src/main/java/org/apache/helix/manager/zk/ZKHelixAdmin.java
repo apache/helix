@@ -819,6 +819,40 @@ public class ZKHelixAdmin implements HelixAdmin {
     accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
   }
 
+  /**
+   * Partially updates the fields appearing in the given IdealState (input).
+   * @param clusterName
+   * @param resourceName
+   * @param idealState
+   */
+  @Override
+  public void updateIdealState(String clusterName, String resourceName, IdealState idealState) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException(
+          "updateIdealState failed. Cluster: " + clusterName + " is NOT setup properly.");
+    }
+    String zkPath = PropertyPathBuilder.idealState(clusterName, resourceName);
+    if (!_zkClient.exists(zkPath)) {
+      throw new HelixException(String.format(
+          "updateIdealState failed. The IdealState for the given resource does not already exist. Resource name: %s",
+          resourceName));
+    }
+    // Update by way of merge
+    ZKUtil.createOrUpdate(_zkClient, zkPath, idealState.getRecord(), true, true);
+  }
+
+  /**
+   * Selectively removes fields appearing in the given IdealState (input) from the IdealState in ZK.
+   * @param clusterName
+   * @param resourceName
+   * @param idealState
+   */
+  @Override
+  public void removeFromIdealState(String clusterName, String resourceName, IdealState idealState) {
+    String zkPath = PropertyPathBuilder.idealState(clusterName, resourceName);
+    ZKUtil.subtract(_zkClient, zkPath, idealState.getRecord());
+  }
+
   @Override
   public ExternalView getResourceExternalView(String clusterName, String resourceName) {
     HelixDataAccessor accessor =

@@ -213,6 +213,16 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public void updateIdealState(String clusterName, String resourceName, IdealState idealState) {
+
+  }
+
+  @Override
+  public void removeFromIdealState(String clusterName, String resourceName, IdealState idealState) {
+
+  }
+
+  @Override
   public void enableInstance(String clusterName, String instanceName, boolean enabled) {
     String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
     if (!_baseDataAccessor.exists(instanceConfigsPath, 0)) {

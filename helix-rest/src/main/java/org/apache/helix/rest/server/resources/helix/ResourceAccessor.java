@@ -43,9 +43,11 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.node.ArrayNode;
@@ -294,7 +296,19 @@ public class ResourceAccessor extends AbstractHelixResource {
   @POST
   @Path("{resourceName}/configs")
   public Response updateResourceConfig(@PathParam("clusterId") String clusterId,
-      @PathParam("resourceName") String resourceName, String content) {
+      @PathParam("resourceName") String resourceName, @QueryParam("command") String commandStr,
+      String content) {
+    Command command;
+    if (commandStr == null || commandStr.isEmpty()) {
+      command = Command.update; // Default behavior to keep it backward-compatible
+    } else {
+      try {
+        command = getCommand(commandStr);
+      } catch (HelixException ex) {
+        return badRequest(ex.getMessage());
+      }
+    }
+
     ZNRecord record;
     try {
       record = toZNRecord(content);
@@ -305,11 +319,24 @@ public class ResourceAccessor extends AbstractHelixResource {
     ResourceConfig resourceConfig = new ResourceConfig(record);
     ConfigAccessor configAccessor = getConfigAccessor();
     try {
-      configAccessor.updateResourceConfig(clusterId, resourceName, resourceConfig);
+      switch (command) {
+      case update:
+        configAccessor.updateResourceConfig(clusterId, resourceName, resourceConfig);
+        break;
+      case delete:
+        HelixConfigScope resourceScope =
+            new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.RESOURCE)
+                .forCluster(clusterId).forResource(resourceName).build();
+        configAccessor.remove(resourceScope, record);
+        break;
+      default:
+        return badRequest(String.format("Unsupported command: %s", command));
+      }
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error(String.format("Error in update resource config for resource: %s", resourceName), ex);
+      _logger.error(String.format("Error in update resource config for resource: %s", resourceName),
+          ex);
       return serverError(ex);
     }
     return OK();

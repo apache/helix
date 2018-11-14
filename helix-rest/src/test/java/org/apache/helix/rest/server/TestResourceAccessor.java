@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
@@ -246,6 +248,99 @@ public class TestResourceAccessor extends AbstractTestClass {
     Assert.assertEquals(healthStatus.get(resourceNameHealthy), "HEALTHY");
     Assert.assertEquals(healthStatus.get(resourceNamePartiallyHealthy), "PARTIAL_HEALTHY");
     Assert.assertEquals(healthStatus.get(resourceNameUnhealthy), "UNHEALTHY");
+  }
+
+  /**
+   * Test "update" command of updateResourceConfig.
+   * @throws Exception
+   */
+  @Test(dependsOnMethods = "testResourceHealth")
+  public void updateResourceConfig() throws Exception {
+    // Get ResourceConfig
+    ResourceConfig resourceConfig = _configAccessor.getResourceConfig(CLUSTER_NAME, RESOURCE_NAME);
+    ZNRecord record = resourceConfig.getRecord();
+
+    // Generate a record containing three keys (k0, k1, k2) for all fields
+    String value = "RESOURCE_TEST";
+    for (int i = 0; i < 3; i++) {
+      String key = "k" + i;
+      record.getSimpleFields().put(key, value);
+      record.getMapFields().put(key, ImmutableMap.of(key, value));
+      record.getListFields().put(key, Arrays.asList(key, value));
+    }
+
+    // 1. Add these fields by way of "update"
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
+    post("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/configs",
+        Collections.singletonMap("command", "update"), entity, Response.Status.OK.getStatusCode());
+
+    // Check that the fields have been added
+    ResourceConfig updatedConfig = _configAccessor.getResourceConfig(CLUSTER_NAME, RESOURCE_NAME);
+    Assert.assertEquals(record.getSimpleFields(), updatedConfig.getRecord().getSimpleFields());
+    Assert.assertEquals(record.getListFields(), updatedConfig.getRecord().getListFields());
+    Assert.assertEquals(record.getMapFields(), updatedConfig.getRecord().getMapFields());
+
+    String newValue = "newValue";
+    // 2. Modify the record and update
+    for (int i = 0; i < 3; i++) {
+      String key = "k" + i;
+      record.getSimpleFields().put(key, newValue);
+      record.getMapFields().put(key, ImmutableMap.of(key, newValue));
+      record.getListFields().put(key, Arrays.asList(key, newValue));
+    }
+
+    entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
+    post("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/configs",
+        Collections.singletonMap("command", "update"), entity, Response.Status.OK.getStatusCode());
+
+    updatedConfig = _configAccessor.getResourceConfig(CLUSTER_NAME, RESOURCE_NAME);
+    // Check that the fields have been modified
+    Assert.assertEquals(record.getSimpleFields(), updatedConfig.getRecord().getSimpleFields());
+    Assert.assertEquals(record.getListFields(), updatedConfig.getRecord().getListFields());
+    Assert.assertEquals(record.getMapFields(), updatedConfig.getRecord().getMapFields());
+  }
+
+  /**
+   * Test "delete" command of updateResourceConfig.
+   * @throws Exception
+   */
+  @Test(dependsOnMethods = "updateResourceConfig")
+  public void deleteFromResourceConfig() throws Exception {
+    ZNRecord record = new ZNRecord(RESOURCE_NAME);
+
+    // Generate a record containing three keys (k1, k2, k3) for all fields for deletion
+    String value = "value";
+    for (int i = 1; i < 4; i++) {
+      String key = "k" + i;
+      record.getSimpleFields().put(key, value);
+      record.getMapFields().put(key, ImmutableMap.of(key, value));
+      record.getListFields().put(key, Arrays.asList(key, value));
+    }
+
+    // First, add these fields by way of "update"
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
+    post("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/configs",
+        Collections.singletonMap("command", "delete"), entity, Response.Status.OK.getStatusCode());
+
+    ResourceConfig configAfterDelete =
+        _configAccessor.getResourceConfig(CLUSTER_NAME, RESOURCE_NAME);
+
+    // Check that the keys k1 and k2 have been deleted, and k0 remains
+    for (int i = 0; i < 4; i++) {
+      String key = "k" + i;
+      if (i == 0) {
+        Assert.assertTrue(configAfterDelete.getRecord().getSimpleFields().containsKey(key));
+        Assert.assertTrue(configAfterDelete.getRecord().getListFields().containsKey(key));
+        Assert.assertTrue(configAfterDelete.getRecord().getMapFields().containsKey(key));
+        continue;
+      }
+      Assert.assertFalse(configAfterDelete.getRecord().getSimpleFields().containsKey(key));
+      Assert.assertFalse(configAfterDelete.getRecord().getListFields().containsKey(key));
+      Assert.assertFalse(configAfterDelete.getRecord().getMapFields().containsKey(key));
+    }
   }
 
   /**

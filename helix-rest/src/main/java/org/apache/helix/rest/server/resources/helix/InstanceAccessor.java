@@ -350,12 +350,11 @@ public class InstanceAccessor extends AbstractHelixResource {
       case update:
         configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
         break;
-      case delete: {
+      case delete:
         HelixConfigScope instanceScope =
             new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
                 .forCluster(clusterId).forParticipant(instanceName).build();
         configAccessor.remove(instanceScope, record);
-      }
         break;
       default:
         return badRequest(String.format("Unsupported command: %s", command));

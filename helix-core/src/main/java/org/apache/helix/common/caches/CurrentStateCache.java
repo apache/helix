@@ -39,7 +39,7 @@ import java.util.Set;
 /**
  * Cache to hold all CurrentStates of a cluster.
  */
-public class CurrentStateCache extends AbstractDataCache {
+public class CurrentStateCache extends AbstractDataCache<CurrentState> {
   private static final Logger LOG = LoggerFactory.getLogger(CurrentStateCache.class.getName());
 
   private Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;

@@ -22,7 +22,9 @@ import org.apache.helix.PropertyType;
 
 /**
  * Cache to hold all TargetExternalViews of a cluster.
+ * Deprecated - use {@link PropertyCache<org.apache.helix.model.ExternalView>} instead
  */
+@Deprecated
 public class TargetExternalViewCache extends ExternalViewCache {
   public TargetExternalViewCache(String clusterName) {
     super(clusterName, PropertyType.TARGETEXTERNALVIEW);

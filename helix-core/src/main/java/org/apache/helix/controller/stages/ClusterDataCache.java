@@ -19,26 +19,26 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import com.google.common.collect.Maps;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.CurrentStateCache;
-import org.apache.helix.common.caches.IdealStateCache;
 import org.apache.helix.common.caches.InstanceMessagesCache;
+import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.model.ClusterConfig;
@@ -67,38 +67,50 @@ import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.HelixConstants.ChangeType;
+import static org.apache.helix.HelixConstants.*;
 
 /**
  * Reads the data from the cluster using data accessor. This output ClusterData which
  * provides useful methods to search/lookup properties
  */
-public class ClusterDataCache extends AbstractDataCache {
+public class ClusterDataCache {
   private static final Logger LOG = LoggerFactory.getLogger(ClusterDataCache.class.getName());
+  private static final List<ChangeType> _noFullRefreshProperty =
+      Arrays.asList(ChangeType.EXTERNAL_VIEW, ChangeType.TARGET_EXTERNAL_VIEW);
 
+  private final String _clusterName;
+  private String _eventId = AbstractDataCache.UNKNOWN_EVENT_ID;
   private ClusterConfig _clusterConfig;
-  private Map<String, LiveInstance> _liveInstanceMap;
-  private Map<String, LiveInstance> _liveInstanceCacheMap;
-  private Map<String, StateModelDefinition> _stateModelDefMap;
-  private Map<String, InstanceConfig> _instanceConfigMap;
-  private Map<String, InstanceConfig> _instanceConfigCacheMap;
-  private Map<String, Long> _instanceOfflineTimeMap;
-  private Map<String, ResourceConfig> _resourceConfigMap = new HashMap<>();
-  private Map<String, ResourceConfig> _resourceConfigCacheMap;
-  private Map<String, ClusterConstraints> _constraintMap;
-  private Map<String, Map<String, String>> _idealStateRuleMap;
-  private Map<String, Map<String, MissingTopStateRecord>> _missingTopStateMap = new HashMap<>();
-  private Map<String, Map<String, String>> _lastTopStateLocationMap = new HashMap<>();
-  private Map<String, ExternalView> _targetExternalViewMap;
-  private Map<String, ExternalView> _externalViewMap;
-  private Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
-  private Set<String> _disabledInstanceSet = new HashSet<>();
-  private String _eventId = "NO_ID";
+  private boolean _updateInstanceOfflineTime = true;
+  private boolean _isTaskCache;
+  private boolean _isMaintenanceModeEnabled;
+  private ExecutorService _asyncTasksThreadPool;
 
-  private IdealStateCache _idealStateCache;
+  // A map recording what data has changed
+  private Map<ChangeType, Boolean> _propertyDataChangedMap;
+
+  // Property caches
+  private final PropertyCache<ExternalView> _externalViewCache;
+  private final PropertyCache<ExternalView> _targetExternalViewCache;
+  private final PropertyCache<ResourceConfig> _resourceConfigCache;
+  private final PropertyCache<InstanceConfig> _instanceConfigCache;
+  private final PropertyCache<LiveInstance> _liveInstanceCache;
+  private final PropertyCache<IdealState> _idealStateCache;
+  private final PropertyCache<ClusterConstraints> _clusterConstraintsCache;
+  private final PropertyCache<StateModelDefinition> _stateModelDefinitionCache;
+
+  // Special caches
   private CurrentStateCache _currentStateCache;
   private TaskDataCache _taskDataCache;
   private InstanceMessagesCache _instanceMessagesCache;
+
+  // Other miscellaneous caches
+  private Map<String, Long> _instanceOfflineTimeMap;
+  private Map<String, Map<String, String>> _idealStateRuleMap;
+  private Map<String, Map<String, MissingTopStateRecord>> _missingTopStateMap = new HashMap<>();
+  private Map<String, Map<String, String>> _lastTopStateLocationMap = new HashMap<>();
+  private Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
+  private Set<String> _disabledInstanceSet = new HashSet<>();
 
   // maintain a cache of bestPossible assignment across pipeline runs
   // TODO: this is only for customRebalancer, remove it and merge it with _idealMappingCache.
@@ -107,17 +119,7 @@ public class ClusterDataCache extends AbstractDataCache {
   // maintain a cache of idealmapping (preference list) for full-auto resource across pipeline runs
   private Map<String, ZNRecord> _idealMappingCache = new HashMap<>();
 
-  private Map<ChangeType, Boolean> _propertyDataChangedMap;
-
   private Map<String, Integer> _participantActiveTaskCount = new HashMap<>();
-
-  private ExecutorService _asyncTasksThreadPool;
-
-  boolean _updateInstanceOfflineTime = true;
-  boolean _isTaskCache;
-  boolean _isMaintenanceModeEnabled;
-
-  private String _clusterName;
 
   // For detecting liveinstance and target resource partition state change in task assignment
   // Used in AbstractTaskDispatcher
@@ -134,13 +136,242 @@ public class ClusterDataCache extends AbstractDataCache {
   public ClusterDataCache(String clusterName) {
     _propertyDataChangedMap = new ConcurrentHashMap<>();
     for (ChangeType type : ChangeType.values()) {
+      // refresh every type when it is initialized
       _propertyDataChangedMap.put(type, true);
     }
     _clusterName = clusterName;
-    _idealStateCache = new IdealStateCache(_clusterName);
+
+    _externalViewCache = new PropertyCache<>(_clusterName, "ExternalView", new PropertyCache.PropertyCacheKeyFuncs<ExternalView>() {
+      @Override
+      public PropertyKey getRootKey(HelixDataAccessor accessor) {
+        return accessor.keyBuilder().externalViews();
+      }
+
+      @Override
+      public PropertyKey getObjPropertyKey(HelixDataAccessor accessor, String objName) {
+        return accessor.keyBuilder().externalView(objName);
+      }
+
+      @Override
+      public String getObjName(ExternalView obj) {
+        return obj.getResourceName();
+      }
+    }, true);
+    _targetExternalViewCache = new PropertyCache<>(_clusterName, "TargetExternalView", new PropertyCache.PropertyCacheKeyFuncs<ExternalView>() {
+      @Override
+      public PropertyKey getRootKey(HelixDataAccessor accessor) {
+        return accessor.keyBuilder().targetExternalViews();
+      }
+
+      @Override
+      public PropertyKey getObjPropertyKey(HelixDataAccessor accessor, String objName) {
+        return accessor.keyBuilder().targetExternalView(objName);
+      }
+
+      @Override
+      public String getObjName(ExternalView obj) {
+        return obj.getResourceName();
+      }
+    }, true);
+    _resourceConfigCache = new PropertyCache<>(_clusterName, "ResourceConfig", new PropertyCache.PropertyCacheKeyFuncs<ResourceConfig>() {
+      @Override
+      public PropertyKey getRootKey(HelixDataAccessor accessor) {
+        return accessor.keyBuilder().resourceConfigs();
+      }
+
+      @Override
+      public PropertyKey getObjPropertyKey(HelixDataAccessor accessor, String objName) {
+        return accessor.keyBuilder().resourceConfig(objName);
+      }
+
+      @Override
+      public String getObjName(ResourceConfig obj) {
+        return obj.getResourceName();
+      }
+    }, true);
+    _liveInstanceCache = new PropertyCache<>(_clusterName, "LiveInstance", new PropertyCache.PropertyCacheKeyFuncs<LiveInstance>() {
+      @Override
+      public PropertyKey getRootKey(HelixDataAccessor accessor) {
+        return accessor.keyBuilder().liveInstances();
+      }
+
+      @Override
+      public PropertyKey getObjPropertyKey(HelixDataAccessor accessor, String objName) {
+        return accessor.keyBuilder().liveInstance(objName);
+      }
+
+      @Override
+      public String getObjName(LiveInstance obj) {
+        return obj.getInstanceName();
+      }
+    }, true);
+    _instanceConfigCache = new PropertyCache<>(_clusterName, "InstanceConfig", new PropertyCache.PropertyCacheKeyFuncs<InstanceConfig>() {
+      @Override
+      public PropertyKey getRootKey(HelixDataAccessor accessor) {
+        return accessor.keyBuilder().instanceConfigs();
+      }
+
+      @Override
+      public PropertyKey getObjPropertyKey(HelixDataAccessor accessor, String objName) {
+        return accessor.keyBuilder().instanceConfig(objName);
+      }
+
+      @Override
+      public String getObjName(InstanceConfig obj) {
+        return obj.getInstanceName();
+      }
+    }, true);
+    _idealStateCache = new PropertyCache<>(_clusterName, "IdealState", new PropertyCache.PropertyCacheKeyFuncs<IdealState>() {
+      @Override
+      public PropertyKey getRootKey(HelixDataAccessor accessor) {
+        return accessor.keyBuilder().idealStates();
+      }
+
+      @Override
+      public PropertyKey getObjPropertyKey(HelixDataAccessor accessor, String objName) {
+        return accessor.keyBuilder().idealStates(objName);
+      }
+
+      @Override
+      public String getObjName(IdealState obj) {
+        return obj.getResourceName();
+      }
+    }, true);
+    _clusterConstraintsCache = new PropertyCache<>(_clusterName, "ClusterConstraint", new PropertyCache.PropertyCacheKeyFuncs<ClusterConstraints>() {
+      @Override
+      public PropertyKey getRootKey(HelixDataAccessor accessor) {
+        return accessor.keyBuilder().constraints();
+      }
+
+      @Override
+      public PropertyKey getObjPropertyKey(HelixDataAccessor accessor, String objName) {
+        return accessor.keyBuilder().constraint(objName);
+      }
+
+      @Override
+      public String getObjName(ClusterConstraints obj) {
+        // We set constraint type to the HelixProperty id
+        return obj.getId();
+      }
+    }, false);
+    _stateModelDefinitionCache = new PropertyCache<>(_clusterName, "StateModelDefinition", new PropertyCache.PropertyCacheKeyFuncs<StateModelDefinition>() {
+      @Override
+      public PropertyKey getRootKey(HelixDataAccessor accessor) {
+        return accessor.keyBuilder().stateModelDefs();
+      }
+
+      @Override
+      public PropertyKey getObjPropertyKey(HelixDataAccessor accessor, String objName) {
+        return accessor.keyBuilder().stateModelDef(objName);
+      }
+
+      @Override
+      public String getObjName(StateModelDefinition obj) {
+        return obj.getId();
+      }
+    }, false);
+
     _currentStateCache = new CurrentStateCache(_clusterName);
     _taskDataCache = new TaskDataCache(_clusterName);
     _instanceMessagesCache = new InstanceMessagesCache(_clusterName);
+  }
+
+  private void updateCachePipelineNames() {
+    // TODO (harry): remove such update cache name after we have specific cache for
+    // different pipelines
+    String pipelineType = _isTaskCache ? "TASK" : "DEFAULT";
+    _externalViewCache.setPipelineName(pipelineType);
+    _targetExternalViewCache.setPipelineName(pipelineType);
+    _resourceConfigCache.setPipelineName(pipelineType);
+    _liveInstanceCache.setPipelineName(pipelineType);
+    _instanceConfigCache.setPipelineName(pipelineType);
+    _idealStateCache.setPipelineName(pipelineType);
+    _clusterConstraintsCache.setPipelineName(pipelineType);
+    _stateModelDefinitionCache.setPipelineName(pipelineType);
+  }
+
+  private void refreshIdealState(final HelixDataAccessor accessor) {
+    if (_propertyDataChangedMap.get(ChangeType.IDEAL_STATE)) {
+      _propertyDataChangedMap.put(ChangeType.IDEAL_STATE, false);
+      clearCachedResourceAssignments();
+      _idealStateCache.refresh(accessor);
+    } else {
+      LogUtil.logInfo(LOG, getEventId(), String
+          .format("No ideal state change for %s cluster, %s pipeline", _clusterName,
+              _idealStateCache.getPipelineName()));
+    }
+  }
+
+  private void refreshLiveInstances(final HelixDataAccessor accessor) {
+    if (_propertyDataChangedMap.get(ChangeType.LIVE_INSTANCE)) {
+      _propertyDataChangedMap.put(ChangeType.LIVE_INSTANCE, false);
+      clearCachedResourceAssignments();
+      _liveInstanceCache.refresh(accessor);
+      _updateInstanceOfflineTime = true;
+    } else {
+      LogUtil.logInfo(LOG, getEventId(), String
+          .format("No live instance change for %s cluster, %s pipeline", _clusterName,
+              _liveInstanceCache.getPipelineName()));
+    }
+  }
+
+  private void refreshInstanceConfigs(final HelixDataAccessor accessor) {
+    if (_propertyDataChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
+      _existsInstanceChange = true;
+      _propertyDataChangedMap.put(ChangeType.INSTANCE_CONFIG, false);
+      clearCachedResourceAssignments();
+      _instanceConfigCache.refresh(accessor);
+      LogUtil.logInfo(LOG, getEventId(), String
+          .format("Reloaded InstanceConfig for cluster %s, %s pipeline. Keys: %s", _clusterName,
+              _instanceConfigCache.getPipelineName(),
+              _instanceConfigCache.getPropertyMap().keySet()));
+    } else {
+      LogUtil.logInfo(LOG, getEventId(), String
+          .format("No instance config change for %s cluster, %s pipeline", _clusterName,
+              _liveInstanceCache.getPipelineName()));
+    }
+  }
+
+  private void refreshResourceConfig(final HelixDataAccessor accessor) {
+    if (_propertyDataChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
+      _propertyDataChangedMap.put(ChangeType.RESOURCE_CONFIG, false);
+      clearCachedResourceAssignments();
+      _resourceConfigCache.refresh(accessor);
+      LogUtil.logInfo(LOG, getEventId(), String
+          .format("Reloaded ResourceConfig for cluster %s, %s pipeline. Cnt: %s", _clusterName,
+              _resourceConfigCache.getPipelineName(),
+              _resourceConfigCache.getPropertyMap().keySet().size()));
+    } else {
+      LogUtil.logInfo(LOG, getEventId(), String
+          .format("No resource config change for %s cluster, %s pipeline", _clusterName,
+              _liveInstanceCache.getPipelineName()));
+    }
+  }
+
+  private void refreshExternalViews(final HelixDataAccessor accessor) {
+    // As we are not listening on external view change, external view will be
+    // refreshed once during the cache's first refresh() call, or when full refresh is required
+    if (_propertyDataChangedMap.get(ChangeType.EXTERNAL_VIEW)) {
+      _externalViewCache.refresh(accessor);
+      _propertyDataChangedMap.put(ChangeType.EXTERNAL_VIEW, false);
+    }
+  }
+
+  private void refreshTargetExternalViews(final HelixDataAccessor accessor) {
+    if (_propertyDataChangedMap.get(ChangeType.TARGET_EXTERNAL_VIEW)) {
+      if (_clusterConfig != null && _clusterConfig.isTargetExternalViewEnabled()) {
+        _targetExternalViewCache.refresh(accessor);
+
+        // Only set the change type back once we get refreshed with data accessor for the
+        // first time
+        _propertyDataChangedMap.put(ChangeType.TARGET_EXTERNAL_VIEW, false);
+      }
+    }
+  }
+
+  private void updateMaintenanceInfo(final HelixDataAccessor accessor) {
+    MaintenanceSignal maintenanceSignal = accessor.getProperty(accessor.keyBuilder().maintenance());
+    _isMaintenanceModeEnabled = maintenanceSignal != null;
   }
 
   /**
@@ -151,52 +382,48 @@ public class ClusterDataCache extends AbstractDataCache {
    */
   public synchronized boolean refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
-    Builder keyBuilder = accessor.keyBuilder();
 
     // Reset the LiveInstance/CurrentState change flag
     _existsLiveInstanceOrCurrentStateChange = false;
 
-    if (_propertyDataChangedMap.get(ChangeType.IDEAL_STATE)) {
-      _propertyDataChangedMap.put(ChangeType.IDEAL_STATE, false);
-      clearCachedResourceAssignments();
-      _idealStateCache.refresh(accessor);
-      LogUtil.logInfo(LOG, _eventId,
-          "Refresh IdealStates for cluster " + _clusterName + ", took "
-              + (System.currentTimeMillis() - startTime) + " ms for "
-              + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
+    // Refresh raw data
+    _clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
+    refreshIdealState(accessor);
+    refreshLiveInstances(accessor);
+    refreshInstanceConfigs(accessor);
+    refreshResourceConfig(accessor);
+    _stateModelDefinitionCache.refresh(accessor);
+    _clusterConstraintsCache.refresh(accessor);
+    refreshExternalViews(accessor);
+    refreshTargetExternalViews(accessor);
+    updateMaintenanceInfo(accessor);
+
+    // Refresh derived data
+    _instanceMessagesCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
+    _currentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
+
+    // current state must be refreshed before refreshing relay messages
+    // because we need to use current state to validate all relay messages.
+    _instanceMessagesCache.updateRelayMessages(_liveInstanceCache.getPropertyMap(),
+        _currentStateCache.getCurrentStatesMap());
+
+    if (_updateInstanceOfflineTime) {
+      // TODO: make it async
+      updateOfflineInstanceHistory(accessor);
     }
 
-    if (_propertyDataChangedMap.get(ChangeType.LIVE_INSTANCE)) {
-      startTime = System.currentTimeMillis();
-      _propertyDataChangedMap.put(ChangeType.LIVE_INSTANCE, false);
-      clearCachedResourceAssignments();
-      _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances(), true);
-      _updateInstanceOfflineTime = true;
-      LogUtil.logInfo(LOG, _eventId,
-          "Refresh LiveInstances for cluster " + _clusterName + ", took "
-              + (System.currentTimeMillis() - startTime) + " ms for "
-              + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
+    if (_clusterConfig != null) {
+      _idealStateRuleMap = _clusterConfig.getIdealStateRules();
+    } else {
+      _idealStateRuleMap = new HashMap<>();
+      LogUtil.logWarn(LOG, _eventId,
+          "Cluster config is null for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
     }
 
-    if (_propertyDataChangedMap.get(ChangeType.INSTANCE_CONFIG)) {
-      _existsInstanceChange = true;
-      _propertyDataChangedMap.put(ChangeType.INSTANCE_CONFIG, false);
-      clearCachedResourceAssignments();
-      _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs(), true);
-      LogUtil.logInfo(LOG, _eventId,
-          "Reload InstanceConfig for cluster " + _clusterName + " : " + _instanceConfigCacheMap
-              .keySet() + " for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
-    }
+    updateDisabledInstances();
 
-    if (_propertyDataChangedMap.get(ChangeType.RESOURCE_CONFIG)) {
-      _propertyDataChangedMap.put(ChangeType.RESOURCE_CONFIG, false);
-      clearCachedResourceAssignments();
 
-      _resourceConfigCacheMap = refreshResourceConfigs(accessor);
-      LogUtil.logInfo(LOG, _eventId,
-          "Reload ResourceConfigs for cluster " + _clusterName + " : " + _resourceConfigCacheMap
-              .keySet() + " for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
-    }
+    // TaskFramework related operations
 
     // This is for targeted jobs' task assignment. It needs to watch for current state changes for
     // when targeted resources' state transitions complete
@@ -212,64 +439,19 @@ public class ClusterDataCache extends AbstractDataCache {
       _propertyDataChangedMap.put(ChangeType.CLUSTER_CONFIG, false);
     }
 
-    _liveInstanceMap = new HashMap<>(_liveInstanceCacheMap);
-    _instanceConfigMap = new ConcurrentHashMap<>(_instanceConfigCacheMap);
-    _resourceConfigMap = new HashMap<>(_resourceConfigCacheMap);
-
-    if (_updateInstanceOfflineTime) {
-      updateOfflineInstanceHistory(accessor);
-    }
-
-    Map<String, StateModelDefinition> stateDefMap =
-        accessor.getChildValuesMap(keyBuilder.stateModelDefs(), true);
-    _stateModelDefMap = new ConcurrentHashMap<>(stateDefMap);
-    _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints(), true);
-    _clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
-
     if (_isTaskCache) {
       // Refresh TaskCache
-      _taskDataCache.refresh(accessor, _resourceConfigMap);
+      _taskDataCache.refresh(accessor, _resourceConfigCache.getPropertyMap());
 
       // Refresh AssignableInstanceManager
       AssignableInstanceManager assignableInstanceManager =
           _taskDataCache.getAssignableInstanceManager();
       // Build from scratch every time
-      assignableInstanceManager
-          .buildAssignableInstances(_clusterConfig, _taskDataCache, _liveInstanceMap,
-              _instanceConfigMap);
+      assignableInstanceManager.buildAssignableInstances(_clusterConfig, _taskDataCache,
+          _liveInstanceCache.getPropertyMap(), _instanceConfigCache.getPropertyMap());
       // TODO: (Hunter) Consider this for optimization after fixing the problem of quotas not being
 
       assignableInstanceManager.logQuotaProfileJSON(false);
-    }
-
-    _instanceMessagesCache.refresh(accessor, _liveInstanceMap);
-    _currentStateCache.refresh(accessor, _liveInstanceMap);
-
-    // current state must be refreshed before refreshing relay messages
-    // because we need to use current state to validate all relay messages.
-    _instanceMessagesCache.updateRelayMessages(_liveInstanceMap,
-        _currentStateCache.getCurrentStatesMap());
-
-    if (_clusterConfig != null) {
-      _idealStateRuleMap = _clusterConfig.getIdealStateRules();
-    } else {
-      _idealStateRuleMap = new HashMap<>();
-      LogUtil.logWarn(LOG, _eventId,
-          "Cluster config is null for " + (_isTaskCache ? "TASK" : "DEFAULT") + "pipeline");
-    }
-
-    MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
-    _isMaintenanceModeEnabled = maintenanceSignal != null;
-
-    updateDisabledInstances();
-
-    if (_externalViewMap == null) {
-      _externalViewMap = accessor.getChildValuesMap(accessor.keyBuilder().externalViews());
-    }
-
-    if (_clusterConfig.isTargetExternalViewEnabled() && _targetExternalViewMap == null) {
-      _targetExternalViewMap =
-          accessor.getChildValuesMap(accessor.keyBuilder().targetExternalViews());
     }
 
     long endTime = System.currentTimeMillis();
@@ -278,19 +460,27 @@ public class ClusterDataCache extends AbstractDataCache {
             + (endTime - startTime) + " ms for " + (_isTaskCache ? "TASK" : "DEFAULT")
             + "pipeline");
 
+    dumpDebugInfo();
+    return true;
+  }
+
+  private void dumpDebugInfo() {
     if (LOG.isDebugEnabled()) {
       LogUtil.logDebug(LOG, _eventId,
-          "# of StateModelDefinition read from zk: " + _stateModelDefMap.size());
-      LogUtil.logDebug(LOG, _eventId, "# of ConstraintMap read from zk: " + _constraintMap.size());
-      LogUtil.logDebug(LOG, _eventId, "LiveInstances: " + _liveInstanceMap.keySet());
-      for (LiveInstance instance : _liveInstanceMap.values()) {
+          "# of StateModelDefinition read from zk: " + _stateModelDefinitionCache.getPropertyMap().size());
+      LogUtil.logDebug(LOG, _eventId, "# of ConstraintMap read from zk: " + _clusterConstraintsCache.getPropertyMap().size());
+      LogUtil.logDebug(LOG, _eventId,
+          "LiveInstances: " + _liveInstanceCache.getPropertyMap().keySet());
+      for (LiveInstance instance : _liveInstanceCache.getPropertyMap().values()) {
         LogUtil.logDebug(LOG, _eventId,
             "live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
       }
+      LogUtil
+          .logDebug(LOG, _eventId, "IdealStates: " + _idealStateCache.getPropertyMap().keySet());
       LogUtil.logDebug(LOG, _eventId,
-          "IdealStates: " + _idealStateCache.getIdealStateMap().keySet());
-      LogUtil.logDebug(LOG, _eventId, "ResourceConfigs: " + _resourceConfigMap.keySet());
-      LogUtil.logDebug(LOG, _eventId, "InstanceConfigs: " + _instanceConfigMap.keySet());
+          "ResourceConfigs: " + _resourceConfigCache.getPropertyMap().keySet());
+      LogUtil.logDebug(LOG, _eventId,
+          "InstanceConfigs: " + _instanceConfigCache.getPropertyMap().keySet());
       LogUtil.logDebug(LOG, _eventId, "ClusterConfigs: " + _clusterConfig);
       LogUtil.logDebug(LOG, _eventId, "JobContexts: " + _taskDataCache.getContexts().keySet());
     }
@@ -298,15 +488,13 @@ public class ClusterDataCache extends AbstractDataCache {
     if (LOG.isTraceEnabled()) {
       LOG.trace("Cache content: " + toString());
     }
-
-    return true;
   }
 
   private void updateDisabledInstances() {
     // Move the calculating disabled instances to refresh
     _disabledInstanceForPartitionMap.clear();
     _disabledInstanceSet.clear();
-    for (InstanceConfig config : _instanceConfigMap.values()) {
+    for (InstanceConfig config : _instanceConfigCache.getPropertyMap().values()) {
       Map<String, List<String>> disabledPartitionMap = config.getDisabledPartitionsMap();
       if (!config.getInstanceEnabled()) {
         _disabledInstanceSet.add(config.getInstanceName());
@@ -324,14 +512,15 @@ public class ClusterDataCache extends AbstractDataCache {
         }
       }
     }
-    if (_clusterConfig.getDisabledInstances() != null) {
+    if (_clusterConfig != null && _clusterConfig.getDisabledInstances() != null) {
       _disabledInstanceSet.addAll(_clusterConfig.getDisabledInstances().keySet());
     }
   }
 
   private void updateOfflineInstanceHistory(HelixDataAccessor accessor) {
-    List<String> offlineNodes = new ArrayList<>(_instanceConfigMap.keySet());
-    offlineNodes.removeAll(_liveInstanceMap.keySet());
+    List<String> offlineNodes =
+        new ArrayList<>(_instanceConfigCache.getPropertyMap().keySet());
+    offlineNodes.removeAll(_liveInstanceCache.getPropertyMap().keySet());
     _instanceOfflineTimeMap = new HashMap<>();
 
     for (String instance : offlineNodes) {
@@ -379,11 +568,11 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public Map<String, IdealState> getIdealStates() {
-    return _idealStateCache.getIdealStateMap();
+    return _idealStateCache.getPropertyMap();
   }
 
   public synchronized void setIdealStates(List<IdealState> idealStates) {
-    _idealStateCache.setIdealStates(idealStates);
+    _idealStateCache.setPropertyMap(HelixProperty.convertListToMap(idealStates));
   }
 
   public Map<String, Map<String, String>> getIdealStateRules() {
@@ -395,14 +584,14 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public Map<String, LiveInstance> getLiveInstances() {
-    return _liveInstanceMap;
+    return _liveInstanceCache.getPropertyMap();
   }
 
   /**
    * Return the set of all instances names.
    */
   public Set<String> getAllInstances() {
-    return new HashSet<>(_instanceConfigMap.keySet());
+    return _instanceConfigCache.getPropertyMap().keySet();
   }
 
   /**
@@ -421,7 +610,7 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public Set<String> getEnabledInstances() {
-    Set<String> enabledNodes = getAllInstances();
+    Set<String> enabledNodes = new HashSet<>(getAllInstances());
     enabledNodes.removeAll(getDisabledInstances());
 
     return enabledNodes;
@@ -448,8 +637,8 @@ public class ClusterDataCache extends AbstractDataCache {
    */
   public Set<String> getInstancesWithTag(String instanceTag) {
     Set<String> taggedInstances = new HashSet<>();
-    for (String instance : _instanceConfigMap.keySet()) {
-      InstanceConfig instanceConfig = _instanceConfigMap.get(instance);
+    for (String instance : _instanceConfigCache.getPropertyMap().keySet()) {
+      InstanceConfig instanceConfig = _instanceConfigCache.getPropertyByName(instance);
       if (instanceConfig != null && instanceConfig.containsTag(instanceTag)) {
         taggedInstances.add(instance);
       }
@@ -459,11 +648,7 @@ public class ClusterDataCache extends AbstractDataCache {
   }
 
   public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {
-    Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
-    for (LiveInstance liveInstance : liveInstances) {
-      liveInstanceMap.put(liveInstance.getId(), liveInstance);
-    }
-    _liveInstanceCacheMap = liveInstanceMap;
+    _liveInstanceCache.setPropertyMap(HelixProperty.convertListToMap(liveInstances));
     _updateInstanceOfflineTime = true;
 
     // TODO: Move this when listener for LiveInstance is being refactored
@@ -510,10 +695,7 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public StateModelDefinition getStateModelDef(String stateModelDefRef) {
-    if (stateModelDefRef == null) {
-      return null;
-    }
-    return _stateModelDefMap.get(stateModelDefRef);
+    return _stateModelDefinitionCache.getPropertyByName(stateModelDefRef);
   }
 
   /**
@@ -521,7 +703,7 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return state model definition map
    */
   public Map<String, StateModelDefinition> getStateModelDefMap() {
-    return _stateModelDefMap;
+    return _stateModelDefinitionCache.getPropertyMap();
   }
 
   /**
@@ -530,7 +712,7 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public IdealState getIdealState(String resourceName) {
-    return _idealStateCache.getIdealStateMap().get(resourceName);
+    return _idealStateCache.getPropertyByName(resourceName);
   }
 
   /**
@@ -538,7 +720,7 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public Map<String, InstanceConfig> getInstanceConfigMap() {
-    return _instanceConfigMap;
+    return _instanceConfigCache.getPropertyMap();
   }
 
   /**
@@ -546,7 +728,7 @@ public class ClusterDataCache extends AbstractDataCache {
    * @param instanceConfigMap
    */
   public void setInstanceConfigMap(Map<String, InstanceConfig> instanceConfigMap) {
-    _instanceConfigMap = instanceConfigMap;
+    _instanceConfigCache.setPropertyMap(instanceConfigMap);
   }
 
   /**
@@ -554,7 +736,7 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public Map<String, ResourceConfig> getResourceConfigMap() {
-    return _resourceConfigMap;
+    return _resourceConfigCache.getPropertyMap();
   }
 
   /**
@@ -571,12 +753,8 @@ public class ClusterDataCache extends AbstractDataCache {
     notifyDataChange(changeType);
   }
 
-  /**
-   * Returns the instance config map
-   * @return
-   */
   public ResourceConfig getResourceConfig(String resource) {
-    return _resourceConfigMap.get(resource);
+    return _resourceConfigCache.getPropertyByName(resource);
   }
 
   /**
@@ -613,14 +791,6 @@ public class ClusterDataCache extends AbstractDataCache {
     return _taskDataCache.getWorkflowConfig(resource);
   }
 
-  public synchronized void setInstanceConfigs(List<InstanceConfig> instanceConfigs) {
-    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
-    for (InstanceConfig instanceConfig : instanceConfigs) {
-      instanceConfigMap.put(instanceConfig.getId(), instanceConfig);
-    }
-    _instanceConfigCacheMap = instanceConfigMap;
-  }
-
   /**
    * Some partitions might be disabled on specific nodes.
    * This method allows one to fetch the set of nodes where a given partition is disabled
@@ -653,14 +823,14 @@ public class ClusterDataCache extends AbstractDataCache {
    */
   public int getReplicas(String resourceName) {
     int replicas = -1;
-    Map<String, IdealState> idealStateMap = _idealStateCache.getIdealStateMap();
+    Map<String, IdealState> idealStateMap = _idealStateCache.getPropertyMap();
 
     if (idealStateMap.containsKey(resourceName)) {
       String replicasStr = idealStateMap.get(resourceName).getReplicas();
 
       if (replicasStr != null) {
         if (replicasStr.equals(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString())) {
-          replicas = _liveInstanceMap.size();
+          replicas = _liveInstanceCache.getPropertyMap().size();
         } else {
           try {
             replicas = Integer.parseInt(replicasStr);
@@ -683,10 +853,7 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public ClusterConstraints getConstraint(ConstraintType type) {
-    if (_constraintMap != null) {
-      return _constraintMap.get(type.toString());
-    }
-    return null;
+    return _clusterConstraintsCache.getPropertyByName(type.name());
   }
 
   public Map<String, Map<String, MissingTopStateRecord>> getMissingTopStateMap() {
@@ -793,11 +960,11 @@ public class ClusterDataCache extends AbstractDataCache {
   }
 
   public ExternalView getTargetExternalView(String resourceName) {
-    return _targetExternalViewMap == null ? null : _targetExternalViewMap.get(resourceName);
+    return _targetExternalViewCache.getPropertyByName(resourceName);
   }
 
   public void updateTargetExternalView(String resourceName, ExternalView targetExternalView) {
-    _targetExternalViewMap.put(resourceName, targetExternalView);
+    _targetExternalViewCache.setProperty(targetExternalView);
   }
 
   /**
@@ -805,10 +972,7 @@ public class ClusterDataCache extends AbstractDataCache {
    * @return
    */
   public Map<String, ExternalView> getExternalViews() {
-    if (_externalViewMap == null) {
-      return Collections.emptyMap();
-    }
-    return Collections.unmodifiableMap(_externalViewMap);
+    return _externalViewCache.getPropertyMap();
   }
 
   /**
@@ -816,11 +980,8 @@ public class ClusterDataCache extends AbstractDataCache {
    * @param externalViews
    */
   public void updateExternalViews(List<ExternalView> externalViews) {
-    if (_externalViewMap == null) {
-      _externalViewMap = new HashMap<>();
-    }
-    for (ExternalView externalView : externalViews) {
-      _externalViewMap.put(externalView.getResourceName(), externalView);
+    for (ExternalView ev : externalViews) {
+      _externalViewCache.setProperty(ev);
     }
   }
 
@@ -830,8 +991,8 @@ public class ClusterDataCache extends AbstractDataCache {
    */
 
   public void removeExternalViews(List<String> resourceNames) {
-    for (String externalView : resourceNames) {
-      _externalViewMap.remove(externalView);
+    for (String resourceName : resourceNames) {
+      _externalViewCache.deletePropertyByName(resourceName);
     }
   }
 
@@ -840,7 +1001,10 @@ public class ClusterDataCache extends AbstractDataCache {
    */
   public synchronized void requireFullRefresh() {
     for (ChangeType type : ChangeType.values()) {
-      _propertyDataChangedMap.put(type, true);
+      // We only refresh EV and TEV the very first time the cluster data cache is initialized
+      if (!_noFullRefreshProperty.contains(type)) {
+        _propertyDataChangedMap.put(type, true);
+      }
     }
   }
 
@@ -931,6 +1095,7 @@ public class ClusterDataCache extends AbstractDataCache {
    */
   public void setTaskCache(boolean taskCache) {
     _isTaskCache = taskCache;
+    updateCachePipelineNames();
   }
 
   /**
@@ -959,6 +1124,11 @@ public class ClusterDataCache extends AbstractDataCache {
     _idealStateCache.setEventId(eventId);
     _currentStateCache.setEventId(eventId);
     _taskDataCache.setEventId(eventId);
+    _liveInstanceCache.setEventId(eventId);
+    _instanceConfigCache.setEventId(eventId);
+    _resourceConfigCache.setEventId(eventId);
+    _stateModelDefinitionCache.setEventId(eventId);
+    _clusterConstraintsCache.setEventId(eventId);
   }
 
   /**
@@ -970,53 +1140,17 @@ public class ClusterDataCache extends AbstractDataCache {
     return _existsLiveInstanceOrCurrentStateChange;
   }
 
-  private Map<String, ResourceConfig> refreshResourceConfigs(HelixDataAccessor accessor) {
-    Map<String, ResourceConfig> refreshedResourceConfigs = Maps.newHashMap();
-
-    long startTime = System.currentTimeMillis();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Set<PropertyKey> currentResourceConfigKeys = new HashSet<>();
-    for (String resourceConfig : accessor.getChildNames(keyBuilder.resourceConfigs())) {
-      currentResourceConfigKeys.add(keyBuilder.resourceConfig(resourceConfig));
-    }
-
-    Set<PropertyKey> cachedKeys = new HashSet<>();
-    Map<PropertyKey, ResourceConfig> cachedResourceConfigMap = Maps.newHashMap();
-
-    for (String resourceConfig : _resourceConfigMap.keySet()) {
-      cachedKeys.add(keyBuilder.resourceConfig(resourceConfig));
-      cachedResourceConfigMap.put(keyBuilder.resourceConfig(resourceConfig),
-          _resourceConfigMap.get(resourceConfig));
-    }
-    cachedKeys.retainAll(currentResourceConfigKeys);
-
-    Set<PropertyKey> reloadKeys = new HashSet<>(currentResourceConfigKeys);
-    reloadKeys.removeAll(cachedKeys);
-
-    Map<PropertyKey, ResourceConfig> updatedMap = refreshProperties(accessor,
-        new LinkedList<>(reloadKeys), new ArrayList<>(cachedKeys), cachedResourceConfigMap);
-    for (ResourceConfig resourceConfig : updatedMap.values()) {
-      refreshedResourceConfigs.put(resourceConfig.getResourceName(), resourceConfig);
-    }
-
-    long endTime = System.currentTimeMillis();
-    LogUtil.logInfo(LOG, getEventId(),
-        "Refresh " + refreshedResourceConfigs.size() + " resource configs for cluster "
-            + _clusterName + ", took " + (endTime - startTime) + " ms");
-    return refreshedResourceConfigs;
-  }
-
   /**
    * toString method to print the entire cluster state
    */
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("liveInstaceMap:" + _liveInstanceMap).append("\n");
-    sb.append("idealStateMap:" + _idealStateCache.getIdealStateMap()).append("\n");
-    sb.append("stateModelDefMap:" + _stateModelDefMap).append("\n");
-    sb.append("instanceConfigMap:" + _instanceConfigMap).append("\n");
-    sb.append("resourceConfigMap:" + _resourceConfigMap).append("\n");
+    sb.append("liveInstaceMap:" + _liveInstanceCache.getPropertyMap()).append("\n");
+    sb.append("idealStateMap:" + _idealStateCache.getPropertyMap()).append("\n");
+    sb.append("stateModelDefMap:" + _stateModelDefinitionCache.getPropertyMap()).append("\n");
+    sb.append("instanceConfigMap:" + _instanceConfigCache.getPropertyMap()).append("\n");
+    sb.append("resourceConfigMap:" + _resourceConfigCache.getPropertyMap()).append("\n");
     sb.append("taskDataCache:" + _taskDataCache).append("\n");
     sb.append("messageCache:" + _instanceMessagesCache).append("\n");
     sb.append("currentStateCache:" + _currentStateCache).append("\n");

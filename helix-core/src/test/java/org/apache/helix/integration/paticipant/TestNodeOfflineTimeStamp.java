@@ -41,11 +41,13 @@ public class TestNodeOfflineTimeStamp extends ZkStandAloneCMTestBase {
     _participants[0].syncStop();
     ParticipantHistory history = getInstanceHistory(_participants[0].getInstanceName());
     long recordTime = history.getLastOfflineTime();
-
     Assert.assertTrue(Math.abs(shutdownTime - recordTime) <= 500L);
 
     _participants[0].reset();
-    Thread.sleep(50);
+
+    // Make it long enough to reduce the potential racing condition that cluster data cache report
+    // instance offline is actually after instance comes back
+    Thread.sleep(500);
     _participants[0].syncStart();
 
     Thread.sleep(50);

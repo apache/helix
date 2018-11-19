@@ -20,20 +20,23 @@ package org.apache.helix.common.caches;
  */
 
 import com.google.common.collect.Maps;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-public abstract class AbstractDataCache {
+public abstract class AbstractDataCache<T extends HelixProperty> {
   private static Logger LOG = LoggerFactory.getLogger(AbstractDataCache.class.getName());
-  private String _eventId = "NO_ID";
+  public static final String UNKNOWN_EVENT_ID = "NO_ID";
+  private static final String UNKNOWN_PIPELINE = "UNKNOWN_PIPELINE";
+  private String _eventId = UNKNOWN_EVENT_ID;
+  private String _pipelineName = UNKNOWN_PIPELINE;
 
   public String getEventId() {
     return _eventId;
@@ -43,6 +46,14 @@ public abstract class AbstractDataCache {
     _eventId = eventId;
   }
 
+  public String getPipelineName() {
+    return _pipelineName;
+  }
+
+  public void setPipelineName(String pipelineName) {
+    _pipelineName = pipelineName;
+  }
+
   /**
    * Selectively fetch Helix Properties from ZK by comparing the version of local cached one with the one on ZK.
    * If version on ZK is newer, fetch it from zk and update local cache.
@@ -50,10 +61,9 @@ public abstract class AbstractDataCache {
    * @param reloadKeys keys needs to be reload
    * @param cachedKeys keys already exists in the cache
    * @param cachedPropertyMap cached map of propertykey -> property object
-   * @param <T> the type of metadata
    * @return updated properties map
    */
-  protected <T extends HelixProperty> Map<PropertyKey, T> refreshProperties(
+  protected Map<PropertyKey, T> refreshProperties(
       HelixDataAccessor accessor, List<PropertyKey> reloadKeys, List<PropertyKey> cachedKeys,
       Map<PropertyKey, T> cachedPropertyMap) {
     // All new entries from zk not cached locally yet should be read from ZK.
@@ -77,8 +87,6 @@ public abstract class AbstractDataCache {
       }
     }
 
-
-
     List<T> reloadedProperty = accessor.getProperty(reloadKeys, true);
     Iterator<PropertyKey> csKeyIter = reloadKeys.iterator();
     for (T property : reloadedProperty) {
@@ -90,7 +98,7 @@ public abstract class AbstractDataCache {
       }
     }
 
-    LOG.info(reloadKeys.size() + " properties refreshed from zk.");
+    LogUtil.logInfo(LOG, getEventId(), String.format("%s properties refreshed from ZK.", reloadKeys.size()));
     if (LOG.isDebugEnabled()) {
       LOG.debug("refreshed keys: " + reloadKeys);
     }

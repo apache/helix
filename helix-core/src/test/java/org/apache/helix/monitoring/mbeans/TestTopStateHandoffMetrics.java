@@ -21,6 +21,7 @@ package org.apache.helix.monitoring.mbeans;
 
 import com.google.common.collect.Range;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +35,7 @@ import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.TopStateHandoffReportStage;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Resource;
 import org.codehaus.jackson.annotate.JsonCreator;
@@ -176,7 +178,9 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
         new MissingStatesDataCacheInject() {
           @Override
           public void doInject(ClusterDataCache cache) {
-            cache.getLiveInstances().remove("localhost_1");
+            Map<String, LiveInstance> liMap = new HashMap<>(cache.getLiveInstances());
+            liMap.remove("localhost_1");
+            cache.setLiveInstances(new ArrayList<>(liMap.values()));
           }
         }, 1, 0,
         expectedDuration,
@@ -201,7 +205,9 @@ public class TestTopStateHandoffMetrics extends BaseStageTest {
           @Override
           public void doInject(ClusterDataCache cache) {
             accessor.removeProperty(accessor.keyBuilder().liveInstance(downInstance));
-            cache.getLiveInstances().remove("localhost_0");
+            Map<String, LiveInstance> liMap = new HashMap<>(cache.getLiveInstances());
+            liMap.remove("localhost_0");
+            cache.setLiveInstances(new ArrayList<>(liMap.values()));
             cache.getInstanceOfflineTimeMap().put("localhost_0", lastOfflineTime);
             cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
           }

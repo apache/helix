@@ -213,4 +213,3 @@ public class WeightAwareRebalanceUtil {
     _stateModelDefs.put(stateModelDefRef, stateModelDefinition);
   }
 }
-

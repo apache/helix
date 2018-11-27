@@ -38,6 +38,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.I0Itec.zkclient.exception.ZkException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -76,6 +77,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,7 +155,27 @@ public class ZKHelixAdmin implements HelixAdmin {
     ZKUtil.dropChildren(_zkClient, instanceConfigsPath, instanceConfig.getRecord());
 
     // delete instance path
-    _zkClient.deleteRecursively(instancePath);
+    int retryCnt = 0;
+    while (true) {
+      try {
+        _zkClient.deleteRecursively(instancePath);
+        return;
+      } catch (HelixException e) {
+        if (retryCnt < 3 && e.getCause() instanceof ZkException && e.getCause()
+            .getCause() instanceof KeeperException.NotEmptyException) {
+          // Racing condition with controller's persisting node history, retryable.
+          // We don't need to backoff here as this racing condition only happens once (controller
+          // does not repeatedly write instance history)
+          logger.warn("Retrying dropping instance {} with exception {}",
+              instanceConfig.getInstanceName(), e.getCause().getMessage());
+          retryCnt ++;
+        } else {
+          logger.error("Failed to drop instance {} (not retryable).",
+              instanceConfig.getInstanceName(), e.getCause());
+          throw e;
+        }
+      }
+    }
   }
 
   @Override

@@ -47,19 +47,23 @@ public abstract class TaskRebalancer extends AbstractTaskDispatcher
     implements Rebalancer, MappingCalculator {
   private static final Logger LOG = LoggerFactory.getLogger(TaskRebalancer.class);
 
-  @Override public void init(HelixManager manager) {
+  @Override
+  public void init(HelixManager manager) {
     _manager = manager;
   }
 
-  @Override public abstract ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
+  @Override
+  public abstract ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
       IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput);
 
 
 
-  @Override public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+  @Override
+  public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
       CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
     // All of the heavy lifting is in the ResourceAssignment computation,
     // so this part can just be a no-op.
     return currentIdealState;
   }
+
 }

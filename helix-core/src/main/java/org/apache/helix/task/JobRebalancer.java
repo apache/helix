@@ -40,7 +40,6 @@ public class JobRebalancer extends TaskRebalancer {
     long startTime = System.currentTimeMillis();
     final String jobName = resource.getResourceName();
     LOG.debug("Computer Best Partition for job: " + jobName);
-
     if (_jobDispatcher == null) {
       _jobDispatcher = new JobDispatcher();
     }

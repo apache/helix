@@ -6,7 +6,7 @@ package org.apache.helix.controller.stages;
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
+// * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
@@ -53,8 +53,6 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
         resourceSet.toArray(new String[resourceSet.size()]), nPartition, "OnlineOffline"));
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), getResourceMap(
         resourceSet.toArray(new String[resourceSet.size()]), nPartition, "OnlineOffline"));
-
-
 
     // Initialize bestpossible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();

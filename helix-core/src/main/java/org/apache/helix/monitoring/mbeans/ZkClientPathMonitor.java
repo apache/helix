@@ -40,7 +40,7 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
   private final String _instanceName;
   private final PredefinedPath _path;
 
-  protected enum PredefinedPath {
+  public enum PredefinedPath {
     IdealStates(".*/IDEALSTATES/.*"),
     Instances(".*/INSTANCES/.*"),
     Configs(".*/CONFIGS/.*"),
@@ -61,6 +61,21 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     public boolean match(String path) {
       return path.matches(this._matchString);
     }
+  }
+
+  public enum PredefinedMetricDomains {
+    WriteTotalLatencyCounter,
+    ReadTotalLatencyCounter,
+    WriteFailureCounter,
+    ReadFailureCounter,
+    WriteBytesCounter,
+    ReadBytesCounter,
+    WriteCounter,
+    ReadCounter,
+    ReadLatencyGauge,
+    WriteLatencyGauge,
+    ReadBytesGauge,
+    WriteBytesGauge
   }
 
   private SimpleDynamicMetric<Long> _readCounter;
@@ -92,22 +107,22 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
         .format("%s.%s.%s.%s", MonitorDomainNames.HelixZkClient.name(), monitorType, monitorKey,
             path.name());
 
-    _writeTotalLatencyCounter = new SimpleDynamicMetric("WriteTotalLatencyCounter", 0l);
-    _readTotalLatencyCounter = new SimpleDynamicMetric("ReadTotalLatencyCounter", 0l);
-    _writeFailureCounter = new SimpleDynamicMetric("WriteFailureCounter", 0l);
-    _readFailureCounter = new SimpleDynamicMetric("ReadFailureCounter", 0l);
-    _writeBytesCounter = new SimpleDynamicMetric("WriteBytesCounter", 0l);
-    _readBytesCounter = new SimpleDynamicMetric("ReadBytesCounter", 0l);
-    _writeCounter = new SimpleDynamicMetric("WriteCounter", 0l);
-    _readCounter = new SimpleDynamicMetric("ReadCounter", 0l);
+    _writeTotalLatencyCounter = new SimpleDynamicMetric(PredefinedMetricDomains.WriteBytesCounter.name(), 0l);
+    _readTotalLatencyCounter = new SimpleDynamicMetric(PredefinedMetricDomains.ReadTotalLatencyCounter.name(), 0l);
+    _writeFailureCounter = new SimpleDynamicMetric(PredefinedMetricDomains.WriteFailureCounter.name(), 0l);
+    _readFailureCounter = new SimpleDynamicMetric(PredefinedMetricDomains.ReadFailureCounter.name(), 0l);
+    _writeBytesCounter = new SimpleDynamicMetric(PredefinedMetricDomains.WriteBytesCounter.name(), 0l);
+    _readBytesCounter = new SimpleDynamicMetric(PredefinedMetricDomains.ReadBytesCounter.name(), 0l);
+    _writeCounter = new SimpleDynamicMetric(PredefinedMetricDomains.WriteCounter.name(), 0l);
+    _readCounter = new SimpleDynamicMetric(PredefinedMetricDomains.ReadCounter.name(), 0l);
 
-    _readLatencyGauge = new HistogramDynamicMetric("ReadLatencyGauge", new Histogram(
+    _readLatencyGauge = new HistogramDynamicMetric(PredefinedMetricDomains.ReadLatencyGauge.name(), new Histogram(
         new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
-    _writeLatencyGauge = new HistogramDynamicMetric("WriteLatencyGauge", new Histogram(
+    _writeLatencyGauge = new HistogramDynamicMetric(PredefinedMetricDomains.WriteLatencyGauge.name(), new Histogram(
         new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
-    _readBytesGauge = new HistogramDynamicMetric("ReadBytesGauge", new Histogram(
+    _readBytesGauge = new HistogramDynamicMetric(PredefinedMetricDomains.ReadBytesGauge.name(), new Histogram(
         new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
-    _writeBytesGauge = new HistogramDynamicMetric("WriteBytesGauge", new Histogram(
+    _writeBytesGauge = new HistogramDynamicMetric(PredefinedMetricDomains.WriteBytesGauge.name(), new Histogram(
         new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
   }
 

@@ -5,7 +5,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceHardConstraint;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceSoftConstraint;
-import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.rebalancer.strategy.ConstraintRebalanceStrategy;

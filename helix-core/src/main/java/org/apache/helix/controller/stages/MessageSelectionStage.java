@@ -30,7 +30,7 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.LogUtil;
-import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.IdealState;

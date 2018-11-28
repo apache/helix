@@ -19,7 +19,7 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import org.apache.helix.controller.WorkflowControllerDataProvider;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;

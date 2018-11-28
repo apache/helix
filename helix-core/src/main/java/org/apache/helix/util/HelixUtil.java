@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
-import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.model.BuiltInStateModelDefinitions;

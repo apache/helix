@@ -33,7 +33,7 @@ import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceHardConstrain
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceSoftConstraint;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.CapacityProvider;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
-import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.PartitionWeightAwareEvennessConstraint;
 import org.apache.helix.controller.rebalancer.constraint.TotalCapacityConstraint;
 import org.apache.helix.controller.rebalancer.constraint.dataprovider.MockCapacityProvider;

@@ -19,7 +19,7 @@ package org.apache.helix.controller.rebalancer.strategy;
  * under the License.
  */
 
-import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 
 /**
  * CRUSH-ed, CRUSH with even distribution. This is an Auto rebalance strategy based on CRUSH algorithm.

@@ -1,4 +1,4 @@
-package org.apache.helix.controller;
+package org.apache.helix.controller.dataproviders;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -29,6 +29,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.PropertyCache;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.ResourceAssignment;

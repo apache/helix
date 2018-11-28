@@ -22,7 +22,7 @@ package org.apache.helix.controller.stages;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.controller.BaseControllerDataProvider;
+import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;

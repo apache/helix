@@ -21,7 +21,7 @@ package org.apache.helix.task;
 
 import com.google.common.collect.Sets;
 import java.util.Map;
-import org.apache.helix.controller.WorkflowControllerDataProvider;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.MockTask;

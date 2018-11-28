@@ -20,7 +20,7 @@ package org.apache.helix.task;
  */
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.controller.WorkflowControllerDataProvider;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.stages.CurrentStateOutput;

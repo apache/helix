@@ -1,7 +1,7 @@
 package org.apache.helix.controller.stages.task;
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.controller.WorkflowControllerDataProvider;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;

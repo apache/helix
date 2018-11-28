@@ -21,7 +21,7 @@ package org.apache.helix.tools.ClusterVerifiers;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;

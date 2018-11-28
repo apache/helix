@@ -13,7 +13,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.WorkflowControllerDataProvider;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;

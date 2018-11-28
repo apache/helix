@@ -23,7 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
-import org.apache.helix.controller.WorkflowControllerDataProvider;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.integration.task.WorkflowGenerator;

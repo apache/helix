@@ -21,7 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.Date;
 import java.util.Map;
-import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Partition;

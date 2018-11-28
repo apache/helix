@@ -19,7 +19,7 @@ package org.apache.helix.controller.rebalancer.internal;
  * under the License.
  */
 
-import org.apache.helix.controller.BaseControllerDataProvider;
+import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;

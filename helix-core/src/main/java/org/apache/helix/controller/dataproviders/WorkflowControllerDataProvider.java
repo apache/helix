@@ -1,4 +1,4 @@
-package org.apache.helix.controller;
+package org.apache.helix.controller.dataproviders;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -27,6 +27,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.TaskDataCache;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.task.AssignableInstanceManager;

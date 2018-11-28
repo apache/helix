@@ -3,7 +3,7 @@ package org.apache.helix.integration.controller;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.ClusterEvent;

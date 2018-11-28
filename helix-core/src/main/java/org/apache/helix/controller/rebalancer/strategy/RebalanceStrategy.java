@@ -23,8 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.BaseControllerDataProvider;
-import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 
 /**
  * Assignment strategy interface that computes the assignment of partition->instance.

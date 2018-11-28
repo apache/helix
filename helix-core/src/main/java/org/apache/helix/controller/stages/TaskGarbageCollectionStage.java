@@ -3,7 +3,7 @@ package org.apache.helix.controller.stages;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.helix.HelixManager;
-import org.apache.helix.controller.WorkflowControllerDataProvider;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;

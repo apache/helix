@@ -106,7 +106,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     }
 
     // Grab the old assignment, or an empty one if it doesn't exist
-    ResourceAssignment prevAssignment = getPrevResourceAssignment(jobName);
+    ResourceAssignment prevAssignment =
+        _dataProvider.getTaskDataCache().getPreviousAssignment(jobName);
     if (prevAssignment == null) {
       prevAssignment = new ResourceAssignment(jobName);
     }
@@ -161,8 +162,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // Update Workflow and Job context in data cache and ZK.
     _dataProvider.updateJobContext(jobName, jobCtx);
     _dataProvider.updateWorkflowContext(workflowResource, workflowCtx);
-
-    setPrevResourceAssignment(jobName, newAssignment);
+    _dataProvider.getTaskDataCache().setPreviousAssignment(jobName, newAssignment);
 
     LOG.debug("Job " + jobName + " new assignment "
         + Arrays.toString(newAssignment.getMappedPartitions().toArray()));
@@ -314,29 +314,6 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       }
     }
     return true;
-  }
-
-  /**
-   * Get the last task assignment for a given job
-   * @param resourceName the name of the job
-   * @return {@link ResourceAssignment} instance, or null if no assignment is available
-   */
-  private ResourceAssignment getPrevResourceAssignment(String resourceName) {
-    ZNRecord r = _manager.getHelixPropertyStore().get(
-        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, TaskConstants.PREV_RA_NODE),
-        null, AccessOption.PERSISTENT);
-    return r != null ? new ResourceAssignment(r) : null;
-  }
-
-  /**
-   * Set the last task assignment for a given job
-   * @param resourceName the name of the job
-   * @param ra {@link ResourceAssignment} containing the task assignment
-   */
-  private void setPrevResourceAssignment(String resourceName, ResourceAssignment ra) {
-    _manager.getHelixPropertyStore().set(
-        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, TaskConstants.PREV_RA_NODE),
-        ra.getRecord(), AccessOption.PERSISTENT);
   }
 
   /**

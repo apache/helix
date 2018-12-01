@@ -142,7 +142,7 @@ public class MockAccessor implements HelixDataAccessor {
     try {
       Stat stat = _baseDataAccessor.getStat(path, 0);
       if (stat != null) {
-        return new HelixProperty.Stat(stat.getVersion(), stat.getCtime(), stat.getMtime());
+        return new HelixProperty.Stat(stat.getVersion(), stat.getCtime(), stat.getMtime(), stat.getEphemeralOwner());
       }
     } catch (ZkNoNodeException e) {
 
@@ -169,7 +169,7 @@ public class MockAccessor implements HelixDataAccessor {
       HelixProperty.Stat propertyStat = null;
       if (zkStat != null) {
         propertyStat =
-            new HelixProperty.Stat(zkStat.getVersion(), zkStat.getCtime(), zkStat.getMtime());
+            new HelixProperty.Stat(zkStat.getVersion(), zkStat.getCtime(), zkStat.getMtime(), zkStat.getEphemeralOwner());
       }
       propertyStats.add(propertyStat);
     }

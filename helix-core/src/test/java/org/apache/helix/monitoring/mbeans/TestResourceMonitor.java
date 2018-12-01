@@ -235,6 +235,7 @@ public class TestResourceMonitor {
     copy.setVersion(record.getVersion());
     copy.setCreationTime(record.getCreationTime());
     copy.setModifiedTime(record.getModifiedTime());
+    copy.setEphemeralOwner(record.getEphemeralOwner());
 
     return copy;
   }

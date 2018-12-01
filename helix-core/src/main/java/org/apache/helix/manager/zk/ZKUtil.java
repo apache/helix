@@ -169,6 +169,7 @@ public final class ZKUtil {
         record.setVersion(newStat.getVersion());
         record.setCreationTime(newStat.getCtime());
         record.setModifiedTime(newStat.getMtime());
+        record.setEphemeralOwner(newStat.getEphemeralOwner());
         childRecords.add(record);
       }
     }

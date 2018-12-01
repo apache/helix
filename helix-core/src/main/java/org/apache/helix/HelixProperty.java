@@ -54,23 +54,27 @@ public class HelixProperty {
     private int _version;
     private long _creationTime;
     private long _modifiedTime;
+    private long _ephemeralOwner;
 
-    public Stat(int version, long creationTime, long modifiedTime) {
+    public Stat(int version, long creationTime, long modifiedTime, long ephemeralOwner) {
       _version = version;
       _creationTime = creationTime;
       _modifiedTime = modifiedTime;
+      _ephemeralOwner = ephemeralOwner;
     }
 
     public Stat(Stat stat) {
       _version = stat.getVersion();
       _creationTime = stat.getCreationTime();
       _modifiedTime = stat.getModifiedTime();
+      _ephemeralOwner = stat.getEphemeralOwner();
     }
 
     public Stat() {
       _version = -1;
       _creationTime = -1;
       _modifiedTime = -1;
+      _ephemeralOwner = -1;
     }
 
     public int getVersion() {
@@ -97,6 +101,14 @@ public class HelixProperty {
       _modifiedTime = modifiedTime;
     }
 
+    public long getEphemeralOwner() {
+      return _ephemeralOwner;
+    }
+
+    public void setEphemeralOwner(long ephemeralOwner) {
+      _ephemeralOwner = ephemeralOwner;
+    }
+
     @Override
     public boolean equals(Object o) {
       if (this == o) {
@@ -108,6 +120,9 @@ public class HelixProperty {
 
       Stat stat = (Stat) o;
 
+      if (_ephemeralOwner != stat._ephemeralOwner) {
+        return false;
+      }
       if (_version != stat._version) {
         return false;
       }
@@ -122,13 +137,14 @@ public class HelixProperty {
       int result = _version;
       result = 31 * result + (int) (_creationTime ^ (_creationTime >>> 32));
       result = 31 * result + (int) (_modifiedTime ^ (_modifiedTime >>> 32));
+      result = 31 * result + (int) (_ephemeralOwner ^ (_ephemeralOwner >>> 32));
       return result;
     }
 
     @Override
     public String toString() {
       return "Stat {" + "_version=" + _version + ", _creationTime=" + _creationTime
-          + ", _modifiedTime=" + _modifiedTime + '}';
+          + ", _modifiedTime=" + _modifiedTime + ", _ephemeralOwner=" + _ephemeralOwner + '}';
     }
   }
 
@@ -157,7 +173,7 @@ public class HelixProperty {
    */
   public HelixProperty(ZNRecord record, String id) {
     _record = new ZNRecord(record, id);
-    _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime());
+    _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(), _record.getEphemeralOwner());
   }
 
   /**

@@ -69,6 +69,8 @@ public class ZNRecord {
 
   private long _modifiedTime;
 
+  private long _ephemeralOwner;
+
   /**
    * Initialize with an identifier
    * @param id
@@ -76,9 +78,9 @@ public class ZNRecord {
   @JsonCreator
   public ZNRecord(@JsonProperty("id") String id) {
     this.id = id;
-    simpleFields = new TreeMap<String, String>();
-    mapFields = new TreeMap<String, Map<String, String>>();
-    listFields = new TreeMap<String, List<String>>();
+    simpleFields = new TreeMap<>();
+    mapFields = new TreeMap<>();
+    listFields = new TreeMap<>();
     rawPayload = null;
     _serializer = new JacksonPayloadSerializer();
   }
@@ -110,6 +112,7 @@ public class ZNRecord {
     _version = record.getVersion();
     _creationTime = record.getCreationTime();
     _modifiedTime = record.getModifiedTime();
+    _ephemeralOwner = record.getEphemeralOwner();
   }
 
   /**
@@ -667,5 +670,22 @@ public class ZNRecord {
   @JsonIgnore(true)
   public void setModifiedTime(long modifiedTime) {
     _modifiedTime = modifiedTime;
+  }
+
+  /**
+   * Get the session Id of ephemeral node owner
+   */
+  @JsonIgnore(true)
+  public long getEphemeralOwner() {
+    return _ephemeralOwner;
+  }
+
+  /**
+   * Set the session Id of ephemeral node owner
+   * @param ephemeralOwner
+   */
+  @JsonIgnore(true)
+  public void setEphemeralOwner(long ephemeralOwner) {
+    _ephemeralOwner = ephemeralOwner;
   }
 }

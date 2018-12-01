@@ -230,6 +230,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
         record.setCreationTime(stat.getCtime());
         record.setModifiedTime(stat.getMtime());
         record.setVersion(stat.getVersion());
+        record.setEphemeralOwner(stat.getEphemeralOwner());
       }
 
       switch (type) {
@@ -284,6 +285,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
         record.setCreationTime(stat.getCtime());
         record.setModifiedTime(stat.getMtime());
         record.setVersion(stat.getVersion());
+        record.setEphemeralOwner(stat.getEphemeralOwner());
       }
     } catch (ZkNoNodeException e) {
       // OK
@@ -333,7 +335,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     try {
       Stat stat = _baseDataAccessor.getStat(path, options);
       if (stat != null) {
-        return new HelixProperty.Stat(stat.getVersion(), stat.getCtime(), stat.getMtime());
+        return new HelixProperty.Stat(stat.getVersion(), stat.getCtime(), stat.getMtime(), stat.getEphemeralOwner());
       }
     } catch (ZkNoNodeException e) {
 
@@ -360,7 +362,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
       HelixProperty.Stat propertyStat = null;
       if (zkStat != null) {
         propertyStat =
-            new HelixProperty.Stat(zkStat.getVersion(), zkStat.getCtime(), zkStat.getMtime());
+            new HelixProperty.Stat(zkStat.getVersion(), zkStat.getCtime(), zkStat.getMtime(), zkStat.getEphemeralOwner());
       }
       propertyStats.add(propertyStat);
     }

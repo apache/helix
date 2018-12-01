@@ -66,6 +66,7 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
+   * TODO Deprecate this method since session Id should always read from node stat. It should be readonly. -- JJ
    * Set the session that this instance corresponds to
    * @param sessionId session identifier
    */
@@ -74,6 +75,7 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
+   * TODO Read the session Id directly from node stat. -- JJ
    * Get the session that this instance corresponds to
    * @return session identifier
    */

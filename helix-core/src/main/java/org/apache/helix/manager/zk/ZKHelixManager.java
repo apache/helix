@@ -816,8 +816,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       LiveInstance leader = _dataAccessor.getProperty(_keyBuilder.controllerLeader());
       if (leader != null) {
         String leaderName = leader.getInstanceName();
-        String sessionId = leader.getSessionId();
-        if (leaderName != null && leaderName.equals(_instanceName) && sessionId != null && sessionId
+        String sessionId = Long.toHexString(leader.getRecord().getEphemeralOwner());
+        if (leaderName != null && leaderName.equals(_instanceName) && sessionId
             .equals(_sessionId)) {
           return true;
         }

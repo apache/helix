@@ -21,11 +21,16 @@ package org.apache.helix.participant;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
@@ -34,10 +39,12 @@ import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.manager.zk.DistributedLeaderElection;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -168,20 +175,59 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     GenericHelixController participant0 = new GenericHelixController();
     List<HelixTimerTask> timerTasks = Collections.emptyList();
 
-    DistributedLeaderElection election =
-        new DistributedLeaderElection(manager, participant0, timerTasks);
-    NotificationContext context = new NotificationContext(manager);
-    context.setType(NotificationContext.Type.INIT);
-    election.onControllerChange(context);
+    try {
+      DistributedLeaderElection election =
+          new DistributedLeaderElection(manager, participant0, timerTasks);
+      Assert.fail(
+          "Should not be able construct DistributedLeaderElection object using participant manager.");
+    } catch (HelixException ex) {
+      // expected
+    }
 
-    String path = PropertyPathBuilder.controllerLeader(clusterName);
-    ZNRecord leaderRecord = _gZkClient.readData(path, true);
-    AssertJUnit.assertNull(leaderRecord);
-    // AssertJUnit.assertNull(election.getController());
-    // AssertJUnit.assertNull(election.getLeader());
-
-    _gZkClient.delete(path);
     TestHelper.dropCluster(clusterName, _gZkClient);
   }
 
+  @Test(dependsOnMethods = "testController")
+  public void testCompeteLeadership() throws Exception {
+    final int managerCount = 3;
+    String className = getShortClassName();
+    final String clusterName = CLUSTER_PREFIX + "_" + className + "_" + "testCompeteLeadership";
+    final ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
+
+    // Create controller leaders
+    final Map<String, ZKHelixManager> managerList = new HashMap<>();
+    for (int i = 0; i < managerCount; i++) {
+      String controllerName = "controller_" + i;
+      ZKHelixManager manager =
+          new ZKHelixManager(clusterName, controllerName, InstanceType.CONTROLLER, ZK_ADDR);
+      GenericHelixController controller0 = new GenericHelixController();
+      DistributedLeaderElection election =
+          new DistributedLeaderElection(manager, controller0, Collections.EMPTY_LIST);
+      manager.connect();
+      managerList.put(manager.getInstanceName(), manager);
+    }
+
+    // Remove leader manager one by one, and verify if the leader node exists
+    while(!managerList.isEmpty()) {
+      // Ensure a controller successfully acquired leadership.
+      Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
+        @Override
+        public boolean verify() {
+          LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
+          if (liveInstance != null) {
+            // disconnect the current leader manager
+            managerList.remove(liveInstance.getInstanceName()).disconnect();
+            return true;
+          } else {
+            return false;
+          }
+        }
+      }, 1000));
+    }
+
+    TestHelper.dropCluster(clusterName, _gZkClient);
+  }
 }

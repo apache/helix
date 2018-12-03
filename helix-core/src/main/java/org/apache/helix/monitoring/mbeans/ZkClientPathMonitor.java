@@ -107,7 +107,7 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
         .format("%s.%s.%s.%s", MonitorDomainNames.HelixZkClient.name(), monitorType, monitorKey,
             path.name());
 
-    _writeTotalLatencyCounter = new SimpleDynamicMetric(PredefinedMetricDomains.WriteBytesCounter.name(), 0l);
+    _writeTotalLatencyCounter = new SimpleDynamicMetric(PredefinedMetricDomains.WriteTotalLatencyCounter.name(), 0l);
     _readTotalLatencyCounter = new SimpleDynamicMetric(PredefinedMetricDomains.ReadTotalLatencyCounter.name(), 0l);
     _writeFailureCounter = new SimpleDynamicMetric(PredefinedMetricDomains.WriteFailureCounter.name(), 0l);
     _readFailureCounter = new SimpleDynamicMetric(PredefinedMetricDomains.ReadFailureCounter.name(), 0l);

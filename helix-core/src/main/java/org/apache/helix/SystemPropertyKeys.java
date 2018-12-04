@@ -25,6 +25,9 @@ public class SystemPropertyKeys {
   public static final String PARTICIPANT_HEALTH_REPORT_LATENCY =
       "helixmanager.participantHealthReport.reportLatency";
 
+  // Indicate monitoring level of the HelixManager metrics
+  public static final String MONITOR_LEVEL = "helixmanager.monitorLevel";
+
   // CallbackHandler
   public static final String ASYNC_BATCH_MODE_ENABLED = "helix.callbackhandler.isAsyncBatchModeEnabled";
 

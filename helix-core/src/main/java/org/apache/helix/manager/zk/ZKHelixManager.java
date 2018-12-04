@@ -19,6 +19,16 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import javax.management.JMException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Timer;
+import java.util.concurrent.TimeUnit;
+
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.*;
@@ -48,6 +58,7 @@ import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
+import org.apache.helix.monitoring.mbeans.MonitorLevel;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.AutoFallbackPropertyStore;
@@ -57,16 +68,6 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.management.JMException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.concurrent.TimeUnit;
 
 public class ZKHelixManager implements HelixManager, IZkStateListener {
   private static Logger LOG = LoggerFactory.getLogger(ZKHelixManager.class);
@@ -97,6 +98,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   protected HelixZkClient _zkclient = null;
   private final DefaultMessagingService _messagingService;
   private Map<ChangeType, HelixCallbackMonitor> _callbackMonitors;
+
+  private final MonitorLevel _monitorLevel;
 
   private BaseDataAccessor<ZNRecord> _baseDataAccessor;
   private ZKHelixDataAccessor _dataAccessor;
@@ -244,6 +247,16 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _reportLatency = HelixUtil
         .getSystemPropertyAsInt(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY,
             ParticipantHealthReportTask.DEFAULT_REPORT_LATENCY);
+
+    MonitorLevel configuredMonitorLevel;
+    try {
+      configuredMonitorLevel = MonitorLevel.valueOf(
+          System.getProperty(SystemPropertyKeys.MONITOR_LEVEL, MonitorLevel.DEFAULT.name()));
+    } catch (IllegalArgumentException ex) {
+      LOG.warn("Unrecognizable Monitor Level configuration. Use DEFAULT monitor level.", ex);
+      configuredMonitorLevel = MonitorLevel.DEFAULT;
+    }
+    _monitorLevel = configuredMonitorLevel;
 
     /**
      * instance type specific init
@@ -592,6 +605,19 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
   }
 
+  private boolean isMonitorRootPathOnly() {
+    switch (_monitorLevel) {
+    case ALL:
+      return false;
+    case AGGREGATED_ONLY:
+      return true;
+    default:
+      // Otherwise, apply the default policy. Emitting full metrics for controllers only.
+      return !_instanceType.equals(InstanceType.CONTROLLER) && !_instanceType
+          .equals(InstanceType.CONTROLLER_PARTICIPANT);
+    }
+  }
+
   void createClient() throws Exception {
     PathBasedZkSerializer zkSerializer =
         ChainedPathZkSerializer.builder(new ZNRecordSerializer()).build();
@@ -605,8 +631,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         .setMonitorType(_instanceType.name())
         .setMonitorKey(_clusterName)
         .setMonitorInstanceName(_instanceName)
-        .setMonitorRootPathOnly(!_instanceType.equals(InstanceType.CONTROLLER) && !_instanceType
-            .equals(InstanceType.CONTROLLER_PARTICIPANT));
+        .setMonitorRootPathOnly(isMonitorRootPathOnly());
 
     HelixZkClient newClient;
     switch (_instanceType) {
@@ -828,7 +853,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       LOG.warn(String.format("%s leader ZNode is null", warnLogPrefix));
 
     } catch (Exception e) {
-      // log
       LOG.warn(String.format("%s exception happen when session check", warnLogPrefix), e);
     }
     return false;

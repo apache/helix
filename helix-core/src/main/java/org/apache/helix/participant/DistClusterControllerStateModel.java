@@ -19,10 +19,13 @@ package org.apache.helix.participant;
  * under the License.
  */
 
+import com.google.common.collect.Sets;
+import java.util.Set;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.slf4j.Logger;
@@ -34,9 +37,16 @@ import org.slf4j.LoggerFactory;
 public class DistClusterControllerStateModel extends AbstractHelixLeaderStandbyStateModel {
   private static Logger logger = LoggerFactory.getLogger(DistClusterControllerStateModel.class);
   protected HelixManager _controller = null;
+  private final Set<Pipeline.Type> _enabledPipelineTypes;
 
   public DistClusterControllerStateModel(String zkAddr) {
+    this(zkAddr, Sets.newHashSet(Pipeline.Type.DEFAULT, Pipeline.Type.TASK));
+  }
+
+  public DistClusterControllerStateModel(String zkAddr,
+      Set<Pipeline.Type> enabledPipelineTypes) {
     super(zkAddr);
+    _enabledPipelineTypes = enabledPipelineTypes;
   }
 
   @Override
@@ -56,6 +66,7 @@ public class DistClusterControllerStateModel extends AbstractHelixLeaderStandbyS
       _controller =
           HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
               InstanceType.CONTROLLER, _zkAddr);
+      _controller.setEnabledControlPipelineTypes(_enabledPipelineTypes);
       _controller.connect();
       _controller.startTimerTasks();
       logStateTransition("STANDBY", "LEADER", clusterName, controllerName);

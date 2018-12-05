@@ -19,6 +19,7 @@ package org.apache.helix.mock;
  * under the License.
  */
 
+import java.util.Set;
 import java.util.UUID;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -43,6 +44,7 @@ import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
+import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.participant.HelixStateMachineEngine;
@@ -155,6 +157,11 @@ public class MockManager implements HelixManager {
   @Override
   public void addClusterfigChangeListener(ClusterConfigChangeListener listener)
       throws Exception {
+
+  }
+
+  @Override
+  public void setEnabledControlPipelineTypes(Set<Pipeline.Type> types) {
 
   }
 

@@ -19,21 +19,38 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import javax.management.JMException;
+import com.google.common.collect.Sets;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
-
+import javax.management.JMException;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
-import org.apache.helix.*;
+import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.ClusterMessagingService;
+import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants.ChangeType;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerProperties;
+import org.apache.helix.HelixTimerTask;
+import org.apache.helix.InstanceType;
+import org.apache.helix.LiveInstanceInfoProvider;
+import org.apache.helix.PreConnectCallback;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
+import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
@@ -46,6 +63,7 @@ import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.controller.GenericHelixController;
+import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import org.apache.helix.healthcheck.ParticipantHealthReportTask;
@@ -133,6 +151,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    * controller fields
    */
   private GenericHelixController _controller;
+  private Set<Pipeline.Type> _enabledPipelineTypes;
   private CallbackHandler _leaderElectionHandler = null;
   protected final List<HelixTimerTask> _controllerTimerTasks = new ArrayList<>();
 
@@ -202,6 +221,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
 
     _instanceName = instanceName;
+    _enabledPipelineTypes =
+        Sets.newHashSet(Pipeline.Type.DEFAULT, Pipeline.Type.TASK);
     _preConnectCallbacks = new ArrayList<>();
     _handlers = new ArrayList<>();
     _properties = new HelixManagerProperties(SystemPropertyKeys.CLUSTER_MANAGER_VERSION);
@@ -292,6 +313,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     default:
       throw new IllegalArgumentException("unrecognized type: " + instanceType);
     }
+  }
+
+  public void setEnabledControlPipelineTypes(Set<Pipeline.Type> types) {
+    if (!InstanceType.CONTROLLER.equals(_instanceType) && !InstanceType.CONTROLLER_PARTICIPANT
+        .equals(_instanceType)) {
+      throw new IllegalStateException(
+          String.format("Cannot enable control pipeline for instance type %s", _instanceType));
+    }
+    _enabledPipelineTypes = types;
   }
 
   @Override public boolean removeListener(PropertyKey key, Object listener) {
@@ -696,7 +726,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     case CONTROLLER:
     case CONTROLLER_PARTICIPANT:
       if (_controller == null) {
-        _controller = new GenericHelixController(_clusterName);
+        _controller = new GenericHelixController(_clusterName, _enabledPipelineTypes);
         _messagingService.getExecutor().setController(_controller);
       }
       break;

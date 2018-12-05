@@ -38,7 +38,6 @@ import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
@@ -172,13 +171,7 @@ public class GenericHelixController implements IdealStateChangeListener,
   private long _lastPipelineEndTimestamp;
 
   private String _clusterName;
-  private final Set<PipelineTypes> _enabledPipelineTypes;
-
-  // TODO: move this enum to Pipeline class
-  public enum PipelineTypes {
-    DEFAULT,
-    TASK
-  }
+  private final Set<Pipeline.Type> _enabledPipelineTypes;
 
   /**
    * Default constructor that creates a default pipeline registry. This is sufficient in most cases,
@@ -186,19 +179,19 @@ public class GenericHelixController implements IdealStateChangeListener,
    * pipeline registry
    */
   public GenericHelixController() {
-    this(createDefaultRegistry(PipelineTypes.DEFAULT.name()),
-        createTaskRegistry(PipelineTypes.TASK.name()));
+    this(createDefaultRegistry(Pipeline.Type.DEFAULT.name()),
+        createTaskRegistry(Pipeline.Type.TASK.name()));
   }
 
   public GenericHelixController(String clusterName) {
-    this(createDefaultRegistry(PipelineTypes.DEFAULT.name()),
-        createTaskRegistry(PipelineTypes.TASK.name()), clusterName,
-        Sets.newHashSet(PipelineTypes.TASK, PipelineTypes.DEFAULT));
+    this(createDefaultRegistry(Pipeline.Type.DEFAULT.name()),
+        createTaskRegistry(Pipeline.Type.TASK.name()), clusterName,
+        Sets.newHashSet(Pipeline.Type.TASK, Pipeline.Type.DEFAULT));
   }
 
-  public GenericHelixController(String clusterName, Set<PipelineTypes> enabledPipelins) {
-    this(createDefaultRegistry(PipelineTypes.DEFAULT.name()),
-        createTaskRegistry(PipelineTypes.TASK.name()), clusterName, enabledPipelins);
+  public GenericHelixController(String clusterName, Set<Pipeline.Type> enabledPipelins) {
+    this(createDefaultRegistry(Pipeline.Type.DEFAULT.name()),
+        createTaskRegistry(Pipeline.Type.TASK.name()), clusterName, enabledPipelins);
   }
 
   class RebalanceTask extends TimerTask {
@@ -389,11 +382,12 @@ public class GenericHelixController implements IdealStateChangeListener,
 
   // TODO: refactor the constructor as providing both registry but only enabling one looks confusing
   public GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry) {
-    this(registry, taskRegistry, null, Sets.newHashSet(PipelineTypes.TASK, PipelineTypes.DEFAULT));
+    this(registry, taskRegistry, null, Sets.newHashSet(
+        Pipeline.Type.TASK, Pipeline.Type.DEFAULT));
   }
 
   private GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry,
-      final String clusterName, Set<PipelineTypes> enabledPipelineTypes) {
+      final String clusterName, Set<Pipeline.Type> enabledPipelineTypes) {
     _paused = false;
     _enabledPipelineTypes = enabledPipelineTypes;
     _registry = registry;
@@ -414,28 +408,28 @@ public class GenericHelixController implements IdealStateChangeListener,
     initializeAsyncFIFOWorkers();
 
     // initialize pipelines at the end so we have everything else prepared
-    if (_enabledPipelineTypes.contains(PipelineTypes.DEFAULT)) {
-      logger.info("Initializing {} pipeline", PipelineTypes.DEFAULT.name());
+    if (_enabledPipelineTypes.contains(Pipeline.Type.DEFAULT)) {
+      logger.info("Initializing {} pipeline", Pipeline.Type.DEFAULT.name());
       _resourceControlDataProvider = new ResourceControllerDataProvider(clusterName);
       _eventQueue = new ClusterEventBlockingQueue();
       _eventThread = new ClusterEventProcessor(_resourceControlDataProvider, _eventQueue,
           "default-" + clusterName);
       initPipeline(_eventThread, _resourceControlDataProvider);
-      logger.info("Initialized {} pipeline", PipelineTypes.DEFAULT.name());
+      logger.info("Initialized {} pipeline", Pipeline.Type.DEFAULT.name());
     } else {
       _eventQueue = null;
       _resourceControlDataProvider = null;
       _eventThread = null;
     }
 
-    if (_enabledPipelineTypes.contains(PipelineTypes.TASK)) {
-      logger.info("Initializing {} pipeline", PipelineTypes.TASK.name());
+    if (_enabledPipelineTypes.contains(Pipeline.Type.TASK)) {
+      logger.info("Initializing {} pipeline", Pipeline.Type.TASK.name());
       _workflowControlDataProvider = new WorkflowControllerDataProvider(clusterName);
       _taskEventQueue = new ClusterEventBlockingQueue();
       _taskEventThread = new ClusterEventProcessor(_workflowControlDataProvider, _taskEventQueue,
           "task-" + clusterName);
       initPipeline(_taskEventThread, _workflowControlDataProvider);
-      logger.info("Initialized {} pipeline", PipelineTypes.TASK.name());
+      logger.info("Initialized {} pipeline", Pipeline.Type.TASK.name());
     } else {
       _workflowControlDataProvider = null;
       _taskEventQueue = null;
@@ -477,7 +471,7 @@ public class GenericHelixController implements IdealStateChangeListener,
   /**
    * lock-always: caller always needs to obtain an external lock before call, calls to handleEvent()
    * should be serialized
-   * @param event
+   * @param event cluster event to handle
    */
   private void handleEvent(ClusterEvent event, BaseControllerDataProvider dataProvider) {
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
@@ -507,7 +501,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
 
     if (context != null) {
-      if (context.getType() == Type.FINALIZE) {
+      if (context.getType() == NotificationContext.Type.FINALIZE) {
         stopPeriodRebalance();
         logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getEventType());
         return;
@@ -609,9 +603,8 @@ public class GenericHelixController implements IdealStateChangeListener,
               .updateClusterEventDuration(ClusterEventMonitor.PhaseName.Callback.name(),
                   enqueueTime - zkCallbackTime);
         }
-        sb.append(String.format(
-            "Callback time for event: " + event.getEventType() + " took: " + (enqueueTime
-                - zkCallbackTime) + " ms\n"));
+        sb.append(String.format("Callback time for event: %s took: %s ms\n", event.getEventType(),
+            enqueueTime - zkCallbackTime));
       }
       if (_isMonitoring) {
         _clusterStatusMonitor
@@ -621,13 +614,10 @@ public class GenericHelixController implements IdealStateChangeListener,
             .updateClusterEventDuration(ClusterEventMonitor.PhaseName.TotalProcessed.name(),
                 _lastPipelineEndTimestamp - startTime);
       }
-      sb.append(String.format(
-          "InQueue time for event: " + event.getEventType() + " took: " + (startTime - enqueueTime)
-              + " ms\n"));
-      sb.append(String.format(
-          "TotalProcessed time for event: " + event.getEventType() + " took: " + (
-              _lastPipelineEndTimestamp
-              - startTime) + " ms"));
+      sb.append(String.format("InQueue time for event: %s took: %s ms\n", event.getEventType(),
+          startTime - enqueueTime));
+      sb.append(String.format("TotalProcessed time for event: %s took: %s ms", event.getEventType(),
+          _lastPipelineEndTimestamp - startTime));
       logger.info(sb.toString());
     }
 
@@ -748,7 +738,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     pushToEventQueues(ClusterEventType.IdealStateChange, changeContext,
         Collections.<String, Object>emptyMap());
 
-    if (changeContext.getType() != Type.FINALIZE) {
+    if (changeContext.getType() != NotificationContext.Type.FINALIZE) {
       HelixManager manager = changeContext.getManager();
       if (manager != null) {
         HelixDataAccessor dataAccessor = changeContext.getManager().getHelixDataAccessor();
@@ -800,7 +790,7 @@ public class GenericHelixController implements IdealStateChangeListener,
   }
 
   private void notifyCaches(NotificationContext context, ChangeType changeType) {
-    if (context == null || context.getType() != Type.CALLBACK) {
+    if (context == null || context.getType() != NotificationContext.Type.CALLBACK) {
       requestDataProvidersFullRefresh();
     } else {
       updateDataChangeInProvider(changeType, context.getPathChanged());
@@ -832,7 +822,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     // No need for completed UUID, prefixed should be fine
     String uid = UUID.randomUUID().toString().substring(0, 8);
     ClusterEvent event = new ClusterEvent(_clusterName, eventType,
-        String.format("%s_%s", uid, PipelineTypes.DEFAULT.name()));
+        String.format("%s_%s", uid, Pipeline.Type.DEFAULT.name()));
     event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
     event.addAttribute(AttributeName.changeContext.name(), changeContext);
     event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
@@ -841,7 +831,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
     enqueueEvent(_eventQueue, event);
     enqueueEvent(_taskEventQueue,
-        event.clone(String.format("%s_%s", uid, PipelineTypes.TASK.name())));
+        event.clone(String.format("%s_%s", uid, Pipeline.Type.TASK.name())));
   }
 
   private void enqueueEvent(ClusterEventBlockingQueue queue, ClusterEvent event) {
@@ -860,17 +850,18 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     boolean controllerIsLeader;
 
-    if (changeContext != null && changeContext.getType() == Type.FINALIZE) {
+    if (changeContext == null || changeContext.getType() == NotificationContext.Type.FINALIZE) {
       logger.info(
-          "GenericClusterController.onControllerChange() FINALIZE for cluster " + _clusterName);
+          "GenericClusterController.onControllerChange() Cluster change type {} for cluster {}. Disable leadership.",
+          changeContext == null ? null : changeContext.getType(), _clusterName);
       controllerIsLeader = false;
     } else {
       // double check if this controller is the leader
       controllerIsLeader = changeContext.getManager().isLeader();
     }
 
-    HelixManager manager = changeContext.getManager();
     if (controllerIsLeader) {
+      HelixManager manager = changeContext.getManager();
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
       PauseSignal pauseSignal = accessor.getProperty(keyBuilder.pause());
@@ -968,10 +959,10 @@ public class GenericHelixController implements IdealStateChangeListener,
   public void shutdown() throws InterruptedException {
     stopPeriodRebalance();
 
-    logger.info("Shutting down {} pipeline", PipelineTypes.DEFAULT.name());
+    logger.info("Shutting down {} pipeline", Pipeline.Type.DEFAULT.name());
     shutdownPipeline(_eventThread, _eventQueue);
 
-    logger.info("Shutting down {} pipeline", PipelineTypes.TASK.name());
+    logger.info("Shutting down {} pipeline", Pipeline.Type.TASK.name());
     shutdownPipeline(_taskEventThread, _taskEventQueue);
 
     // shutdown asycTasksThreadpool and wait for terminate.
@@ -1050,13 +1041,12 @@ public class GenericHelixController implements IdealStateChangeListener,
         logger.info("controller is now resumed from paused state");
         String uid = UUID.randomUUID().toString().substring(0, 8);
         ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.Resume,
-            String.format("%s_%s", uid, PipelineTypes.DEFAULT.name()));
+            String.format("%s_%s", uid, Pipeline.Type.DEFAULT.name()));
         event.addAttribute(AttributeName.changeContext.name(), changeContext);
         event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
-        event.addAttribute(AttributeName.eventData.name(), signal);
         event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
         _eventQueue.put(event);
-        _taskEventQueue.put(event.clone(String.format("%s_%s", uid, PipelineTypes.TASK.name())));
+        _taskEventQueue.put(event.clone(String.format("%s_%s", uid, Pipeline.Type.TASK.name())));
       }
     }
     return statusFlag;
@@ -1064,12 +1054,13 @@ public class GenericHelixController implements IdealStateChangeListener,
 
 
   // TODO: refactor this to use common/ClusterEventProcessor.
+  @Deprecated
   private class ClusterEventProcessor extends Thread {
     private final BaseControllerDataProvider _cache;
     private final ClusterEventBlockingQueue _eventBlockingQueue;
     private final String _processorName;
 
-    public ClusterEventProcessor(BaseControllerDataProvider cache,
+    ClusterEventProcessor(BaseControllerDataProvider cache,
         ClusterEventBlockingQueue eventBlockingQueue, String processorName) {
       super("HelixController-pipeline-" + processorName);
       _cache = cache;
@@ -1113,9 +1104,5 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     eventThread.setDaemon(true);
     eventThread.start();
-  }
-
-  public static String getPipelineType(boolean isTask) {
-    return isTask ? PipelineTypes.TASK.name() : PipelineTypes.DEFAULT.name();
   }
 }

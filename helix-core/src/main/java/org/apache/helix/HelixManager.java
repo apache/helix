@@ -21,9 +21,11 @@ package org.apache.helix;
 
 import java.util.List;
 
+import java.util.Set;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.controller.GenericHelixController;
+import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ClusterConfig;
@@ -253,6 +255,13 @@ public interface HelixManager {
    */
   @Deprecated
   void addControllerMessageListener(org.apache.helix.MessageListener listener);
+
+  /**
+   * Selectively enable controller pipeline using the given types. This will only take effect
+   * when called before connect(), and instance type is CONTROLLER
+   * @param types pipeline types to enable
+   */
+  void setEnabledControlPipelineTypes(Set<Pipeline.Type> types);
 
   /**
    * Removes the listener. If the same listener was used for multiple changes,

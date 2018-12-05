@@ -29,8 +29,8 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.PropertyCache;
-import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.ResourceAssignment;
@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   private static final Logger logger =
       LoggerFactory.getLogger(ResourceControllerDataProvider.class);
-  private static final String PIPELINE_NAME = GenericHelixController.PipelineTypes.DEFAULT.name();
+  private static final String PIPELINE_NAME = Pipeline.Type.DEFAULT.name();
 
   // Resource control specific property caches
   private final PropertyCache<ExternalView> _externalViewCache;

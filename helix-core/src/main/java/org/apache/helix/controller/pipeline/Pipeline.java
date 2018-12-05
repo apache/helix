@@ -33,6 +33,11 @@ public class Pipeline {
   private final String _pipelineType;
   List<Stage> _stages;
 
+  public enum Type {
+    DEFAULT,
+    TASK
+  }
+
   public Pipeline() {
     this("");
   }
@@ -84,4 +89,5 @@ public class Pipeline {
   public List<Stage> getStages() {
     return _stages;
   }
+
 }

@@ -19,19 +19,28 @@ package org.apache.helix.participant;
  * under the License.
  */
 
+import com.google.common.collect.Sets;
+import java.util.Set;
+import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
 public class DistClusterControllerStateModelFactory extends
     StateModelFactory<DistClusterControllerStateModel> {
   private final String _zkAddr;
+  private final Set<Pipeline.Type> _enabledPipelineTypes;
 
   public DistClusterControllerStateModelFactory(String zkAddr) {
+    this(zkAddr, Sets.newHashSet(Pipeline.Type.DEFAULT, Pipeline.Type.TASK));
+  }
+
+  public DistClusterControllerStateModelFactory(String zkAddr,
+      Set<Pipeline.Type> enabledPipelineTypes) {
     _zkAddr = zkAddr;
+    _enabledPipelineTypes = enabledPipelineTypes;
   }
 
-  @Override
-  public DistClusterControllerStateModel createNewStateModel(String resourceName, String partitionKey) {
-    return new DistClusterControllerStateModel(_zkAddr);
+  @Override public DistClusterControllerStateModel createNewStateModel(String resourceName,
+      String partitionKey) {
+    return new DistClusterControllerStateModel(_zkAddr, _enabledPipelineTypes);
   }
-
 }

@@ -243,9 +243,8 @@ public class GenericHelixController implements IdealStateChangeListener,
     event.addAttribute(AttributeName.eventData.name(), new ArrayList<>());
     event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
 
-    _taskEventQueue.put(event);
-    _eventQueue.put(event.clone(uid));
-
+    enqueueEvent(_taskEventQueue, event);
+    enqueueEvent(_eventQueue, event.clone(uid));
     logger.info(String
         .format("Controller rebalance event triggered with event type: %s for cluster %s",
             eventType, _clusterName));
@@ -462,9 +461,9 @@ public class GenericHelixController implements IdealStateChangeListener,
 
   private boolean isEventQueueEmpty(boolean taskQueue) {
     if (taskQueue) {
-      return _taskEventQueue.isEmpty();
+      return _taskEventQueue == null ||  _taskEventQueue.isEmpty();
     } else {
-      return _eventQueue.isEmpty();
+      return _eventQueue == null || _eventQueue.isEmpty();
     }
   }
 
@@ -845,8 +844,7 @@ public class GenericHelixController implements IdealStateChangeListener,
   public void onControllerChange(NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onControllerChange() for cluster " + _clusterName);
 
-    _resourceControlDataProvider.requireFullRefresh();
-    _workflowControlDataProvider.requireFullRefresh();
+    requestDataProvidersFullRefresh();
 
     boolean controllerIsLeader;
 
@@ -990,7 +988,9 @@ public class GenericHelixController implements IdealStateChangeListener,
           logger.info("Enable clusterStatusMonitor for cluster " + _clusterName);
           // Clear old cached monitoring related data to avoid reporting stats cross different
           // leadership periods
-          _resourceControlDataProvider.clearMonitoringRecords();
+          if (_resourceControlDataProvider != null) {
+            _resourceControlDataProvider.clearMonitoringRecords();
+          }
           _clusterStatusMonitor.active();
         } else {
           logger.info("Disable clusterStatusMonitor for cluster " + _clusterName);
@@ -1045,8 +1045,9 @@ public class GenericHelixController implements IdealStateChangeListener,
         event.addAttribute(AttributeName.changeContext.name(), changeContext);
         event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
         event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
-        _eventQueue.put(event);
-        _taskEventQueue.put(event.clone(String.format("%s_%s", uid, Pipeline.Type.TASK.name())));
+        enqueueEvent(_eventQueue, event);
+        enqueueEvent(_taskEventQueue,
+            event.clone(String.format("%s_%s", uid, Pipeline.Type.TASK.name())));
       }
     }
     return statusFlag;

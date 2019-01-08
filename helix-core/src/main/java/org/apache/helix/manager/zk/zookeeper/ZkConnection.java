@@ -31,7 +31,6 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 public class ZkConnection implements IZkConnection {
-
   private static final Logger LOG = Logger.getLogger(ZkConnection.class);
 
   /** It is recommended to use quite large sessions timeouts for ZooKeeper. */
@@ -78,6 +77,25 @@ public class ZkConnection implements IZkConnection {
         LOG.debug("Closing ZooKeeper connected to " + _servers);
         _zk.close();
         _zk = null;
+      }
+    } finally {
+      _zookeeperLock.unlock();
+    }
+  }
+
+  protected void reconnect(Watcher watcher) throws InterruptedException {
+    _zookeeperLock.lock();
+    try {
+      if (_zk == null) {
+        throw new IllegalStateException("zk client has not been connected or already been closed");
+      }
+      ZooKeeper prevZk = _zk;
+      try {
+        LOG.debug("Creating new ZookKeeper instance to reconnect to " + _servers + ".");
+        _zk = new ZooKeeper(_servers, _sessionTimeOut, watcher);
+        prevZk.close();
+      } catch (IOException e) {
+        throw new ZkException("Unable to connect to " + _servers, e);
       }
     } finally {
       _zookeeperLock.unlock();

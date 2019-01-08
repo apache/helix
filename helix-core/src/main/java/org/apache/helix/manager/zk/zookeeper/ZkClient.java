@@ -823,9 +823,8 @@ public class ZkClient implements Watcher {
   private void reconnect() {
     getEventLock().lock();
     try {
-      IZkConnection connection = getConnection();
-      connection.close();
-      connection.connect(this);
+      ZkConnection connection = ((ZkConnection) getConnection());
+      connection.reconnect(this);
     } catch (InterruptedException e) {
       throw new ZkInterruptedException(e);
     } finally {

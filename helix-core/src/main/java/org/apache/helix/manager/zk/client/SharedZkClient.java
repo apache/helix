@@ -3,8 +3,8 @@ package org.apache.helix.manager.zk.client;
 import java.util.List;
 
 import org.I0Itec.zkclient.IZkConnection;
-import org.I0Itec.zkclient.ZkConnection;
 import org.apache.helix.HelixException;
+import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;

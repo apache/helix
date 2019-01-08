@@ -20,11 +20,11 @@ package org.apache.helix.manager.zk;
  */
 
 import org.I0Itec.zkclient.IZkConnection;
-import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

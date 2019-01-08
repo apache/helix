@@ -1,8 +1,8 @@
 package org.apache.helix.manager.zk.client;
 
 import org.I0Itec.zkclient.IZkConnection;
-import org.I0Itec.zkclient.ZkConnection;
 import org.apache.helix.HelixException;
+import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 
 /**
  * Abstract class of the ZkClient factory.

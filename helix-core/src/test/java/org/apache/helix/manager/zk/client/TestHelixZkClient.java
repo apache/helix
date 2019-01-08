@@ -22,10 +22,10 @@ package org.apache.helix.manager.zk.client;
 import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.ZkConnection;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

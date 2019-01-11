@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
@@ -37,7 +38,13 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.NotificationContext.Type;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.listeners.BatchMode;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
@@ -47,15 +54,9 @@ import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
+import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
-import org.apache.helix.api.listeners.BatchMode;
-import org.apache.helix.api.listeners.PreFetch;
-import org.apache.helix.NotificationContext;
-import org.apache.helix.NotificationContext.Type;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathConfig;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
@@ -67,9 +68,9 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
+import org.apache.zookeeper.Watcher.Event.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.zookeeper.Watcher.Event.EventType;
 
 import static org.apache.helix.HelixConstants.ChangeType.*;
 
@@ -320,7 +321,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             "CallbackHandler is not ready, ignore change callback from path: "
                 + _path + ", for listener: " + _listener);
       } else {
-        _batchCallbackProcessor.queueEvent(changeContext.getType(), changeContext);
+        synchronized (this) {
+          if (_batchCallbackProcessor != null) {
+            _batchCallbackProcessor.queueEvent(changeContext.getType(), changeContext);
+          } else {
+            throw new HelixException("Failed to process callback in batch mode. Batch Callback Processor does not exist.");
+          }
+        }
       }
     } else {
       invoke(changeContext);
@@ -573,11 +580,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     logger.info("initializing CallbackHandler: " + this.toString() + " content: " + getContent());
 
     if (_batchModeEnabled) {
-      if (_batchCallbackProcessor != null) {
-        _batchCallbackProcessor.shutdown();
+      synchronized (this) {
+        if (_batchCallbackProcessor != null) {
+          _batchCallbackProcessor.resetEventQueue();
+        } else {
+          _batchCallbackProcessor = new CallbackProcessor(this);
+          _batchCallbackProcessor.start();
+        }
       }
-      _batchCallbackProcessor = new CallbackProcessor(this);
-      _batchCallbackProcessor.start();
     }
 
     updateNotificationTime(System.nanoTime());
@@ -674,12 +684,25 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   /**
    * Invoke the listener for the last time so that the listener could clean up resources
    */
+  @Deprecated
   public void reset() {
-    logger.info("Resetting CallbackHandler: " + this.toString());
+    reset(true);
+  }
+
+  void reset(boolean isShutdown) {
+    logger.info("Resetting CallbackHandler: {}. Is resetting for shutdown: {}.", this.toString(),
+        isShutdown);
     try {
       _ready = false;
-      if (_batchCallbackProcessor != null) {
-        _batchCallbackProcessor.shutdown();
+      synchronized (this) {
+        if (_batchCallbackProcessor != null) {
+          if (isShutdown) {
+            _batchCallbackProcessor.shutdown();
+            _batchCallbackProcessor = null;
+          } else {
+            _batchCallbackProcessor.resetEventQueue();
+          }
+        }
       }
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);

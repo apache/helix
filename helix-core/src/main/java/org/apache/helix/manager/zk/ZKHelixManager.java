@@ -298,7 +298,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
       // handler.reset() may modify the handlers list, so do it outside the iteration
       for (CallbackHandler handler : toRemove) {
-        handler.reset();
+        handler.reset(true);
       }
     }
 
@@ -717,10 +717,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       // TODO reset user defined handlers only
       // TODO Fix the issue that when connection disconnected, reset handlers will be blocked. -- JJ
       // This is because reset logic contains ZK operations.
-      resetHandlers();
+      resetHandlers(true);
 
       if (_leaderElectionHandler != null) {
-        _leaderElectionHandler.reset();
+        _leaderElectionHandler.reset(true);
       }
 
     } finally {
@@ -947,7 +947,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
   }
 
-  void resetHandlers() {
+  void resetHandlers(boolean isShutdown) {
     synchronized (this) {
       if (_handlers != null) {
         // get a copy of the list and iterate over the copy list
@@ -956,7 +956,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         tmpHandlers.addAll(_handlers);
 
         for (CallbackHandler handler : tmpHandlers) {
-          handler.reset();
+          handler.reset(isShutdown);
           LOG.info("reset handler: " + handler.getPath() + ", " + handler.getListener());
         }
       }
@@ -1054,9 +1054,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
      */
     stopTimerTasks();
     if (_leaderElectionHandler != null) {
-      _leaderElectionHandler.reset();
+      _leaderElectionHandler.reset(false);
     }
-    resetHandlers();
+    resetHandlers(false);
 
     /**
      * clean up write-through cache

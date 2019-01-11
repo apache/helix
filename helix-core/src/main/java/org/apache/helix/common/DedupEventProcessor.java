@@ -64,6 +64,10 @@ public abstract class DedupEventProcessor<T, E> extends Thread {
     _eventQueue.put(eventType, event);
   }
 
+  public void resetEventQueue() {
+    _eventQueue.clear();
+  }
+
   public void shutdown() {
     this.interrupt();
     _eventQueue.clear();

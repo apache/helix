@@ -49,8 +49,8 @@ public class TestClusterEventStatusMonitor {
       super(clusterName);
       active();
     }
-    public ConcurrentHashMap<String, ClusterEventMonitor> getClusterEventMBean() {
-      return _clusterEventMbeanMap;
+    public ConcurrentHashMap<String, ClusterEventMonitor> getClusterEventMonitors() {
+      return _clusterEventMonitorMap;
     }
   }
 
@@ -149,11 +149,11 @@ public class TestClusterEventStatusMonitor {
 
   private void addTestEventMonitor(ClusterStatusMonitorForTest monitor, String phaseName) throws
       JMException {
-    ConcurrentHashMap<String, ClusterEventMonitor> mbean = monitor.getClusterEventMBean();
+    ConcurrentHashMap<String, ClusterEventMonitor> monitors = monitor.getClusterEventMonitors();
     ClusterEventMonitor eventMonitor = new ClusterEventMonitor(monitor, phaseName,
         TEST_SLIDING_WINDOW_MS);
     eventMonitor.register();
-    mbean.put(phaseName, eventMonitor);
+    monitors.put(phaseName, eventMonitor);
   }
 
 }

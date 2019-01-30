@@ -243,8 +243,8 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
     Assert
         .assertEquals(
             handlers.size(),
-            2,
-            "Distributed controller should have 2 handler (message) after lose leadership, but was "
+            1,
+            "Distributed controller should have 1 handler (message) after lose leadership, but was "
                 + handlers.size());
 
     // clean up

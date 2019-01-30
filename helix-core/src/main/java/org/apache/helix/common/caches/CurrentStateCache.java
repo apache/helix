@@ -103,10 +103,10 @@ public class CurrentStateCache extends AbstractDataCache<CurrentState> {
     long endTime = System.currentTimeMillis();
     LogUtil.logInfo(LOG, genEventInfo(),
         "END: CurrentStateCache.refresh() for cluster " + _controlContextProvider.getClusterName()
-            + ", took " + (endTime - startTime) + " ms");
+            + ", started at : " + startTime + ", took " + (endTime - startTime) + " ms");
     if (LOG.isDebugEnabled()) {
       LogUtil.logDebug(LOG, genEventInfo(),
-          String.format("Current State freshed : %s", _currentStateMap.toString()));
+          String.format("Current State refreshed : %s", _currentStateMap.toString()));
     }
     return true;
   }

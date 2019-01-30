@@ -110,7 +110,7 @@ public class TestEnableCompression extends ZkTestBase {
     Assert.assertTrue(result);
 
     List<String> compressedPaths = new ArrayList<String>();
-    findCompressedZNodes(zkClient, "/", compressedPaths);
+    findCompressedZNodes(zkClient, "/" + clusterName, compressedPaths);
 
     System.out.println("compressed paths:" + compressedPaths);
     // ONLY IDEALSTATE and EXTERNAL VIEW must be compressed

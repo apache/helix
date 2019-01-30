@@ -186,7 +186,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   }
 
   private void verifyP2PMessage(String dbName, String instance, String expectedState, String expectedTriggerHost) {
-    verifyP2PMessage(dbName, instance, expectedState, expectedTriggerHost, 0.7);
+    verifyP2PMessage(dbName, instance, expectedState, expectedTriggerHost, 0.6);
   }
 
   private void verifyP2PMessage(String dbName, String instance, String expectedState, String expectedTriggerHost, double expectedRatio) {

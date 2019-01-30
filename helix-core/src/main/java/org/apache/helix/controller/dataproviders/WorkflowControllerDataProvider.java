@@ -104,8 +104,8 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
 
     long duration = System.currentTimeMillis() - startTime;
     LogUtil.logInfo(logger, getClusterEventId(), String.format(
-        "END: WorkflowControllerDataProvider.refresh() for cluster %s took %s for %s pipeline",
-        getClusterName(), duration, getPipelineName()));
+        "END: WorkflowControllerDataProvider.refresh() for cluster %s, started at %d took %d for %s pipeline",
+        getClusterName(), startTime, duration, getPipelineName()));
     dumpDebugInfo();
   }
 

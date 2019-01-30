@@ -51,6 +51,8 @@ import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.helix.task.TaskConstants;
+import org.testng.collections.Lists;
 
 public class MockZKHelixManager implements HelixManager {
   private final ZKHelixDataAccessor _accessor;
@@ -281,7 +283,8 @@ public class MockZKHelixManager implements HelixManager {
   @Override
   public ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore() {
     // TODO Auto-generated method stub
-    return null;
+    return new ZkHelixPropertyStore<>(
+        (ZkBaseDataAccessor<ZNRecord>) _accessor.getBaseDataAccessor(), TaskConstants.REBALANCER_CONTEXT_ROOT, Lists.<String>newArrayList());
   }
 
   @Override

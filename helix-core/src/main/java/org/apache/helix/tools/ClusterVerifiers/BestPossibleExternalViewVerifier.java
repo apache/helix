@@ -196,6 +196,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
       _dataProvider.requireFullRefresh();
       _dataProvider.refresh(_accessor);
+      _dataProvider.setClusterEventId("ClusterStateVerifier");
 
       Map<String, IdealState> idealStates = new HashMap<>(_dataProvider.getIdealStates());
 

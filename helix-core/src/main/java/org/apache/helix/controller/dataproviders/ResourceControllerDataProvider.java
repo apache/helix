@@ -108,6 +108,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   public synchronized void refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
+
     // Invalidate cached information
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.IDEAL_STATE)
         || _propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE)
@@ -123,8 +124,8 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     refreshExternalViews(accessor);
     refreshTargetExternalViews(accessor);
     LogUtil.logInfo(logger, getClusterEventId(), String.format(
-        "END: WorkflowControllerDataProvider.refresh() for cluster %s took %s for %s pipeline",
-        getClusterName(), System.currentTimeMillis() - startTime, getPipelineName()));
+        "END: ResourceControllerDataProvider.refresh() for cluster %s, started at %d took %d for %s pipeline",
+        getClusterName(), startTime, System.currentTimeMillis() - startTime, getPipelineName()));
     dumpDebugInfo();
   }
 

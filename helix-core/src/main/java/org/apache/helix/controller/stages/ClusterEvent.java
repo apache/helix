@@ -105,7 +105,7 @@ public class ClusterEvent {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append(String.format("Event id : %s", _eventId.toString()));
+    sb.append(String.format("Event id : %s", _eventId));
     sb.append("name:" + _eventType.name()).append("\n");
     for (String key : _eventAttributeMap.keySet()) {
       sb.append(key).append(":").append(_eventAttributeMap.get(key)).append("\n");

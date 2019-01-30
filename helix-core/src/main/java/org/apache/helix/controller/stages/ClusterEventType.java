@@ -32,6 +32,7 @@ public enum ClusterEventType {
   TargetExternalViewChange,
   Resume,
   PeriodicalRebalance,
+  OnDemandRebalance,
   RetryRebalance,
   StateVerifier,
   Unknown

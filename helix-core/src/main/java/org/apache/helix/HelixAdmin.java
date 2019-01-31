@@ -22,8 +22,15 @@ package org.apache.helix;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.model.*;
+import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.ConstraintItem;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.MaintenanceSignal;
+import org.apache.helix.model.StateModelDefinition;
 
 /*
  * Helix cluster management
@@ -313,6 +320,13 @@ public interface HelixAdmin {
    */
   void manuallyEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
       Map<String, String> customFields);
+
+  /**
+   * Check specific cluster is in maintenance mode or not
+   * @param clusterName the cluster name
+   * @return true if in maintenance mode, false otherwise
+   */
+  boolean isInMaintenanceMode(String clusterName);
 
   /**
    * Reset a list of partitions in error state for an instance

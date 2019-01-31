@@ -389,7 +389,14 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  @Deprecated
+  public boolean isInMaintenanceMode(String clusterName) {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    return accessor.getBaseDataAccessor().exists(keyBuilder.maintenance().getPath(), AccessOption.PERSISTENT);
+  }
+
+  @Override
   public void enableMaintenanceMode(String clusterName, boolean enabled, String reason) {
     manuallyEnableMaintenanceMode(clusterName, enabled, reason, null);
   }

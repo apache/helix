@@ -67,6 +67,19 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   }
 
   @Test
+  public void testNotInMaintenanceMode() {
+    boolean isInMaintenanceMode = _gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME);
+    Assert.assertFalse(isInMaintenanceMode);
+  }
+
+  @Test (dependsOnMethods = "testNotInMaintenanceMode")
+  public void testInMaintenanceMode() {
+    _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, true, "Test");
+    boolean isInMaintenanceMode = _gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME);
+    Assert.assertTrue(isInMaintenanceMode);
+  }
+
+  @Test (dependsOnMethods = "testInMaintenanceMode")
   public void testMaintenanceModeAddNewInstance() throws InterruptedException {
     _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, true, "Test");
     ExternalView prevExternalView = _gSetupTool.getClusterManagementTool()

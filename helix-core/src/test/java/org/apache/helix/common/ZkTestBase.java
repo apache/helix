@@ -244,6 +244,15 @@ public class ZkTestBase {
     configAccessor.setInstanceConfig(clusterName, instanceName, instanceConfig);
   }
 
+  protected void enableDelayRebalanceInCluster(HelixZkClient zkClient, String clusterName,
+      boolean enabled, long delay) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setDelayRebalaceEnabled(enabled);
+    clusterConfig.setRebalanceDelayTime(delay);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
   protected void enableP2PInCluster(String clusterName, ConfigAccessor configAccessor,
       boolean enable) {
     // enable p2p message in cluster.

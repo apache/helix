@@ -529,10 +529,21 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     // we should drop all partitions from previous assigned instances.
     if (!currentMapWithPreferenceList.values().contains(HelixDefinedState.ERROR.name())
         && bestPossibleStateMap.size() > numReplicas && readyToDrop(currentStateMap,
-        bestPossibleStateMap, numReplicas, combinedPreferenceList)) {
+        bestPossibleStateMap, preferenceList, combinedPreferenceList)) {
       for (int i = 0; i < combinedPreferenceList.size() - numReplicas; i++) {
         String instanceToDrop = combinedPreferenceList.get(combinedPreferenceList.size() - i - 1);
         bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
+      }
+    }
+
+    // Adding ERROR replica mapping to best possible
+    // ERROR assignment should be mutual excluded from DROPPED assignment because
+    // once there is an ERROR replica in the mapping, bestPossibleStateMap.size() > numReplicas prevents
+    // code entering the DROPPING stage.
+    for (String instance : combinedPreferenceList) {
+      if (currentStateMap.containsKey(instance) && currentStateMap.get(instance)
+          .equals(HelixDefinedState.ERROR.name())) {
+        bestPossibleStateMap.put(instance, HelixDefinedState.ERROR.name());
       }
     }
 
@@ -540,13 +551,15 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
   }
 
   private boolean readyToDrop(Map<String, String> currentStateMap,
-      Map<String, String> bestPossibleMap, int numReplicas, List<String> combinedPreferenceList) {
+      Map<String, String> bestPossibleMap, List<String> preferenceList,
+      List<String> combinedPreferenceList) {
     if (currentStateMap.size() != bestPossibleMap.size()) {
       return false;
     }
+    Set<String> tmpPreferenceSet = new HashSet<>(preferenceList);
+    tmpPreferenceSet.retainAll(combinedPreferenceList);
 
-    for (int i = 0; i < numReplicas; i++) {
-      String instance = combinedPreferenceList.get(i);
+    for (String instance : tmpPreferenceSet) {
       if (!currentStateMap.containsKey(instance) || !currentStateMap.get(instance)
           .equals(bestPossibleMap.get(instance))) {
         return false;

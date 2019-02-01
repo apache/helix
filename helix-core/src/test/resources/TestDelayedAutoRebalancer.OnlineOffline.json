@@ -53,7 +53,7 @@
       "bestPossibleStates": {
         "localhost_2": "ONLINE",
         "localhost_3": "ONLINE",
-        "localhost_0": "DROPPED",
+        "localhost_0": "ERROR",
         "localhost_1": "ONLINE"
       }
     },

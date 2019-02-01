@@ -29,7 +29,7 @@ under the License.
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.8.4-SNAPSHOT</version>
+  <version>0.8.3</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -312,7 +312,7 @@ under the License.
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/helix.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/helix.git</developerConnection>
     <url>https://git-wip-us.apache.org/repos/asf?p=helix.git;a=summary</url>
-    <tag>HEAD</tag>
+    <tag>helix-0.8.3</tag>
   </scm>
   <issueManagement>
     <system>jira</system>

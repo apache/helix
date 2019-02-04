@@ -19,8 +19,6 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableMap;
-import com.sun.research.ws.wadl.HTTPMethods;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.Arrays;
@@ -29,9 +27,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
@@ -51,6 +51,9 @@ import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.google.common.collect.ImmutableMap;
+import com.sun.research.ws.wadl.HTTPMethods;
 
 public class TestClusterAccessor extends AbstractTestClass {
 
@@ -92,10 +95,12 @@ public class TestClusterAccessor extends AbstractTestClass {
     ClusterConfig configDelta = new ClusterConfig(cluster);
     configDelta.getRecord().setSimpleField("newField", "newValue");
     configDelta.getRecord().setListField("newList", Arrays.asList("newValue1", "newValue2"));
-    configDelta.getRecord().setMapField("newMap", new HashMap<String, String>() {{
-      put("newkey1", "newvalue1");
-      put("newkey2", "newvalue2");
-    }});
+    configDelta.getRecord().setMapField("newMap", new HashMap<String, String>() {
+      {
+        put("newkey1", "newvalue1");
+        put("newkey2", "newvalue2");
+      }
+    });
 
     updateClusterConfigFromRest(cluster, configDelta, Command.update);
 
@@ -139,13 +144,12 @@ public class TestClusterAccessor extends AbstractTestClass {
     ClusterConfig newConfig = getClusterConfigFromRest(cluster);
 
     prevConfig.getRecord().update(config.getRecord());
-    Assert.assertEquals(newConfig, prevConfig,
-        "cluster config from response: " + newConfig + " vs cluster config actually: " + prevConfig);
+    Assert.assertEquals(newConfig, prevConfig, "cluster config from response: " + newConfig
+        + " vs cluster config actually: " + prevConfig);
   }
 
-  @Test (dependsOnMethods = "testUpdateConfigFields")
-  public void testDeleteConfigFields()
-      throws IOException {
+  @Test(dependsOnMethods = "testUpdateConfigFields")
+  public void testDeleteConfigFields() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(cluster);
@@ -179,9 +183,8 @@ public class TestClusterAccessor extends AbstractTestClass {
         "Failed to delete key " + mapKey + " from cluster config");
 
     prevConfig.getRecord().subtract(config.getRecord());
-    Assert.assertEquals(newConfig, prevConfig,
-        "cluster config from response: " + newConfig + " vs cluster config actually: "
-            + prevConfig);
+    Assert.assertEquals(newConfig, prevConfig, "cluster config from response: " + newConfig
+        + " vs cluster config actually: " + prevConfig);
   }
 
   @Test(dependsOnMethods = "testDeleteConfigFields")
@@ -243,21 +246,32 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetClusterConfig")
-  public void testEnableDisableMaintenanceMode() {
+  public void testEnableDisableMaintenanceMode() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     String reason = "Test reason";
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+    // enable maintenance mode
     post("clusters/" + cluster, ImmutableMap.of("command", "enableMaintenanceMode"),
-        Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.OK.getStatusCode());
-    MaintenanceSignal signal = accessor.getProperty(accessor.keyBuilder().maintenance());
-    Assert.assertNotNull(signal);
-    Assert.assertEquals(reason, signal.getReason());
+        Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+
+    // verify is in maintenance mode
+    String body =
+        get("clusters/" + cluster + "/maintenance", Response.Status.OK.getStatusCode(), true);
+    JsonNode node = OBJECT_MAPPER.readTree(body);
+    boolean maintenance =
+        node.get(ClusterAccessor.ClusterProperties.maintenance.name()).getBooleanValue();
+    Assert.assertTrue(maintenance);
+
+    // disable maintenance mode
     post("clusters/" + cluster, ImmutableMap.of("command", "disableMaintenanceMode"),
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode());
-    Assert.assertNull(accessor.getProperty(accessor.keyBuilder().maintenance()));
+
+    // verify no longer in maintenance mode
+    body = get("clusters/" + cluster + "/maintenance", Response.Status.OK.getStatusCode(), true);
+    node = OBJECT_MAPPER.readTree(body);
+    Assert.assertFalse(
+        node.get(ClusterAccessor.ClusterProperties.maintenance.name()).getBooleanValue());
   }
 
   @Test
@@ -354,18 +368,17 @@ public class TestClusterAccessor extends AbstractTestClass {
     ZNRecord record = new ObjectMapper().reader(ZNRecord.class).readValue(body);
     ClusterConfig clusterConfigRest = new ClusterConfig(record);
     ClusterConfig clusterConfigZk = _configAccessor.getClusterConfig(cluster);
-    Assert.assertEquals(clusterConfigZk, clusterConfigRest,
-        "cluster config from response: " + clusterConfigRest + " vs cluster config actually: "
-            + clusterConfigZk);
+    Assert.assertEquals(clusterConfigZk, clusterConfigRest, "cluster config from response: "
+        + clusterConfigRest + " vs cluster config actually: " + clusterConfigZk);
 
     return clusterConfigRest;
   }
 
-  private void updateClusterConfigFromRest(String cluster, ClusterConfig newConfig,
-      Command command) throws IOException {
+  private void updateClusterConfigFromRest(String cluster, ClusterConfig newConfig, Command command)
+      throws IOException {
     _auditLogger.clearupLogs();
-    Entity entity = Entity
-        .entity(OBJECT_MAPPER.writeValueAsString(newConfig.getRecord()), MediaType.APPLICATION_JSON_TYPE);
+    Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(newConfig.getRecord()),
+        MediaType.APPLICATION_JSON_TYPE);
     post("clusters/" + cluster + "/configs", ImmutableMap.of("command", command.name()), entity,
         Response.Status.OK.getStatusCode());
 
@@ -382,19 +395,23 @@ public class TestClusterAccessor extends AbstractTestClass {
     clusterConfig.getRecord().setSimpleField("SimpleField1", "Value1");
     clusterConfig.getRecord().setSimpleField("SimpleField2", "Value2");
 
-    clusterConfig.getRecord()
-        .setListField("ListField1", Arrays.asList("Value1", "Value2", "Value3"));
-    clusterConfig.getRecord()
-        .setListField("ListField2", Arrays.asList("Value2", "Value1", "Value3"));
+    clusterConfig.getRecord().setListField("ListField1",
+        Arrays.asList("Value1", "Value2", "Value3"));
+    clusterConfig.getRecord().setListField("ListField2",
+        Arrays.asList("Value2", "Value1", "Value3"));
 
-    clusterConfig.getRecord().setMapField("MapField1", new HashMap<String, String>() {{
-      put("key1", "value1");
-      put("key2", "value2");
-    }});
-    clusterConfig.getRecord().setMapField("MapField2", new HashMap<String, String>() {{
-      put("key3", "value1");
-      put("key4", "value2");
-    }});
+    clusterConfig.getRecord().setMapField("MapField1", new HashMap<String, String>() {
+      {
+        put("key1", "value1");
+        put("key2", "value2");
+      }
+    });
+    clusterConfig.getRecord().setMapField("MapField2", new HashMap<String, String>() {
+      {
+        put("key3", "value1");
+        put("key4", "value2");
+      }
+    });
 
     return clusterConfig;
   }

@@ -19,20 +19,22 @@ package org.apache.helix.rest.server.resources.helix;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
+import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -42,8 +44,8 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.ControllerHistory;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
@@ -83,7 +85,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   @GET
   @Path("{clusterId}")
   public Response getClusterInfo(@PathParam("clusterId") String clusterId) {
-    if (!isClusterExist(clusterId)) {
+    if (!doesClusterExist(clusterId)) {
       return notFound();
     }
 
@@ -100,10 +102,9 @@ public class ClusterAccessor extends AbstractHelixResource {
       clusterInfo.put(ClusterProperties.controller.name(), "No Lead Controller!");
     }
 
-    boolean paused = (dataAccessor.getProperty(keyBuilder.pause()) == null ? false : true);
+    boolean paused = dataAccessor.getBaseDataAccessor().exists(keyBuilder.pause().getPath(), AccessOption.PERSISTENT);
     clusterInfo.put(ClusterProperties.paused.name(), paused);
-    boolean maintenance =
-        (dataAccessor.getProperty(keyBuilder.maintenance()) == null ? false : true);
+    boolean maintenance = getHelixAdmin().isInMaintenanceMode(clusterId);
     clusterInfo.put(ClusterProperties.maintenance.name(), maintenance);
 
     List<String> idealStates = dataAccessor.getChildNames(keyBuilder.idealStates());
@@ -380,6 +381,13 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   @GET
+  @Path("{clusterId}/maintenance")
+  public Response getClusterMaintenanceMode(@PathParam("clusterId") String clusterId) {
+    return JSONRepresentation(
+        ImmutableMap.of(ClusterProperties.maintenance.name(), getHelixAdmin().isInMaintenanceMode(clusterId)));
+  }
+
+  @GET
   @Path("{clusterId}/statemodeldefs/{statemodel}")
   public Response getClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
       @PathParam("statemodel") String statemodel) {
@@ -390,12 +398,9 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(stateModelDef.getRecord());
   }
 
-  private boolean isClusterExist(String cluster) {
+  private boolean doesClusterExist(String cluster) {
     HelixZkClient zkClient = getHelixZkClient();
-    if (ZKUtil.isClusterSetup(cluster, zkClient)) {
-      return true;
-    }
-    return false;
+    return ZKUtil.isClusterSetup(cluster, zkClient);
   }
 
   /**

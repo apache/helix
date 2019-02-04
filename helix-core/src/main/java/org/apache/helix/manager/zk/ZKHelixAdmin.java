@@ -397,6 +397,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  @Deprecated
   public void enableMaintenanceMode(String clusterName, boolean enabled, String reason) {
     manuallyEnableMaintenanceMode(clusterName, enabled, reason, null);
   }

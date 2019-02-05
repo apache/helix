@@ -129,11 +129,6 @@ public class GenericHelixController implements IdealStateChangeListener,
    */
   Timer _periodicalRebalanceTimer = null;
 
-  /**
-   * The timer to schedule ad hoc forced rebalance or retry rebalance event.
-   */
-  Timer _forceRebalanceTimer = null;
-
   long _timerPeriod = Long.MAX_VALUE;
 
   /**
@@ -383,7 +378,6 @@ public class GenericHelixController implements IdealStateChangeListener,
     _taskEventThread =
         new ClusterEventProcessor(_taskCache, _taskEventQueue, "task-" + clusterName);
 
-    _forceRebalanceTimer = new Timer();
     _lastPipelineEndTimestamp = TopStateHandoffReportStage.TIMESTAMP_NOT_RECORDED;
 
     initializeAsyncFIFOWorkers();

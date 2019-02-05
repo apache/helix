@@ -135,6 +135,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           }
         };
 
+    SubscribeChangeEventProcessor.setDaemon(true);
     SubscribeChangeEventProcessor.start();
   }
 

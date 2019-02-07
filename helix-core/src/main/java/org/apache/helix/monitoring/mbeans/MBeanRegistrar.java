@@ -52,6 +52,7 @@ public class MBeanRegistrar {
       num++;
       try {
         _beanServer.registerMBean(object, newObjectName);
+        LOG.info("MBean {} has been registered.", newObjectName.getCanonicalName());
       } catch (InstanceAlreadyExistsException e) {
         continue;
       } catch (JMException e) {
@@ -81,6 +82,7 @@ public class MBeanRegistrar {
     if (objectName != null && _beanServer.isRegistered(objectName)) {
       try {
         _beanServer.unregisterMBean(objectName);
+        LOG.info("MBean {} has been un-registered.", objectName.getCanonicalName());
       } catch (JMException e) {
         LOG.warn("Error in un-registering: " + objectName.getCanonicalName(), e);
       }

@@ -19,14 +19,31 @@ package org.apache.helix.monitoring.mbeans.dynamicMBeans;
  * under the License.
  */
 
-import org.apache.helix.HelixException;
+import javax.management.Attribute;
+import javax.management.AttributeList;
+import javax.management.AttributeNotFoundException;
+import javax.management.DynamicMBean;
+import javax.management.InvalidAttributeValueException;
+import javax.management.JMException;
+import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanConstructorInfo;
+import javax.management.MBeanException;
+import javax.management.MBeanInfo;
+import javax.management.MBeanNotificationInfo;
+import javax.management.MBeanOperationInfo;
+import javax.management.ObjectName;
+import javax.management.ReflectionException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.helix.monitoring.SensorNameProvider;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.management.*;
-import java.util.*;
 
 /**
  * Dynamic MBean provider that reporting DynamicMetric attributes
@@ -40,7 +57,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
 
   // Attribute name to the DynamicMetric object mapping
   private final Map<String, DynamicMetric> _attributeMap = new HashMap<>();
-  private ObjectName _objectName;
+  private ObjectName _objectName = null;
   private MBeanInfo _mBeanInfo;
 
   /**
@@ -53,13 +70,8 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    */
   protected synchronized boolean doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       String description, String domain, String... keyValuePairs) throws JMException {
-    if (_objectName != null) {
-      _logger.warn("Mbean has been registered before. Please create new object for new registration.");
-      return false;
-    }
-    updateAttributtInfos(dynamicMetrics, description);
-    _objectName = MBeanRegistrar.register(this, domain, keyValuePairs);
-    return true;
+    return doRegister(dynamicMetrics, description,
+        MBeanRegistrar.buildObjectName(domain, keyValuePairs));
   }
 
   /**
@@ -72,7 +84,8 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   protected synchronized boolean doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       String description, ObjectName objectName) throws JMException {
     if (_objectName != null) {
-      _logger.warn("Mbean has been registered before. Please create new object for new registration.");
+      _logger.debug("Mbean {} has already been registered. Ignore register request.",
+          objectName.getCanonicalName());
       return false;
     }
     updateAttributtInfos(dynamicMetrics, description);
@@ -136,10 +149,12 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   public abstract DynamicMBeanProvider register() throws JMException;
 
   /**
-   * After unregistered, the MBean can't be registered again, a new monitor has to be created.
+   * Unregister the MBean and clean up object name record.
+   * Note that all the metric data is kept even after unregister.
    */
   public synchronized void unregister() {
     MBeanRegistrar.unregister(_objectName);
+    _objectName = null;
   }
 
   @Override

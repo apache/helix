@@ -19,10 +19,14 @@ package org.apache.helix;
  * under the License.
  */
 
+import static org.apache.helix.PropertyType.*;
+
 import java.util.Arrays;
 
+import java.util.Objects;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.ExternalView;
@@ -30,7 +34,6 @@ import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
@@ -45,8 +48,6 @@ import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.helix.PropertyType.*;
 
 /**
  * Key allowing for type-safe lookups of and conversions to {@link HelixProperty} objects.
@@ -123,7 +124,8 @@ public class PropertyKey {
     if (!Arrays.equals(_params, key._params)) {
       return false;
     }
-    if (!_typeClazz.equals(key._typeClazz)) {
+    // Avoid NPE when one typeClazz is null
+    if (!Objects.equals(_typeClazz, key._typeClazz)) {
       return false;
     }
     return _configScope == key._configScope;

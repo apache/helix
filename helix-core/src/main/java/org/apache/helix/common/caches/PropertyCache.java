@@ -22,10 +22,10 @@ package org.apache.helix.common.caches;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
@@ -33,6 +33,9 @@ import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
 
 /**
  * A general cache for HelixProperty that supports LIST, GET, SET, DELETE methods of Helix property.
@@ -87,8 +90,8 @@ public class PropertyCache<T extends HelixProperty> extends AbstractDataCache<T>
   private final boolean _useSelectiveUpdate;
   private final PropertyCacheKeyFuncs<T> _keyFuncs;
 
-  public PropertyCache(ControlContextProvider contextProvider, String propertyDescription, PropertyCacheKeyFuncs<T> keyFuncs,
-      boolean useSelectiveUpdate) {
+  public PropertyCache(ControlContextProvider contextProvider, String propertyDescription,
+      PropertyCacheKeyFuncs<T> keyFuncs, boolean useSelectiveUpdate) {
     super(contextProvider);
     _propertyDescription = propertyDescription;
     _keyFuncs = keyFuncs;
@@ -97,13 +100,13 @@ public class PropertyCache<T extends HelixProperty> extends AbstractDataCache<T>
     _useSelectiveUpdate = useSelectiveUpdate;
   }
 
-  protected class SelectivePropertyRefreshInputs {
+  static class SelectivePropertyRefreshInputs<K extends HelixProperty> {
     private final List<PropertyKey> reloadKeys;
     private final List<PropertyKey> cachedKeys;
-    private final Map<PropertyKey, T> cachedPropertyMap;
+    private final Map<PropertyKey, K> cachedPropertyMap;
 
     SelectivePropertyRefreshInputs(List<PropertyKey> keysToReload,
-        List<PropertyKey> currentlyCachedKeys, Map<PropertyKey, T> currentCache) {
+        List<PropertyKey> currentlyCachedKeys, Map<PropertyKey, K> currentCache) {
       reloadKeys = keysToReload;
       cachedKeys = currentlyCachedKeys;
       cachedPropertyMap = currentCache;
@@ -117,35 +120,31 @@ public class PropertyCache<T extends HelixProperty> extends AbstractDataCache<T>
       return reloadKeys;
     }
 
-    Map<PropertyKey, T> getCachedPropertyMap() {
+    Map<PropertyKey, K> getCachedPropertyMap() {
       return cachedPropertyMap;
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private SelectivePropertyRefreshInputs genSelectiveUpdateInput(
-      HelixDataAccessor accessor, Map<String, T> currentCache, PropertyCache.PropertyCacheKeyFuncs<T> propertyKeyFuncs) {
+  @VisibleForTesting
+  SelectivePropertyRefreshInputs<T> genSelectiveUpdateInput(HelixDataAccessor accessor,
+      Map<String, T> oldCache, PropertyCache.PropertyCacheKeyFuncs<T> propertyKeyFuncs) {
     // Generate keys for all current live instances
-    Set<PropertyKey> curObjKeys = new HashSet<>();
+    Set<PropertyKey> latestKeys = Sets.newHashSet();
     for (String liveInstanceName : accessor.getChildNames(propertyKeyFuncs.getRootKey(accessor))) {
-      curObjKeys.add(propertyKeyFuncs.getObjPropertyKey(accessor, liveInstanceName));
+      latestKeys.add(propertyKeyFuncs.getObjPropertyKey(accessor, liveInstanceName));
     }
 
-    // Generate cached objects
-    Set<PropertyKey> cachedKeys = new HashSet<>();
+    Set<PropertyKey> oldCachedKeys = Sets.newHashSet();
     Map<PropertyKey, T> cachedObjs = new HashMap<>();
-    for (String objName : currentCache.keySet()) {
+    for (String objName : oldCache.keySet()) {
       PropertyKey objKey = propertyKeyFuncs.getObjPropertyKey(accessor, objName);
-      cachedKeys.add(objKey);
-      cachedObjs.put(objKey, currentCache.get(objName));
+      oldCachedKeys.add(objKey);
+      cachedObjs.put(objKey, oldCache.get(objName));
     }
-    cachedKeys.retainAll(curObjKeys);
+    Set<PropertyKey> cachedKeys = Sets.intersection(oldCachedKeys, latestKeys);
+    Set<PropertyKey> reloadKeys = Sets.difference(latestKeys, cachedKeys);
 
-    // Generate keys to reload
-    Set<PropertyKey> reloadKeys = new HashSet<>(curObjKeys);
-    reloadKeys.removeAll(cachedKeys);
-
-    return new SelectivePropertyRefreshInputs(new ArrayList<>(reloadKeys),
+    return new SelectivePropertyRefreshInputs<>(new ArrayList<>(reloadKeys),
         new ArrayList<>(cachedKeys), cachedObjs);
   }
 
@@ -160,8 +159,8 @@ public class PropertyCache<T extends HelixProperty> extends AbstractDataCache<T>
     } else {
       doSimpleCacheRefresh(accessor);
     }
-    LogUtil.logInfo(LOG, genEventInfo(), String
-        .format("Refreshed %s property %s took %s ms. Selective: %s", _objMap.size(),
+    LogUtil.logInfo(LOG, genEventInfo(),
+        String.format("Refreshed %s property %s took %s ms. Selective: %s", _objMap.size(),
             _propertyDescription, System.currentTimeMillis() - start, _useSelectiveUpdate));
   }
 
@@ -171,11 +170,10 @@ public class PropertyCache<T extends HelixProperty> extends AbstractDataCache<T>
   }
 
   private void doRefreshWithSelectiveUpdate(final HelixDataAccessor accessor) {
-    SelectivePropertyRefreshInputs input =
+    SelectivePropertyRefreshInputs<T> input =
         genSelectiveUpdateInput(accessor, _objCache, _keyFuncs);
-    Map<PropertyKey, T> updatedData =
-        refreshProperties(accessor, input.getReloadKeys(), input.getCachedKeys(),
-            input.getCachedPropertyMap());
+    Map<PropertyKey, T> updatedData = refreshProperties(accessor, input.getReloadKeys(),
+        input.getCachedKeys(), input.getCachedPropertyMap());
     _objCache = propertyKeyMapToStringMap(updatedData, _keyFuncs);
 
     // need to separate keys so we can potentially update cache map asynchronously while

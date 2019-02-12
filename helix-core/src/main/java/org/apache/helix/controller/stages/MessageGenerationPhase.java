@@ -267,6 +267,15 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       for (String state : statesPriorityList) {
         if (messageMap.containsKey(state)) {
           for (Message message : messageMap.get(state)) {
+            // This is for a bug where a message's target session id is null
+            if (!message.isValid()) {
+              LogUtil.logError(logger, _eventId, String.format(
+                  "An invalid message was generated! Discarding this message. sessionIdMap: %s, CurrentStateMap: %s, InstanceStateMap: %s, AllInstances: %s, LiveInstances: %s, Message: %s",
+                  sessionIdMap, currentStateOutput.getCurrentStateMap(resourceName, partition),
+                  instanceStateMap, cache.getAllInstances(), cache.getLiveInstances().keySet(),
+                  message));
+              continue; // Do not add this message
+            }
             output.addMessage(resourceName, partition, message);
           }
         }

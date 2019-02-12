@@ -779,78 +779,86 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     Set<String> createCurStateNames = new HashSet<>();
 
     for (Message message : messages) {
-      // nop messages are simply removed. It is used to trigger onMessage() in
-      // situations such as register a new message handler factory
-      if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString())) {
-        LOG.info(
-            "Dropping NO-OP message. mid: " + message.getId() + ", from: " + message.getMsgSrc());
-        reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.DISCARDED);
-        continue;
-      }
-
-      String tgtSessionId = message.getTgtSessionId();
-      // sessionId mismatch normally means message comes from expired session, just remove it
-      if (!sessionId.equals(tgtSessionId) && !tgtSessionId.equals("*")) {
-        String warningMessage =
-            "SessionId does NOT match. expected sessionId: " + sessionId
-                + ", tgtSessionId in message: " + tgtSessionId + ", messageId: "
-                + message.getMsgId();
-        LOG.warn(warningMessage);
-        reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.DISCARDED);
-        _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage, manager);
-
-        // Proactively send a session sync message from participant to controller
-        // upon session mismatch after a new session is established
-        if (manager.getInstanceType() == InstanceType.PARTICIPANT
-            || manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
-          if (message.getCreateTimeStamp() > manager.getSessionStartTime()) {
-            syncSessionToController(manager);
-          }
-        }
-        continue;
-      }
-
-      if ((manager.getInstanceType() == InstanceType.CONTROLLER
-          || manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
-          && MessageType.PARTICIPANT_SESSION_CHANGE.name().equals(message.getMsgType())) {
-        LOG.info(String.format("Controller received PARTICIPANT_SESSION_CHANGE msg from src: %s",
-            message.getMsgSrc()));
-        PropertyKey key = new Builder(manager.getClusterName()).liveInstances();
-        List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
-        _controller.onLiveInstanceChange(liveInstances, changeContext);
-        reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.COMPLETED);
-        continue;
-      }
-
-      // don't process message that is of READ or UNPROCESSABLE state
-      if (MessageState.NEW != message.getMsgState()) {
-        // It happens because we don't delete message right after
-        // read. Instead we keep it until the current state is updated.
-        // We will read the message again if there is a new message but we
-        // check for the status and ignore if its already read
-        if (LOG.isTraceEnabled()) {
-          LOG.trace("Message already read. msgId: " + message.getMsgId());
-        }
-        continue;
-      }
-
-      if (message.isExpired()) {
-        LOG.info(
-            "Dropping expired message. mid: " + message.getId() + ", from: " + message.getMsgSrc()
-                + " relayed from: " + message.getRelaySrcHost());
-        reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.DISCARDED);
-        continue;
-      }
-
-      // State Transition Cancellation
-      if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
-        boolean success = cancelNotStartedStateTransition(message, stateTransitionHandlers, accessor, instanceName);
-        if (success) {
+      try {
+        // nop messages are simply removed. It is used to trigger onMessage() in
+        // situations such as register a new message handler factory
+        if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString())) {
+          LOG.info(
+              "Dropping NO-OP message. mid: " + message.getId() + ", from: " + message.getMsgSrc());
+          reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.DISCARDED);
           continue;
         }
-      }
 
-      _monitor.reportReceivedMessage(message);
+        String tgtSessionId = message.getTgtSessionId();
+        // sessionId mismatch normally means message comes from expired session, just remove it
+        if (!sessionId.equals(tgtSessionId) && !tgtSessionId.equals("*")) {
+          String warningMessage =
+              "SessionId does NOT match. expected sessionId: " + sessionId
+                  + ", tgtSessionId in message: " + tgtSessionId + ", messageId: "
+                  + message.getMsgId();
+          LOG.warn(warningMessage);
+          reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.DISCARDED);
+          _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage, manager);
+
+          // Proactively send a session sync message from participant to controller
+          // upon session mismatch after a new session is established
+          if (manager.getInstanceType() == InstanceType.PARTICIPANT
+              || manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
+            if (message.getCreateTimeStamp() > manager.getSessionStartTime()) {
+              syncSessionToController(manager);
+            }
+          }
+          continue;
+        }
+
+        if ((manager.getInstanceType() == InstanceType.CONTROLLER
+            || manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
+            && MessageType.PARTICIPANT_SESSION_CHANGE.name().equals(message.getMsgType())) {
+          LOG.info(String.format("Controller received PARTICIPANT_SESSION_CHANGE msg from src: %s",
+              message.getMsgSrc()));
+          PropertyKey key = new Builder(manager.getClusterName()).liveInstances();
+          List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
+          _controller.onLiveInstanceChange(liveInstances, changeContext);
+          reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.COMPLETED);
+          continue;
+        }
+
+        // don't process message that is of READ or UNPROCESSABLE state
+        if (MessageState.NEW != message.getMsgState()) {
+          // It happens because we don't delete message right after
+          // read. Instead we keep it until the current state is updated.
+          // We will read the message again if there is a new message but we
+          // check for the status and ignore if its already read
+          if (LOG.isTraceEnabled()) {
+            LOG.trace("Message already read. msgId: " + message.getMsgId());
+          }
+          continue;
+        }
+
+        if (message.isExpired()) {
+          LOG.info(
+              "Dropping expired message. mid: " + message.getId() + ", from: " + message.getMsgSrc()
+                  + " relayed from: " + message.getRelaySrcHost());
+          reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.DISCARDED);
+          continue;
+        }
+
+        // State Transition Cancellation
+        if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
+          boolean success = cancelNotStartedStateTransition(message, stateTransitionHandlers, accessor, instanceName);
+          if (success) {
+            continue;
+          }
+        }
+
+        _monitor.reportReceivedMessage(message);
+      } catch (Exception e) {
+        LOG.error("Failed to process the message {}. Deleting the message from ZK. Exception: {}",
+            message, e);
+        removeMessageFromTaskAndFutureMap(message);
+        removeMessageFromZK(accessor, message, instanceName);
+        continue;
+      }
 
       // create message handlers, if handlers not found, leave its state as NEW
       NotificationContext msgWorkingContext = changeContext.clone();

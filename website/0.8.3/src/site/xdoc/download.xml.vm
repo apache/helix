@@ -19,7 +19,7 @@ under the License.
 
 -->
 #set( $releaseName = "0.8.3" )
-#set( $releaseDate = "04/15/2018" )
+#set( $releaseDate = "02/12/2019" )
 <document xmlns="http://maven.apache.org/XDOC/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
 

@@ -731,7 +731,8 @@ public class TaskUtil {
           expiry = workflowConfig.getExpiry();
         }
         if (jobContext != null && jobStates.get(job) == TaskState.COMPLETED) {
-          if (System.currentTimeMillis() >= jobContext.getFinishTime() + expiry) {
+          if (jobContext.getFinishTime() != WorkflowContext.UNFINISHED
+              && System.currentTimeMillis() >= jobContext.getFinishTime() + expiry) {
             expiredJobs.add(job);
           }
         }

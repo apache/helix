@@ -19,8 +19,6 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,28 +26,95 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Message;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.helix.InstanceAccessor;
 import org.codehaus.jackson.JsonNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 public class TestInstanceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
   private final static String INSTANCE_NAME = CLUSTER_NAME + "localhost_12918";
 
   @Test
+  public void testGetAllMessages() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    String messageId = "msg1";
+    Message message = new Message(Message.MessageType.STATE_TRANSITION, messageId);
+    message.setStateModelDef("MasterSlave");
+    message.setFromState("OFFLINE");
+    message.setToState("SLAVE");
+    message.setResourceName("testResourceName");
+    message.setPartitionName("testResourceName_1");
+    message.setTgtName("localhost_3");
+    message.setTgtSessionId("session_3");
+    HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(INSTANCE_NAME, messageId), message);
+
+    String body =
+        get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME + "/messages", null, Response.Status.OK.getStatusCode(), true);
+    JsonNode node = OBJECT_MAPPER.readTree(body);
+    int newMessageCount =
+        node.get(InstanceAccessor.InstanceProperties.total_message_count.name()).getIntValue();
+
+    Assert.assertEquals(newMessageCount, 1);
+  }
+
+  @Test (dependsOnMethods = "testGetAllMessages")
+  public void testGetMessagesByStateModelDef() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    String messageId = "msg1";
+    Message message = new Message(Message.MessageType.STATE_TRANSITION, messageId);
+    message.setStateModelDef("MasterSlave");
+    message.setFromState("OFFLINE");
+    message.setToState("SLAVE");
+    message.setResourceName("testResourceName");
+    message.setPartitionName("testResourceName_1");
+    message.setTgtName("localhost_3");
+    message.setTgtSessionId("session_3");
+    HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(INSTANCE_NAME, messageId), message);
+
+    String body = get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME + "/messages",
+        ImmutableMap.of("stateModelDef", "MasterSlave"), Response.Status.OK.getStatusCode(), true);
+    JsonNode node = OBJECT_MAPPER.readTree(body);
+    int newMessageCount =
+        node.get(InstanceAccessor.InstanceProperties.total_message_count.name()).getIntValue();
+
+    Assert.assertEquals(newMessageCount, 1);
+
+    body = get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME + "/messages",
+        ImmutableMap.of("stateModelDef", "LeaderStandBy"), Response.Status.OK.getStatusCode(),
+        true);
+    node = OBJECT_MAPPER.readTree(body);
+    newMessageCount =
+        node.get(InstanceAccessor.InstanceProperties.total_message_count.name()).getIntValue();
+
+    Assert.assertEquals(newMessageCount, 0);
+  }
+
+  @Test (dependsOnMethods = "testGetMessagesByStateModelDef")
   public void testGetInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body =
-        get("clusters/" + CLUSTER_NAME + "/instances", Response.Status.OK.getStatusCode(), true);
+        get("clusters/" + CLUSTER_NAME + "/instances", null, Response.Status.OK.getStatusCode(), true);
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String instancesStr =
@@ -66,7 +131,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testGetInstances")
   public void testGetInstance() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String body = get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME,
+    String body = get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME, null,
         Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String instancesCfg =
@@ -170,9 +235,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
     // Test enable disable partitions
     String dbName = "_db_0_";
     List<String> partitionsToDisable = Arrays.asList(
-        new String[] { CLUSTER_NAME + dbName + "0", CLUSTER_NAME + dbName + "1",
-            CLUSTER_NAME + dbName + "3"
-        });
+         CLUSTER_NAME + dbName + "0", CLUSTER_NAME + dbName + "1", CLUSTER_NAME + dbName + "3");
 
     entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
             .of(AbstractResource.Properties.id.name(), INSTANCE_NAME,

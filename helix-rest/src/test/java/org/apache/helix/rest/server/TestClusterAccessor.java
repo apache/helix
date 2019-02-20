@@ -69,7 +69,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
     _auditLogger.clearupLogs();
-    String body = get("clusters", Response.Status.OK.getStatusCode(), true);
+    String body = get("clusters", null, Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String clustersStr = node.get(ClusterAccessor.ClusterProperties.clusters.name()).toString();
     Assert.assertNotNull(clustersStr);
@@ -255,14 +255,14 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // verify is in maintenance mode
     String body =
-        get("clusters/" + cluster + "/maintenance", Response.Status.OK.getStatusCode(), true);
+        get("clusters/" + cluster + "/maintenance", null, Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     boolean maintenance =
         node.get(ClusterAccessor.ClusterProperties.maintenance.name()).getBooleanValue();
     Assert.assertTrue(maintenance);
 
     // Check that we could retrieve maintenance signal correctly
-    String signal = get("clusters/" + cluster + "/controller/maintenanceSignal",
+    String signal = get("clusters/" + cluster + "/controller/maintenanceSignal", null,
         Response.Status.OK.getStatusCode(), true);
     Map<String, Object> maintenanceSignalMap =
         OBJECT_MAPPER.readValue(signal, new TypeReference<HashMap<String, Object>>() {
@@ -277,12 +277,12 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
 
     // verify no longer in maintenance mode
-    body = get("clusters/" + cluster + "/maintenance", Response.Status.OK.getStatusCode(), true);
+    body = get("clusters/" + cluster + "/maintenance", null, Response.Status.OK.getStatusCode(), true);
     node = OBJECT_MAPPER.readTree(body);
     Assert.assertFalse(
         node.get(ClusterAccessor.ClusterProperties.maintenance.name()).getBooleanValue());
 
-    get("clusters/" + cluster + "/controller/maintenanceSignal",
+    get("clusters/" + cluster + "/controller/maintenanceSignal", null,
         Response.Status.NOT_FOUND.getStatusCode(), false);
   }
 
@@ -293,7 +293,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // Get the leader controller name for the cluster
     String leader =
-        get("clusters/" + cluster + "/controller", Response.Status.OK.getStatusCode(), true);
+        get("clusters/" + cluster + "/controller", null, Response.Status.OK.getStatusCode(), true);
     Map<String, String> leaderMap =
         OBJECT_MAPPER.readValue(leader, new TypeReference<HashMap<String, String>>() {
         });
@@ -302,7 +302,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertNotNull(leader, "Leader name cannot be null!");
 
     // Get the controller leadership history JSON's last entry
-    String leadershipHistory = get("clusters/" + cluster + "/controller/history",
+    String leadershipHistory = get("clusters/" + cluster + "/controller/history", null,
         Response.Status.OK.getStatusCode(), true);
     Map<String, Object> leadershipHistoryMap =
         OBJECT_MAPPER.readValue(leadershipHistory, new TypeReference<HashMap<String, Object>>() {
@@ -330,7 +330,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
 
     // Get the maintenance history JSON's last entry
-    String maintenanceHistory = get("clusters/" + cluster + "/controller/maintenanceHistory",
+    String maintenanceHistory = get("clusters/" + cluster + "/controller/maintenanceHistory", null,
         Response.Status.OK.getStatusCode(), true);
     Map<String, Object> maintenanceHistoryMap =
         OBJECT_MAPPER.readValue(maintenanceHistory, new TypeReference<HashMap<String, Object>>() {
@@ -372,7 +372,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {
-    String body = get("clusters/" + cluster + "/configs", Response.Status.OK.getStatusCode(), true);
+    String body = get("clusters/" + cluster + "/configs", null, Response.Status.OK.getStatusCode(), true);
 
     ZNRecord record = new ObjectMapper().reader(ZNRecord.class).readValue(body);
     ClusterConfig clusterConfigRest = new ClusterConfig(record);

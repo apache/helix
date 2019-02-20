@@ -19,20 +19,23 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import org.apache.helix.PropertyKey;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import com.google.common.collect.ImmutableMap;
 
 public class TestNamespacedAPIAccess extends AbstractTestClass {
   ObjectMapper _mapper = new ObjectMapper();
@@ -46,11 +49,11 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     // Assume other api end points will behave the same way
     put(String.format("/namespaces/%s/clusters/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME, testClusterName1), null,
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.CREATED.getStatusCode());
-    get(String.format("/clusters/%s", testClusterName1), Response.Status.OK.getStatusCode(), false);
+    get(String.format("/clusters/%s", testClusterName1), null, Response.Status.OK.getStatusCode(), false);
 
     put(String.format("/clusters/%s", testClusterName2), null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
-    get(String.format("/namespaces/%s/clusters/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME, testClusterName2),
+    get(String.format("/namespaces/%s/clusters/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME, testClusterName2), null,
         Response.Status.OK.getStatusCode(), false);
   }
 
@@ -62,14 +65,14 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     // Create cluster in test namespace and verify it's only appears in test namespace
     put(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName), null,
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.CREATED.getStatusCode());
-    get(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName),
+    get(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName), null,
         Response.Status.OK.getStatusCode(), false);
-    get(String.format("/clusters/%s", testClusterName), Response.Status.NOT_FOUND.getStatusCode(), false);
+    get(String.format("/clusters/%s", testClusterName), null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
     // Create cluster with same name in different namespacces
     put(String.format("/clusters/%s", testClusterName), null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
-    get(String.format("/clusters/%s", testClusterName), Response.Status.OK.getStatusCode(), false);
+    get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(), false);
 
     // Modify cluster in default namespace
     post(String.format("/clusters/%s", testClusterName), ImmutableMap.of("command", "disable"),
@@ -83,21 +86,21 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     // Verify that deleting cluster in one namespace will not affect the other
     delete(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName),
         Response.Status.OK.getStatusCode());
-    get(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName),
+    get(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName), null,
         Response.Status.NOT_FOUND.getStatusCode(), false);
-    get(String.format("/clusters/%s", testClusterName), Response.Status.OK.getStatusCode(), false);
+    get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(), false);
   }
 
   @Test
   public void testNamespaceServer() throws IOException {
     // Default endpoints should not have any namespace information returned
-    get("/", Response.Status.NOT_FOUND.getStatusCode(), false);
+    get("/", null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
     // Get invalid namespace should return not found
-    get("/namespaces/invalid-namespace", Response.Status.NOT_FOUND.getStatusCode(), false);
+    get("/namespaces/invalid-namespace", null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
     // list namespace should return a list of all namespaces
-    String body = get("/namespaces", Response.Status.OK.getStatusCode(), true);
+    String body = get("/namespaces", null, Response.Status.OK.getStatusCode(), true);
     List<Map<String, String>> namespaceMaps = _mapper
         .readValue(body, _mapper.getTypeFactory().constructCollectionType(List.class, Map.class));
     Assert.assertEquals(namespaceMaps.size(), 2);
@@ -126,7 +129,7 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     Assert.assertTrue(expectedNamespaceNames.isEmpty());
 
     // Accessing root of namespaced API endpoint shall return information of that namespace
-    body = get(String.format("/namespaces/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME),
+    body = get(String.format("/namespaces/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME), null,
         Response.Status.OK.getStatusCode(), true);
     Map<String, String> namespace = _mapper.readValue(body,
         _mapper.getTypeFactory().constructMapType(Map.class, String.class, String.class));

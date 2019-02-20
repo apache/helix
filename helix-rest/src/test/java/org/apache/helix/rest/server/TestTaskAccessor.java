@@ -23,7 +23,7 @@ public class TestTaskAccessor extends AbstractTestClass {
 
     // Empty user content
     String body =
-        get(uri, Response.Status.OK.getStatusCode(), true);
+        get(uri, null, Response.Status.OK.getStatusCode(), true);
     Map<String, String>
         contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
     Assert.assertTrue(contentStore.isEmpty());
@@ -37,11 +37,11 @@ public class TestTaskAccessor extends AbstractTestClass {
     post(uriTaskDoesNotExist, ImmutableMap.of("command", "update"), entity, Response.Status.OK.getStatusCode());
 
     // get after post should work
-    body = get(uri, Response.Status.OK.getStatusCode(), true);
+    body = get(uri, null, Response.Status.OK.getStatusCode(), true);
     contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {
     });
     Assert.assertEquals(contentStore, map1);
-    body = get(uriTaskDoesNotExist, Response.Status.OK.getStatusCode(), true);
+    body = get(uriTaskDoesNotExist, null, Response.Status.OK.getStatusCode(), true);
     contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {
     });
     Assert.assertEquals(contentStore, map1);
@@ -52,7 +52,7 @@ public class TestTaskAccessor extends AbstractTestClass {
     map1.put("k2", "v2");
     entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(map1), MediaType.APPLICATION_JSON_TYPE);
     post(uri, ImmutableMap.of("command", "update"), entity, Response.Status.OK.getStatusCode());
-    body = get(uri, Response.Status.OK.getStatusCode(), true);
+    body = get(uri, null, Response.Status.OK.getStatusCode(), true);
     contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {
     });
     Assert.assertEquals(contentStore, map1);
@@ -70,9 +70,9 @@ public class TestTaskAccessor extends AbstractTestClass {
     Map<String, String> validCmd = ImmutableMap.of("command", "update");
     Map<String, String> invalidCmd = ImmutableMap.of("command", "delete"); // cmd not supported
 
-    get(invalidURI1, Response.Status.NOT_FOUND.getStatusCode(), false);
-    get(invalidURI2, Response.Status.NOT_FOUND.getStatusCode(), false);
-    get(invalidURI3, Response.Status.NOT_FOUND.getStatusCode(), false);
+    get(invalidURI1, null, Response.Status.NOT_FOUND.getStatusCode(), false);
+    get(invalidURI2, null, Response.Status.NOT_FOUND.getStatusCode(), false);
+    get(invalidURI3, null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
     post(invalidURI1, validCmd, validEntity, Response.Status.NOT_FOUND.getStatusCode());
     post(invalidURI2, validCmd, validEntity, Response.Status.NOT_FOUND.getStatusCode());

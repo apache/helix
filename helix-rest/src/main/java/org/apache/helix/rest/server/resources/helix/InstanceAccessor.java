@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -47,12 +48,13 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
+import org.eclipse.jetty.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/clusters/{clusterId}/instances")
 public class InstanceAccessor extends AbstractHelixResource {
@@ -488,7 +490,8 @@ public class InstanceAccessor extends AbstractHelixResource {
   @GET
   @Path("{instanceName}/messages")
   public Response getMessagesOnInstance(@PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName) throws IOException {
+      @PathParam("instanceName") String instanceName,
+      @QueryParam("stateModelDef") String stateModelDef) {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
 
     ObjectNode root = JsonNodeFactory.instance.objectNode();
@@ -497,19 +500,27 @@ public class InstanceAccessor extends AbstractHelixResource {
     ArrayNode readMessages = root.putArray(InstanceProperties.read_messages.name());
 
 
-    List<String> messages =
+    List<String> messageNames =
         accessor.getChildNames(accessor.keyBuilder().messages(instanceName));
-    if (messages == null || messages.size() == 0) {
+    if (messageNames == null || messageNames.size() == 0) {
+      _logger.warn("Unable to get any messages on instance: " + instanceName);
       return notFound();
     }
 
-    for (String messageName : messages) {
+    for (String messageName : messageNames) {
       Message message = accessor.getProperty(accessor.keyBuilder().message(instanceName, messageName));
-      if (message.getMsgState() == Message.MessageState.NEW) {
-        newMessages.add(messageName);
+      if (message == null) {
+        _logger.warn("Message is deleted given message name: ", messageName);
+        continue;
+      }
+      // if stateModelDef is valid, keep messages with StateModelDef equals to the parameter
+      if (StringUtil.isNotBlank(stateModelDef) && !stateModelDef.equals(message.getStateModelDef())) {
+        continue;
       }
 
-      if (message.getMsgState() == Message.MessageState.READ) {
+      if (Message.MessageState.NEW.equals(message.getMsgState())) {
+        newMessages.add(messageName);
+      } else if (Message.MessageState.READ.equals(message.getMsgState())) {
         readMessages.add(messageName);
       }
     }

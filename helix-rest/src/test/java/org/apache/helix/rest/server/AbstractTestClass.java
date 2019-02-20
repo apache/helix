@@ -30,10 +30,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Response;
+
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -405,8 +407,14 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     return OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
   }
 
-  protected String get(String uri, int expectedReturnStatus, boolean expectBodyReturned) {
-    final Response response = target(uri).request().get();
+  protected String get(String uri, Map<String, String> queryParams, int expectedReturnStatus, boolean expectBodyReturned) {
+    WebTarget webTarget = target(uri);
+    if (queryParams != null) {
+      for (Map.Entry<String, String> entry : queryParams.entrySet()) {
+        webTarget = webTarget.queryParam(entry.getKey(), entry.getValue());
+      }
+    }
+    final Response response = webTarget.request().get();
     Assert.assertEquals(response.getStatus(), expectedReturnStatus);
 
     // NOT_FOUND will throw text based html

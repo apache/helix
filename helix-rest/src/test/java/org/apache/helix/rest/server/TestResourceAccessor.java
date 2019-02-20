@@ -19,7 +19,6 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,9 +28,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -50,6 +51,8 @@ import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 public class TestResourceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
   private final static String RESOURCE_NAME = CLUSTER_NAME + "_db_0";
@@ -60,7 +63,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
     String body =
-        get("clusters/" + CLUSTER_NAME + "/resources", Response.Status.OK.getStatusCode(), true);
+        get("clusters/" + CLUSTER_NAME + "/resources", null, Response.Status.OK.getStatusCode(), true);
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String idealStates =
@@ -77,7 +80,7 @@ public class TestResourceAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testGetResources")
   public void testGetResource() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME,
+    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME, null,
         Response.Status.OK.getStatusCode(), true);
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
@@ -125,7 +128,7 @@ public class TestResourceAccessor extends AbstractTestClass {
   public void testResourceConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
-    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/configs",
+    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/configs", null,
         Response.Status.OK.getStatusCode(), true);
     ResourceConfig resourceConfig = new ResourceConfig(toZNRecord(body));
     Assert.assertEquals(resourceConfig,
@@ -136,7 +139,7 @@ public class TestResourceAccessor extends AbstractTestClass {
   public void testIdealState() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
-    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/idealState",
+    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/idealState", null,
         Response.Status.OK.getStatusCode(), true);
     IdealState idealState = new IdealState(toZNRecord(body));
     Assert.assertEquals(idealState,
@@ -147,7 +150,7 @@ public class TestResourceAccessor extends AbstractTestClass {
   public void testExternalView() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
-    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/externalView",
+    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/externalView", null,
         Response.Status.OK.getStatusCode(), true);
     ExternalView externalView = new ExternalView(toZNRecord(body));
     Assert.assertEquals(externalView, _gSetupTool.getClusterManagementTool()
@@ -181,7 +184,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     createDummyMapping(clusterName, resourceName, idealStateParams, partitionReplicaStates);
 
     // Get the result of getPartitionHealth
-    String body = get("clusters/" + clusterName + "/resources/" + resourceName + "/health",
+    String body = get("clusters/" + clusterName + "/resources/" + resourceName + "/health", null,
         Response.Status.OK.getStatusCode(), true);
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
@@ -241,7 +244,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     createDummyMapping(clusterName, resourceNameUnhealthy, idealStateParams, partitionReplicaStates_2);
 
     // Get the result of getResourceHealth
-    String body = get("clusters/" + clusterName + "/resources/health", Response.Status.OK.getStatusCode(),
+    String body = get("clusters/" + clusterName + "/resources/health", null, Response.Status.OK.getStatusCode(),
         true);
 
     JsonNode node = OBJECT_MAPPER.readTree(body);

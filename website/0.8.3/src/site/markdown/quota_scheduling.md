@@ -22,7 +22,7 @@ under the License.
 
 ## Introduction
 
-![Intro](/website/0.8.3/src/site/resources/images/quota_intro.png)
+![Intro](./images/quota_intro.png)
 
 Quota-based task scheduling is a feature addition to Helix Task Framework that enables users of Task Framework to apply the notion of categories in distributed task management.
 
@@ -68,7 +68,7 @@ The TaskAssigner interface provides basic API methods that involve assignments o
 
 This new component serves as an iterator for JobDAGs for the Controller. Previously, task assignment required the Controller to iterate through all jobs and their underlying tasks to determine whether there were any tasks that needed to be assigned and scheduled. This proved to be inefficient and did not scale with the increasing load we were putting on Task Framework. Each RuntimeJobDag records states, that is, it knows what task needs to be offered up to the Controller for scheduling. This saves the redundant computation for the Controller every time it goes through the TaskSchedulingStage of the Task pipeline.
 
-![Architecture](/website/0.8.3/src/site/resources/images/quota_InstanceCapacityManager.jpeg)
+![Architecture](./images/quota_InstanceCapacityManager.jpeg)
 
 ## User Manual
 

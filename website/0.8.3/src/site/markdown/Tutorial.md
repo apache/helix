@@ -52,6 +52,7 @@ Convention: we first cover the _basic_ approach, which is the easiest to impleme
 14. [Task Framework](./tutorial_task_framework.html)
     1. [Task with User Defined Content Store](./tutorial_user_content_store.html)
     2. [Task Throttling](./tutorial_task_throttling.html)
+    3. [Quota-based Scheduling](./quota_scheduling.html)
 15. [Helix REST Service 2.0](./tutorial_rest_service.html)
 16. [Helix UI Setup](./tutorial_ui.html)
 

@@ -20,30 +20,35 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.monitoring.StatCollector;
 import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+// TODO convert StateTransitionStatMonitor to extends DynamicMBeanProvider.
+// Note this might change the attributes name.
 public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBean {
+  private static final Logger _logger = LoggerFactory.getLogger(StateTransitionStatMonitor.class);
   public enum LATENCY_TYPE {
     TOTAL,
-    EXECUTION
+    EXECUTION,
+    MESSAGE
   }
 
   private long _numDataPoints;
   private long _successCount;
 
-  private ConcurrentHashMap<LATENCY_TYPE, StatCollector> _monitorMap =
-      new ConcurrentHashMap<LATENCY_TYPE, StatCollector>();
+  private ConcurrentHashMap<LATENCY_TYPE, StatCollector> _monitorMap = new ConcurrentHashMap<>();
 
   StateTransitionContext _context;
 
   public StateTransitionStatMonitor(StateTransitionContext context) {
     _context = context;
-    _monitorMap.put(LATENCY_TYPE.TOTAL, new StatCollector());
-    _monitorMap.put(LATENCY_TYPE.EXECUTION, new StatCollector());
+    for (LATENCY_TYPE type : LATENCY_TYPE.values()) {
+      _monitorMap.put(type, new StatCollector());
+    }
     reset();
   }
 
@@ -63,15 +68,16 @@ public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBe
     }
     addLatency(LATENCY_TYPE.TOTAL, data.getTotalDelay());
     addLatency(LATENCY_TYPE.EXECUTION, data.getExecutionDelay());
+    addLatency(LATENCY_TYPE.MESSAGE, data.getMessageLatency());
   }
 
-  void addLatency(LATENCY_TYPE type, double latency) {
-    assert (_monitorMap.containsKey(type));
+  private void addLatency(LATENCY_TYPE type, double latency) {
+    if (latency < 0) {
+      _logger.warn("Ignore negative latency data {} for type {}.", latency, type.name());
+      return;
+    }
+    assert(_monitorMap.containsKey(type));
     _monitorMap.get(type).addData(latency);
-  }
-
-  public long getNumDataPoints() {
-    return _numDataPoints;
   }
 
   public void reset() {
@@ -136,4 +142,25 @@ public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBe
   public double getPercentileTransitionExecuteLatency(int percentage) {
     return _monitorMap.get(LATENCY_TYPE.EXECUTION).getPercentile(percentage);
   }
+
+  @Override
+  public double getMeanTransitionMessageLatency() {
+    return _monitorMap.get(LATENCY_TYPE.MESSAGE).getMean();
+  }
+
+  @Override
+  public double getMaxTransitionMessageLatency() {
+    return _monitorMap.get(LATENCY_TYPE.MESSAGE).getMax();
+  }
+
+  @Override
+  public double getMinTransitionMessageLatency() {
+    return _monitorMap.get(LATENCY_TYPE.MESSAGE).getMin();
+  }
+
+  @Override
+  public double getPercentileTransitionMessageLatency(int percentage) {
+    return _monitorMap.get(LATENCY_TYPE.MESSAGE).getPercentile(percentage);
+  }
+
 }

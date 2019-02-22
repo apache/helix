@@ -22,6 +22,7 @@ package org.apache.helix.messaging.handling;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -317,7 +318,8 @@ public class HelixTask implements MessageTask {
     if (msgReadTime != 0 && msgExecutionStartTime != 0) {
       long totalDelay = now - msgReadTime;
       long executionDelay = now - msgExecutionStartTime;
-      if (totalDelay > 0 && executionDelay > 0) {
+      long msgLatency = msgReadTime - message.getCreateTimeStamp();
+      if (totalDelay >= 0 && executionDelay >= 0) {
         String fromState = message.getFromState();
         String toState = message.getToState();
         String transition = fromState + "--" + toState;
@@ -327,11 +329,14 @@ public class HelixTask implements MessageTask {
                 message.getResourceName(), transition);
 
         StateTransitionDataPoint data =
-            new StateTransitionDataPoint(totalDelay, executionDelay, taskResult.isSuccess());
+            new StateTransitionDataPoint(totalDelay, executionDelay, msgLatency,
+                taskResult.isSuccess());
         _executor.getParticipantMonitor().reportTransitionStat(cxt, data);
       }
     } else {
-      logger.warn("message read time and start execution time not recorded.");
+      logger.warn(
+          "message read time and start execution time not recorded. State transition delay time is not available, message read time {}, Execute start time {}.",
+          msgReadTime, msgExecutionStartTime);
     }
   }
 

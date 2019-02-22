@@ -22,11 +22,14 @@ package org.apache.helix.monitoring;
 public class StateTransitionDataPoint {
   long _totalDelay;
   long _executionDelay;
+  long _messageLatency;
   boolean _isSuccess;
 
-  public StateTransitionDataPoint(long totalDelay, long executionDelay, boolean isSuccess) {
+  public StateTransitionDataPoint(long totalDelay, long executionDelay, long messageLatency,
+      boolean isSuccess) {
     _totalDelay = totalDelay;
     _executionDelay = executionDelay;
+    _messageLatency = messageLatency;
     _isSuccess = isSuccess;
   }
 
@@ -36,6 +39,10 @@ public class StateTransitionDataPoint {
 
   public long getExecutionDelay() {
     return _executionDelay;
+  }
+
+  public long getMessageLatency() {
+    return _messageLatency;
   }
 
   public boolean getSuccess() {

@@ -19,10 +19,6 @@ package org.apache.helix.monitoring;
  * under the License.
  */
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanInfo;
@@ -31,21 +27,28 @@ import javax.management.MBeanServerNotification;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.helix.TestHelper;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.AssertJUnit;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestParticipantMonitor {
-  static Logger _logger = LoggerFactory.getLogger(TestParticipantMonitor.class);
+  private static Logger _logger = LoggerFactory.getLogger(TestParticipantMonitor.class);
+  private static String CLUSTER_NAME = TestHelper.getTestClassName();
 
   class ParticipantMonitorListener extends ClusterMBeanObserver {
-    Map<String, Map<String, Object>> _beanValueMap = new HashMap<String, Map<String, Object>>();
+    Map<String, Map<String, Object>> _beanValueMap = new HashMap<>();
 
-    public ParticipantMonitorListener(String domain) throws InstanceNotFoundException, IOException,
-        MalformedObjectNameException, NullPointerException {
+    public ParticipantMonitorListener(String domain) throws IOException, InstanceNotFoundException {
       super(domain);
       init();
     }
@@ -53,7 +56,7 @@ public class TestParticipantMonitor {
     void init() {
       try {
         Set<ObjectInstance> existingInstances =
-            _server.queryMBeans(new ObjectName(_domain + ":Cluster=cluster,*"), null);
+            _server.queryMBeans(new ObjectName(_domain + ":Cluster=" + CLUSTER_NAME + ",*"), null);
         for (ObjectInstance instance : existingInstances) {
           String mbeanName = instance.getObjectName().toString();
           // System.out.println("mbeanName: " + mbeanName);
@@ -93,42 +96,57 @@ public class TestParticipantMonitor {
     }
   }
 
+  private ObjectName getObjectName(String name) throws MalformedObjectNameException {
+    return new ObjectName(
+        String.format("%s:%s", MonitorDomainNames.CLMParticipantReport.name(), name));
+  }
+
   @Test()
-  public void testReportData() throws InstanceNotFoundException, MalformedObjectNameException,
-      NullPointerException, IOException, InterruptedException {
+  public void testReportData()
+      throws InstanceNotFoundException, MalformedObjectNameException, NullPointerException,
+      IOException, InterruptedException {
     System.out.println("START TestParticipantMonitor");
     ParticipantStatusMonitor monitor = new ParticipantStatusMonitor(false, null);
 
     int monitorNum = 0;
 
-    StateTransitionContext cxt = new StateTransitionContext("cluster", "instance", "db_1", "a-b");
-    StateTransitionDataPoint data = new StateTransitionDataPoint(1000, 1000, true);
+    StateTransitionContext cxt = new StateTransitionContext(CLUSTER_NAME, "instance", "db_1", "a-b");
+    StateTransitionDataPoint data = new StateTransitionDataPoint(2000, 1000, 600, true);
     monitor.reportTransitionStat(cxt, data);
 
-    data = new StateTransitionDataPoint(1000, 1200, true);
+    data = new StateTransitionDataPoint(2000, 1200, 600, true);
     monitor.reportTransitionStat(cxt, data);
 
     ParticipantMonitorListener monitorListener =
         new ParticipantMonitorListener("CLMParticipantReport");
     Thread.sleep(1000);
-    AssertJUnit.assertTrue(monitorListener._beanValueMap.size() == monitorNum + 1);
+    Assert.assertEquals(monitorListener._beanValueMap.size(), monitorNum + 1);
 
-    data = new StateTransitionDataPoint(1000, 500, true);
+    // Note the values in listener's map is the snapshot when the MBean is detected.
+    Assert.assertEquals(monitorListener._beanValueMap.get(getObjectName(cxt.toString()).toString())
+        .get("MeanTransitionLatency"), 2000.0);
+    Assert.assertEquals(monitorListener._beanValueMap.get(getObjectName(cxt.toString()).toString())
+        .get("MeanTransitionExecuteLatency"), 1100.0);
+    Assert.assertEquals(monitorListener._beanValueMap.get(getObjectName(cxt.toString()).toString())
+        .get("MeanTransitionMessageLatency"), 600.0);
+    Assert.assertEquals(monitorListener._beanValueMap.get(getObjectName(cxt.toString()).toString())
+        .get("TotalStateTransitionGauge"), 2L);
+
+    data = new StateTransitionDataPoint(2000, 500, 600, true);
     monitor.reportTransitionStat(cxt, data);
     Thread.sleep(1000);
-    AssertJUnit.assertTrue(monitorListener._beanValueMap.size() == monitorNum + 1);
+    Assert.assertEquals(monitorListener._beanValueMap.size(), monitorNum + 1);
 
-    data = new StateTransitionDataPoint(1000, 500, true);
-    StateTransitionContext cxt2 = new StateTransitionContext("cluster", "instance", "db_2", "a-b");
+    data = new StateTransitionDataPoint(1000, 500, 300, true);
+    StateTransitionContext cxt2 = new StateTransitionContext(CLUSTER_NAME, "instance", "db_2", "a-b");
     monitor.reportTransitionStat(cxt2, data);
     monitor.reportTransitionStat(cxt2, data);
     Thread.sleep(1000);
-    AssertJUnit.assertTrue(monitorListener._beanValueMap.size() == monitorNum + 2);
+    Assert.assertEquals(monitorListener._beanValueMap.size(), monitorNum + 2);
 
-    AssertJUnit.assertFalse(cxt.equals(cxt2));
-    AssertJUnit.assertFalse(cxt.equals(new Object()));
-    AssertJUnit.assertTrue(cxt.equals(new StateTransitionContext("cluster", "instance", "db_1",
-        "a-b")));
+    Assert.assertFalse(cxt.equals(cxt2));
+    Assert.assertFalse(cxt.equals(new Object()));
+    Assert.assertTrue(cxt.equals(new StateTransitionContext(CLUSTER_NAME, "instance", "db_1", "a-b")));
 
     cxt2.getInstanceName();
 
@@ -136,7 +154,7 @@ public class TestParticipantMonitor {
         new ParticipantMonitorListener("CLMParticipantReport");
 
     Thread.sleep(1000);
-    AssertJUnit.assertEquals(monitorListener2._beanValueMap.size(), monitorNum + 2);
+    Assert.assertEquals(monitorListener2._beanValueMap.size(), monitorNum + 2);
 
     monitorListener2.disconnect();
     monitorListener.disconnect();

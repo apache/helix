@@ -44,5 +44,13 @@ public interface StateTransitionStatMonitorMBean extends SensorNameProvider {
 
   double getPercentileTransitionExecuteLatency(int percentage);
 
+  double getMeanTransitionMessageLatency();
+
+  double getMaxTransitionMessageLatency();
+
+  double getMinTransitionMessageLatency();
+
+  double getPercentileTransitionMessageLatency(int percentage);
+
   void reset();
 }

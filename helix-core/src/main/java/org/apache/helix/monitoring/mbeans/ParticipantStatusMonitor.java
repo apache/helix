@@ -37,7 +37,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 public class ParticipantStatusMonitor {
   private final ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap =
-      new ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor>();
+      new ConcurrentHashMap<>();
   private static final Logger LOG = LoggerFactory.getLogger(ParticipantStatusMonitor.class);
 
   private MBeanServer _beanServer;
@@ -116,11 +116,11 @@ public class ParticipantStatusMonitor {
   }
 
   private ObjectName getObjectName(String name) throws MalformedObjectNameException {
-    LOG.info("Registering bean: " + name);
     return new ObjectName(String.format("%s:%s", MonitorDomainNames.CLMParticipantReport.name(), name));
   }
 
   private void register(Object bean, ObjectName name) {
+    LOG.info("Registering bean: " + name.toString());
     if (_beanServer == null) {
       LOG.warn("bean server is null, skip reporting");
       return;

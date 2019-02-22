@@ -40,6 +40,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.helix.InstanceAccessor;
+import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.codehaus.jackson.JsonNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -67,8 +68,8 @@ public class TestInstanceAccessor extends AbstractTestClass {
     HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(INSTANCE_NAME, messageId), message);
 
-    String body =
-        get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME + "/messages", null, Response.Status.OK.getStatusCode(), true);
+    String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/messages")
+        .format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
         node.get(InstanceAccessor.InstanceProperties.total_message_count.name()).getIntValue();

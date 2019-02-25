@@ -19,7 +19,11 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -63,6 +67,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
         }
         Set<String> partitionSet = idealState.getPartitionSet();
         String resourceName = idealState.getResourceName();
+        LOG.info("Got resource name :"+ resourceName);
         if (!resourceMap.containsKey(resourceName)) {
           Resource resource = new Resource(resourceName, cache.getClusterConfig(),
               cache.getResourceConfig(resourceName));
@@ -157,8 +162,39 @@ public class ResourceComputationStage extends AbstractBaseStage {
       }
     }
 
-    event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
-    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceToRebalance);
+    for (String resource : resourceMap.keySet()) {
+      LOG.info("Adding resource : "+ resource);
+    }
+
+    for (String resource : resourceToRebalance.keySet()) {
+      LOG.info("Resource to rebalance : "+ resource);
+    }
+
+    List<String> resourceList = new ArrayList<String>(Arrays.asList("HXIDMAP", "HXCONTEXTUALV2",
+            "HXDATA", "HXCATALOGFEED", "HXPROFILE"));
+
+    Map<String, Resource> newResourceMap = new LinkedHashMap<String, Resource>();
+    for (String resourceName : resourceList) {
+      Resource resource = resourceMap.get(resourceName);
+      newResourceMap.put(resourceName, resource);
+    }
+
+    Map<String, Resource> newResourceToRebalance = new LinkedHashMap<String, Resource>();
+    for (String resourceName : resourceList) {
+      Resource resource = resourceToRebalance.get(resourceName);
+      newResourceToRebalance.put(resourceName, resource);
+    }
+
+    for (String resource : newResourceMap.keySet()) {
+      LOG.info("Resource after sort: "+ resource);
+    }
+
+    for (String resource : newResourceToRebalance.keySet()) {
+      LOG.info("Rebalance resource after sort: "+ resource);
+    }
+
+    event.addAttribute(AttributeName.RESOURCES.name(), newResourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), newResourceToRebalance);
   }
 
   private void addResource(String resource, Map<String, Resource> resourceMap) {

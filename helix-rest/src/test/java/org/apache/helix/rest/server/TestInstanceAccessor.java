@@ -22,7 +22,6 @@ package org.apache.helix.rest.server;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -66,10 +65,11 @@ public class TestInstanceAccessor extends AbstractTestClass {
     message.setTgtName("localhost_3");
     message.setTgtSessionId("session_3");
     HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(INSTANCE_NAME, messageId), message);
+    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(INSTANCE_NAME, messageId),
+        message);
 
     String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/messages")
-        .format(CLUSTER_NAME, INSTANCE_NAME).get(this);
+        .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
         node.get(InstanceAccessor.InstanceProperties.total_message_count.name()).getIntValue();
@@ -77,7 +77,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
     Assert.assertEquals(newMessageCount, 1);
   }
 
-  @Test (dependsOnMethods = "testGetAllMessages")
+  @Test(dependsOnMethods = "testGetAllMessages")
   public void testGetMessagesByStateModelDef() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
@@ -91,19 +91,21 @@ public class TestInstanceAccessor extends AbstractTestClass {
     message.setTgtName("localhost_3");
     message.setTgtSessionId("session_3");
     HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(INSTANCE_NAME, messageId), message);
+    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(INSTANCE_NAME, messageId),
+        message);
 
-    String body = get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME + "/messages",
-        ImmutableMap.of("stateModelDef", "MasterSlave"), Response.Status.OK.getStatusCode(), true);
+    String body =
+        new JerseyUriRequestBuilder("clusters/{}/instances/{}/messages?stateModelDef=MasterSlave")
+            .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
         node.get(InstanceAccessor.InstanceProperties.total_message_count.name()).getIntValue();
 
     Assert.assertEquals(newMessageCount, 1);
 
-    body = get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME + "/messages",
-        ImmutableMap.of("stateModelDef", "LeaderStandBy"), Response.Status.OK.getStatusCode(),
-        true);
+    body =
+        new JerseyUriRequestBuilder("clusters/{}/instances/{}/messages?stateModelDef=LeaderStandBy")
+            .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     node = OBJECT_MAPPER.readTree(body);
     newMessageCount =
         node.get(InstanceAccessor.InstanceProperties.total_message_count.name()).getIntValue();
@@ -111,32 +113,29 @@ public class TestInstanceAccessor extends AbstractTestClass {
     Assert.assertEquals(newMessageCount, 0);
   }
 
-  @Test (dependsOnMethods = "testGetMessagesByStateModelDef")
+  @Test(dependsOnMethods = "testGetMessagesByStateModelDef")
   public void testGetInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String body =
-        get("clusters/" + CLUSTER_NAME + "/instances", null, Response.Status.OK.getStatusCode(), true);
+    String body = new JerseyUriRequestBuilder("clusters/{}/instances").isBodyReturnExpected(true)
+        .format(CLUSTER_NAME).get(this);
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
-    String instancesStr =
-        node.get(InstanceAccessor.InstanceProperties.instances.name()).toString();
+    String instancesStr = node.get(InstanceAccessor.InstanceProperties.instances.name()).toString();
     Assert.assertNotNull(instancesStr);
 
     Set<String> instances = OBJECT_MAPPER.readValue(instancesStr,
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
-    Assert.assertEquals(instances, _instancesMap.get(CLUSTER_NAME),
-        "Instances from response: " + instances + " vs instances actually: " + _instancesMap
-            .get(CLUSTER_NAME));
+    Assert.assertEquals(instances, _instancesMap.get(CLUSTER_NAME), "Instances from response: "
+        + instances + " vs instances actually: " + _instancesMap.get(CLUSTER_NAME));
   }
 
   @Test(dependsOnMethods = "testGetInstances")
   public void testGetInstance() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String body = get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME, null,
-        Response.Status.OK.getStatusCode(), true);
+    String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}").isBodyReturnExpected(true)
+        .format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
-    String instancesCfg =
-        node.get(InstanceAccessor.InstanceProperties.config.name()).toString();
+    String instancesCfg = node.get(InstanceAccessor.InstanceProperties.config.name()).toString();
     Assert.assertNotNull(instancesCfg);
 
     InstanceConfig instanceConfig = new InstanceConfig(toZNRecord(instancesCfg));
@@ -150,8 +149,10 @@ public class TestInstanceAccessor extends AbstractTestClass {
     InstanceConfig instanceConfig = new InstanceConfig(INSTANCE_NAME + "TEST");
     Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(instanceConfig.getRecord()),
         MediaType.APPLICATION_JSON_TYPE);
-    put("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME, null, entity,
-        Response.Status.OK.getStatusCode());
+
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}").format(CLUSTER_NAME, INSTANCE_NAME)
+        .put(this, entity);
+
     Assert.assertEquals(instanceConfig,
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME + "TEST"));
   }
@@ -169,38 +170,44 @@ public class TestInstanceAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Disable instance
     Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME,
-        ImmutableMap.of("command", "disable"), entity, Response.Status.OK.getStatusCode());
+
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=disable")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+
     Assert.assertFalse(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
 
     // Enable instance
-    post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME,
-        ImmutableMap.of("command", "enable"), entity, Response.Status.OK.getStatusCode());
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=enable")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+
     Assert.assertTrue(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
 
     // AddTags
     List<String> tagList = ImmutableList.of("tag3", "tag1", "tag2");
-    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
-            .of(AbstractResource.Properties.id.name(), INSTANCE_NAME,
-                InstanceAccessor.InstanceProperties.instanceTags.name(), tagList)),
+    entity = Entity.entity(
+        OBJECT_MAPPER.writeValueAsString(ImmutableMap.of(AbstractResource.Properties.id.name(),
+            INSTANCE_NAME, InstanceAccessor.InstanceProperties.instanceTags.name(), tagList)),
         MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME,
-        ImmutableMap.of("command", "addInstanceTag"), entity, Response.Status.OK.getStatusCode());
+
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=addInstanceTag")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+
     Assert.assertEquals(_configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getTags(),
         tagList);
 
     // RemoveTags
     List<String> removeList = new ArrayList<>(tagList);
     removeList.remove("tag2");
-    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
-            .of(AbstractResource.Properties.id.name(), INSTANCE_NAME,
-                InstanceAccessor.InstanceProperties.instanceTags.name(), removeList)),
+    entity = Entity.entity(
+        OBJECT_MAPPER.writeValueAsString(ImmutableMap.of(AbstractResource.Properties.id.name(),
+            INSTANCE_NAME, InstanceAccessor.InstanceProperties.instanceTags.name(), removeList)),
         MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME,
-        ImmutableMap.of("command", "removeInstanceTag"), entity,
-        Response.Status.OK.getStatusCode());
+
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=removeInstanceTag")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+
     Assert.assertEquals(_configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getTags(),
         ImmutableList.of("tag2"));
 
@@ -235,20 +242,22 @@ public class TestInstanceAccessor extends AbstractTestClass {
 
     // Test enable disable partitions
     String dbName = "_db_0_";
-    List<String> partitionsToDisable = Arrays.asList(
-         CLUSTER_NAME + dbName + "0", CLUSTER_NAME + dbName + "1", CLUSTER_NAME + dbName + "3");
+    List<String> partitionsToDisable = Arrays.asList(CLUSTER_NAME + dbName + "0",
+        CLUSTER_NAME + dbName + "1", CLUSTER_NAME + dbName + "3");
 
-    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
-            .of(AbstractResource.Properties.id.name(), INSTANCE_NAME,
-                InstanceAccessor.InstanceProperties.resource.name(),
-                CLUSTER_NAME + dbName.substring(0, dbName.length() - 1),
-                InstanceAccessor.InstanceProperties.partitions.name(), partitionsToDisable)),
+    entity = Entity.entity(
+        OBJECT_MAPPER.writeValueAsString(ImmutableMap.of(AbstractResource.Properties.id.name(),
+            INSTANCE_NAME, InstanceAccessor.InstanceProperties.resource.name(),
+            CLUSTER_NAME + dbName.substring(0, dbName.length() - 1),
+            InstanceAccessor.InstanceProperties.partitions.name(), partitionsToDisable)),
         MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME,
-        ImmutableMap.of("command", "disablePartitions"), entity,
-        Response.Status.OK.getStatusCode());
+
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=disablePartitions")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+
     InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
-    Assert.assertEquals(new HashSet<>(instanceConfig.getDisabledPartitionsMap()
+    Assert.assertEquals(
+        new HashSet<>(instanceConfig.getDisabledPartitionsMap()
             .get(CLUSTER_NAME + dbName.substring(0, dbName.length() - 1))),
         new HashSet<>(partitionsToDisable));
     entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
@@ -258,8 +267,9 @@ public class TestInstanceAccessor extends AbstractTestClass {
             InstanceAccessor.InstanceProperties.partitions.name(),
             ImmutableList.of(CLUSTER_NAME + dbName + "1"))), MediaType.APPLICATION_JSON_TYPE);
 
-    post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME,
-        ImmutableMap.of("command", "enablePartitions"), entity, Response.Status.OK.getStatusCode());
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=enablePartitions")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+
     instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
     Assert.assertEquals(new HashSet<>(instanceConfig.getDisabledPartitionsMap()
             .get(CLUSTER_NAME + dbName.substring(0, dbName.length() - 1))),
@@ -289,13 +299,12 @@ public class TestInstanceAccessor extends AbstractTestClass {
     // 1. Add these fields by way of "update"
     Entity entity =
         Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances/" + instanceName + "/configs",
-        Collections.singletonMap("command", "update"), entity, Response.Status.OK.getStatusCode());
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}/configs?command=update")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
 
     // Check that the fields have been added
-    Assert.assertEquals(record.getSimpleFields(),
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord()
-            .getSimpleFields());
+    Assert.assertEquals(record.getSimpleFields(), _configAccessor
+        .getInstanceConfig(CLUSTER_NAME, instanceName).getRecord().getSimpleFields());
     Assert.assertEquals(record.getListFields(),
         _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord().getListFields());
     Assert.assertEquals(record.getMapFields(),
@@ -312,13 +321,12 @@ public class TestInstanceAccessor extends AbstractTestClass {
 
     entity =
         Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances/" + instanceName + "/configs",
-        Collections.singletonMap("command", "update"), entity, Response.Status.OK.getStatusCode());
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}/configs?command=update")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
 
     // Check that the fields have been modified
-    Assert.assertEquals(record.getSimpleFields(),
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord()
-            .getSimpleFields());
+    Assert.assertEquals(record.getSimpleFields(), _configAccessor
+        .getInstanceConfig(CLUSTER_NAME, instanceName).getRecord().getSimpleFields());
     Assert.assertEquals(record.getListFields(),
         _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord().getListFields());
     Assert.assertEquals(record.getMapFields(),
@@ -347,8 +355,8 @@ public class TestInstanceAccessor extends AbstractTestClass {
     // First, add these fields by way of "update"
     Entity entity =
         Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances/" + instanceName + "/configs",
-        Collections.singletonMap("command", "delete"), entity, Response.Status.OK.getStatusCode());
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}/configs?command=delete")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
 
     // Check that the keys k1 and k2 have been deleted, and k0 remains
     for (int i = 0; i < 4; i++) {
@@ -388,7 +396,8 @@ public class TestInstanceAccessor extends AbstractTestClass {
 
     Entity entity =
         Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances/" + instanceName + "/configs", null, entity,
-        Response.Status.NOT_FOUND.getStatusCode());
+    new JerseyUriRequestBuilder("clusters/{}/instances/{}/configs")
+        .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode())
+        .format(CLUSTER_NAME, instanceName).post(this, entity);
   }
 }

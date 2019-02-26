@@ -255,6 +255,15 @@ public class AssignableInstanceManager {
   }
 
   /**
+   * Returns an AssignableInstance object by name.
+   * @param instanceName
+   * @return
+   */
+  public AssignableInstance getAssignableInstance(String instanceName) {
+    return _assignableInstanceMap.get(instanceName);
+  }
+
+  /**
    * Returns all AssignableInstances that support a given quota type.
    * @param quotaType
    * @return unmodifiable set of AssignableInstances
@@ -339,6 +348,7 @@ public class AssignableInstanceManager {
   public void assign(String instanceName, TaskAssignResult result) throws IllegalStateException {
     if (result != null && _assignableInstanceMap.containsKey(instanceName)) {
       _assignableInstanceMap.get(instanceName).assign(result);
+      _taskAssignResultMap.put(result.getTaskConfig().getId(), result);
     }
 
     if (_globalThreadBasedQuotaMap.containsKey(result.getQuotaType())) {

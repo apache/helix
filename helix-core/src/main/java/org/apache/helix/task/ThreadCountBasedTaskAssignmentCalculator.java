@@ -94,7 +94,7 @@ public class ThreadCountBasedTaskAssignmentCalculator extends TaskAssignmentCalc
 
     // Assign tasks to AssignableInstances
     Map<String, TaskAssignResult> taskAssignResultMap =
-        _taskAssigner.assignTasks(_assignableInstanceManager, taskConfigs, quotaType);
+        _taskAssigner.assignTasks(_assignableInstanceManager, instances, taskConfigs, quotaType);
 
     // TODO: Do this with Quota Manager is ready
     // Cache TaskAssignResultMap to prevent double-assign

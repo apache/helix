@@ -19,9 +19,11 @@ package org.apache.helix.task.assigner;
  * under the License.
  */
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.PriorityQueue;
 import org.apache.helix.model.LiveInstance;
@@ -70,10 +72,14 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
 
   @Override
   public Map<String, TaskAssignResult> assignTasks(
-      AssignableInstanceManager assignableInstanceManager, Iterable<TaskConfig> tasks,
-      String quotaType) {
-    Iterable<AssignableInstance> assignableInstances =
-        assignableInstanceManager.getAssignableInstanceMap().values();
+      AssignableInstanceManager assignableInstanceManager, Collection<String> instances,
+      Iterable<TaskConfig> tasks, String quotaType) {
+    Iterable<AssignableInstance> assignableInstances = new HashSet<>();
+    // Only add the AssignableInstances that are also in instances
+    for (String instance : instances) {
+      ((HashSet<AssignableInstance>) assignableInstances)
+          .add(assignableInstanceManager.getAssignableInstance(instance));
+    }
 
     if (tasks == null || !tasks.iterator().hasNext()) {
       logger.warn("No task to assign!");

@@ -176,7 +176,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       Set<Integer> partitionsToDropFromIs, WorkflowControllerDataProvider cache) {
 
     // Used to keep track of tasks that have already been assigned to instances.
-    Set<Integer> assignedPartitions = new HashSet<>();
+    // InstanceName -> Set of task partitions assigned to that instance in this iteration
+    Map<String, Set<Integer>> assignedPartitions = new HashMap<>();
 
     // Used to keep track of tasks that have failed, but whose failure is acceptable
     Set<Integer> skippedPartitions = new HashSet<>();

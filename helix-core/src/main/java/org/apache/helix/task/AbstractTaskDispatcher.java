@@ -45,7 +45,7 @@ public abstract class AbstractTaskDispatcher {
       Map<String, SortedSet<Integer>> prevInstanceToTaskAssignments, Set<String> excludedInstances,
       String jobResource, CurrentStateOutput currStateOutput, JobContext jobCtx, JobConfig jobCfg,
       ResourceAssignment prevTaskToInstanceStateAssignment, TaskState jobState,
-      Set<Integer> assignedPartitions, Set<Integer> partitionsToDropFromIs,
+      Map<String, Set<Integer>> assignedPartitions, Set<Integer> partitionsToDropFromIs,
       Map<Integer, PartitionAssignment> paMap, TargetState jobTgtState,
       Set<Integer> skippedPartitions, WorkflowControllerDataProvider cache) {
 
@@ -58,6 +58,8 @@ public abstract class AbstractTaskDispatcher {
         continue;
       }
 
+      // If not an excluded instance, we must instantiate its entry in assignedPartitions
+      assignedPartitions.put(instance, new HashSet<Integer>());
       Set<Integer> pSet = prevInstanceToTaskAssignments.get(instance);
       // Used to keep track of partitions that are in one of the final states: COMPLETED, TIMED_OUT,
       // TASK_ERROR, ERROR.
@@ -122,7 +124,7 @@ public abstract class AbstractTaskDispatcher {
           }
 
           paMap.put(pId, new PartitionAssignment(instance, requestedState.name()));
-          assignedPartitions.add(pId);
+          assignedPartitions.get(instance).add(pId);
           if (LOG.isDebugEnabled()) {
             LOG.debug(
                 String.format("Instance %s requested a state transition to %s for partition %s.",
@@ -146,7 +148,7 @@ public abstract class AbstractTaskDispatcher {
           }
 
           paMap.put(pId, new PartitionAssignment(instance, nextState.name()));
-          assignedPartitions.add(pId);
+          assignedPartitions.get(instance).add(pId);
           if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
                 nextState, instance));
@@ -170,7 +172,7 @@ public abstract class AbstractTaskDispatcher {
             assignableInstanceManager.release(instance, taskConfig, quotaType);
           }
           paMap.put(pId, new JobRebalancer.PartitionAssignment(instance, nextState.name()));
-          assignedPartitions.add(pId);
+          assignedPartitions.get(instance).add(pId);
 
           if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
@@ -252,7 +254,7 @@ public abstract class AbstractTaskDispatcher {
             // Job is in progress, implying that tasks are being re-tried, so set it to RUNNING
             paMap.put(pId,
                 new JobRebalancer.PartitionAssignment(instance, TaskPartitionState.RUNNING.name()));
-            assignedPartitions.add(pId);
+            assignedPartitions.get(instance).add(pId);
           }
         }
 
@@ -335,7 +337,7 @@ public abstract class AbstractTaskDispatcher {
   private void processTaskWithPendingMessage(ResourceAssignment prevAssignment, Integer pId,
       String pName, String instance, Message pendingMessage, TaskState jobState,
       TaskPartitionState currState, Map<Integer, PartitionAssignment> paMap,
-      Set<Integer> assignedPartitions) {
+      Map<String, Set<Integer>> assignedPartitions) {
 
     // stateMap is a mapping of Instance -> TaskPartitionState (String)
     Map<String, String> stateMap = prevAssignment.getReplicaMap(new Partition(pName));
@@ -352,7 +354,7 @@ public abstract class AbstractTaskDispatcher {
         // While job is timing out, if the task is pending on INIT->RUNNING, set it back to INIT,
         // so that Helix will cancel the transition.
         paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.INIT.name()));
-        assignedPartitions.add(pId);
+        assignedPartitions.get(instance).add(pId);
         if (LOG.isDebugEnabled()) {
           LOG.debug(String.format(
               "Task partition %s has a pending state transition on instance %s INIT->RUNNING. Previous state %s"
@@ -363,7 +365,7 @@ public abstract class AbstractTaskDispatcher {
         // Otherwise, Just copy forward
         // the state assignment from the previous ideal state.
         paMap.put(pId, new PartitionAssignment(instance, prevState));
-        assignedPartitions.add(pId);
+        assignedPartitions.get(instance).add(pId);
         if (LOG.isDebugEnabled()) {
           LOG.debug(String.format(
               "Task partition %s has a pending state transition on instance %s. Using the previous ideal state which was %s.",
@@ -440,11 +442,11 @@ public abstract class AbstractTaskDispatcher {
   protected void handleAdditionalTaskAssignment(
       Map<String, SortedSet<Integer>> prevInstanceToTaskAssignments, Set<String> excludedInstances,
       String jobResource, CurrentStateOutput currStateOutput, JobContext jobCtx, JobConfig jobCfg,
-      WorkflowConfig workflowConfig, WorkflowContext workflowCtx, WorkflowControllerDataProvider cache,
-      ResourceAssignment prevTaskToInstanceStateAssignment, Set<Integer> assignedPartitions,
-      Map<Integer, PartitionAssignment> paMap, Set<Integer> skippedPartitions,
-      TaskAssignmentCalculator taskAssignmentCal, Set<Integer> allPartitions, long currentTime,
-      Collection<String> liveInstances) {
+      WorkflowConfig workflowConfig, WorkflowContext workflowCtx,
+      WorkflowControllerDataProvider cache, ResourceAssignment prevTaskToInstanceStateAssignment,
+      Map<String, Set<Integer>> assignedPartitions, Map<Integer, PartitionAssignment> paMap,
+      Set<Integer> skippedPartitions, TaskAssignmentCalculator taskAssignmentCal,
+      Set<Integer> allPartitions, long currentTime, Collection<String> liveInstances) {
 
     // See if there was LiveInstance change and cache LiveInstances from this iteration of pipeline
     boolean existsLiveInstanceOrCurrentStateChange =
@@ -453,7 +455,11 @@ public abstract class AbstractTaskDispatcher {
     // The excludeSet contains the set of task partitions that must be excluded from consideration
     // when making any new assignments.
     // This includes all completed, failed, delayed, and already assigned partitions.
-    Set<Integer> excludeSet = Sets.newTreeSet(assignedPartitions);
+    Set<Integer> excludeSet = Sets.newTreeSet();
+    // Add all assigned partitions to excludeSet
+    for (Set<Integer> assignedSet : assignedPartitions.values()) {
+      excludeSet.addAll(assignedSet);
+    }
     addCompletedTasks(excludeSet, jobCtx, allPartitions);
     addGiveupPartitions(excludeSet, jobCtx, allPartitions, jobCfg);
     excludeSet.addAll(skippedPartitions);
@@ -540,8 +546,8 @@ public abstract class AbstractTaskDispatcher {
       }
       // 1. throttled by job configuration
       // Contains the set of task partitions currently assigned to the instance.
-      Set<Integer> pSet = entry.getValue();
-      int jobCfgLimitation = jobCfg.getNumConcurrentTasksPerInstance() - pSet.size();
+      int jobCfgLimitation =
+          jobCfg.getNumConcurrentTasksPerInstance() - assignedPartitions.get(instance).size();
       // 2. throttled by participant capacity
       int participantCapacity = cache.getInstanceConfigMap().get(instance).getMaxConcurrentTask();
       if (participantCapacity == InstanceConfig.MAX_CONCURRENT_TASK_NOT_SET) {

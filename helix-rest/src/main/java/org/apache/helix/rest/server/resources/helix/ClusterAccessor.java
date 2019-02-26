@@ -49,6 +49,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
+import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,7 +157,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   @Path("{clusterId}")
   public Response updateCluster(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, @QueryParam("superCluster") String superCluster,
-      String content) {
+      @QueryParam("customFields") String customFields, String content) {
     Command command;
     try {
       command = getCommand(commandStr);
@@ -206,22 +207,25 @@ public class ClusterAccessor extends AbstractHelixResource {
         return serverError(ex);
       }
       break;
+
     case enableMaintenanceMode:
-      try {
-        helixAdmin.enableMaintenanceMode(clusterId, true, content);
-      } catch (Exception ex) {
-        _logger.error("Failed to enable maintenance mode " + clusterId);
-        return serverError(ex);
-      }
-      break;
     case disableMaintenanceMode:
       try {
-        helixAdmin.enableMaintenanceMode(clusterId, false);
+        Map<String, String> customFieldsMap = new HashMap<>();
+        if (customFields != null && !customFields.isEmpty()) {
+          customFieldsMap = OBJECT_MAPPER.readValue(customFields,
+              new TypeReference<HashMap<String, String>>() {
+              });
+        }
+        helixAdmin.manuallyEnableMaintenanceMode(clusterId,
+            command == Command.enableMaintenanceMode, content, customFieldsMap);
       } catch (Exception ex) {
-        _logger.error("Failed to disable maintenance mode " + clusterId);
+        _logger.error("Failed to disable maintenance mode for cluster {}. Exception: {}", clusterId,
+            ex);
         return serverError(ex);
       }
       break;
+
     default:
       return badRequest("Unsupported command " + command);
     }

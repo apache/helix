@@ -22,6 +22,8 @@ package org.apache.helix.manager.zk;
 import java.lang.management.ManagementFactory;
 import java.util.List;
 
+import org.I0Itec.zkclient.DataUpdater;
+import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -30,9 +32,10 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyType;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.controller.GenericHelixController;
-import org.apache.helix.model.LeaderHistory;
+import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,14 +159,22 @@ public class DistributedLeaderElection implements ControllerChangeListener {
   private void updateHistory(HelixManager manager) {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
+    final String clusterName = manager.getClusterName();
+    final String instanceName = manager.getInstanceName();
+    final String version = manager.getVersion();
 
-    LeaderHistory history = accessor.getProperty(keyBuilder.controllerLeaderHistory());
-    if (history == null) {
-      history = new LeaderHistory(PropertyType.HISTORY.toString());
-    }
-    history
-        .updateHistory(manager.getClusterName(), manager.getInstanceName(), manager.getVersion());
-    if (!accessor.setProperty(keyBuilder.controllerLeaderHistory(), history)) {
+    // Record a MaintenanceSignal history
+    if (!accessor.getBaseDataAccessor().update(keyBuilder.controllerLeaderHistory().getPath(),
+        new DataUpdater<ZNRecord>() {
+          @Override
+          public ZNRecord update(ZNRecord oldRecord) {
+            if (oldRecord == null) {
+              oldRecord = new ZNRecord(PropertyType.HISTORY.toString());
+            }
+            return new ControllerHistory(oldRecord).updateHistory(clusterName, instanceName,
+                version);
+          }
+        }, AccessOption.PERSISTENT)) {
       LOG.error("Failed to persist leader history to ZK!");
     }
   }

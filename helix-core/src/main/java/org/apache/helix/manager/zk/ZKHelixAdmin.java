@@ -60,6 +60,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
+import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
@@ -417,9 +418,9 @@ public class ZKHelixAdmin implements HelixAdmin {
    * @param customFields
    * @param triggeringEntity
    */
-  private void processMaintenanceMode(String clusterName, boolean enabled, String reason,
-      MaintenanceSignal.AutoTriggerReason internalReason, Map<String, String> customFields,
-      MaintenanceSignal.TriggeringEntity triggeringEntity) {
+  private void processMaintenanceMode(String clusterName, final boolean enabled, final String reason,
+      final MaintenanceSignal.AutoTriggerReason internalReason, final Map<String, String> customFields,
+      final MaintenanceSignal.TriggeringEntity triggeringEntity) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
@@ -427,6 +428,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER ? "automatically"
             : "manually",
         enabled ? "enters" : "exits", reason == null ? "NULL" : reason);
+    final long currentTime = System.currentTimeMillis();
     if (!enabled) {
       // Exit maintenance mode
       accessor.removeProperty(keyBuilder.maintenance());
@@ -436,7 +438,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       if (reason != null) {
         maintenanceSignal.setReason(reason);
       }
-      maintenanceSignal.setTimestamp(System.currentTimeMillis());
+      maintenanceSignal.setTimestamp(currentTime);
       maintenanceSignal.setTriggeringEntity(triggeringEntity);
       switch (triggeringEntity) {
       case CONTROLLER:
@@ -458,8 +460,28 @@ public class ZKHelixAdmin implements HelixAdmin {
         break;
       }
       if (!accessor.createMaintenance(maintenanceSignal)) {
-        throw new HelixException("Failed to create maintenance signal");
+        throw new HelixException("Failed to create maintenance signal!");
       }
+    }
+
+    // Record a MaintenanceSignal history
+    if (!accessor.getBaseDataAccessor().update(keyBuilder.controllerLeaderHistory().getPath(),
+        new DataUpdater<ZNRecord>() {
+          @Override
+          public ZNRecord update(ZNRecord oldRecord) {
+            try {
+              if (oldRecord == null) {
+                oldRecord = new ZNRecord(PropertyType.HISTORY.toString());
+              }
+              return new ControllerHistory(oldRecord).updateMaintenanceHistory(enabled, reason,
+                  currentTime, internalReason, customFields, triggeringEntity);
+            } catch (IOException e) {
+              logger.error("Failed to update maintenance history! Exception: {}", e);
+              return oldRecord;
+            }
+          }
+        }, AccessOption.PERSISTENT)) {
+      logger.error("Failed to write maintenance history to ZK!");
     }
   }
 

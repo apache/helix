@@ -20,14 +20,21 @@ package org.apache.helix.integration.controller;
  */
 
 import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MaintenanceSignal;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.type.TypeFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -37,6 +44,8 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   private MockParticipantManager _newInstance;
   private String newResourceAddedDuringMaintenanceMode =
       String.format("%s_%s", WorkflowGenerator.DEFAULT_TGT_DB, 1);
+  private HelixDataAccessor _dataAccessor;
+  private PropertyKey.Builder _keyBuilder;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -45,6 +54,8 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     _numReplicas = 3;
     _numPartitions = 5;
     super.beforeClass();
+    _dataAccessor = _manager.getHelixDataAccessor();
+    _keyBuilder = _dataAccessor.keyBuilder();
   }
 
   @AfterClass
@@ -143,8 +154,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Thread.sleep(500L);
 
     // Check that the cluster is in maintenance
-    MaintenanceSignal maintenanceSignal = _manager.getHelixDataAccessor()
-        .getProperty(_manager.getHelixDataAccessor().keyBuilder().maintenance());
+    MaintenanceSignal maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(maintenanceSignal);
 
     // Now bring up 2 instances
@@ -156,8 +166,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Thread.sleep(500L);
 
     // Check that the cluster is no longer in maintenance (auto-recovered)
-    maintenanceSignal = _manager.getHelixDataAccessor()
-        .getProperty(_manager.getHelixDataAccessor().keyBuilder().maintenance());
+    maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNull(maintenanceSignal);
   }
 
@@ -181,8 +190,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Thread.sleep(500L);
 
     // The cluster should still be in maintenance because it was enabled manually
-    MaintenanceSignal maintenanceSignal = _manager.getHelixDataAccessor()
-        .getProperty(_manager.getHelixDataAccessor().keyBuilder().maintenance());
+    MaintenanceSignal maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(maintenanceSignal);
   }
 
@@ -202,8 +210,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Thread.sleep(500L);
 
     // Check that maintenance signal was triggered by Controller
-    MaintenanceSignal maintenanceSignal = _manager.getHelixDataAccessor()
-        .getProperty(_manager.getHelixDataAccessor().keyBuilder().maintenance());
+    MaintenanceSignal maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(maintenanceSignal);
     Assert.assertEquals(maintenanceSignal.getTriggeringEntity(),
         MaintenanceSignal.TriggeringEntity.CONTROLLER);
@@ -216,8 +223,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Thread.sleep(500L);
 
     // Check that maintenance mode has successfully overwritten with the right TRIGGERED_BY field
-    maintenanceSignal = _manager.getHelixDataAccessor()
-        .getProperty(_manager.getHelixDataAccessor().keyBuilder().maintenance());
+    maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertEquals(maintenanceSignal.getTriggeringEntity(),
         MaintenanceSignal.TriggeringEntity.USER);
     for (Map.Entry<String, String> entry : customFields.entrySet()) {
@@ -244,8 +250,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     // Since 3 instances are missing, the cluster should have gone back under maintenance
     // automatically
-    MaintenanceSignal maintenanceSignal = _manager.getHelixDataAccessor()
-        .getProperty(_manager.getHelixDataAccessor().keyBuilder().maintenance());
+    MaintenanceSignal maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(maintenanceSignal);
     Assert.assertEquals(maintenanceSignal.getTriggeringEntity(),
         MaintenanceSignal.TriggeringEntity.CONTROLLER);
@@ -261,8 +266,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Thread.sleep(500L);
 
     // Check that the cluster exited maintenance
-    maintenanceSignal = _manager.getHelixDataAccessor()
-        .getProperty(_manager.getHelixDataAccessor().keyBuilder().maintenance());
+    maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNull(maintenanceSignal);
 
     // Kill 3 instances, which would put cluster in maintenance automatically
@@ -272,8 +276,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     Thread.sleep(500L);
 
     // Check that cluster is back under maintenance
-    maintenanceSignal = _manager.getHelixDataAccessor()
-        .getProperty(_manager.getHelixDataAccessor().keyBuilder().maintenance());
+    maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(maintenanceSignal);
     Assert.assertEquals(maintenanceSignal.getTriggeringEntity(),
         MaintenanceSignal.TriggeringEntity.CONTROLLER);
@@ -298,12 +301,71 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
     // Check that the cluster is still in maintenance (should not have auto-exited because it would
     // fail the MaxPartitionsPerInstance check)
-    maintenanceSignal = _manager.getHelixDataAccessor()
-        .getProperty(_manager.getHelixDataAccessor().keyBuilder().maintenance());
+    maintenanceSignal = _dataAccessor.getProperty(_keyBuilder.maintenance());
     Assert.assertNotNull(maintenanceSignal);
     Assert.assertEquals(maintenanceSignal.getTriggeringEntity(),
         MaintenanceSignal.TriggeringEntity.CONTROLLER);
     Assert.assertEquals(maintenanceSignal.getAutoTriggerReason(),
         MaintenanceSignal.AutoTriggerReason.MAX_PARTITION_PER_INSTANCE_EXCEEDED);
+  }
+
+  /**
+   * Test that the Controller correctly records maintenance history in various situations.
+   * @throws InterruptedException
+   */
+  @Test(dependsOnMethods = "testMaxPartitionLimit")
+  public void testMaintenanceHistory() throws InterruptedException, IOException {
+    // In maintenance mode, by controller, for MAX_PARTITION_PER_INSTANCE_EXCEEDED
+    ControllerHistory history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
+    Map<String, String> lastHistoryEntry = convertStringToMap(
+        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
+
+    // **The KV pairs are hard-coded in here for the ease of reading!**
+    Assert.assertEquals(lastHistoryEntry.get("OPERATION_TYPE"), "ENTER");
+    Assert.assertEquals(lastHistoryEntry.get("TRIGGERED_BY"), "CONTROLLER");
+    Assert.assertEquals(lastHistoryEntry.get("AUTO_TRIGGER_REASON"),
+        "MAX_PARTITION_PER_INSTANCE_EXCEEDED");
+
+    // Remove the maxPartitionPerInstance config
+    ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setMaxPartitionsPerInstance(-1);
+    _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
+    System.out.println("Set clusterconfig");
+
+    Thread.sleep(500L);
+
+    // Now check that the cluster exited maintenance
+    // EXIT, CONTROLLER, for MAX_PARTITION_PER_INSTANCE_EXCEEDED
+    history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
+    lastHistoryEntry = convertStringToMap(
+        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
+    Assert.assertEquals(lastHistoryEntry.get("OPERATION_TYPE"), "EXIT");
+    Assert.assertEquals(lastHistoryEntry.get("TRIGGERED_BY"), "CONTROLLER");
+    Assert.assertEquals(lastHistoryEntry.get("AUTO_TRIGGER_REASON"),
+        "MAX_PARTITION_PER_INSTANCE_EXCEEDED");
+
+    // Manually put the cluster in maintenance with a custom field
+    Map<String, String> customFieldMap = ImmutableMap.of("k1", "v1", "k2", "v2");
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true, "TEST",
+        customFieldMap);
+    Thread.sleep(500L);
+    // ENTER, USER, for reason TEST, no internalReason
+    history = _dataAccessor.getProperty(_keyBuilder.controllerLeaderHistory());
+    lastHistoryEntry = convertStringToMap(
+        history.getMaintenanceHistoryList().get(history.getMaintenanceHistoryList().size() - 1));
+    Assert.assertEquals(lastHistoryEntry.get("OPERATION_TYPE"), "ENTER");
+    Assert.assertEquals(lastHistoryEntry.get("TRIGGERED_BY"), "USER");
+    Assert.assertEquals(lastHistoryEntry.get("REASON"), "TEST");
+    Assert.assertNull(lastHistoryEntry.get("AUTO_TRIGGER_REASON"));
+  }
+
+  /**
+   * Convert a String representation of a Map into a Map object for verification purposes.
+   * @param value
+   * @return
+   */
+  private static Map<String, String> convertStringToMap(String value) throws IOException {
+    return new ObjectMapper().readValue(value,
+        TypeFactory.mapType(HashMap.class, String.class, String.class));
   }
 }

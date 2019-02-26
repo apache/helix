@@ -303,6 +303,9 @@ public class GenericHelixController implements IdealStateChangeListener,
       Pipeline rebalancePipeline = new Pipeline(pipelineName);
       rebalancePipeline.addStage(new BestPossibleStateCalcStage());
       rebalancePipeline.addStage(new IntermediateStateCalcStage());
+      // Need to add MaintenanceRecoveryStage here because MAX_PARTITIONS_PER_INSTANCE check could
+      // only occur after IntermediateStateCalcStage calculation
+      rebalancePipeline.addStage(new MaintenanceRecoveryStage());
       rebalancePipeline.addStage(new ResourceMessageGenerationPhase());
       rebalancePipeline.addStage(new MessageSelectionStage());
       rebalancePipeline.addStage(new MessageThrottleStage());

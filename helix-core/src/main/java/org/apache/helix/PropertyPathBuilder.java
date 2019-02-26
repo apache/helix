@@ -29,7 +29,7 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LeaderHistory;
+import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
@@ -63,7 +63,7 @@ public class PropertyPathBuilder {
     typeToClassMapping.put(MESSAGES, Message.class);
     typeToClassMapping.put(CURRENTSTATES, CurrentState.class);
     typeToClassMapping.put(STATUSUPDATES, StatusUpdate.class);
-    typeToClassMapping.put(HISTORY, LeaderHistory.class);
+    typeToClassMapping.put(HISTORY, ControllerHistory.class);
     typeToClassMapping.put(PAUSE, PauseSignal.class);
     typeToClassMapping.put(MAINTENANCE, MaintenanceSignal.class);
     // TODO: Below must handle the case for future versions of Task Framework with a different path

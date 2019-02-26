@@ -275,19 +275,44 @@ public interface HelixAdmin {
   void enableCluster(String clusterName, boolean enabled, String reason);
 
   /**
+   * **Deprecated: use autoEnableMaintenanceMode or manuallyEnableMaintenanceMode instead**
    * Enable or disable maintenance mode for a cluster
    * @param clusterName
    * @param enabled
    */
+  @Deprecated
   void enableMaintenanceMode(String clusterName, boolean enabled);
 
   /**
+   * **Deprecated: use autoEnableMaintenanceMode or manuallyEnableMaintenanceMode instead**
    * Enable or disable maintenance mode for a cluster
    * @param clusterName
    * @param enabled
    * @param reason
    */
+  @Deprecated
   void enableMaintenanceMode(String clusterName, boolean enabled, String reason);
+
+  /**
+   * Automatically enable maintenance mode. To be called by the Controller pipeline.
+   * @param clusterName
+   * @param enabled
+   * @param reason
+   * @param internalReason
+   */
+  void autoEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
+      MaintenanceSignal.AutoTriggerReason internalReason);
+
+  /**
+   * Manually enable maintenance mode. To be called by the REST client that accepts KV mappings as
+   * the payload.
+   * @param clusterName
+   * @param enabled
+   * @param reason
+   * @param customFields user-specified KV mappings to be stored in the ZNode
+   */
+  void manuallyEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
+      Map<String, String> customFields);
 
   /**
    * Reset a list of partitions in error state for an instance

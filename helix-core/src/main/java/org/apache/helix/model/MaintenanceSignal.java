@@ -31,7 +31,8 @@ public class MaintenanceSignal extends PauseSignal {
    */
   private enum MaintenanceSignalProperty {
     TRIGGERED_BY,
-    TIMESTAMP
+    TIMESTAMP,
+    AUTO_TRIGGER_REASON
   }
 
   /**
@@ -43,6 +44,17 @@ public class MaintenanceSignal extends PauseSignal {
     UNKNOWN
   }
 
+  /**
+   * Reason for the maintenance mode being triggered automatically. This will allow checking more
+   * efficient because it will check against the exact condition for which the cluster entered
+   * maintenance mode. This field does not apply when triggered manually.
+   */
+  public enum AutoTriggerReason {
+    MAX_OFFLINE_INSTANCES_EXCEEDED,
+    MAX_PARTITION_PER_INSTANCE_EXCEEDED,
+    NOT_APPLICABLE // Not triggered automatically or automatically exiting maintenance mode
+  }
+
   public MaintenanceSignal(String id) {
     super(id);
   }
@@ -51,8 +63,8 @@ public class MaintenanceSignal extends PauseSignal {
     super(record);
   }
 
-  public void setTriggeringEntity(String triggeringEntity) {
-    _record.setSimpleField(MaintenanceSignalProperty.TRIGGERED_BY.name(), triggeringEntity);
+  public void setTriggeringEntity(TriggeringEntity triggeringEntity) {
+    _record.setSimpleField(MaintenanceSignalProperty.TRIGGERED_BY.name(), triggeringEntity.name());
   }
 
   /**
@@ -65,6 +77,24 @@ public class MaintenanceSignal extends PauseSignal {
           .valueOf(_record.getSimpleField(MaintenanceSignalProperty.TRIGGERED_BY.name()));
     } catch (Exception e) {
       return TriggeringEntity.UNKNOWN;
+    }
+  }
+
+  public void setAutoTriggerReason(AutoTriggerReason internalReason) {
+    _record.setSimpleField(MaintenanceSignalProperty.AUTO_TRIGGER_REASON.name(),
+        internalReason.name());
+  }
+
+  /**
+   * Returns auto-trigger reason.
+   * @return AutoTriggerReason.NOT_APPLICABLE if it was not triggered automatically
+   */
+  public AutoTriggerReason getAutoTriggerReason() {
+    try {
+      return AutoTriggerReason
+          .valueOf(_record.getSimpleField(MaintenanceSignalProperty.AUTO_TRIGGER_REASON.name()));
+    } catch (Exception e) {
+      return AutoTriggerReason.NOT_APPLICABLE;
     }
   }
 

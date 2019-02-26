@@ -82,6 +82,8 @@ import org.slf4j.LoggerFactory;
 
 public class ZKHelixAdmin implements HelixAdmin {
   public static final String CONNECTION_TIMEOUT = "helixAdmin.timeOutInSec";
+  private static final String MAINTENANCE_ZNODE_ID = "maintenance";
+
   private final HelixZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
 
@@ -380,24 +382,80 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  @Deprecated
   public void enableMaintenanceMode(String clusterName, boolean enabled) {
-    enableMaintenanceMode(clusterName, enabled, null);
+    manuallyEnableMaintenanceMode(clusterName, enabled, null, null);
   }
 
   @Override
+  @Deprecated
   public void enableMaintenanceMode(String clusterName, boolean enabled, String reason) {
-    logger.info("Cluster {} {} maintenance mode for reason {}.", enabled ? "enters" : "exits",
-        clusterName, reason == null ? "NULL" : reason);
+    manuallyEnableMaintenanceMode(clusterName, enabled, reason, null);
+  }
+
+  @Override
+  public void autoEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
+      MaintenanceSignal.AutoTriggerReason internalReason) {
+    processMaintenanceMode(clusterName, enabled, reason, internalReason, null,
+        MaintenanceSignal.TriggeringEntity.CONTROLLER);
+  }
+
+  @Override
+  public void manuallyEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
+      Map<String, String> customFields) {
+    processMaintenanceMode(clusterName, enabled, reason,
+        MaintenanceSignal.AutoTriggerReason.NOT_APPLICABLE, customFields,
+        MaintenanceSignal.TriggeringEntity.USER);
+  }
+
+  /**
+   * Helper method for enabling/disabling maintenance mode.
+   * @param clusterName
+   * @param enabled
+   * @param reason
+   * @param internalReason
+   * @param customFields
+   * @param triggeringEntity
+   */
+  private void processMaintenanceMode(String clusterName, boolean enabled, String reason,
+      MaintenanceSignal.AutoTriggerReason internalReason, Map<String, String> customFields,
+      MaintenanceSignal.TriggeringEntity triggeringEntity) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
-
+    logger.info("Cluster {} {} {} maintenance mode for reason {}.", clusterName,
+        triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER ? "automatically"
+            : "manually",
+        enabled ? "enters" : "exits", reason == null ? "NULL" : reason);
     if (!enabled) {
+      // Exit maintenance mode
       accessor.removeProperty(keyBuilder.maintenance());
     } else {
-      MaintenanceSignal maintenanceSignal = new MaintenanceSignal("maintenance");
+      // Enter maintenance mode
+      MaintenanceSignal maintenanceSignal = new MaintenanceSignal(MAINTENANCE_ZNODE_ID);
       if (reason != null) {
         maintenanceSignal.setReason(reason);
+      }
+      maintenanceSignal.setTimestamp(System.currentTimeMillis());
+      maintenanceSignal.setTriggeringEntity(triggeringEntity);
+      switch (triggeringEntity) {
+      case CONTROLLER:
+        // autoEnable
+        maintenanceSignal.setAutoTriggerReason(internalReason);
+        break;
+      case USER:
+      case UNKNOWN:
+        // manuallyEnable
+        if (customFields != null && !customFields.isEmpty()) {
+          // Enter all custom fields provided by the user
+          Map<String, String> simpleFields = maintenanceSignal.getRecord().getSimpleFields();
+          for (Map.Entry<String, String> entry : customFields.entrySet()) {
+            if (!simpleFields.containsKey(entry.getKey())) {
+              simpleFields.put(entry.getKey(), entry.getValue());
+            }
+          }
+        }
+        break;
       }
       if (!accessor.createMaintenance(maintenanceSignal)) {
         throw new HelixException("Failed to create maintenance signal");

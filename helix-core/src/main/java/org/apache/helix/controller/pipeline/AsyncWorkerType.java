@@ -30,5 +30,6 @@ public enum AsyncWorkerType {
   TargetExternalViewCalcWorker,
   PersistAssignmentWorker,
   ExternalViewComputeWorker,
+  MaintenanceRecoveryWorker,
   TaskJobPurgeWorker
 }

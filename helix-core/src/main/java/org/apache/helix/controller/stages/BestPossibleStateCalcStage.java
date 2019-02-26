@@ -38,6 +38,7 @@ import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
@@ -183,8 +184,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         if (manager != null) {
           if (manager.getHelixDataAccessor()
               .getProperty(manager.getHelixDataAccessor().keyBuilder().maintenance()) == null) {
-            manager.getClusterManagmentTool()
-                .enableMaintenanceMode(manager.getClusterName(), true, errMsg);
+            manager.getClusterManagmentTool().autoEnableMaintenanceMode(manager.getClusterName(),
+                true, errMsg, MaintenanceSignal.AutoTriggerReason.MAX_OFFLINE_INSTANCES_EXCEEDED);
             LogUtil.logWarn(logger, _eventId, errMsg);
           }
         } else {

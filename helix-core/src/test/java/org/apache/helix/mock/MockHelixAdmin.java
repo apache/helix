@@ -37,6 +37,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.StateModelDefinition;
 
 public class MockHelixAdmin implements HelixAdmin {
@@ -264,6 +265,18 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override public void enableMaintenanceMode(String clusterName, boolean enabled, String reason) {
+
+  }
+
+  @Override
+  public void autoEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
+      MaintenanceSignal.AutoTriggerReason internalReason) {
+
+  }
+
+  @Override
+  public void manuallyEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
+      Map<String, String> customFields) {
 
   }
 

@@ -39,6 +39,13 @@ import org.testng.annotations.Test;
 public class TestDisableJobExternalView extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestDisableJobExternalView.class);
 
+  /**
+   * This test is no longer valid since Helix no longer computes ExternalView for Task Framework
+   * resources. Contexts effectively serve as ExternalView for task resources.
+   * **This test has been modified to test that there are no job-related resources appearing in
+   * ExternalView**
+   * @throws Exception
+   */
   @Test
   public void testJobsDisableExternalView() throws Exception {
     String queueName = TestHelper.getTestMethodName();
@@ -77,12 +84,12 @@ public class TestDisableJobExternalView extends TaskTestBase {
     String namedSpaceJob1 = String.format("%s_%s", queueName, "job1");
     String namedSpaceJob2 = String.format("%s_%s", queueName, "job2");
 
-    Assert.assertTrue(seenExternalViews.contains(namedSpaceJob1),
-        "Can not find external View for " + namedSpaceJob1 + "!");
+    Assert.assertTrue(!seenExternalViews.contains(namedSpaceJob1),
+        "ExternalView found for " + namedSpaceJob1 + ". Jobs shouldn't be in EV!");
     Assert.assertTrue(!seenExternalViews.contains(namedSpaceJob2),
         "External View for " + namedSpaceJob2 + " shoudld not exist!");
-    Assert.assertTrue(seenExternalViews.contains(namedSpaceJob3),
-        "Can not find external View for " + namedSpaceJob3 + "!");
+    Assert.assertTrue(!seenExternalViews.contains(namedSpaceJob3),
+        "ExternalView found for " + namedSpaceJob3 + ". Jobs shouldn't be in EV!");
 
     _manager
         .removeListener(new PropertyKey.Builder(CLUSTER_NAME).externalViews(), externviewChecker);

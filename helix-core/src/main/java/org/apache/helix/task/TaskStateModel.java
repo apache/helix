@@ -195,8 +195,8 @@ public class TaskStateModel extends StateModel {
         timeout_task.cancel(true);
       }
       LOG.error(
-          "The thread running the task partition {} was not found while attempting to cancel this task; Manual cleanup may be required for this task.",
-          taskPartition);
+          "Participant {}'s thread for task partition {} not found while attempting to cancel the task; Manual cleanup may be required.",
+          _manager.getInstanceName(), taskPartition);
       return;
     }
 

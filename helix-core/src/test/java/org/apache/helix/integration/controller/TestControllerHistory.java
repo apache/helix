@@ -26,7 +26,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.model.LeaderHistory;
+import org.apache.helix.model.ControllerHistory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -40,9 +40,9 @@ public class TestControllerHistory extends ZkStandAloneCMTestBase {
 
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(CLUSTER_NAME);
     PropertyKey propertyKey = keyBuilder.controllerLeaderHistory();
-    LeaderHistory leaderHistory = manager.getHelixDataAccessor().getProperty(propertyKey);
-    Assert.assertNotNull(leaderHistory);
-    List<String> list = leaderHistory.getRecord().getListField("HISTORY");
+    ControllerHistory controllerHistory = manager.getHelixDataAccessor().getProperty(propertyKey);
+    Assert.assertNotNull(controllerHistory);
+    List<String> list = controllerHistory.getRecord().getListField("HISTORY");
     Assert.assertEquals(list.size(), 1);
 
     for (int i = 0; i <= 12; i++) {
@@ -51,9 +51,9 @@ public class TestControllerHistory extends ZkStandAloneCMTestBase {
       _controller.syncStart();
     }
 
-    leaderHistory = manager.getHelixDataAccessor().getProperty(propertyKey);
-    Assert.assertNotNull(leaderHistory);
-    list = leaderHistory.getRecord().getListField("HISTORY");
+    controllerHistory = manager.getHelixDataAccessor().getProperty(propertyKey);
+    Assert.assertNotNull(controllerHistory);
+    list = controllerHistory.getRecord().getListField("HISTORY");
     Assert.assertEquals(list.size(), 10);
     manager.disconnect();
   }

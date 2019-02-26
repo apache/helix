@@ -43,7 +43,7 @@ import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.LeaderHistory;
+import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
@@ -329,7 +329,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     Map<String, Object> controllerHistory = new HashMap<>();
     controllerHistory.put(Properties.id.name(), clusterId);
 
-    LeaderHistory history =
+    ControllerHistory history =
         dataAccessor.getProperty(dataAccessor.keyBuilder().controllerLeaderHistory());
     if (history != null) {
       controllerHistory.put(Properties.history.name(), history.getHistoryList());

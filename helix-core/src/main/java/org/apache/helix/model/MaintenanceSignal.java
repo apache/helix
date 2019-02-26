@@ -29,7 +29,7 @@ public class MaintenanceSignal extends PauseSignal {
   /**
    * Pre-defined fields set by Helix Controller only.
    */
-  private enum MaintenanceSignalProperty {
+  public enum MaintenanceSignalProperty {
     TRIGGERED_BY,
     TIMESTAMP,
     AUTO_TRIGGER_REASON

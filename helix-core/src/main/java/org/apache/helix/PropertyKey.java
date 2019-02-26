@@ -30,7 +30,7 @@ import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LeaderHistory;
+import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
@@ -656,11 +656,11 @@ public class PropertyKey {
     }
 
     /**
-     * Get a property key associated with {@link LeaderHistory}
+     * Get a property key associated with {@link ControllerHistory}
      * @return {@link PropertyKey}
      */
     public PropertyKey controllerLeaderHistory() {
-      return new PropertyKey(HISTORY, LeaderHistory.class, _clusterName);
+      return new PropertyKey(HISTORY, ControllerHistory.class, _clusterName);
     }
 
     /**

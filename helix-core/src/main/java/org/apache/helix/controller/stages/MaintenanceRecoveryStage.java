@@ -126,7 +126,6 @@ public class MaintenanceRecoveryStage extends AbstractAsyncBaseStage {
       // Config is not set; return
       return false;
     }
-
     Map<String, PartitionStateMap> resourceStatesMap =
         intermediateStateOutput.getResourceStatesMap();
     Map<String, Integer> instancePartitionCounts = new HashMap<>();

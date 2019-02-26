@@ -27,6 +27,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.TaskDataCache;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.LiveInstance;
@@ -49,7 +50,7 @@ import org.slf4j.LoggerFactory;
 public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
   private static final Logger logger =
       LoggerFactory.getLogger(WorkflowControllerDataProvider.class);
-  private static final String PIPELINE_NAME = "WorkflowPipeline";
+  private static final String PIPELINE_NAME = GenericHelixController.PipelineTypes.TASK.name();
 
   private TaskDataCache _taskDataCache;
   private Map<String, Integer> _participantActiveTaskCount;

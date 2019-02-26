@@ -21,9 +21,9 @@ package org.apache.helix.integration.controller;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.TestHelper;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
@@ -45,13 +45,12 @@ public class TestSkipBestPossibleCalculation extends ZkStandAloneCMTestBase {
       _gSetupTool.rebalanceResource(CLUSTER_NAME, dbName, 3);
     }
 
-    ClusterDataCache cache =
-        new ClusterDataCache("CLUSTER_" + TestHelper.getTestClassName());
-    cache.setTaskCache(false);
+    ResourceControllerDataProvider cache =
+        new ResourceControllerDataProvider("CLUSTER_" + TestHelper.getTestClassName());
     cache.refresh(_manager.getHelixDataAccessor());
 
     ClusterEvent event = new ClusterEvent(CLUSTER_NAME, ClusterEventType.IdealStateChange);
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
     runStage(_manager, event, new ResourceComputationStage());
     runStage(_manager, event, new CurrentStateComputationStage());
 

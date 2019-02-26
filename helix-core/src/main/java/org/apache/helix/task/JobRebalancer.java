@@ -19,7 +19,7 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
@@ -35,8 +35,9 @@ public class JobRebalancer extends TaskRebalancer {
   private JobDispatcher _jobDispatcher;
 
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
-      IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput) {
+  public ResourceAssignment computeBestPossiblePartitionState(
+      WorkflowControllerDataProvider clusterData, IdealState taskIs, Resource resource,
+      CurrentStateOutput currStateOutput) {
     long startTime = System.currentTimeMillis();
     final String jobName = resource.getResourceName();
     LOG.debug("Computer Best Partition for job: " + jobName);

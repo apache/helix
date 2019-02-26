@@ -31,8 +31,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.integration.DelayedTransitionBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -184,7 +184,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   }
 
   private void verifyP2PDisabled() {
-    ClusterDataCache dataCache = new ClusterDataCache(CLUSTER_NAME);
+    ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
     dataCache.refresh(_accessor);
     Map<String, LiveInstance> liveInstanceMap = dataCache.getLiveInstances();
 
@@ -210,7 +210,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   static int p2pTrigged = 0;
 
   private void verifyP2PEnabled(long startTime) {
-    ClusterDataCache dataCache = new ClusterDataCache(CLUSTER_NAME);
+    ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
     dataCache.refresh(_accessor);
     Map<String, LiveInstance> liveInstanceMap = dataCache.getLiveInstances();
 

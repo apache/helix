@@ -35,11 +35,11 @@ import java.util.TreeSet;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AutoRebalanceStrategy implements RebalanceStrategy {
+public class AutoRebalanceStrategy implements RebalanceStrategy<ResourceControllerDataProvider> {
   private static Logger logger = LoggerFactory.getLogger(AutoRebalanceStrategy.class);
   private final ReplicaPlacementScheme _placementScheme = new DefaultPlacementScheme();
 
@@ -81,7 +81,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
 
   @Override
   public ZNRecord computePartitionAssignment(final List<String> allNodes, final List<String> liveNodes,
-      final Map<String, Map<String, String>> currentMapping, ClusterDataCache clusterData) {
+      final Map<String, Map<String, String>> currentMapping, ResourceControllerDataProvider clusterData) {
     int numReplicas = countStateReplicas();
     ZNRecord znRecord = new ZNRecord(_resourceName);
     if (liveNodes.size() == 0) {

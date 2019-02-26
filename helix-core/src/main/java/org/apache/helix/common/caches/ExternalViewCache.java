@@ -56,6 +56,7 @@ public class ExternalViewCache extends AbstractDataCache<ExternalView> {
   }
 
   protected ExternalViewCache(String clusterName, PropertyType type) {
+    super(createDefaultControlContextProvider(clusterName));
     _clusterName = clusterName;
     _externalViewMap = Collections.emptyMap();
     _externalViewCache = Collections.emptyMap();

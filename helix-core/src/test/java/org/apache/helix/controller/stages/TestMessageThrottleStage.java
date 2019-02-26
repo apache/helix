@@ -30,6 +30,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -71,9 +72,9 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     setupStateModel(clusterName);
 
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
-    ClusterDataCache cache = new ClusterDataCache(clusterName);
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider(clusterName);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
     MessageThrottleStage throttleStage = new MessageThrottleStage();
     try {
@@ -102,7 +103,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
       // OK
     }
     MessageOutput msgSelectOutput = new MessageOutput();
-    List<Message> selectMessages = new ArrayList<Message>();
+    List<Message> selectMessages = new ArrayList<>();
     Message msg =
         createMessage(MessageType.STATE_TRANSITION, "msgId-001", "OFFLINE", "SLAVE", "TestDB",
             "localhost_0");
@@ -260,9 +261,9 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     // test messageThrottleStage
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
-    ClusterDataCache cache = new ClusterDataCache(clusterName);
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider(clusterName);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());
@@ -286,7 +287,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
         createMessage(MessageType.STATE_TRANSITION, "msgId-006", "OFFLINE", "SLAVE", "TestDB",
             "localhost_1");
 
-    List<Message> selectMessages = new ArrayList<Message>();
+    List<Message> selectMessages = new ArrayList<>();
     selectMessages.add(msg1);
     selectMessages.add(msg2);
     selectMessages.add(msg3);

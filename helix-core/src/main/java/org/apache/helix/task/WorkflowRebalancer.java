@@ -19,9 +19,10 @@ package org.apache.helix.task;
  * under the License.
  */
 
+
 import java.util.HashMap;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
@@ -37,7 +38,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
   private WorkflowDispatcher _workflowDispatcher = new WorkflowDispatcher();
 
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
+  public ResourceAssignment computeBestPossiblePartitionState(
+      WorkflowControllerDataProvider clusterData,
       IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput) {
     final String workflow = resource.getResourceName();
     long startTime = System.currentTimeMillis();
@@ -63,7 +65,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+      CurrentStateOutput currentStateOutput, WorkflowControllerDataProvider clusterData) {
     // Nothing to do here with workflow resource.
     return currentIdealState;
   }

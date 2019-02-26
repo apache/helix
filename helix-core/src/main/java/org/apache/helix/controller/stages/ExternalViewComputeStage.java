@@ -39,6 +39,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordDelta;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.StageException;
@@ -69,7 +70,7 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
     _eventId = event.getEventId();
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
 
     if (manager == null || resourceMap == null || cache == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -147,7 +148,7 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
   }
 
   private void computeExternalView(final Resource resource,
-      final CurrentStateOutput currentStateOutput, final ClusterDataCache cache,
+      final CurrentStateOutput currentStateOutput, final ResourceControllerDataProvider cache,
       final ClusterStatusMonitor clusterStatusMonitor, final Map<String, ExternalView> curExtViews,
       final HelixManager manager, Set<String> monitoringResources, List<ExternalView> newExtViews) {
     String resourceName = resource.getResourceName();
@@ -176,22 +177,21 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
 
     // Update cluster status monitor mbean
     IdealState idealState = cache.getIdealState(resourceName);
-    if (!cache.isTaskCache()) {
-      ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
-      if (clusterStatusMonitor != null) {
-        if (idealState != null // has ideal state
-            && (resourceConfig == null || !resourceConfig.isMonitoringDisabled()) // monitoring not disabled
-            && !idealState.getStateModelDefRef() // and not a job resource
-            .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-          StateModelDefinition stateModelDef =
-              cache.getStateModelDef(idealState.getStateModelDefRef());
-          clusterStatusMonitor
-              .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
-                  stateModelDef, totalPendingMessageCount);
-          monitoringResources.add(resourceName);
-        }
+    ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
+    if (clusterStatusMonitor != null) {
+      if (idealState != null // has ideal state
+          && (resourceConfig == null || !resourceConfig.isMonitoringDisabled()) // monitoring not disabled
+          && !idealState.getStateModelDefRef() // and not a job resource
+          .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+        StateModelDefinition stateModelDef =
+            cache.getStateModelDef(idealState.getStateModelDefRef());
+        clusterStatusMonitor
+            .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
+                stateModelDef, totalPendingMessageCount);
+        monitoringResources.add(resourceName);
       }
     }
+
     ExternalView curExtView = curExtViews.get(resourceName);
     // copy simplefields from IS, in cases where IS is deleted copy it from existing ExternalView
     if (idealState != null) {

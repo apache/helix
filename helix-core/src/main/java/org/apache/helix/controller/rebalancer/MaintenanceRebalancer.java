@@ -4,19 +4,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MaintenanceRebalancer extends SemiAutoRebalancer {
+public class MaintenanceRebalancer extends SemiAutoRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(MaintenanceRebalancer.class);
 
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+      CurrentStateOutput currentStateOutput, ResourceControllerDataProvider clusterData) {
     LOG.info(String
         .format("Start computing ideal state for resource %s in maintenance mode.", resourceName));
     Map<Partition, Map<String, String>> currentStateMap =

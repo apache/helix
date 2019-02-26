@@ -23,20 +23,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import org.apache.helix.HelixConstants;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BaseStageTest;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.MessageOutput;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
@@ -55,7 +54,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
   Partition _partition = new Partition(_db + "_0");
 
-  ClusterDataCache _dataCache;
+  ResourceControllerDataProvider _dataCache;
   Pipeline _fullPipeline;
   Pipeline _messagePipeline;
 
@@ -75,10 +74,10 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     Map<String, Resource> resourceMap = getResourceMap(new String[] { _db }, _numPartition,
         BuiltInStateModelDefinitions.MasterSlave.name(), clusterConfig, null);
 
-    _dataCache = new ClusterDataCache();
+    _dataCache = new ResourceControllerDataProvider();
     _dataCache.setAsyncTasksThreadPool(Executors.newSingleThreadExecutor());
 
-    event.addAttribute(AttributeName.ClusterDataCache.name(), _dataCache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), _dataCache);
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), new CurrentStateOutput());
@@ -117,7 +116,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
     // disable existing master instance
     admin.enableInstance(_clusterName, initialMaster, false);
-    _dataCache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    _dataCache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     _dataCache.notifyDataChange(HelixConstants.ChangeType.INSTANCE_CONFIG);
 
     CurrentStateOutput currentStateOutput =

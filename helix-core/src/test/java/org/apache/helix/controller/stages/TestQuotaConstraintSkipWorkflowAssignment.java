@@ -3,6 +3,7 @@ package org.apache.helix.controller.stages;
 import java.util.Collections;
 import java.util.HashMap;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.task.TaskSchedulingStage;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestBase;
@@ -29,7 +30,7 @@ public class TestQuotaConstraintSkipWorkflowAssignment extends TaskTestBase {
   @Test
   public void testQuotaConstraintSkipWorkflowAssignment() throws Exception {
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
-    ClusterDataCache cache = new ClusterDataCache(CLUSTER_NAME);
+    WorkflowControllerDataProvider cache = new WorkflowControllerDataProvider(CLUSTER_NAME);
     JobConfig.Builder job = new JobConfig.Builder();
 
     job.setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "100000"));
@@ -49,9 +50,8 @@ public class TestQuotaConstraintSkipWorkflowAssignment extends TaskTestBase {
     clusterConfig.setTaskQuotaRatio(AssignableInstance.DEFAULT_QUOTA_TYPE, 3);
     clusterConfig.setTaskQuotaRatio("OtherType", 37);
     accessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-    cache.setTaskCache(true);
     cache.refresh(_manager.getHelixDataAccessor());
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
     event.addAttribute(AttributeName.helixmanager.name(), _manager);
     runStage(event, new ResourceComputationStage());
     runStage(event, new CurrentStateComputationStage());

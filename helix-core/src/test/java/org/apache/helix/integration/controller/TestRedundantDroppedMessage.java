@@ -3,14 +3,13 @@ package org.apache.helix.integration.controller;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
-import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageOutput;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
@@ -38,7 +37,7 @@ public class TestRedundantDroppedMessage extends TaskSynchronizedTestBase {
         IdealState.RebalanceMode.CUSTOMIZED.name());
     String partitionName = "P_0";
     ClusterEvent event = new ClusterEvent(CLUSTER_NAME, ClusterEventType.Unknown, "ID");
-    ClusterDataCache cache = new ClusterDataCache(CLUSTER_NAME);
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider(CLUSTER_NAME);
     cache.refresh(_manager.getHelixDataAccessor());
     IdealState idealState = cache.getIdealState(resourceName);
     idealState.setReplicas("2");
@@ -50,7 +49,7 @@ public class TestRedundantDroppedMessage extends TaskSynchronizedTestBase {
     cache.setIdealStates(Arrays.asList(idealState));
     cache.setCachedIdealMapping(idealState.getResourceName(), idealState.getRecord());
 
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
     event.addAttribute(AttributeName.helixmanager.name(), _manager);
 
     runStage(event, new ResourceComputationStage());

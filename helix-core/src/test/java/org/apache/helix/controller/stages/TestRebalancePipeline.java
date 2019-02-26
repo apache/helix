@@ -30,6 +30,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
@@ -62,6 +63,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
 
     final String resourceName = "testResource_dup";
     String[] resourceGroups = new String[] {
@@ -244,8 +246,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
 
-    ClusterDataCache cache = new ClusterDataCache();
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
     refreshClusterConfig(clusterName, accessor);
 
     final String resourceName = "testResource_pending";
@@ -301,7 +303,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     cache.setIdealStates(idealStates);
 
     runPipeline(event, dataRefresh);
-    cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     cache.setClusterConfig(new ClusterConfig(clusterName));
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
@@ -340,6 +342,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
     refreshClusterConfig(clusterName, accessor);
 
     final String resourceName = "testResource_xfer";
@@ -416,6 +419,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
     refreshClusterConfig(clusterName, accessor);
 
     final String resourceName = "testResource_no_duplicated_master";

@@ -29,6 +29,7 @@ import java.util.Set;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,14 +83,13 @@ public class PropertyCache<T extends HelixProperty> extends AbstractDataCache<T>
   // data refresh from object store
   private Map<String, T> _objCache;
 
-  private final String _clusterName;
   private final String _propertyDescription;
   private final boolean _useSelectiveUpdate;
   private final PropertyCacheKeyFuncs<T> _keyFuncs;
 
-  public PropertyCache(String clusterName, String propertyDescription, PropertyCacheKeyFuncs<T> keyFuncs,
+  public PropertyCache(ControlContextProvider contextProvider, String propertyDescription, PropertyCacheKeyFuncs<T> keyFuncs,
       boolean useSelectiveUpdate) {
-    _clusterName = clusterName;
+    super(contextProvider);
     _propertyDescription = propertyDescription;
     _keyFuncs = keyFuncs;
     _objMap = new HashMap<>();
@@ -160,10 +160,9 @@ public class PropertyCache<T extends HelixProperty> extends AbstractDataCache<T>
     } else {
       doSimpleCacheRefresh(accessor);
     }
-    LogUtil.logInfo(LOG, getEventId(), String.format(
-        "Refreshed %s property %s from cluster %s took %s ms for %s pipeline. Selective: %s",
-        _objMap.size(), _propertyDescription, _clusterName,
-        System.currentTimeMillis() - start, getPipelineName(), _useSelectiveUpdate));
+    LogUtil.logInfo(LOG, genEventInfo(), String
+        .format("Refreshed %s property %s took %s ms. Selective: %s", _objMap.size(),
+            _propertyDescription, System.currentTimeMillis() - start, _useSelectiveUpdate));
   }
 
   private void doSimpleCacheRefresh(final HelixDataAccessor accessor) {

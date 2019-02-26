@@ -33,6 +33,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
@@ -58,7 +59,7 @@ public class PersistAssignmentStage extends AbstractAsyncBaseStage {
 
   @Override
   public void execute(final ClusterEvent event) throws Exception {
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     ClusterConfig clusterConfig = cache.getClusterConfig();
 
     if (!clusterConfig.isPersistBestPossibleAssignment() && !clusterConfig
@@ -85,7 +86,7 @@ public class PersistAssignmentStage extends AbstractAsyncBaseStage {
     }
   }
 
-  private void persistAssignment(final Resource resource, final ClusterDataCache cache,
+  private void persistAssignment(final Resource resource, final ResourceControllerDataProvider cache,
       final ClusterEvent event, final BestPossibleStateOutput bestPossibleAssignment,
       final ClusterConfig clusterConfig, final HelixDataAccessor accessor,
       final PropertyKey.Builder keyBuilder) {

@@ -23,7 +23,7 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -34,15 +34,15 @@ import org.apache.helix.task.Workflow;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestClusterDataCacheSelectiveUpdate extends ZkStandAloneCMTestBase {
+public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTestBase {
 
   @Test()
   public void testUpdateOnNotification() throws Exception {
     MockZkHelixDataAccessor accessor =
         new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
-    ClusterDataCache cache =
-        new ClusterDataCache("CLUSTER_" + TestHelper.getTestClassName());
+    ResourceControllerDataProvider cache =
+        new ResourceControllerDataProvider("CLUSTER_" + TestHelper.getTestClassName());
     cache.refresh(accessor);
 
     Assert.assertEquals(accessor.getReadCount(PropertyType.IDEALSTATES), 1);
@@ -87,8 +87,8 @@ public class TestClusterDataCacheSelectiveUpdate extends ZkStandAloneCMTestBase 
     MockZkHelixDataAccessor accessor =
         new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
-    ClusterDataCache cache =
-        new ClusterDataCache("CLUSTER_" + TestHelper.getTestClassName());
+    ResourceControllerDataProvider cache =
+        new ResourceControllerDataProvider("CLUSTER_" + TestHelper.getTestClassName());
     cache.refresh(accessor);
 
     Assert.assertEquals(accessor.getReadCount(PropertyType.IDEALSTATES), 1);

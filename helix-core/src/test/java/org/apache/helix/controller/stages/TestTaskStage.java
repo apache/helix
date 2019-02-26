@@ -5,6 +5,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.caches.TaskDataCache;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.task.TaskPersistDataStage;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.TaskTestUtil;
@@ -38,8 +39,7 @@ public class TestTaskStage extends TaskTestBase {
   public void testPersistContextData() {
     _event.addAttribute(AttributeName.helixmanager.name(), _manager);
 
-    ClusterDataCache cache = new ClusterDataCache(CLUSTER_NAME);
-    cache.setTaskCache(true);
+    WorkflowControllerDataProvider cache = new WorkflowControllerDataProvider(CLUSTER_NAME);
     TaskDataCache taskDataCache = cache.getTaskDataCache();
 
     // Build a queue
@@ -87,7 +87,7 @@ public class TestTaskStage extends TaskTestBase {
     taskDataCache.updateJobContext(_testJobPrefix + "0", jbCtx0);
     taskDataCache.updateJobContext(_testJobPrefix + "1", jbCtx1);
 
-    _event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    _event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
     // Write contexts to ZK first
     TaskPersistDataStage persistDataStage = new TaskPersistDataStage();

@@ -23,20 +23,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import org.apache.helix.HelixConstants;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BaseStageTest;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
-import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageOutput;
+import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
@@ -89,9 +88,9 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     Map<String, Resource> resourceMap = getResourceMap(new String[] { db }, numPartition,
         BuiltInStateModelDefinitions.MasterSlave.name(), clusterConfig, null);
 
-    ClusterDataCache cache = new ClusterDataCache();
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     cache.setAsyncTasksThreadPool(Executors.newSingleThreadExecutor());
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), new CurrentStateOutput());
@@ -114,7 +113,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     Assert.assertNotNull(masterInstance);
 
     admin.enableInstance(_clusterName, masterInstance, false);
-    cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     cache.notifyDataChange(HelixConstants.ChangeType.INSTANCE_CONFIG);
 
     pipeline = createPipeline();
@@ -272,6 +271,8 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), new CurrentStateOutput());
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
 
     Pipeline pipeline = createPipeline();
     pipeline.handle(event);
@@ -290,7 +291,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     Assert.assertNotNull(masterInstance);
 
     admin.enableInstance(_clusterName, masterInstance, false);
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     cache.notifyDataChange(HelixConstants.ChangeType.INSTANCE_CONFIG);
 
     pipeline = createPipeline();

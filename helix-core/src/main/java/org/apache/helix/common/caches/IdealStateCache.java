@@ -49,6 +49,7 @@ public class IdealStateCache extends AbstractDataCache<IdealState> {
   private String _clusterName;
 
   public IdealStateCache(String clusterName) {
+    super(createDefaultControlContextProvider(clusterName));
     _clusterName = clusterName;
     _idealStateMap = Collections.emptyMap();
     _idealStateCache = Collections.emptyMap();
@@ -95,7 +96,7 @@ public class IdealStateCache extends AbstractDataCache<IdealState> {
     _idealStateMap = new HashMap<>(newIdealStateMap);
 
     long endTime = System.currentTimeMillis();
-    LogUtil.logInfo(LOG, getEventId(),
+    LogUtil.logInfo(LOG, _controlContextProvider.getClusterEventId(),
         "Refresh " + _idealStateMap.size() + " idealStates for cluster " + _clusterName + ", took "
             + (endTime - startTime) + " ms");
   }

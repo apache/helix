@@ -31,7 +31,9 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.BaseControllerDataProvider;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.LiveInstance;
@@ -50,7 +52,7 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    BaseControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
 
     if (manager == null || resourceMap == null || messageOutput == null || cache == null
@@ -78,7 +80,7 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
 
     List<Message> messagesSent = sendMessages(dataAccessor, outputMessages);
     // TODO: Need also count messages from task rebalancer
-    if (!cache.isTaskCache()) {
+    if (!(cache instanceof WorkflowControllerDataProvider)) {
       ClusterStatusMonitor clusterStatusMonitor =
           event.getAttribute(AttributeName.clusterStatusMonitor.name());
       if (clusterStatusMonitor != null) {
@@ -145,7 +147,8 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
 
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
     for (Message message : messages) {
-      LogUtil.logInfo(logger, _eventId,
+      LogUtil.logInfo(
+          logger, _eventId,
           "Sending Message " + message.getMsgId() + " to " + message.getTgtName() + " transit "
               + message.getResourceName() + "." + message.getPartitionName() + "|" + message
               .getPartitionNames() + " from:" + message.getFromState() + " to:" + message

@@ -20,7 +20,7 @@ package org.apache.helix.controller.rebalancer;
  */
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.BaseControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 
@@ -29,7 +29,7 @@ import org.apache.helix.model.IdealState;
  * This will be invoked on all changes that happen in the cluster.<br/>
  * Simply return the newIdealState for a resource in this method.<br/>
  */
-public interface Rebalancer {
+public interface Rebalancer<T extends BaseControllerDataProvider> {
   void init(HelixManager manager);
 
   /**
@@ -44,6 +44,7 @@ public interface Rebalancer {
    * @param clusterData Provides additional methods to retrieve cluster data.
    * @return
    */
-  IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      final CurrentStateOutput currentStateOutput, final ClusterDataCache clusterData);
+   IdealState computeNewIdealState(String resourceName,
+      IdealState currentIdealState, final CurrentStateOutput currentStateOutput,
+      T clusterData);
 }

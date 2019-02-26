@@ -28,13 +28,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -66,7 +66,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
     Map<String, Resource> resourceToRebalance =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
 
     if (currentStateOutput == null || bestPossibleStateOutput == null || resourceToRebalance == null
         || cache == null) {
@@ -102,7 +102,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
   private IntermediateStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
       CurrentStateOutput currentStateOutput, BestPossibleStateOutput bestPossibleStateOutput) {
     IntermediateStateOutput output = new IntermediateStateOutput();
-    ClusterDataCache dataCache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider dataCache =
+        event.getAttribute(AttributeName.ControllerDataProvider.name());
 
     StateTransitionThrottleController throttleController = new StateTransitionThrottleController(
         resourceMap.keySet(), dataCache.getClusterConfig(), dataCache.getLiveInstances().keySet());
@@ -199,7 +200,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    * @param intermediateStateOutput
    * @param maxPartitionPerInstance
    */
-  private void validateMaxPartitionsPerInstance(ClusterEvent event, ClusterDataCache cache,
+  private void validateMaxPartitionsPerInstance(ClusterEvent event, ResourceControllerDataProvider cache,
       IntermediateStateOutput intermediateStateOutput, int maxPartitionPerInstance) {
     Map<String, PartitionStateMap> resourceStatesMap =
         intermediateStateOutput.getResourceStatesMap();
@@ -277,7 +278,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    * @param throttleController
    * @return
    */
-  private PartitionStateMap computeIntermediatePartitionState(ClusterDataCache cache,
+  private PartitionStateMap computeIntermediatePartitionState(ResourceControllerDataProvider cache,
       ClusterStatusMonitor clusterStatusMonitor, IdealState idealState, Resource resource,
       CurrentStateOutput currentStateOutput, PartitionStateMap bestPossiblePartitionStateMap,
       Map<String, List<String>> preferenceLists,
@@ -287,8 +288,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     // Throttling is applied only on FULL-AUTO mode
     if (!throttleController.isThrottleEnabled()
-        || !IdealState.RebalanceMode.FULL_AUTO.equals(idealState.getRebalanceMode())
-        || cache.isTaskCache()) {
+        || !IdealState.RebalanceMode.FULL_AUTO.equals(idealState.getRebalanceMode())) {
       return bestPossiblePartitionStateMap;
     }
 
@@ -695,7 +695,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    *         LOAD_BALANCE - although all replicas required exist, Helix needs to optimize the
    *         allocation
    */
-  private RebalanceType getRebalanceType(ClusterDataCache cache,
+  private RebalanceType getRebalanceType(ResourceControllerDataProvider cache,
       Map<String, String> bestPossibleMap, List<String> preferenceList,
       StateModelDefinition stateModelDef, Map<String, String> currentStateMap,
       IdealState idealState) {

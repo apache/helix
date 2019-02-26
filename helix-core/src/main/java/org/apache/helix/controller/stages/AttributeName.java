@@ -30,7 +30,6 @@ public enum AttributeName {
   MESSAGES_THROTTLE,
   LOCAL_STATE,
   EVENT_CREATE_TIME,
-  ClusterDataCache,
   helixmanager,
   clusterStatusMonitor,
   changeContext,
@@ -38,5 +37,6 @@ public enum AttributeName {
   eventData,
   AsyncFIFOWorkerPool,
   PipelineType,
-  LastRebalanceFinishTimeStamp
+  LastRebalanceFinishTimeStamp,
+  ControllerDataProvider
 }

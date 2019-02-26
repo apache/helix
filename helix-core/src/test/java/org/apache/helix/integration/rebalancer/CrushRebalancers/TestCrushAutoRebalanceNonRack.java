@@ -236,8 +236,8 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
       p.syncStop();
       _gSetupTool.getClusterManagementTool()
           .enableInstance(CLUSTER_NAME, p.getInstanceName(), false);
-      Thread.sleep(200);
       _gSetupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
+
     }
 
     int j = 0;

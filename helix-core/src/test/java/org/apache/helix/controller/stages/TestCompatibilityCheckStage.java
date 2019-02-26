@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.IdealState;
@@ -73,6 +74,8 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
           .put("minimum_supported_version.participant", minSupportedParticipantVersion);
     }
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
     runStage(event, new ReadClusterDataStage());
   }
 

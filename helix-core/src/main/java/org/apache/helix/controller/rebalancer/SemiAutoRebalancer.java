@@ -18,11 +18,10 @@ package org.apache.helix.controller.rebalancer;
  * specific language governing permissions and limitations
  * under the License.
  */
-import org.apache.helix.controller.stages.ClusterDataCache;
+
+import org.apache.helix.controller.BaseControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This is a Rebalancer specific to semi-automatic mode. It is tasked with computing the ideal
@@ -32,13 +31,16 @@ import org.slf4j.LoggerFactory;
  * existing instance preferences.
  * The output is a mapping based on that preference list, i.e. partition p has a replica on node k
  * with state s.
+ *
+ * NOTE: because SemiAutoRebalancer is used in both Resource controller and Workflow controller,
+ * We need to use template as it's data provider type
  */
-public class SemiAutoRebalancer extends AbstractRebalancer {
-  private static final Logger LOG = LoggerFactory.getLogger(SemiAutoRebalancer.class);
+public class SemiAutoRebalancer<T extends BaseControllerDataProvider>
+    extends AbstractRebalancer<T> {
 
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+      CurrentStateOutput currentStateOutput, T clusterData) {
     return currentIdealState;
   }
 }

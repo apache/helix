@@ -33,7 +33,9 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
+import org.apache.helix.controller.BaseControllerDataProvider;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -72,7 +74,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       throws Exception {
     _eventId = event.getEventId();
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    BaseControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     Map<String, Map<String, Message>> pendingMessagesToCleanUp = new HashMap<>();
@@ -109,7 +111,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     event.addAttribute(AttributeName.MESSAGES_ALL.name(), output);
   }
 
-  private void generateMessage(final Resource resource, final ClusterDataCache cache,
+  private void generateMessage(final Resource resource, final BaseControllerDataProvider cache,
       final ResourcesStateMap resourcesStateMap, final CurrentStateOutput currentStateOutput,
       final HelixManager manager, final Map<String, String> sessionIdMap,
       final ClusterEventType eventType, MessageOutput output,
@@ -155,7 +157,11 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
             LogUtil.logDebug(logger, _eventId, String
                 .format("No current state for partition %s in resource %s, skip the drop message",
                     partition.getPartitionName(), resourceName));
-            cache.invalidCachedIdealStateMapping(resourceName);
+
+            // TODO: separate logic of resource/task message generation
+            if (cache instanceof ResourceControllerDataProvider) {
+              ((ResourceControllerDataProvider) cache).invalidCachedIdealStateMapping(resourceName);
+            }
             continue;
           }
         }
@@ -391,12 +397,9 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
 
   private int getTimeOut(ClusterConfig clusterConfig, ResourceConfig resourceConfig,
       String currentState, String nextState, IdealState idealState, Partition partition) {
-    // Set timeout of needed
-    int timeout = -1;
-
     StateTransitionTimeoutConfig stateTransitionTimeoutConfig =
         clusterConfig.getStateTransitionTimeoutConfig();
-    timeout = stateTransitionTimeoutConfig != null ? stateTransitionTimeoutConfig
+    int timeout = stateTransitionTimeoutConfig != null ? stateTransitionTimeoutConfig
         .getStateTransitionTimeout(currentState, nextState) : -1;
 
     String timeOutStr = null;

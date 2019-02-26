@@ -32,10 +32,11 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.BaseControllerDataProvider;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -51,10 +52,11 @@ import org.slf4j.LoggerFactory;
  * This is a abstract rebalancer that defines some default behaviors for Helix rebalancer
  * as well as all utility functions that will be used by all specific rebalancers.
  */
-public abstract class AbstractRebalancer implements Rebalancer, MappingCalculator {
+public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> implements Rebalancer<T>,
+    MappingCalculator<T> {
   // These should be final, but are initialized in init rather than a constructor
   protected HelixManager _manager;
-  protected RebalanceStrategy _rebalanceStrategy;
+  protected RebalanceStrategy<T> _rebalanceStrategy;
 
   private static final Logger LOG = LoggerFactory.getLogger(AbstractRebalancer.class);
 
@@ -65,8 +67,9 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
   }
 
   @Override
-  public abstract IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData);
+  public abstract IdealState computeNewIdealState(
+      String resourceName, IdealState currentIdealState, CurrentStateOutput currentStateOutput,
+      T clusterData);
 
   /**
    * Compute the best state for all partitions.
@@ -81,8 +84,9 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
    * @return
    */
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache cache,
-      IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
+  public ResourceAssignment computeBestPossiblePartitionState(
+      T cache, IdealState idealState, Resource resource,
+      CurrentStateOutput currentStateOutput) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
@@ -105,12 +109,12 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
 
   /**
    * Looking for cached ideal mapping for this resource, if it is already there, do not recompute it
-   * again. The cached mapping will be cleared in ClusterDataCache if there is anything changed in
-   * cluster state that can cause the potential changes in ideal state. This will avoid flip-flop
-   * issue we saw in AutoRebalanceStrategy, and also improve the performance by avoiding recompute
-   * IS everytime.
+   * again. The cached mapping will be cleared in ResourceControllerDataProvider if there is
+   * anything changed in cluster state that can cause the potential changes in ideal state.
+   * This will avoid flip-flop issue we saw in AutoRebalanceStrategy, and also improve the
+   * performance by avoiding recompute IS everytime.
    */
-  protected IdealState getCachedIdealState(String resourceName, ClusterDataCache clusterData) {
+  protected IdealState getCachedIdealState(String resourceName, ResourceControllerDataProvider clusterData) {
     ZNRecord cachedIdealMapping = clusterData.getCachedIdealMapping(resourceName);
     if (cachedIdealMapping != null) {
       return new IdealState(cachedIdealMapping);
@@ -143,9 +147,9 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     return map;
   }
 
-  protected RebalanceStrategy getRebalanceStrategy(String rebalanceStrategyName,
-      List<String> partitions, String resourceName, LinkedHashMap<String, Integer> stateCountMap,
-      int maxPartition) {
+  protected RebalanceStrategy<T> getRebalanceStrategy(
+      String rebalanceStrategyName, List<String> partitions, String resourceName,
+      LinkedHashMap<String, Integer> stateCountMap, int maxPartition) {
     RebalanceStrategy rebalanceStrategy;
     if (rebalanceStrategyName == null || rebalanceStrategyName
         .equalsIgnoreCase(RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY)) {

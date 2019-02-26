@@ -12,11 +12,11 @@ public class LogUtil {
   }
 
   public static void logError(Logger logger, String eventInfo, String message) {
-    logger.error(String.format("Event %s  %s", eventInfo, message));
+    logger.error(String.format("Event %s : %s", eventInfo, message));
   }
 
   public static void logDebug(Logger logger, String eventInfo, String message) {
-    logger.debug(String.format("Event %s  %s", eventInfo, message));
+    logger.debug(String.format("Event %s : %s", eventInfo, message));
   }
 
   public static void logInfo(Logger logger, String eventInfo, String message, Exception e) {
@@ -28,10 +28,10 @@ public class LogUtil {
   }
 
   public static void logError(Logger logger, String eventInfo, String message, Exception e) {
-    logger.error(String.format("Event %s  %s", eventInfo, message), e);
+    logger.error(String.format("Event %s : %s", eventInfo, message), e);
   }
 
   public static void logDebug(Logger logger, String eventInfo, String message, Exception e) {
-    logger.debug(String.format("Event %s  %s", eventInfo, message), e);
+    logger.debug(String.format("Event %s : %s", eventInfo, message), e);
   }
 }

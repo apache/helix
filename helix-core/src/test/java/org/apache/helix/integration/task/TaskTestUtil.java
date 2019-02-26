@@ -36,12 +36,12 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.DedupEventProcessor;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
@@ -286,11 +286,10 @@ public class TaskTestUtil {
     return jobContext;
   }
 
-  public static ClusterDataCache buildClusterDataCache(HelixDataAccessor accessor,
+  public static WorkflowControllerDataProvider buildDataProvider(HelixDataAccessor accessor,
       String clusterName) {
-    ClusterDataCache cache = new ClusterDataCache(clusterName);
+    WorkflowControllerDataProvider cache = new WorkflowControllerDataProvider(clusterName);
     cache.refresh(accessor);
-    cache.setTaskCache(true);
     return cache;
   }
 
@@ -302,10 +301,10 @@ public class TaskTestUtil {
     stage.postProcess();
   }
 
-  public static BestPossibleStateOutput calculateTaskSchedulingStage(ClusterDataCache cache,
+  public static BestPossibleStateOutput calculateTaskSchedulingStage(WorkflowControllerDataProvider cache,
       HelixManager manager) throws Exception {
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.PipelineType.name(), "TASK");
 

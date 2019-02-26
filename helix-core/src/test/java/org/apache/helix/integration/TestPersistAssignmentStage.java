@@ -6,9 +6,9 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.PersistAssignmentStage;
@@ -33,13 +33,15 @@ public class TestPersistAssignmentStage extends ZkStandAloneCMTestBase {
   @Test
   public void testSimple() throws Exception {
     int nodes = 2;
-    List<String> instances = new ArrayList<String>();
+    List<String> instances = new ArrayList<>();
     for (int i = 0; i < nodes; i++) {
       instances.add("localhost_" + i);
     }
     int partitions = 10;
     int replicas = 1;
     String resourceName = "testResource";
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
     ZNRecord record =
         DefaultIdealStateCalculator.calculateIdealState(instances, partitions, replicas, resourceName, "ONLINE",
             "OFFLINE");
@@ -56,7 +58,8 @@ public class TestPersistAssignmentStage extends ZkStandAloneCMTestBase {
     // Ensure persist best possible assignment is true
     ClusterConfig clusterConfig = new ClusterConfig(CLUSTER_NAME);
     clusterConfig.setPersistBestPossibleAssignment(true);
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache =
+        event.getAttribute(AttributeName.ControllerDataProvider.name());
     cache.setClusterConfig(clusterConfig);
 
     // 1. Change best possible state (simulate a new rebalancer run)

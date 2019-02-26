@@ -20,14 +20,6 @@ package org.apache.helix.common.caches;
  */
 
 import com.google.common.collect.Maps;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.controller.LogUtil;
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.LiveInstance;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,6 +27,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.common.controllers.ControlContextProvider;
+import org.apache.helix.controller.LogUtil;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.LiveInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Cache to hold all CurrentStates of a cluster.
@@ -44,13 +44,16 @@ public class CurrentStateCache extends AbstractDataCache<CurrentState> {
 
   private Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   private Map<PropertyKey, CurrentState> _currentStateCache = Maps.newHashMap();
-  private String _clusterName;
   // If the cache is already refreshed with current state data.
   private boolean _initialized = false;
   private CurrentStateSnapshot _snapshot;
 
   public CurrentStateCache(String clusterName) {
-    _clusterName = clusterName;
+    this(createDefaultControlContextProvider(clusterName));
+  }
+
+  public CurrentStateCache(ControlContextProvider contextProvider) {
+    super(contextProvider);
     _currentStateMap = Collections.emptyMap();
     _snapshot = new CurrentStateSnapshot(_currentStateCache);
   }
@@ -98,11 +101,11 @@ public class CurrentStateCache extends AbstractDataCache<CurrentState> {
     _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
 
     long endTime = System.currentTimeMillis();
-    LogUtil.logInfo(LOG, getEventId(),
-        "END: CurrentStateCache.refresh() for cluster " + _clusterName + ", took " + (endTime
-            - startTime) + " ms");
+    LogUtil.logInfo(LOG, genEventInfo(),
+        "END: CurrentStateCache.refresh() for cluster " + _controlContextProvider.getClusterName()
+            + ", took " + (endTime - startTime) + " ms");
     if (LOG.isDebugEnabled()) {
-      LogUtil.logDebug(LOG, getEventId(),
+      LogUtil.logDebug(LOG, genEventInfo(),
           String.format("Current State freshed : %s", _currentStateMap.toString()));
     }
     return true;
@@ -147,10 +150,11 @@ public class CurrentStateCache extends AbstractDataCache<CurrentState> {
     _currentStateCache = newStateCache;
 
     if (LOG.isDebugEnabled()) {
-      LogUtil.logDebug(LOG, getEventId(),
+      LogUtil.logDebug(LOG, genEventInfo(),
           "# of CurrentStates reload: " + reloadKeys.size() + ", skipped:" + (
               currentStateKeys.size() - reloadKeys.size()) + ". took " + (System.currentTimeMillis()
-              - start) + " ms to reload new current states for cluster: " + _clusterName);
+              - start) + " ms to reload new current states for cluster: " + _controlContextProvider
+              .getClusterName());
     }
   }
 

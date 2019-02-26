@@ -33,12 +33,12 @@ import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceHardConstrain
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceSoftConstraint;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.CapacityProvider;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.PartitionWeightAwareEvennessConstraint;
 import org.apache.helix.controller.rebalancer.constraint.TotalCapacityConstraint;
 import org.apache.helix.controller.rebalancer.constraint.dataprovider.MockCapacityProvider;
 import org.apache.helix.controller.rebalancer.constraint.dataprovider.MockPartitionWeightProvider;
 import org.apache.helix.controller.rebalancer.strategy.ConstraintRebalanceStrategy;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -64,7 +64,7 @@ public class TestConstraintRebalanceStrategy {
   final List<String> instanceNames = new ArrayList<>();
   final List<String> partitions = new ArrayList<>(nPartitions);
 
-  final ClusterDataCache cache = new ClusterDataCache();
+  final ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
   final LinkedHashMap<String, Integer> states = new LinkedHashMap<>(2);
 
   @BeforeClass
@@ -400,7 +400,7 @@ public class TestConstraintRebalanceStrategy {
   @Test
   public void testTopologyAwareAssignment() {
     // Topology Aware configuration
-    ClusterDataCache cache = new ClusterDataCache();
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     List<LiveInstance> liveInstanceList = new ArrayList<>();
     Map<String, InstanceConfig> instanceConfigs = new HashMap<>();
     for (int i = 0; i < instanceNames.size(); i++) {

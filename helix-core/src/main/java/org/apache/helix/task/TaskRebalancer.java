@@ -19,33 +19,21 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import java.util.Date;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
-import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
-import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Maps;
 
 /**
  * Abstract rebalancer class for the {@code Task} state model.
  */
 public abstract class TaskRebalancer extends AbstractTaskDispatcher
-    implements Rebalancer, MappingCalculator {
-  private static final Logger LOG = LoggerFactory.getLogger(TaskRebalancer.class);
+    implements Rebalancer<WorkflowControllerDataProvider>,
+    MappingCalculator<WorkflowControllerDataProvider> {
 
   @Override
   public void init(HelixManager manager) {
@@ -53,14 +41,14 @@ public abstract class TaskRebalancer extends AbstractTaskDispatcher
   }
 
   @Override
-  public abstract ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
+  public abstract ResourceAssignment computeBestPossiblePartitionState(WorkflowControllerDataProvider clusterData,
       IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput);
 
 
 
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+      CurrentStateOutput currentStateOutput, WorkflowControllerDataProvider clusterData) {
     // All of the heavy lifting is in the ResourceAssignment computation,
     // so this part can just be a no-op.
     return currentIdealState;

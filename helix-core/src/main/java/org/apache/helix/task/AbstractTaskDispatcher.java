@@ -13,9 +13,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
+import org.apache.helix.common.caches.TaskDataCache;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
@@ -46,7 +47,7 @@ public abstract class AbstractTaskDispatcher {
       ResourceAssignment prevTaskToInstanceStateAssignment, TaskState jobState,
       Set<Integer> assignedPartitions, Set<Integer> partitionsToDropFromIs,
       Map<Integer, PartitionAssignment> paMap, TargetState jobTgtState,
-      Set<Integer> skippedPartitions, ClusterDataCache cache) {
+      Set<Integer> skippedPartitions, WorkflowControllerDataProvider cache) {
 
     // Get AssignableInstanceMap for releasing resources for tasks in terminal states
     AssignableInstanceManager assignableInstanceManager = cache.getAssignableInstanceManager();
@@ -354,7 +355,7 @@ public abstract class AbstractTaskDispatcher {
         assignedPartitions.add(pId);
         if (LOG.isDebugEnabled()) {
           LOG.debug(String.format(
-              "Task partition %s has a pending state transition on instance %s INIT->RUNNING. "
+              "Task partition %s has a pending state transition on instance %s INIT->RUNNING. Previous state %s"
                   + "Setting it back to INIT so that Helix can cancel the transition(if enabled).",
               pName, instance, prevState));
         }
@@ -420,9 +421,9 @@ public abstract class AbstractTaskDispatcher {
 
   protected void failJob(String jobName, WorkflowContext workflowContext, JobContext jobContext,
       WorkflowConfig workflowConfig, Map<String, JobConfig> jobConfigMap,
-      ClusterDataCache clusterDataCache) {
-    markJobFailed(jobName, jobContext, workflowConfig, workflowContext, jobConfigMap,
-        clusterDataCache);
+      WorkflowControllerDataProvider dataProvider) {
+    markJobFailed(jobName, jobContext, workflowConfig, workflowContext, jobConfigMap, dataProvider);
+
     // Mark all INIT task to TASK_ABORTED
     for (int pId : jobContext.getPartitionSet()) {
       if (jobContext.getPartitionState(pId) == TaskPartitionState.INIT) {
@@ -439,7 +440,7 @@ public abstract class AbstractTaskDispatcher {
   protected void handleAdditionalTaskAssignment(
       Map<String, SortedSet<Integer>> prevInstanceToTaskAssignments, Set<String> excludedInstances,
       String jobResource, CurrentStateOutput currStateOutput, JobContext jobCtx, JobConfig jobCfg,
-      WorkflowConfig workflowConfig, WorkflowContext workflowCtx, ClusterDataCache cache,
+      WorkflowConfig workflowConfig, WorkflowContext workflowCtx, WorkflowControllerDataProvider cache,
       ResourceAssignment prevTaskToInstanceStateAssignment, Set<Integer> assignedPartitions,
       Map<Integer, PartitionAssignment> paMap, Set<Integer> skippedPartitions,
       TaskAssignmentCalculator taskAssignmentCal, Set<Integer> allPartitions, long currentTime,
@@ -758,12 +759,13 @@ public abstract class AbstractTaskDispatcher {
 
   protected void markJobComplete(String jobName, JobContext jobContext,
       WorkflowConfig workflowConfig, WorkflowContext workflowContext,
-      Map<String, JobConfig> jobConfigMap, ClusterDataCache clusterDataCache) {
-    finishJobInRuntimeJobDag(clusterDataCache, workflowConfig.getWorkflowId(), jobName);
+      Map<String, JobConfig> jobConfigMap, WorkflowControllerDataProvider dataProvider) {
+    finishJobInRuntimeJobDag(dataProvider.getTaskDataCache(), workflowConfig.getWorkflowId(),
+        jobName);
     long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.COMPLETED);
     jobContext.setFinishTime(currentTime);
-    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap, clusterDataCache)) {
+    if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap, dataProvider)) {
       workflowContext.setFinishTime(currentTime);
       updateWorkflowMonitor(workflowContext, workflowConfig);
     }
@@ -772,8 +774,9 @@ public abstract class AbstractTaskDispatcher {
 
   protected void markJobFailed(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
       WorkflowContext workflowContext, Map<String, JobConfig> jobConfigMap,
-      ClusterDataCache clusterDataCache) {
-    finishJobInRuntimeJobDag(clusterDataCache, workflowConfig.getWorkflowId(), jobName);
+      WorkflowControllerDataProvider clusterDataCache) {
+    finishJobInRuntimeJobDag(clusterDataCache.getTaskDataCache(), workflowConfig.getWorkflowId(),
+        jobName);
     long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.FAILED);
     if (jobContext != null) {
@@ -811,7 +814,7 @@ public abstract class AbstractTaskDispatcher {
    *         returns false otherwise.
    */
   protected boolean isWorkflowFinished(WorkflowContext ctx, WorkflowConfig cfg,
-      Map<String, JobConfig> jobConfigMap, ClusterDataCache clusterDataCache) {
+      Map<String, JobConfig> jobConfigMap, WorkflowControllerDataProvider clusterDataCache) {
     boolean incomplete = false;
 
     TaskState workflowState = ctx.getWorkflowState();
@@ -886,7 +889,7 @@ public abstract class AbstractTaskDispatcher {
   // Common methods
 
   protected Set<String> getExcludedInstances(String currentJobName, WorkflowConfig workflowCfg,
-      WorkflowContext workflowContext, ClusterDataCache cache) {
+      WorkflowContext workflowContext, WorkflowControllerDataProvider cache) {
     Set<String> ret = new HashSet<>();
 
     if (!workflowCfg.isAllowOverlapJobAssignment()) {
@@ -1019,7 +1022,8 @@ public abstract class AbstractTaskDispatcher {
    */
   protected boolean isJobReadyToSchedule(String job, WorkflowConfig workflowCfg,
       WorkflowContext workflowCtx, int incompleteAllCount, Map<String, JobConfig> jobConfigMap,
-      ClusterDataCache clusterDataCache, AssignableInstanceManager assignableInstanceManager) {
+      WorkflowControllerDataProvider clusterDataCache,
+      AssignableInstanceManager assignableInstanceManager) {
     int notStartedCount = 0;
     int failedOrTimeoutCount = 0;
     int incompleteParentCount = 0;
@@ -1118,7 +1122,7 @@ public abstract class AbstractTaskDispatcher {
     }
   }
 
-  protected void finishJobInRuntimeJobDag(ClusterDataCache clusterDataCache, String workflowName,
+  protected void finishJobInRuntimeJobDag(TaskDataCache clusterDataCache, String workflowName,
       String jobName) {
     RuntimeJobDag runtimeJobDag = clusterDataCache.getRuntimeJobDag(workflowName);
     if (runtimeJobDag != null) {

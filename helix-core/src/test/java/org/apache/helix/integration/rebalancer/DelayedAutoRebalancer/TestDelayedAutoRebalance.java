@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
@@ -33,6 +34,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
@@ -106,10 +108,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
   public void testDelayedPartitionMovementWithClusterConfigedDelay() throws Exception {
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
-
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
-
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
   }
 
@@ -136,7 +136,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
   }
 
   /**
-   * The partititon should be moved to other nodes after the delay time
+   * The partition should be moved to other nodes after the delay time
    */
   @Test (dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
   public void testPartitionMovementAfterDelayTime() throws Exception {
@@ -275,6 +275,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
   protected void validateNoPartitionMove(IdealState is, ExternalView evBefore, ExternalView evAfter,
       String offlineInstance, boolean disabled) {
+
     for (String partition : is.getPartitionSet()) {
       Map<String, String> assignmentsBefore = evBefore.getRecord().getMapField(partition);
       Map<String, String> assignmentsAfter = evAfter.getRecord().getMapField(partition);
@@ -284,10 +285,9 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
       if (disabled) {
         // the offline node is disabled
-        Assert.assertEquals(instancesBefore, instancesAfter, String
-            .format("%s has been moved to new instances, before: %s, after: %s, disabled instance:",
-                partition, assignmentsBefore.toString(), assignmentsAfter.toString(),
-                offlineInstance));
+        Assert.assertEquals(instancesBefore, instancesAfter, String.format(
+            "%s has been moved to new instances, before: %s, after: %s, disabled instance: %s",
+            partition, assignmentsBefore.toString(), assignmentsAfter.toString(), offlineInstance));
 
         if (instancesAfter.contains(offlineInstance)) {
           Assert.assertEquals(assignmentsAfter.get(offlineInstance), "OFFLINE");
@@ -295,17 +295,16 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       } else {
         // the offline node actually went offline.
         instancesBefore.remove(offlineInstance);
-        Assert.assertEquals(instancesBefore, instancesAfter, String
-            .format("%s has been moved to new instances, before: %s, after: %s, offline instance:",
-                partition, assignmentsBefore.toString(), assignmentsAfter.toString(),
-                offlineInstance));
+        Assert.assertEquals(instancesBefore, instancesAfter, String.format(
+            "%s has been moved to new instances, before: %s, after: %s, offline instance: %s",
+            partition, assignmentsBefore.toString(), assignmentsAfter.toString(), offlineInstance));
       }
     }
+
   }
 
   private void validateDelayedMovements(Map<String, ExternalView> externalViewsBefore)
       throws InterruptedException {
-    // bring down one node, no partition should be moved.
     _participants.get(0).syncStop();
     Thread.sleep(100);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -315,8 +314,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
-      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName(), false);
+      validateNoPartitionMove(is, externalViewsBefore.get(db), ev, _participants.get(0).getInstanceName(), false);
     }
   }
 

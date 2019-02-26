@@ -20,7 +20,7 @@ package org.apache.helix.task;
  */
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.integration.task.WorkflowGenerator;
@@ -30,7 +30,7 @@ import org.testng.annotations.Test;
 
 public class TestScheduleDelayJobs extends TaskSynchronizedTestBase {
   private TestRebalancer _testRebalancer = new TestRebalancer();
-  private ClusterDataCache _cache;
+  private WorkflowControllerDataProvider _cache;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -53,7 +53,7 @@ public class TestScheduleDelayJobs extends TaskSynchronizedTestBase {
         .buildWorkflowContext(workflowName, TaskState.IN_PROGRESS, null, TaskState.COMPLETED,
             TaskState.NOT_STARTED);
     _driver.start(builder.build());
-    _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
+    _cache = TaskTestUtil.buildDataProvider(_manager.getHelixDataAccessor(), CLUSTER_NAME);
     long currentTime = System.currentTimeMillis();
     TaskUtil.setWorkflowContext(_manager, workflowName, workflowContext);
     TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
@@ -79,7 +79,7 @@ public class TestScheduleDelayJobs extends TaskSynchronizedTestBase {
         .buildWorkflowContext(workflowName, TaskState.IN_PROGRESS, null, TaskState.COMPLETED,
             TaskState.COMPLETED, TaskState.NOT_STARTED);
     _driver.start(builder.build());
-    _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
+    _cache = TaskTestUtil.buildDataProvider(_manager.getHelixDataAccessor(), CLUSTER_NAME);
     TaskUtil.setWorkflowContext(_manager, workflowName, workflowContext);
     TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
     TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);

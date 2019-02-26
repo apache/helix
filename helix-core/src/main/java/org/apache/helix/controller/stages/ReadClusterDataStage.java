@@ -19,14 +19,18 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.controller.BaseControllerDataProvider;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.ClusterConfig;
@@ -36,13 +40,8 @@ import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
 public class ReadClusterDataStage extends AbstractBaseStage {
   private static final Logger logger = LoggerFactory.getLogger(ReadClusterDataStage.class.getName());
-
-  private ClusterDataCache _cache = null;
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -52,19 +51,19 @@ public class ReadClusterDataStage extends AbstractBaseStage {
       throw new StageException("HelixManager attribute value is null");
     }
 
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
-    if (cache == null && _cache == null) {
-      cache = new ClusterDataCache(event.getClusterName());
-    }
-    _cache = cache;
+    final BaseControllerDataProvider dataProvider =
+        event.getAttribute(AttributeName.ControllerDataProvider.name());
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
-    _cache.refresh(dataAccessor);
-    final ClusterConfig clusterConfig = cache.getClusterConfig();
-    final ClusterStatusMonitor clusterStatusMonitor =
-        event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    if (!_cache.isTaskCache()) {
-      asyncExecute(_cache.getAsyncTasksThreadPool(), new Callable<Object>() {
+
+    dataProvider.refresh(dataAccessor);
+    final ClusterConfig clusterConfig = dataProvider.getClusterConfig();
+        final ClusterStatusMonitor clusterStatusMonitor =
+            event.getAttribute(AttributeName.clusterStatusMonitor.name());
+
+    // TODO (harry): move this to separate stage for resource controller only
+    if (dataProvider instanceof ResourceControllerDataProvider) {
+      asyncExecute(dataProvider.getAsyncTasksThreadPool(), new Callable<Object>() {
         @Override public Object call() {
           // Update the cluster status gauges
           if (clusterStatusMonitor != null) {
@@ -76,8 +75,9 @@ public class ReadClusterDataStage extends AbstractBaseStage {
             Map<String, Map<String, List<String>>> disabledPartitions = Maps.newHashMap();
             Map<String, List<String>> oldDisabledPartitions = Maps.newHashMap();
             Map<String, Set<String>> tags = Maps.newHashMap();
-            Map<String, LiveInstance> liveInstanceMap = _cache.getLiveInstances();
-            for (Map.Entry<String, InstanceConfig> e : _cache.getInstanceConfigMap().entrySet()) {
+            Map<String, LiveInstance> liveInstanceMap = dataProvider.getLiveInstances();
+            for (Map.Entry<String, InstanceConfig> e : dataProvider.getInstanceConfigMap()
+                .entrySet()) {
               String instanceName = e.getKey();
               InstanceConfig config = e.getValue();
               instanceSet.add(instanceName);
@@ -105,16 +105,15 @@ public class ReadClusterDataStage extends AbstractBaseStage {
         }
       });
     } else {
-      asyncExecute(_cache.getAsyncTasksThreadPool(), new Callable<Object>() {
+      asyncExecute(dataProvider.getAsyncTasksThreadPool(), new Callable<Object>() {
         @Override
         public Object call() {
-          clusterStatusMonitor.refreshWorkflowsStatus(_cache);
-          clusterStatusMonitor.refreshJobsStatus(_cache);
+          clusterStatusMonitor.refreshWorkflowsStatus((WorkflowControllerDataProvider) dataProvider);
+          clusterStatusMonitor.refreshJobsStatus((WorkflowControllerDataProvider) dataProvider);
           LogUtil.logDebug(logger, _eventId, "Workflow/Job gauge status successfully refreshed");
           return null;
         }
       });
     }
-    event.addAttribute(AttributeName.ClusterDataCache.name(), _cache);
   }
 }

@@ -27,6 +27,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
@@ -49,9 +50,9 @@ public class TargetExteralViewCalcStage extends AbstractAsyncBaseStage {
 
   @Override
   public void execute(final ClusterEvent event) throws Exception {
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     ClusterConfig clusterConfig = cache.getClusterConfig();
-    if (cache.isTaskCache() || !clusterConfig.isTargetExternalViewEnabled()) {
+    if (!clusterConfig.isTargetExternalViewEnabled()) {
       return;
     }
 

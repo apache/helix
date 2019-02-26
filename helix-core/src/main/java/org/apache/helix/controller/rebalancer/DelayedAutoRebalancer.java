@@ -28,12 +28,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -49,14 +48,14 @@ import org.slf4j.LoggerFactory;
 /**
  * This is the Full-Auto Rebalancer that is featured with delayed partition movement.
  */
-public class DelayedAutoRebalancer extends AbstractRebalancer {
+public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(DelayedAutoRebalancer.class);
   private static RebalanceScheduler _rebalanceScheduler = new RebalanceScheduler();
 
   @Override
   public IdealState computeNewIdealState(String resourceName,
       IdealState currentIdealState, CurrentStateOutput currentStateOutput,
-      ClusterDataCache clusterData) {
+      ResourceControllerDataProvider clusterData) {
 
     IdealState cachedIdealState = getCachedIdealState(resourceName, clusterData);
     if (cachedIdealState != null) {
@@ -173,9 +172,6 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       finalMapping =
           getFinalDelayedMapping(currentIdealState, newIdealMapping, newActiveMapping, liveEnabledNodes,
               replicaCount, minActiveReplicas);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("newActiveMapping: " + newActiveMapping);
-      }
     }
 
     finalMapping.getListFields().putAll(userDefinedPreferenceList);
@@ -210,13 +206,13 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   private Set<String> getActiveInstances(Set<String> allNodes, IdealState idealState,
       Set<String> liveEnabledNodes, Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
       Map<String, InstanceConfig> instanceConfigMap, long delay, ClusterConfig clusterConfig) {
-    Set<String> activeInstances = new HashSet<String>(liveEnabledNodes);
+    Set<String> activeInstances = new HashSet<>(liveEnabledNodes);
 
     if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
       return activeInstances;
     }
 
-    Set<String> offlineOrDisabledInstances = new HashSet<String>(allNodes);
+    Set<String> offlineOrDisabledInstances = new HashSet<>(allNodes);
     offlineOrDisabledInstances.removeAll(liveEnabledNodes);
 
     long currentTime = System.currentTimeMillis();
@@ -385,7 +381,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
    * @return
    */
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache cache,
+  public ResourceAssignment computeBestPossiblePartitionState(ResourceControllerDataProvider cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getResourceName());

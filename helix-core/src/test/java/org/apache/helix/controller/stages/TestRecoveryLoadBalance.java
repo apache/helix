@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
@@ -77,6 +78,8 @@ public class TestRecoveryLoadBalance extends BaseStageTest {
         resourceSet.toArray(new String[resourceSet.size()]), nPartition, stateModelDef));
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), getResourceMap(
         resourceSet.toArray(new String[resourceSet.size()]), nPartition, stateModelDef));
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
 
     // Initialize bestpossible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();

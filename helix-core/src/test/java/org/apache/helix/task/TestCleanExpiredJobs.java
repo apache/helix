@@ -23,7 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.integration.task.WorkflowGenerator;
@@ -32,7 +32,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestCleanExpiredJobs extends TaskSynchronizedTestBase {
-  private ClusterDataCache _cache;
+  private WorkflowControllerDataProvider _cache;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -79,8 +79,7 @@ public class TestCleanExpiredJobs extends TaskSynchronizedTestBase {
     jobsLeft.add(TaskUtil.getNamespacedJobName(queue, "JOB" + 7));
 
     _driver.start(builder.build());
-    _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
-    _cache.setTaskCache(true);
+    _cache = TaskTestUtil.buildDataProvider(_manager.getHelixDataAccessor(), CLUSTER_NAME);
     TaskUtil.setWorkflowContext(_manager, queue, workflowContext);
     TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
     Thread.sleep(500);
@@ -115,7 +114,7 @@ public class TestCleanExpiredJobs extends TaskSynchronizedTestBase {
         .buildWorkflowContext(queue, TaskState.IN_PROGRESS, null, TaskState.FAILED,
             TaskState.FAILED);
     _driver.start(builder.build());
-    _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor(), CLUSTER_NAME);
+    _cache = TaskTestUtil.buildDataProvider(_manager.getHelixDataAccessor(), CLUSTER_NAME);
     TaskUtil.setWorkflowContext(_manager, queue, workflowContext);
     TaskTestUtil.calculateTaskSchedulingStage(_cache, _manager);
     WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queue);

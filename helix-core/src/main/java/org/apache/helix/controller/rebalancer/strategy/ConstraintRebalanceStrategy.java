@@ -26,7 +26,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceHardConstraint;
@@ -34,11 +33,11 @@ import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceSoftConstrain
 import org.apache.helix.api.rebalancer.constraint.dataprovider.CapacityProvider;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.rebalancer.constraint.PartitionWeightAwareEvennessConstraint;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CardDealingAdjustmentAlgorithmV2;
 import org.apache.helix.controller.rebalancer.topology.Topology;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.slf4j.Logger;
@@ -54,9 +53,10 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
   private static final int MIN_INSTANCE_WEIGHT = 1;
 
   // CRUSH ensures deterministic and evenness
-  private final RebalanceStrategy _baseStrategy = new CrushRebalanceStrategy();
+  private final RebalanceStrategy<ResourceControllerDataProvider> _baseStrategy =
+      new CrushRebalanceStrategy();
 
-  protected RebalanceStrategy getBaseRebalanceStrategy() {
+  protected RebalanceStrategy<ResourceControllerDataProvider> getBaseRebalanceStrategy() {
     return _baseStrategy;
   }
 
@@ -149,7 +149,7 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
   @Override
   public ZNRecord computePartitionAssignment(final List<String> allNodes,
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
-      ClusterDataCache clusterData) throws HelixException {
+      ResourceControllerDataProvider clusterData) throws HelixException {
     // Since instance weight will be replaced by constraint evaluation, record it in advance to avoid
     // overwriting.
     Map<String, Integer> instanceWeightRecords = new HashMap<>();
@@ -174,11 +174,11 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
         // check for the preferred assignment
         partitionMapping = validateStateMap(partitionMapping);
         if (partitionMapping != null) {
-          LogUtil.logDebug(_logger, clusterData.getEventId(),
+          LogUtil.logDebug(_logger, clusterData.getClusterEventId(),
               "The provided preferred partition assignment meets state model requirements. Skip rebalance.");
           preferenceList.put(partition, new ArrayList<>(partitionMapping.keySet()));
           idealStateMap.put(partition, partitionMapping);
-          updateConstraints(partition, partitionMapping, clusterData.getEventId());
+          updateConstraints(partition, partitionMapping, clusterData.getClusterEventId());
           continue;
         }
       } // else, recalculate the assignment
@@ -201,7 +201,7 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
       idealStateMap.put(partition, stateMap);
       preferenceList.put(partition, assignment);
       // Note, only update with the new pending assignment
-      updateConstraints(partition, stateMap, clusterData.getEventId());
+      updateConstraints(partition, stateMap, clusterData.getClusterEventId());
     }
 
     // recover the original weight
@@ -254,7 +254,8 @@ public class ConstraintRebalanceStrategy extends AbstractEvenDistributionRebalan
    * @return
    */
   private List<String> computeSinglePartitionAssignment(String partitionName,
-      final List<String> allNodes, final List<String> liveNodes, ClusterDataCache clusterData) {
+      final List<String> allNodes, final List<String> liveNodes,
+      ResourceControllerDataProvider clusterData) {
     List<String> qualifiedNodes = new ArrayList<>(allNodes);
 
     // do hard constraints check and find all qualified instances

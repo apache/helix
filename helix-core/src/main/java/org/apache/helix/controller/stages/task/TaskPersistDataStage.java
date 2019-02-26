@@ -1,9 +1,9 @@
 package org.apache.helix.controller.stages.task;
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +17,8 @@ public class TaskPersistDataStage extends AbstractBaseStage {
     long startTime = System.currentTimeMillis();
 
     // Persist partition assignment of resources.
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    WorkflowControllerDataProvider cache =
+        event.getAttribute(AttributeName.ControllerDataProvider.name());
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     cache.getTaskDataCache().persistDataChanges(manager.getHelixDataAccessor());
 

@@ -27,8 +27,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.Rebalancer;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -49,7 +49,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
   static boolean testRebalancerCreated = false;
   static boolean testRebalancerInvoked = false;
 
-  public static class TestRebalancer implements Rebalancer {
+  public static class TestRebalancer implements Rebalancer<ResourceControllerDataProvider> {
 
     @Override
     public void init(HelixManager manager) {
@@ -58,7 +58,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
 
     @Override
     public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-        CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+        CurrentStateOutput currentStateOutput, ResourceControllerDataProvider clusterData) {
       testRebalancerInvoked = true;
       List<String> liveNodes = Lists.newArrayList(clusterData.getLiveInstances().keySet());
       int i = 0;
@@ -129,7 +129,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
         int numberOfPartitions =
             accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
                 .size();
-        ClusterDataCache cache = new ClusterDataCache();
+        ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
         cache.refresh(accessor);
         String masterValue =
             cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())

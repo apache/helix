@@ -4,12 +4,12 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BaseStageTest;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
@@ -66,12 +66,13 @@ public class TestRebalancerMetrics extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
     ClusterStatusMonitor monitor = new ClusterStatusMonitor(_clusterName);
     monitor.active();
     event.addAttribute(AttributeName.clusterStatusMonitor.name(), monitor);
 
     runStage(event, new ReadClusterDataStage());
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     setupThrottleConfig(cache.getClusterConfig(),
         StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE, maxPending);
     runStage(event, new BestPossibleStateCalcStage());
@@ -112,6 +113,7 @@ public class TestRebalancerMetrics extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
     ClusterStatusMonitor monitor = new ClusterStatusMonitor(_clusterName);
     monitor.active();
     event.addAttribute(AttributeName.clusterStatusMonitor.name(), monitor);
@@ -126,7 +128,7 @@ public class TestRebalancerMetrics extends BaseStageTest {
     setupLiveInstances(4);
 
     runStage(event, new ReadClusterDataStage());
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     setupThrottleConfig(cache.getClusterConfig(),
         StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, maxPending);
     runStage(event, new BestPossibleStateCalcStage());

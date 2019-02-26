@@ -31,6 +31,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.AssignableInstanceManager;
@@ -50,7 +51,6 @@ public class TaskDataCache extends AbstractDataCache {
   private static final Logger LOG = LoggerFactory.getLogger(TaskDataCache.class.getName());
   private static final String NAME = "NAME";
 
-  private String _clusterName;
   private Map<String, JobConfig> _jobConfigMap = new HashMap<>();
   private Map<String, RuntimeJobDag> _runtimeJobDagMap = new HashMap<>();
   private Map<String, WorkflowConfig> _workflowConfigMap = new ConcurrentHashMap<>();
@@ -64,13 +64,18 @@ public class TaskDataCache extends AbstractDataCache {
   // JobDispatcher from RESOURCE_TO_BALANCE to reduce the redundant computation.
   private Set<String> _dispatchedJobs = new HashSet<>();
 
+
+  public TaskDataCache(ControlContextProvider contextProvider) {
+    super(contextProvider);
+  }
+
   /**
    * Original constructor for TaskDataCache.
    *
    * @param clusterName
    */
   public TaskDataCache(String clusterName) {
-    _clusterName = clusterName;
+    this(createDefaultControlContextProvider(clusterName));
   }
 
   /**
@@ -139,11 +144,12 @@ public class TaskDataCache extends AbstractDataCache {
     // TODO: Need an optimize for reading context only if the refresh is needed.
     long start = System.currentTimeMillis();
     _contextMap.clear();
-    if (_clusterName == null) {
+    if (_controlContextProvider.getClusterName() == null || _controlContextProvider.getClusterName()
+        .equalsIgnoreCase(UNKNOWN_CLUSTER)) {
       return;
     }
-    String path = String.format("/%s/%s%s", _clusterName, PropertyType.PROPERTYSTORE.name(),
-        TaskConstants.REBALANCER_CONTEXT_ROOT);
+    String path = String.format("/%s/%s%s", _controlContextProvider.getClusterName(),
+        PropertyType.PROPERTYSTORE.name(), TaskConstants.REBALANCER_CONTEXT_ROOT);
     List<String> contextPaths = new ArrayList<>();
     List<String> childNames = accessor.getBaseDataAccessor().getChildNames(path, 0);
     if (childNames == null) {
@@ -160,13 +166,13 @@ public class TaskDataCache extends AbstractDataCache {
         _contextMap.put(context.getSimpleField(NAME), context);
       } else {
         _contextMap.put(childNames.get(i), context);
-        LogUtil.logDebug(LOG, getEventId(),
+        LogUtil.logDebug(LOG, genEventInfo(),
             String.format("Context for %s is null or miss the context NAME!", childNames.get((i))));
       }
     }
 
     if (LOG.isDebugEnabled()) {
-      LogUtil.logDebug(LOG, getEventId(),
+      LogUtil.logDebug(LOG, genEventInfo(),
           "# of workflow/job context read from zk: " + _contextMap.size() + ". Take " + (
               System.currentTimeMillis() - start) + " ms");
     }
@@ -336,13 +342,14 @@ public class TaskDataCache extends AbstractDataCache {
   @Override
   public String toString() {
     return "TaskDataCache{" + "_jobConfigMap=" + _jobConfigMap + ", _workflowConfigMap="
-        + _workflowConfigMap + ", _contextMap=" + _contextMap + ", _clusterName='" + _clusterName
-        + '\'' + '}';
+        + _workflowConfigMap + ", _contextMap=" + _contextMap + ", _clusterName='"
+        + _controlContextProvider.getClusterName() + '\'' + '}';
   }
 
   private String getContextPath(String resourceName) {
-    return String.format("/%s/%s%s/%s/%s", _clusterName, PropertyType.PROPERTYSTORE.name(),
-        TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName, TaskConstants.CONTEXT_NODE);
+    return String.format("/%s/%s%s/%s/%s", _controlContextProvider.getClusterName(),
+        PropertyType.PROPERTYSTORE.name(), TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName,
+        TaskConstants.CONTEXT_NODE);
   }
 
   public void dispatchJob(String jobName) {

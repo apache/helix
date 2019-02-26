@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.Date;
 import java.util.Map;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Partition;
@@ -53,6 +54,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();
     runStage(event, stage1);

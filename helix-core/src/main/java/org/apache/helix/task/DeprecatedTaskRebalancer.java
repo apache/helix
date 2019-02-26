@@ -19,6 +19,13 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -36,7 +43,6 @@ import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -45,10 +51,11 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.ResourceControllerDataProvider;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -58,20 +65,14 @@ import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
 /**
  * Custom rebalancer implementation for the {@code Task} state model.
  */
 /** This rebalancer is deprecated, left here only for back-compatible. **/
 @Deprecated
-public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCalculator {
+public abstract class DeprecatedTaskRebalancer
+    implements Rebalancer<WorkflowControllerDataProvider>,
+    MappingCalculator<WorkflowControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(TaskRebalancer.class);
 
   // Management of already-scheduled rebalances across jobs
@@ -93,7 +94,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
    * @return set of partition numbers
    */
   public abstract Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
-      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, ClusterDataCache cache);
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, WorkflowControllerDataProvider cache);
 
   /**
    * Compute an assignment of tasks to instances
@@ -112,7 +113,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
       CurrentStateOutput currStateOutput, ResourceAssignment prevAssignment,
       Collection<String> instances, JobConfig jobCfg, JobContext jobContext,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
-      ClusterDataCache cache);
+      WorkflowControllerDataProvider cache);
 
   @Override
   public void init(HelixManager manager) {
@@ -120,7 +121,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
   }
 
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
+  public ResourceAssignment computeBestPossiblePartitionState(WorkflowControllerDataProvider clusterData,
       IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput) {
     final String resourceName = resource.getResourceName();
     LOG.debug("Computer Best Partition for resource: " + resourceName);
@@ -289,7 +290,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
   }
 
   private Set<String> getInstancesAssignedToOtherJobs(String currentJobName,
-      WorkflowConfig workflowCfg, ClusterDataCache cache) {
+      WorkflowConfig workflowCfg, WorkflowControllerDataProvider cache) {
 
     Set<String> ret = new HashSet<String>();
 
@@ -318,7 +319,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
       WorkflowConfig workflowConfig, JobConfig jobCfg, ResourceAssignment prevAssignment,
       Collection<String> liveInstances, CurrentStateOutput currStateOutput,
       WorkflowContext workflowCtx, JobContext jobCtx, Set<Integer> partitionsToDropFromIs,
-      ClusterDataCache cache) {
+      WorkflowControllerDataProvider cache) {
     TargetState jobTgtState = workflowConfig.getTargetState();
 
     // Update running status in workflow context
@@ -575,7 +576,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
    * @return true if ready, false if not ready
    */
   private boolean scheduleIfNotReady(WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
-      String workflowResource, String jobResource, ClusterDataCache cache) {
+      String workflowResource, String jobResource, WorkflowControllerDataProvider cache) {
     // Ignore non-scheduled workflows
     if (workflowCfg == null || workflowCfg.getScheduleConfig() == null) {
       return true;
@@ -1122,7 +1123,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
 
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+      CurrentStateOutput currentStateOutput, WorkflowControllerDataProvider clusterData) {
     // All of the heavy lifting is in the ResourceAssignment computation,
     // so this part can just be a no-op.
     return currentIdealState;

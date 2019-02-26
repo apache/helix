@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ResourceAssignment;
 /**
@@ -42,16 +42,17 @@ public class FixedTargetTaskRebalancer extends DeprecatedTaskRebalancer {
       new FixedTargetTaskAssignmentCalculator();
 
   @Override public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
-      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, ClusterDataCache cache) {
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, WorkflowControllerDataProvider cache) {
     return taskAssignmentCalculator
         .getAllTaskPartitions(jobCfg, jobCtx, workflowCfg, workflowCtx, cache.getIdealStates());
   }
 
-  @Override public Map<String, SortedSet<Integer>> getTaskAssignment(
+  @Override
+  public Map<String, SortedSet<Integer>> getTaskAssignment(
       CurrentStateOutput currStateOutput, ResourceAssignment prevAssignment,
       Collection<String> instances, JobConfig jobCfg, JobContext jobContext,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
-      ClusterDataCache cache) {
+      WorkflowControllerDataProvider cache) {
     return taskAssignmentCalculator
         .getTaskAssignment(currStateOutput, prevAssignment, instances, jobCfg, jobContext,
             workflowCfg, workflowCtx, partitionSet, cache.getIdealStates());

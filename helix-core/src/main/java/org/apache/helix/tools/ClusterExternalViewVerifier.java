@@ -19,12 +19,17 @@ package org.apache.helix.tools;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
@@ -34,12 +39,6 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.Partition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * given zk, cluster, and a list of expected live-instances
@@ -89,9 +88,10 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
     stage.postProcess();
   }
 
-  BestPossibleStateOutput calculateBestPossibleState(ClusterDataCache cache) throws Exception {
+  BestPossibleStateOutput calculateBestPossibleState(ResourceControllerDataProvider cache)
+      throws Exception {
     ClusterEvent event = new ClusterEvent(ClusterEventType.StateVerifier);
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
     List<Stage> stages = new ArrayList<Stage>();
     stages.add(new ResourceComputationStage());
@@ -141,7 +141,7 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
 
   @Override
   public boolean verify() throws Exception {
-    ClusterDataCache cache = new ClusterDataCache();
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     cache.refresh(_accessor);
 
     List<String> liveInstances = new ArrayList<String>();

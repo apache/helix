@@ -29,16 +29,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CardDealingAdjustmentAlgorithmV2;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.ConsistentHashingAdjustmentAlgorithm;
 import org.apache.helix.controller.rebalancer.topology.InstanceNode;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,13 +46,14 @@ import org.slf4j.LoggerFactory;
  * This class contains common logic that re-calculate assignment based on a result calculated by the base algorithm.
  * The target of this patching step is more even partition distribution, but number of partitions to be reshuffled during node outage could be higher than the base algorithm.
  */
-public abstract class AbstractEvenDistributionRebalanceStrategy implements RebalanceStrategy {
+public abstract class AbstractEvenDistributionRebalanceStrategy
+    implements RebalanceStrategy<ResourceControllerDataProvider> {
   private static final Logger _logger =
       LoggerFactory.getLogger(AbstractEvenDistributionRebalanceStrategy.class);
   protected String _resourceName;
   protected int _replica;
 
-  protected abstract RebalanceStrategy getBaseRebalanceStrategy();
+  protected abstract RebalanceStrategy<ResourceControllerDataProvider> getBaseRebalanceStrategy();
 
   protected CardDealingAdjustmentAlgorithmV2 getCardDealingAlgorithm(Topology topology) {
     // by default, minimize the movement when calculating for evenness.
@@ -82,7 +82,7 @@ public abstract class AbstractEvenDistributionRebalanceStrategy implements Rebal
   @Override
   public ZNRecord computePartitionAssignment(final List<String> allNodes,
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
-      ClusterDataCache clusterData) throws HelixException {
+      ResourceControllerDataProvider clusterData) throws HelixException {
     // Round 1: Calculate mapping using the base strategy.
     // Note to use all nodes for minimizing the influence of live node changes to mapping.
     ZNRecord origAssignment = getBaseRebalanceStrategy()
@@ -90,7 +90,7 @@ public abstract class AbstractEvenDistributionRebalanceStrategy implements Rebal
     Map<String, List<String>> origPartitionMap = origAssignment.getListFields();
 
     // For logging only
-    String eventId = clusterData.getEventId();
+    String eventId = clusterData.getClusterEventId();
 
     // Try to re-assign if the original map is not empty
     if (!origPartitionMap.isEmpty()) {

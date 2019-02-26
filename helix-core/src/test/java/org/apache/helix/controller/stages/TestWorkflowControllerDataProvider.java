@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import org.apache.helix.TestHelper;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.task.JobConfig;
@@ -27,7 +28,7 @@ import org.apache.helix.task.Workflow;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestClusterDataCache extends TaskTestBase {
+public class TestWorkflowControllerDataProvider extends TaskTestBase {
 
   @Test
   public void testResourceConfigRefresh() throws InterruptedException {
@@ -38,8 +39,8 @@ public class TestClusterDataCache extends TaskTestBase {
 
     _driver.start(builder.build());
     Thread.sleep(4000);
-    ClusterDataCache cache = new ClusterDataCache("CLUSTER_" + TestHelper.getTestClassName());
-    cache.setTaskCache(true);
+    WorkflowControllerDataProvider cache =
+        new WorkflowControllerDataProvider("CLUSTER_" + TestHelper.getTestClassName());
     cache.requireFullRefresh();
     cache.refresh(_manager.getHelixDataAccessor());
     Assert.assertEquals(cache.getJobConfigMap().size(), 1);

@@ -22,7 +22,9 @@ package org.apache.helix.controller.stages;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-
+import org.apache.helix.controller.BaseControllerDataProvider;
+import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.ClusterConfig;
@@ -31,7 +33,6 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
 import org.apache.helix.task.TaskConstants;
-import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,8 @@ public class ResourceComputationStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    BaseControllerDataProvider cache =
+        event.getAttribute(AttributeName.ControllerDataProvider.name());
     if (cache == null) {
       throw new StageException("Missing attributes in event:" + event + ". Requires DataCache");
     }
@@ -56,6 +58,8 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
     Map<String, Resource> resourceMap = new LinkedHashMap<>();
     Map<String, Resource> resourceToRebalance = new LinkedHashMap<>();
+
+    boolean isTaskCache = cache instanceof WorkflowControllerDataProvider;
 
     if (idealStates != null && idealStates.size() > 0) {
       for (IdealState idealState : idealStates.values()) {
@@ -69,11 +73,9 @@ public class ResourceComputationStage extends AbstractBaseStage {
               cache.getResourceConfig(resourceName));
           resourceMap.put(resourceName, resource);
 
-          if (!idealState.isValid() && !cache.isTaskCache()
-              || idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && cache
-              .isTaskCache()
-              || !idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && !cache
-              .isTaskCache()) {
+          if (!idealState.isValid() && !isTaskCache
+              || idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && isTaskCache
+              || !idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && !isTaskCache) {
             resourceToRebalance.put(resourceName, resource);
           }
           resource.setStateModelDefRef(idealState.getStateModelDefRef());
@@ -127,12 +129,11 @@ public class ResourceComputationStage extends AbstractBaseStage {
             resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
             resource.setBucketSize(currentState.getBucketSize());
             resource.setBatchMessageMode(currentState.getBatchMessageMode());
-            if (resource.getStateModelDefRef() == null && !cache.isTaskCache()
+            if (resource.getStateModelDefRef() == null && !isTaskCache
                 || resource.getStateModelDefRef() != null && (
-                resource.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && cache
-                    .isTaskCache()
+                resource.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && isTaskCache
                     || !resource.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)
-                    && !cache.isTaskCache())) {
+                    && !isTaskCache)) {
               resourceToRebalance.put(resourceName, resource);
             }
 

@@ -30,9 +30,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -160,7 +160,7 @@ public final class HelixUtil {
       allNodes.add(instanceConfig.getInstanceName());
       instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
     }
-    ClusterDataCache cache = new ClusterDataCache();
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     cache.setClusterConfig(clusterConfig);
     cache.setInstanceConfigMap(instanceConfigMap);
 

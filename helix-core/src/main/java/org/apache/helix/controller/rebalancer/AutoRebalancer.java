@@ -29,7 +29,8 @@ import java.util.Set;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.BaseControllerDataProvider;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -48,13 +49,13 @@ import org.slf4j.LoggerFactory;
  * The output is a preference list and a mapping based on that preference list, i.e. partition p
  * has a replica on node k with state s.
  */
-public class AutoRebalancer extends AbstractRebalancer {
+public class AutoRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(AutoRebalancer.class);
 
   @Override
   public IdealState computeNewIdealState(String resourceName,
       IdealState currentIdealState, CurrentStateOutput currentStateOutput,
-      ClusterDataCache clusterData) {
+      ResourceControllerDataProvider clusterData) {
 
     IdealState cachedIdealState = getCachedIdealState(resourceName, clusterData);
     if (cachedIdealState != null) {
@@ -64,7 +65,7 @@ public class AutoRebalancer extends AbstractRebalancer {
 
     LOG.info("Computing IdealState for " + resourceName);
 
-    List<String> partitions = new ArrayList<String>(currentIdealState.getPartitionSet());
+    List<String> partitions = new ArrayList<>(currentIdealState.getPartitionSet());
     String stateModelName = currentIdealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
     if (stateModelDef == null) {
@@ -113,8 +114,8 @@ public class AutoRebalancer extends AbstractRebalancer {
         LOG.warn("Resource " + resourceName + " has tag " + currentIdealState.getInstanceGroupTag()
             + " but no live participants have this tag");
       }
-      allNodes = new ArrayList<String>(taggedNodes);
-      liveNodes = new ArrayList<String>(taggedLiveNodes);
+      allNodes = new ArrayList<>(taggedNodes);
+      liveNodes = new ArrayList<>(taggedLiveNodes);
     }
 
     // sort node lists to ensure consistent preferred assignments

@@ -33,11 +33,11 @@ import com.google.common.base.Predicates;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CRUSHPlacementAlgorithm;
 import org.apache.helix.controller.rebalancer.topology.InstanceNode;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.util.JenkinsHash;
 import org.slf4j.Logger;
@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * This gives more even partition distribution in case of small number of partitions,
  * but number of partitions to be reshuffled during node outage could be higher than CrushRebalanceStrategy.
  */
-public class MultiRoundCrushRebalanceStrategy implements RebalanceStrategy {
+public class MultiRoundCrushRebalanceStrategy implements RebalanceStrategy<ResourceControllerDataProvider> {
   private static final Logger Log =
       LoggerFactory.getLogger(MultiRoundCrushRebalanceStrategy.class.getName());
   private String _resourceName;
@@ -78,9 +78,10 @@ public class MultiRoundCrushRebalanceStrategy implements RebalanceStrategy {
    * @return
    * @throws HelixException if a map can not be found
    */
-  @Override public ZNRecord computePartitionAssignment(final List<String> allNodes,
+  @Override
+  public ZNRecord computePartitionAssignment(final List<String> allNodes,
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
-      ClusterDataCache clusterData) throws HelixException {
+      ResourceControllerDataProvider clusterData) throws HelixException {
     Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
     _clusterTopo =
         new Topology(allNodes, liveNodes, instanceConfigMap, clusterData.getClusterConfig());
@@ -149,7 +150,7 @@ public class MultiRoundCrushRebalanceStrategy implements RebalanceStrategy {
     }
 
     return generateZNRecord(_resourceName, _partitions, partitionStateMapping,
-        clusterData.getEventId());
+        clusterData.getClusterEventId());
   }
 
   private ZNRecord generateZNRecord(String resource, List<String> partitions,

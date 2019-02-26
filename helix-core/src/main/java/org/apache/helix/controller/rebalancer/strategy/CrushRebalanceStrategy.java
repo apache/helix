@@ -32,11 +32,11 @@ import com.google.common.base.Predicates;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CRUSHPlacementAlgorithm;
 import org.apache.helix.controller.rebalancer.topology.InstanceNode;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.util.JenkinsHash;
 import org.slf4j.Logger;
@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 /**
  * CRUSH-based partition mapping strategy.
  */
-public class CrushRebalanceStrategy implements RebalanceStrategy {
+public class CrushRebalanceStrategy implements RebalanceStrategy<ResourceControllerDataProvider> {
   private static final Logger Log = LoggerFactory.getLogger(CrushRebalanceStrategy.class.getName());
 
   private String _resourceName;
@@ -74,14 +74,14 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
   @Override
   public ZNRecord computePartitionAssignment(final List<String> allNodes,
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
-      ClusterDataCache clusterData) throws HelixException {
+      ResourceControllerDataProvider clusterData) throws HelixException {
     Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
     _clusterTopo =
         new Topology(allNodes, liveNodes, instanceConfigMap, clusterData.getClusterConfig());
     Node topNode = _clusterTopo.getRootNode();
 
     // for log only
-    String eventId = clusterData.getEventId();
+    String eventId = clusterData.getClusterEventId();
 
     Map<String, List<String>> newPreferences = new HashMap<>();
     for (int i = 0; i < _partitions.size(); i++) {

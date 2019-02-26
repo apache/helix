@@ -11,6 +11,7 @@ import java.util.Set;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.Rebalancer;
@@ -18,7 +19,6 @@ import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
@@ -49,7 +49,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.CURRENT_STATE.name());
     final Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    WorkflowControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
 
     if (currentStateOutput == null || resourceMap == null || cache == null) {
       throw new StageException(
@@ -70,14 +70,14 @@ public class TaskSchedulingStage extends AbstractBaseStage {
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
       CurrentStateOutput currentStateOutput) {
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
     // After compute all workflows and jobs, there are still task resources need to be DROPPED
     Map<String, Resource> restOfResources = new HashMap<>(resourceMap);
+    WorkflowControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     BestPossibleStateOutput output = new BestPossibleStateOutput();
     final List<String> failureResources = new ArrayList<>();
     // Queues only for Workflows
     scheduleWorkflows(resourceMap, cache, restOfResources, failureResources, currentStateOutput, output);
-    for (String jobName : cache.getDispatchedJobs()) {
+    for (String jobName : cache.getTaskDataCache().getDispatchedJobs()) {
       updateResourceMap(jobName, resourceMap, output.getPartitionStateMap(jobName).partitionSet());
       restOfResources.remove(jobName);
     }
@@ -97,7 +97,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
   }
 
 
-  private boolean computeResourceBestPossibleState(ClusterEvent event, ClusterDataCache cache,
+  private boolean computeResourceBestPossibleState(ClusterEvent event, WorkflowControllerDataProvider cache,
       CurrentStateOutput currentStateOutput, Resource resource, BestPossibleStateOutput output) {
     // for each ideal state
     // read the state model def
@@ -121,7 +121,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     if (!idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
       LogUtil.logWarn(logger, _eventId, String
           .format("Resource %s should not be processed by %s pipeline", resourceName,
-              cache.isTaskCache() ? "TASK" : "DEFAULT"));
+              cache.getPipelineName()));
       return false;
     }
 
@@ -208,7 +208,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     }
   }
 
-  private void buildQuotaBasedWorkflowPQsAndInitDispatchers(ClusterDataCache cache, HelixManager manager,
+  private void buildQuotaBasedWorkflowPQsAndInitDispatchers(WorkflowControllerDataProvider cache, HelixManager manager,
       ClusterStatusMonitor monitor) {
     _quotaBasedWorkflowPQs.clear();
     Map<String, String> quotaRatioMap = cache.getClusterConfig().getTaskQuotaRatioMap();
@@ -238,7 +238,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     _workflowDispatcher.updateCache(cache);
   }
 
-  private void scheduleWorkflows(Map<String, Resource> resourceMap, ClusterDataCache cache,
+  private void scheduleWorkflows(Map<String, Resource> resourceMap, WorkflowControllerDataProvider cache,
       Map<String, Resource> restOfResources, List<String> failureResources,
       CurrentStateOutput currentStateOutput, BestPossibleStateOutput bestPossibleOutput) {
     AssignableInstanceManager assignableInstanceManager = cache.getAssignableInstanceManager();

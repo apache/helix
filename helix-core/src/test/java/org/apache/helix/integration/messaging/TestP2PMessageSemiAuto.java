@@ -26,7 +26,7 @@ import java.util.Map;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.common.ZkTestBase;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.integration.DelayedTransitionBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -190,7 +190,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   }
 
   private void verifyP2PMessage(String dbName, String instance, String expectedState, String expectedTriggerHost, double expectedRatio) {
-    ClusterDataCache dataCache = new ClusterDataCache(CLUSTER_NAME);
+    ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
     dataCache.refresh(_accessor);
 
     Map<String, LiveInstance> liveInstanceMap = dataCache.getLiveInstances();

@@ -41,9 +41,9 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -215,7 +215,7 @@ public class TestAutoRebalanceStrategy {
 
     private Map<String, Map<String, String>> getMapping(final Map<String, List<String>> listResult) {
       final Map<String, Map<String, String>> mapResult = new HashMap<String, Map<String, String>>();
-      ClusterDataCache cache = new ClusterDataCache();
+      ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
       MockAccessor accessor = new MockAccessor();
       Builder keyBuilder = accessor.keyBuilder();
       ClusterConfig clusterConfig = new ClusterConfig("TestCluster");

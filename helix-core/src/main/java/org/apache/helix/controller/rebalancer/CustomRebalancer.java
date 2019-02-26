@@ -22,9 +22,8 @@ package org.apache.helix.controller.rebalancer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
@@ -44,20 +43,20 @@ import org.slf4j.LoggerFactory;
  * The output is a verified mapping based on that preference list, i.e. partition p has a replica
  * on node k with state s, where s may be a dropped or error state if necessary.
  */
-public class CustomRebalancer extends AbstractRebalancer {
+public class CustomRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(CustomRebalancer.class);
 
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+      CurrentStateOutput currentStateOutput, ResourceControllerDataProvider clusterData) {
     return currentIdealState;
   }
 
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache cache,
+  public ResourceAssignment computeBestPossiblePartitionState(ResourceControllerDataProvider cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
     // Looking for cached BestPossible mapping for this resource, if it is already there, do not recompute it again.
-    // The cached mapping will be cleared in ClusterDataCache if there is anything changed in cluster state that can
+    // The cached mapping will be cleared in ResourceControllerDataProvider if there is anything changed in cluster state that can
     // cause the potential changes in BestPossible state.
     ResourceAssignment partitionMapping =
         cache.getCachedResourceAssignment(resource.getResourceName());
@@ -101,11 +100,11 @@ public class CustomRebalancer extends AbstractRebalancer {
    * @param isResourceEnabled
    * @return
    */
-  private Map<String, String> computeCustomizedBestStateForPartition(ClusterDataCache cache,
-      StateModelDefinition stateModelDef, Map<String, String> idealStateMap,
-      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
-      boolean isResourceEnabled) {
-    Map<String, String> instanceStateMap = new HashMap<String, String>();
+  private Map<String, String> computeCustomizedBestStateForPartition(
+      ResourceControllerDataProvider cache, StateModelDefinition stateModelDef,
+      Map<String, String> idealStateMap, Map<String, String> currentStateMap,
+      Set<String> disabledInstancesForPartition, boolean isResourceEnabled) {
+    Map<String, String> instanceStateMap = new HashMap<>();
 
     // if the ideal state is deleted, idealStateMap will be null/empty and
     // we should drop all resources.

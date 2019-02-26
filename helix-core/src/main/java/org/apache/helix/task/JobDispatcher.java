@@ -12,12 +12,9 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.apache.helix.AccessOption;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
@@ -27,18 +24,20 @@ import org.slf4j.LoggerFactory;
 
 public class JobDispatcher extends AbstractTaskDispatcher {
   private static final Logger LOG = LoggerFactory.getLogger(JobDispatcher.class);
-  private ClusterDataCache _clusterDataCache;
+
   private static final Set<TaskState> intemediateStates = new HashSet<>(
       Arrays.asList(TaskState.IN_PROGRESS, TaskState.NOT_STARTED, TaskState.STOPPING, TaskState.STOPPED));
+  private WorkflowControllerDataProvider _dataProvider;
 
-  public void updateCache(ClusterDataCache cache) {
-    _clusterDataCache = cache;
+
+  public void updateCache(WorkflowControllerDataProvider cache) {
+    _dataProvider = cache;
   }
 
   public ResourceAssignment processJobStatusUpdateAndAssignment(String jobName,
       CurrentStateOutput currStateOutput, WorkflowContext workflowCtx) {
     // Fetch job configuration
-    JobConfig jobCfg = _clusterDataCache.getJobConfig(jobName);
+    JobConfig jobCfg = _dataProvider.getJobConfig(jobName);
     if (jobCfg == null) {
       LOG.error("Job configuration is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -46,7 +45,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     String workflowResource = jobCfg.getWorkflow();
 
     // Fetch workflow configuration and context
-    WorkflowConfig workflowCfg = _clusterDataCache.getWorkflowConfig(workflowResource);
+    WorkflowConfig workflowCfg = _dataProvider.getWorkflowConfig(workflowResource);
     if (workflowCfg == null) {
       LOG.error("Workflow configuration is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -74,7 +73,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       LOG.info(String.format(
           "Workflow %s or job %s is already failed or completed, workflow state (%s), job state (%s), clean up job IS.",
           workflowResource, jobName, workflowState, jobState));
-      finishJobInRuntimeJobDag(_clusterDataCache, workflowResource, jobName);
+      finishJobInRuntimeJobDag(_dataProvider.getTaskDataCache(), workflowResource, jobName);
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
       _rebalanceScheduler.removeScheduledRebalance(jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -87,14 +86,14 @@ public class JobDispatcher extends AbstractTaskDispatcher {
 
     if (!TaskUtil.isJobStarted(jobName, workflowCtx) && !isJobReadyToSchedule(jobName, workflowCfg,
         workflowCtx, TaskUtil.getInCompleteJobCount(workflowCfg, workflowCtx),
-        _clusterDataCache.getJobConfigMap(), _clusterDataCache,
-        _clusterDataCache.getAssignableInstanceManager())) {
+        _dataProvider.getJobConfigMap(), _dataProvider,
+        _dataProvider.getAssignableInstanceManager())) {
       LOG.info("Job is not ready to run " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
     // Fetch any existing context information from the property store.
-    JobContext jobCtx = _clusterDataCache.getJobContext(jobName);
+    JobContext jobCtx = _dataProvider.getJobContext(jobName);
     if (jobCtx == null) {
       jobCtx = new JobContext(new ZNRecord(TaskUtil.TASK_CONTEXT_KW));
       jobCtx.setStartTime(System.currentTimeMillis());
@@ -117,8 +116,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // Fetch the previous resource assignment from the property store. This is required because of
     // HELIX-230.
     Set<String> liveInstances =
-        jobCfg.getInstanceGroupTag() == null ? _clusterDataCache.getEnabledLiveInstances()
-            : _clusterDataCache.getEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
+        jobCfg.getInstanceGroupTag() == null ? _dataProvider.getEnabledLiveInstances()
+            : _dataProvider.getEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
 
     if (liveInstances.isEmpty()) {
       LOG.error("No available instance found for job!");
@@ -157,11 +156,11 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     Set<Integer> partitionsToDrop = new TreeSet<>();
     ResourceAssignment newAssignment =
         computeResourceMapping(jobName, workflowCfg, jobCfg, jobState, jobTgtState, prevAssignment,
-            liveInstances, currStateOutput, workflowCtx, jobCtx, partitionsToDrop, _clusterDataCache);
+            liveInstances, currStateOutput, workflowCtx, jobCtx, partitionsToDrop, _dataProvider);
 
     // Update Workflow and Job context in data cache and ZK.
-    _clusterDataCache.updateJobContext(jobName, jobCtx);
-    _clusterDataCache.updateWorkflowContext(workflowResource, workflowCtx);
+    _dataProvider.updateJobContext(jobName, jobCtx);
+    _dataProvider.updateWorkflowContext(workflowResource, workflowCtx);
 
     setPrevResourceAssignment(jobName, newAssignment);
 
@@ -174,7 +173,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       WorkflowConfig workflowConfig, JobConfig jobCfg, TaskState jobState, TargetState jobTgtState,
       ResourceAssignment prevTaskToInstanceStateAssignment, Collection<String> liveInstances,
       CurrentStateOutput currStateOutput, WorkflowContext workflowCtx, JobContext jobCtx,
-      Set<Integer> partitionsToDropFromIs, ClusterDataCache cache) {
+      Set<Integer> partitionsToDropFromIs, WorkflowControllerDataProvider cache) {
 
     // Used to keep track of tasks that have already been assigned to instances.
     Set<Integer> assignedPartitions = new HashSet<>();
@@ -268,7 +267,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // can be dropped(note that Helix doesn't track whether the drop is success or not).
     if (jobState == TaskState.TIMING_OUT && isJobFinished(jobCtx, jobResource, currStateOutput)) {
       handleJobTimeout(jobCtx, workflowCtx, jobResource, jobCfg);
-      finishJobInRuntimeJobDag(cache, workflowConfig.getWorkflowId(), jobResource);
+      finishJobInRuntimeJobDag(cache.getTaskDataCache(), workflowConfig.getWorkflowId(), jobResource);
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
 
@@ -398,7 +397,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
    * @return
    */
   private TaskAssignmentCalculator getAssignmentCalculator(JobConfig jobConfig,
-      ClusterDataCache cache) {
+      WorkflowControllerDataProvider cache) {
     AssignableInstanceManager assignableInstanceManager = cache.getAssignableInstanceManager();
     if (TaskUtil.isGenericTaskJob(jobConfig)) {
       return new ThreadCountBasedTaskAssignmentCalculator(new ThreadCountBasedTaskAssigner(),

@@ -24,10 +24,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
@@ -45,7 +45,6 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.monitoring.mbeans.ResourceMonitor;
 import org.apache.helix.task.TaskConstants;
-import org.apache.helix.task.TaskRebalancer;
 import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,45 +65,40 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     final ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
 
     if (currentStateOutput == null || resourceMap == null || cache == null) {
       throw new StageException(
           "Missing attributes in event:" + event + ". Requires CURRENT_STATE|RESOURCES|DataCache");
     }
 
-    // Reset current INIT/RUNNING tasks on participants for throttling
-    cache.resetActiveTaskCount(currentStateOutput);
-
     final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
 
-    if (!cache.isTaskCache()) {
-      final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
-      final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();
-      asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
-        @Override
-        public Object call() {
-          try {
-            if (clusterStatusMonitor != null) {
-              clusterStatusMonitor
-                  .setPerInstanceResourceStatus(bestPossibleStateOutput, instanceConfigMap,
-                      resourceMap, stateModelDefMap);
-            }
-          } catch (Exception e) {
-            LogUtil
-                .logError(logger, _eventId, "Could not update cluster status metrics!", e);
+    final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
+    final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();
+    asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
+      @Override
+      public Object call() {
+        try {
+          if (clusterStatusMonitor != null) {
+            clusterStatusMonitor
+                .setPerInstanceResourceStatus(bestPossibleStateOutput, instanceConfigMap,
+                    resourceMap, stateModelDefMap);
           }
-          return null;
+        } catch (Exception e) {
+          LogUtil
+              .logError(logger, _eventId, "Could not update cluster status metrics!", e);
         }
-      });
-    }
+        return null;
+      }
+    });
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
       CurrentStateOutput currentStateOutput) {
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     BestPossibleStateOutput output = new BestPossibleStateOutput();
 
     HelixManager helixManager = event.getAttribute(AttributeName.helixmanager.name());
@@ -146,7 +140,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   }
 
   private void updateRebalanceStatus(final boolean hasFailure, final List<String> failedResources,
-      final HelixManager helixManager, final ClusterDataCache cache,
+      final HelixManager helixManager, final ResourceControllerDataProvider cache,
       final ClusterStatusMonitor clusterStatusMonitor, final String errorMessage) {
     asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
       @Override
@@ -177,7 +171,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
   // Check whether the offline/disabled instance count in the cluster reaches the set limit,
   // if yes, pause the rebalancer, and throw exception to terminate rebalance cycle.
-  private boolean validateOfflineInstancesLimit(final ClusterDataCache cache,
+  private boolean validateOfflineInstancesLimit(final ResourceControllerDataProvider cache,
       final HelixManager manager) {
     int maxOfflineInstancesAllowed = cache.getClusterConfig().getMaxOfflineInstancesAllowed();
     if (maxOfflineInstancesAllowed >= 0) {
@@ -203,7 +197,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     return true;
   }
 
-  private boolean computeResourceBestPossibleState(ClusterEvent event, ClusterDataCache cache,
+  private boolean computeResourceBestPossibleState(ClusterEvent event, ResourceControllerDataProvider cache,
       CurrentStateOutput currentStateOutput, Resource resource, BestPossibleStateOutput output) {
     // for each ideal state
     // read the state model def
@@ -227,13 +221,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     if (idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
       LogUtil.logWarn(logger, _eventId, String
           .format("Resource %s should not be processed by %s pipeline", resourceName,
-              cache.isTaskCache() ? "TASK" : "DEFAULT"));
+              cache.getPipelineName()));
       return false;
     }
 
-    Rebalancer rebalancer =
+    Rebalancer<ResourceControllerDataProvider> rebalancer =
         getRebalancer(idealState, resourceName, cache.isMaintenanceModeEnabled());
-    MappingCalculator mappingCalculator = getMappingCalculator(rebalancer, resourceName);
+    MappingCalculator<ResourceControllerDataProvider> mappingCalculator = getMappingCalculator(rebalancer, resourceName);
 
     if (rebalancer == null || mappingCalculator == null) {
       LogUtil.logError(logger, _eventId,
@@ -242,11 +236,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
 
     if (rebalancer != null && mappingCalculator != null) {
-      if (rebalancer instanceof TaskRebalancer) {
-        TaskRebalancer taskRebalancer = TaskRebalancer.class.cast(rebalancer);
-        taskRebalancer.setClusterStatusMonitor((ClusterStatusMonitor) event.getAttribute(AttributeName.clusterStatusMonitor.name()));
-      }
-
       ResourceAssignment partitionStateAssignment = null;
       try {
         HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
@@ -311,9 +300,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
   }
 
-  private Rebalancer getRebalancer(IdealState idealState, String resourceName,
+  private Rebalancer<ResourceControllerDataProvider> getRebalancer(IdealState idealState, String resourceName,
       boolean isMaintenanceModeEnabled) {
-    Rebalancer customizedRebalancer = null;
+    Rebalancer<ResourceControllerDataProvider> customizedRebalancer = null;
     String rebalancerClassName = idealState.getRebalancerClassName();
     if (rebalancerClassName != null) {
       if (logger.isDebugEnabled()) {
@@ -329,7 +318,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       }
     }
 
-    Rebalancer rebalancer = null;
+    Rebalancer<ResourceControllerDataProvider> rebalancer = null;
     switch (idealState.getRebalanceMode()) {
     case FULL_AUTO:
       if (isMaintenanceModeEnabled) {
@@ -343,7 +332,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       }
       break;
     case SEMI_AUTO:
-      rebalancer = new SemiAutoRebalancer();
+      rebalancer = new SemiAutoRebalancer<>();
       break;
     case CUSTOMIZED:
       rebalancer = new CustomRebalancer();
@@ -361,8 +350,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     return rebalancer;
   }
 
-  private MappingCalculator getMappingCalculator(Rebalancer rebalancer, String resourceName) {
-    MappingCalculator mappingCalculator = null;
+  private MappingCalculator<ResourceControllerDataProvider> getMappingCalculator(
+      Rebalancer<ResourceControllerDataProvider> rebalancer, String resourceName) {
+    MappingCalculator<ResourceControllerDataProvider> mappingCalculator = null;
 
     if (rebalancer != null) {
       try {
@@ -374,7 +364,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       }
     }
     if (mappingCalculator == null) {
-      mappingCalculator = new SemiAutoRebalancer();
+      mappingCalculator = new SemiAutoRebalancer<>();
     }
 
     return mappingCalculator;

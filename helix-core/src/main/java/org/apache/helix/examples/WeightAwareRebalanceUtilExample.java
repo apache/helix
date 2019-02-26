@@ -11,11 +11,9 @@ import org.apache.helix.controller.rebalancer.constraint.PartitionWeightAwareEve
 import org.apache.helix.controller.rebalancer.constraint.TotalCapacityConstraint;
 import org.apache.helix.controller.rebalancer.constraint.dataprovider.ZkBasedCapacityProvider;
 import org.apache.helix.controller.rebalancer.constraint.dataprovider.ZkBasedPartitionWeightProvider;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.util.WeightAwareRebalanceUtil;
 

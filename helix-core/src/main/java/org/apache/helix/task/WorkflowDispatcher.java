@@ -20,8 +20,8 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
@@ -35,10 +35,10 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
   private static final Logger LOG = LoggerFactory.getLogger(WorkflowDispatcher.class);
   private static final Set<TaskState> finalStates = new HashSet<>(
       Arrays.asList(TaskState.COMPLETED, TaskState.FAILED, TaskState.ABORTED, TaskState.TIMED_OUT));
-  private ClusterDataCache _clusterDataCache;
+  private WorkflowControllerDataProvider _clusterDataCache;
   private JobDispatcher _jobDispatcher;
 
-  public void updateCache(ClusterDataCache cache) {
+  public void updateCache(WorkflowControllerDataProvider cache) {
     _clusterDataCache = cache;
     if (_jobDispatcher == null) {
       _jobDispatcher = new JobDispatcher();
@@ -139,7 +139,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     }
 
     // Update jobs already inflight
-    RuntimeJobDag runtimeJobDag = _clusterDataCache.getRuntimeJobDag(workflow);
+    RuntimeJobDag runtimeJobDag = _clusterDataCache.getTaskDataCache().getRuntimeJobDag(workflow);
     if (runtimeJobDag != null) {
       for (String inflightJob : runtimeJobDag.getInflightJobList()) {
         processJob(inflightJob, currentStateOutput, bestPossibleOutput, workflowCtx);
@@ -201,7 +201,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
    */
   private void scheduleJobs(String workflow, WorkflowConfig workflowCfg,
       WorkflowContext workflowCtx, Map<String, JobConfig> jobConfigMap,
-      ClusterDataCache clusterDataCache, CurrentStateOutput currentStateOutput,
+      WorkflowControllerDataProvider clusterDataCache, CurrentStateOutput currentStateOutput,
       BestPossibleStateOutput bestPossibleOutput) {
     ScheduleConfig scheduleConfig = workflowCfg.getScheduleConfig();
     if (scheduleConfig != null && scheduleConfig.isRecurring()) {
@@ -212,7 +212,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     int inCompleteAllJobCount = TaskUtil.getInCompleteJobCount(workflowCfg, workflowCtx);
     int scheduledJobs = 0;
     long timeToSchedule = Long.MAX_VALUE;
-    JobDag jobDag = clusterDataCache.getRuntimeJobDag(workflow);
+    JobDag jobDag = clusterDataCache.getTaskDataCache().getRuntimeJobDag(workflow);
     if (jobDag == null) {
       jobDag = workflowCfg.getJobDag();
     }
@@ -281,13 +281,13 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
   private void processJob(String job, CurrentStateOutput currentStateOutput,
       BestPossibleStateOutput bestPossibleOutput, WorkflowContext workflowCtx) {
-    _clusterDataCache.dispatchJob(job);
+    _clusterDataCache.getTaskDataCache().dispatchJob(job);
     try {
       ResourceAssignment resourceAssignment =
           _jobDispatcher.processJobStatusUpdateAndAssignment(job, currentStateOutput, workflowCtx);
       updateBestPossibleStateOutput(job, resourceAssignment, bestPossibleOutput);
     } catch (Exception e) {
-      LogUtil.logWarn(LOG, _clusterDataCache.getEventId(),
+      LogUtil.logWarn(LOG, _clusterDataCache.getClusterEventId(),
           String.format("Failed to compute job assignment for job %s", job));
     }
   }

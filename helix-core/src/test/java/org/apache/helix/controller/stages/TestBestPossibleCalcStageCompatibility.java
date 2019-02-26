@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.Partition;
@@ -55,6 +56,8 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();
     runStage(event, stage1);
@@ -89,6 +92,8 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();
     runStage(event, stage1);

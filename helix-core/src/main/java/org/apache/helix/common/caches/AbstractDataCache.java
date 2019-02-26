@@ -27,31 +27,21 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.controller.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractDataCache<T extends HelixProperty> {
   private static Logger LOG = LoggerFactory.getLogger(AbstractDataCache.class.getName());
+  public static final String UNKNOWN_CLUSTER = "UNKNOWN_CLUSTER";
   public static final String UNKNOWN_EVENT_ID = "NO_ID";
-  private static final String UNKNOWN_PIPELINE = "UNKNOWN_PIPELINE";
-  private String _eventId = UNKNOWN_EVENT_ID;
-  private String _pipelineName = UNKNOWN_PIPELINE;
+  public static final String UNKNOWN_PIPELINE = "UNKNOWN_PIPELINE";
 
-  public String getEventId() {
-    return _eventId;
-  }
+  protected ControlContextProvider _controlContextProvider;
 
-  public void setEventId(String eventId) {
-    _eventId = eventId;
-  }
-
-  public String getPipelineName() {
-    return _pipelineName;
-  }
-
-  public void setPipelineName(String pipelineName) {
-    _pipelineName = pipelineName;
+  public AbstractDataCache(ControlContextProvider controlContextProvider) {
+    _controlContextProvider = controlContextProvider;
   }
 
   /**
@@ -98,7 +88,7 @@ public abstract class AbstractDataCache<T extends HelixProperty> {
       }
     }
 
-    LogUtil.logInfo(LOG, getEventId(), String.format("%s properties refreshed from ZK.", reloadKeys.size()));
+    LogUtil.logInfo(LOG, genEventInfo(), String.format("%s properties refreshed from ZK.", reloadKeys.size()));
     if (LOG.isDebugEnabled()) {
       LOG.debug("refreshed keys: " + reloadKeys);
     }
@@ -106,8 +96,43 @@ public abstract class AbstractDataCache<T extends HelixProperty> {
     return refreshedPropertyMap;
   }
 
+  protected String genEventInfo() {
+    return String.format("%s::%s::%s", _controlContextProvider.getClusterName(),
+        _controlContextProvider.getPipelineName(), _controlContextProvider.getClusterEventId());
+  }
+
   public AbstractDataSnapshot getSnapshot() {
     throw new HelixException(String.format("DataCache %s does not support generating snapshot.",
         getClass().getSimpleName()));
+  }
+
+  // for backward compatibility, used in scenarios where we only initialize child
+  // classes with cluster name
+  protected static ControlContextProvider createDefaultControlContextProvider(
+      final String clusterName) {
+    return new ControlContextProvider() {
+      private String _clusterName = clusterName;
+      private String _eventId = UNKNOWN_EVENT_ID;
+
+      @Override
+      public String getClusterName() {
+        return _clusterName;
+      }
+
+      @Override
+      public String getClusterEventId() {
+        return _eventId;
+      }
+
+      @Override
+      public void setClusterEventId(String eventId) {
+        _eventId = eventId;
+      }
+
+      @Override
+      public String getPipelineName() {
+        return UNKNOWN_PIPELINE;
+      }
+    };
   }
 }

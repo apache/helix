@@ -28,7 +28,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -247,7 +247,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
       } catch (Exception e) {
         return false;
       }
-      ClusterDataCache cache = new ClusterDataCache();
+      ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
       cache.refresh(accessor);
 
       IdealState idealState = cache.getIdealState(_resourceName);

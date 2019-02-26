@@ -26,6 +26,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
@@ -64,9 +65,9 @@ public class TestResourceValidationStage {
 
     // refresh the cache
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
-    ClusterDataCache cache = new ClusterDataCache();
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     cache.refresh(accessor);
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
     // run resource computation
     new ResourceComputationStage().process(event);
@@ -99,9 +100,9 @@ public class TestResourceValidationStage {
 
     // refresh the cache
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
-    ClusterDataCache cache = new ClusterDataCache();
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     cache.refresh(accessor);
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
     // run resource computation
     new ResourceComputationStage().process(event);
@@ -129,9 +130,9 @@ public class TestResourceValidationStage {
 
     // refresh the cache
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
-    ClusterDataCache cache = new ClusterDataCache();
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     cache.refresh(accessor);
-    event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
     // run resource computation
     new ResourceComputationStage().process(event);

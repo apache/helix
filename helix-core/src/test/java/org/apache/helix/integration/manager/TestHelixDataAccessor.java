@@ -11,7 +11,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.common.ZkTestBase;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.MockZkClient;
@@ -75,8 +75,8 @@ public class TestHelixDataAccessor extends ZkTestBase {
   }
 
   @Test (expectedExceptions = {HelixMetaDataAccessException.class})
-  public void testClusterDataCache() {
-    ClusterDataCache cache = new ClusterDataCache("MyCluster");
+  public void testDataProviderRefresh() {
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider("MyCluster");
     cache.refresh(accessor);
   }
 }

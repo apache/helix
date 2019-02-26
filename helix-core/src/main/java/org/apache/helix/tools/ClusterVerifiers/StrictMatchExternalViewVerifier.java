@@ -28,12 +28,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
@@ -172,7 +171,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     try {
       PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
       // read cluster once and do verification
-      ClusterDataCache cache = new ClusterDataCache();
+      ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
       cache.refresh(_accessor);
 
       Map<String, IdealState> idealStates = new HashMap<>(cache.getIdealStates());
@@ -237,7 +236,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     }
   }
 
-  private boolean verifyExternalView(ClusterDataCache dataCache, ExternalView externalView,
+  private boolean verifyExternalView(ResourceControllerDataProvider dataCache, ExternalView externalView,
       IdealState idealState) {
     Map<String, Map<String, String>> mappingInExtview = externalView.getRecord().getMapFields();
     Map<String, Map<String, String>> idealPartitionState;
@@ -273,8 +272,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     return mappingInExtview.equals(idealPartitionState);
   }
 
-  private Map<String, Map<String, String>> computeIdealPartitionState(ClusterDataCache cache,
-      IdealState idealState) {
+  private Map<String, Map<String, String>> computeIdealPartitionState(
+      ResourceControllerDataProvider cache, IdealState idealState) {
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
 

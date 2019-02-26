@@ -30,6 +30,7 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.IdealState;
@@ -61,7 +62,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
-    ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
 
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     CurrentStateOutput currentStateOutput =
@@ -253,7 +254,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
    * Each IdealState must have a constraint object associated with it
    */
   private Map<String, Bounds> computeStateConstraints(StateModelDefinition stateModelDefinition,
-      IdealState idealState, ClusterDataCache cache) {
+      IdealState idealState, ResourceControllerDataProvider cache) {
     Map<String, Bounds> stateConstraints = new HashMap<String, Bounds>();
 
     List<String> statePriorityList = stateModelDefinition.getStatesPriorityList();

@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.strategy;
+package org.apache.helix.common.controllers;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,17 +19,32 @@ package org.apache.helix.controller.rebalancer.strategy;
  * under the License.
  */
 
-import org.apache.helix.controller.ResourceControllerDataProvider;
-
 /**
- * CRUSH-ed, CRUSH with even distribution. This is an Auto rebalance strategy based on CRUSH algorithm.
- * This gives even partition distribution, but number of partitions to be reshuffled during node outage could be high.
+ * An interface that provide controller contexts
  */
-public class CrushEdRebalanceStrategy extends AbstractEvenDistributionRebalanceStrategy {
-  private final RebalanceStrategy<ResourceControllerDataProvider> _baseStrategy =
-      new CrushRebalanceStrategy();
+public interface ControlContextProvider {
 
-  protected RebalanceStrategy<ResourceControllerDataProvider> getBaseRebalanceStrategy() {
-    return _baseStrategy;
-  }
+  /**
+   * Get the name of the cluster this control pipeline is responsible for
+   * @return clusterName
+   */
+  String getClusterName();
+
+  /**
+   * Get the id of the cluster event that is currently being processed
+   * @return event id
+   */
+  String getClusterEventId();
+
+  /**
+   * Set the id of the cluster event that is currently being processed
+   * @param eventId event id
+   */
+  void setClusterEventId(String eventId);
+
+  /**
+   * Get control pipeline (controller) name
+   * @return
+   */
+  String getPipelineName();
 }

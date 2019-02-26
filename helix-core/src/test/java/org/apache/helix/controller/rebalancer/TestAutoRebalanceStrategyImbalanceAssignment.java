@@ -25,8 +25,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -67,7 +67,7 @@ public class TestAutoRebalanceStrategyImbalanceAssignment {
 
     AutoRebalanceStrategy strategy = new AutoRebalanceStrategy(resourceName, partitions, states);
     ZNRecord record = strategy.computePartitionAssignment(instanceNames, instanceNames,
-        new HashMap<String, Map<String, String>>(0), new ClusterDataCache());
+        new HashMap<String, Map<String, String>>(0), new ResourceControllerDataProvider());
 
     for (Map<String, String> stateMapping : record.getMapFields().values()) {
       Assert.assertEquals(stateMapping.size(), nReplicas);

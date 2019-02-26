@@ -19,6 +19,7 @@ package org.apache.helix.tools;
  * under the License.
  */
 
+import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,8 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.collect.Sets;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
@@ -47,12 +46,12 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.listeners.PreFetch;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
@@ -197,9 +196,8 @@ public class ClusterStateVerifier {
       try {
         PropertyKey.Builder keyBuilder = accessor.keyBuilder();
         // read cluster once and do verification
-        ClusterDataCache cache = new ClusterDataCache(clusterName);
+        ResourceControllerDataProvider cache = new ResourceControllerDataProvider(clusterName);
         cache.refresh(accessor);
-        cache.setTaskCache(false);
 
         Map<String, IdealState> idealStates = new HashMap<>(cache.getIdealStates());
 
@@ -342,10 +340,10 @@ public class ClusterStateVerifier {
      * @return
      * @throws Exception
      */
-    private BestPossibleStateOutput calcBestPossState(ClusterDataCache cache, Set<String> resources)
-        throws Exception {
+    private BestPossibleStateOutput calcBestPossState(ResourceControllerDataProvider cache,
+        Set<String> resources) throws Exception {
       ClusterEvent event = new ClusterEvent(ClusterEventType.StateVerifier);
-      event.addAttribute(AttributeName.ClusterDataCache.name(), cache);
+      event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
       ResourceComputationStage rcState = new ResourceComputationStage();
       CurrentStateComputationStage csStage = new CurrentStateComputationStage();

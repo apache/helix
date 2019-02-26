@@ -3,6 +3,7 @@ package org.apache.helix.controller.stages;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.helix.HelixManager;
+import org.apache.helix.controller.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
@@ -22,25 +23,26 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
 
   @Override
   public void execute(ClusterEvent event) {
-    ClusterDataCache clusterDataCache = event.getAttribute(AttributeName.ClusterDataCache.name());
+    WorkflowControllerDataProvider dataProvider =
+        event.getAttribute(AttributeName.ControllerDataProvider.name());
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
 
-    if (clusterDataCache == null || manager == null) {
+    if (dataProvider == null || manager == null) {
       LOG.warn(
-          "ClusterDataCache or HelixManager is null for event {}({}) in cluster {}. Skip TaskGarbageCollectionStage.",
+          "ResourceControllerDataProvider or HelixManager is null for event {}({}) in cluster {}. Skip TaskGarbageCollectionStage.",
           event.getEventId(), event.getEventType(), event.getClusterName());
       return;
     }
 
     Set<WorkflowConfig> existingWorkflows =
-        new HashSet<>(clusterDataCache.getWorkflowConfigMap().values());
+        new HashSet<>(dataProvider.getWorkflowConfigMap().values());
     for (WorkflowConfig workflowConfig : existingWorkflows) {
       // clean up the expired jobs if it is a queue.
       if (workflowConfig != null && (!workflowConfig.isTerminable() || workflowConfig
           .isJobQueue())) {
         try {
           TaskUtil.purgeExpiredJobs(workflowConfig.getWorkflowId(), workflowConfig,
-              clusterDataCache.getWorkflowContext(workflowConfig.getWorkflowId()), manager,
+              dataProvider.getWorkflowContext(workflowConfig.getWorkflowId()), manager,
               _rebalanceScheduler);
         } catch (Exception e) {
           LOG.warn(String.format("Failed to purge job for workflow %s with reason %s",

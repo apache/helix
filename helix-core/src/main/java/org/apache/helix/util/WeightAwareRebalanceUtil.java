@@ -5,10 +5,10 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceHardConstraint;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceSoftConstraint;
+import org.apache.helix.controller.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.rebalancer.strategy.ConstraintRebalanceStrategy;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.*;
 
 import java.util.*;
@@ -25,7 +25,7 @@ public class WeightAwareRebalanceUtil {
   private final Map<String, InstanceConfig> _instanceConfigMap = new HashMap<>();
   // For the possible customized state models.
   private final Map<String, StateModelDefinition> _stateModelDefs = new HashMap<>();
-  private final ClusterDataCache _dataCache;
+  private final ResourceControllerDataProvider _dataCache;
 
   private enum RebalanceOption {
     INCREMENTAL,
@@ -55,7 +55,7 @@ public class WeightAwareRebalanceUtil {
     clusterConfig.setDisabledInstances(Collections.<String, String>emptyMap());
     _clusterConfig = clusterConfig;
 
-    _dataCache = new ClusterDataCache();
+    _dataCache = new ResourceControllerDataProvider();
     _dataCache.setInstanceConfigMap(_instanceConfigMap);
     _dataCache.setClusterConfig(_clusterConfig);
     List<LiveInstance> liveInstanceList = new ArrayList<>();

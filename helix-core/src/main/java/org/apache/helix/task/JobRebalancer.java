@@ -33,7 +33,6 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
@@ -56,8 +55,8 @@ public class JobRebalancer extends TaskRebalancer {
   private JobDispatcher _jobDispatcher;
 
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData, IdealState taskIs,
-      Resource resource, CurrentStateOutput currStateOutput) {
+  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
+      IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput) {
     long startTime = System.currentTimeMillis();
     final String jobName = resource.getResourceName();
     LOG.debug("Computer Best Partition for job: " + jobName);

@@ -19,11 +19,13 @@ package org.apache.helix.controller;
  * under the License.
  */
 
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -37,6 +39,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.Type;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
@@ -154,19 +157,14 @@ public class GenericHelixController implements IdealStateChangeListener,
    */
   Timer _periodicalRebalanceTimer = null;
 
-  /**
-   * The timer to schedule ad hoc forced rebalance or retry rebalance event.
-   */
-  Timer _forceRebalanceTimer = null;
-
   long _timerPeriod = Long.MAX_VALUE;
 
   /**
    * A cache maintained across pipelines
    */
-  private ResourceControllerDataProvider _resourceControlDataProvider;
-  private WorkflowControllerDataProvider _workflowControlDataProvider;
-  private ScheduledExecutorService _asyncTasksThreadPool;
+  private final ResourceControllerDataProvider _resourceControlDataProvider;
+  private final WorkflowControllerDataProvider _workflowControlDataProvider;
+  private final ScheduledExecutorService _asyncTasksThreadPool;
 
   /**
    * A record of last pipeline finish duration
@@ -174,8 +172,10 @@ public class GenericHelixController implements IdealStateChangeListener,
   private long _lastPipelineEndTimestamp;
 
   private String _clusterName;
+  private final Set<PipelineTypes> _enabledPipelineTypes;
 
-  enum PipelineTypes {
+  // TODO: move this enum to Pipeline class
+  public enum PipelineTypes {
     DEFAULT,
     TASK
   }
@@ -192,12 +192,18 @@ public class GenericHelixController implements IdealStateChangeListener,
 
   public GenericHelixController(String clusterName) {
     this(createDefaultRegistry(PipelineTypes.DEFAULT.name()),
-        createTaskRegistry(PipelineTypes.TASK.name()), clusterName);
+        createTaskRegistry(PipelineTypes.TASK.name()), clusterName,
+        Sets.newHashSet(PipelineTypes.TASK, PipelineTypes.DEFAULT));
+  }
+
+  public GenericHelixController(String clusterName, Set<PipelineTypes> enabledPipelins) {
+    this(createDefaultRegistry(PipelineTypes.DEFAULT.name()),
+        createTaskRegistry(PipelineTypes.TASK.name()), clusterName, enabledPipelins);
   }
 
   class RebalanceTask extends TimerTask {
-    HelixManager _manager;
-    ClusterEventType _clusterEventType;
+    final HelixManager _manager;
+    final ClusterEventType _clusterEventType;
 
     public RebalanceTask(HelixManager manager, ClusterEventType clusterEventType) {
       _manager = manager;
@@ -208,15 +214,18 @@ public class GenericHelixController implements IdealStateChangeListener,
     public void run() {
       try {
         if (_clusterEventType.equals(ClusterEventType.PeriodicalRebalance)) {
-          _resourceControlDataProvider.requireFullRefresh();
-          _workflowControlDataProvider.requireFullRefresh();
-          _resourceControlDataProvider.refresh(_manager.getHelixDataAccessor());
-          if (_resourceControlDataProvider.getLiveInstances() != null) {
+          requestDataProvidersFullRefresh();
+
+          HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+          PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+          Map<String, LiveInstance> liveInstanceMap =
+              accessor.getChildValuesMap(keyBuilder.liveInstances());
+
+          if (liveInstanceMap != null && !liveInstanceMap.isEmpty()) {
             NotificationContext changeContext = new NotificationContext(_manager);
             changeContext.setType(NotificationContext.Type.CALLBACK);
             synchronized (_manager) {
-              checkLiveInstancesObservation(new ArrayList<>(
-                      _resourceControlDataProvider.getLiveInstances().values()),
+              checkLiveInstancesObservation(new ArrayList<>(liveInstanceMap.values()),
                   changeContext);
             }
           }
@@ -378,45 +387,60 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
   }
 
+  // TODO: refactor the constructor as providing both registry but only enabling one looks confusing
   public GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry) {
-    this(registry, taskRegistry, null);
+    this(registry, taskRegistry, null, Sets.newHashSet(PipelineTypes.TASK, PipelineTypes.DEFAULT));
   }
 
   private GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry,
-      final String clusterName) {
+      final String clusterName, Set<PipelineTypes> enabledPipelineTypes) {
     _paused = false;
+    _enabledPipelineTypes = enabledPipelineTypes;
     _registry = registry;
     _taskRegistry = taskRegistry;
     _lastSeenInstances = new AtomicReference<>();
     _lastSeenSessions = new AtomicReference<>();
     _clusterName = clusterName;
+    _lastPipelineEndTimestamp = TopStateHandoffReportStage.TIMESTAMP_NOT_RECORDED;
+    _clusterStatusMonitor = new ClusterStatusMonitor(_clusterName);
+
     _asyncTasksThreadPool =
         Executors.newScheduledThreadPool(ASYNC_TASKS_THREADPOOL_SIZE, new ThreadFactory() {
           @Override public Thread newThread(Runnable r) {
             return new Thread(r, "HelixController-async_tasks-" + _clusterName);
           }
         });
-
-    _eventQueue = new ClusterEventBlockingQueue();
-    _taskEventQueue = new ClusterEventBlockingQueue();
-
     _asyncFIFOWorkerPool = new HashMap<>();
-
-    _resourceControlDataProvider = new ResourceControllerDataProvider(clusterName);
-    _workflowControlDataProvider = new WorkflowControllerDataProvider(clusterName);
-
-    _eventThread = new ClusterEventProcessor(_resourceControlDataProvider, _eventQueue, "default-" + clusterName);
-    _taskEventThread =
-        new ClusterEventProcessor(_workflowControlDataProvider, _taskEventQueue, "task-" + clusterName);
-
-    _forceRebalanceTimer = new Timer();
-    _lastPipelineEndTimestamp = TopStateHandoffReportStage.TIMESTAMP_NOT_RECORDED;
-
     initializeAsyncFIFOWorkers();
-    initPipelines(_eventThread, _resourceControlDataProvider, false);
-    initPipelines(_taskEventThread, _workflowControlDataProvider, true);
 
-    _clusterStatusMonitor = new ClusterStatusMonitor(_clusterName);
+    // initialize pipelines at the end so we have everything else prepared
+    if (_enabledPipelineTypes.contains(PipelineTypes.DEFAULT)) {
+      logger.info("Initializing {} pipeline", PipelineTypes.DEFAULT.name());
+      _resourceControlDataProvider = new ResourceControllerDataProvider(clusterName);
+      _eventQueue = new ClusterEventBlockingQueue();
+      _eventThread = new ClusterEventProcessor(_resourceControlDataProvider, _eventQueue,
+          "default-" + clusterName);
+      initPipeline(_eventThread, _resourceControlDataProvider);
+      logger.info("Initialized {} pipeline", PipelineTypes.DEFAULT.name());
+    } else {
+      _eventQueue = null;
+      _resourceControlDataProvider = null;
+      _eventThread = null;
+    }
+
+    if (_enabledPipelineTypes.contains(PipelineTypes.TASK)) {
+      logger.info("Initializing {} pipeline", PipelineTypes.TASK.name());
+      _workflowControlDataProvider = new WorkflowControllerDataProvider(clusterName);
+      _taskEventQueue = new ClusterEventBlockingQueue();
+      _taskEventThread = new ClusterEventProcessor(_workflowControlDataProvider, _taskEventQueue,
+          "task-" + clusterName);
+      initPipeline(_taskEventThread, _workflowControlDataProvider);
+      logger.info("Initialized {} pipeline", PipelineTypes.TASK.name());
+    } else {
+      _workflowControlDataProvider = null;
+      _taskEventQueue = null;
+      _taskEventThread = null;
+    }
   }
 
   private void initializeAsyncFIFOWorkers() {
@@ -490,7 +514,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       } else {
         // TODO: should be in the initialization of controller.
         if (_resourceControlDataProvider != null) {
-          checkRebalancingTimer(manager, Collections.EMPTY_LIST, dataProvider.getClusterConfig());
+          checkRebalancingTimer(manager, Collections.<IdealState>emptyList(), dataProvider.getClusterConfig());
         }
         if (_isMonitoring) {
           event.addAttribute(AttributeName.clusterStatusMonitor.name(), _clusterStatusMonitor);
@@ -498,9 +522,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       }
     }
 
-
     dataProvider.setClusterEventId(event.getEventId());
-
     event.addAttribute(AttributeName.LastRebalanceFinishTimeStamp.name(), _lastPipelineEndTimestamp);
 
     // Prepare ClusterEvent
@@ -531,7 +553,6 @@ public class GenericHelixController implements IdealStateChangeListener,
     long startTime = System.currentTimeMillis();
     boolean rebalanceFail = false;
     for (Pipeline pipeline : pipelines) {
-      // TODO (harry): use controller's own class name after splitting controller out
       event.addAttribute(AttributeName.PipelineType.name(), pipeline.getPipelineType());
       try {
         pipeline.handle(event);
@@ -661,10 +682,7 @@ public class GenericHelixController implements IdealStateChangeListener,
   public void onLiveInstanceChange(List<LiveInstance> liveInstances,
       NotificationContext changeContext) {
     logger.info("START: Generic GenericClusterController.onLiveInstanceChange() for cluster " + _clusterName);
-    if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
-      _resourceControlDataProvider.requireFullRefresh();
-      _workflowControlDataProvider.requireFullRefresh();
-    }
+    notifyCaches(changeContext, ChangeType.LIVE_INSTANCE);
 
     if (liveInstances == null) {
       liveInstances = Collections.emptyList();
@@ -731,7 +749,12 @@ public class GenericHelixController implements IdealStateChangeListener,
         Collections.<String, Object>emptyMap());
 
     if (changeContext.getType() != Type.FINALIZE) {
-      checkRebalancingTimer(changeContext.getManager(), idealStates, _resourceControlDataProvider.getClusterConfig());
+      HelixManager manager = changeContext.getManager();
+      if (manager != null) {
+        HelixDataAccessor dataAccessor = changeContext.getManager().getHelixDataAccessor();
+        checkRebalancingTimer(changeContext.getManager(), idealStates,
+            (ClusterConfig) dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig()));
+      }
     }
 
     logger.info("END: GenericClusterController.onIdealStateChange() for cluster " + _clusterName);
@@ -778,11 +801,29 @@ public class GenericHelixController implements IdealStateChangeListener,
 
   private void notifyCaches(NotificationContext context, ChangeType changeType) {
     if (context == null || context.getType() != Type.CALLBACK) {
-      _resourceControlDataProvider.requireFullRefresh();
-      _workflowControlDataProvider.requireFullRefresh();
+      requestDataProvidersFullRefresh();
     } else {
-      _resourceControlDataProvider.notifyDataChange(changeType, context.getPathChanged());
-      _workflowControlDataProvider.notifyDataChange(changeType, context.getPathChanged());
+      updateDataChangeInProvider(changeType, context.getPathChanged());
+    }
+  }
+
+  private void updateDataChangeInProvider(ChangeType type, String path) {
+    if (_resourceControlDataProvider != null) {
+      _resourceControlDataProvider.notifyDataChange(type, path);
+    }
+
+    if (_workflowControlDataProvider != null) {
+      _workflowControlDataProvider.notifyDataChange(type, path);
+    }
+  }
+
+  private void requestDataProvidersFullRefresh() {
+    if (_resourceControlDataProvider != null) {
+      _resourceControlDataProvider.requireFullRefresh();
+    }
+
+    if (_workflowControlDataProvider != null) {
+      _workflowControlDataProvider.requireFullRefresh();
     }
   }
 
@@ -798,8 +839,16 @@ public class GenericHelixController implements IdealStateChangeListener,
     for (Map.Entry<String, Object> attr : eventAttributes.entrySet()) {
       event.addAttribute(attr.getKey(), attr.getValue());
     }
-    _eventQueue.put(event);
-    _taskEventQueue.put(event.clone(String.format("%s_%s", uid, PipelineTypes.TASK.name())));
+    enqueueEvent(_eventQueue, event);
+    enqueueEvent(_taskEventQueue,
+        event.clone(String.format("%s_%s", uid, PipelineTypes.TASK.name())));
+  }
+
+  private void enqueueEvent(ClusterEventBlockingQueue queue, ClusterEvent event) {
+    if (event == null || queue == null) {
+      return;
+    }
+    queue.put(event);
   }
 
   @Override
@@ -919,11 +968,11 @@ public class GenericHelixController implements IdealStateChangeListener,
   public void shutdown() throws InterruptedException {
     stopPeriodRebalance();
 
-    terminateEventThread(_eventThread);
-    terminateEventThread(_taskEventThread);
+    logger.info("Shutting down {} pipeline", PipelineTypes.DEFAULT.name());
+    shutdownPipeline(_eventThread, _eventQueue);
 
-    _eventQueue.clear();
-    _taskEventQueue.clear();
+    logger.info("Shutting down {} pipeline", PipelineTypes.TASK.name());
+    shutdownPipeline(_taskEventThread, _taskEventQueue);
 
     // shutdown asycTasksThreadpool and wait for terminate.
     _asyncTasksThreadPool.shutdownNow();
@@ -972,10 +1021,17 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
   }
 
-  private void terminateEventThread(Thread thread) throws InterruptedException {
-    while (thread.isAlive()) {
-      thread.interrupt();
-      thread.join(EVENT_THREAD_JOIN_TIMEOUT);
+  private void shutdownPipeline(Thread thread, ClusterEventBlockingQueue queue)
+      throws InterruptedException {
+    if (queue != null) {
+      queue.clear();
+    }
+
+    if (thread != null) {
+      while (thread.isAlive()) {
+        thread.interrupt();
+        thread.join(EVENT_THREAD_JOIN_TIMEOUT);
+      }
     }
   }
 
@@ -1048,7 +1104,11 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
   }
 
-  private void initPipelines(Thread eventThread, BaseControllerDataProvider cache, boolean isTask) {
+  private void initPipeline(Thread eventThread, BaseControllerDataProvider cache) {
+    if (eventThread == null || cache == null) {
+      logger.warn("pipeline cannot be initialized");
+      return;
+    }
     cache.setAsyncTasksThreadPool(_asyncTasksThreadPool);
 
     eventThread.setDaemon(true);

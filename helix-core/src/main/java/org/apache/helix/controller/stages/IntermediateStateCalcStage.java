@@ -41,6 +41,7 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
@@ -241,8 +242,12 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
                     + "stop the rebalance and put the cluster %s into maintenance mode",
                 instance, maxPartitionPerInstance, cache.getClusterName());
             if (manager != null) {
-              manager.getClusterManagmentTool().enableMaintenanceMode(manager.getClusterName(),
-                  true, errMsg);
+              if (manager.getHelixDataAccessor()
+                  .getProperty(manager.getHelixDataAccessor().keyBuilder().maintenance()) == null) {
+                manager.getClusterManagmentTool().autoEnableMaintenanceMode(
+                    manager.getClusterName(), true, errMsg,
+                    MaintenanceSignal.AutoTriggerReason.MAX_PARTITION_PER_INSTANCE_EXCEEDED);
+              }
               LogUtil.logWarn(logger, _eventId, errMsg);
             } else {
               LogUtil.logError(logger, _eventId,
@@ -257,7 +262,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
               clusterStatusMonitor.setResourceRebalanceStates(Collections.singletonList(resource),
                   ResourceMonitor.RebalanceStatus.INTERMEDIATE_STATE_CAL_FAILED);
             }
-
+            // Throw an exception here so that messages won't be sent out based on this mapping
             throw new HelixException(errMsg);
           }
           instancePartitionCounts.put(instance, partitionCount);

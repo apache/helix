@@ -76,6 +76,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private ClusterConfig _clusterConfig;
 
   private boolean _updateInstanceOfflineTime = true;
+  private MaintenanceSignal _maintenanceSignal;
   private boolean _isMaintenanceModeEnabled;
   private ExecutorService _asyncTasksThreadPool;
 
@@ -268,8 +269,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   private void updateMaintenanceInfo(final HelixDataAccessor accessor) {
-    MaintenanceSignal maintenanceSignal = accessor.getProperty(accessor.keyBuilder().maintenance());
-    _isMaintenanceModeEnabled = maintenanceSignal != null;
+    _maintenanceSignal = accessor.getProperty(accessor.keyBuilder().maintenance());
+    _isMaintenanceModeEnabled = _maintenanceSignal != null;
   }
 
   private void updateIdealRuleMap() {
@@ -687,6 +688,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   public boolean isMaintenanceModeEnabled() {
     return _isMaintenanceModeEnabled;
+  }
+
+  public MaintenanceSignal getMaintenanceSignal() {
+    return _maintenanceSignal;
   }
 
   protected StringBuilder genCacheContentStringBuilder() {

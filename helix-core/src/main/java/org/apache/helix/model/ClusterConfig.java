@@ -415,11 +415,12 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
-   * Sets Maintenance recovery threshold so that the cluster could auto-exit maintenance mode.
+   * Sets the number of offline instances for auto-exit threshold so that MaintenanceRecoveryStage
+   * could use this number to determine whether the cluster could auto-exit maintenance mode.
    * Values less than 0 will disable auto-exit.
    * @param maintenanceRecoveryThreshold
    */
-  public void setMaintenanceRecoveryThreshold(int maintenanceRecoveryThreshold)
+  public void setNumOfflineInstancesForAutoExit(int maintenanceRecoveryThreshold)
       throws HelixException {
     int maxOfflineInstancesAllowed = getMaxOfflineInstancesAllowed();
     if (maxOfflineInstancesAllowed >= 0) {
@@ -434,22 +435,22 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
-   * Returns Maintenance recovery threshold. In order for the cluster to auto-exit maintenance mode,
+   * Returns number of offline instances for auto-exit threshold. In order for the cluster to
+   * auto-exit maintenance mode,
    * the number of offline/disabled instances must be less than or equal to this threshold.
    * -1 indicates that there will be no auto-exit.
    * @return
    */
-  public int getMaintenanceRecoveryThreshold() {
-    return _record.getIntField(ClusterConfigProperty.NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT.name(), -1);
+  public int getNumOfflineInstancesForAutoExit() {
+    return _record.getIntField(ClusterConfigProperty.NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT.name(),
+        -1);
   }
 
   /**
    * Set the resource prioritization field. It should be Integer field and sortable.
-   *
    * IMPORTANT: The sorting order is DESCENDING order, which means the larger number will have
    * higher priority. If user did not set up the field in ResourceConfig or IdealState or the field
    * is not parseable, Helix will treat it as lowest priority.
-   *
    * @param priorityField
    */
   public void setResourcePriorityField(String priorityField) {

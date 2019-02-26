@@ -115,9 +115,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
   @Override
   public boolean createMaintenance(MaintenanceSignal maintenanceSignal) {
-    return _baseDataAccessor
-        .create(PropertyPathBuilder.maintenance(_clusterName), maintenanceSignal.getRecord(),
-            AccessOption.PERSISTENT);
+    return _baseDataAccessor.set(PropertyPathBuilder.maintenance(_clusterName),
+        maintenanceSignal.getRecord(), AccessOption.PERSISTENT);
   }
 
   @Override

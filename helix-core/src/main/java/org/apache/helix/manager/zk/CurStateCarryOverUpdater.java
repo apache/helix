@@ -22,6 +22,9 @@ package org.apache.helix.manager.zk;
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.TaskPartitionState;
+
 
 /**
  * updater for carrying over last current states
@@ -47,7 +50,7 @@ class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
 
   @Override
   public ZNRecord update(ZNRecord currentData) {
-    CurrentState curState = null;
+    CurrentState curState;
     if (currentData == null) {
       curState = new CurrentState(_lastCurState.getId());
       // copy all simple fields settings and overwrite session-id to current session
@@ -58,9 +61,16 @@ class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
     }
 
     for (String partitionName : _lastCurState.getPartitionStateMap().keySet()) {
-      // carry-over only when current-state not exist
-      if (curState.getState(partitionName) == null) {
-        curState.setState(partitionName, _initState);
+      // For tasks, we preserve previous session's CurrentStates and set RequestState to DROPPED so
+      // that they will be dropped by the Controller
+      if (_lastCurState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
+        curState.setState(partitionName, _lastCurState.getState(partitionName));
+        curState.setRequestedState(partitionName, TaskPartitionState.DROPPED.name());
+      } else {
+        // carry-over only when current-state does not exist for regular Helix resource partitions
+        if (curState.getState(partitionName) == null) {
+          curState.setState(partitionName, _initState);
+        }
       }
     }
     return curState.getRecord();

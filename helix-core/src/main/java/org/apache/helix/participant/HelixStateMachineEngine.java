@@ -45,6 +45,8 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
+import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.TaskPartitionState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -215,14 +217,22 @@ public class HelixStateMachineEngine implements StateMachineEngine {
       _stateModelDefs.put(stateModelName, stateModelDef);
     }
 
-    if (message.getBatchMessageMode() == false) {
+    if (!message.getBatchMessageMode()) {
       String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialState();
       StateModel stateModel = stateModelFactory.getStateModel(resourceName, partitionKey);
       if (stateModel == null) {
         stateModel = stateModelFactory.createAndAddStateModel(resourceName, partitionKey);
-        stateModel.updateState(initState);
+        if (stateModelName.equals(TaskConstants.STATE_MODEL_NAME)
+            && message.getToState().equals(TaskPartitionState.DROPPED.name())) {
+          // If stateModel is null, that means there was a reboot of the Participant. Then the
+          // purpose of this first message must be to drop the task. We manually set the current
+          // state to be the same state of fromState (which Controller inferred from JobContext) to
+          // allow the Participant to successfully process this dropping transition
+          stateModel.updateState(message.getFromState());
+        } else {
+          stateModel.updateState(initState);
+        }
       }
-
       if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
         return new HelixStateTransitionCancellationHandler(stateModel, message, context);
       } else {

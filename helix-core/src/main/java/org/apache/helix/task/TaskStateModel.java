@@ -21,7 +21,9 @@ package org.apache.helix.task;
 
 import java.util.Map;
 import java.util.TimerTask;
-import java.util.concurrent.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
@@ -189,8 +191,13 @@ public class TaskStateModel extends StateModel {
   public void onBecomeDroppedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String.format(
-          "Invalid state transition. There is no running task for partition %s.", taskPartition));
+      if (timeout_task != null) {
+        timeout_task.cancel(true);
+      }
+      LOG.error(
+          "The thread running the task partition {} was not found while attempting to cancel this task; Manual cleanup may be required for this task.",
+          taskPartition);
+      return;
     }
 
     _taskRunner.cancel();

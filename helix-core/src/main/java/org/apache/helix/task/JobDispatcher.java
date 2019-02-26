@@ -25,10 +25,10 @@ import org.slf4j.LoggerFactory;
 public class JobDispatcher extends AbstractTaskDispatcher {
   private static final Logger LOG = LoggerFactory.getLogger(JobDispatcher.class);
 
-  private static final Set<TaskState> intemediateStates = new HashSet<>(
-      Arrays.asList(TaskState.IN_PROGRESS, TaskState.NOT_STARTED, TaskState.STOPPING, TaskState.STOPPED));
+  // Intermediate states (meaning they are not terminal states) for workflows and jobs
+  private static final Set<TaskState> INTERMEDIATE_STATES = new HashSet<>(Arrays
+      .asList(TaskState.IN_PROGRESS, TaskState.NOT_STARTED, TaskState.STOPPING, TaskState.STOPPED));
   private WorkflowControllerDataProvider _dataProvider;
-
 
   public void updateCache(WorkflowControllerDataProvider cache) {
     _dataProvider = cache;
@@ -127,7 +127,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     jobState = workflowCtx.getJobState(jobName);
     workflowState = workflowCtx.getWorkflowState();
 
-    if (intemediateStates.contains(jobState) && (isTimeout(jobCtx.getStartTime(), jobCfg.getTimeout())
+    if (INTERMEDIATE_STATES.contains(jobState) && (isTimeout(jobCtx.getStartTime(), jobCfg.getTimeout())
         || TaskState.TIMED_OUT.equals(workflowState))) {
       jobState = TaskState.TIMING_OUT;
       workflowCtx.setJobState(jobName, TaskState.TIMING_OUT);
@@ -206,7 +206,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
 
     Map<String, SortedSet<Integer>> prevInstanceToTaskAssignments =
         getPrevInstanceToTaskAssignments(liveInstances, prevTaskToInstanceStateAssignment,
-            allPartitions);
+            allPartitions, currStateOutput, jobResource);
     long currentTime = System.currentTimeMillis();
 
     if (LOG.isDebugEnabled()) {
@@ -365,25 +365,50 @@ public class JobDispatcher extends AbstractTaskDispatcher {
    * @param liveInstances
    * @param prevAssignment task partition -> (instance -> state)
    * @param allTaskPartitions all task partitionIds
+   * @param currStateOutput currentStates to make sure currentStates copied over expired sessions
+   *          are accounted for
+   * @param jobName job name
    * @return instance -> partitionIds from previous assignment, if the instance is still live
    */
   private static Map<String, SortedSet<Integer>> getPrevInstanceToTaskAssignments(
       Iterable<String> liveInstances, ResourceAssignment prevAssignment,
-      Set<Integer> allTaskPartitions) {
-    Map<String, SortedSet<Integer>> result = new HashMap<String, SortedSet<Integer>>();
+      Set<Integer> allTaskPartitions, CurrentStateOutput currStateOutput, String jobName) {
+    Map<String, SortedSet<Integer>> result = new HashMap<>();
     for (String instance : liveInstances) {
       result.put(instance, new TreeSet<Integer>());
     }
 
+    // First, add all task partitions from JobContext
     for (Partition partition : prevAssignment.getMappedPartitions()) {
       int pId = TaskUtil.getPartitionId(partition.getPartitionName());
       if (allTaskPartitions.contains(pId)) {
         Map<String, String> replicaMap = prevAssignment.getReplicaMap(partition);
         for (String instance : replicaMap.keySet()) {
-          SortedSet<Integer> pList = result.get(instance);
-          if (pList != null) {
-            pList.add(pId);
+          SortedSet<Integer> pIdSet = result.get(instance);
+          if (pIdSet != null) {
+            pIdSet.add(pId);
           }
+        }
+      }
+    }
+
+    // Add all pIds existing in CurrentStateOutput as well because task currentStates copied over
+    // from previous sessions won't show up in prevInstanceToTaskAssignments
+    // We need to add these back here in order for these task partitions to be dropped (after a
+    // copy-over, the Controller will send a message to drop the state currentState)
+    // partitions: (partition -> instance -> currentState)
+    Map<Partition, Map<String, String>> partitions = currStateOutput.getCurrentStateMap(jobName);
+    for (Map.Entry<Partition, Map<String, String>> entry : partitions.entrySet()) {
+      // Get all (instance -> currentState) mappings
+      for (Map.Entry<String, String> instanceToCurrState : entry.getValue().entrySet()) {
+        String instance = instanceToCurrState.getKey();
+        String requestedState =
+            currStateOutput.getRequestedState(jobName, entry.getKey(), instance);
+        int pId = TaskUtil.getPartitionId(entry.getKey().getPartitionName());
+        if (result.containsKey(instance) && requestedState != null
+            && requestedState.equals(TaskPartitionState.DROPPED.name())) {
+          // Only if this instance is live and requestedState is DROPPED
+          result.get(instance).add(pId);
         }
       }
     }

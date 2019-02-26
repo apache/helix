@@ -22,6 +22,7 @@ package org.apache.helix.rest.server;
 import com.google.common.collect.ImmutableMap;
 import com.sun.research.ws.wadl.HTTPMethods;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -52,7 +53,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestClusterAccessor extends AbstractTestClass {
-  ObjectMapper _mapper = new ObjectMapper();
 
   @BeforeClass
   public void beforeClass() {
@@ -68,12 +68,12 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     _auditLogger.clearupLogs();
     String body = get("clusters", Response.Status.OK.getStatusCode(), true);
-    JsonNode node = _mapper.readTree(body);
+    JsonNode node = OBJECT_MAPPER.readTree(body);
     String clustersStr = node.get(ClusterAccessor.ClusterProperties.clusters.name()).toString();
     Assert.assertNotNull(clustersStr);
 
-    Set<String> clusters = _mapper.readValue(clustersStr,
-        _mapper.getTypeFactory().constructCollectionType(Set.class, String.class));
+    Set<String> clusters = OBJECT_MAPPER.readValue(clustersStr,
+        OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
     Assert.assertEquals(clusters, _clusters,
         "clusters from response: " + clusters + " vs clusters actually: " + _clusters);
 
@@ -255,7 +255,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertNotNull(signal);
     Assert.assertEquals(reason, signal.getReason());
     post("clusters/" + cluster, ImmutableMap.of("command", "disableMaintenanceMode"),
-        Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode());
     Assert.assertNull(accessor.getProperty(accessor.keyBuilder().maintenance()));
   }
@@ -304,13 +304,12 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
 
     // Get the maintenance history JSON's last entry
-    String maintenanceHistory = get("clusters/" + cluster + "/controller/maintenanceHistory",
-        Response.Status.OK.getStatusCode(), true);
+    String maintenanceHistory =
+        get("clusters/" + cluster + "/controller/maintenanceHistory", Response.Status.OK.getStatusCode(), true);
     Map<String, Object> maintenanceHistoryMap =
         OBJECT_MAPPER.readValue(maintenanceHistory, new TypeReference<HashMap<String, Object>>() {
         });
-    Object maintenanceHistoryList =
-        maintenanceHistoryMap.get(AbstractResource.Properties.maintenanceHistory.name());
+    Object maintenanceHistoryList = maintenanceHistoryMap.get(AbstractResource.Properties.maintenanceHistory.name());
     Assert.assertNotNull(maintenanceHistoryList);
     List<?> list = (List<?>) maintenanceHistoryList;
     Assert.assertTrue(list.size() > 0);
@@ -318,6 +317,35 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // Check that the last entry contains the reason string
     Assert.assertTrue(lastMaintenanceEntry.contains(reason));
+  }
+
+  @Test(dependsOnMethods = "testEnableDisableMaintenanceMode")
+  public void testEnableDisableMaintenanceModeWithCustomFields() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    String reason = "Test reason";
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+
+    String customFields = "{\"key1\":\"value1\",\"key2\":\"value2\"}";
+    // Note that URLEncoder.encode has to be used due to a Jersey bug
+    // See https://github.com/Mercateo/rest-schemagen/issues/51
+    post("clusters/" + cluster,
+        ImmutableMap.of("command", "enableMaintenanceMode", "customFields",
+            URLEncoder.encode(customFields)),
+        Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+
+    MaintenanceSignal signal = accessor.getProperty(accessor.keyBuilder().maintenance());
+    Assert.assertNotNull(signal);
+    Assert.assertEquals(reason, signal.getReason());
+    Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
+    Map<String, String> simpleFields = signal.getRecord().getSimpleFields();
+    Assert.assertEquals(simpleFields.get("key1"), "value1");
+    Assert.assertEquals(simpleFields.get("key2"), "value2");
+
+    post("clusters/" + cluster, ImmutableMap.of("command", "disableMaintenanceMode"),
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+    Assert.assertFalse(
+        accessor.getBaseDataAccessor().exists(accessor.keyBuilder().maintenance().getPath(), 0));
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {
@@ -337,7 +365,7 @@ public class TestClusterAccessor extends AbstractTestClass {
       Command command) throws IOException {
     _auditLogger.clearupLogs();
     Entity entity = Entity
-        .entity(_mapper.writeValueAsString(newConfig.getRecord()), MediaType.APPLICATION_JSON_TYPE);
+        .entity(OBJECT_MAPPER.writeValueAsString(newConfig.getRecord()), MediaType.APPLICATION_JSON_TYPE);
     post("clusters/" + cluster + "/configs", ImmutableMap.of("command", command.name()), entity,
         Response.Status.OK.getStatusCode());
 

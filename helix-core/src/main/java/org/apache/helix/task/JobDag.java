@@ -23,9 +23,10 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
+
 import java.util.TreeMap;
 import java.util.TreeSet;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -39,20 +40,29 @@ public class JobDag {
   private static final Logger LOG = LoggerFactory.getLogger(JobDag.class);
 
   @JsonProperty("parentsToChildren")
-  private Map<String, Set<String>> _parentsToChildren;
+  protected Map<String, Set<String>> _parentsToChildren;
 
   @JsonProperty("childrenToParents")
-  private Map<String, Set<String>> _childrenToParents;
+  protected Map<String, Set<String>> _childrenToParents;
 
   @JsonProperty("allNodes")
   private Set<String> _allNodes;
+  protected Set<String> _independentNodes; // Un-parented nodes are stored to avoid repeated calculation
+  // unless there is a DAG modification
 
   public static final JobDag EMPTY_DAG = new JobDag();
 
+  /**
+   * Constructor for Job DAG.
+   */
   public JobDag() {
-    _parentsToChildren = new TreeMap<String, Set<String>>();
-    _childrenToParents = new TreeMap<String, Set<String>>();
-    _allNodes = new TreeSet<String>();
+    // TreeMap and TreeSet (vs Hash equivalents) are used to maintain ordering of jobs. Note that
+    // nomenclature for jobs (namespacing jobs) is WORKFLOW_NAME + DATETIME + ..., this ordering
+    // determines the order in which ZNodes are stored in Zookeeper, and therefore the order in
+    // which they are processed by the Controller pipeline.
+    _parentsToChildren = new TreeMap<>();
+    _childrenToParents = new TreeMap<>();
+    _allNodes = new TreeSet<>();
   }
 
   public void addParentToChild(String parent, String child) {
@@ -80,7 +90,7 @@ public class JobDag {
     }
 
     if (_childrenToParents.containsKey(child)) {
-      Set<String> parents =  _childrenToParents.get(child);
+      Set<String> parents = _childrenToParents.get(child);
       parents.remove(parent);
       if (parents.isEmpty()) {
         _childrenToParents.remove(child);
@@ -93,7 +103,7 @@ public class JobDag {
   }
 
   /**
-   * must make sure no other node dependence before removing the node
+   * Checks if there are any lingering inter-node dependency for a node prior to removal.
    */
   private void removeNode(String node) {
     if (_parentsToChildren.containsKey(node) || _childrenToParents.containsKey(node)) {
@@ -112,7 +122,7 @@ public class JobDag {
    */
   public void removeNode(String job, boolean maintainDependency) {
     if (!_allNodes.contains(job)) {
-      LOG.info("Could not delete job " + job + " from DAG, node does not exist");
+      LOG.info("Could not delete job {} from DAG, node does not exist", job);
       return;
     }
     if (maintainDependency) {
@@ -159,32 +169,32 @@ public class JobDag {
 
   public Set<String> getDirectChildren(String node) {
     if (!_parentsToChildren.containsKey(node)) {
-      return new TreeSet<String>();
+      return Collections.emptySet();
     }
     return _parentsToChildren.get(node);
   }
 
   public Set<String> getDirectParents(String node) {
     if (!_childrenToParents.containsKey(node)) {
-      return new TreeSet<String>();
+      return Collections.emptySet();
     }
     return _childrenToParents.get(node);
   }
 
   public Set<String> getAncestors(String node) {
-    Set<String> ret = new TreeSet<String>();
+    Set<String> ancestors = new HashSet<>();
     Set<String> current = Collections.singleton(node);
 
     while (!current.isEmpty()) {
-      Set<String> next = new TreeSet<String>();
+      Set<String> next = new HashSet<>();
       for (String currentNode : current) {
         next.addAll(getDirectParents(currentNode));
       }
-      ret.addAll(next);
+      ancestors.addAll(next);
       current = next;
     }
 
-    return ret;
+    return ancestors;
   }
 
   public String toJson() throws IOException {
@@ -207,24 +217,18 @@ public class JobDag {
    * Checks that dag contains no cycles and all nodes are reachable.
    */
   public void validate() {
-    Set<String> prevIteration = new TreeSet<String>();
-
-    // get all unparented nodes
-    for (String node : _allNodes) {
-      if (getDirectParents(node).isEmpty()) {
-        prevIteration.add(node);
-      }
-    }
+    computeIndependentNodes();
+    Set<String> prevIteration = _independentNodes;
 
     // visit children nodes up to max iteration count, by which point we should have exited
     // naturally
-    Set<String> allNodesReached = new TreeSet<String>();
+    Set<String> allNodesReached = new HashSet<>();
     int iterationCount = 0;
     int maxIterations = _allNodes.size() + 1;
 
     while (!prevIteration.isEmpty() && iterationCount < maxIterations) {
       // construct set of all children reachable from prev iteration
-      Set<String> thisIteration = new TreeSet<String>();
+      Set<String> thisIteration = new HashSet<>();
       for (String node : prevIteration) {
         thisIteration.addAll(getDirectChildren(node));
       }
@@ -243,6 +247,20 @@ public class JobDag {
     if (!allNodesReached.containsAll(_allNodes)) {
       throw new IllegalArgumentException("DAG invalid: unreachable nodes found. Reachable set is "
           + allNodesReached);
+    }
+  }
+
+  /**
+   * Computes nodes that are independent stores it in _independentNodes.
+   * Independent nodes are a set of un-parented nodes, which implies jobs corresponding to these
+   * nodes may be scheduled without worrying about the status of other jobs.
+   */
+  protected void computeIndependentNodes() {
+    _independentNodes = new HashSet<>();
+    for (String node : _allNodes) {
+      if (!_childrenToParents.containsKey(node)) {
+        _independentNodes.add(node);
+      }
     }
   }
 }

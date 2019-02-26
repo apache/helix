@@ -41,10 +41,12 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
+import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.AbstractResource.Command;
 import org.apache.helix.rest.server.resources.helix.ClusterAccessor;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -188,12 +190,12 @@ public class TestClusterAccessor extends AbstractTestClass {
     // create an existing cluster should fail.
     _auditLogger.clearupLogs();
     String cluster = _clusters.iterator().next();
-    put("clusters/" + cluster, null, Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
+    put("clusters/" + cluster, null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
 
     // create a new cluster
     cluster = "NewCluster";
-    put("clusters/" + cluster, null, Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
+    put("clusters/" + cluster, null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
 
     // verify the cluster has been created.
@@ -214,7 +216,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     String cluster = _clusters.iterator().next();
     _auditLogger.clearupLogs();
     post("clusters/" + cluster, ImmutableMap.of("command", "disable"),
-        Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode());
 
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(cluster);
@@ -223,7 +225,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // enable a cluster.
     post("clusters/" + cluster, ImmutableMap.of("command", "enable"),
-        Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode());
 
     // verify the cluster is paused.
@@ -256,6 +258,66 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode());
     Assert.assertNull(accessor.getProperty(accessor.keyBuilder().maintenance()));
+  }
+
+  @Test
+  public void testGetControllerLeadershipHistory() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+
+    // Get the leader controller name for the cluster
+    String leader =
+        get("clusters/" + cluster + "/controller", Response.Status.OK.getStatusCode(), true);
+    Map<String, String> leaderMap =
+        OBJECT_MAPPER.readValue(leader, new TypeReference<HashMap<String, String>>() {
+        });
+    Assert.assertNotNull(leaderMap, "Controller leader cannot be null!");
+    leader = leaderMap.get("controller");
+    Assert.assertNotNull(leader, "Leader name cannot be null!");
+
+    // Get the controller leadership history JSON's last entry
+    String leadershipHistory = get("clusters/" + cluster + "/controller/history",
+        Response.Status.OK.getStatusCode(), true);
+    Map<String, Object> leadershipHistoryMap =
+        OBJECT_MAPPER.readValue(leadershipHistory, new TypeReference<HashMap<String, Object>>() {
+        });
+    Assert.assertNotNull(leadershipHistoryMap, "Leadership history cannot be null!");
+    Object leadershipHistoryList =
+        leadershipHistoryMap.get(AbstractResource.Properties.history.name());
+    Assert.assertNotNull(leadershipHistoryList);
+    List<?> list = (List<?>) leadershipHistoryList;
+    Assert.assertTrue(list.size() > 0);
+    String lastLeaderEntry = (String) list.get(list.size() - 1);
+
+    // Check that the last entry contains the current leader name
+    Assert.assertTrue(lastLeaderEntry.contains(leader));
+  }
+
+  @Test
+  public void testGetMaintenanceHistory() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    String reason = TestHelper.getTestMethodName();
+
+    // Enable maintenance mode
+    post("clusters/" + cluster, ImmutableMap.of("command", "enableMaintenanceMode"),
+        Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+
+    // Get the maintenance history JSON's last entry
+    String maintenanceHistory = get("clusters/" + cluster + "/controller/maintenanceHistory",
+        Response.Status.OK.getStatusCode(), true);
+    Map<String, Object> maintenanceHistoryMap =
+        OBJECT_MAPPER.readValue(maintenanceHistory, new TypeReference<HashMap<String, Object>>() {
+        });
+    Object maintenanceHistoryList =
+        maintenanceHistoryMap.get(AbstractResource.Properties.maintenanceHistory.name());
+    Assert.assertNotNull(maintenanceHistoryList);
+    List<?> list = (List<?>) maintenanceHistoryList;
+    Assert.assertTrue(list.size() > 0);
+    String lastMaintenanceEntry = (String) list.get(list.size() - 1);
+
+    // Check that the last entry contains the reason string
+    Assert.assertTrue(lastMaintenanceEntry.contains(reason));
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {

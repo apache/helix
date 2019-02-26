@@ -62,7 +62,7 @@ public class ControllerHistory extends HelixProperty {
     EXIT
   }
 
-  public enum HistoryUpdaterType {
+  public enum HistoryType {
     CONTROLLER_LEADERSHIP,
     MAINTENANCE
   }

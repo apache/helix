@@ -324,20 +324,16 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @GET
   @Path("{clusterId}/controller/history")
-  public Response getClusterControllerHistory(@PathParam("clusterId") String clusterId) {
-    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    Map<String, Object> controllerHistory = new HashMap<>();
-    controllerHistory.put(Properties.id.name(), clusterId);
+  public Response getClusterControllerLeadershipHistory(@PathParam("clusterId") String clusterId) {
+    return JSONRepresentation(getControllerHistory(clusterId,
+        ControllerHistory.HistoryType.CONTROLLER_LEADERSHIP));
+  }
 
-    ControllerHistory history =
-        dataAccessor.getProperty(dataAccessor.keyBuilder().controllerLeaderHistory());
-    if (history != null) {
-      controllerHistory.put(Properties.history.name(), history.getHistoryList());
-    } else {
-      controllerHistory.put(Properties.history.name(), Collections.emptyList());
-    }
-
-    return JSONRepresentation(controllerHistory);
+  @GET
+  @Path("{clusterId}/controller/maintenanceHistory")
+  public Response getClusterMaintenanceHistory(@PathParam("clusterId") String clusterId) {
+    return JSONRepresentation(
+        getControllerHistory(clusterId, ControllerHistory.HistoryType.MAINTENANCE));
   }
 
   @GET
@@ -396,5 +392,35 @@ public class ClusterAccessor extends AbstractHelixResource {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Reads HISTORY ZNode from the metadata store and generates a Map object that contains the
+   * pertinent history entries depending on the history type.
+   * @param clusterId
+   * @param historyType
+   * @return
+   */
+  private Map<String, Object> getControllerHistory(String clusterId,
+      ControllerHistory.HistoryType historyType) {
+    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+    Map<String, Object> history = new HashMap<>();
+    history.put(Properties.id.name(), clusterId);
+
+    ControllerHistory historyRecord =
+        dataAccessor.getProperty(dataAccessor.keyBuilder().controllerLeaderHistory());
+
+    switch (historyType) {
+    case CONTROLLER_LEADERSHIP:
+      history.put(Properties.history.name(),
+          historyRecord != null ? historyRecord.getHistoryList() : Collections.emptyList());
+      break;
+    case MAINTENANCE:
+      history.put(Properties.maintenanceHistory.name(),
+          historyRecord != null ? historyRecord.getMaintenanceHistoryList()
+              : Collections.emptyList());
+      break;
+    }
+    return history;
   }
 }

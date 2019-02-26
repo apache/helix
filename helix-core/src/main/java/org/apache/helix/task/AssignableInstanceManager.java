@@ -274,13 +274,13 @@ public class AssignableInstanceManager {
       return true;
     }
     switch (state) {
-      case ABORTED:
-      case FAILED:
-      case STOPPED:
-      case COMPLETED:
-      case TIMED_OUT:
-      case NOT_STARTED:
-        return true;
+    case ABORTED:
+    case FAILED:
+    case STOPPED:
+    case COMPLETED:
+    case TIMED_OUT:
+    case NOT_STARTED:
+      return true;
     }
     return false;
   }

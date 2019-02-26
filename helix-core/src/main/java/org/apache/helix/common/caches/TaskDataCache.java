@@ -220,8 +220,8 @@ public class TaskDataCache extends AbstractDataCache {
       }
     }
 
-    boolean[] updateSuccess =
-        accessor.getBaseDataAccessor().setChildren(contextUpdatePaths, contextUpdateData, AccessOption.PERSISTENT);
+    boolean[] updateSuccess = accessor.getBaseDataAccessor()
+        .setChildren(contextUpdatePaths, contextUpdateData, AccessOption.PERSISTENT);
 
     for (int i = 0; i < updateSuccess.length; i++) {
       if (updateSuccess[i]) {

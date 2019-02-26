@@ -572,11 +572,6 @@ public class GenericHelixController implements IdealStateChangeListener,
               _lastPipelineEndTimestamp
               - startTime) + " ms"));
       logger.info(sb.toString());
-    } else if (_isMonitoring) {
-      // report workflow status
-      TaskDriver driver = new TaskDriver(manager);
-      _clusterStatusMonitor.refreshWorkflowsStatus(driver);
-      _clusterStatusMonitor.refreshJobsStatus(driver);
     }
 
     // If event handling happens before controller deactivate, the process may write unnecessary

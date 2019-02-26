@@ -61,9 +61,9 @@ public class ReadClusterDataStage extends AbstractBaseStage {
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
     _cache.refresh(dataAccessor);
     final ClusterConfig clusterConfig = cache.getClusterConfig();
+    final ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
     if (!_cache.isTaskCache()) {
-      final ClusterStatusMonitor clusterStatusMonitor =
-          event.getAttribute(AttributeName.clusterStatusMonitor.name());
       asyncExecute(_cache.getAsyncTasksThreadPool(), new Callable<Object>() {
         @Override public Object call() {
           // Update the cluster status gauges
@@ -101,6 +101,16 @@ public class ReadClusterDataStage extends AbstractBaseStage {
                     disabledPartitions, oldDisabledPartitions, tags);
             LogUtil.logDebug(logger, _eventId, "Complete cluster status monitors update.");
           }
+          return null;
+        }
+      });
+    } else {
+      asyncExecute(_cache.getAsyncTasksThreadPool(), new Callable<Object>() {
+        @Override
+        public Object call() {
+          clusterStatusMonitor.refreshWorkflowsStatus(_cache);
+          clusterStatusMonitor.refreshJobsStatus(_cache);
+          LogUtil.logDebug(logger, _eventId, "Workflow/Job gauge status successfully refreshed");
           return null;
         }
       });

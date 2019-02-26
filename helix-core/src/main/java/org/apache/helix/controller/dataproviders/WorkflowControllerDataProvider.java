@@ -42,9 +42,9 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Data provider for resource controller.
+ * Data provider for workflow controller.
  *
- * This class will be moved to helix-resource-controller module in the future
+ * This class will be moved to helix-workflow-controller module in the future
  */
 public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
   private static final Logger logger =

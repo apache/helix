@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.HelixConfigProperty;
@@ -59,8 +60,13 @@ public class ClusterConfig extends HelixProperty {
     RESOURCE_PRIORITY_FIELD,
     REBALANCE_TIMER_PERIOD,
     MAX_CONCURRENT_TASK_PER_INSTANCE,
+
+    // The following concerns maintenance mode
     MAX_PARTITIONS_PER_INSTANCE,
+    // The following two include offline AND disabled instances
     MAX_OFFLINE_INSTANCES_ALLOWED,
+    NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT, // For auto-exiting maintenance mode
+
     TARGET_EXTERNALVIEW_ENABLED,
     @Deprecated // ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE will take
         // precedence if it is set
@@ -406,6 +412,35 @@ public class ClusterConfig extends HelixProperty {
    */
   public int getMaxOfflineInstancesAllowed() {
     return _record.getIntField(ClusterConfigProperty.MAX_OFFLINE_INSTANCES_ALLOWED.name(), -1);
+  }
+
+  /**
+   * Sets Maintenance recovery threshold so that the cluster could auto-exit maintenance mode.
+   * Values less than 0 will disable auto-exit.
+   * @param maintenanceRecoveryThreshold
+   */
+  public void setMaintenanceRecoveryThreshold(int maintenanceRecoveryThreshold)
+      throws HelixException {
+    int maxOfflineInstancesAllowed = getMaxOfflineInstancesAllowed();
+    if (maxOfflineInstancesAllowed >= 0) {
+      // MaintenanceRecoveryThreshold must be more strict than maxOfflineInstancesAllowed
+      if (maintenanceRecoveryThreshold > maxOfflineInstancesAllowed) {
+        throw new HelixException(
+            "Maintenance recovery threshold must be less than equal to maximum offline instances allowed!");
+      }
+    }
+    _record.setIntField(ClusterConfigProperty.NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT.name(),
+        maintenanceRecoveryThreshold);
+  }
+
+  /**
+   * Returns Maintenance recovery threshold. In order for the cluster to auto-exit maintenance mode,
+   * the number of offline/disabled instances must be less than or equal to this threshold.
+   * -1 indicates that there will be no auto-exit.
+   * @return
+   */
+  public int getMaintenanceRecoveryThreshold() {
+    return _record.getIntField(ClusterConfigProperty.NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT.name(), -1);
   }
 
   /**

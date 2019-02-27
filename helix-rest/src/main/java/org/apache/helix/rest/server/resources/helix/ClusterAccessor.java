@@ -158,7 +158,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   @Path("{clusterId}")
   public Response updateCluster(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, @QueryParam("superCluster") String superCluster,
-      @QueryParam("customFields") String customFields, String content) {
+      String content) {
     Command command;
     try {
       command = getCommand(commandStr);
@@ -211,20 +211,21 @@ public class ClusterAccessor extends AbstractHelixResource {
 
     case enableMaintenanceMode:
     case disableMaintenanceMode:
+      // Try to parse the content string. If parseable, use it as a KV mapping. Otherwise, treat it
+      // as a REASON String
+      Map<String, String> customFieldsMap = null;
       try {
-        Map<String, String> customFieldsMap = new HashMap<>();
-        if (customFields != null && !customFields.isEmpty()) {
-          customFieldsMap = OBJECT_MAPPER.readValue(customFields,
-              new TypeReference<HashMap<String, String>>() {
-              });
-        }
-        helixAdmin.manuallyEnableMaintenanceMode(clusterId,
-            command == Command.enableMaintenanceMode, content, customFieldsMap);
-      } catch (Exception ex) {
-        _logger.error("Failed to disable maintenance mode for cluster {}. Exception: {}", clusterId,
-            ex);
-        return serverError(ex);
+        // Try to parse content
+        customFieldsMap =
+            OBJECT_MAPPER.readValue(content, new TypeReference<HashMap<String, String>>() {
+            });
+        // content is given as a KV mapping. Nullify content
+        content = null;
+      } catch (Exception e) {
+        // NOP
       }
+      helixAdmin.manuallyEnableMaintenanceMode(clusterId, command == Command.enableMaintenanceMode,
+          content, customFieldsMap);
       break;
 
     default:
@@ -233,7 +234,6 @@ public class ClusterAccessor extends AbstractHelixResource {
 
     return OK();
   }
-
 
   @GET
   @Path("{clusterId}/configs")

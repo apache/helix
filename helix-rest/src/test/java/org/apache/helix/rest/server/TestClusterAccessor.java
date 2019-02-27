@@ -20,7 +20,6 @@ package org.apache.helix.rest.server;
  */
 
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -337,20 +336,16 @@ public class TestClusterAccessor extends AbstractTestClass {
   public void testEnableDisableMaintenanceModeWithCustomFields() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
-    String reason = "Test reason";
     HelixDataAccessor accessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
 
-    String customFields = "{\"key1\":\"value1\",\"key2\":\"value2\"}";
-    // Note that URLEncoder.encode has to be used due to a Jersey bug
-    // See https://github.com/Mercateo/rest-schemagen/issues/51
-    post("clusters/" + cluster,
-        ImmutableMap.of("command", "enableMaintenanceMode", "customFields",
-            URLEncoder.encode(customFields)),
-        Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+    String content = "{\"key1\":\"value1\",\"key2\":\"value2\"}";
+    post("clusters/" + cluster, ImmutableMap.of("command", "enableMaintenanceMode"),
+        Entity.entity(content, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
 
     MaintenanceSignal signal = accessor.getProperty(accessor.keyBuilder().maintenance());
     Assert.assertNotNull(signal);
-    Assert.assertEquals(reason, signal.getReason());
+    Assert.assertNull(signal.getReason());
     Assert.assertEquals(signal.getTriggeringEntity(), MaintenanceSignal.TriggeringEntity.USER);
     Map<String, String> simpleFields = signal.getRecord().getSimpleFields();
     Assert.assertEquals(simpleFields.get("key1"), "value1");

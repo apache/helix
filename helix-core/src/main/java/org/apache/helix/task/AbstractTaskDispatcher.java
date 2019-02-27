@@ -47,20 +47,42 @@ public abstract class AbstractTaskDispatcher {
       ResourceAssignment prevTaskToInstanceStateAssignment, TaskState jobState,
       Map<String, Set<Integer>> assignedPartitions, Set<Integer> partitionsToDropFromIs,
       Map<Integer, PartitionAssignment> paMap, TargetState jobTgtState,
-      Set<Integer> skippedPartitions, WorkflowControllerDataProvider cache) {
+      Set<Integer> skippedPartitions, WorkflowControllerDataProvider cache,
+      Map<String, Set<Integer>> tasksToDrop) {
 
     // Get AssignableInstanceMap for releasing resources for tasks in terminal states
     AssignableInstanceManager assignableInstanceManager = cache.getAssignableInstanceManager();
 
     // Iterate through all instances
     for (String instance : prevInstanceToTaskAssignments.keySet()) {
+      assignedPartitions.put(instance, new HashSet<Integer>());
+
+      // Set all dropping transitions first. These are tasks coming from Participant disconnects
+      // that have some active current state (INIT or RUNNING) and the requestedState of DROPPED.
+      // These need to be prioritized over any other state transitions because of the race condition
+      // with the same pId (task) running on other instances. This is because in paMap, we can only
+      // define one transition per pId
+      if (tasksToDrop.containsKey(instance)) {
+        for (int pIdToDrop : tasksToDrop.get(instance)) {
+          paMap.put(pIdToDrop,
+              new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
+          assignedPartitions.get(instance).add(pIdToDrop);
+        }
+      }
+
       if (excludedInstances.contains(instance)) {
         continue;
       }
 
       // If not an excluded instance, we must instantiate its entry in assignedPartitions
-      assignedPartitions.put(instance, new HashSet<Integer>());
       Set<Integer> pSet = prevInstanceToTaskAssignments.get(instance);
+
+      // We need to remove all task pId's to be dropped because we already made an assignment in
+      // paMap above for them to be dropped. The following does this.
+      if (tasksToDrop.containsKey(instance)) {
+        pSet.removeAll(tasksToDrop.get(instance));
+      }
+
       // Used to keep track of partitions that are in one of the final states: COMPLETED, TIMED_OUT,
       // TASK_ERROR, ERROR.
       Set<Integer> donePartitions = new TreeSet<>();
@@ -123,7 +145,14 @@ public abstract class AbstractTaskDispatcher {
             continue;
           }
 
-          paMap.put(pId, new PartitionAssignment(instance, requestedState.name()));
+          // This contains check is necessary because we have already traversed pIdsToDrop at the
+          // beginning of this method. If we already have a dropping transition, we do not want to
+          // overwrite it. Any other requestedState transitions (for example, INIT to RUNNING or
+          // RUNNING to COMPLETE, can wait without affecting correctness - they will be picked up
+          // in ensuing runs of the Task pipeline)
+          if (!paMap.containsKey(pId)) {
+            paMap.put(pId, new PartitionAssignment(instance, requestedState.name()));
+          }
           assignedPartitions.get(instance).add(pId);
           if (LOG.isDebugEnabled()) {
             LOG.debug(

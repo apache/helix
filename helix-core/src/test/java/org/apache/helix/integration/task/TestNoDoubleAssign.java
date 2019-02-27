@@ -45,7 +45,7 @@ import com.google.common.collect.ImmutableMap;
 public class TestNoDoubleAssign extends TaskTestBase {
   private static final int THREAD_COUNT = 20;
   private static final long CONNECTION_DELAY = 100L;
-  private static final long POLL_DELAY = 100L;
+  private static final long POLL_DELAY = 50L;
   private static final String TASK_DURATION = "200";
   private static final Random RANDOM = new Random();
 
@@ -102,8 +102,6 @@ public class TestNoDoubleAssign extends TaskTestBase {
     pollForDoubleAssign();
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
-    Assert.assertFalse(_existsDoubleAssign.get());
-
     // Shut down thread pools
     _executorServicePoll.shutdown();
     _executorServiceConnection.shutdown();
@@ -118,6 +116,9 @@ public class TestNoDoubleAssign extends TaskTestBase {
       _executorServicePoll.shutdownNow();
       _executorServiceConnection.shutdownNow();
     }
+    Thread.sleep(500L);
+
+    Assert.assertFalse(_existsDoubleAssign.get());
   }
 
   /**

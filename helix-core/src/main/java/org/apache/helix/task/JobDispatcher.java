@@ -204,9 +204,14 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       return new ResourceAssignment(jobResource);
     }
 
+    // This set contains all task pIds that need to be dropped because requestedState is DROPPED
+    // Newer versions of Participants, upon connection reset, sets task requestedStates to DROPPED
+    // These dropping transitions will be prioritized above all task state transition assignments
+    Map<String, Set<Integer>> tasksToDrop = new HashMap<>();
+
     Map<String, SortedSet<Integer>> prevInstanceToTaskAssignments =
         getPrevInstanceToTaskAssignments(liveInstances, prevTaskToInstanceStateAssignment,
-            allPartitions, currStateOutput, jobResource);
+            allPartitions, currStateOutput, jobResource, tasksToDrop);
     long currentTime = System.currentTimeMillis();
 
     if (LOG.isDebugEnabled()) {
@@ -217,14 +222,15 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // Release resource for tasks in terminal state
     updatePreviousAssignedTasksStatus(prevInstanceToTaskAssignments, excludedInstances, jobResource,
         currStateOutput, jobCtx, jobCfg, prevTaskToInstanceStateAssignment, jobState,
-        assignedPartitions, partitionsToDropFromIs, paMap, jobTgtState, skippedPartitions, cache);
+        assignedPartitions, partitionsToDropFromIs, paMap, jobTgtState, skippedPartitions, cache,
+        tasksToDrop);
 
     addGiveupPartitions(skippedPartitions, jobCtx, allPartitions, jobCfg);
 
     if (jobState == TaskState.IN_PROGRESS && skippedPartitions.size() > jobCfg.getFailureThreshold()
         || (jobCfg.getTargetResource() != null
-        && cache.getIdealState(jobCfg.getTargetResource()) != null
-        && !cache.getIdealState(jobCfg.getTargetResource()).isEnabled())) {
+            && cache.getIdealState(jobCfg.getTargetResource()) != null
+            && !cache.getIdealState(jobCfg.getTargetResource()).isEnabled())) {
       if (isJobFinished(jobCtx, jobResource, currStateOutput)) {
         failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap(), cache);
         return buildEmptyAssignment(jobResource, currStateOutput);
@@ -345,17 +351,20 @@ public class JobDispatcher extends AbstractTaskDispatcher {
    * @param currStateOutput currentStates to make sure currentStates copied over expired sessions
    *          are accounted for
    * @param jobName job name
+   * @param tasksToDrop instance -> pId's, to gather all pIds that need to be dropped
    * @return instance -> partitionIds from previous assignment, if the instance is still live
    */
   private static Map<String, SortedSet<Integer>> getPrevInstanceToTaskAssignments(
       Iterable<String> liveInstances, ResourceAssignment prevAssignment,
-      Set<Integer> allTaskPartitions, CurrentStateOutput currStateOutput, String jobName) {
+      Set<Integer> allTaskPartitions, CurrentStateOutput currStateOutput, String jobName,
+      Map<String, Set<Integer>> tasksToDrop) {
     Map<String, SortedSet<Integer>> result = new HashMap<>();
     for (String instance : liveInstances) {
       result.put(instance, new TreeSet<Integer>());
     }
 
     // First, add all task partitions from JobContext
+    // TODO: Remove this portion to get rid of prevAssignment from Task Framework
     for (Partition partition : prevAssignment.getMappedPartitions()) {
       int pId = TaskUtil.getPartitionId(partition.getPartitionName());
       if (allTaskPartitions.contains(pId)) {
@@ -369,6 +378,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       }
     }
 
+    // Generate prevInstanceToTaskAssignment with CurrentStateOutput as source of truth
+
     // Add all pIds existing in CurrentStateOutput as well because task currentStates copied over
     // from previous sessions won't show up in prevInstanceToTaskAssignments
     // We need to add these back here in order for these task partitions to be dropped (after a
@@ -381,10 +392,27 @@ public class JobDispatcher extends AbstractTaskDispatcher {
         String instance = instanceToCurrState.getKey();
         String requestedState =
             currStateOutput.getRequestedState(jobName, entry.getKey(), instance);
+        TaskPartitionState currState = TaskPartitionState.valueOf(instanceToCurrState.getValue());
         int pId = TaskUtil.getPartitionId(entry.getKey().getPartitionName());
-        if (result.containsKey(instance) && requestedState != null
-            && requestedState.equals(TaskPartitionState.DROPPED.name())) {
-          // Only if this instance is live and requestedState is DROPPED
+
+        // We must add all active task pIds back here because dropping transition could overwrite an
+        // active transition in paMap
+        // Add all task partitions in the following states:
+        // currState = INIT, requestedState = RUNNING (bootstrap)
+        // currState = RUNNING, requestedState = ANY (active)
+        // ** for tasks that are just in INIT state, we do not add them here because old
+        // Participants, upon connection reset, set tasks' currentStates to INIT. We cannot consider
+        // those tasks active **
+        if (result.containsKey(instance) && (currState == TaskPartitionState.INIT
+            && requestedState != null && requestedState.equals(TaskPartitionState.RUNNING.name())
+            || currState == TaskPartitionState.RUNNING)) {
+          // Check if this is a dropping transition
+          if (requestedState != null && requestedState.equals(TaskPartitionState.DROPPED.name())) {
+            if (!tasksToDrop.containsKey(instance)) {
+              tasksToDrop.put(instance, new HashSet<Integer>());
+            }
+            tasksToDrop.get(instance).add(pId);
+          }
           result.get(instance).add(pId);
         }
       }

@@ -261,16 +261,29 @@ public class TestClusterAccessor extends AbstractTestClass {
         node.get(ClusterAccessor.ClusterProperties.maintenance.name()).getBooleanValue();
     Assert.assertTrue(maintenance);
 
+    // Check that we could retrieve maintenance signal correctly
+    String signal = get("clusters/" + cluster + "/controller/maintenanceSignal",
+        Response.Status.OK.getStatusCode(), true);
+    Map<String, Object> maintenanceSignalMap =
+        OBJECT_MAPPER.readValue(signal, new TypeReference<HashMap<String, Object>>() {
+        });
+    Assert.assertEquals(maintenanceSignalMap.get("TRIGGERED_BY"), "USER");
+    Assert.assertEquals(maintenanceSignalMap.get("REASON"), reason);
+    Assert.assertNotNull(maintenanceSignalMap.get("TIMESTAMP"));
+    Assert.assertEquals(maintenanceSignalMap.get("clusterName"), cluster);
+
     // disable maintenance mode
     post("clusters/" + cluster, ImmutableMap.of("command", "disableMaintenanceMode"),
-        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.OK.getStatusCode());
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
 
     // verify no longer in maintenance mode
     body = get("clusters/" + cluster + "/maintenance", Response.Status.OK.getStatusCode(), true);
     node = OBJECT_MAPPER.readTree(body);
     Assert.assertFalse(
         node.get(ClusterAccessor.ClusterProperties.maintenance.name()).getBooleanValue());
+
+    get("clusters/" + cluster + "/controller/maintenanceSignal",
+        Response.Status.NOT_FOUND.getStatusCode(), false);
   }
 
   @Test
@@ -317,12 +330,13 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
 
     // Get the maintenance history JSON's last entry
-    String maintenanceHistory =
-        get("clusters/" + cluster + "/controller/maintenanceHistory", Response.Status.OK.getStatusCode(), true);
+    String maintenanceHistory = get("clusters/" + cluster + "/controller/maintenanceHistory",
+        Response.Status.OK.getStatusCode(), true);
     Map<String, Object> maintenanceHistoryMap =
         OBJECT_MAPPER.readValue(maintenanceHistory, new TypeReference<HashMap<String, Object>>() {
         });
-    Object maintenanceHistoryList = maintenanceHistoryMap.get(AbstractResource.Properties.maintenanceHistory.name());
+    Object maintenanceHistoryList =
+        maintenanceHistoryMap.get(ClusterAccessor.ClusterProperties.maintenanceHistory.name());
     Assert.assertNotNull(maintenanceHistoryList);
     List<?> list = (List<?>) maintenanceHistoryList;
     Assert.assertTrue(list.size() > 0);

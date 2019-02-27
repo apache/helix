@@ -47,6 +47,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
@@ -68,7 +69,10 @@ public class ClusterAccessor extends AbstractHelixResource {
     maintenance,
     messages,
     stateModelDefinitions,
-    clusters
+    clusters,
+    maintenanceSignal,
+    maintenanceHistory,
+    clusterName
   }
 
   @GET
@@ -342,6 +346,20 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   @GET
+  @Path("{clusterId}/controller/maintenanceSignal")
+  public Response getClusterMaintenanceSignal(@PathParam("clusterId") String clusterId) {
+    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+    MaintenanceSignal maintenanceSignal =
+        dataAccessor.getProperty(dataAccessor.keyBuilder().maintenance());
+    if (maintenanceSignal != null) {
+      Map<String, String> maintenanceInfo = maintenanceSignal.getRecord().getSimpleFields();
+      maintenanceInfo.put(ClusterProperties.clusterName.name(), clusterId);
+      return JSONRepresentation(maintenanceInfo);
+    }
+    return notFound(String.format("Cluster %s is not in maintenance mode!", clusterId));
+  }
+
+  @GET
   @Path("{clusterId}/controller/messages")
   public Response getClusterControllerMessages(@PathParam("clusterId") String clusterId) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
@@ -425,7 +443,7 @@ public class ClusterAccessor extends AbstractHelixResource {
           historyRecord != null ? historyRecord.getHistoryList() : Collections.emptyList());
       break;
     case MAINTENANCE:
-      history.put(Properties.maintenanceHistory.name(),
+      history.put(ClusterProperties.maintenanceHistory.name(),
           historyRecord != null ? historyRecord.getMaintenanceHistoryList()
               : Collections.emptyList());
       break;

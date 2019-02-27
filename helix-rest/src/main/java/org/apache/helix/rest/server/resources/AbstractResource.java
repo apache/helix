@@ -46,7 +46,6 @@ public class AbstractResource {
     id,
     disabled,
     history,
-    maintenanceHistory,
     count,
     error
   }

@@ -1,0 +1,86 @@
+ -----
+ Release Notes for Apache Helix 0.8.4
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 0.8.4
+
+  The Apache Helix team would like to announce the release of Apache Helix 0.8.4.
+
+  This is the fifteenth release under the Apache umbrella, and the eleventh as a top-level project.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
+
+  In this release, Helix provides several performance improvements for rebalance pipeline:
+
+[]
+
+* Key Note for Helix Release
+
+** Task Framework 2.0
+
+    Task Framework 2.0 was fully implemented in 0.8.4 including: pipeline split up from regular pipeline, runtime job DAG supporting, task assignment by producer/consumer mode and zookeeper read/write optimization. Performance improved signification compare to Task Framework 1.0.
+
+[]
+
+* Detailed Changes
+
+** New Features
+
+    * [HELIX-798] HELIX: Implement auto-exit of maintenance mode
+
+    * Check maitenanceMode rest api implementation
+
+** Bug Fixes
+
+    * [HELIX-792] HELIX: fix typo in WorkflowDataProvider
+
+    * [HELIX-794] TASK: Fix double-booking of tasks upon Participant disconnect
+    
+    * Fix race condition in P2P message handling that can cause long mastership handoff problem.
+
+    * Fix race condition for purging jobs immediately after job completes
+
+    * [HELIX-808] TASK: Fix double-booking of tasks with task CurrentStates
+
+    * [HELIX-810] HELIX: Fix NPE in InstanceMessagesCache
+
+    * [HELIX-811] HELIX: Only log relayMsg if it doesn't exist
+
+** Improvements
+
+    * [HELIX-793] TASK: Make TaskAssigner honor instance constraints
+
+    * [HELIX-795] TASK: Drop tasks upon Participant reconnect
+
+    * Batch write support for previous assignment
+
+    * [HELIX-801] HELIX: Implement maintenance history for maintenance mode
+
+    * [HELIX-805] Implementation on HelixAdmin to check if cluster in maintenance mode
+
+    * Add ERROR mapping for displaying in BestPossible and Intemediate assignment.
+[]
+
+Cheers,
+--
+The Apache Helix Team

@@ -52,6 +52,13 @@ public class MaintenanceRecoveryStage extends AbstractAsyncBaseStage {
       return;
     }
 
+    // Check if the maintenance signal has been changed during this pipeline run
+    // If true, skip this stage because the Controller already changed the signal
+    // The flag will be flipped in the next ReadClusterDataStage()
+    if (cache.hasMaintenanceSignalChanged()) {
+      return;
+    }
+
     // Check for the maintenance signal
     // If it was entered manually or the signal is null (which shouldn't happen), skip this stage
     MaintenanceSignal maintenanceSignal = cache.getMaintenanceSignal();
@@ -108,6 +115,7 @@ public class MaintenanceRecoveryStage extends AbstractAsyncBaseStage {
       // MaintenanceSignal. AutoTriggerReason won't be recorded
       manager.getClusterManagmentTool().autoEnableMaintenanceMode(manager.getClusterName(), false,
           reason, internalReason);
+      cache.setMaintenanceSignalChanged(); // Set the flag so we do not double enable/disable
       LogUtil.logInfo(LOG, _eventId, reason);
     }
   }

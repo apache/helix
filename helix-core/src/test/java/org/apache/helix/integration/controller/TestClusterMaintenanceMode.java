@@ -343,7 +343,6 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.setMaxPartitionsPerInstance(-1);
     _manager.getConfigAccessor().setClusterConfig(CLUSTER_NAME, clusterConfig);
-    System.out.println("Set clusterconfig");
 
     Thread.sleep(500L);
 

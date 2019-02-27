@@ -78,6 +78,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private boolean _updateInstanceOfflineTime = true;
   private MaintenanceSignal _maintenanceSignal;
   private boolean _isMaintenanceModeEnabled;
+  private boolean _hasMaintenanceSignalChanged;
   private ExecutorService _asyncTasksThreadPool;
 
   // A map recording what data has changed
@@ -271,6 +272,9 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private void updateMaintenanceInfo(final HelixDataAccessor accessor) {
     _maintenanceSignal = accessor.getProperty(accessor.keyBuilder().maintenance());
     _isMaintenanceModeEnabled = _maintenanceSignal != null;
+    // The following flag is to guarantee that there's only one update per pineline run because we
+    // check for whether maintenance recovery could happen twice every pipeline
+    _hasMaintenanceSignalChanged = false;
   }
 
   private void updateIdealRuleMap() {
@@ -688,6 +692,14 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   public boolean isMaintenanceModeEnabled() {
     return _isMaintenanceModeEnabled;
+  }
+
+  public boolean hasMaintenanceSignalChanged() {
+    return _hasMaintenanceSignalChanged;
+  }
+
+  public void setMaintenanceSignalChanged() {
+    _hasMaintenanceSignalChanged = true;
   }
 
   public MaintenanceSignal getMaintenanceSignal() {

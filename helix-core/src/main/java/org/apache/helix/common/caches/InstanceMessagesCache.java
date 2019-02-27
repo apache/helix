@@ -457,13 +457,15 @@ public class InstanceMessagesCache {
   private void cacheRelayMessage(Message relayMessage, Message hostMessage) {
     String instanceName = relayMessage.getTgtName();
     if (!_relayMessageCache.containsKey(instanceName)) {
-      _relayMessageCache.put(instanceName, Maps.<String, Message>newHashMap());
+      _relayMessageCache.put(instanceName, Maps.<String, Message> newHashMap());
+    }
+    if (!_relayMessageCache.get(instanceName).containsKey(relayMessage.getId())) {
+      // Only log if the message doesn't already exist in the cache
+      LOG.info("Add relay message to relay cache " + relayMessage.getMsgId() + ", hosted message "
+          + hostMessage.getMsgId());
     }
     _relayMessageCache.get(instanceName).put(relayMessage.getId(), relayMessage);
     _relayHostMessageCache.put(relayMessage.getMsgId(), hostMessage);
-
-    LOG.info("Add relay message to relay cache " + relayMessage.getMsgId() + ", hosted message "
-        + hostMessage.getMsgId());
   }
 
   @Override public String toString() {

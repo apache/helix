@@ -124,6 +124,36 @@ Auto-exit is inherently triggered as part of Helix's rebalance pipeline; that is
 
 Regardless, there has been anecdotal reports where such events seemed to have been "swallowed" or "disappeared" - if that is true for any reason (mostly a ZK callback queue issue), one way to mitigate it is to enable periodically-triggered rebalances. Note that this is actually a feature _already supported_ by Helix.
 
+
+## How to Use the Auto-Exit Feature
+
+### Why Use Auto-Exit
+
+Helix is used to manage resources in distributed clusters; therefore, it inevitably gets to have hundreds of instances. With so many clusters and traffic to the ZooKeeper, Helix's metadata store, there are cases in which some Participants in the cluster experience transient connection failure, which may cause Helix to respond to each little change that happens to the cluster. For users of stateful systems, this may be undesirable, so they opt to set a config for entering maintenance mode automatically. Maintenance mode is a temporary mode that the cluster can enter in order to ensure that there are no bootstrapping state transitions on instances.
+
+However, no bootstrapping state transitions could mean that some operations such as addition of resources would be halted, which causes periods of unavailability. It was the cluster operator's responsibility to determine whether the given cluster has sufficiently recovered enough to exit maintenance mode. The auto-exit feature removes such overhead.
+
+### Guide
+
+First, we encourage all users of this feature to understand Helix's workflow below:
+
+![Intro](./images/auto-exit-maintenance.jpg)
+
+In order to use this feature, you'd need to set the following config parameters in your cluster's ClusterConfig.
+
+#### Auto-enter maintenance mode
+
+**MAX_OFFLINE_INSTANCES_ALLOWED**: the number of offline and disabled instances allowed before the cluster automatically enters maintenance mode.
+
+**MAX_PARTITIONS_PER_INSTANCE**: the number of partitions on any given instance, where, if any instance in the cluster happens to have more partitions than this number, the cluster automatically enters maintenance mode
+
+#### Auto-exit maintenance mode
+
+**NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT**: set this value to allow your cluster to auto-exit when the number of offline and disabled instances are at this value. Note that this value must be less than MAX_OFFLINE_INSTANCES_ALLOWED (Read the design above on why). Note that the appropriate value for this is dependent on the characteristics of the cluster. In general, start with 1, meaning that the cluster will only auto-exit maintenance mode when it is down to 1 offline or disable instance, and increase the value as you increase tolerance.
+
+Note that the cluster will auto-exit only if it has _automatically_ entered maintenance mode previously.
+
+
 ## FAQ
 
 #### How is this related to **DelayedAutoRebalancer**?
@@ -136,17 +166,4 @@ Regardless, there has been anecdotal reports where such events seemed to have be
 
 -   As a framework, we cannot provide the right value for this threshold. It should depend on the nature of the application and the risk tolerance thereof. Familiarize yourself with the rules outlined above and start with a low value (for example, 0) and increase your tolerance.
 
-## How to use the auto-exit feature
-In order to use this feature, you'd need to set the following config parameters in your cluster's ClusterConfig.
 
-#### Auto-enter maintenance mode
-
-MAX_OFFLINE_INSTANCES_ALLOWED: the number of offline and disabled instances allowed before the cluster automatically enters maintenance mode.
-
-MAX_PARTITIONS_PER_INSTANCE: the number of partitions on any given instance, where, if any instance in the cluster happens to have more partitions than this number, the cluster automatically enters maintenance mode
-
-#### Auto-exit maintenance mode
-
-NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT: set this value to allow your cluster to auto-exit when the number of offline and disabled instances are at this value. Note that this value must be less than MAX_OFFLINE_INSTANCES_ALLOWED (Read the design doc on why).
-
-Note that the cluster will auto-exit only if it has _automatically_ entered maintenance mode previously.

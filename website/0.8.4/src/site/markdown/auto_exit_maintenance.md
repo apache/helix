@@ -19,7 +19,7 @@ under the License.
 # Auto-exit of Maintenance Mode
 
 ## Introduction
-![Intro](./images/auto-exit-maintenance.jpg)
+
 Auto-exit of maintenance mode is a feature addition to Helix. It concerns a feature that allows clusters to switch out of maintenance mode automatically to save operational costs and to improve availability.
 
 ## Background

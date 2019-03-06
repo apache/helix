@@ -23,7 +23,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix</groupId>
     <artifactId>website</artifactId>
-    <version>0.8.4-SNAPSHOT</version>
+    <version>0.8.5-SNAPSHOT</version>
   </parent>
 
   <artifactId>0.8.3-docs</artifactId>

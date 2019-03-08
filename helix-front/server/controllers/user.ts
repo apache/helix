@@ -1,9 +1,7 @@
-import { Request, Response, Router } from 'express';
-
-import * as request from 'request';
+import {Request, Response, Router} from 'express';
 import * as LdapClient from 'ldapjs';
 
-import { LDAP, CheckAdmin } from '../config';
+import {LDAP} from '../config';
 
 export class UserCtrl {
 
@@ -34,10 +32,10 @@ export class UserCtrl {
     res.json(req.session.isAdmin ? true : false);
   }
 
-  protected login(req: Request, res: Response) {
-    const credential = req.body;
+  protected login(request: Request, response: Response) {
+    const credential = request.body;
     if (!credential.username || !credential.password) {
-      res.status(401).json(false);
+      response.status(401).json(false);
       return;
     }
 
@@ -45,16 +43,34 @@ export class UserCtrl {
     const ldap = LdapClient.createClient({ url: LDAP.uri });
     ldap.bind(credential.username + LDAP.principalSuffix, credential.password, err => {
       if (err) {
-        res.status(401).json(false);
+        response.status(401).json(false);
       } else {
-        // authroized
-        req.session.username = credential.username;
-        CheckAdmin(req.session.username, (isAdmin: boolean) => {
-          req.session.isAdmin = isAdmin;
-          res.json(true);
+        // login success
+        let opts = {
+          filter: '(&(sAMAccountName=' + credential.username + ')(objectcategory=person))',
+          scope: 'sub'
+        };
+
+        ldap.search(LDAP.base, opts, function(err, result) {
+          var isInAdminGroup = false;
+          result.on('searchEntry', function (entry) {
+            if (entry.object && !err) {
+              let groups = entry.object["memberOf"];
+              for (var group of groups) {
+                const groupName = group.split(",", 1)[0].split("=")[1];
+                if (groupName == LDAP.adminGroup) {
+                  isInAdminGroup = true;
+                  break;
+                }
+              }
+            }
+
+            request.session.username = credential.username;
+            request.session.isAdmin = isInAdminGroup;
+            response.json(isInAdminGroup);
+          });
         });
       }
     });
   }
-
 }

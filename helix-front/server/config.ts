@@ -17,9 +17,6 @@ export const SSL = {
 export const LDAP = {
   uri: 'ldap://example.com',
   base: 'DC=example,DC=com',
-  principalSuffix: '@example.com'
+  principalSuffix: '@example.com',
+  adminGroup: 'admin'
 };
-
-export function CheckAdmin(username: string, callback: (boolean) => void) {
-  callback(username === 'root');
-}

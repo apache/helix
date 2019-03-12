@@ -22,8 +22,8 @@ package org.apache.helix;
 import static org.apache.helix.PropertyType.*;
 
 import java.util.Arrays;
-
 import java.util.Objects;
+
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ControllerHistory;

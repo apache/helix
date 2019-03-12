@@ -21,7 +21,6 @@ package org.apache.helix.util;
 
 import java.util.List;
 import java.util.Map;
-
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
@@ -32,6 +31,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.RESTConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +44,11 @@ import org.slf4j.LoggerFactory;
 public class InstanceValidationUtil {
   private static final Logger _logger = LoggerFactory.getLogger(InstanceValidationUtil.class);
 
+  public enum HealthStatusType {
+    instanceHealthStatus,
+    partitionHealthStatus
+  }
+  
   private InstanceValidationUtil() {
   }
 
@@ -187,5 +192,58 @@ public class InstanceValidationUtil {
 
     _logger.warn(String.format("The instance %s is not active", instanceName));
     return false;
+  }
+
+  /**
+   * Check the overall health status for instance including:
+   *  1. Per instance health status with application customized key-value entries
+   *  2. Sibling partitions (replicas for same partition holding on different node
+   *     health status for the entire cluster.
+   *
+   * @param configAccessor
+   * @param clustername
+   * @param hostName
+   * @param customizedInputs
+   * @param partitionHealthMap
+   * @return
+   */
+  public static boolean checkCustomizedHealthStatusForInstance(ConfigAccessor configAccessor,
+      String clustername, String hostName, Map<String, String> customizedInputs,
+      Map<String, Map<String, String>> partitionHealthMap, Map<String, String> instanceHealthMap) {
+    boolean isHealthy = true;
+    RESTConfig restConfig = configAccessor.getRESTConfig(clustername);
+    // If user customized URL is not ready, return true as the check
+    if (restConfig == null || restConfig.getCustomizedHealthURL() == null) {
+      return isHealthy;
+    }
+    // TODO : 1. Call REST with customized URL
+    //        2. Parse mapping result with string -> boolean value and return out for per instance
+    //        3. Check sibling nodes for partition health
+    isHealthy =
+        perInstanceHealthCheck(instanceHealthMap) || perPartitionHealthCheck(partitionHealthMap);
+
+    return isHealthy;
+  }
+
+  /**
+   * Fetch the health map based on health type: per instance or per partition
+   * Accessor can used for fetching data from ZK for per partition level.
+   * @param URL
+   * @param accessor
+   * @param healthStatusType
+   * @return
+   */
+  public static Map<String, Map<String, String>> getHealthMapBasedOnType(String URL,
+      HelixDataAccessor accessor, HealthStatusType healthStatusType) {
+    return null;
+  }
+
+  protected static boolean perInstanceHealthCheck(Map<String, String> statusMap) {
+    return true;
+  }
+
+  protected static boolean perPartitionHealthCheck(
+      Map<String, Map<String, String>> partitionHealthMap) {
+    return true;
   }
 }

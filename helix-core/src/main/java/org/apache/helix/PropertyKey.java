@@ -39,6 +39,7 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
@@ -778,6 +779,14 @@ public class PropertyKey {
     public PropertyKey workflowContext(String workflowName) {
       return new PropertyKey(PropertyType.WORKFLOWCONTEXT, WorkflowContext.class, _clusterName,
           workflowName);
+    }
+
+    /**
+     * Get a property key associated with {@link ResourceConfig}
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey restConfig() {
+      return new PropertyKey(RESTCONFIGS, RESTConfig.class, _clusterName);
     }
   }
 

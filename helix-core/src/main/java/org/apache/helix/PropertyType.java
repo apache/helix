@@ -27,7 +27,8 @@ enum Type {
   INSTANCE,
   CONTROLLER,
   RESOURCE,
-  TASK
+  TASK,
+  REST
 }
 
 /**
@@ -73,7 +74,11 @@ public enum PropertyType {
   WORKFLOW_CONFIG(Type.TASK, true, false, false, false, false),
   WORKFLOW_CONTEXT(Type.TASK, true, false, false, false, false),
   JOB_CONFIG(Type.TASK, true, false, false, false, false),
-  JOB_CONTEXT(Type.TASK, true, false, false, false, false);
+  JOB_CONTEXT(Type.TASK, true, false, false, false, false),
+
+  // REST PROPERTIES
+  RESTCONFIGS(Type.REST, true, false, false, false, true);
+
 
   // @formatter:on
 

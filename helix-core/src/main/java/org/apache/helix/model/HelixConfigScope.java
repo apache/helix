@@ -35,7 +35,8 @@ public class HelixConfigScope {
     PARTICIPANT(2, 0),
     RESOURCE(2, 0),
     PARTITION(2, 1),
-    CONSTRAINT(2, 0);
+    CONSTRAINT(2, 0),
+    REST(2, 0);
 
     final int _zkPathArgNum;
     final int _mapKeyArgNum;
@@ -82,6 +83,7 @@ public class HelixConfigScope {
     template.addEntry(ConfigScopeProperty.CLUSTER, 1, "/{clusterName}/CONFIGS/CLUSTER");
     template.addEntry(ConfigScopeProperty.PARTICIPANT, 1, "/{clusterName}/CONFIGS/PARTICIPANT");
     template.addEntry(ConfigScopeProperty.RESOURCE, 1, "/{clusterName}/CONFIGS/RESOURCE");
+    template.addEntry(ConfigScopeProperty.REST, 2, "/{clusterName}/CONFIGS/REST/{clusterName}");
   }
 
   final ConfigScopeProperty _type;

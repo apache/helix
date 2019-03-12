@@ -34,6 +34,7 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.util.StringTemplate;
@@ -559,6 +560,26 @@ public class ConfigAccessor {
     }
 
     return new ClusterConfig(record);
+  }
+
+  /**
+   * Get ClusterConfig of the given cluster.
+   *
+   * @param clusterName
+   *
+   * @return
+   */
+  public RESTConfig getRESTConfig(String clusterName) {
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.REST).forCluster(clusterName).build();
+    ZNRecord record = getConfigZnRecord(scope);
+
+    if (record == null) {
+      LOG.warn("No config found at " + scope.getZkPath());
+      return null;
+    }
+
+    return new RESTConfig(record);
   }
 
   /**

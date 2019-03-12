@@ -22,6 +22,7 @@ package org.apache.helix.rest.server;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,6 +41,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.helix.InstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
+import org.apache.helix.util.InstanceValidationUtil;
 import org.codehaus.jackson.JsonNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -399,5 +401,17 @@ public class TestInstanceAccessor extends AbstractTestClass {
     new JerseyUriRequestBuilder("clusters/{}/instances/{}/configs")
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode())
         .format(CLUSTER_NAME, instanceName).post(this, entity);
+  }
+
+  public void testCustomizedChecks() {
+    // TODO: This is fake testing. Only validate it returns true value of this function.
+    // For future, we need test: 1. mock the input of per participant API result to test validate logic
+    //                           2. mock the input of per partition API result to test the sibling
+    //                              check logic
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String instanceName = "TestInstance";
+    Assert.assertTrue(InstanceValidationUtil
+        .checkCustomizedHealthStatusForInstance(_configAccessor, CLUSTER_NAME, instanceName,
+            Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP));
   }
 }

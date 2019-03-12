@@ -14,7 +14,6 @@ import { Angulartics2Piwik } from 'angulartics2';
 import { UserService } from './core/user.service';
 import { InputDialogComponent } from './shared/dialog/input-dialog/input-dialog.component';
 import { HelperService } from './shared/helper.service';
-import {LDAP} from "../../server/config";
 
 @Component({
   selector: 'hi-root',
@@ -88,7 +87,7 @@ export class AppComponent implements OnInit {
             .subscribe(
               isAuthorized => {
                 if (!isAuthorized) {
-                  this.helper.showError("You're not part of " + LDAP.adminGroup + " group or password incorrect");
+                  this.helper.showError("You're not part of helix-admin group or password incorrect");
                 }
                 this.currentUser = this.service.getCurrentUser();
               },

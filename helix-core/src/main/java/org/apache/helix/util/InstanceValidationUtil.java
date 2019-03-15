@@ -19,6 +19,7 @@ package org.apache.helix.util;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.helix.AccessOption;
@@ -29,6 +30,8 @@ import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.RESTConfig;
@@ -48,7 +51,7 @@ public class InstanceValidationUtil {
     instanceHealthStatus,
     partitionHealthStatus
   }
-  
+
   private InstanceValidationUtil() {
   }
 
@@ -244,6 +247,42 @@ public class InstanceValidationUtil {
 
   protected static boolean perPartitionHealthCheck(
       Map<String, Map<String, String>> partitionHealthMap) {
+    return true;
+  }
+
+  /**
+   * Check instance is already in the stable state. Here stable means all the ideal state mapping
+   * matches external view (view of current state).
+   *
+   * It requires persist assignment on!
+   *
+   * @param dataAccessor
+   * @param instanceName
+   * @return
+   */
+  public static boolean isInstanceStable(HelixDataAccessor dataAccessor, String instanceName) {
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+    ClusterConfig clusterConfig = dataAccessor.getProperty(keyBuilder.clusterConfig());
+    if (!clusterConfig.isPersistIntermediateAssignment()) {
+      throw new HelixException("isInstanceStable needs persist assignment on!");
+    }
+
+    List<String> idealStateNames = dataAccessor.getChildNames(keyBuilder.idealStates());
+    for (String idealStateName : idealStateNames) {
+      IdealState idealState = dataAccessor.getProperty(keyBuilder.idealStates(idealStateName));
+      ExternalView externalView = dataAccessor.getProperty(keyBuilder.externalView(idealStateName));
+      for (String partition : idealState.getPartitionSet()) {
+        Map<String, String> isPartitionMap = idealState.getInstanceStateMap(partition);
+        Map<String, String> evPartitionMap = externalView.getStateMap(partition);
+        if (isPartitionMap.containsKey(instanceName) && (!evPartitionMap.containsKey(instanceName)
+            || !evPartitionMap.get(instanceName).equals(isPartitionMap.get(instanceName)))) {
+          // only checks the state from IS matches EV. Return false when
+          // 1. This partition not has current state on this instance
+          // 2. The state does not match the state on ideal state
+          return false;
+        }
+      }
+    }
     return true;
   }
 }

@@ -19,12 +19,12 @@ package org.apache.helix.rest.server.resources.helix;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -34,6 +34,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
@@ -51,10 +52,16 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.rest.server.json.cluster.ClusterTopology;
+import org.apache.helix.rest.server.service.ClusterService;
+import org.apache.helix.rest.server.service.ClusterServiceImpl;
 import org.apache.helix.tools.ClusterSetup;
 import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 
 @Path("/clusters")
 public class ClusterAccessor extends AbstractHelixResource {
@@ -258,6 +265,17 @@ public class ClusterAccessor extends AbstractHelixResource {
       return notFound();
     }
     return JSONRepresentation(config.getRecord());
+  }
+
+  @GET
+  @Path("{clusterId}/topology")
+  public Response getClusterTopology(@PathParam("clusterId") String clusterId) throws IOException {
+    //TODO reduce the GC by dependency injection
+    ClusterService clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
+    ObjectMapper objectMapper = new ObjectMapper();
+    ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
+
+    return OK(objectMapper.writeValueAsString(clusterTopology));
   }
 
   @POST

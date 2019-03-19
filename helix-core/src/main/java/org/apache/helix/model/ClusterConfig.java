@@ -19,13 +19,14 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
@@ -34,10 +35,13 @@ import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.helix.api.config.ViewClusterSourceConfig;
 
+import com.google.common.collect.Maps;
+
 /**
  * Cluster configurations
  */
 public class ClusterConfig extends HelixProperty {
+  private static final String TOPOLOGY_SPLITTER = "/";
   /**
    * Configurable characteristics of a cluster.
    * NOTE: Do NOT use this field name directly, use its corresponding getter/setter in the
@@ -331,6 +335,17 @@ public class ClusterConfig extends HelixProperty {
    */
   public String getTopology() {
     return _record.getSimpleField(ClusterConfigProperty.TOPOLOGY.name());
+  }
+
+  /**
+   * Get cluster topology by level.
+   * E.g, {zone, rack, host, instance}
+   * @return
+   */
+  public String[] getTopologyLevel() {
+    String topology = getTopology();
+    String[] parts = topology.split(TOPOLOGY_SPLITTER);
+    return Arrays.copyOfRange(parts, 1, parts.length);
   }
 
   /**

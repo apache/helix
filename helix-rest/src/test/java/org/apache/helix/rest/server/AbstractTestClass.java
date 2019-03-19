@@ -51,6 +51,7 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
@@ -264,6 +265,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     for (String cluster : _clusters) {
       Set<String> instances = createInstances(cluster, 10);
       Set<String> liveInstances = startInstances(cluster, instances, 6);
+      ClusterConfig clusterConfig = new ClusterConfig(cluster);
+      clusterConfig.setFaultZoneType("helixZoneId");
+      _configAccessor.setClusterConfig(cluster, clusterConfig);
       createResourceConfigs(cluster, 8);
       _workflowMap.put(cluster, createWorkflows(cluster, 3));
       Set<String> resources = createResources(cluster, 8);

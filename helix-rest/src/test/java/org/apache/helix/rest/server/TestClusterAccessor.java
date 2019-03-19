@@ -38,12 +38,14 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.AbstractResource.Command;
 import org.apache.helix.rest.server.resources.helix.ClusterAccessor;
+import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
@@ -86,6 +88,25 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetClusters")
+  public void testGetClusterTopology() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = "TestCluster_1";
+    String instance = cluster + "localhost_12920";
+    // set the fake zone id in instance configuration
+    HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+    InstanceConfig instanceConfig =
+        helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
+    instanceConfig.setDomain("helixZoneId=123");
+    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance),
+        instanceConfig);
+
+    String response = new JerseyUriRequestBuilder("clusters/{}/topology").format(cluster).get(this);
+
+    Assert.assertEquals(response,
+        "{\"id\":\"TestCluster_1\",\"zones\":[{\"id\":\"123\",\"instances\":[{\"id\":\"TestCluster_1localhost_12920\"}]}]}");
+  }
+
+  @Test(dependsOnMethods = "testGetClusterTopology")
   public void testAddConfigFields() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();

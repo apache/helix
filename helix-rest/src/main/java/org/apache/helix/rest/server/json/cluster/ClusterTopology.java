@@ -10,9 +10,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * The Cluster Topology represents the hierarchy of the cluster:
  * Cluster
  * - Zone
- * -- Rack
+ * -- Rack(Optional)
  * --- Instance
- * ---- Partition
  * Each layer consists its id and metadata
  */
 public class ClusterTopology {
@@ -24,6 +23,14 @@ public class ClusterTopology {
   public ClusterTopology(String clusterId, List<Zone> zones) {
     this.clusterId = clusterId;
     this.zones = zones;
+  }
+
+  public String getClusterId() {
+    return clusterId;
+  }
+
+  public List<Zone> getZones() {
+    return zones;
   }
 
   public static final class Zone {
@@ -53,24 +60,9 @@ public class ClusterTopology {
   public static final class Instance {
     @JsonProperty("id")
     private final String id;
-    @JsonProperty("partitions")
-    private List<String> partitions;
 
     public Instance(String id) {
       this.id = id;
-    }
-
-    public Instance(String id, List<String> partitions) {
-      this.id = id;
-      this.partitions = partitions;
-    }
-
-    public List<String> getPartitions() {
-      return partitions;
-    }
-
-    public void setPartitions(List<String> partitions) {
-      this.partitions = partitions;
     }
   }
 }

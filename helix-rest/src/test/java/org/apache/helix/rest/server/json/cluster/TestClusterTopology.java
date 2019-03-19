@@ -13,9 +13,8 @@ public class TestClusterTopology {
 
   @Test
   public void whenSerializingClusterTopology() throws IOException {
-    List<String> partitions = ImmutableList.of("db0", "db1");
     List<ClusterTopology.Instance> instances =
-        ImmutableList.of(new ClusterTopology.Instance("instance", partitions));
+        ImmutableList.of(new ClusterTopology.Instance("instance"));
 
     List<ClusterTopology.Zone> zones = ImmutableList.of(new ClusterTopology.Zone("zone", instances));
 
@@ -24,6 +23,6 @@ public class TestClusterTopology {
     String result = mapper.writeValueAsString(clusterTopology);
 
     Assert.assertEquals(result,
-        "{\"id\":\"cluster0\",\"zones\":[{\"id\":\"zone\",\"instances\":[{\"id\":\"instance\",\"partitions\":[\"db0\",\"db1\"]}]}]}");
+        "{\"id\":\"cluster0\",\"zones\":[{\"id\":\"zone\",\"instances\":[{\"id\":\"instance\"}]}]}");
   }
 }

@@ -19,8 +19,12 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.Map;
+
+import org.apache.helix.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 /**
  * Created with IntelliJ IDEA.
@@ -35,5 +39,23 @@ public class TestInstanceConfig {
     InstanceConfig config = new InstanceConfig("node_0");
     Assert.assertTrue(config.isValid(),
         "HELIX-65: should not check host/port existence for instance-config");
+  }
+
+  @Test
+  public void testGetParsedDomain() {
+    InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
+    instanceConfig.setDomain("cluster=myCluster,zone=myZone1,rack=myRack,host=hostname,instance=instance001");
+
+    Map<String, String> parsedDomain = instanceConfig.getDomainAsMap();
+    Assert.assertEquals(parsedDomain.size(), 5);
+    Assert.assertEquals(parsedDomain.get("zone"), "myZone1");
+  }
+
+  @Test
+  public void testGetParsedDomain_emptyDomain() {
+    InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
+
+    Map<String, String> parsedDomain = instanceConfig.getDomainAsMap();
+    Assert.assertTrue(parsedDomain.isEmpty());
   }
 }

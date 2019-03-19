@@ -447,7 +447,7 @@ public class TestConstraintRebalanceStrategy {
       domainPartitionMap.clear();
       for (String partition : partitionMap.keySet()) {
         for (String instance : partitionMap.get(partition).keySet()) {
-          String domain = instanceConfigs.get(instance).getDomain().split(",")[0].split("=")[1];
+          String domain = instanceConfigs.get(instance).getDomainAsString().split(",")[0].split("=")[1];
           if (domainPartitionMap.containsKey(domain)) {
             Assert.assertFalse(domainPartitionMap.get(domain).contains(partition));
           } else {

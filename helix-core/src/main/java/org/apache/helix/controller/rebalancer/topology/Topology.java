@@ -270,7 +270,7 @@ public class Topology {
 
     for (String ins : _allInstances) {
       InstanceConfig insConfig = _instanceConfigMap.get(ins);
-      String domain = insConfig.getDomain();
+      String domain = insConfig.getDomainAsString();
       if (domain == null) {
         if (insConfig.getInstanceEnabled() && (_clusterConfig.getDisabledInstances() == null
             || !_clusterConfig.getDisabledInstances().containsKey(ins))) {

@@ -35,6 +35,8 @@ import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Splitter;
+
 /**
  * Instance configurations
  */
@@ -55,6 +57,7 @@ public class InstanceConfig extends HelixProperty {
     DELAY_REBALANCE_ENABLED,
     MAX_CONCURRENT_TASK
   }
+
   public static final int WEIGHT_NOT_SET = -1;
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
 
@@ -126,8 +129,22 @@ public class InstanceConfig extends HelixProperty {
    * Domain represents a hierarchy identifier for an instance.
    * @return
    */
-  public String getDomain() {
+  public String getDomainAsString() {
     return _record.getSimpleField(InstanceConfigProperty.DOMAIN.name());
+  }
+
+  /**
+   * Parse the key value pairs of domain and return a map structure
+   * @return
+   */
+  public Map<String, String> getDomainAsMap() {
+    String domain = getDomainAsString();
+    if (domain == null || domain.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    return Splitter.on(',').trimResults()
+        .withKeyValueSeparator(Splitter.on('=').limit(2).trimResults()).split(domain);
   }
 
   /**

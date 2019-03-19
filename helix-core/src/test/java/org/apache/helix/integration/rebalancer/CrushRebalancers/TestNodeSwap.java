@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
@@ -180,7 +179,7 @@ public class TestNodeSwap extends ZkTestBase {
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, newParticipantName);
     InstanceConfig newConfig =
         configAccessor.getInstanceConfig(CLUSTER_NAME, newParticipantName);
-    newConfig.setDomain(instanceConfig.getDomain());
+    newConfig.setDomain(instanceConfig.getDomainAsString());
     _gSetupTool.getClusterManagementTool()
         .setInstanceConfig(CLUSTER_NAME, newParticipantName, newConfig);
 

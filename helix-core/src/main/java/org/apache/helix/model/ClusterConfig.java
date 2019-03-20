@@ -338,17 +338,6 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
-   * Get cluster topology by level.
-   * E.g, {zone, rack, host, instance}
-   * @return
-   */
-  public String[] getTopologyLevel() {
-    String topology = getTopology();
-    String[] parts = topology.split(TOPOLOGY_SPLITTER);
-    return Arrays.copyOfRange(parts, 1, parts.length);
-  }
-
-  /**
    * Set cluster fault zone type, this should be set combined with {@link #setTopology(String)}.
    * @param faultZoneType
    */

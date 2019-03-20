@@ -4,11 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixProperty;
-import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 
 
@@ -17,13 +14,12 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
  * The caches is of the value from get methods and short lived for the lifecycle of one rest request
  * TODO: add more cached read method based on needs
  */
-public class ZKReadAccessorWrapper extends ZKHelixDataAccessor {
+public final class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
   private final Map<PropertyKey, HelixProperty> _propertyCache = new HashMap<>();
   private final Map<PropertyKey, List<String>> _batchNameCache = new HashMap<>();
 
-  public ZKReadAccessorWrapper(String clusterName, InstanceType instanceType,
-      BaseDataAccessor<ZNRecord> baseDataAccessor) {
-    super(clusterName, instanceType, baseDataAccessor);
+  public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor) {
+    super(dataAccessor);
   }
 
   @Override

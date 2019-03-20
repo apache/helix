@@ -72,6 +72,14 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
   }
 
+  /* Copy constructor */
+  public ZKHelixDataAccessor(ZKHelixDataAccessor dataAccessor) {
+    _clusterName = dataAccessor._clusterName;
+    _instanceType = dataAccessor._instanceType;
+    _baseDataAccessor = dataAccessor._baseDataAccessor;
+    _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
+  }
+
   @Override
   public boolean createStateModelDef(StateModelDefinition stateModelDef) {
     String path = PropertyPathBuilder.stateModelDef(_clusterName, stateModelDef.getId());

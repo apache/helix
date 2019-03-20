@@ -107,9 +107,10 @@ public class JerseyUriRequestBuilder {
    * @param container
    * @param entity
    */
-  public void post(JerseyTestNg.ContainerPerClassTest container, Entity entity) {
+  public Response post(JerseyTestNg.ContainerPerClassTest container, Entity entity) {
     final Response response = buildWebTarget(container).request().post(entity);
     Assert.assertEquals(response.getStatus(), _expectedStatusCode);
+    return response;
   }
 
   /**

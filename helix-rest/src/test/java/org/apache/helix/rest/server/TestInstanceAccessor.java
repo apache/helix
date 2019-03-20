@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.ws.rs.client.Entity;
@@ -54,6 +55,19 @@ public class TestInstanceAccessor extends AbstractTestClass {
   private final static String INSTANCE_NAME = CLUSTER_NAME + "localhost_12918";
 
   @Test
+  public void testIsInstanceStoppable() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    Map<String, String> params = ImmutableMap.of("client", "espresso");
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(params), MediaType.APPLICATION_JSON_TYPE);
+    Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    String checkResult = response.readEntity(String.class);
+    Assert.assertEquals(checkResult,
+        "{\"stoppable\":false,\"failedChecks\":[\"Helix:HAS_DISABLED_PARTITIONS\",\"Helix:HAS_RESOURCE_ASSIGNED\",\"Helix:HAS_ERROR_PARTITIONS\",\"Helix:IS_ALIVE\"]}");
+  }
+
+  @Test (dependsOnMethods = "testIsInstanceStoppable")
   public void testGetAllMessages() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 

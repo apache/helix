@@ -20,10 +20,12 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -31,6 +33,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.ConfigAccessor;
@@ -38,6 +41,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
@@ -48,6 +52,12 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.rest.client.CustomRestClient;
+import org.apache.helix.rest.client.CustomRestClientFactory;
+import org.apache.helix.rest.common.HelixDataAccessorWrapper;
+import org.apache.helix.rest.server.json.instance.StoppableCheck;
+import org.apache.helix.rest.server.service.InstanceService;
+import org.apache.helix.rest.server.service.InstanceServiceImpl;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
@@ -55,6 +65,8 @@ import org.codehaus.jackson.node.ObjectNode;
 import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Path("/clusters/{clusterId}/instances")
 public class InstanceAccessor extends AbstractHelixResource {
@@ -183,6 +195,29 @@ public class InstanceAccessor extends AbstractHelixResource {
     }
 
     return JSONRepresentation(instanceMap);
+  }
+
+  @POST
+  @Path("{instanceName}/stoppable")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Response isInstanceStoppable(String jsonContent,
+      @PathParam("clusterId") String clusterId, @PathParam("instanceName") String instanceName) throws IOException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+    // TODO reduce GC by dependency injection
+    InstanceService instanceService = new InstanceServiceImpl(
+        new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
+
+    Map<String, Boolean> helixStoppableCheck =
+        instanceService.getInstanceStoppableCheck(clusterId, instanceName);
+    CustomRestClient customClient = CustomRestClientFactory.get(jsonContent);
+    // TODO add the json content parse logic
+    Map<String, Boolean> customStoppableCheck =
+        customClient.getInstanceStoppableCheck(Collections.<String, String> emptyMap());
+    StoppableCheck stoppableCheck =
+        StoppableCheck.mergeStoppableChecks(helixStoppableCheck, customStoppableCheck);
+
+    return OK(objectMapper.writeValueAsString(stoppableCheck));
   }
 
   @PUT

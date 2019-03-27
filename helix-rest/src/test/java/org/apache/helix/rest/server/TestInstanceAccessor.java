@@ -130,7 +130,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetMessagesByStateModelDef")
-  public void testGetInstances() throws IOException {
+  public void testGetAllInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = new JerseyUriRequestBuilder("clusters/{}/instances").isBodyReturnExpected(true)
         .format(CLUSTER_NAME).get(this);
@@ -145,14 +145,16 @@ public class TestInstanceAccessor extends AbstractTestClass {
         + instances + " vs instances actually: " + _instancesMap.get(CLUSTER_NAME));
   }
 
-  @Test(dependsOnMethods = "testGetInstances")
-  public void testGetInstance() throws IOException {
+  @Test
+  public void testGetInstanceById() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}").isBodyReturnExpected(true)
         .format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String instancesCfg = node.get(InstanceAccessor.InstanceProperties.config.name()).toString();
     Assert.assertNotNull(instancesCfg);
+    boolean isHealth = node.get("health").getBooleanValue();
+    Assert.assertFalse(isHealth);
 
     InstanceConfig instanceConfig = new InstanceConfig(toZNRecord(instancesCfg));
     Assert.assertEquals(instanceConfig,
@@ -181,7 +183,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
     _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME + "TEST");
   }
 
-  @Test(dependsOnMethods = "testGetInstance")
+  @Test(dependsOnMethods = "testGetInstanceById")
   public void updateInstance() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Disable instance

@@ -27,7 +27,6 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
-
 public class StoppableCheck {
   private static final String HELIX_CHECK_PREFIX = "Helix:";
   private static final String CUSTOM_CHECK_PREFIX = "Custom:";

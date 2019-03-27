@@ -19,16 +19,21 @@ package org.apache.helix.rest.server.service;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 public class InstanceServiceImpl implements InstanceService {
   private static final Logger _logger = LoggerFactory.getLogger(InstanceServiceImpl.class);
@@ -42,64 +47,88 @@ public class InstanceServiceImpl implements InstanceService {
   }
 
   @Override
-  public Map<String, Boolean> getInstanceStoppableCheck(String clusterId, String instanceName) {
+  public Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
+      List<HealthCheck> healthChecks) {
     Map<String, Boolean> healthStatus = new HashMap<>();
-    healthStatus.put(HealthCheck.INVALID_CONFIG.name(), InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName));
-    if (!healthStatus.get(HealthCheck.INVALID_CONFIG.name())) {
-      _logger.error("The instance {} doesn't have valid configuration", instanceName);
-      return healthStatus;
-    }
-
-    // Any exceptions occurred below due to invalid instance config shouldn't happen
-    healthStatus.put(
-        HealthCheck.INSTANCE_NOT_ENABLED.name(), InstanceValidationUtil.isEnabled(_dataAccessor, _configAccessor, clusterId, instanceName));
-    healthStatus.put(HealthCheck.INSTANCE_NOT_ALIVE.name(), InstanceValidationUtil.isAlive(_dataAccessor, clusterId, instanceName));
-    healthStatus.put(
-        HealthCheck.EMPTY_RESOURCE_ASSIGNMENT.name(), InstanceValidationUtil.hasResourceAssigned(_dataAccessor, clusterId, instanceName));
-    healthStatus.put(HealthCheck.HAS_DISABLED_PARTITIONS.name(), !InstanceValidationUtil.hasDisabledPartitions(_dataAccessor, clusterId, instanceName));
-    healthStatus.put(
-        HealthCheck.HAS_ERROR_PARTITION.name(), !InstanceValidationUtil.hasErrorPartitions(_dataAccessor, clusterId, instanceName));
-
-    try {
-      boolean isStable = InstanceValidationUtil.isInstanceStable(_dataAccessor, instanceName);
-      healthStatus.put(HealthCheck.INSTANCE_NOT_STABLE.name(), isStable);
-    } catch (HelixException e) {
-      _logger.error("Failed to check instance is stable, message: {}", e.getMessage());
-      // TODO action on the stable check exception
+    for (HealthCheck healthCheck : healthChecks) {
+      switch (healthCheck) {
+      case INVALID_CONFIG:
+        healthStatus.put(HealthCheck.INVALID_CONFIG.name(),
+            InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName));
+        if (!healthStatus.get(HealthCheck.INVALID_CONFIG.name())) {
+          _logger.error("The instance {} doesn't have valid configuration", instanceName);
+          return healthStatus;
+        }
+      case INSTANCE_NOT_ENABLED:
+        healthStatus.put(HealthCheck.INSTANCE_NOT_ENABLED.name(), InstanceValidationUtil
+            .isEnabled(_dataAccessor, _configAccessor, clusterId, instanceName));
+        break;
+      case INSTANCE_NOT_ALIVE:
+        healthStatus.put(HealthCheck.INSTANCE_NOT_ALIVE.name(),
+            InstanceValidationUtil.isAlive(_dataAccessor, clusterId, instanceName));
+        break;
+      case INSTANCE_NOT_STABLE:
+        try {
+          boolean isStable = InstanceValidationUtil.isInstanceStable(_dataAccessor, instanceName);
+          healthStatus.put(HealthCheck.INSTANCE_NOT_STABLE.name(), isStable);
+        } catch (HelixException e) {
+          _logger.error("Failed to check instance is stable, message: {}", e.getMessage());
+          // TODO action on the stable check exception
+        }
+        break;
+      case HAS_ERROR_PARTITION:
+        healthStatus.put(HealthCheck.HAS_ERROR_PARTITION.name(),
+            !InstanceValidationUtil.hasErrorPartitions(_dataAccessor, clusterId, instanceName));
+        break;
+      case HAS_DISABLED_PARTITION:
+        healthStatus.put(HealthCheck.HAS_DISABLED_PARTITION.name(),
+            !InstanceValidationUtil.hasDisabledPartitions(_dataAccessor, clusterId, instanceName));
+        break;
+      case EMPTY_RESOURCE_ASSIGNMENT:
+        healthStatus.put(HealthCheck.EMPTY_RESOURCE_ASSIGNMENT.name(),
+            InstanceValidationUtil.hasResourceAssigned(_dataAccessor, clusterId, instanceName));
+        break;
+      default:
+        _logger.error("Unsupported health check: {}", healthCheck);
+        break;
+      }
     }
 
     return healthStatus;
   }
 
-  public enum HealthCheck {
-    /**
-     * Check if instance is alive
-     */
-    INSTANCE_NOT_ALIVE,
-    /**
-     * Check if instance is enabled both in instance config and cluster config
-     */
-    INSTANCE_NOT_ENABLED,
-    /**
-     * Check if instance is stable
-     * Stable means all the ideal state mapping matches external view (view of current state).
-     */
-    INSTANCE_NOT_STABLE,
-    /**
-     * Check if instance has 0 resource assigned
-     */
-    EMPTY_RESOURCE_ASSIGNMENT,
-    /**
-     * Check if instance has disabled partitions
-     */
-    HAS_DISABLED_PARTITIONS,
-    /**
-     * Check if instance has valid configuration (pre-requisite for all checks)
-     */
-    INVALID_CONFIG,
-    /**
-     * Check if instance has error partitions
-     */
-    HAS_ERROR_PARTITION
+  @Override
+  public InstanceInfo getInstanceInfo(String clusterId, String instanceName,
+      List<HealthCheck> healthChecks) {
+    InstanceInfo.Builder instanceInfoBuilder = new InstanceInfo.Builder(instanceName);
+
+    InstanceConfig instanceConfig =
+        _dataAccessor.getProperty(_dataAccessor.keyBuilder().instanceConfig(instanceName));
+    LiveInstance liveInstance =
+        _dataAccessor.getProperty(_dataAccessor.keyBuilder().liveInstance(instanceName));
+    if (instanceConfig != null) {
+      instanceInfoBuilder.instanceConfig(instanceConfig.getRecord());
+    }
+    if (liveInstance != null) {
+      instanceInfoBuilder.liveInstance(liveInstance.getRecord());
+      String sessionId = liveInstance.getSessionId();
+
+      List<String> resourceNames = _dataAccessor
+          .getChildNames(_dataAccessor.keyBuilder().currentStates(instanceName, sessionId));
+      instanceInfoBuilder.resources(resourceNames);
+      List<String> partitions = new ArrayList<>();
+      for (String resourceName : resourceNames) {
+        CurrentState currentState = _dataAccessor.getProperty(
+            _dataAccessor.keyBuilder().currentState(instanceName, sessionId, resourceName));
+        if (currentState != null && currentState.getPartitionStateMap() != null) {
+          partitions.addAll(currentState.getPartitionStateMap().keySet());
+        }
+      }
+      instanceInfoBuilder.partitions(partitions);
+    }
+    instanceInfoBuilder
+        .healthStatus(getInstanceHealthStatus(clusterId, instanceName, healthChecks));
+
+    return instanceInfoBuilder.build();
   }
 }

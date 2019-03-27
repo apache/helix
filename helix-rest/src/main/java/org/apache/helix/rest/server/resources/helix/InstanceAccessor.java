@@ -21,7 +21,6 @@ package org.apache.helix.rest.server.resources.helix;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,13 +47,13 @@ import org.apache.helix.model.Error;
 import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.client.CustomRestClientFactory;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
+import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.service.InstanceService;
 import org.apache.helix.rest.server.service.InstanceServiceImpl;
@@ -91,7 +90,7 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @GET
-  public Response getInstances(@PathParam("clusterId") String clusterId) {
+  public Response getAllInstances(@PathParam("clusterId") String clusterId) {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
     ObjectNode root = JsonNodeFactory.instance.objectNode();
     root.put(Properties.id.name(), JsonNodeFactory.instance.textNode(clusterId));
@@ -172,29 +171,17 @@ public class InstanceAccessor extends AbstractHelixResource {
 
   @GET
   @Path("{instanceName}")
-  public Response getInstance(@PathParam("clusterId") String clusterId,
+  public Response getInstanceById(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
-    HelixDataAccessor accessor = getDataAccssor(clusterId);
-    Map<String, Object> instanceMap = new HashMap<>();
-    instanceMap.put(Properties.id.name(), JsonNodeFactory.instance.textNode(instanceName));
-    instanceMap.put(InstanceProperties.liveInstance.name(), null);
+    ObjectMapper objectMapper = new ObjectMapper();
+    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+    // TODO reduce GC by dependency injection
+    InstanceService instanceService = new InstanceServiceImpl(
+        new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
+    InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
+        InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
 
-    InstanceConfig instanceConfig =
-        accessor.getProperty(accessor.keyBuilder().instanceConfig(instanceName));
-    LiveInstance liveInstance =
-        accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName));
-
-    if (instanceConfig != null) {
-      instanceMap.put(InstanceProperties.config.name(), instanceConfig.getRecord());
-    } else {
-      return notFound();
-    }
-
-    if (liveInstance != null) {
-      instanceMap.put(InstanceProperties.liveInstance.name(), liveInstance.getRecord());
-    }
-
-    return JSONRepresentation(instanceMap);
+    return OK(objectMapper.writeValueAsString(instanceInfo));
   }
 
   @POST
@@ -208,8 +195,8 @@ public class InstanceAccessor extends AbstractHelixResource {
     InstanceService instanceService = new InstanceServiceImpl(
         new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
 
-    Map<String, Boolean> helixStoppableCheck =
-        instanceService.getInstanceStoppableCheck(clusterId, instanceName);
+    Map<String, Boolean> helixStoppableCheck = instanceService.getInstanceHealthStatus(clusterId,
+        instanceName, InstanceService.HealthCheck.STOPPABLE_CHECK_LIST);
     CustomRestClient customClient = CustomRestClientFactory.get(jsonContent);
     // TODO add the json content parse logic
     Map<String, Boolean> customStoppableCheck =

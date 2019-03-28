@@ -293,7 +293,7 @@ public class ClusterSetup {
     List<String> existingIdealStateNames =
         accessor.getChildNames(accessor.keyBuilder().idealStates());
 
-    for (String resourceName : existingIdealStateNames) {
+    for (final String resourceName : existingIdealStateNames) {
       IdealState resourceIdealState =
           accessor.getProperty(accessor.keyBuilder().idealStates(resourceName));
       if (resourceIdealState.getRebalanceMode().equals(RebalanceMode.FULL_AUTO)) {
@@ -306,7 +306,13 @@ public class ClusterSetup {
       // Update ideal state
       accessor.updateProperty(accessor.keyBuilder().idealStates(resourceName),
           new DataUpdater<ZNRecord>() {
-            @Override public ZNRecord update(ZNRecord znRecord) {
+            @Override
+            public ZNRecord update(ZNRecord znRecord) {
+              if (znRecord == null) {
+                throw new HelixException(String.format(
+                    "swapInstance DataUpdater: IdealState for resource %s no longer exists!",
+                    resourceName));
+              }
               // Need to swap again in case there are added partition with old instance
               swapInstanceInIdealState(new IdealState(znRecord), oldInstanceName, newInstanceName);
               return znRecord;

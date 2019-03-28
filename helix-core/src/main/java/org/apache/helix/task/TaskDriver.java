@@ -417,6 +417,13 @@ public class TaskDriver {
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
+        if (currentData == null) {
+          // For some reason, the WorkflowConfig for this JobQueue doesn't exist
+          // In this case, we cannot proceed and must alert the user
+          throw new HelixException(
+              String.format("enqueueJobs DataUpdater: JobQueue %s config is not found!", queue));
+        }
+
         // Add the node to the existing DAG
         JobDag jobDag = JobDag.fromJson(
             currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
@@ -1078,8 +1085,8 @@ public class TaskDriver {
    */
   public void addOrUpdateWorkflowUserContentMap(String workflowName,
       final Map<String, String> contentToAddOrUpdate) {
-    TaskUtil
-        .addOrUpdateWorkflowJobUserContentMap(_propertyStore, workflowName, contentToAddOrUpdate);
+    TaskUtil.addOrUpdateWorkflowJobUserContentMap(_propertyStore, workflowName,
+        contentToAddOrUpdate);
   }
 
   /**

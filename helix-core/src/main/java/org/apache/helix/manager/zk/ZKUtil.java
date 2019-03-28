@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
@@ -315,7 +316,8 @@ public final class ZKUtil {
     }
   }
 
-  public static void subtract(HelixZkClient client, String path, final ZNRecord recordTosubtract) {
+  public static void subtract(HelixZkClient client, final String path,
+      final ZNRecord recordTosubtract) {
     int retryCount = 0;
     while (retryCount < RETRYLIMIT) {
       try {
@@ -323,6 +325,10 @@ public final class ZKUtil {
           DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
             @Override
             public ZNRecord update(ZNRecord currentData) {
+              if (currentData == null) {
+                throw new HelixException(
+                    String.format("subtract DataUpdater: ZNode at path %s is not found!", path));
+              }
               currentData.subtract(recordTosubtract);
               return currentData;
             }

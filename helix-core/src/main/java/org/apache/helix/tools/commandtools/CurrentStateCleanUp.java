@@ -81,14 +81,18 @@ public class CurrentStateCleanUp {
   public static void cleanupCurrentStatesForCluster(String zkConnectString, String clusterName,
       String instanceName, String session) throws Exception {
     HelixManager manager = HelixManagerFactory
-        .getZKHelixManager(clusterName, "Administorator", InstanceType.ADMINISTRATOR,
+        .getZKHelixManager(clusterName, "Administrator", InstanceType.ADMINISTRATOR,
             zkConnectString);
     manager.connect();
     try {
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
       DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
-        @Override public ZNRecord update(ZNRecord currentData) {
+        @Override
+        public ZNRecord update(ZNRecord currentData) {
+          if (currentData == null) {
+            return null;
+          }
           Set<String> partitionToRemove = new HashSet<>();
           for (String partition : currentData.getMapFields().keySet()) {
             if (currentData.getMapField(partition).get("CURRENT_STATE")

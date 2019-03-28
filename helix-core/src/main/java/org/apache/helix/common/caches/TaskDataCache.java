@@ -172,7 +172,10 @@ public class TaskDataCache extends AbstractDataCache {
     }
     for (String resourceName : childNames) {
       contextPaths.add(getTaskDataPath(resourceName, TaskDataType.CONTEXT));
-      prevAssignmentPaths.add(getTaskDataPath(resourceName, TaskDataType.PREV_ASSIGNMENT));
+      //Workflow does not have previous assignment
+      if (!_workflowConfigMap.containsKey(resourceName)) {
+        prevAssignmentPaths.add(getTaskDataPath(resourceName, TaskDataType.PREV_ASSIGNMENT));
+      }
     }
 
     List<ZNRecord> contexts = accessor.getBaseDataAccessor().get(contextPaths, null, 0);

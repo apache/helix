@@ -54,7 +54,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     _workflowDispatcher.updateWorkflowStatus(workflow, workflowCfg, workflowCtx, currStateOutput,
         new BestPossibleStateOutput());
     _workflowDispatcher.assignWorkflow(workflow, workflowCfg, workflowCtx, currStateOutput,
-        new BestPossibleStateOutput(), new HashMap<String, Resource>());
+        new BestPossibleStateOutput());
 
     LOG.debug(String.format("WorkflowRebalancer computation takes %d ms for workflow %s",
         System.currentTimeMillis() - startTime, workflow));

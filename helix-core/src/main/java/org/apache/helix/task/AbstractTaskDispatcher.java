@@ -1065,7 +1065,7 @@ public abstract class AbstractTaskDispatcher {
    */
   protected boolean isWorkflowStopped(WorkflowContext ctx, WorkflowConfig cfg) {
     if (cfg.isRecurring()) {
-      return cfg.getTargetState() == TargetState.START;
+      return cfg.getTargetState() == TargetState.STOP;
     }
 
     for (String job : cfg.getJobDag().getAllNodes()) {

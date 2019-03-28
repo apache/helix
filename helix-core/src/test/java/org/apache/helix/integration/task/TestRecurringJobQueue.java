@@ -274,10 +274,13 @@ public class TestRecurringJobQueue extends TaskTestBase {
 
     // Record all scheduled workflows
     wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
-    List<String> scheduledWorkflows = new ArrayList<String>(wCtx.getScheduledWorkflows());
+    List<String> scheduledWorkflows = new ArrayList<>(wCtx.getScheduledWorkflows());
     final String lastScheduledWorkflow = wCtx.getLastScheduledSingleWorkflow();
 
     // Delete recurrent workflow
+    _driver.delete(queueName);
+
+    // Try to delete again to make sure things are cleaned up
     _driver.delete(queueName);
 
     // Wait until recurrent workflow and the last scheduled workflow are cleaned up

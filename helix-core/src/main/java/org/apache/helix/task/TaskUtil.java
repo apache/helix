@@ -654,7 +654,7 @@ public class TaskUtil {
    * @return True if remove success, otherwise false
    */
   protected static boolean removeWorkflow(final HelixDataAccessor accessor,
-      final HelixPropertyStore propertyStore, String workflow, Set<String> jobs) {
+      final HelixPropertyStore<ZNRecord> propertyStore, String workflow, Set<String> jobs) {
     // clean up all jobs
     for (String job : jobs) {
       if (!removeJob(accessor, propertyStore, job)) {
@@ -724,9 +724,9 @@ public class TaskUtil {
    * @return
    */
   protected static Set<String> getExpiredJobs(HelixDataAccessor dataAccessor,
-      HelixPropertyStore propertyStore, WorkflowConfig workflowConfig,
+      HelixPropertyStore<ZNRecord> propertyStore, WorkflowConfig workflowConfig,
       WorkflowContext workflowContext) {
-    Set<String> expiredJobs = new HashSet<String>();
+    Set<String> expiredJobs = new HashSet<>();
 
     if (workflowContext != null) {
       Map<String, TaskState> jobStates = workflowContext.getJobStates();
@@ -742,7 +742,7 @@ public class TaskUtil {
           continue;
         }
         long expiry = jobConfig.getExpiry();
-        if (expiry == workflowConfig.DEFAULT_EXPIRY || expiry < 0) {
+        if (expiry == WorkflowConfig.DEFAULT_EXPIRY || expiry < 0) {
           expiry = workflowConfig.getExpiry();
         }
         if (jobContext != null && jobStates.get(job) == TaskState.COMPLETED) {
@@ -822,7 +822,7 @@ public class TaskUtil {
   /**
    * update workflow's property to remove jobs from JOB_STATES if there are already started.
    */
-  protected static boolean removeJobsState(final HelixPropertyStore propertyStore,
+  protected static boolean removeJobsState(final HelixPropertyStore<ZNRecord> propertyStore,
       final String workflow, final Set<String> jobs) {
     String contextPath =
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflow, TaskUtil.CONTEXT_NODE);
@@ -983,7 +983,6 @@ public class TaskUtil {
    * @param workflowConfig
    * @param workflowContext
    */
-
   public static void purgeExpiredJobs(String workflow, WorkflowConfig workflowConfig,
       WorkflowContext workflowContext, HelixManager manager,
       RebalanceScheduler rebalanceScheduler) {

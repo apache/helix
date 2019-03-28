@@ -231,12 +231,16 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     currentJobNames.remove(deletedJob2);
 
     // add job 3 back
-    JobConfig.Builder job =
-        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(Sets.newHashSet("SLAVE"));
-    LOG.info("Enqueuing job: " + deletedJob2);
-    _driver.enqueueJob(queueName, deletedJob2, job);
-    currentJobNames.add(deletedJob2);
+    JobConfig.Builder job = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+        .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
+
+    // the name here MUST be unique in order to avoid conflicts with the old job cached in
+    // RuntimeJobDag
+    String newJob = deletedJob2 + "_second";
+    LOG.info("Enqueuing job: " + newJob);
+    _driver.enqueueJob(queueName, newJob, job);
+    currentJobNames.add(newJob);
 
     // Ensure the jobs left are successful completed in the correct order
     long preJobFinish = 0;

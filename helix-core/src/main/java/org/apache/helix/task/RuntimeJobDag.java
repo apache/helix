@@ -20,26 +20,19 @@ package org.apache.helix.task;
  */
 
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Queue;
 import java.util.Set;
 import java.util.HashSet;
 
-import org.apache.helix.HelixException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * RuntimeJobDag is a job DAG that provides the job iterator functionality at runtime (when jobs are
  * actually being assigned per job category). This is to support assignment of jobs based on their
  * categories and quotas. RuntimeJobDag uses the list scheduling algorithm using ready-list and
  * inflight-list to return jobs available for scheduling.
- *
  * NOTE: RuntimeJobDag is not thread-safe.
  */
 public class RuntimeJobDag extends JobDag {
@@ -125,11 +118,15 @@ public class RuntimeJobDag extends JobDag {
     }
     // If list is empty, return null
     if (_readyJobList.isEmpty()) {
+
       return null;
     }
     String nextJob = _readyJobList.poll();
     _inflightJobList.add(nextJob);
     _lastJob = nextJob;
+
+
+
     return nextJob;
   }
 
@@ -212,5 +209,4 @@ public class RuntimeJobDag extends JobDag {
   public Set<String> getInflightJobList() {
     return new HashSet<>(_inflightJobList);
   }
-
 }

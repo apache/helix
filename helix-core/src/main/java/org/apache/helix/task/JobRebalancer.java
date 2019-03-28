@@ -40,6 +40,13 @@ public class JobRebalancer extends TaskRebalancer {
       CurrentStateOutput currStateOutput) {
     long startTime = System.currentTimeMillis();
     final String jobName = resource.getResourceName();
+    JobConfig jobConfig = clusterData.getJobConfig(jobName);
+    if (jobConfig == null) {
+      LOG.error(
+          "Job {}'s JobConfig is missing. This job might have been deleted or purged. Skipping status update and assignment!",
+          jobName);
+      return buildEmptyAssignment(jobName, currStateOutput);
+    }
     LOG.debug("Computer Best Partition for job: " + jobName);
     if (_jobDispatcher == null) {
       _jobDispatcher = new JobDispatcher();
@@ -47,9 +54,8 @@ public class JobRebalancer extends TaskRebalancer {
     _jobDispatcher.init(_manager);
     _jobDispatcher.updateCache(clusterData);
     _jobDispatcher.setClusterStatusMonitor(_clusterStatusMonitor);
-    ResourceAssignment resourceAssignment = _jobDispatcher
-        .processJobStatusUpdateAndAssignment(jobName, currStateOutput,
-            clusterData.getWorkflowContext(clusterData.getJobConfig(jobName).getWorkflow()));
+    ResourceAssignment resourceAssignment = _jobDispatcher.processJobStatusUpdateAndAssignment(
+        jobName, currStateOutput, clusterData.getWorkflowContext(jobConfig.getWorkflow()));
     LOG.debug(String.format("JobRebalancer computation takes %d ms for Job %s",
         System.currentTimeMillis() - startTime, jobName));
     return resourceAssignment;

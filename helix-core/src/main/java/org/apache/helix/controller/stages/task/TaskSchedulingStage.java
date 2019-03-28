@@ -259,9 +259,8 @@ public class TaskSchedulingStage extends AbstractBaseStage {
             String quotaType = getQuotaType(cache.getWorkflowConfig(workflowId));
             restOfResources.remove(workflowId);
             if (assignableInstanceManager.hasGlobalCapacity(quotaType)) {
-              _workflowDispatcher
-                  .assignWorkflow(workflowId, cache.getWorkflowConfig(workflowId), context,
-                      currentStateOutput, bestPossibleOutput, resourceMap);
+              _workflowDispatcher.assignWorkflow(workflowId, cache.getWorkflowConfig(workflowId),
+                  context, currentStateOutput, bestPossibleOutput);
             } else {
               LogUtil.logInfo(logger, _eventId, String.format(
                   "Fail to schedule new jobs assignment for Workflow %s due to quota %s is full",

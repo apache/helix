@@ -19,7 +19,6 @@ package org.apache.helix.common.caches;
  * under the License.
  */
 
-import com.google.common.base.Joiner;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,7 +38,6 @@ import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.RuntimeJobDag;
-import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
@@ -127,6 +125,23 @@ public class TaskDataCache extends AbstractDataCache {
     for (String jobName : newJobConfigs.keySet()) {
       if (!_jobConfigMap.containsKey(jobName) && newJobConfigs.get(jobName).getWorkflow() != null) {
         workflowsUpdated.add(newJobConfigs.get(jobName).getWorkflow());
+      }
+
+      // Only for JobQueues when a new job is enqueued, there exists a race condition where only
+      // JobConfig is updated and the RuntimeJobDag does not get updated because when the client
+      // (TaskDriver) submits, it creates JobConfig ZNode first and modifies its parent JobDag next.
+      // To ensure that they are both properly updated, check that workflow's DAG and existing
+      // JobConfigs are consistent for JobQueues
+      JobConfig jobConfig = newJobConfigs.get(jobName);
+      if (_workflowConfigMap.containsKey(jobConfig.getWorkflow())) {
+        WorkflowConfig workflowConfig = _workflowConfigMap.get(jobConfig.getWorkflow());
+        // Check that the job's parent workflow's DAG contains this job
+        if ((workflowConfig.isJobQueue() || !workflowConfig.isTerminable()) && !_runtimeJobDagMap
+            .get(workflowConfig.getWorkflowId()).getAllNodes().contains(jobName)) {
+          // Inconsistency between JobConfigs and DAGs found. Add the workflow to workflowsUpdated
+          // to rebuild the RuntimeJobDag
+          workflowsUpdated.add(jobConfig.getWorkflow());
+        }
       }
     }
 

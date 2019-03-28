@@ -174,7 +174,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
   public void assignWorkflow(String workflow, WorkflowConfig workflowCfg,
       WorkflowContext workflowCtx, CurrentStateOutput currentStateOutput,
-      BestPossibleStateOutput bestPossibleOutput, Map<String, Resource> resourceMap) {
+      BestPossibleStateOutput bestPossibleOutput) {
     // Fetch workflow configuration and context
     if (workflowCfg == null) {
       // Already logged in status update.
@@ -240,13 +240,13 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // Assign new jobs
     while (nextJob != null) {
       String job = nextJob;
-      nextJob = jobDag.getNextJob();
       TaskState jobState = workflowCtx.getJobState(job);
       if (jobState != null && !jobState.equals(TaskState.NOT_STARTED)) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Job " + job + " is already started or completed.");
         }
         processJob(job, currentStateOutput, bestPossibleOutput, workflowCtx);
+        nextJob = jobDag.getNextJob();
         continue;
       }
 
@@ -258,6 +258,9 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         break;
       }
 
+      // TODO: Part of isJobReadyToSchedule() is already done by RuntimeJobDag. Because there is
+      // some duplicate logic, consider refactoring. The check here and the ready-list in
+      // RuntimeJobDag may cause conflicts.
       // check ancestor job status
       if (isJobReadyToSchedule(job, workflowCfg, workflowCtx, inCompleteAllJobCount, jobConfigMap,
           clusterDataCache, clusterDataCache.getAssignableInstanceManager())) {
@@ -288,6 +291,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
           scheduledJobs++;
         }
       }
+      nextJob = jobDag.getNextJob();
     }
 
     long currentScheduledTime =

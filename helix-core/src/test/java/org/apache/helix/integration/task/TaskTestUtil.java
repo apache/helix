@@ -206,7 +206,7 @@ public class TaskTestUtil {
   }
 
   public static JobQueue.Builder buildRecurrentJobQueue(String jobQueueName, int delayStart,
-      int recurrenInSeconds, TargetState targetState) {
+      int recurrenceInSeconds, TargetState targetState) {
     WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder(jobQueueName);
     workflowCfgBuilder.setExpiry(120000);
     if (targetState != null) {
@@ -218,7 +218,7 @@ public class TaskTestUtil {
     cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + delayStart % 60);
     cal.set(Calendar.MILLISECOND, 0);
     ScheduleConfig scheduleConfig =
-        ScheduleConfig.recurringFromDate(cal.getTime(), TimeUnit.SECONDS, recurrenInSeconds);
+        ScheduleConfig.recurringFromDate(cal.getTime(), TimeUnit.SECONDS, recurrenceInSeconds);
     workflowCfgBuilder.setScheduleConfig(scheduleConfig);
     return new JobQueue.Builder(jobQueueName).setWorkflowConfig(workflowCfgBuilder.build());
   }

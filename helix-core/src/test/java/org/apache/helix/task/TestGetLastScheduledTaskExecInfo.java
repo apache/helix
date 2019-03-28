@@ -60,8 +60,8 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
     List<Long> startTimesFastTasks = setupTasks("TestWorkflow_3", 4, 10);
     // API call needs to return the most recent timestamp (value at last index)
     lastScheduledTaskTs = _driver.getLastScheduledTaskTimestamp("TestWorkflow_3");
-    execInfo = _driver.getLastScheduledTaskExecutionInfo("TestWorkflow_3");
     Thread.sleep(200); // Let the tasks run
+    execInfo = _driver.getLastScheduledTaskExecutionInfo("TestWorkflow_3");
 
     Assert.assertEquals(startTimesFastTasks.get(startTimesFastTasks.size() - 1), lastScheduledTaskTs);
     Assert.assertEquals(execInfo.getJobName(), "TestWorkflow_3_job_0");

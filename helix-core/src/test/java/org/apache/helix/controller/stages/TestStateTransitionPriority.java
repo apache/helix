@@ -42,7 +42,7 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-public class TestStateTransitionPrirority extends BaseStageTest {
+public class TestStateTransitionPriority extends BaseStageTest {
   public static final String RESOURCE = "Resource";
   public static final String PARTITION = "Partition";
 

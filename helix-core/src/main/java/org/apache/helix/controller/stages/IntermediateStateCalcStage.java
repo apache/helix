@@ -41,6 +41,7 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -312,7 +313,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       List<String> preferenceList = preferenceLists.get(partition.getPartitionName());
 
       RebalanceType rebalanceType = getRebalanceType(cache, bestPossibleMap, preferenceList,
-          stateModelDef, currentStateMap, idealState);
+          stateModelDef, currentStateMap, idealState, partition.getPartitionName());
 
       // TODO: refine getRebalanceType to return more accurate rebalance types. So the following
       // logic doesn't need to check for more details.
@@ -691,11 +692,11 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
   }
 
   /**
-   * For a partiton, given its preferenceList, bestPossibleState, and currentState, determine which
+   * For a partition, given its preferenceList, bestPossibleState, and currentState, determine which
    * type of rebalance is needed to model IdealState's states defined by the state model definition.
    * @return RebalanceType needed to bring the replicas to idea states
    *         RECOVERY_BALANCE - not all required states (replicas) are available through all
-   *         replicas
+   *         replicas, or the partition is disabled
    *         NONE - current state matches the ideal state
    *         LOAD_BALANCE - although all replicas required exist, Helix needs to optimize the
    *         allocation
@@ -703,7 +704,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
   private RebalanceType getRebalanceType(ResourceControllerDataProvider cache,
       Map<String, String> bestPossibleMap, List<String> preferenceList,
       StateModelDefinition stateModelDef, Map<String, String> currentStateMap,
-      IdealState idealState) {
+      IdealState idealState, String partitionName) {
     if (preferenceList == null) {
       preferenceList = Collections.emptyList();
     }
@@ -716,8 +717,13 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     // required by StateModelDefinition.
     LinkedHashMap<String, Integer> expectedStateCountMap =
         stateModelDef.getStateCountMap(activeList.size(), replica); // StateModelDefinition's counts
-    Map<String, Integer> currentStateCounts = StateModelDefinition.getStateCounts(currentStateMap); // Current
-    // counts
+    // Current counts without disabled partitions or disabled instances
+    Map<String, String> currentStateMapWithoutDisabled = new HashMap<>(currentStateMap);
+    currentStateMapWithoutDisabled.keySet().removeAll(
+        cache.getDisabledInstancesForPartition(idealState.getResourceName(), partitionName));
+    Map<String, Integer> currentStateCounts =
+        StateModelDefinition.getStateCounts(currentStateMapWithoutDisabled);
+
     // Go through each state and compare counts
     for (String state : expectedStateCountMap.keySet()) {
       Integer expectedCount = expectedStateCountMap.get(state);

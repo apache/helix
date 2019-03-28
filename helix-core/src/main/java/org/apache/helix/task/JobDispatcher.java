@@ -29,8 +29,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
+import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
@@ -54,7 +56,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
   public ResourceAssignment processJobStatusUpdateAndAssignment(String jobName,
       CurrentStateOutput currStateOutput, WorkflowContext workflowCtx) {
     // Fetch job configuration
-    JobConfig jobCfg = _dataProvider.getJobConfig(jobName);
+    final JobConfig jobCfg = _dataProvider.getJobConfig(jobName);
     if (jobCfg == null) {
       LOG.error("Job configuration is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -62,7 +64,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     String workflowResource = jobCfg.getWorkflow();
 
     // Fetch workflow configuration and context
-    WorkflowConfig workflowCfg = _dataProvider.getWorkflowConfig(workflowResource);
+    final WorkflowConfig workflowCfg = _dataProvider.getWorkflowConfig(workflowResource);
     if (workflowCfg == null) {
       LOG.error("Workflow configuration is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -113,13 +115,19 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     JobContext jobCtx = _dataProvider.getJobContext(jobName);
     if (jobCtx == null) {
       jobCtx = new JobContext(new ZNRecord(TaskUtil.TASK_CONTEXT_KW));
-      jobCtx.setStartTime(System.currentTimeMillis());
+      final long currentTimestamp = System.currentTimeMillis();
+      jobCtx.setStartTime(currentTimestamp);
       jobCtx.setName(jobName);
       // This job's JobContext has not been created yet. Since we are creating a new JobContext
       // here, we must also create its UserContentStore
       TaskUtil.createUserContent(_manager.getHelixPropertyStore(), jobName,
           new ZNRecord(TaskUtil.USER_CONTENT_NODE));
       workflowCtx.setJobState(jobName, TaskState.IN_PROGRESS);
+
+      // Since this job has been processed for the first time, we report SubmissionToProcessDelay
+      // here asynchronously
+      reportSubmissionToProcessDelay(_dataProvider, _clusterStatusMonitor, workflowCfg, jobCfg,
+          currentTimestamp);
     }
 
     if (!TaskState.TIMED_OUT.equals(workflowCtx.getJobState(jobName))) {

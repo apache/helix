@@ -38,7 +38,7 @@ import com.google.common.collect.Sets;
  */
 public class JobContext extends HelixProperty {
   private enum ContextProperties {
-    START_TIME,
+    START_TIME, // Time at which this JobContext was created
     STATE,
     NUM_ATTEMPTS,
     FINISH_TIME,
@@ -47,7 +47,8 @@ public class JobContext extends HelixProperty {
     ASSIGNED_PARTICIPANT,
     NEXT_RETRY_TIME,
     INFO,
-    NAME
+    NAME,
+    EXECUTION_START_TIME, // Time at which the first task of this job got scheduled
   }
 
   public JobContext(ZNRecord record) {
@@ -61,7 +62,7 @@ public class JobContext extends HelixProperty {
   public long getStartTime() {
     String tStr = _record.getSimpleField(ContextProperties.START_TIME.toString());
     if (tStr == null) {
-      return WorkflowContext.UNSTARTED;
+      return WorkflowContext.NOT_STARTED;
     }
     return Long.parseLong(tStr);
   }
@@ -141,11 +142,11 @@ public class JobContext extends HelixProperty {
   public long getPartitionStartTime(int p) {
     Map<String, String> map = getMapField(p);
     if (map == null) {
-      return WorkflowContext.UNSTARTED;
+      return WorkflowContext.NOT_STARTED;
     }
     String tStr = map.get(ContextProperties.START_TIME.toString());
     if (tStr == null) {
-      return WorkflowContext.UNSTARTED;
+      return WorkflowContext.NOT_STARTED;
     }
     return Long.parseLong(tStr);
   }
@@ -273,8 +274,30 @@ public class JobContext extends HelixProperty {
   }
 
   /**
+   * Only set the execution start time when it hasn't already been set.
+   * NOTE: This method is not thread-safe. However, it is okay because even if this does get written
+   * twice due to a race condition, that means the timestamps will be close enough to get a fairly
+   * good estimate for the execution start time. We do not want to affect the task status update
+   * performance and ultimately, this execution start time is an estimate in and of itself anyways.
+   * @param t
+   */
+  public void setExecutionStartTime(long t) {
+    String tStr = _record.getSimpleField(ContextProperties.EXECUTION_START_TIME.toString());
+    if (tStr == null) {
+      _record.setSimpleField(ContextProperties.EXECUTION_START_TIME.toString(), String.valueOf(t));
+    }
+  }
+
+  public long getExecutionStartTime() {
+    String tStr = _record.getSimpleField(ContextProperties.EXECUTION_START_TIME.toString());
+    if (tStr == null) {
+      return WorkflowContext.NOT_STARTED;
+    }
+    return Long.parseLong(tStr);
+  }
+
+  /**
    * Get MapField for the given partition.
-   *
    * @param p
    * @return mapField for the partition, NULL if the partition has not scheduled yet.
    */
@@ -286,7 +309,7 @@ public class JobContext extends HelixProperty {
     String pStr = String.valueOf(p);
     Map<String, String> map = _record.getMapField(pStr);
     if (map == null && createIfNotPresent) {
-      map = new TreeMap<String, String>();
+      map = new TreeMap<>();
       _record.setMapField(pStr, map);
     }
     return map;

@@ -1,5 +1,24 @@
 package org.apache.helix.task;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -11,10 +30,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.common.caches.TaskDataCache;
+import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
+import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -23,12 +45,14 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.monitoring.mbeans.JobMonitor;
 import org.apache.helix.task.assigner.AssignableInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractTaskDispatcher {
   private static final Logger LOG = LoggerFactory.getLogger(AbstractTaskDispatcher.class);
+  private static final String TASK_LATENCY_TAG = "Latency";
 
   // For connection management
   protected HelixManager _manager;
@@ -470,12 +494,13 @@ public abstract class AbstractTaskDispatcher {
   // This is the actual assigning part
   protected void handleAdditionalTaskAssignment(
       Map<String, SortedSet<Integer>> prevInstanceToTaskAssignments, Set<String> excludedInstances,
-      String jobResource, CurrentStateOutput currStateOutput, JobContext jobCtx, JobConfig jobCfg,
-      WorkflowConfig workflowConfig, WorkflowContext workflowCtx,
-      WorkflowControllerDataProvider cache, ResourceAssignment prevTaskToInstanceStateAssignment,
+      String jobResource, CurrentStateOutput currStateOutput, JobContext jobCtx,
+      final JobConfig jobCfg, final WorkflowConfig workflowConfig, WorkflowContext workflowCtx,
+      final WorkflowControllerDataProvider cache,
+      ResourceAssignment prevTaskToInstanceStateAssignment,
       Map<String, Set<Integer>> assignedPartitions, Map<Integer, PartitionAssignment> paMap,
       Set<Integer> skippedPartitions, TaskAssignmentCalculator taskAssignmentCal,
-      Set<Integer> allPartitions, long currentTime, Collection<String> liveInstances) {
+      Set<Integer> allPartitions, final long currentTime, Collection<String> liveInstances) {
 
     // See if there was LiveInstance change and cache LiveInstances from this iteration of pipeline
     boolean existsLiveInstanceOrCurrentStateChange =
@@ -602,7 +627,14 @@ public abstract class AbstractTaskDispatcher {
           excludeSet.add(pId);
           jobCtx.setAssignedParticipant(pId, instance);
           jobCtx.setPartitionState(pId, TaskPartitionState.INIT);
-          jobCtx.setPartitionStartTime(pId, System.currentTimeMillis());
+          final long currentTimestamp = System.currentTimeMillis();
+          jobCtx.setPartitionStartTime(pId, currentTimestamp);
+          if (jobCtx.getExecutionStartTime() == WorkflowContext.NOT_STARTED) {
+            // This means this is the very first task scheduled for this job
+            jobCtx.setExecutionStartTime(currentTimestamp);
+            reportSubmissionToScheduleDelay(cache, _clusterStatusMonitor, workflowConfig, jobCfg,
+                currentTimestamp);
+          }
           if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
                 TaskPartitionState.RUNNING, instance));
@@ -792,12 +824,13 @@ public abstract class AbstractTaskDispatcher {
     }
   }
 
-  protected void markJobComplete(String jobName, JobContext jobContext,
-      WorkflowConfig workflowConfig, WorkflowContext workflowContext,
-      Map<String, JobConfig> jobConfigMap, WorkflowControllerDataProvider dataProvider) {
+  protected void markJobComplete(final String jobName, final JobContext jobContext,
+      final WorkflowConfig workflowConfig, WorkflowContext workflowContext,
+      final Map<String, JobConfig> jobConfigMap,
+      final WorkflowControllerDataProvider dataProvider) {
     finishJobInRuntimeJobDag(dataProvider.getTaskDataCache(), workflowConfig.getWorkflowId(),
         jobName);
-    long currentTime = System.currentTimeMillis();
+    final long currentTime = System.currentTimeMillis();
     workflowContext.setJobState(jobName, TaskState.COMPLETED);
     jobContext.setFinishTime(currentTime);
     if (isWorkflowFinished(workflowContext, workflowConfig, jobConfigMap, dataProvider)) {
@@ -805,6 +838,13 @@ public abstract class AbstractTaskDispatcher {
       updateWorkflowMonitor(workflowContext, workflowConfig);
     }
     scheduleJobCleanUp(jobConfigMap.get(jobName), workflowConfig, currentTime);
+
+    // Job has completed successfully so report ControllerInducedDelay
+    JobConfig jobConfig = jobConfigMap.get(jobName);
+    if (jobConfig != null) {
+      reportControllerInducedDelay(dataProvider, _clusterStatusMonitor, workflowConfig, jobConfig,
+          currentTime);
+    }
   }
 
   protected void markJobFailed(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
@@ -1174,5 +1214,106 @@ public abstract class AbstractTaskDispatcher {
           .format("Failed to find runtime job DAG for workflow %s and job %s", workflowName,
               jobName));
     }
+  }
+
+  /**
+   * TODO: Move this logic to Task Framework metrics class for refactoring.
+   * Computes and passes on submissionToProcessDelay to the dynamic metric.
+   * @param dataProvider
+   * @param clusterStatusMonitor
+   * @param workflowConfig
+   * @param jobConfig
+   * @param currentTimestamp
+   */
+  protected static void reportSubmissionToProcessDelay(BaseControllerDataProvider dataProvider,
+      final ClusterStatusMonitor clusterStatusMonitor, final WorkflowConfig workflowConfig,
+      final JobConfig jobConfig, final long currentTimestamp) {
+    AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), new Callable<Object>() {
+      @Override
+      public Object call() {
+        // Asynchronously update the appropriate JobMonitor
+        JobMonitor jobMonitor = clusterStatusMonitor
+            .getJobMonitor(TaskAssignmentCalculator.getQuotaType(workflowConfig, jobConfig));
+        if (jobMonitor == null) {
+          return null;
+        }
+
+        // Compute SubmissionToProcessDelay
+        long submissionToProcessDelay = currentTimestamp - jobConfig.getStat().getCreationTime();
+        jobMonitor.updateSubmissionToProcessDelayGauge(submissionToProcessDelay);
+        return null;
+      }
+    });
+  }
+
+  /**
+   * TODO: Move this logic to Task Framework metrics class for refactoring.
+   * Computes and passes on submissionToScheduleDelay to the dynamic metric.
+   * @param dataProvider
+   * @param clusterStatusMonitor
+   * @param workflowConfig
+   * @param jobConfig
+   * @param currentTimestamp
+   */
+  private static void reportSubmissionToScheduleDelay(BaseControllerDataProvider dataProvider,
+      final ClusterStatusMonitor clusterStatusMonitor, final WorkflowConfig workflowConfig,
+      final JobConfig jobConfig, final long currentTimestamp) {
+    AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), new Callable<Object>() {
+      @Override
+      public Object call() {
+        // Asynchronously update the appropriate JobMonitor
+        JobMonitor jobMonitor = clusterStatusMonitor
+            .getJobMonitor(TaskAssignmentCalculator.getQuotaType(workflowConfig, jobConfig));
+        if (jobMonitor == null) {
+          return null;
+        }
+
+        // Compute SubmissionToScheduleDelay
+        long submissionToStartDelay = currentTimestamp - jobConfig.getStat().getCreationTime();
+        jobMonitor.updateSubmissionToScheduleDelayGauge(submissionToStartDelay);
+        return null;
+      }
+    });
+  }
+
+  /**
+   * TODO: Move this logic to Task Framework metrics class for refactoring.
+   * Computes and passes on controllerInducedDelay to the dynamic metric.
+   * @param dataProvider
+   * @param clusterStatusMonitor
+   * @param workflowConfig
+   * @param jobConfig
+   * @param currentTimestamp
+   */
+  private static void reportControllerInducedDelay(BaseControllerDataProvider dataProvider,
+      final ClusterStatusMonitor clusterStatusMonitor, final WorkflowConfig workflowConfig,
+      final JobConfig jobConfig, final long currentTimestamp) {
+    AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), new Callable<Object>() {
+      @Override
+      public Object call() {
+        // Asynchronously update the appropriate JobMonitor
+        JobMonitor jobMonitor = clusterStatusMonitor
+            .getJobMonitor(TaskAssignmentCalculator.getQuotaType(workflowConfig, jobConfig));
+        if (jobMonitor == null) {
+          return null;
+        }
+
+        // Compute ControllerInducedDelay only if the workload is a test load
+        // NOTE: this metric cannot be computed for general user-submitted workloads because
+        // the actual runtime of the tasks vary, and there could exist multiple tasks per
+        // job
+        // NOTE: a test workload will have the "latency" field in the mapField of the
+        // JobConfig (taskConfig)
+        String firstTask = jobConfig.getTaskConfigMap().keySet().iterator().next();
+        if (jobConfig.getTaskConfig(firstTask).getConfigMap().containsKey(TASK_LATENCY_TAG)) {
+          long taskDuration =
+              Long.valueOf(jobConfig.getTaskConfig(firstTask).getConfigMap().get(TASK_LATENCY_TAG));
+          long controllerInducedDelay =
+              currentTimestamp - jobConfig.getStat().getCreationTime() - taskDuration;
+          jobMonitor.updateControllerInducedDelayGauge(controllerInducedDelay);
+        }
+        return null;
+      }
+    });
   }
 }

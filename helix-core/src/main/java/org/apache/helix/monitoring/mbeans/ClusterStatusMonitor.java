@@ -641,8 +641,20 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     jobType = preProcessJobMonitor(jobType);
     JobMonitor jobMonitor = _perTypeJobMonitorMap.get(jobType);
     if (jobMonitor != null) {
-      jobMonitor.updateJobCounters(to, latency);
+      jobMonitor.updateJobMetricsWithLatency(to, latency);
     }
+  }
+
+  /**
+   * TODO: Separate Workflow/Job Monitors from ClusterStatusMonitor because ClusterStatusMonitor is
+   * getting too big.
+   * Returns the appropriate JobMonitor for the given type. If it does not exist, create one and
+   * return it.
+   * @param jobType
+   * @return
+   */
+  public JobMonitor getJobMonitor(String jobType) {
+    return _perTypeJobMonitorMap.get(preProcessJobMonitor(jobType));
   }
 
   private void updateJobGauges(String jobType, TaskState current) {
@@ -662,13 +674,17 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
     synchronized (_perTypeJobMonitorMap) {
       if (!_perTypeJobMonitorMap.containsKey(jobType)) {
-        JobMonitor monitor = new JobMonitor(_clusterName, jobType);
+        String jobMonitorBeanName = getJobBeanName(jobType);
+        JobMonitor monitor = null;
         try {
-          registerJob(monitor);
-        } catch (MalformedObjectNameException e) {
+          monitor = new JobMonitor(_clusterName, jobType, getObjectName(jobMonitorBeanName));
+          monitor.register(); // Necessary for dynamic metrics
+        } catch (Exception e) {
           LOG.error("Failed to register job type : " + jobType, e);
         }
-        _perTypeJobMonitorMap.put(jobType, monitor);
+        if (monitor != null) {
+          _perTypeJobMonitorMap.put(jobType, monitor);
+        }
       }
     }
     return jobType;
@@ -789,17 +805,12 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  private void registerJob(JobMonitor jobMonitor) throws MalformedObjectNameException {
-    String jobBeanName = getJobBeanName(jobMonitor.getJobType());
-    register(jobMonitor, getObjectName(jobBeanName));
-  }
-
-  private void unregisterAllJobs() throws MalformedObjectNameException {
+  private void unregisterAllJobs() {
     synchronized (_perTypeJobMonitorMap) {
       Iterator<Map.Entry<String, JobMonitor>> jobIter = _perTypeJobMonitorMap.entrySet().iterator();
       while (jobIter.hasNext()) {
         Map.Entry<String, JobMonitor> jobEntry = jobIter.next();
-        unregister(getObjectName(getJobBeanName(jobEntry.getKey())));
+        jobEntry.getValue().unregister();
         jobIter.remove();
       }
     }

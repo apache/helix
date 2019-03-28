@@ -50,7 +50,7 @@ public class WorkflowContext extends HelixProperty {
     NAME
     }
 
-  public static final int UNSTARTED = -1;
+  public static final int NOT_STARTED = -1;
   public static final int UNFINISHED = -1;
 
   public WorkflowContext(ZNRecord record) {

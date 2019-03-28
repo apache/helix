@@ -239,10 +239,10 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   }
 
   /**
-   * Invalid the cached resourceAssignment (ideal mapping) for a resource
+   * Invalidate the cached resourceAssignment (ideal mapping) for a resource
    * @param resource
    */
-  public void invalidCachedIdealStateMapping(String resource) {
+  public void invalidateCachedIdealStateMapping(String resource) {
     _idealMappingCache.remove(resource);
   }
 

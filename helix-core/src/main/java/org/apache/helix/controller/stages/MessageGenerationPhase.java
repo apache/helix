@@ -154,13 +154,15 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
         if (currentState == null) {
           currentState = stateModelDef.getInitialState();
           if (desiredState.equals(HelixDefinedState.DROPPED.name())) {
-            LogUtil.logDebug(logger, _eventId, String
-                .format("No current state for partition %s in resource %s, skip the drop message",
+            LogUtil.logDebug(logger, _eventId,
+                String.format(
+                    "No current state for partition %s in resource %s, skip the drop message",
                     partition.getPartitionName(), resourceName));
 
             // TODO: separate logic of resource/task message generation
             if (cache instanceof ResourceControllerDataProvider) {
-              ((ResourceControllerDataProvider) cache).invalidCachedIdealStateMapping(resourceName);
+              ((ResourceControllerDataProvider) cache)
+                  .invalidateCachedIdealStateMapping(resourceName);
             }
             continue;
           }

@@ -37,6 +37,7 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -169,7 +170,8 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
    * and no throttle config set for recovery balance
    * and throttle config of 1 set for load balance,
    * Instead of disabling the instance, we disable the partition in the instance config.
-   * Here, we set the recovery balance config. Then we should still see the MASTER.
+   * Here, we set the recovery balance config to 0. But we should still see the downward transition
+   * regardless.
    * * instance 1 : S (M->S->Offline)
    * * instance 2 : M (S->M because it's in recovery)
    * * instance 3 : S
@@ -205,10 +207,89 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
         for (Map.Entry<String, String> partitionState : currentState.getPartitionStateMap()
             .entrySet()) {
           if (partitionState.getKey().equals("TestDB0_2")) {
-            Assert.assertTrue(partitionState.getValue().equals("MASTER"));
+            Assert.assertFalse(partitionState.getValue().equals("MASTER"));
           }
         }
       }
+    }
+
+    // clean up the cluster
+    controller.syncStop();
+    for (int i = 0; i < participantCount; i++) {
+      _participants[i].syncStop();
+    }
+    deleteCluster(_clusterName);
+  }
+
+  @Test
+  public void testNoThrottleOnDisabledInstance() throws Exception {
+    int participantCount = 5;
+    setupEnvironment(participantCount);
+    setThrottleConfig();
+
+    // Disable an instance so that it will not be subject to throttling
+    PropertyKey key = _accessor.keyBuilder().instanceConfig(_participants[0].getInstanceName());
+    InstanceConfig instanceConfig = _accessor.getProperty(key);
+    instanceConfig.setInstanceEnabled(false);
+    _accessor.setProperty(key, instanceConfig);
+
+    // Set the state transition delay so that transitions would be processed slowly
+    DelayedTransitionBase.setDelay(1000000L);
+
+    // Resume the controller
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
+    controller.syncStart();
+    Thread.sleep(500L);
+
+    // Check that there are more messages on this Participant despite the throttle config set at 1
+    Assert.assertTrue(verifyMultipleMessages(_participants[0]));
+
+    // clean up the cluster
+    controller.syncStop();
+    for (int i = 0; i < participantCount; i++) {
+      _participants[i].syncStop();
+    }
+    deleteCluster(_clusterName);
+  }
+
+  @Test
+  public void testNoThrottleOnDisabledPartition() throws Exception {
+    int participantCount = 3;
+    setupEnvironment(participantCount);
+    setThrottleConfig();
+
+    // Disable a partition so that it will not be subject to throttling
+    String partitionName = _resourceName + "0_0";
+    for (int i = 0; i < participantCount; i++) {
+      disablePartitionOnInstance(_participants[i], _resourceName + "0", partitionName);
+    }
+
+    String newResource = "abc";
+    IdealState idealState = new FullAutoModeISBuilder(newResource).setStateModel("MasterSlave")
+        .setStateModelFactoryName("DEFAULT").setNumPartitions(5).setNumReplica(3)
+        .setMinActiveReplica(2).setRebalancerMode(IdealState.RebalanceMode.FULL_AUTO)
+        .setRebalancerClass("org.apache.helix.controller.rebalancer.DelayedAutoRebalancer")
+        .setRebalanceStrategy(
+            "org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy")
+        .build();
+
+    _gSetupTool.addResourceToCluster(_clusterName, newResource, idealState);
+    _gSetupTool.rebalanceStorageCluster(_clusterName, newResource, 3);
+
+    // Set the state transition delay so that transitions would be processed slowly
+    DelayedTransitionBase.setDelay(1000000L);
+
+    // Now Helix will try to bring this up on all instances. But the disabled partition will go to
+    // offline. This should allow each instance to have 2 messages despite having the throttle set
+    // at 1
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
+    controller.syncStart();
+    Thread.sleep(500L);
+
+    for (MockParticipantManager participantManager : _participants) {
+      Assert.assertTrue(verifyTwoMessages(participantManager));
     }
 
     // clean up the cluster
@@ -250,6 +331,37 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
 
     // Pause the controller
     controller.syncStop();
+  }
+
+  /**
+   * Set all throttle configs at 1 so that we could test by observing the number of ongoing
+   * transitions.
+   */
+  private void setThrottleConfig() {
+    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
+
+    ClusterConfig clusterConfig = _accessor.getProperty(_accessor.keyBuilder().clusterConfig());
+    clusterConfig.setResourcePriorityField("Name");
+    List<StateTransitionThrottleConfig> throttleConfigs = new ArrayList<>();
+
+    // Add throttling at cluster-level
+    throttleConfigs.add(new StateTransitionThrottleConfig(
+        StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
+        StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 1));
+    throttleConfigs.add(
+        new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
+            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 1));
+    throttleConfigs
+        .add(new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.ANY,
+            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 1));
+
+    // Add throttling at instance level
+    throttleConfigs
+        .add(new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.ANY,
+            StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 1));
+
+    clusterConfig.setStateTransitionThrottleConfigs(throttleConfigs);
+    _accessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
   }
 
   /**
@@ -346,5 +458,33 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     InstanceConfig instanceConfig = _accessor.getProperty(key);
     instanceConfig.setInstanceEnabledForPartition(resourceName, partitionName, false);
     _accessor.setProperty(key, instanceConfig);
+  }
+
+  /**
+   * Ensure that there are more than 1 message for a given Participant.
+   * @param participant
+   * @return
+   */
+  private boolean verifyMultipleMessages(final MockParticipantManager participant) {
+    PropertyKey key = _accessor.keyBuilder().messages(participant.getInstanceName());
+    List<String> messageNames = _accessor.getChildNames(key);
+    if (messageNames != null) {
+      return messageNames.size() > 1;
+    }
+    return false;
+  }
+
+  /**
+   * Ensure that there are 2 messages for a given Participant.
+   * @param participant
+   * @return
+   */
+  private boolean verifyTwoMessages(final MockParticipantManager participant) {
+    PropertyKey key = _accessor.keyBuilder().messages(participant.getInstanceName());
+    List<String> messageNames = _accessor.getChildNames(key);
+    if (messageNames != null) {
+      return messageNames.size() == 2;
+    }
+    return false;
   }
 }

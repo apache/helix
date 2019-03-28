@@ -228,6 +228,15 @@ under the License.
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>hulee</id>
+      <name>Hunter Lee</name>
+      <email>hulee@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>helix-core</module>

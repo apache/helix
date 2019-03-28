@@ -1018,11 +1018,16 @@ public abstract class AbstractTaskDispatcher {
 
   /**
    * Checks if the workflow has been stopped.
+   * In the case of a recurrent workflow template, we look at its TargetState.
    * @param ctx Workflow context containing task states
    * @param cfg Workflow config containing set of tasks
    * @return returns true if all tasks are {@link TaskState#STOPPED}, false otherwise.
    */
   protected boolean isWorkflowStopped(WorkflowContext ctx, WorkflowConfig cfg) {
+    if (cfg.isRecurring()) {
+      return cfg.getTargetState() == TargetState.START;
+    }
+
     for (String job : cfg.getJobDag().getAllNodes()) {
       TaskState jobState = ctx.getJobState(job);
       if (jobState != null

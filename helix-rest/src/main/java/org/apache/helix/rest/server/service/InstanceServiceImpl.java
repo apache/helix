@@ -44,22 +44,25 @@ public class InstanceServiceImpl implements InstanceService {
   @Override
   public Map<String, Boolean> getInstanceStoppableCheck(String clusterId, String instanceName) {
     Map<String, Boolean> healthStatus = new HashMap<>();
-    healthStatus.put(HealthStatus.HAS_VALID_CONFIG.name(), InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName));
-    if (!healthStatus.get(HealthStatus.HAS_VALID_CONFIG.name())) {
+    healthStatus.put(HealthCheck.INVALID_CONFIG.name(), InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName));
+    if (!healthStatus.get(HealthCheck.INVALID_CONFIG.name())) {
       _logger.error("The instance {} doesn't have valid configuration", instanceName);
       return healthStatus;
     }
 
     // Any exceptions occurred below due to invalid instance config shouldn't happen
-    healthStatus.put(HealthStatus.IS_ENABLED.name(), InstanceValidationUtil.isEnabled(_dataAccessor, _configAccessor, clusterId, instanceName));
-    healthStatus.put(HealthStatus.IS_ALIVE.name(), InstanceValidationUtil.isAlive(_dataAccessor, clusterId, instanceName));
-    healthStatus.put(HealthStatus.HAS_RESOURCE_ASSIGNED.name(), InstanceValidationUtil.hasResourceAssigned(_dataAccessor, clusterId, instanceName));
-    healthStatus.put(HealthStatus.HAS_DISABLED_PARTITIONS.name(), InstanceValidationUtil.hasDisabledPartitions(_dataAccessor, clusterId, instanceName));
-    healthStatus.put(HealthStatus.HAS_ERROR_PARTITIONS.name(), InstanceValidationUtil.hasErrorPartitions(_dataAccessor, clusterId, instanceName));
+    healthStatus.put(
+        HealthCheck.INSTANCE_NOT_ENABLED.name(), InstanceValidationUtil.isEnabled(_dataAccessor, _configAccessor, clusterId, instanceName));
+    healthStatus.put(HealthCheck.INSTANCE_NOT_ALIVE.name(), InstanceValidationUtil.isAlive(_dataAccessor, clusterId, instanceName));
+    healthStatus.put(
+        HealthCheck.EMPTY_RESOURCE_ASSIGNMENT.name(), InstanceValidationUtil.hasResourceAssigned(_dataAccessor, clusterId, instanceName));
+    healthStatus.put(HealthCheck.HAS_DISABLED_PARTITIONS.name(), !InstanceValidationUtil.hasDisabledPartitions(_dataAccessor, clusterId, instanceName));
+    healthStatus.put(
+        HealthCheck.HAS_ERROR_PARTITION.name(), !InstanceValidationUtil.hasErrorPartitions(_dataAccessor, clusterId, instanceName));
 
     try {
       boolean isStable = InstanceValidationUtil.isInstanceStable(_dataAccessor, instanceName);
-      healthStatus.put(HealthStatus.IS_STABLE.name(), isStable);
+      healthStatus.put(HealthCheck.INSTANCE_NOT_STABLE.name(), isStable);
     } catch (HelixException e) {
       _logger.error("Failed to check instance is stable, message: {}", e.getMessage());
       // TODO action on the stable check exception
@@ -68,13 +71,35 @@ public class InstanceServiceImpl implements InstanceService {
     return healthStatus;
   }
 
-  private enum HealthStatus {
-    IS_ALIVE,
-    IS_ENABLED,
-    HAS_RESOURCE_ASSIGNED,
+  public enum HealthCheck {
+    /**
+     * Check if instance is alive
+     */
+    INSTANCE_NOT_ALIVE,
+    /**
+     * Check if instance is enabled both in instance config and cluster config
+     */
+    INSTANCE_NOT_ENABLED,
+    /**
+     * Check if instance is stable
+     * Stable means all the ideal state mapping matches external view (view of current state).
+     */
+    INSTANCE_NOT_STABLE,
+    /**
+     * Check if instance has 0 resource assigned
+     */
+    EMPTY_RESOURCE_ASSIGNMENT,
+    /**
+     * Check if instance has disabled partitions
+     */
     HAS_DISABLED_PARTITIONS,
-    HAS_VALID_CONFIG,
-    HAS_ERROR_PARTITIONS,
-    IS_STABLE
+    /**
+     * Check if instance has valid configuration (pre-requisite for all checks)
+     */
+    INVALID_CONFIG,
+    /**
+     * Check if instance has error partitions
+     */
+    HAS_ERROR_PARTITION
   }
 }

@@ -62,9 +62,9 @@ public class TestInstanceAccessor extends AbstractTestClass {
         Entity.entity(OBJECT_MAPPER.writeValueAsString(params), MediaType.APPLICATION_JSON_TYPE);
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
-    String checkResult = response.readEntity(String.class);
-    Assert.assertEquals(checkResult,
-        "{\"stoppable\":false,\"failedChecks\":[\"Helix:HAS_DISABLED_PARTITIONS\",\"Helix:HAS_RESOURCE_ASSIGNED\",\"Helix:HAS_ERROR_PARTITIONS\",\"Helix:IS_ALIVE\"]}");
+    String stoppableCheckResult = response.readEntity(String.class);
+    Assert.assertEquals(stoppableCheckResult,
+        "{\"stoppable\":false,\"failedChecks\":[\"Helix:EMPTY_RESOURCE_ASSIGNMENT\",\"Helix:INSTANCE_NOT_ALIVE\"]}");
   }
 
   @Test (dependsOnMethods = "testIsInstanceStoppable")

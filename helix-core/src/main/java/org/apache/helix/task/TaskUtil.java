@@ -315,7 +315,7 @@ public class TaskUtil {
    * @param workflowJobResource the name of workflow or job
    * @param record the initial data
    */
-  protected static void createUserContent(HelixPropertyStore propertyStore,
+  protected static void createUserContent(HelixPropertyStore<ZNRecord> propertyStore,
       String workflowJobResource, ZNRecord record) {
     propertyStore.create(Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT,
         workflowJobResource, TaskUtil.USER_CONTENT_NODE), record, AccessOption.PERSISTENT);

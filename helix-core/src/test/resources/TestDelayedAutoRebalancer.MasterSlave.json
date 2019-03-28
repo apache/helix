@@ -115,6 +115,143 @@
         "localhost_3": "SLAVE",
         "localhost_4": "SLAVE"
       }
+    },
+    {
+      "preferenceList": [
+        "localhost_3",
+        "localhost_4",
+        "localhost_5"
+      ],
+      "currentStates": {
+        "localhost_6": "OFFLINE",
+        "localhost_3": "MASTER",
+        "localhost_0": "SLAVE",
+        "localhost_1": "SLAVE",
+        "localhost_2": "SLAVE"
+      },
+      "bestPossibleStates": {
+        "localhost_0": "SLAVE",
+        "localhost_1": "SLAVE",
+        "localhost_2": "DROPPED",
+        "localhost_3": "MASTER",
+        "localhost_6": "DROPPED"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_3",
+        "localhost_4",
+        "localhost_5"
+      ],
+      "currentStates": {
+        "localhost_6": "OFFLINE",
+        "localhost_3": "SLAVE",
+        "localhost_0": "SLAVE",
+        "localhost_1": "SLAVE",
+        "localhost_2": "SLAVE"
+      },
+      "bestPossibleStates": {
+        "localhost_0": "SLAVE",
+        "localhost_1": "SLAVE",
+        "localhost_2": "SLAVE",
+        "localhost_3": "MASTER"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_3",
+        "localhost_4",
+        "localhost_5"
+      ],
+      "currentStates": {
+        "localhost_6": "OFFLINE",
+        "localhost_3": "OFFLINE",
+        "localhost_0": "SLAVE",
+        "localhost_1": "MASTER",
+        "localhost_2": "SLAVE"
+      },
+      "bestPossibleStates": {
+        "localhost_0": "SLAVE",
+        "localhost_1": "MASTER",
+        "localhost_2": "SLAVE",
+        "localhost_3": "SLAVE"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_3",
+        "localhost_4",
+        "localhost_5"
+      ],
+      "currentStates": {
+        "localhost_6": "OFFLINE",
+        "localhost_3": "OFFLINE",
+        "localhost_1": "MASTER"
+      },
+      "bestPossibleStates": {
+        "localhost_1": "MASTER",
+        "localhost_4": "SLAVE",
+        "localhost_3": "SLAVE"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_3",
+        "localhost_4",
+        "localhost_5"
+      ],
+      "currentStates": {
+        "localhost_0": "SLAVE",
+        "localhost_1": "MASTER",
+        "localhost_2": "OFFLINE"
+      },
+      "bestPossibleStates": {
+        "localhost_1": "MASTER",
+        "localhost_0": "SLAVE",
+        "localhost_3": "SLAVE",
+        "localhost_2": "SLAVE"
+      },
+      "pendingMessages": {
+        "localhost_3": "OFFLINE:SLAVE"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_3",
+        "localhost_4",
+        "localhost_5"
+      ],
+      "currentStates": {
+        "localhost_0": "SLAVE",
+        "localhost_1": "MASTER",
+        "localhost_2": "OFFLINE",
+        "localhost_3": "SLAVE"
+      },
+      "bestPossibleStates": {
+        "localhost_1": "SLAVE",
+        "localhost_0": "SLAVE",
+        "localhost_3": "MASTER",
+        "localhost_2": "SLAVE"
+      }
+    },
+    {
+      "preferenceList": [
+        "localhost_3",
+        "localhost_4",
+        "localhost_5"
+      ],
+      "currentStates": {
+        "localhost_0": "SLAVE",
+        "localhost_1": "SLAVE",
+        "localhost_2": "OFFLINE",
+        "localhost_3": "MASTER"
+      },
+      "bestPossibleStates": {
+        "localhost_1": "SLAVE",
+        "localhost_0": "SLAVE",
+        "localhost_3": "MASTER",
+        "localhost_2": "DROPPED"
+      }
     }
   ]
 }

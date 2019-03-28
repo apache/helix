@@ -5,15 +5,20 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.BaseStageTest;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.StateModelDefinition;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -45,7 +50,7 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
 
   @Test(dataProvider = "zeroReplicaInput")
   public void testZeroReplicaAvoidanceDuringRebalance(StateModelDefinition stateModelDef,
-      List<String> instancePreferenceList, Map<String, String> currentStateMap,
+      List<String> instancePreferenceList, Map<String, String> currentStateMap, Map<String, List<Message>> pendingMessages,
       Map<String, String> expectedBestPossibleMap) {
     System.out.println("START TestDelayedAutoRebalancer at " + new Date(System.currentTimeMillis()));
 
@@ -65,6 +70,18 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
     for (String instance : currentStateMap.keySet()) {
       currentStateOutput
           .setCurrentState("test", partition, instance, currentStateMap.get(instance));
+    }
+    Set<String> allInstances = new HashSet<>(instancePreferenceList);
+    allInstances.addAll(currentStateMap.keySet());
+    if (pendingMessages != null) {
+      for (String instance : allInstances) {
+        List<Message> messages = pendingMessages.get(instance);
+        if (messages != null) {
+          for (Message message : messages) {
+            currentStateOutput.setPendingMessage("test", partition, instance, message);
+          }
+        }
+      }
     }
     Map<String, String> bestPossibleMap = rebalancer
         .computeBestPossibleStateForPartition(liveInstances, stateModelDef, instancePreferenceList,
@@ -93,6 +110,7 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
 
   private final String INPUT = "inputs";
   private final String CURRENT_STATE = "currentStates";
+  private final String PENDING_MESSAGES = "pendingMessages";
   private final String BEST_POSSIBLE_STATE = "bestPossibleStates";
   private final String PREFERENCE_LIST = "preferenceList";
   private final String STATE_MODEL = "statemodel";
@@ -115,8 +133,21 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
         Map<String, String> bestPossibleStates =
             (Map<String, String>) inMap.get(BEST_POSSIBLE_STATE);
         List<String> preferenceList = (List<String>) inMap.get(PREFERENCE_LIST);
+        Map<String, String> pendingStates = (Map<String, String>) inMap.get(PENDING_MESSAGES);
+        Map<String, List<Message>> pendingMessages = null;
+        if (pendingStates != null) {
+          Random r = new Random();
+          pendingMessages = new HashMap<>();
+          for (String instance : pendingStates.keySet()) {
+            pendingMessages.put(instance, new ArrayList<Message>());
+            Message m = new Message(new ZNRecord(UUID.randomUUID().toString()));
+            m.setFromState(pendingStates.get(instance).split(":")[0]);
+            m.setToState(pendingStates.get(instance).split(":")[1]);
+            pendingMessages.get(instance).add(m);
+          }
+        }
 
-        ret.add(new Object[] { stateModelDef, preferenceList, currentStates, bestPossibleStates });
+        ret.add(new Object[] { stateModelDef, preferenceList, currentStates, pendingMessages, bestPossibleStates });
       }
     } catch (IOException e) {
       e.printStackTrace();

@@ -529,7 +529,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     // we should drop all partitions from previous assigned instances.
     if (!currentMapWithPreferenceList.values().contains(HelixDefinedState.ERROR.name())
         && bestPossibleStateMap.size() > numReplicas && readyToDrop(currentStateMap,
-        bestPossibleStateMap, numReplicas, combinedPreferenceList)) {
+        bestPossibleStateMap, preferenceList, combinedPreferenceList)) {
       for (int i = 0; i < combinedPreferenceList.size() - numReplicas; i++) {
         String instanceToDrop = combinedPreferenceList.get(combinedPreferenceList.size() - i - 1);
         bestPossibleStateMap.put(instanceToDrop, HelixDefinedState.DROPPED.name());
@@ -551,13 +551,12 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
   }
 
   private boolean readyToDrop(Map<String, String> currentStateMap,
-      Map<String, String> bestPossibleMap, int numReplicas, List<String> combinedPreferenceList) {
-    if (currentStateMap.size() != bestPossibleMap.size()) {
-      return false;
-    }
-    
-    for (int i = 0; i < numReplicas; i++) {
-      String instance = combinedPreferenceList.get(i);
+      Map<String, String> bestPossibleMap, List<String> preferenceList,
+      List<String> combinedPreferenceList) {
+    Set<String> preferenceWithActiveState = new HashSet<>(preferenceList);
+    preferenceWithActiveState.retainAll(combinedPreferenceList);
+
+    for (String instance : preferenceWithActiveState) {
       if (!currentStateMap.containsKey(instance) || !currentStateMap.get(instance)
           .equals(bestPossibleMap.get(instance))) {
         return false;

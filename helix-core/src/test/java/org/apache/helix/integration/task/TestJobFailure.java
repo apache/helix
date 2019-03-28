@@ -96,6 +96,7 @@ public final class TestJobFailure extends TaskSynchronizedTestBase {
         TaskState.valueOf(expectedJobEndingStates));
     _driver.pollForWorkflowState(WORKFLOW_NAME, TaskState.valueOf(expectedWorkflowEndingStates));
 
+    Thread.sleep(2000);
     JobContext jobContext = _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, JOB_NAME));
     for (int pId : jobContext.getPartitionSet()) {
       Map<String, String> targetPartitionConfig = targetPartitionConfigs.get(jobContext.getTargetForPartition(pId));

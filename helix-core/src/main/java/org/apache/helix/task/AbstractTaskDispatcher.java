@@ -79,7 +79,7 @@ public abstract class AbstractTaskDispatcher {
 
     // Iterate through all instances
     for (String instance : prevInstanceToTaskAssignments.keySet()) {
-      assignedPartitions.put(instance, new HashSet<Integer>());
+      assignedPartitions.put(instance, new HashSet<>());
 
       // Set all dropping transitions first. These are tasks coming from Participant disconnects
       // that have some active current state (INIT or RUNNING) and the requestedState of DROPPED.
@@ -709,7 +709,7 @@ public abstract class AbstractTaskDispatcher {
 
   private static List<Integer> getNextPartitions(SortedSet<Integer> candidatePartitions,
       Set<Integer> excluded, Set<Integer> throttled, int n) {
-    List<Integer> result = new ArrayList<Integer>();
+    List<Integer> result = new ArrayList<>();
     for (Integer pId : candidatePartitions) {
       if (!excluded.contains(pId)) {
         if (result.size() < n) {
@@ -932,8 +932,8 @@ public abstract class AbstractTaskDispatcher {
                   TaskConfig taskConfig = taskEntry.getValue();
                   for (String assignableInstanceName : assignableInstanceManager
                       .getAssignableInstanceNames()) {
-                    assignableInstanceManager
-                        .release(assignableInstanceName, taskConfig, quotaType);
+                    assignableInstanceManager.release(assignableInstanceName, taskConfig,
+                        quotaType);
                   }
                 }
               }
@@ -1120,9 +1120,9 @@ public abstract class AbstractTaskDispatcher {
     }
 
     if (!assignableInstanceManager.hasGlobalCapacity(quotaType)) {
-      LOG.info(String
-          .format("Job %s not ready to schedule due to not having enough quota for quota type %s",
-              job, quotaType));
+      LOG.info(String.format(
+          "Job %s not ready to schedule due to not having enough quota for quota type %s", job,
+          quotaType));
       return false;
     }
 
@@ -1210,9 +1210,8 @@ public abstract class AbstractTaskDispatcher {
       LOG.debug(
           String.format("Finish job %s of workflow %s for runtime job DAG", jobName, workflowName));
     } else {
-      LOG.warn(String
-          .format("Failed to find runtime job DAG for workflow %s and job %s", workflowName,
-              jobName));
+      LOG.warn(String.format("Failed to find runtime job DAG for workflow %s and job %s",
+          workflowName, jobName));
     }
   }
 
@@ -1228,21 +1227,18 @@ public abstract class AbstractTaskDispatcher {
   protected static void reportSubmissionToProcessDelay(BaseControllerDataProvider dataProvider,
       final ClusterStatusMonitor clusterStatusMonitor, final WorkflowConfig workflowConfig,
       final JobConfig jobConfig, final long currentTimestamp) {
-    AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), new Callable<Object>() {
-      @Override
-      public Object call() {
-        // Asynchronously update the appropriate JobMonitor
-        JobMonitor jobMonitor = clusterStatusMonitor
-            .getJobMonitor(TaskAssignmentCalculator.getQuotaType(workflowConfig, jobConfig));
-        if (jobMonitor == null) {
-          return null;
-        }
-
-        // Compute SubmissionToProcessDelay
-        long submissionToProcessDelay = currentTimestamp - jobConfig.getStat().getCreationTime();
-        jobMonitor.updateSubmissionToProcessDelayGauge(submissionToProcessDelay);
+    AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
+      // Asynchronously update the appropriate JobMonitor
+      JobMonitor jobMonitor = clusterStatusMonitor
+          .getJobMonitor(TaskAssignmentCalculator.getQuotaType(workflowConfig, jobConfig));
+      if (jobMonitor == null) {
         return null;
       }
+
+      // Compute SubmissionToProcessDelay
+      long submissionToProcessDelay = currentTimestamp - jobConfig.getStat().getCreationTime();
+      jobMonitor.updateSubmissionToProcessDelayGauge(submissionToProcessDelay);
+      return null;
     });
   }
 
@@ -1258,21 +1254,18 @@ public abstract class AbstractTaskDispatcher {
   private static void reportSubmissionToScheduleDelay(BaseControllerDataProvider dataProvider,
       final ClusterStatusMonitor clusterStatusMonitor, final WorkflowConfig workflowConfig,
       final JobConfig jobConfig, final long currentTimestamp) {
-    AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), new Callable<Object>() {
-      @Override
-      public Object call() {
-        // Asynchronously update the appropriate JobMonitor
-        JobMonitor jobMonitor = clusterStatusMonitor
-            .getJobMonitor(TaskAssignmentCalculator.getQuotaType(workflowConfig, jobConfig));
-        if (jobMonitor == null) {
-          return null;
-        }
-
-        // Compute SubmissionToScheduleDelay
-        long submissionToStartDelay = currentTimestamp - jobConfig.getStat().getCreationTime();
-        jobMonitor.updateSubmissionToScheduleDelayGauge(submissionToStartDelay);
+    AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
+      // Asynchronously update the appropriate JobMonitor
+      JobMonitor jobMonitor = clusterStatusMonitor
+          .getJobMonitor(TaskAssignmentCalculator.getQuotaType(workflowConfig, jobConfig));
+      if (jobMonitor == null) {
         return null;
       }
+
+      // Compute SubmissionToScheduleDelay
+      long submissionToStartDelay = currentTimestamp - jobConfig.getStat().getCreationTime();
+      jobMonitor.updateSubmissionToScheduleDelayGauge(submissionToStartDelay);
+      return null;
     });
   }
 
@@ -1288,32 +1281,29 @@ public abstract class AbstractTaskDispatcher {
   private static void reportControllerInducedDelay(BaseControllerDataProvider dataProvider,
       final ClusterStatusMonitor clusterStatusMonitor, final WorkflowConfig workflowConfig,
       final JobConfig jobConfig, final long currentTimestamp) {
-    AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), new Callable<Object>() {
-      @Override
-      public Object call() {
-        // Asynchronously update the appropriate JobMonitor
-        JobMonitor jobMonitor = clusterStatusMonitor
-            .getJobMonitor(TaskAssignmentCalculator.getQuotaType(workflowConfig, jobConfig));
-        if (jobMonitor == null) {
-          return null;
-        }
-
-        // Compute ControllerInducedDelay only if the workload is a test load
-        // NOTE: this metric cannot be computed for general user-submitted workloads because
-        // the actual runtime of the tasks vary, and there could exist multiple tasks per
-        // job
-        // NOTE: a test workload will have the "latency" field in the mapField of the
-        // JobConfig (taskConfig)
-        String firstTask = jobConfig.getTaskConfigMap().keySet().iterator().next();
-        if (jobConfig.getTaskConfig(firstTask).getConfigMap().containsKey(TASK_LATENCY_TAG)) {
-          long taskDuration =
-              Long.valueOf(jobConfig.getTaskConfig(firstTask).getConfigMap().get(TASK_LATENCY_TAG));
-          long controllerInducedDelay =
-              currentTimestamp - jobConfig.getStat().getCreationTime() - taskDuration;
-          jobMonitor.updateControllerInducedDelayGauge(controllerInducedDelay);
-        }
+    AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
+      // Asynchronously update the appropriate JobMonitor
+      JobMonitor jobMonitor = clusterStatusMonitor
+          .getJobMonitor(TaskAssignmentCalculator.getQuotaType(workflowConfig, jobConfig));
+      if (jobMonitor == null) {
         return null;
       }
+
+      // Compute ControllerInducedDelay only if the workload is a test load
+      // NOTE: this metric cannot be computed for general user-submitted workloads because
+      // the actual runtime of the tasks vary, and there could exist multiple tasks per
+      // job
+      // NOTE: a test workload will have the "latency" field in the mapField of the
+      // JobConfig (taskConfig)
+      String firstTask = jobConfig.getTaskConfigMap().keySet().iterator().next();
+      if (jobConfig.getTaskConfig(firstTask).getConfigMap().containsKey(TASK_LATENCY_TAG)) {
+        long taskDuration =
+            Long.valueOf(jobConfig.getTaskConfig(firstTask).getConfigMap().get(TASK_LATENCY_TAG));
+        long controllerInducedDelay =
+            currentTimestamp - jobConfig.getStat().getCreationTime() - taskDuration;
+        jobMonitor.updateControllerInducedDelayGauge(controllerInducedDelay);
+      }
+      return null;
     });
   }
 }

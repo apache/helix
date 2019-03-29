@@ -71,7 +71,6 @@ public class TaskDriver {
   /** For logging */
   private static final Logger LOG = LoggerFactory.getLogger(TaskDriver.class);
 
-
   /** Default time out for monitoring workflow or job state */
   private final static int _defaultTimeout = 3 * 60 * 1000; /* 3 mins */
 
@@ -93,20 +92,21 @@ public class TaskDriver {
   private final HelixAdmin _admin;
   private final String _clusterName;
 
-
   public TaskDriver(HelixManager manager) {
     this(manager.getClusterManagmentTool(), manager.getHelixDataAccessor(),
         manager.getHelixPropertyStore(), manager.getClusterName());
   }
 
   public TaskDriver(HelixZkClient client, String clusterName) {
-    this(client, new ZkBaseDataAccessor<ZNRecord>(client), clusterName);
+    this(client, new ZkBaseDataAccessor<>(client), clusterName);
   }
 
-  public TaskDriver(HelixZkClient client, ZkBaseDataAccessor<ZNRecord> baseAccessor, String clusterName) {
+  public TaskDriver(HelixZkClient client, ZkBaseDataAccessor<ZNRecord> baseAccessor,
+      String clusterName) {
     this(new ZKHelixAdmin(client), new ZKHelixDataAccessor(clusterName, baseAccessor),
-        new ZkHelixPropertyStore<>(baseAccessor,
-            PropertyPathBuilder.propertyStore(clusterName), null), clusterName);
+        new ZkHelixPropertyStore<>(baseAccessor, PropertyPathBuilder.propertyStore(clusterName),
+            null),
+        clusterName);
   }
 
   @Deprecated
@@ -123,9 +123,8 @@ public class TaskDriver {
     _clusterName = clusterName;
   }
 
-
-  /** Schedules a new workflow
-   *
+  /**
+   * Schedules a new workflow
    * @param flow
    */
   public void start(Workflow flow) {
@@ -137,7 +136,7 @@ public class TaskDriver {
     WorkflowConfig newWorkflowConfig =
         new WorkflowConfig.Builder(flow.getWorkflowConfig()).setWorkflowId(flow.getName()).build();
 
-    Map<String, String> jobTypes = new HashMap<String, String>();
+    Map<String, String> jobTypes = new HashMap<>();
     // add all job configs.
     for (String job : flow.getJobConfigs().keySet()) {
       JobConfig.Builder jobCfgBuilder = JobConfig.Builder.fromMap(flow.getJobConfigs().get(job));
@@ -196,13 +195,12 @@ public class TaskDriver {
           .setSimpleField(WorkflowConfig.WorkflowConfigProperty.WorkflowID.name(), workflow);
     }
     if (workflow == null || !workflow.equals(newWorkflowConfig.getWorkflowId())) {
-      throw new HelixException(String
-          .format("Workflow name {%s} does not match the workflow Id from WorkflowConfig {%s}",
-              workflow, newWorkflowConfig.getWorkflowId()));
+      throw new HelixException(String.format(
+          "Workflow name {%s} does not match the workflow Id from WorkflowConfig {%s}", workflow,
+          newWorkflowConfig.getWorkflowId()));
     }
 
-    WorkflowConfig currentConfig =
-        TaskUtil.getWorkflowConfig(_accessor, workflow);
+    WorkflowConfig currentConfig = TaskUtil.getWorkflowConfig(_accessor, workflow);
     if (currentConfig == null) {
       throw new HelixException("Workflow " + workflow + " does not exist!");
     }
@@ -223,7 +221,6 @@ public class TaskDriver {
 
   /**
    * Creates a new named job queue (workflow)
-   *
    * @param queue
    */
   public void createQueue(JobQueue queue) {
@@ -233,7 +230,6 @@ public class TaskDriver {
   /**
    * Remove all completed or failed jobs in a job queue
    * Same as {@link #cleanupQueue(String)}
-   *
    * @param queue name of the queue
    * @throws Exception
    */
@@ -256,7 +252,8 @@ public class TaskDriver {
    * the queue has to be stopped prior to this call
    * @param queue queue name
    * @param job job name, denamespaced
-   * @param forceDelete
+   * @param forceDelete CAUTION: if set true, all job's related zk nodes will
+   *          be clean up from zookeeper even if its workflow information can not be found.
    */
   public void deleteJob(final String queue, final String job, boolean forceDelete) {
     deleteNamespacedJob(queue, TaskUtil.getNamespacedJobName(queue, job), forceDelete);
@@ -344,27 +341,23 @@ public class TaskDriver {
 
   /**
    * Adds a new job to the end an existing named queue.
-   *
    * @param queue
    * @param job
    * @param jobBuilder
    * @throws Exception
    */
-  public void enqueueJob(final String queue, final String job,
-      JobConfig.Builder jobBuilder) {
+  public void enqueueJob(final String queue, final String job, JobConfig.Builder jobBuilder) {
     enqueueJobs(queue, Collections.singletonList(job), Collections.singletonList(jobBuilder));
   }
 
   /**
    * Batch add jobs to queues that garantee
-   *
    * @param queue
    * @param jobs
    * @param jobBuilders
    */
   public void enqueueJobs(final String queue, final List<String> jobs,
       final List<JobConfig.Builder> jobBuilders) {
-
 
     // Get the job queue config and capacity
     WorkflowConfig workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
@@ -419,78 +412,75 @@ public class TaskDriver {
     }
 
     // update the job dag to append the job to the end of the queue.
-    DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        if (currentData == null) {
-          // For some reason, the WorkflowConfig for this JobQueue doesn't exist
-          // In this case, we cannot proceed and must alert the user
-          throw new HelixException(
-              String.format("enqueueJobs DataUpdater: JobQueue %s config is not found!", queue));
-        }
-
-        // Add the node to the existing DAG
-        JobDag jobDag = JobDag.fromJson(
-            currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
-        Set<String> allNodes = jobDag.getAllNodes();
-        if (capacity > 0 && allNodes.size() + jobConfigs.size() >= capacity) {
-          throw new IllegalStateException(String
-              .format("Queue %s already reaches its max capacity %f, failed to add %s", queue,
-                  capacity, jobs.toString()));
-        }
-
-        String lastNodeName = null;
-        for (int i = 0; i < namespacedJobNames.size(); i++) {
-          String namespacedJobName = namespacedJobNames.get(i);
-          if (allNodes.contains(namespacedJobName)) {
-            throw new IllegalStateException(String
-                .format("Could not add to queue %s, job %s already exists", queue, jobs.get(i)));
-          }
-          jobDag.addNode(namespacedJobName);
-
-          // Add the node to the end of the queue
-          String candidate = null;
-          if (lastNodeName == null) {
-            for (String node : allNodes) {
-              if (!node.equals(namespacedJobName) && jobDag.getDirectChildren(node).isEmpty()) {
-                candidate = node;
-                break;
-              }
-            }
-          } else {
-            candidate = lastNodeName;
-          }
-          if (candidate != null) {
-            jobDag.addParentToChild(candidate, namespacedJobName);
-            lastNodeName = namespacedJobName;
-          }
-        }
-
-        // Add job type if job type is not null
-        Map<String, String> jobTypes =
-            currentData.getMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name());
-        for (String jobType : jobTypeList) {
-          if (jobType != null) {
-            if (jobTypes == null) {
-              jobTypes = new HashMap<>();
-            }
-            jobTypes.put(queue, jobType);
-          }
-        }
-
-        if (jobTypes != null) {
-          currentData.setMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name(), jobTypes);
-        }
-        // Save the updated DAG
-        try {
-          currentData
-              .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
-        } catch (Exception e) {
-          throw new IllegalStateException(
-              String.format("Could not add jobs %s to queue %s", jobs.toString(), queue), e);
-        }
-        return currentData;
+    DataUpdater<ZNRecord> updater = currentData -> {
+      if (currentData == null) {
+        // For some reason, the WorkflowConfig for this JobQueue doesn't exist
+        // In this case, we cannot proceed and must alert the user
+        throw new HelixException(
+            String.format("enqueueJobs DataUpdater: JobQueue %s config is not found!", queue));
       }
+
+      // Add the node to the existing DAG
+      JobDag jobDag = JobDag
+          .fromJson(currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
+      Set<String> allNodes = jobDag.getAllNodes();
+      if (capacity > 0 && allNodes.size() + jobConfigs.size() >= capacity) {
+        throw new IllegalStateException(
+            String.format("Queue %s already reaches its max capacity %f, failed to add %s", queue,
+                capacity, jobs.toString()));
+      }
+
+      String lastNodeName = null;
+      for (int i = 0; i < namespacedJobNames.size(); i++) {
+        String namespacedJobName = namespacedJobNames.get(i);
+        if (allNodes.contains(namespacedJobName)) {
+          throw new IllegalStateException(String
+              .format("Could not add to queue %s, job %s already exists", queue, jobs.get(i)));
+        }
+        jobDag.addNode(namespacedJobName);
+
+        // Add the node to the end of the queue
+        String candidate = null;
+        if (lastNodeName == null) {
+          for (String node : allNodes) {
+            if (!node.equals(namespacedJobName) && jobDag.getDirectChildren(node).isEmpty()) {
+              candidate = node;
+              break;
+            }
+          }
+        } else {
+          candidate = lastNodeName;
+        }
+        if (candidate != null) {
+          jobDag.addParentToChild(candidate, namespacedJobName);
+          lastNodeName = namespacedJobName;
+        }
+      }
+
+      // Add job type if job type is not null
+      Map<String, String> jobTypes =
+          currentData.getMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name());
+      for (String jobType : jobTypeList) {
+        if (jobType != null) {
+          if (jobTypes == null) {
+            jobTypes = new HashMap<>();
+          }
+          jobTypes.put(queue, jobType);
+        }
+      }
+
+      if (jobTypes != null) {
+        currentData.setMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name(), jobTypes);
+      }
+      // Save the updated DAG
+      try {
+        currentData.setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(),
+            jobDag.toJson());
+      } catch (Exception e) {
+        throw new IllegalStateException(
+            String.format("Could not add jobs %s to queue %s", jobs.toString(), queue), e);
+      }
+      return currentData;
     };
 
     String path = _accessor.keyBuilder().resourceConfig(queue).getPath();
@@ -540,11 +530,11 @@ public class TaskDriver {
       throw new IllegalStateException("Queue " + queue + " does not have a valid work state!");
     }
 
-    Set<String> jobs = new HashSet<String>();
+    Set<String> jobs = new HashSet<>();
     for (String jobNode : workflowConfig.getJobDag().getAllNodes()) {
       TaskState curState = wCtx.getJobState(jobNode);
-      if (curState != null && (curState == TaskState.ABORTED || curState == TaskState.COMPLETED
-          || curState == TaskState.FAILED)) {
+      if (curState != null && curState == TaskState.ABORTED || curState == TaskState.COMPLETED
+          || curState == TaskState.FAILED) {
         jobs.add(jobNode);
       }
     }
@@ -558,8 +548,7 @@ public class TaskDriver {
     _admin.addResource(_clusterName, workflow, 1, TaskConstants.STATE_MODEL_NAME);
 
     IdealState is = buildWorkflowIdealState(workflow);
-    TaskUtil
-        .createUserContent(_propertyStore, workflow, new ZNRecord(TaskUtil.USER_CONTENT_NODE));
+    TaskUtil.createUserContent(_propertyStore, workflow, new ZNRecord(TaskUtil.USER_CONTENT_NODE));
 
     _admin.setResourceIdealState(_clusterName, workflow, is);
   }
@@ -576,12 +565,12 @@ public class TaskDriver {
 
   private IdealState buildWorkflowIdealState(String workflow) {
     CustomModeISBuilder IsBuilder = new CustomModeISBuilder(workflow);
-    IsBuilder.setRebalancerMode(IdealState.RebalanceMode.TASK).setNumReplica(1)
-        .setNumPartitions(1).setStateModel(TaskConstants.STATE_MODEL_NAME).disableExternalView();
+    IsBuilder.setRebalancerMode(IdealState.RebalanceMode.TASK).setNumReplica(1).setNumPartitions(1)
+        .setStateModel(TaskConstants.STATE_MODEL_NAME).disableExternalView();
 
     IdealState is = IsBuilder.build();
-    is.getRecord().setListField(workflow, new ArrayList<String>());
-    is.getRecord().setMapField(workflow, new HashMap<String, String>());
+    is.getRecord().setListField(workflow, new ArrayList<>());
+    is.getRecord().setMapField(workflow, new HashMap<>());
     is.setRebalancerClassName(WorkflowRebalancer.class.getName());
 
     return is;
@@ -611,23 +600,19 @@ public class TaskDriver {
 
   /**
    * Public async method to stop a workflow/queue.
-   *
    * This call only send STOP command to Helix, it does not check
    * whether the workflow (all jobs) has been stopped yet.
-   *
    * @param workflow
    */
-  public void stop(String workflow) throws InterruptedException {
+  public void stop(String workflow) {
     setWorkflowTargetState(workflow, TargetState.STOP);
   }
 
   /**
    * Public sync method to stop a workflow/queue with timeout
-   *
    * Basically the workflow and all of its jobs has been stopped if this method return success.
-   *
-   * @param workflow  The workflow name
-   * @param timeout   The timeout for stopping workflow/queue in milisecond
+   * @param workflow The workflow name
+   * @param timeout The timeout for stopping workflow/queue in milisecond
    */
   public void waitToStop(String workflow, long timeout) throws InterruptedException {
     setWorkflowTargetState(workflow, TargetState.STOP);
@@ -636,7 +621,8 @@ public class TaskDriver {
     while (System.currentTimeMillis() <= endTime) {
       WorkflowContext workflowContext = getWorkflowContext(workflow);
 
-      if (workflowContext == null || TaskState.IN_PROGRESS.equals(workflowContext.getWorkflowState())) {
+      if (workflowContext == null
+          || TaskState.IN_PROGRESS.equals(workflowContext.getWorkflowState())) {
         Thread.sleep(1000);
       } else {
         // Successfully stopped
@@ -651,7 +637,6 @@ public class TaskDriver {
 
   /**
    * Public method to delete a workflow/queue.
-   *
    * @param workflow
    */
   public void delete(String workflow) {
@@ -660,11 +645,10 @@ public class TaskDriver {
 
   /**
    * Public method to delete a workflow/queue.
-   *
    * @param workflow
    * @param forceDelete, CAUTION: if set true, workflow and all of its jobs' related zk nodes will
-   *                     be clean up immediately from zookeeper, no matter whether there are jobs
-   *                     are running or not.
+   *          be clean up immediately from zookeeper, no matter whether there are jobs
+   *          are running or not.
    */
   public void delete(String workflow, boolean forceDelete) {
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, workflow);
@@ -693,7 +677,8 @@ public class TaskDriver {
 
   private void removeWorkflowFromZK(String workflow) {
     Set<String> jobSet = new HashSet<>();
-    // Note that even WorkflowConfig is null, if WorkflowContext exists, still need to remove workflow
+    // Note that even WorkflowConfig is null, if WorkflowContext exists, still need to remove
+    // workflow
     WorkflowConfig wCfg = TaskUtil.getWorkflowConfig(_accessor, workflow);
     if (wCfg != null) {
       jobSet.addAll(wCfg.getJobDag().getAllNodes());
@@ -709,11 +694,11 @@ public class TaskDriver {
    * Public synchronized method to wait for a delete operation to fully complete with timeout.
    * When this method returns, it means that a queue (workflow) has been completely deleted, meaning
    * its IdealState, WorkflowConfig, and WorkflowContext have all been deleted.
-   *
    * @param workflow workflow/jobqueue name
    * @param timeout duration to give to delete operation to completion
    */
-  public void deleteAndWaitForCompletion(String workflow, long timeout) throws InterruptedException {
+  public void deleteAndWaitForCompletion(String workflow, long timeout)
+      throws InterruptedException {
     delete(workflow);
     long endTime = System.currentTimeMillis() + timeout;
 
@@ -746,9 +731,11 @@ public class TaskDriver {
     if (baseDataAccessor.exists(workflowContextPath, AccessOption.PERSISTENT)) {
       failed.append("WorkflowContext ");
     }
-    throw new HelixException(String
-        .format("Failed to delete the workflow/queue %s within %d milliseconds. "
-            + "The following components still remain: %s", workflow, timeout, failed.toString()));
+    throw new HelixException(
+        String.format(
+            "Failed to delete the workflow/queue %s within %d milliseconds. "
+                + "The following components still remain: %s",
+            workflow, timeout, failed.toString()));
   }
 
   /**
@@ -780,30 +767,27 @@ public class TaskDriver {
     }
 
     WorkflowContext workflowContext = TaskUtil.getWorkflowContext(_propertyStore, workflow);
-    if (state != TargetState.DELETE && workflowContext != null &&
-        workflowContext.getFinishTime() != WorkflowContext.UNFINISHED) {
+    if (state != TargetState.DELETE && workflowContext != null
+        && workflowContext.getFinishTime() != WorkflowContext.UNFINISHED) {
       // Should not update target state for completed workflow
       LOG.info("Workflow " + workflow + " is already completed, skip to update its target state "
           + state);
       return;
     }
 
-    DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
-      @Override public ZNRecord update(ZNRecord currentData) {
-        if (currentData != null) {
-          currentData.setSimpleField(WorkflowConfig.WorkflowConfigProperty.TargetState.name(),
-              state.name());
-        } else {
-          LOG.warn("TargetState DataUpdater: Fails to update target state. CurrentData is "
-              + currentData);
-        }
-        return currentData;
+    DataUpdater<ZNRecord> updater = currentData -> {
+      if (currentData != null) {
+        currentData.setSimpleField(WorkflowConfig.WorkflowConfigProperty.TargetState.name(),
+            state.name());
+      } else {
+        LOG.warn("TargetState DataUpdater: Fails to update target state. CurrentData is null.");
       }
+      return currentData;
     };
 
     PropertyKey workflowConfigKey = TaskUtil.getWorkflowConfigKey(_accessor, workflow);
-    _accessor.getBaseDataAccessor()
-        .update(workflowConfigKey.getPath(), updater, AccessOption.PERSISTENT);
+    _accessor.getBaseDataAccessor().update(workflowConfigKey.getPath(), updater,
+        AccessOption.PERSISTENT);
     RebalanceScheduler.invokeRebalance(_accessor, workflow);
   }
 
@@ -841,11 +825,10 @@ public class TaskDriver {
 
   /**
    * Batch get the configurations of all workflows in this cluster.
-   *
    * @return
    */
   public Map<String, WorkflowConfig> getWorkflows() {
-    Map<String, WorkflowConfig> workflowConfigMap = new HashMap<String, WorkflowConfig>();
+    Map<String, WorkflowConfig> workflowConfigMap = new HashMap<>();
     Map<String, ResourceConfig> resourceConfigMap =
         _accessor.getChildValuesMap(_accessor.keyBuilder().resourceConfigs());
 
@@ -865,7 +848,6 @@ public class TaskDriver {
    * This call will be blocked until either workflow reaches to one of the state specified
    * in the arguments, or timeout happens. If timeout happens, then it will throw a HelixException
    * Otherwise, it will return current workflow state
-   *
    * @param workflowName The workflow to be monitored
    * @param timeout A long integer presents the time out, in milliseconds
    * @param targetStates Specified states that user would like to stop monitoring
@@ -877,14 +859,15 @@ public class TaskDriver {
     // Wait for completion.
     long st = System.currentTimeMillis();
     WorkflowContext ctx;
-    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(targetStates));
+    Set<TaskState> allowedStates = new HashSet<>(Arrays.asList(targetStates));
 
     long timeToSleep = timeout > 100L ? 100L : timeout;
     do {
       Thread.sleep(timeToSleep);
       ctx = getWorkflowContext(workflowName);
-    } while ((ctx == null || ctx.getWorkflowState() == null || !allowedStates
-        .contains(ctx.getWorkflowState())) && System.currentTimeMillis() < st + timeout);
+    } while ((ctx == null || ctx.getWorkflowState() == null
+        || !allowedStates.contains(ctx.getWorkflowState()))
+        && System.currentTimeMillis() < st + timeout);
 
     if (ctx == null || !allowedStates.contains(ctx.getWorkflowState())) {
       throw new HelixException(String.format(
@@ -900,7 +883,6 @@ public class TaskDriver {
    * This is a wrapper function that set default time out for monitoring workflow in 2 MINUTES.
    * If timeout happens, then it will throw a HelixException, Otherwise, it will return
    * current job state.
-   *
    * @param workflowName The workflow to be monitored
    * @param targetStates Specified states that user would like to stop monitoring
    * @return A TaskState, which is current workflow state
@@ -915,7 +897,6 @@ public class TaskDriver {
    * This call will be blocked until either specified job reaches to one of the state
    * in the arguments, or timeout happens. If timeout happens, then it will throw a HelixException
    * Otherwise, it will return current job state
-   *
    * @param workflowName The workflow that contains the job to monitor
    * @param jobName The specified job to monitor
    * @param timeout A long integer presents the time out, in milliseconds
@@ -952,8 +933,9 @@ public class TaskDriver {
     do {
       Thread.sleep(timeToSleep);
       ctx = getWorkflowContext(workflowName);
-    } while ((ctx == null || ctx.getJobState(jobName) == null || !allowedStates
-        .contains(ctx.getJobState(jobName))) && System.currentTimeMillis() < st + timeout);
+    } while ((ctx == null || ctx.getJobState(jobName) == null
+        || !allowedStates.contains(ctx.getJobState(jobName)))
+        && System.currentTimeMillis() < st + timeout);
 
     if (ctx == null || !allowedStates.contains(ctx.getJobState(jobName))) {
       throw new HelixException(
@@ -968,7 +950,6 @@ public class TaskDriver {
    * This is a wrapper function for monitoring job state with default timeout 2 MINUTES.
    * If timeout happens, then it will throw a HelixException, Otherwise, it will return
    * current job state
-   *
    * @param workflowName The workflow that contains the job to monitor
    * @param jobName The specified job to monitor
    * @param states Specified states that user would like to stop monitoring
@@ -981,12 +962,12 @@ public class TaskDriver {
   }
 
   /**
-   * This function returns the timestamp of the very last task that was scheduled. It is provided to help determine
+   * This function returns the timestamp of the very last task that was scheduled. It is provided to
+   * help determine
    * whether a given Workflow/Job/Task is stuck.
-   *
    * @param workflowName The name of the workflow
    * @return timestamp of the most recent job scheduled.
-   * -1L if timestamp is not set (either nothing is scheduled or no start time recorded).
+   *         -1L if timestamp is not set (either nothing is scheduled or no start time recorded).
    */
   public long getLastScheduledTaskTimestamp(String workflowName) {
     return getLastScheduledTaskExecutionInfo(workflowName).getStartTimeStamp();
@@ -997,7 +978,6 @@ public class TaskDriver {
     String jobName = null;
     Integer taskPartitionIndex = null;
     TaskPartitionState state = null;
-
 
     WorkflowContext workflowContext = getWorkflowContext(workflowName);
     if (workflowContext != null) {
@@ -1035,9 +1015,8 @@ public class TaskDriver {
    * @param taskName name of task. Optional if scope is WORKFLOW or JOB
    * @return null if key-value pair not found or this content store does not exist. Otherwise,
    *         return a String
-   *
    * @deprecated use the following equivalents: {@link #getWorkflowUserContentMap(String)},
-   * {@link #getJobUserContentMap(String, String)},
+   *             {@link #getJobUserContentMap(String, String)},
    * @{{@link #getTaskContentMap(String, String, String)}}
    */
   @Deprecated

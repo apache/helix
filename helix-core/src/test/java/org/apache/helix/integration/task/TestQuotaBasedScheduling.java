@@ -37,7 +37,6 @@ import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
-import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskDriver;
@@ -59,8 +58,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
   private static final String JOB_COMMAND = "DummyCommand";
   private Map<String, String> _jobCommandMap;
   private Map<String, Integer> _quotaTypeExecutionCount = new ConcurrentHashMap<>();
-  private Set<String> _availableQuotaTypes =
-      Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+  private Set<String> _availableQuotaTypes = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private boolean _finishTask = false;
 
   @BeforeClass
@@ -87,24 +85,9 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
 
       // Set task callbacks
       Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
-      TaskFactory shortTaskFactory = new TaskFactory() {
-        @Override
-        public Task createNewTask(TaskCallbackContext context) {
-          return new ShortTask(context, instanceName);
-        }
-      };
-      TaskFactory longTaskFactory = new TaskFactory() {
-        @Override
-        public Task createNewTask(TaskCallbackContext context) {
-          return new LongTask(context, instanceName);
-        }
-      };
-      TaskFactory failTaskFactory = new TaskFactory() {
-        @Override
-        public Task createNewTask(TaskCallbackContext context) {
-          return new FailTask(context, instanceName);
-        }
-      };
+      TaskFactory shortTaskFactory = context -> new ShortTask(context, instanceName);
+      TaskFactory longTaskFactory = context -> new LongTask(context, instanceName);
+      TaskFactory failTaskFactory = context -> new FailTask(context, instanceName);
       taskFactoryReg.put("ShortTask", shortTaskFactory);
       taskFactoryReg.put("LongTask", longTaskFactory);
       taskFactoryReg.put("FailTask", failTaskFactory);
@@ -155,7 +138,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
 
     for (int i = 0; i < 10; i++) {
       List<TaskConfig> taskConfigs = new ArrayList<>();
-      taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
+      taskConfigs.add(new TaskConfig("ShortTask", new HashMap<>()));
       JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
           .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap);
       workflowBuilder.addJob("JOB" + i, jobConfigBulider);
@@ -193,7 +176,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
 
     for (int i = 0; i < 10; i++) {
       List<TaskConfig> taskConfigs = new ArrayList<>();
-      taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
+      taskConfigs.add(new TaskConfig("ShortTask", new HashMap<>()));
       JobConfig.Builder jobConfigBulider =
           new JobConfig.Builder().setCommand(JOB_COMMAND).addTaskConfigs(taskConfigs)
               .setJobCommandConfigMap(_jobCommandMap).setJobType("UNDEFINED");
@@ -231,7 +214,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
 
     for (int i = 0; i < 5; i++) {
       List<TaskConfig> taskConfigs = new ArrayList<>();
-      taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
+      taskConfigs.add(new TaskConfig("ShortTask", new HashMap<>()));
       JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
           .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setJobType("A");
       workflowBuilder.addJob("JOB" + i, jobConfigBulider);
@@ -239,7 +222,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
 
     for (int i = 5; i < 10; i++) {
       List<TaskConfig> taskConfigs = new ArrayList<>();
-      taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
+      taskConfigs.add(new TaskConfig("ShortTask", new HashMap<>()));
       JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
           .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setJobType("B");
       workflowBuilder.addJob("JOB" + i, jobConfigBulider);
@@ -283,8 +266,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     }
 
     // Test that the next two are not executing
-    JobContext context_2 = _driver.getJobContext("testQuotaConfigChange_2_testQuotaConfigChange_2_0");
-    JobContext context_3 = _driver.getJobContext("testQuotaConfigChange_3_testQuotaConfigChange_3_0");
+    JobContext context_2 =
+        _driver.getJobContext("testQuotaConfigChange_2_testQuotaConfigChange_2_0");
+    JobContext context_3 =
+        _driver.getJobContext("testQuotaConfigChange_3_testQuotaConfigChange_3_0");
     Assert.assertNull(context_2.getPartitionState(0));
     Assert.assertNull(context_3.getPartitionState(0));
 
@@ -493,7 +478,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     for (int i = 0; i < numWorkflows; i++) {
       String workflowName = workflowNames.get(i);
       TaskState state = (i % 3 == 1) ? TaskState.FAILED : TaskState.COMPLETED;
-      Assert.assertEquals(_driver.getWorkflowContext(_manager, workflowName).getWorkflowState(),
+      Assert.assertEquals(TaskDriver.getWorkflowContext(_manager, workflowName).getWorkflowState(),
           state);
     }
 
@@ -536,7 +521,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
 
     // First run some jobs with quotaType A
     List<TaskConfig> taskConfigs = new ArrayList<>();
-    taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
+    taskConfigs.add(new TaskConfig("ShortTask", new HashMap<>()));
     JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
         .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setJobType("A");
 
@@ -553,7 +538,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     // Run some jobs with quotaType B
     // First run some jobs with quotaType A
     taskConfigs = new ArrayList<>();
-    taskConfigs.add(new TaskConfig("ShortTask", new HashMap<String, String>()));
+    taskConfigs.add(new TaskConfig("ShortTask", new HashMap<>()));
     jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND).addTaskConfigs(taskConfigs)
         .setJobCommandConfigMap(_jobCommandMap).setJobType("B");
 

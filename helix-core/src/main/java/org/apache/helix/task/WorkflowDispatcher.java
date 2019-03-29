@@ -69,7 +69,9 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
   // Split it into status update and assign. But there are couple of data need
   // to pass around.
-  public void updateWorkflowStatus(String workflow, WorkflowConfig workflowCfg, WorkflowContext workflowCtx, CurrentStateOutput currentStateOutput, BestPossibleStateOutput bestPossibleOutput) {
+  public void updateWorkflowStatus(String workflow, WorkflowConfig workflowCfg,
+      WorkflowContext workflowCtx, CurrentStateOutput currentStateOutput,
+      BestPossibleStateOutput bestPossibleOutput) {
 
     // Fetch workflow configuration and context
     if (workflowCfg == null) {
@@ -93,7 +95,8 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       // If timeout point has already been passed, it will not be scheduled
       scheduleRebalanceForTimeout(workflow, workflowCtx.getStartTime(), workflowCfg.getTimeout());
 
-      if (!TaskState.TIMED_OUT.equals(workflowCtx.getWorkflowState()) && isTimeout(workflowCtx.getStartTime(), workflowCfg.getTimeout())) {
+      if (!TaskState.TIMED_OUT.equals(workflowCtx.getWorkflowState())
+          && isTimeout(workflowCtx.getStartTime(), workflowCfg.getTimeout())) {
         workflowCtx.setWorkflowState(TaskState.TIMED_OUT);
         _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
       }
@@ -107,7 +110,8 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
     // Step 3: handle workflow that should STOP
     // For workflows that already reached final states, STOP should not take into effect
-    if (!finalStates.contains(workflowCtx.getWorkflowState()) && TargetState.STOP.equals(targetState)) {
+    if (!finalStates.contains(workflowCtx.getWorkflowState())
+        && TargetState.STOP.equals(targetState)) {
       LOG.info("Workflow " + workflow + "is marked as stopped.");
       if (isWorkflowStopped(workflowCtx, workflowCfg)) {
         workflowCtx.setWorkflowState(TaskState.STOPPED);
@@ -202,8 +206,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
   }
 
-  public WorkflowContext getOrInitializeWorkflowContext(
-      String workflowName, TaskDataCache cache) {
+  public WorkflowContext getOrInitializeWorkflowContext(String workflowName, TaskDataCache cache) {
     WorkflowContext workflowCtx = cache.getWorkflowContext(workflowName);
     if (workflowCtx == null) {
       workflowCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
@@ -380,8 +383,8 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
     jobIS = builder.build();
     for (int i = 0; i < numPartitions; i++) {
-      jobIS.getRecord().setListField(jobResource + "_" + i, new ArrayList<String>());
-      jobIS.getRecord().setMapField(jobResource + "_" + i, new HashMap<String, String>());
+      jobIS.getRecord().setListField(jobResource + "_" + i, new ArrayList<>());
+      jobIS.getRecord().setMapField(jobResource + "_" + i, new HashMap<>());
     }
     jobIS.setRebalancerClassName(JobRebalancer.class.getName());
     admin.setResourceIdealState(_manager.getClusterName(), jobResource, jobIS);
@@ -443,7 +446,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Ready to start workflow " + newWorkflowName);
         }
-        if (lastScheduled == null || !newWorkflowName.equals(lastScheduled)) {
+        if (!newWorkflowName.equals(lastScheduled)) {
           Workflow clonedWf =
               cloneWorkflow(_manager, workflow, newWorkflowName, new Date(timeToSchedule));
           TaskDriver driver = new TaskDriver(_manager);
@@ -453,7 +456,8 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
               driver.start(clonedWf);
             } catch (Exception e) {
               LOG.error("Failed to schedule cloned workflow " + newWorkflowName, e);
-              _clusterStatusMonitor.updateWorkflowCounters(clonedWf.getWorkflowConfig(), TaskState.FAILED);
+              _clusterStatusMonitor.updateWorkflowCounters(clonedWf.getWorkflowConfig(),
+                  TaskState.FAILED);
             }
           }
           // Persist workflow start regardless of success to avoid retrying and failing
@@ -582,7 +586,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         // and jobs will rescheduled again.
         removeContextsAndPreviousAssignment(workflow, jobs, _clusterDataCache.getTaskDataCache());
       }
-     } else {
+    } else {
       LOG.info("Did not clean up workflow " + workflow
           + " because neither the workflow is non-terminable nor is set to DELETE.");
     }
@@ -598,5 +602,4 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     }
     cache.removeContext(workflow);
   }
-
 }

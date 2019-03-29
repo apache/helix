@@ -29,10 +29,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
-import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
@@ -157,8 +155,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     jobState = workflowCtx.getJobState(jobName);
     workflowState = workflowCtx.getWorkflowState();
 
-    if (INTERMEDIATE_STATES.contains(jobState) && (isTimeout(jobCtx.getStartTime(), jobCfg.getTimeout())
-        || TaskState.TIMED_OUT.equals(workflowState))) {
+    if (INTERMEDIATE_STATES.contains(jobState)
+        && (isTimeout(jobCtx.getStartTime(), jobCfg.getTimeout())
+            || TaskState.TIMED_OUT.equals(workflowState))) {
       jobState = TaskState.TIMING_OUT;
       workflowCtx.setJobState(jobName, TaskState.TIMING_OUT);
     } else if (jobState != TaskState.TIMING_OUT && jobState != TaskState.FAILING) {
@@ -272,7 +271,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
           paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.TASK_ABORTED.name()));
         }
         Partition partition = new Partition(pName(jobResource, pId));
-        Message pendingMessage = currStateOutput.getPendingMessage(jobResource, partition, instance);
+        Message pendingMessage =
+            currStateOutput.getPendingMessage(jobResource, partition, instance);
         // While job is failing, if the task is pending on INIT->RUNNING, set it back to INIT,
         // so that Helix will cancel the transition.
         if (jobCtx.getPartitionState(pId) == TaskPartitionState.INIT && pendingMessage != null) {
@@ -303,7 +303,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // can be dropped(note that Helix doesn't track whether the drop is success or not).
     if (jobState == TaskState.TIMING_OUT && isJobFinished(jobCtx, jobResource, currStateOutput)) {
       handleJobTimeout(jobCtx, workflowCtx, jobResource, jobCfg);
-      finishJobInRuntimeJobDag(cache.getTaskDataCache(), workflowConfig.getWorkflowId(), jobResource);
+      finishJobInRuntimeJobDag(cache.getTaskDataCache(), workflowConfig.getWorkflowId(),
+          jobResource);
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
 
@@ -340,8 +341,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       TaskPartitionState state = jobContext.getPartitionState(pId);
       Partition partition = new Partition(pName(jobResource, pId));
       String instance = jobContext.getAssignedParticipant(pId);
-      Message pendingMessage = currentStateOutput.getPendingMessage(jobResource, partition,
-          instance);
+      Message pendingMessage =
+          currentStateOutput.getPendingMessage(jobResource, partition, instance);
       // If state is INIT but is pending INIT->RUNNING, it's not yet safe to say the job finished
       if (state == TaskPartitionState.RUNNING
           || (state == TaskPartitionState.INIT && pendingMessage != null)) {
@@ -389,7 +390,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       Map<String, Set<Integer>> tasksToDrop) {
     Map<String, SortedSet<Integer>> result = new HashMap<>();
     for (String instance : liveInstances) {
-      result.put(instance, new TreeSet<Integer>());
+      result.put(instance, new TreeSet<>());
     }
 
     // First, add all task partitions from JobContext
@@ -438,7 +439,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
           // Check if this is a dropping transition
           if (requestedState != null && requestedState.equals(TaskPartitionState.DROPPED.name())) {
             if (!tasksToDrop.containsKey(instance)) {
-              tasksToDrop.put(instance, new HashSet<Integer>());
+              tasksToDrop.put(instance, new HashSet<>());
             }
             tasksToDrop.get(instance).add(pId);
           }

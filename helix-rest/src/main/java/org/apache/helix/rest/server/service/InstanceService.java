@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.helix.rest.server.json.instance.StoppableCheck;
 
 public interface InstanceService {
   enum HealthCheck {
@@ -89,4 +90,7 @@ public interface InstanceService {
    */
   InstanceInfo getInstanceInfo(String clusterId, String instanceName,
       List<HealthCheck> healthChecks);
+
+  StoppableCheck checkSingleInstanceStoppable(String clusterId, String instanceName,
+      String jsonContent);
 }

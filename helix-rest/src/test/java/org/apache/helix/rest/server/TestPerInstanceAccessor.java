@@ -26,9 +26,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import java.util.TreeSet;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -38,14 +36,11 @@ import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.rest.server.resources.AbstractResource;
-import org.apache.helix.rest.server.resources.helix.InstanceAccessor;
+import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
-import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.codehaus.jackson.JsonNode;
 import org.testng.Assert;
@@ -54,79 +49,22 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class TestInstanceAccessor extends AbstractTestClass {
+public class TestPerInstanceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
   private final static String INSTANCE_NAME = CLUSTER_NAME + "localhost_12918";
 
-
   @Test
-  public void testEndToEndChecks() {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String clusterName = TestHelper.getTestMethodName();
-    List<String> instances =
-        Arrays.asList("instance0", "instance1", "instance2", "instance3", "instance4", "instance5");
-    preSetupForParallelInstancesStoppableTest(clusterName, instances);
-
-    // Select instances with zone based
-    String content = String
-        .format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]}",
-            InstanceAccessor.InstanceProperties.selection_base.name(),
-            InstanceAccessor.InstanceHealthSelectionBase.zone_based.name(),
-            InstanceAccessor.InstanceProperties.instances.name(), "instance0", "instance1",
-            "instance2", "instance3", "instance4", "instance5");
-    Response response =
-        new JerseyUriRequestBuilder("clusters/{}/instances/stoppable").format(clusterName)
-            .post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
-    String checkResult = response.readEntity(String.class);
-    Assert.assertEquals(checkResult,
-        "{\n  \"instance_stoppable_parallel\" : [ \"instance0\", \"instance2\" ],\n"
-            + "  \"instance_not_stoppable_with_reasons\" : {\n    \"instance1\" : [ \"Helix:INSTANCE_NOT_STABLE\", \"Helix:INSTANCE_NOT_ENABLED\", \"Helix:EMPTY_RESOURCE_ASSIGNMENT\" ],\n"
-            + "    \"instance3\" : [ \"Helix:HAS_DISABLED_PARTITION\" ],\n"
-            + "    \"instance4\" : [ \"Helix:INSTANCE_NOT_STABLE\", \"Helix:INSTANCE_NOT_ALIVE\", \"Helix:EMPTY_RESOURCE_ASSIGNMENT\" ]\n  }\n}\n");
-
-    // Disable one selected instance0, it should failed to check
-    String instance = "instance0";
-    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(clusterName, instance);
-    instanceConfig.setInstanceEnabled(false);
-    instanceConfig.setInstanceEnabledForPartition("FakeResource", "FakePartition", false);
-    _configAccessor.setInstanceConfig(clusterName, instance, instanceConfig);
-
-    Entity entity =
-        Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
-    response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
-        .format(clusterName, instance).post(this, entity);
-    checkResult = response.readEntity(String.class);
-    Assert.assertEquals(checkResult,
-        "{\"stoppable\":false,\"failedChecks\":[\"Helix:INSTANCE_NOT_STABLE\",\"Helix:HAS_DISABLED_PARTITION\",\"Helix:INSTANCE_NOT_ENABLED\"]}");
-
-    // Reenable instance0, it should passed the check
-    instanceConfig.setInstanceEnabled(true);
-    instanceConfig.setInstanceEnabledForPartition("FakeResource", "FakePartition", true);
-    _configAccessor.setInstanceConfig(clusterName, instance, instanceConfig);
-    HelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(((BestPossibleExternalViewVerifier) verifier).verifyByPolling());
-
-    entity =
-        Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
-    response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
-        .format(clusterName, instance).post(this, entity);
-    checkResult = response.readEntity(String.class);
-    Assert.assertEquals(checkResult,
-        "{\"stoppable\":true,\"failedChecks\":[]}");
-  }
-
-  @Test(dependsOnMethods = "testEndToEndChecks")
   public void testIsInstanceStoppable() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     Map<String, String> params = ImmutableMap.of("client", "espresso");
     Entity entity =
         Entity.entity(OBJECT_MAPPER.writeValueAsString(params), MediaType.APPLICATION_JSON_TYPE);
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
-        .format("testEndToEndChecks", "instance1").post(this, entity);
+        .format(STOPPABLE_CLUSTER, "instance1").post(this, entity);
     String stoppableCheckResult = response.readEntity(String.class);
     Assert.assertEquals(stoppableCheckResult,
-        "{\"stoppable\":false,\"failedChecks\":[\"Helix:INSTANCE_NOT_STABLE\","
-            + "\"Helix:INSTANCE_NOT_ENABLED\",\"Helix:EMPTY_RESOURCE_ASSIGNMENT\"]}");
+        "{\"stoppable\":false,\"failedChecks\":[\"Helix:EMPTY_RESOURCE_ASSIGNMENT\","
+            + "\"Helix:INSTANCE_NOT_ENABLED\",\"Helix:INSTANCE_NOT_STABLE\"]}");
   }
 
   @Test (dependsOnMethods = "testIsInstanceStoppable")
@@ -150,7 +88,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
         .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
-        node.get(InstanceAccessor.InstanceProperties.total_message_count.name()).getIntValue();
+        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
 
     Assert.assertEquals(newMessageCount, 1);
   }
@@ -177,7 +115,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
             .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
-        node.get(InstanceAccessor.InstanceProperties.total_message_count.name()).getIntValue();
+        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
 
     Assert.assertEquals(newMessageCount, 1);
 
@@ -186,34 +124,18 @@ public class TestInstanceAccessor extends AbstractTestClass {
             .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     node = OBJECT_MAPPER.readTree(body);
     newMessageCount =
-        node.get(InstanceAccessor.InstanceProperties.total_message_count.name()).getIntValue();
+        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
 
     Assert.assertEquals(newMessageCount, 0);
   }
 
   @Test(dependsOnMethods = "testGetMessagesByStateModelDef")
-  public void testGetAllInstances() throws IOException {
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String body = new JerseyUriRequestBuilder("clusters/{}/instances").isBodyReturnExpected(true)
-        .format(CLUSTER_NAME).get(this);
-
-    JsonNode node = OBJECT_MAPPER.readTree(body);
-    String instancesStr = node.get(InstanceAccessor.InstanceProperties.instances.name()).toString();
-    Assert.assertNotNull(instancesStr);
-
-    Set<String> instances = OBJECT_MAPPER.readValue(instancesStr,
-        OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
-    Assert.assertEquals(instances, _instancesMap.get(CLUSTER_NAME), "Instances from response: "
-        + instances + " vs instances actually: " + _instancesMap.get(CLUSTER_NAME));
-  }
-
-  @Test
   public void testGetInstanceById() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}").isBodyReturnExpected(true)
         .format(CLUSTER_NAME, INSTANCE_NAME).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
-    String instancesCfg = node.get(InstanceAccessor.InstanceProperties.config.name()).toString();
+    String instancesCfg = node.get(PerInstanceAccessor.PerInstanceProperties.config.name()).toString();
     Assert.assertNotNull(instancesCfg);
     boolean isHealth = node.get("health").getBooleanValue();
     Assert.assertFalse(isHealth);
@@ -268,7 +190,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
     List<String> tagList = ImmutableList.of("tag3", "tag1", "tag2");
     entity = Entity.entity(
         OBJECT_MAPPER.writeValueAsString(ImmutableMap.of(AbstractResource.Properties.id.name(),
-            INSTANCE_NAME, InstanceAccessor.InstanceProperties.instanceTags.name(), tagList)),
+            INSTANCE_NAME, PerInstanceAccessor.PerInstanceProperties.instanceTags.name(), tagList)),
         MediaType.APPLICATION_JSON_TYPE);
 
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=addInstanceTag")
@@ -282,7 +204,7 @@ public class TestInstanceAccessor extends AbstractTestClass {
     removeList.remove("tag2");
     entity = Entity.entity(
         OBJECT_MAPPER.writeValueAsString(ImmutableMap.of(AbstractResource.Properties.id.name(),
-            INSTANCE_NAME, InstanceAccessor.InstanceProperties.instanceTags.name(), removeList)),
+            INSTANCE_NAME, PerInstanceAccessor.PerInstanceProperties.instanceTags.name(), removeList)),
         MediaType.APPLICATION_JSON_TYPE);
 
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=removeInstanceTag")
@@ -291,35 +213,6 @@ public class TestInstanceAccessor extends AbstractTestClass {
     Assert.assertEquals(_configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getTags(),
         ImmutableList.of("tag2"));
 
-    // TODO: Reenable the test after storage node fix the problem
-    // Batch disable instances
-    /*
-    List<String> instancesToDisable = Arrays.asList(
-        new String[] { CLUSTER_NAME + "localhost_12918", CLUSTER_NAME + "localhost_12919",
-            CLUSTER_NAME + "localhost_12920"
-        });
-    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(
-        ImmutableMap.of(InstanceAccessor.InstanceProperties.instances.name(), instancesToDisable)),
-        MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances", ImmutableMap.of("command", "disable"), entity,
-        Response.Status.OK.getStatusCode());
-    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
-    Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
-        new HashSet<>(instancesToDisable));
-
-    instancesToDisable = Arrays
-        .asList(new String[] { CLUSTER_NAME + "localhost_12918", CLUSTER_NAME + "localhost_12920"
-        });
-    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(
-        ImmutableMap.of(InstanceAccessor.InstanceProperties.instances.name(), instancesToDisable)),
-        MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances", ImmutableMap.of("command", "enable"), entity,
-        Response.Status.OK.getStatusCode());
-    clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
-    Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
-        new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
-    */
-
     // Test enable disable partitions
     String dbName = "_db_0_";
     List<String> partitionsToDisable = Arrays.asList(CLUSTER_NAME + dbName + "0",
@@ -327,9 +220,9 @@ public class TestInstanceAccessor extends AbstractTestClass {
 
     entity = Entity.entity(
         OBJECT_MAPPER.writeValueAsString(ImmutableMap.of(AbstractResource.Properties.id.name(),
-            INSTANCE_NAME, InstanceAccessor.InstanceProperties.resource.name(),
+            INSTANCE_NAME, PerInstanceAccessor.PerInstanceProperties.resource.name(),
             CLUSTER_NAME + dbName.substring(0, dbName.length() - 1),
-            InstanceAccessor.InstanceProperties.partitions.name(), partitionsToDisable)),
+            PerInstanceAccessor.PerInstanceProperties.partitions.name(), partitionsToDisable)),
         MediaType.APPLICATION_JSON_TYPE);
 
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=disablePartitions")
@@ -342,9 +235,9 @@ public class TestInstanceAccessor extends AbstractTestClass {
         new HashSet<>(partitionsToDisable));
     entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
         .of(AbstractResource.Properties.id.name(), INSTANCE_NAME,
-            InstanceAccessor.InstanceProperties.resource.name(),
+            PerInstanceAccessor.PerInstanceProperties.resource.name(),
             CLUSTER_NAME + dbName.substring(0, dbName.length() - 1),
-            InstanceAccessor.InstanceProperties.partitions.name(),
+            PerInstanceAccessor.PerInstanceProperties.partitions.name(),
             ImmutableList.of(CLUSTER_NAME + dbName + "1"))), MediaType.APPLICATION_JSON_TYPE);
 
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=enablePartitions")
@@ -494,32 +387,5 @@ public class TestInstanceAccessor extends AbstractTestClass {
             Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP));
   }
 
-  private void preSetupForParallelInstancesStoppableTest(String clusterName, List<String> instances) {
-    _gSetupTool.addCluster(clusterName, true);
-    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
-    clusterConfig.setFaultZoneType("helixZoneId");
-    clusterConfig.setPersistIntermediateAssignment(true);
-    _configAccessor.setClusterConfig(clusterName, clusterConfig);
-    // Create instance configs
-    List<InstanceConfig> instanceConfigs = new ArrayList<>();
-    for (int i = 0; i < instances.size() - 1; i++) {
-      InstanceConfig instanceConfig = new InstanceConfig(instances.get(i));
-      instanceConfig.setDomain("helixZoneId=zone1,host=instance" + i);
-      instanceConfigs.add(instanceConfig);
-    }
-    instanceConfigs.add(new InstanceConfig(instances.get(instances.size() - 1)));
-    instanceConfigs.get(instanceConfigs.size() - 1).setDomain("helixZoneId=zone2,host=instance5");
 
-    instanceConfigs.get(1).setInstanceEnabled(false);
-    instanceConfigs.get(3).setInstanceEnabledForPartition("FakeResource", "FakePartition", false);
-
-    for (InstanceConfig instanceConfig : instanceConfigs) {
-      _gSetupTool.getClusterManagementTool().addInstance(clusterName, instanceConfig);
-    }
-
-    // Start participant
-    startInstances(clusterName, new TreeSet<>(instances), 3);
-    createResources(clusterName, 1);
-    startController(clusterName);
-  }
 }

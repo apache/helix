@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 import javax.ws.rs.client.Entity;
@@ -52,6 +53,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
@@ -105,6 +107,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static final String TEST_NAMESPACE = "test-namespace";
   protected static HelixZkClient _gZkClientTestNS;
   protected static BaseDataAccessor<ZNRecord> _baseAccessorTestNS;
+  protected static final String STOPPABLE_CLUSTER = "StoppableTestCluster";
+  protected static final List<String> STOPPABLE_INSTANCES =
+      Arrays.asList("instance0", "instance1", "instance2", "instance3", "instance4", "instance5");
 
   protected static Set<String> _clusters;
   protected static String _superCluster = "superCluster";
@@ -276,6 +281,8 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       _resourcesMap.put(cluster, resources);
       startController(cluster);
     }
+    preSetupForParallelInstancesStoppableTest(STOPPABLE_CLUSTER, STOPPABLE_INSTANCES);
+    _clusters.add(STOPPABLE_CLUSTER);
   }
 
   protected Set<String> createInstances(String cluster, int numInstances) throws Exception {
@@ -467,5 +474,34 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
   protected TaskDriver getTaskDriver(String clusterName) {
     return new TaskDriver(_gZkClient, clusterName);
+  }
+
+  private void preSetupForParallelInstancesStoppableTest(String clusterName, List<String> instances) {
+    _gSetupTool.addCluster(clusterName, true);
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setFaultZoneType("helixZoneId");
+    clusterConfig.setPersistIntermediateAssignment(true);
+    _configAccessor.setClusterConfig(clusterName, clusterConfig);
+    // Create instance configs
+    List<InstanceConfig> instanceConfigs = new ArrayList<>();
+    for (int i = 0; i < instances.size() - 1; i++) {
+      InstanceConfig instanceConfig = new InstanceConfig(instances.get(i));
+      instanceConfig.setDomain("helixZoneId=zone1,host=instance" + i);
+      instanceConfigs.add(instanceConfig);
+    }
+    instanceConfigs.add(new InstanceConfig(instances.get(instances.size() - 1)));
+    instanceConfigs.get(instanceConfigs.size() - 1).setDomain("helixZoneId=zone2,host=instance5");
+
+    instanceConfigs.get(1).setInstanceEnabled(false);
+    instanceConfigs.get(3).setInstanceEnabledForPartition("FakeResource", "FakePartition", false);
+
+    for (InstanceConfig instanceConfig : instanceConfigs) {
+      _gSetupTool.getClusterManagementTool().addInstance(clusterName, instanceConfig);
+    }
+
+    // Start participant
+    startInstances(clusterName, new TreeSet<>(instances), 3);
+    createResources(clusterName, 1);
+    startController(clusterName);
   }
 }

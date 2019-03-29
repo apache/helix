@@ -21,13 +21,7 @@ package org.apache.helix.rest.server.resources.helix;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -38,14 +32,12 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.HealthStat;
@@ -54,13 +46,9 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.rest.client.CustomRestClient;
-import org.apache.helix.rest.client.CustomRestClientFactory;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
-import org.apache.helix.rest.server.service.ClusterService;
-import org.apache.helix.rest.server.service.ClusterServiceImpl;
 import org.apache.helix.rest.server.service.InstanceService;
 import org.apache.helix.rest.server.service.InstanceServiceImpl;
 import org.codehaus.jackson.JsonNode;
@@ -72,14 +60,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-@Path("/clusters/{clusterId}/instances")
-public class InstanceAccessor extends AbstractHelixResource {
-  private final static Logger _logger = LoggerFactory.getLogger(InstanceAccessor.class);
+@Path("/clusters/{clusterId}/instances/{instanceName}")
+public class PerInstanceAccessor extends AbstractHelixResource {
+  private final static Logger _logger = LoggerFactory.getLogger(PerInstanceAccessor.class);
 
-  public enum InstanceProperties {
-    instances,
-    online,
-    disabled,
+  public enum PerInstanceProperties {
     config,
     liveInstance,
     resource,
@@ -91,181 +76,18 @@ public class InstanceAccessor extends AbstractHelixResource {
     total_message_count,
     read_message_count,
     healthreports,
-    instanceTags,
-    selection_base,
-    zone_order,
-    customized_values,
-    instance_stoppable_parallel,
-    instance_not_stoppable_with_reasons
-  }
-
-  public enum InstanceHealthSelectionBase {
-    instance_based,
-    zone_based
+    instanceTags
   }
 
   @GET
-  public Response getAllInstances(@PathParam("clusterId") String clusterId) {
-    HelixDataAccessor accessor = getDataAccssor(clusterId);
-    ObjectNode root = JsonNodeFactory.instance.objectNode();
-    root.put(Properties.id.name(), JsonNodeFactory.instance.textNode(clusterId));
-
-    ArrayNode instancesNode = root.putArray(InstanceProperties.instances.name());
-    ArrayNode onlineNode = root.putArray(InstanceProperties.online.name());
-    ArrayNode disabledNode = root.putArray(InstanceProperties.disabled.name());
-
-    List<String> instances = accessor.getChildNames(accessor.keyBuilder().instanceConfigs());
-
-    if (instances != null) {
-      instancesNode.addAll((ArrayNode) OBJECT_MAPPER.valueToTree(instances));
-    } else {
-      return notFound();
-    }
-
-    List<String> liveInstances = accessor.getChildNames(accessor.keyBuilder().liveInstances());
-    ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
-
-    for (String instanceName : instances) {
-      InstanceConfig instanceConfig =
-          accessor.getProperty(accessor.keyBuilder().instanceConfig(instanceName));
-      if (instanceConfig != null) {
-        if (!instanceConfig.getInstanceEnabled() || (clusterConfig.getDisabledInstances() != null
-            && clusterConfig.getDisabledInstances().containsKey(instanceName))) {
-          disabledNode.add(JsonNodeFactory.instance.textNode(instanceName));
-        }
-
-        if (liveInstances.contains(instanceName)){
-          onlineNode.add(JsonNodeFactory.instance.textNode(instanceName));
-        }
-      }
-    }
-
-    return JSONRepresentation(root);
-  }
-
-  @POST
-  public Response updateInstances(@PathParam("clusterId") String clusterId,
-      @QueryParam("command") String command, String content) {
-    Command cmd;
-    try {
-      cmd = Command.valueOf(command);
-    } catch (Exception e) {
-      return badRequest("Invalid command : " + command);
-    }
-
-    HelixAdmin admin = getHelixAdmin();
-    try {
-      JsonNode node = null;
-      if (content.length() != 0) {
-        node = OBJECT_MAPPER.readTree(content);
-      }
-      if (node == null) {
-        return badRequest("Invalid input for content : " + content);
-      }
-      List<String> enableInstances = OBJECT_MAPPER
-          .readValue(node.get(InstanceProperties.instances.name()).toString(),
-              OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
-      switch (cmd) {
-      case enable:
-        admin.enableInstance(clusterId, enableInstances, true);
-
-        break;
-      case disable:
-        admin.enableInstance(clusterId, enableInstances, false);
-        break;
-      default:
-        _logger.error("Unsupported command :" + command);
-        return badRequest("Unsupported command :" + command);
-      }
-    } catch (Exception e) {
-      _logger.error("Failed in updating instances : " + content, e);
-      return badRequest(e.getMessage());
-    }
-    return OK();
-  }
-
-  @POST
-  @Path("stoppable")
-  @Consumes(MediaType.APPLICATION_JSON)
-  public Response getParallelStoppableInstances(@PathParam("clusterId") String clusterId,
-      String content) {
-    try {
-      JsonNode node = null;
-      if (content.length() != 0) {
-        node = OBJECT_MAPPER.readTree(content);
-      }
-      if (node == null) {
-        return badRequest("Invalid input for content : " + content);
-      }
-
-      // TODO: Process input data from the content
-      InstanceHealthSelectionBase selectionBase = InstanceHealthSelectionBase
-          .valueOf(node.get(InstanceProperties.selection_base.name()).getValueAsText());
-      List<String> instances = OBJECT_MAPPER
-          .readValue(node.get(InstanceProperties.instances.name()).toString(),
-              OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
-
-      List<String> orderOfZone = null;
-      String customizedInput = null;
-      if (node.get(InstanceProperties.customized_values.name()) != null) {
-        customizedInput = node.get(InstanceProperties.customized_values.name()).getTextValue();
-      }
-
-      if (node.get(InstanceProperties.zone_order.name()) != null) {
-        orderOfZone = OBJECT_MAPPER
-            .readValue(node.get(InstanceProperties.zone_order.name()).toString(),
-                OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
-      }
-
-      // Prepare output result
-      ObjectNode result = JsonNodeFactory.instance.objectNode();
-      ArrayNode stoppableInstances =
-          result.putArray(InstanceProperties.instance_stoppable_parallel.name());
-      ObjectNode failedStoppableInstances =
-          result.putObject(InstanceProperties.instance_not_stoppable_with_reasons.name());
-
-      switch (selectionBase) {
-      case zone_based:
-        List<String> zoneBasedInstance = getZoneBasedInstance(clusterId, instances, orderOfZone);
-        for (String instance : zoneBasedInstance) {
-          StoppableCheck stoppableCheck =
-              checkSingleInstanceStoppable(clusterId, instance, customizedInput);
-          if (!stoppableCheck.isStoppable()) {
-            ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
-            for (String failedReason : stoppableCheck.getFailedChecks()) {
-              failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
-            }
-          } else {
-            stoppableInstances.add(instance);
-          }
-        }
-        break;
-      case instance_based:
-      default:
-        throw new NotImplementedException("instance_based selection is not support now!");
-      }
-      return JSONRepresentation(result);
-    } catch (HelixException e) {
-      _logger
-          .error(String.format("Current cluster %s has issue with health checks!", clusterId), e);
-      return serverError(e);
-    } catch (Exception e) {
-      _logger.error(
-          String.format("Failed to get parallel stoppable instances for cluster %s!", clusterId),
-          e);
-      return serverError(e);
-    }
-  }
-
-  @GET
-  @Path("{instanceName}")
   public Response getInstanceById(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
     // TODO reduce GC by dependency injection
-    InstanceService instanceService = new InstanceServiceImpl(
-        new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
+    InstanceService instanceService =
+        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor),
+            getConfigAccessor());
     InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
         InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
 
@@ -273,14 +95,15 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @POST
-  @Path("{instanceName}/stoppable")
+  @Path("stoppable")
   @Consumes(MediaType.APPLICATION_JSON)
-  public Response isInstanceStoppable(String jsonContent,
-      @PathParam("clusterId") String clusterId, @PathParam("instanceName") String instanceName) throws IOException {
+  public Response isInstanceStoppable(String jsonContent, @PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
     StoppableCheck stoppableCheck = null;
     try {
-      stoppableCheck = checkSingleInstanceStoppable(clusterId, instanceName, jsonContent);
+      stoppableCheck = new InstanceServiceImpl(getDataAccssor(clusterId), getConfigAccessor())
+          .checkSingleInstanceStoppable(clusterId, instanceName, jsonContent);
     } catch (HelixException e) {
       _logger
           .error(String.format("Current cluster %s has issue with health checks!", clusterId), e);
@@ -290,7 +113,6 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @PUT
-  @Path("{instanceName}")
   public Response addInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, String content) {
     HelixAdmin admin = getHelixAdmin();
@@ -313,7 +135,6 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @POST
-  @Path("{instanceName}")
   public Response updateInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @QueryParam("command") String command,
       String content) {
@@ -345,8 +166,8 @@ public class InstanceAccessor extends AbstractHelixResource {
           return badRequest("Instance names are not match!");
         }
         admin.resetPartition(clusterId, instanceName,
-            node.get(InstanceProperties.resource.name()).getTextValue(), (List<String>) OBJECT_MAPPER
-                .readValue(node.get(InstanceProperties.partitions.name()).toString(),
+            node.get(PerInstanceProperties.resource.name()).getTextValue(), (List<String>) OBJECT_MAPPER
+                .readValue(node.get(PerInstanceProperties.partitions.name()).toString(),
                     OBJECT_MAPPER.getTypeFactory()
                         .constructCollectionType(List.class, String.class)));
         break;
@@ -355,7 +176,7 @@ public class InstanceAccessor extends AbstractHelixResource {
           return badRequest("Instance names are not match!");
         }
         for (String tag : (List<String>) OBJECT_MAPPER
-            .readValue(node.get(InstanceProperties.instanceTags.name()).toString(),
+            .readValue(node.get(PerInstanceProperties.instanceTags.name()).toString(),
                 OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))) {
           admin.addInstanceTag(clusterId, instanceName, tag);
         }
@@ -365,24 +186,24 @@ public class InstanceAccessor extends AbstractHelixResource {
           return badRequest("Instance names are not match!");
         }
         for (String tag : (List<String>) OBJECT_MAPPER
-            .readValue(node.get(InstanceProperties.instanceTags.name()).toString(),
+            .readValue(node.get(PerInstanceProperties.instanceTags.name()).toString(),
                 OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))) {
           admin.removeInstanceTag(clusterId, instanceName, tag);
         }
         break;
       case enablePartitions:
         admin.enablePartition(true, clusterId, instanceName,
-            node.get(InstanceProperties.resource.name()).getTextValue(),
+            node.get(PerInstanceProperties.resource.name()).getTextValue(),
             (List<String>) OBJECT_MAPPER
-                .readValue(node.get(InstanceProperties.partitions.name()).toString(),
+                .readValue(node.get(PerInstanceProperties.partitions.name()).toString(),
                     OBJECT_MAPPER.getTypeFactory()
                         .constructCollectionType(List.class, String.class)));
         break;
       case disablePartitions:
         admin.enablePartition(false, clusterId, instanceName,
-            node.get(InstanceProperties.resource.name()).getTextValue(),
+            node.get(PerInstanceProperties.resource.name()).getTextValue(),
             (List<String>) OBJECT_MAPPER
-                .readValue(node.get(InstanceProperties.partitions.name()).toString(),
+                .readValue(node.get(PerInstanceProperties.partitions.name()).toString(),
                     OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class)));
         break;
       default:
@@ -397,7 +218,6 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @DELETE
-  @Path("{instanceName}")
   public Response deleteInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) {
     HelixAdmin admin = getHelixAdmin();
@@ -412,7 +232,7 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @GET
-  @Path("{instanceName}/configs")
+  @Path("configs")
   public Response getInstanceConfig(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
@@ -427,7 +247,7 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @POST
-  @Path("{instanceName}/configs")
+  @Path("configs")
   public Response updateInstanceConfig(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @QueryParam("command") String commandStr,
       String content) {
@@ -476,14 +296,14 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @GET
-  @Path("{instanceName}/resources")
+  @Path("resources")
   public Response getResourcesOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
 
     ObjectNode root = JsonNodeFactory.instance.objectNode();
     root.put(Properties.id.name(), instanceName);
-    ArrayNode resourcesNode = root.putArray(InstanceProperties.resources.name());
+    ArrayNode resourcesNode = root.putArray(PerInstanceProperties.resources.name());
 
     List<String> sessionIds = accessor.getChildNames(accessor.keyBuilder().sessions(instanceName));
     if (sessionIds == null || sessionIds.size() == 0) {
@@ -502,8 +322,7 @@ public class InstanceAccessor extends AbstractHelixResource {
     return JSONRepresentation(root);
   }
 
-  @GET
-  @Path("{instanceName}/resources/{resourceName}")
+  @GET @Path("resources/{resourceName}")
   public Response getResourceOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName,
       @PathParam("resourceName") String resourceName) throws IOException {
@@ -515,8 +334,8 @@ public class InstanceAccessor extends AbstractHelixResource {
 
     // Only get resource list from current session id
     String currentSessionId = sessionIds.get(0);
-    CurrentState resourceCurrentState = accessor
-        .getProperty(accessor.keyBuilder().currentState(instanceName, currentSessionId, resourceName));
+    CurrentState resourceCurrentState = accessor.getProperty(
+        accessor.keyBuilder().currentState(instanceName, currentSessionId, resourceName));
     if (resourceCurrentState != null) {
       return JSONRepresentation(resourceCurrentState.getRecord());
     }
@@ -524,8 +343,7 @@ public class InstanceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
-  @GET
-  @Path("{instanceName}/errors")
+  @GET @Path("errors")
   public Response getErrorsOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
@@ -534,8 +352,7 @@ public class InstanceAccessor extends AbstractHelixResource {
     root.put(Properties.id.name(), instanceName);
     ObjectNode errorsNode = JsonNodeFactory.instance.objectNode();
 
-    List<String> sessionIds =
-        accessor.getChildNames(accessor.keyBuilder().errors(instanceName));
+    List<String> sessionIds = accessor.getChildNames(accessor.keyBuilder().errors(instanceName));
 
     if (sessionIds == null || sessionIds.size() == 0) {
       return notFound();
@@ -557,13 +374,13 @@ public class InstanceAccessor extends AbstractHelixResource {
         errorsNode.put(sessionId, resourcesNode);
       }
     }
-    root.put(InstanceProperties.errors.name(), errorsNode);
+    root.put(PerInstanceProperties.errors.name(), errorsNode);
 
     return JSONRepresentation(root);
   }
 
   @GET
-  @Path("{instanceName}/errors/{sessionId}/{resourceName}/{partitionName}")
+  @Path("errors/{sessionId}/{resourceName}/{partitionName}")
   public Response getErrorsOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @PathParam("sessionId") String sessionId,
       @PathParam("resourceName") String resourceName,
@@ -579,7 +396,7 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @GET
-  @Path("{instanceName}/history")
+  @Path("history")
   public Response getHistoryOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
@@ -592,7 +409,7 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @GET
-  @Path("{instanceName}/messages")
+  @Path("messages")
   public Response getMessagesOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName,
       @QueryParam("stateModelDef") String stateModelDef) {
@@ -600,9 +417,8 @@ public class InstanceAccessor extends AbstractHelixResource {
 
     ObjectNode root = JsonNodeFactory.instance.objectNode();
     root.put(Properties.id.name(), instanceName);
-    ArrayNode newMessages = root.putArray(InstanceProperties.new_messages.name());
-    ArrayNode readMessages = root.putArray(InstanceProperties.read_messages.name());
-
+    ArrayNode newMessages = root.putArray(PerInstanceProperties.new_messages.name());
+    ArrayNode readMessages = root.putArray(PerInstanceProperties.read_messages.name());
 
     List<String> messageNames =
         accessor.getChildNames(accessor.keyBuilder().messages(instanceName));
@@ -629,15 +445,15 @@ public class InstanceAccessor extends AbstractHelixResource {
       }
     }
 
-    root.put(InstanceProperties.total_message_count.name(),
+    root.put(PerInstanceProperties.total_message_count.name(),
         newMessages.size() + readMessages.size());
-    root.put(InstanceProperties.read_message_count.name(), readMessages.size());
+    root.put(PerInstanceProperties.read_message_count.name(), readMessages.size());
 
     return JSONRepresentation(root);
   }
 
   @GET
-  @Path("{instanceName}/messages/{messageId}")
+  @Path("messages/{messageId}")
   public Response getMessageOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName,
       @PathParam("messageId") String messageId) throws IOException {
@@ -651,14 +467,14 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @GET
-  @Path("{instanceName}/healthreports")
+  @Path("healthreports")
   public Response getHealthReportsOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
 
     ObjectNode root = JsonNodeFactory.instance.objectNode();
     root.put(Properties.id.name(), instanceName);
-    ArrayNode healthReportsNode = root.putArray(InstanceProperties.healthreports.name());
+    ArrayNode healthReportsNode = root.putArray(PerInstanceProperties.healthreports.name());
 
     List<String> healthReports =
         accessor.getChildNames(accessor.keyBuilder().healthReports(instanceName));
@@ -671,9 +487,9 @@ public class InstanceAccessor extends AbstractHelixResource {
   }
 
   @GET
-  @Path("{instanceName}/healthreports/{reportName}")
-  public Response getHealthReportsOnInstance(@PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName,
+  @Path("healthreports/{reportName}")
+  public Response getHealthReportsOnInstance(
+      @PathParam("clusterId") String clusterId, @PathParam("instanceName") String instanceName,
       @PathParam("reportName") String reportName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
     HealthStat healthStat =
@@ -687,48 +503,5 @@ public class InstanceAccessor extends AbstractHelixResource {
 
   private boolean validInstance(JsonNode node, String instanceName) {
     return instanceName.equals(node.get(Properties.id.name()).getValueAsText());
-  }
-
-  private List<String> getZoneBasedInstance(String clusterId, List<String> instances, List<String> orderOfZone) {
-    ClusterService
-        clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
-    Map<String, Set<String>> zoneMapping = clusterService.getClusterTopology(clusterId).toZoneMapping();
-    if (orderOfZone == null) {
-      orderOfZone = new ArrayList<>(zoneMapping.keySet());
-    }
-    Collections.sort(orderOfZone);
-    if (orderOfZone.isEmpty()) {
-      return orderOfZone;
-    }
-
-    Set<String> instanceSet = null;
-    for (String zone : orderOfZone) {
-      instanceSet = new TreeSet<>(instances);
-      Set<String> currentZoneInstanceSet = new HashSet<>(zoneMapping.get(zone));
-      instanceSet.retainAll(currentZoneInstanceSet);
-      if (instanceSet.size() > 0) {
-        return new ArrayList<>(instanceSet);
-      }
-    }
-
-    return Collections.EMPTY_LIST;
-  }
-
-  private StoppableCheck checkSingleInstanceStoppable(String clusterId, String instanceName,
-      String jsonContent) {
-    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    // TODO reduce GC by dependency injection
-    InstanceService instanceService = new InstanceServiceImpl(
-        new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
-
-    Map<String, Boolean> helixStoppableCheck = instanceService.getInstanceHealthStatus(clusterId,
-        instanceName, InstanceService.HealthCheck.STOPPABLE_CHECK_LIST);
-    CustomRestClient customClient = CustomRestClientFactory.get(jsonContent);
-    // TODO add the json content parse logic
-    Map<String, Boolean> customStoppableCheck =
-        customClient.getInstanceStoppableCheck(Collections.<String, String> emptyMap());
-    StoppableCheck stoppableCheck =
-        StoppableCheck.mergeStoppableChecks(helixStoppableCheck, customStoppableCheck);
-    return stoppableCheck;
   }
 }

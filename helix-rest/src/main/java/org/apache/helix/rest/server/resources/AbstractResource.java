@@ -62,6 +62,7 @@ public class AbstractResource {
     disablePartitions,
     update,
     delete,
+    stoppable,
     rebalance,
     reset,
     resetPartitions,

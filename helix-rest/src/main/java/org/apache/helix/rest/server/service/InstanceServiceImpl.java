@@ -20,16 +20,19 @@ package org.apache.helix.rest.server.service;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.rest.client.CustomRestClient;
+import org.apache.helix.rest.client.CustomRestClientFactory;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
+import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,5 +127,21 @@ public class InstanceServiceImpl implements InstanceService {
         .healthStatus(getInstanceHealthStatus(clusterId, instanceName, healthChecks));
 
     return instanceInfoBuilder.build();
+  }
+
+
+  @Override
+  public StoppableCheck checkSingleInstanceStoppable(String clusterId, String instanceName,
+      String jsonContent) {
+    // TODO reduce GC by dependency injection
+    Map<String, Boolean> helixStoppableCheck = getInstanceHealthStatus(clusterId,
+        instanceName, InstanceService.HealthCheck.STOPPABLE_CHECK_LIST);
+    CustomRestClient customClient = CustomRestClientFactory.get(jsonContent);
+    // TODO add the json content parse logic
+    Map<String, Boolean> customStoppableCheck =
+        customClient.getInstanceStoppableCheck(Collections.<String, String> emptyMap());
+    StoppableCheck stoppableCheck =
+        StoppableCheck.mergeStoppableChecks(helixStoppableCheck, customStoppableCheck);
+    return stoppableCheck;
   }
 }

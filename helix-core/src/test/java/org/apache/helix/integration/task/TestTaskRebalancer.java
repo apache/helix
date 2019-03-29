@@ -88,7 +88,7 @@ public class TestTaskRebalancer extends TaskTestBase {
     // Ensure workflow config and context were cleaned up by now
     Assert.assertFalse(_manager.getHelixPropertyStore().exists(workflowPropStoreKey,
         AccessOption.PERSISTENT));
-    Assert.assertEquals(accessor.getProperty(workflowCfgKey), null);
+    Assert.assertNull(accessor.getProperty(workflowCfgKey));
   }
 
   private void basic(long jobCompletionTime) throws Exception {

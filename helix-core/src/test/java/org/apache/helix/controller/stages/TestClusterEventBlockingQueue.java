@@ -60,7 +60,7 @@ public class TestClusterEventBlockingQueue {
     // test peek
     ClusterEvent peeked = queue.peek();
     Assert.assertEquals(peeked.getEventType(), ClusterEventType.IdealStateChange);
-    Assert.assertEquals(peeked.getAttribute("attr"), 1);
+    Assert.assertEquals((int) peeked.getAttribute("attr"), 1);
     Assert.assertEquals(queue.size(), 2);
 
     // test take the head
@@ -68,7 +68,7 @@ public class TestClusterEventBlockingQueue {
         MoreExecutors.listeningDecorator(Executors.newCachedThreadPool());
     ClusterEvent takenEvent1 = safeTake(queue, service);
     Assert.assertEquals(takenEvent1.getEventType(), ClusterEventType.IdealStateChange);
-    Assert.assertEquals(takenEvent1.getAttribute("attr"), 1);
+    Assert.assertEquals((int) takenEvent1.getAttribute("attr"), 1);
     Assert.assertEquals(queue.size(), 1);
 
     // test take the tail

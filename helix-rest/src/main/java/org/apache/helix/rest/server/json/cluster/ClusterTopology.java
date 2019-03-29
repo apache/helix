@@ -1,9 +1,13 @@
 package org.apache.helix.rest.server.json.cluster;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import java.util.Map;
+import java.util.Set;
 
 /**
  * POJO class that can be easily convert to JSON object
@@ -55,6 +59,10 @@ public class ClusterTopology {
     public void setInstances(List<Instance> instances) {
       this.instances = instances;
     }
+
+    public String getId() {
+      return id;
+    }
   }
 
   public static final class Instance {
@@ -64,5 +72,25 @@ public class ClusterTopology {
     public Instance(String id) {
       this.id = id;
     }
+
+    public String getId() {
+      return id;
+    }
+  }
+
+  public Map<String, Set<String>> toZoneMapping() {
+    Map<String, Set<String>> zoneMapping = new HashMap<>();
+    if (zones == null) {
+      return Collections.emptyMap();
+    }
+    for (ClusterTopology.Zone zone : zones) {
+      zoneMapping.put(zone.getId(), new HashSet<String>());
+      if (zone.getInstances() != null) {
+        for (ClusterTopology.Instance instance : zone.getInstances()) {
+          zoneMapping.get(zone.getId()).add(instance.getId());
+        }
+      }
+    }
+    return zoneMapping;
   }
 }

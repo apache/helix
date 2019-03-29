@@ -20,10 +20,9 @@ package org.apache.helix.rest.server.service;
  */
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.TreeMap;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -49,7 +48,7 @@ public class InstanceServiceImpl implements InstanceService {
   @Override
   public Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
       List<HealthCheck> healthChecks) {
-    Map<String, Boolean> healthStatus = new HashMap<>();
+    Map<String, Boolean> healthStatus = new TreeMap<>();
     for (HealthCheck healthCheck : healthChecks) {
       switch (healthCheck) {
       case INVALID_CONFIG:
@@ -68,13 +67,8 @@ public class InstanceServiceImpl implements InstanceService {
             InstanceValidationUtil.isAlive(_dataAccessor, clusterId, instanceName));
         break;
       case INSTANCE_NOT_STABLE:
-        try {
-          boolean isStable = InstanceValidationUtil.isInstanceStable(_dataAccessor, instanceName);
-          healthStatus.put(HealthCheck.INSTANCE_NOT_STABLE.name(), isStable);
-        } catch (HelixException e) {
-          _logger.error("Failed to check instance is stable, message: {}", e.getMessage());
-          // TODO action on the stable check exception
-        }
+        boolean isStable = InstanceValidationUtil.isInstanceStable(_dataAccessor, instanceName);
+        healthStatus.put(HealthCheck.INSTANCE_NOT_STABLE.name(), isStable);
         break;
       case HAS_ERROR_PARTITION:
         healthStatus.put(HealthCheck.HAS_ERROR_PARTITION.name(),

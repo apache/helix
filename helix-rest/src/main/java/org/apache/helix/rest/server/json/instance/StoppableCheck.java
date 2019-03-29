@@ -65,4 +65,12 @@ public class StoppableCheck {
 
     return result;
   }
+
+  public boolean isStoppable() {
+    return isStoppable;
+  }
+
+  public List<String> getFailedChecks() {
+    return failedChecks;
+  }
 }

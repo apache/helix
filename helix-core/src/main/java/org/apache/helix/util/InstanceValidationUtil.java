@@ -270,7 +270,14 @@ public class InstanceValidationUtil {
     List<String> idealStateNames = dataAccessor.getChildNames(keyBuilder.idealStates());
     for (String idealStateName : idealStateNames) {
       IdealState idealState = dataAccessor.getProperty(keyBuilder.idealStates(idealStateName));
+      if (idealState == null || !idealState.isEnabled()) {
+        continue;
+      }
       ExternalView externalView = dataAccessor.getProperty(keyBuilder.externalView(idealStateName));
+      if (externalView == null) {
+        throw new HelixException(
+            String.format("Resource %s does not have external view!", idealStateName));
+      }
       for (String partition : idealState.getPartitionSet()) {
         Map<String, String> isPartitionMap = idealState.getInstanceStateMap(partition);
         Map<String, String> evPartitionMap = externalView.getStateMap(partition);

@@ -58,7 +58,12 @@ public interface InstanceService {
     /**
      * Check if instance has error partitions
      */
-    HAS_ERROR_PARTITION;
+    HAS_ERROR_PARTITION,
+    /**
+     * Check if all resources hosted on the instance can still meet the min active replica
+     * constraint if this instance is shutdown
+     */
+    MIN_ACTIVE_REPLICA_CHECK_FAILED;
 
     /**
      * Pre-defined list of checks to test if an instance can be stopped at runtime

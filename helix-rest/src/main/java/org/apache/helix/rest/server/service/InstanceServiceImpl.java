@@ -87,6 +87,10 @@ public class InstanceServiceImpl implements InstanceService {
         healthStatus.put(HealthCheck.EMPTY_RESOURCE_ASSIGNMENT.name(),
             InstanceValidationUtil.hasResourceAssigned(_dataAccessor, clusterId, instanceName));
         break;
+      case MIN_ACTIVE_REPLICA_CHECK_FAILED:
+        healthStatus.put(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED.name(),
+            InstanceValidationUtil.siblingNodesActiveReplicaCheck(_dataAccessor, instanceName));
+        break;
       default:
         _logger.error("Unsupported health check: {}", healthCheck);
         break;

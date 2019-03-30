@@ -19,9 +19,11 @@ package org.apache.helix.util;
  * under the License.
  */
 
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
@@ -35,9 +37,13 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.RESTConfig;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Utility class for validating Helix properties
@@ -47,6 +53,9 @@ import org.slf4j.LoggerFactory;
  */
 public class InstanceValidationUtil {
   private static final Logger _logger = LoggerFactory.getLogger(InstanceValidationUtil.class);
+
+  public static Set<String> UNHEALTHY_STATES =
+      ImmutableSet.of(HelixDefinedState.DROPPED.name(), HelixDefinedState.ERROR.name());
 
   public enum HealthStatusType {
     instanceHealthStatus,
@@ -115,12 +124,10 @@ public class InstanceValidationUtil {
     if (liveInstance != null) {
       String sessionId = liveInstance.getSessionId();
 
-      PropertyKey currentStatesKey =
-          propertyKeyBuilder.currentStates(instanceName, sessionId);
+      PropertyKey currentStatesKey = propertyKeyBuilder.currentStates(instanceName, sessionId);
       List<String> resourceNames = dataAccessor.getChildNames(currentStatesKey);
       for (String resourceName : resourceNames) {
-        PropertyKey key =
-            propertyKeyBuilder.currentState(instanceName, sessionId, resourceName);
+        PropertyKey key = propertyKeyBuilder.currentState(instanceName, sessionId, resourceName);
         CurrentState currentState = dataAccessor.getProperty(key);
         if (currentState != null && currentState.getPartitionStateMap().size() > 0) {
           return true;
@@ -179,12 +186,10 @@ public class InstanceValidationUtil {
     if (liveInstance != null) {
       String sessionId = liveInstance.getSessionId();
 
-      PropertyKey currentStatesKey =
-          propertyKeyBuilder.currentStates(instanceName, sessionId);
+      PropertyKey currentStatesKey = propertyKeyBuilder.currentStates(instanceName, sessionId);
       List<String> resourceNames = dataAccessor.getChildNames(currentStatesKey);
       for (String resourceName : resourceNames) {
-        PropertyKey key =
-            propertyKeyBuilder.currentState(instanceName, sessionId, resourceName);
+        PropertyKey key = propertyKeyBuilder.currentState(instanceName, sessionId, resourceName);
 
         CurrentState currentState = dataAccessor.getProperty(key);
         if (currentState != null
@@ -200,10 +205,9 @@ public class InstanceValidationUtil {
 
   /**
    * Check the overall health status for instance including:
-   *  1. Per instance health status with application customized key-value entries
-   *  2. Sibling partitions (replicas for same partition holding on different node
-   *     health status for the entire cluster.
-   *
+   * 1. Per instance health status with application customized key-value entries
+   * 2. Sibling partitions (replicas for same partition holding on different node
+   * health status for the entire cluster.
    * @param configAccessor
    * @param clustername
    * @param hostName
@@ -221,8 +225,8 @@ public class InstanceValidationUtil {
       return isHealthy;
     }
     // TODO : 1. Call REST with customized URL
-    //        2. Parse mapping result with string -> boolean value and return out for per instance
-    //        3. Check sibling nodes for partition health
+    // 2. Parse mapping result with string -> boolean value and return out for per instance
+    // 3. Check sibling nodes for partition health
     isHealthy =
         perInstanceHealthCheck(instanceHealthMap) || perPartitionHealthCheck(partitionHealthMap);
 
@@ -254,9 +258,7 @@ public class InstanceValidationUtil {
   /**
    * Check instance is already in the stable state. Here stable means all the ideal state mapping
    * matches external view (view of current state).
-   *
-   * It requires persist assignment on!
-   *
+   * It requires PERSIST_INTERMEDIATE_ASSIGNMENT turned on!
    * @param dataAccessor
    * @param instanceName
    * @return
@@ -293,6 +295,73 @@ public class InstanceValidationUtil {
         }
       }
     }
+    return true;
+  }
+
+  /**
+   * Check if sibling nodes of the instance meet min active replicas constraint
+   * Two instances are sibling of each other if they host the same partition
+   *
+   * WARNING: The check uses ExternalView to reduce network traffic but suffer from accuracy
+   * due to external view propagation latency
+   *
+   * TODO: Use in memory cache and query instance's currentStates
+   *
+   * @param dataAccessor
+   * @param instanceName
+   * @return
+   */
+  public static boolean siblingNodesActiveReplicaCheck(HelixDataAccessor dataAccessor, String instanceName) {
+    PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
+    List<String> idealStates = dataAccessor.getChildNames(propertyKeyBuilder.idealStates());
+    List<String> externalViews = dataAccessor.getChildNames(propertyKeyBuilder.externalViews());
+    if (idealStates.size() != externalViews.size()) {
+      throw new HelixException(
+          "The following resources in IdealStates are not found in ExternalViews: "
+              + Sets.difference(new HashSet<>(idealStates), new HashSet<>(externalViews)));
+    }
+
+    for (String externalViewName : externalViews) {
+      ExternalView externalView =
+          dataAccessor.getProperty(propertyKeyBuilder.externalView(externalViewName));
+      if (externalView == null) {
+        _logger.error("ExternalView for {} doesn't exist", externalViewName);
+        continue;
+      }
+      // Get the minActiveReplicas constraint for the resource
+      int minActiveReplicas = externalView.getMinActiveReplicas();
+      if (minActiveReplicas == -1) {
+        throw new HelixException(
+            "ExternalView " + externalViewName + " is missing minActiveReplica field");
+      }
+      String stateModeDef = externalView.getStateModelDefRef();
+      StateModelDefinition stateModelDefinition =
+          dataAccessor.getProperty(propertyKeyBuilder.stateModelDef(stateModeDef));
+      Set<String> unhealthyStates = new HashSet<>(UNHEALTHY_STATES);
+      if (stateModelDefinition != null) {
+        unhealthyStates.add(stateModelDefinition.getInitialState());
+      }
+      for (String partition : externalView.getPartitionSet()) {
+        Map<String, String> stateByInstanceMap = externalView.getStateMap(partition);
+        // found the resource hosted on the instance
+        if (stateByInstanceMap.containsKey(instanceName)) {
+          int numHealthySiblings = 0;
+          for (Map.Entry<String, String> entry : stateByInstanceMap.entrySet()) {
+            if (!entry.getKey().equals(instanceName)
+                && !unhealthyStates.contains(entry.getValue())) {
+              numHealthySiblings++;
+            }
+          }
+          if (numHealthySiblings < minActiveReplicas) {
+            _logger.info(
+                "Partition {} doesn't have enough active replicas in sibling nodes. NumHealthySiblings: {}, minActiveReplicas: {}",
+                partition, numHealthySiblings, minActiveReplicas);
+            return false;
+          }
+        }
+      }
+    }
+
     return true;
   }
 }

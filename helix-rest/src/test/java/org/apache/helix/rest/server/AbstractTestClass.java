@@ -54,6 +54,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.rest.common.ContextPropertyKeys;
@@ -98,7 +99,8 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static final String WORKFLOW_PREFIX = "Workflow_";
   protected static final String JOB_PREFIX = "Job_";
   protected static int NUM_PARTITIONS = 10;
-  protected static int NUM_REPLICA = 3;
+  protected static int NUM_REPLICA = 2;
+  protected static int MIN_ACTIVE_REPLICA = 3;
   protected static ZkServer _zkServer;
   protected static HelixZkClient _gZkClient;
   protected static ClusterSetup _gSetupTool;
@@ -316,6 +318,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     for (int i = 0; i < numResources; i++) {
       String resource = cluster + "_db_" + i;
       _gSetupTool.addResourceToCluster(cluster, resource, NUM_PARTITIONS, "MasterSlave");
+      IdealState idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
+      idealState.setMinActiveReplicas(MIN_ACTIVE_REPLICA);
+      _gSetupTool.getClusterManagementTool().setResourceIdealState(cluster, resource, idealState);
       _gSetupTool.rebalanceStorageCluster(cluster, resource, NUM_REPLICA);
       resources.add(resource);
     }

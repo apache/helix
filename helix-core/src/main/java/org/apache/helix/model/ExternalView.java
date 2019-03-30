@@ -38,7 +38,9 @@ public class ExternalView extends HelixProperty {
   public enum ExternalViewProperty {
     INSTANCE_GROUP_TAG,
     RESOURCE_GROUP_NAME,
-    GROUP_ROUTING_ENABLED
+    GROUP_ROUTING_ENABLED,
+    MIN_ACTIVE_REPLICAS,
+    STATE_MODEL_DEF_REF
   }
 
   /**
@@ -129,6 +131,23 @@ public class ExternalView extends HelixProperty {
    */
   public String getInstanceGroupTag() {
     return _record.getSimpleField(ExternalViewProperty.INSTANCE_GROUP_TAG.toString());
+  }
+
+  /**
+   * Get the number of minimum active partitions for this resource.
+   *
+   * @return
+   */
+  public int getMinActiveReplicas() {
+    return _record.getIntField(ExternalViewProperty.MIN_ACTIVE_REPLICAS.toString(), -1);
+  }
+
+  /**
+   * Get the state model associated with this resource
+   * @return an identifier of the state model
+   */
+  public String getStateModelDefRef() {
+    return _record.getSimpleField(ExternalViewProperty.STATE_MODEL_DEF_REF.toString());
   }
 
   @Override

@@ -581,7 +581,7 @@ public class ZkGrep {
     File zkParsedDir = new File(String.format("%s/zklog-parsed", System.getProperty("user.home")));
     if (!zkParsedDir.exists()) {
       LOG.info("creating zklog-parsed dir: " + zkParsedDir.getAbsolutePath());
-      zkParsedDir.mkdir();
+      zkParsedDir.mkdirs();
     }
 
     if (cmd.hasOption(between)) {

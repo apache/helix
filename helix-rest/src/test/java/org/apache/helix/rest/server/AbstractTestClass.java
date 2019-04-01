@@ -119,6 +119,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static Map<String, Map<String, Workflow>> _workflowMap = new HashMap<>();
 
   protected MockAuditLogger _auditLogger = new MockAuditLogger();
+  protected static HelixRestServer _helixRestServer;
 
   protected class MockAuditLogger implements AuditLogger {
     List<AuditLog> _auditLogList = new ArrayList<>();
@@ -172,7 +173,6 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       @Override
       public TestContainer create(final URI baseUri, DeploymentContext deploymentContext) {
         return new TestContainer() {
-          private HelixRestServer _helixRestServer;
 
           @Override
           public ClientConfig getClientConfig() {
@@ -186,24 +186,27 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
           @Override
           public void start() {
-            // Create namespace manifest map
-            List<HelixRestNamespace> namespaces = new ArrayList<>();
-            // Add test namespace
-            namespaces.add(new HelixRestNamespace(TEST_NAMESPACE, HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER,
-                _zkAddrTestNS, false));
-            // Add default namesapce
-            namespaces.add(new HelixRestNamespace(ZK_ADDR));
-            try {
-              _helixRestServer = new HelixRestServer(namespaces, baseUri.getPort(), baseUri.getPath(),
-                  Arrays.<AuditLogger>asList(_auditLogger));
-              _helixRestServer.start();
-            } catch (Exception ex) {
-              throw new TestContainerException(ex);
+            if (_helixRestServer == null) {
+              // Create namespace manifest map
+              List<HelixRestNamespace> namespaces = new ArrayList<>();
+              // Add test namespace
+              namespaces.add(new HelixRestNamespace(TEST_NAMESPACE,
+                  HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, _zkAddrTestNS, false));
+              // Add default namesapce
+              namespaces.add(new HelixRestNamespace(ZK_ADDR));
+              try {
+                _helixRestServer =
+                    new HelixRestServer(namespaces, baseUri.getPort(), baseUri.getPath(),
+                        Arrays.<AuditLogger>asList(new MockAuditLogger()));
+                _helixRestServer.start();
+              } catch (Exception ex) {
+                throw new TestContainerException(ex);
+              }
             }
           }
+
           @Override
           public void stop() {
-            _helixRestServer.shutdown();
           }
         };
       }
@@ -260,6 +263,11 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     if (_zkServerTestNS != null) {
       TestHelper.stopZkServer(_zkServerTestNS);
       _zkServerTestNS = null;
+    }
+
+    if (_helixRestServer != null) {
+      _helixRestServer.shutdown();
+      _helixRestServer = null;
     }
   }
 

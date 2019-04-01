@@ -46,7 +46,7 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableMap;
 
 public class TestJobAccessor extends AbstractTestClass {
-  private final static String CLUSTER_NAME = "TestCluster_0";
+  private final static String CLUSTER_NAME = TASK_TEST_CLUSTER;
   private final static String WORKFLOW_NAME = WORKFLOW_PREFIX + 0;
   private final static String TEST_QUEUE_NAME = "TestQueue";
   private final static String JOB_NAME = WORKFLOW_NAME + "_" + JOB_PREFIX + 0;
@@ -194,15 +194,16 @@ public class TestJobAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testInvalidGetAndUpdateJobContentStore")
-  public void testDeleteJob() {
+  public void testDeleteJob() throws InterruptedException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     TaskDriver driver = getTaskDriver(CLUSTER_NAME);
-
+    driver.waitToStop(TEST_QUEUE_NAME, 5000);
     delete("clusters/" + CLUSTER_NAME + "/workflows/" + TEST_QUEUE_NAME + "/jobs/" + TEST_JOB_NAME,
         Response.Status.OK.getStatusCode());
 
     String jobName = TaskUtil.getNamespacedJobName(TEST_QUEUE_NAME, TEST_JOB_NAME);
     JobConfig jobConfig = driver.getJobConfig(jobName);
+
     Assert.assertNull(jobConfig);
 
     WorkflowConfig workflowConfig = driver.getWorkflowConfig(TEST_QUEUE_NAME);

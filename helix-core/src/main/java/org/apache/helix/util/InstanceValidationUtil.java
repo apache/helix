@@ -35,6 +35,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.RESTConfig;
+import org.apache.helix.task.TaskConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -270,9 +271,11 @@ public class InstanceValidationUtil {
     List<String> idealStateNames = dataAccessor.getChildNames(keyBuilder.idealStates());
     for (String idealStateName : idealStateNames) {
       IdealState idealState = dataAccessor.getProperty(keyBuilder.idealStates(idealStateName));
-      if (idealState == null || !idealState.isEnabled()) {
+      if (idealState == null || !idealState.isEnabled() || !idealState.isValid()
+          || TaskConstants.STATE_MODEL_NAME.equals(idealState.getStateModelDefRef())) {
         continue;
       }
+
       ExternalView externalView = dataAccessor.getProperty(keyBuilder.externalView(idealStateName));
       if (externalView == null) {
         throw new HelixException(

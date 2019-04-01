@@ -47,6 +47,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -54,6 +55,7 @@ import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
@@ -64,10 +66,14 @@ import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
+import org.apache.helix.task.Task;
+import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskDriver;
+import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
+import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowContext;
@@ -108,6 +114,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static HelixZkClient _gZkClientTestNS;
   protected static BaseDataAccessor<ZNRecord> _baseAccessorTestNS;
   protected static final String STOPPABLE_CLUSTER = "StoppableTestCluster";
+  protected static final String TASK_TEST_CLUSTER = "TaskTestCluster";
   protected static final List<String> STOPPABLE_INSTANCES =
       Arrays.asList("instance0", "instance1", "instance2", "instance3", "instance4", "instance5");
 
@@ -118,10 +125,10 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static Map<String, Set<String>> _resourcesMap = new HashMap<>();
   protected static Map<String, Map<String, Workflow>> _workflowMap = new HashMap<>();
 
-  protected MockAuditLogger _auditLogger = new MockAuditLogger();
+  protected static MockAuditLogger _auditLogger = new MockAuditLogger();
   protected static HelixRestServer _helixRestServer;
 
-  protected class MockAuditLogger implements AuditLogger {
+  protected static class MockAuditLogger implements AuditLogger {
     List<AuditLog> _auditLogList = new ArrayList<>();
 
     @Override
@@ -197,7 +204,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
               try {
                 _helixRestServer =
                     new HelixRestServer(namespaces, baseUri.getPort(), baseUri.getPath(),
-                        Arrays.<AuditLogger>asList(new MockAuditLogger()));
+                        Arrays.<AuditLogger>asList(_auditLogger));
                 _helixRestServer.start();
               } catch (Exception ex) {
                 throw new TestContainerException(ex);
@@ -274,7 +281,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected void setup() throws Exception {
     _clusters = createClusters(3);
     _gSetupTool.addCluster(_superCluster, true);
+    _gSetupTool.addCluster(TASK_TEST_CLUSTER, true);
     _clusters.add(_superCluster);
+    _clusters.add(TASK_TEST_CLUSTER);
     for (String cluster : _clusters) {
       Set<String> instances = createInstances(cluster, 10);
       Set<String> liveInstances = startInstances(cluster, instances, 6);
@@ -290,7 +299,6 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       startController(cluster);
     }
     preSetupForParallelInstancesStoppableTest(STOPPABLE_CLUSTER, STOPPABLE_INSTANCES);
-    _clusters.add(STOPPABLE_CLUSTER);
   }
 
   protected Set<String> createInstances(String cluster, int numInstances) throws Exception {
@@ -333,6 +341,15 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     int i = 0;
     for (String instance : instances) {
       MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, cluster, instance);
+      Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
+      taskFactoryReg.put(MockTask.TASK_COMMAND, new TaskFactory() {
+        @Override public Task createNewTask(TaskCallbackContext context) {
+          return new MockTask(context);
+        }
+      });
+      StateMachineEngine stateMachineEngine = participant.getStateMachineEngine();
+      stateMachineEngine.registerStateModelFactory("Task",
+          new TaskStateModelFactory(participant, taskFactoryReg));
       participant.syncStart();
       liveInstances.add(instance);
       if (++i > numLiveinstances) {
@@ -511,5 +528,8 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     startInstances(clusterName, new TreeSet<>(instances), 3);
     createResources(clusterName, 1);
     startController(clusterName);
+
+    _clusters.add(STOPPABLE_CLUSTER);
+    _workflowMap.put(STOPPABLE_CLUSTER, createWorkflows(STOPPABLE_CLUSTER, 3));
   }
 }

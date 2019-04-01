@@ -307,7 +307,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.NOT_FOUND.getStatusCode(), false);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testEnableDisableMaintenanceModeWithCustomFields")
   public void testGetControllerLeadershipHistory() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
@@ -340,7 +340,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertTrue(lastLeaderEntry.contains(leader));
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetControllerLeadershipHistory")
   public void testGetMaintenanceHistory() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();

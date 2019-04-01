@@ -48,6 +48,8 @@ public class HelixConfigScopeBuilder {
     switch (type) {
     case CLUSTER:
       break;
+    case REST:
+      break;
     case PARTICIPANT:
       if (keys.length > 1) {
         _participantName = keys[1];
@@ -120,6 +122,9 @@ public class HelixConfigScopeBuilder {
         scope =
             new HelixConfigScope(_type, Arrays.asList(_clusterName, _resourceName), _partitionName);
       }
+      break;
+    case REST:
+      scope = new HelixConfigScope(_type, Arrays.asList(_clusterName, _clusterName), null);
       break;
     default:
       break;

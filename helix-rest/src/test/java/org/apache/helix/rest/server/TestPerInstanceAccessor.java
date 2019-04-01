@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
@@ -39,6 +40,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.rest.server.resources.AbstractResource;
+import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.util.InstanceValidationUtil;
@@ -130,6 +132,22 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetMessagesByStateModelDef")
+  public void testGetAllInstances() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String body = new JerseyUriRequestBuilder("clusters/{}/instances").isBodyReturnExpected(true)
+        .format(CLUSTER_NAME).get(this);
+
+    JsonNode node = OBJECT_MAPPER.readTree(body);
+    String instancesStr = node.get(InstancesAccessor.InstancesProperties.instances.name()).toString();
+    Assert.assertNotNull(instancesStr);
+
+    Set<String> instances = OBJECT_MAPPER.readValue(instancesStr,
+        OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
+    Assert.assertEquals(instances, _instancesMap.get(CLUSTER_NAME), "Instances from response: "
+        + instances + " vs instances actually: " + _instancesMap.get(CLUSTER_NAME));
+  }
+
+  @Test(dependsOnMethods = "testGetAllInstances")
   public void testGetInstanceById() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}").isBodyReturnExpected(true)

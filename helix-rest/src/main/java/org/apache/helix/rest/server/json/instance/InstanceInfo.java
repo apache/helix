@@ -106,6 +106,11 @@ public class InstanceInfo {
       return this;
     }
 
+    public Builder healthStatus(boolean isHealth) {
+      this.isHealth = isHealth;
+      return this;
+    }
+
     public InstanceInfo build() {
       return new InstanceInfo(this);
     }

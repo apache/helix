@@ -24,8 +24,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -123,8 +125,13 @@ public class InstanceServiceImpl implements InstanceService {
       }
       instanceInfoBuilder.partitions(partitions);
     }
-    instanceInfoBuilder
-        .healthStatus(getInstanceHealthStatus(clusterId, instanceName, healthChecks));
+    try {
+      Map<String, Boolean> healthStatus = getInstanceHealthStatus(clusterId, instanceName, healthChecks);
+      instanceInfoBuilder.healthStatus(healthStatus);
+    } catch (HelixException ex) {
+      _logger.error("Exception while getting health status: {}, reporting health status as unHealth", ex);
+      instanceInfoBuilder.healthStatus(false);
+    }
 
     return instanceInfoBuilder.build();
   }

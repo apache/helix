@@ -517,7 +517,6 @@ public class TaskDriver {
   /**
    * Remove all jobs that are in final states (ABORTED, FAILED, COMPLETED) from the job queue. The
    * job config, job context will be removed from Zookeeper.
-   *
    * @param queue The name of job queue
    */
   public void cleanupQueue(String queue) {
@@ -527,8 +526,7 @@ public class TaskDriver {
       throw new IllegalArgumentException("Queue " + queue + " does not yet exist!");
     }
 
-    boolean isTerminable = workflowConfig.isTerminable();
-    if (isTerminable) {
+    if (!workflowConfig.isJobQueue() || workflowConfig.isTerminable()) {
       throw new IllegalArgumentException(queue + " is not a queue!");
     }
 

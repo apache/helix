@@ -154,7 +154,8 @@ public class WorkflowConfig extends ResourceConfig {
   }
 
   public String getWorkflowId() {
-    return getSimpleConfig(WorkflowConfigProperty.WorkflowID.name());
+    String workflowId = getSimpleConfig(WorkflowConfigProperty.WorkflowID.name());
+    return workflowId != null ? workflowId : getId();
   }
 
   public JobDag getJobDag() {

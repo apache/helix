@@ -19,6 +19,7 @@ package org.apache.helix.rest.server.json.instance;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import org.testng.Assert;
@@ -26,15 +27,17 @@ import org.testng.annotations.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
 
 public class TestStoppableCheck {
 
   @Test
   public void whenSerializingStoppableCheck() throws JsonProcessingException {
-    StoppableCheck stoppableCheck = new StoppableCheck(false, ImmutableList.of("failedCheck"));
+    StoppableCheck stoppableCheck = new StoppableCheck(false, new ArrayList<String>() {
+      {
+        add("failedCheck");
+      }
+    });
 
     ObjectMapper mapper = new ObjectMapper();
     String result = mapper.writeValueAsString(stoppableCheck);
@@ -51,6 +54,7 @@ public class TestStoppableCheck {
     ObjectMapper mapper = new ObjectMapper();
     String result = mapper.writeValueAsString(stoppableCheck);
 
-    Assert.assertEquals(result, "{\"stoppable\":false,\"failedChecks\":[\"Helix:check1\",\"Helix:check0\"]}");
+    Assert.assertEquals(result,
+        "{\"stoppable\":false,\"failedChecks\":[\"Helix:check0\",\"Helix:check1\"]}");
   }
 }

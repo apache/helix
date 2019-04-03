@@ -21,11 +21,11 @@ package org.apache.helix.rest.server.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
-
 import java.util.stream.Collectors;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -54,7 +54,7 @@ public class InstanceServiceImpl implements InstanceService {
   @Override
   public Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
       List<HealthCheck> healthChecks) {
-    Map<String, Boolean> healthStatus = new TreeMap<>();
+    Map<String, Boolean> healthStatus = new HashMap<>();
     for (HealthCheck healthCheck : healthChecks) {
       switch (healthCheck) {
       case INVALID_CONFIG:
@@ -151,10 +151,8 @@ public class InstanceServiceImpl implements InstanceService {
     CustomRestClient customClient = CustomRestClientFactory.get(jsonContent);
     // TODO add the json content parse logic
     Map<String, Boolean> customStoppableCheck =
-        customClient.getInstanceStoppableCheck(Collections.<String, String> emptyMap());
-    StoppableCheck stoppableCheck =
-        StoppableCheck.mergeStoppableChecks(helixStoppableCheck, customStoppableCheck);
-    return stoppableCheck;
+        customClient.getInstanceStoppableCheck(Collections.emptyMap());
+    return StoppableCheck.mergeStoppableChecks(helixStoppableCheck, customStoppableCheck);
   }
 
   /**

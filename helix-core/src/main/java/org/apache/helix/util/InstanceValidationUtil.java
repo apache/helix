@@ -25,8 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import java.util.stream.Collectors;
-import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
@@ -38,7 +36,6 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.slf4j.Logger;
@@ -51,7 +48,6 @@ import com.google.common.collect.Sets;
  * Utility class for validating Helix properties
  * Warning: each method validates one single property of instance individually and independently.
  * One validation wouldn't depend on the results of other validations
- * TODO: add unit tests
  */
 public class InstanceValidationUtil {
   private static final Logger _logger = LoggerFactory.getLogger(InstanceValidationUtil.class);
@@ -77,22 +73,19 @@ public class InstanceValidationUtil {
    */
   public static boolean isEnabled(HelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
       String clusterId, String instanceName) {
-    // TODO use static builder instance to reduce GC
-    PropertyKey propertyKey = new PropertyKey.Builder(clusterId).instanceConfig(instanceName);
-    InstanceConfig instanceConfig = dataAccessor.getProperty(propertyKey);
+    PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
+    InstanceConfig instanceConfig = dataAccessor.getProperty(propertyKeyBuilder.instanceConfig(instanceName));
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterId);
-    // TODO deprecate instance level config checks once migrated the enable status to cluster config
-    // only
-    boolean enabledInInstanceConfig = instanceConfig != null && instanceConfig.getInstanceEnabled();
-
-    if (clusterConfig != null) {
-      Map<String, String> disabledInstances = clusterConfig.getDisabledInstances();
-      boolean enabledInClusterConfig =
-          disabledInstances == null || !disabledInstances.keySet().contains(instanceName);
-      return enabledInClusterConfig && enabledInInstanceConfig;
+    // TODO deprecate instance level config checks once migrated the enable status to cluster config only
+    if (instanceConfig == null || clusterConfig == null) {
+      throw new HelixException("InstanceConfig or ClusterConfig is NULL");
     }
 
-    return false;
+    boolean enabledInInstanceConfig = instanceConfig.getInstanceEnabled();
+    Map<String, String> disabledInstances = clusterConfig.getDisabledInstances();
+    boolean enabledInClusterConfig =
+        disabledInstances == null || !disabledInstances.keySet().contains(instanceName);
+    return enabledInClusterConfig && enabledInInstanceConfig;
   }
 
   /**
@@ -104,10 +97,8 @@ public class InstanceValidationUtil {
    */
   public static boolean isAlive(HelixDataAccessor dataAccessor, String clusterId,
       String instanceName) {
-    PropertyKey propertyKey = new PropertyKey.Builder(clusterId).liveInstance(instanceName);
-
-    return dataAccessor.getBaseDataAccessor().exists(propertyKey.getPath(),
-        AccessOption.PERSISTENT);
+    LiveInstance liveInstance = dataAccessor.getProperty(dataAccessor.keyBuilder().liveInstance(instanceName));
+    return liveInstance != null;
   }
 
   /**
@@ -120,17 +111,15 @@ public class InstanceValidationUtil {
    */
   public static boolean hasResourceAssigned(HelixDataAccessor dataAccessor, String clusterId,
       String instanceName) {
-    PropertyKey.Builder propertyKeyBuilder = new PropertyKey.Builder(clusterId);
-    PropertyKey liveInstanceKey = propertyKeyBuilder.liveInstance(instanceName);
-    LiveInstance liveInstance = dataAccessor.getProperty(liveInstanceKey);
+    PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
+    LiveInstance liveInstance = dataAccessor.getProperty(propertyKeyBuilder.liveInstance(instanceName));
     if (liveInstance != null) {
       String sessionId = liveInstance.getSessionId();
 
-      PropertyKey currentStatesKey = propertyKeyBuilder.currentStates(instanceName, sessionId);
-      List<String> resourceNames = dataAccessor.getChildNames(currentStatesKey);
+      List<String> resourceNames = dataAccessor.getChildNames(propertyKeyBuilder.currentStates(instanceName, sessionId));
       for (String resourceName : resourceNames) {
-        PropertyKey key = propertyKeyBuilder.currentState(instanceName, sessionId, resourceName);
-        CurrentState currentState = dataAccessor.getProperty(key);
+        PropertyKey currentStateKey = propertyKeyBuilder.currentState(instanceName, sessionId, resourceName);
+        CurrentState currentState = dataAccessor.getProperty(currentStateKey);
         if (currentState != null && currentState.getPartitionStateMap().size() > 0) {
           return true;
         }
@@ -150,7 +139,7 @@ public class InstanceValidationUtil {
    */
   public static boolean hasDisabledPartitions(HelixDataAccessor dataAccessor, String clusterId,
       String instanceName) {
-    PropertyKey propertyKey = new PropertyKey.Builder(clusterId).instanceConfig(instanceName);
+    PropertyKey propertyKey = dataAccessor.keyBuilder().instanceConfig(instanceName);
     InstanceConfig instanceConfig = dataAccessor.getProperty(propertyKey);
     if (instanceConfig != null) {
       return !instanceConfig.getDisabledPartitionsMap().isEmpty();
@@ -168,7 +157,7 @@ public class InstanceValidationUtil {
    */
   public static boolean hasValidConfig(HelixDataAccessor dataAccessor, String clusterId,
       String instanceName) {
-    PropertyKey propertyKey = new PropertyKey.Builder(clusterId).instanceConfig(instanceName);
+    PropertyKey propertyKey = dataAccessor.keyBuilder().instanceConfig(instanceName);
     InstanceConfig instanceConfig = dataAccessor.getProperty(propertyKey);
     return instanceConfig != null && instanceConfig.isValid();
   }
@@ -291,7 +280,6 @@ public class InstanceValidationUtil {
   /**
    * Check if sibling nodes of the instance meet min active replicas constraint
    * Two instances are sibling of each other if they host the same partition
-   *
    * WARNING: The check uses ExternalView to reduce network traffic but suffer from accuracy
    * due to external view propagation latency
    *

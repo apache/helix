@@ -1,51 +1,56 @@
 package org.apache.helix.rest.server;
 
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.codehaus.jackson.JsonNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import com.google.common.collect.ImmutableMap;
 
 public class TestInstancesAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
 
   @Test
-  public void testEndToEndChecks() {
+  public void testInstancesStoppable_zoneBased() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Select instances with zone based
-    String content = String
-        .format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]}",
+    String content =
+        String.format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]}",
             InstancesAccessor.InstancesProperties.selection_base.name(),
             InstancesAccessor.InstanceHealthSelectionBase.zone_based.name(),
             InstancesAccessor.InstancesProperties.instances.name(), "instance0", "instance1",
             "instance2", "instance3", "instance4", "instance5");
-    Response response =
-        new JerseyUriRequestBuilder("clusters/{}/instances?command=stoppable").format(STOPPABLE_CLUSTER)
-            .post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
+    Response response = new JerseyUriRequestBuilder("clusters/{}/instances?command=stoppable")
+        .format(STOPPABLE_CLUSTER)
+        .post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
     String checkResult = response.readEntity(String.class);
-    Assert.assertEquals(checkResult,
-        "{\n  \"instance_stoppable_parallel\" : [ ],\n"
-            + "  \"instance_not_stoppable_with_reasons\" : {\n"
-            + "    \"instance0\" : [ \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
-            + "    \"instance1\" : [ \"Helix:INSTANCE_NOT_STABLE\", \"Helix:INSTANCE_NOT_ENABLED\", \"Helix:EMPTY_RESOURCE_ASSIGNMENT\" ],\n"
-            + "    \"instance2\" : [ \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
-            + "    \"instance3\" : [ \"Helix:HAS_DISABLED_PARTITION\", \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
-            + "    \"instance4\" : [ \"Helix:INSTANCE_NOT_STABLE\", \"Helix:INSTANCE_NOT_ALIVE\", \"Helix:EMPTY_RESOURCE_ASSIGNMENT\" ]\n  }\n}\n");
+    Assert.assertEquals(checkResult, "{\n" + "  \"instance_stoppable_parallel\" : [ ],\n"
+        + "  \"instance_not_stoppable_with_reasons\" : {\n"
+        + "    \"instance0\" : [ \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
+        + "    \"instance1\" : [ \"Helix:EMPTY_RESOURCE_ASSIGNMENT\", \"Helix:INSTANCE_NOT_ENABLED\", \"Helix:INSTANCE_NOT_STABLE\" ],\n"
+        + "    \"instance2\" : [ \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
+        + "    \"instance3\" : [ \"Helix:HAS_DISABLED_PARTITION\", \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
+        + "    \"instance4\" : [ \"Helix:EMPTY_RESOURCE_ASSIGNMENT\", \"Helix:INSTANCE_NOT_ALIVE\", \"Helix:INSTANCE_NOT_STABLE\" ]\n"
+        + "  }\n" + "}\n");
+  }
 
+  @Test(dependsOnMethods = "testInstancesStoppable_zoneBased")
+  public void testInstancesStoppable_disableOneInstance() {
     // Disable one selected instance0, it should failed to check
     String instance = "instance0";
     InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER, instance);
@@ -53,24 +58,22 @@ public class TestInstancesAccessor extends AbstractTestClass {
     instanceConfig.setInstanceEnabledForPartition("FakeResource", "FakePartition", false);
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER, instance, instanceConfig);
 
-    Entity entity =
-        Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
-    response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
+    Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
+    Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
         .format(STOPPABLE_CLUSTER, instance).post(this, entity);
-    checkResult = response.readEntity(String.class);
+    String checkResult = response.readEntity(String.class);
     Assert.assertEquals(checkResult,
-        "{\"stoppable\":false,\"failedChecks\":[\"Helix:INSTANCE_NOT_STABLE\",\"Helix:HAS_DISABLED_PARTITION\",\"Helix:INSTANCE_NOT_ENABLED\",\"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\"]}");
+        "{\"stoppable\":false,\"failedChecks\":[\"Helix:HAS_DISABLED_PARTITION\",\"Helix:INSTANCE_NOT_ENABLED\",\"Helix:INSTANCE_NOT_STABLE\",\"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\"]}");
 
     // Reenable instance0, it should passed the check
     instanceConfig.setInstanceEnabled(true);
     instanceConfig.setInstanceEnabledForPartition("FakeResource", "FakePartition", true);
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER, instance, instanceConfig);
-    HelixClusterVerifier
-        verifier = new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(((BestPossibleExternalViewVerifier) verifier).verifyByPolling());
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verifyByPolling());
 
-    entity =
-        Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
+    entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
     response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
         .format(STOPPABLE_CLUSTER, instance).post(this, entity);
     checkResult = response.readEntity(String.class);
@@ -78,7 +81,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
         "{\"stoppable\":false,\"failedChecks\":[\"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\"]}");
   }
 
-  @Test(dependsOnMethods = "testEndToEndChecks")
+  @Test(dependsOnMethods = "testInstancesStoppable_disableOneInstance")
   public void testGetAllInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String body = new JerseyUriRequestBuilder("clusters/{}/instances").isBodyReturnExpected(true)

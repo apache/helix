@@ -20,6 +20,7 @@ package org.apache.helix.rest.server.json.instance;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,8 @@ public class StoppableCheck {
 
   public StoppableCheck(boolean isStoppable, List<String> failedChecks) {
     this.isStoppable = isStoppable;
+    // sort the failed checks in order so that tests can always pass
+    Collections.sort(failedChecks);
     this.failedChecks = failedChecks;
   }
 

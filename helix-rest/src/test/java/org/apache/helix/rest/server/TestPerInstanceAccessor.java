@@ -22,7 +22,6 @@ package org.apache.helix.rest.server;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +42,6 @@ import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
-import org.apache.helix.util.InstanceValidationUtil;
 import org.codehaus.jackson.JsonNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -65,13 +63,13 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(STOPPABLE_CLUSTER, "instance1").post(this, entity);
     String stoppableCheckResult = response.readEntity(String.class);
     Assert.assertEquals(stoppableCheckResult,
-        "{\"stoppable\":false,\"failedChecks\":[\"Helix:INSTANCE_NOT_STABLE\","
-            + "\"Helix:INSTANCE_NOT_ENABLED\",\"Helix:EMPTY_RESOURCE_ASSIGNMENT\"]}");
+        "{\"stoppable\":false,\"failedChecks\":[\"Helix:EMPTY_RESOURCE_ASSIGNMENT\",\"Helix:INSTANCE_NOT_ENABLED\",\"Helix:INSTANCE_NOT_STABLE\"]}");
   }
 
-  @Test (dependsOnMethods = "testIsInstanceStoppable")
+  @Test(dependsOnMethods = "testIsInstanceStoppable")
   public void testGetAllMessages() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String testInstance = CLUSTER_NAME + "localhost_12926"; //Non-live instance
 
     String messageId = "msg1";
     Message message = new Message(Message.MessageType.STATE_TRANSITION, messageId);
@@ -83,11 +81,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     message.setTgtName("localhost_3");
     message.setTgtSessionId("session_3");
     HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(INSTANCE_NAME, messageId),
-        message);
+    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(testInstance, messageId), message);
 
     String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/messages")
-        .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
+        .isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
@@ -99,6 +96,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   public void testGetMessagesByStateModelDef() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
+    String testInstance = CLUSTER_NAME + "localhost_12926"; //Non-live instance
     String messageId = "msg1";
     Message message = new Message(Message.MessageType.STATE_TRANSITION, messageId);
     message.setStateModelDef("MasterSlave");
@@ -109,12 +107,12 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     message.setTgtName("localhost_3");
     message.setTgtSessionId("session_3");
     HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(INSTANCE_NAME, messageId),
+    helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(testInstance, messageId),
         message);
 
     String body =
         new JerseyUriRequestBuilder("clusters/{}/instances/{}/messages?stateModelDef=MasterSlave")
-            .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
+            .isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
@@ -123,7 +121,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
     body =
         new JerseyUriRequestBuilder("clusters/{}/instances/{}/messages?stateModelDef=LeaderStandBy")
-            .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
+            .isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
     node = OBJECT_MAPPER.readTree(body);
     newMessageCount =
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();

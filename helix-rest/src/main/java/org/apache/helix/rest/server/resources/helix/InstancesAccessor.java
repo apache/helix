@@ -8,12 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
+
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -174,11 +176,11 @@ public class InstancesAccessor extends AbstractHelixResource {
       case zone_based:
         List<String> zoneBasedInstance = getZoneBasedInstances(clusterId, instances, orderOfZone);
         for (String instance : zoneBasedInstance) {
-          StoppableCheck stoppableCheck =
+          StoppableCheck stoppableCheckResult =
               instanceService.checkSingleInstanceStoppable(clusterId, instance, customizedInput);
-          if (!stoppableCheck.isStoppable()) {
+          if (!stoppableCheckResult.isStoppable()) {
             ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
-            for (String failedReason : stoppableCheck.getFailedChecks()) {
+            for (String failedReason : stoppableCheckResult.getFailedChecks()) {
               failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
             }
           } else {

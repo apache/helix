@@ -263,7 +263,6 @@ public class TestDrop extends ZkTestBase {
     Assert.assertEquals(disabledPartitions.get(0), "TestDB0_4");
 
     // ExteranlView should have TestDB0_4->localhost_12918_>ERROR
-    Thread.sleep(2000);
     ExternalView ev = accessor.getProperty(keyBuilder.externalView("TestDB0"));
     Set<String> partitions = ev.getPartitionSet();
     Assert.assertEquals(partitions.size(), 1, "Should have TestDB0_4->localhost_12918->ERROR");
@@ -441,6 +440,7 @@ public class TestDrop extends ZkTestBase {
     Assert.assertTrue(verifier.verifyByPolling());
 
     Thread.sleep(400);
+
     assertEmptyCSandEV(clusterName, "schemata", participants);
 
     // clean up

@@ -186,8 +186,10 @@ public class TestJobAccessor extends AbstractTestClass {
     get(invalidURI1, null, Response.Status.NOT_FOUND.getStatusCode(), false);
     get(invalidURI2, null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
-    post(invalidURI1, validCmd, validEntity, Response.Status.NOT_FOUND.getStatusCode());
-    post(invalidURI2, validCmd, validEntity, Response.Status.NOT_FOUND.getStatusCode());
+    // The following two lines should get OK even though they should be NOT FOUND because the client
+    // side code create UserContent znodes when not found
+    post(invalidURI1, validCmd, validEntity, Response.Status.OK.getStatusCode());
+    post(invalidURI2, validCmd, validEntity, Response.Status.OK.getStatusCode());
 
     post(validURI, invalidCmd, validEntity, Response.Status.BAD_REQUEST.getStatusCode());
     post(validURI, validCmd, invalidEntity, Response.Status.BAD_REQUEST.getStatusCode());

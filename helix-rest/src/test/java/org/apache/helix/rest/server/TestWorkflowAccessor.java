@@ -187,7 +187,8 @@ public class TestWorkflowAccessor extends AbstractTestClass {
     Map<String, String> invalidCmd = ImmutableMap.of("command", "delete"); // cmd not supported
 
     get(invalidURI, null, Response.Status.NOT_FOUND.getStatusCode(), false);
-    post(invalidURI, validCmd, validEntity, Response.Status.NOT_FOUND.getStatusCode());
+    // The following expects a OK because if the usercontent ZNode is not there, it is created
+    post(invalidURI, validCmd, validEntity, Response.Status.OK.getStatusCode());
 
     post(validURI, invalidCmd, validEntity, Response.Status.BAD_REQUEST.getStatusCode());
     post(validURI, validCmd, invalidEntity, Response.Status.BAD_REQUEST.getStatusCode());

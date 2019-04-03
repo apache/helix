@@ -233,7 +233,8 @@ public class WorkflowConfig extends ResourceConfig {
   }
 
   public boolean isJobQueue() {
-    return _record.getBooleanField(WorkflowConfigProperty.IsJobQueue.name(), DEFAULT_JOB_QUEUE);
+    return _record.getBooleanField(WorkflowConfigProperty.IsJobQueue.name(), DEFAULT_JOB_QUEUE)
+        || !isTerminable();
   }
 
   protected void setJobTypes(Map<String, String> jobTypes) {

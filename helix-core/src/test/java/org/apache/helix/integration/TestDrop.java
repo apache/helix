@@ -262,7 +262,8 @@ public class TestDrop extends ZkTestBase {
     Assert.assertEquals(disabledPartitions.size(), 1, "TestDB0_4 should be disabled");
     Assert.assertEquals(disabledPartitions.get(0), "TestDB0_4");
 
-    // ExteranlView should have TestDB0_4->localhost_12918_>ERROR
+    // ExternalView should have TestDB0_4->localhost_12918_>ERROR
+    Thread.sleep(100L);
     ExternalView ev = accessor.getProperty(keyBuilder.externalView("TestDB0"));
     Set<String> partitions = ev.getPartitionSet();
     Assert.assertEquals(partitions.size(), 1, "Should have TestDB0_4->localhost_12918->ERROR");

@@ -330,17 +330,16 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     while (partitionInstanceStateMapIter.hasNext()) {
       Map.Entry<String, Map<String, String>> entry = partitionInstanceStateMapIter.next();
       Map<String, String> instanceStateMap = entry.getValue();
+      // remove instances with DROPPED and OFFLINE state
+      Iterator<Map.Entry<String, String>> insIter = instanceStateMap.entrySet().iterator();
+      while (insIter.hasNext()) {
+        String state = insIter.next().getValue();
+        if (ignoredStates.contains(state)) {
+          insIter.remove();
+        }
+      }
       if (instanceStateMap.isEmpty()) {
         partitionInstanceStateMapIter.remove();
-      } else {
-        // remove instances with DROPPED and OFFLINE state
-        Iterator<Map.Entry<String, String>> insIter = instanceStateMap.entrySet().iterator();
-        while (insIter.hasNext()) {
-          String state = insIter.next().getValue();
-          if (ignoredStates.contains(state)) {
-            insIter.remove();
-          }
-        }
       }
     }
   }

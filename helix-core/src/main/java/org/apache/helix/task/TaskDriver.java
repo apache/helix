@@ -665,11 +665,17 @@ public class TaskDriver {
     // Delete all previously scheduled workflows.
     if (wCtx != null && wCtx.getScheduledWorkflows() != null) {
       for (String scheduledWorkflow : wCtx.getScheduledWorkflows()) {
-        WorkflowContext scheduledWorkflowCtx =
-            TaskUtil.getWorkflowContext(_propertyStore, scheduledWorkflow);
-        if (scheduledWorkflowCtx != null
-            && scheduledWorkflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
-          removeWorkflowFromZK(scheduledWorkflow);
+        if (forceDelete) {
+          // Only directly delete it if it's force delete. Otherwise, it will cause a race condition
+          // where contexts would get written back to ZK from cache
+          WorkflowContext scheduledWorkflowCtx =
+              TaskUtil.getWorkflowContext(_propertyStore, scheduledWorkflow);
+          if (scheduledWorkflowCtx != null
+              && scheduledWorkflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
+            removeWorkflowFromZK(scheduledWorkflow);
+          }
+        } else {
+          setWorkflowTargetState(scheduledWorkflow, TargetState.DELETE);
         }
       }
     }

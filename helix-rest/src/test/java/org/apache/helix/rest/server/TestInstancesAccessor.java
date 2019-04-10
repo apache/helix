@@ -38,10 +38,13 @@ public class TestInstancesAccessor extends AbstractTestClass {
             .post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
     String checkResult = response.readEntity(String.class);
     Assert.assertEquals(checkResult,
-        "{\n  \"instance_stoppable_parallel\" : [ \"instance0\", \"instance2\" ],\n"
-            + "  \"instance_not_stoppable_with_reasons\" : {\n    \"instance1\" : [ \"Helix:EMPTY_RESOURCE_ASSIGNMENT\", \"Helix:INSTANCE_NOT_ENABLED\", \"Helix:INSTANCE_NOT_STABLE\" ],\n"
-            + "    \"instance3\" : [ \"Helix:HAS_DISABLED_PARTITION\" ],\n"
-            + "    \"instance4\" : [ \"Helix:EMPTY_RESOURCE_ASSIGNMENT\", \"Helix:INSTANCE_NOT_STABLE\", \"Helix:INSTANCE_NOT_ALIVE\" ]\n  }\n}\n");
+        "{\n  \"instance_stoppable_parallel\" : [ ],\n"
+            + "  \"instance_not_stoppable_with_reasons\" : {\n"
+            + "    \"instance0\" : [ \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
+            + "    \"instance1\" : [ \"Helix:INSTANCE_NOT_STABLE\", \"Helix:INSTANCE_NOT_ENABLED\", \"Helix:EMPTY_RESOURCE_ASSIGNMENT\" ],\n"
+            + "    \"instance2\" : [ \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
+            + "    \"instance3\" : [ \"Helix:HAS_DISABLED_PARTITION\", \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
+            + "    \"instance4\" : [ \"Helix:INSTANCE_NOT_STABLE\", \"Helix:INSTANCE_NOT_ALIVE\", \"Helix:EMPTY_RESOURCE_ASSIGNMENT\" ]\n  }\n}\n");
 
     // Disable one selected instance0, it should failed to check
     String instance = "instance0";
@@ -56,7 +59,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
         .format(STOPPABLE_CLUSTER, instance).post(this, entity);
     checkResult = response.readEntity(String.class);
     Assert.assertEquals(checkResult,
-        "{\"stoppable\":false,\"failedChecks\":[\"Helix:HAS_DISABLED_PARTITION\",\"Helix:INSTANCE_NOT_ENABLED\",\"Helix:INSTANCE_NOT_STABLE\"]}");
+        "{\"stoppable\":false,\"failedChecks\":[\"Helix:INSTANCE_NOT_STABLE\",\"Helix:HAS_DISABLED_PARTITION\",\"Helix:INSTANCE_NOT_ENABLED\",\"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\"]}");
 
     // Reenable instance0, it should passed the check
     instanceConfig.setInstanceEnabled(true);
@@ -72,7 +75,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
         .format(STOPPABLE_CLUSTER, instance).post(this, entity);
     checkResult = response.readEntity(String.class);
     Assert.assertEquals(checkResult,
-        "{\"stoppable\":true,\"failedChecks\":[]}");
+        "{\"stoppable\":false,\"failedChecks\":[\"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\"]}");
   }
 
   @Test(dependsOnMethods = "testEndToEndChecks")

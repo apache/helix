@@ -29,11 +29,14 @@ import java.util.stream.Collectors;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.client.CustomRestClientFactory;
+import org.apache.helix.rest.server.json.cluster.PartitionHealth;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.util.InstanceValidationUtil;
@@ -41,7 +44,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class InstanceServiceImpl implements InstanceService {
-  private static final Logger _logger = LoggerFactory.getLogger(InstanceServiceImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(InstanceServiceImpl.class);
+
+  private static final String PARTITION_HEALTH_KEY = "PARTITION_HEALTH";
+  private static final String IS_HEALTHY_KEY = "IS_HEALTHY";
+  private static final String EXPIRY_KEY = "EXPIRE";
 
   private final HelixDataAccessor _dataAccessor;
   private final ConfigAccessor _configAccessor;
@@ -61,7 +68,7 @@ public class InstanceServiceImpl implements InstanceService {
         healthStatus.put(HealthCheck.INVALID_CONFIG.name(),
             InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName));
         if (!healthStatus.get(HealthCheck.INVALID_CONFIG.name())) {
-          _logger.error("The instance {} doesn't have valid configuration", instanceName);
+          LOG.error("The instance {} doesn't have valid configuration", instanceName);
           return healthStatus;
         }
       case INSTANCE_NOT_ENABLED:
@@ -93,7 +100,7 @@ public class InstanceServiceImpl implements InstanceService {
             InstanceValidationUtil.siblingNodesActiveReplicaCheck(_dataAccessor, instanceName));
         break;
       default:
-        _logger.error("Unsupported health check: {}", healthCheck);
+        LOG.error("Unsupported health check: {}", healthCheck);
         break;
       }
     }
@@ -134,7 +141,7 @@ public class InstanceServiceImpl implements InstanceService {
       Map<String, Boolean> healthStatus = getInstanceHealthStatus(clusterId, instanceName, healthChecks);
       instanceInfoBuilder.healthStatus(healthStatus);
     } catch (HelixException ex) {
-      _logger.error("Exception while getting health status: {}, reporting health status as unHealth", ex);
+      LOG.error("Exception while getting health status: {}, reporting health status as unHealth", ex);
       instanceInfoBuilder.healthStatus(false);
     }
 
@@ -153,6 +160,86 @@ public class InstanceServiceImpl implements InstanceService {
     Map<String, Boolean> customStoppableCheck =
         customClient.getInstanceStoppableCheck(Collections.emptyMap());
     return StoppableCheck.mergeStoppableChecks(helixStoppableCheck, customStoppableCheck);
+  }
+
+  public PartitionHealth generatePartitionHealthMapFromZK() {
+    PartitionHealth partitionHealth = new PartitionHealth();
+
+    // Only checks the instances are online with valid reports
+    List<String> liveInstances =
+        _dataAccessor.getChildNames(_dataAccessor.keyBuilder().liveInstances());
+    for (String instance : liveInstances) {
+      ZNRecord customizedHealth = _dataAccessor
+          .getProperty(_dataAccessor.keyBuilder().healthReport(instance, PARTITION_HEALTH_KEY))
+          .getRecord();
+      for (String partitionName : customizedHealth.getMapFields().keySet()) {
+        try {
+          Map<String, String> healthMap = customizedHealth.getMapField(partitionName);
+          if (healthMap == null || Long.parseLong(healthMap.get(EXPIRY_KEY)) < System
+              .currentTimeMillis()) {
+            // Clean all the existing checks. If we do not clean it, when we do the customized check,
+            // Helix may think these partitions are only partitions holding on the instance.
+            // But it could potentially have some partitions are unhealthy for expired ones.
+            // It could problem for shutting down instances.
+            partitionHealth.addInstanceThatNeedDirectCallWithPartition(instance, partitionName);
+            continue;
+          }
+
+          partitionHealth.addSinglePartitionHealthForInstance(instance, partitionName,
+              Boolean.valueOf(healthMap.get(IS_HEALTHY_KEY)));
+        } catch (Exception e) {
+          LOG.warn(
+              "Error in processing partition level health for instance {}, partition {}, directly querying API",
+              instance, partitionName, e);
+          partitionHealth.addInstanceThatNeedDirectCallWithPartition(instance, partitionName);
+        }
+      }
+    }
+
+    return partitionHealth;
+  }
+
+  /**
+   * Get general customized URL from RESTConfig
+   *
+   * @param configAccessor
+   * @param clustername
+   *
+   * @return null if RESTConfig is null
+   */
+  protected String getGeneralCustomizedURL(ConfigAccessor configAccessor, String clustername) {
+    RESTConfig restConfig = configAccessor.getRESTConfig(clustername);
+    // If user customized URL is not ready, return true as the check
+    if (restConfig == null) {
+      return null;
+    }
+    return restConfig.getCustomizedHealthURL();
+  }
+
+  /**
+   * Use get user provided general URL to construct the stoppable status or partition status URL
+   *
+   * @param generalURL
+   * @param instanceName
+   * @param statusType
+   * @return null if URL is malformed
+   */
+  protected String getCustomizedURLWithEndPoint(String generalURL, String instanceName,
+      InstanceValidationUtil.HealthStatusType statusType) {
+    if (generalURL == null) {
+      LOG.warn("Failed to generate customized URL for instance {}", instanceName);
+      return null;
+    }
+
+    try {
+      // If user customized URL is not ready, return true as the check
+      String hostName = instanceName.split("_")[0];
+      return String.format("%s/%s", generalURL.replace("*", hostName), statusType.name());
+    } catch (Exception e) {
+      LOG.info("Failed to prepare customized check for generalURL {} instance {}", generalURL,
+          instanceName, e);
+      return null;
+    }
   }
 
   /**

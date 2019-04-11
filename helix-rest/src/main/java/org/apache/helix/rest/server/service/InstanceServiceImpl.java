@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import java.util.stream.Collectors;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -154,5 +155,20 @@ public class InstanceServiceImpl implements InstanceService {
     StoppableCheck stoppableCheck =
         StoppableCheck.mergeStoppableChecks(helixStoppableCheck, customStoppableCheck);
     return stoppableCheck;
+  }
+
+  /**
+   * Perform customized single instance health check map filtering
+   *
+   * Input map is user customized health out put. It will be HEALTH_ENTRY_KEY -> true/false
+   * @param statusMap
+   * @return
+   */
+  private Map<String, Boolean> perInstanceHealthCheck(Map<String, Boolean> statusMap) {
+    if (statusMap != null && !statusMap.isEmpty()) {
+      statusMap = statusMap.entrySet().stream().filter(entry -> !entry.getValue())
+          .collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
+    }
+    return statusMap;
   }
 }

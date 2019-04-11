@@ -391,19 +391,4 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode())
         .format(CLUSTER_NAME, instanceName).post(this, entity);
   }
-
-  @Test(dependsOnMethods = "checkUpdateFails")
-  public void testCustomizedChecks() {
-    // TODO: This is fake testing. Only validate it returns true value of this function.
-    // For future, we need test: 1. mock the input of per participant API result to test validate logic
-    //                           2. mock the input of per partition API result to test the sibling
-    //                              check logic
-    System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String instanceName = "TestInstance";
-    Assert.assertTrue(InstanceValidationUtil
-        .checkCustomizedHealthStatusForInstance(_configAccessor, CLUSTER_NAME, instanceName,
-            Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP));
-  }
-
-
 }

@@ -19,11 +19,13 @@ package org.apache.helix.util;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import java.util.stream.Collectors;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
@@ -204,55 +206,43 @@ public class InstanceValidationUtil {
   }
 
   /**
-   * Check the overall health status for instance including:
-   * 1. Per instance health status with application customized key-value entries
-   * 2. Sibling partitions (replicas for same partition holding on different node
-   * health status for the entire cluster.
-   * @param configAccessor
-   * @param clustername
-   * @param hostName
-   * @param customizedInputs
+   * Perform sibling node partition health check
    * @param partitionHealthMap
    * @return
    */
-  public static boolean checkCustomizedHealthStatusForInstance(ConfigAccessor configAccessor,
-      String clustername, String hostName, Map<String, String> customizedInputs,
-      Map<String, Map<String, String>> partitionHealthMap, Map<String, String> instanceHealthMap) {
-    boolean isHealthy = true;
-    RESTConfig restConfig = configAccessor.getRESTConfig(clustername);
-    // If user customized URL is not ready, return true as the check
-    if (restConfig == null || restConfig.getCustomizedHealthURL() == null) {
-      return isHealthy;
+  public static List<String> perPartitionHealthCheck(List<ExternalView> externalViews,
+      Map<String, Map<String, Boolean>> partitionHealthMap, String instanceName,
+      HelixDataAccessor accessor) {
+    List<String> unhealthyPartitions = new ArrayList<>();
+
+    for (ExternalView externalView : externalViews) {
+      StateModelDefinition stateModelDefinition = accessor
+          .getProperty(accessor.keyBuilder().stateModelDef(externalView.getStateModelDefRef()));
+      for (String partition : externalView.getPartitionSet()) {
+        Map<String, String> stateMap = externalView.getStateMap(partition);
+        // Only check if instance holds top state
+        if (stateMap.containsKey(instanceName) && stateMap.get(instanceName)
+            .equals(stateModelDefinition.getTopState())) {
+          for (String siblingInstance : stateMap.keySet()) {
+            // Skip this self check
+            if (siblingInstance.equals(instanceName)) {
+              continue;
+            }
+
+            // We are checking sibling partition healthy status. So if partition health does not
+            // exist or it is not healthy. We should mark this partition is unhealthy.
+            if (!partitionHealthMap.containsKey(siblingInstance) || !partitionHealthMap
+                .get(siblingInstance).containsKey(partition)
+                || !partitionHealthMap.get(siblingInstance).get(partition)) {
+              unhealthyPartitions.add(partition);
+              break;
+            }
+          }
+        }
+      }
     }
-    // TODO : 1. Call REST with customized URL
-    // 2. Parse mapping result with string -> boolean value and return out for per instance
-    // 3. Check sibling nodes for partition health
-    isHealthy =
-        perInstanceHealthCheck(instanceHealthMap) || perPartitionHealthCheck(partitionHealthMap);
 
-    return isHealthy;
-  }
-
-  /**
-   * Fetch the health map based on health type: per instance or per partition
-   * Accessor can used for fetching data from ZK for per partition level.
-   * @param URL
-   * @param accessor
-   * @param healthStatusType
-   * @return
-   */
-  public static Map<String, Map<String, String>> getHealthMapBasedOnType(String URL,
-      HelixDataAccessor accessor, HealthStatusType healthStatusType) {
-    return null;
-  }
-
-  protected static boolean perInstanceHealthCheck(Map<String, String> statusMap) {
-    return true;
-  }
-
-  protected static boolean perPartitionHealthCheck(
-      Map<String, Map<String, String>> partitionHealthMap) {
-    return true;
+    return unhealthyPartitions;
   }
 
   /**

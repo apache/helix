@@ -337,7 +337,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
       _statusUpdateUtil.logInfo(message, HelixStateTransitionHandler.class,
           "Message handling task begin execute", manager);
-      message.setExecuteStartTimeStamp(new Date().getTime());
+      message.setExecuteStartTimeStamp(System.currentTimeMillis());
 
       try {
         preHandleMessage();

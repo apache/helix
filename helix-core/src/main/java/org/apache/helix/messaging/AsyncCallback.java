@@ -108,7 +108,7 @@ public abstract class AsyncCallback {
   final synchronized void startTimer() {
     if (_timer == null && _timeout > 0) {
       if (_startTimeStamp == 0) {
-        _startTimeStamp = new Date().getTime();
+        _startTimeStamp = System.currentTimeMillis();
       }
       _timer = new Timer(true);
       _timer.schedule(new TimeoutTask(this), _timeout);

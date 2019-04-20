@@ -19,6 +19,7 @@ package org.apache.helix.rest.server.service;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -151,15 +152,19 @@ public class InstanceServiceImpl implements InstanceService {
 
   @Override
   public StoppableCheck checkSingleInstanceStoppable(String clusterId, String instanceName,
-      String jsonContent) {
+      String jsonContent) throws IOException {
     // TODO reduce GC by dependency injection
     Map<String, Boolean> helixStoppableCheck = getInstanceHealthStatus(clusterId,
         instanceName, InstanceService.HealthCheck.STOPPABLE_CHECK_LIST);
     CustomRestClient customClient = CustomRestClientFactory.get(jsonContent);
-    // TODO add the json content parse logic
-    Map<String, Boolean> customStoppableCheck =
-        customClient.getInstanceStoppableCheck(Collections.emptyMap());
-    return StoppableCheck.mergeStoppableChecks(helixStoppableCheck, customStoppableCheck);
+    try {
+      Map<String, Boolean> customStoppableCheck =
+        customClient.getInstanceStoppableCheck("", Collections.emptyMap());
+      return StoppableCheck.mergeStoppableChecks(helixStoppableCheck, customStoppableCheck);
+    } catch (IOException e) {
+      LOG.error("Failed to perform customized health check for {}/{}", clusterId, instanceName, e);
+      throw e;
+    }
   }
 
   public PartitionHealth generatePartitionHealthMapFromZK() {

@@ -19,25 +19,34 @@ package org.apache.helix.rest.client;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
-
 /**
- * Interface for interacting with client side rest endpoints
+ * Interacting with participant side to query for its health checks
  */
 public interface CustomRestClient {
   /**
    * Get stoppable check result on instance
-   *
+   * @param baseUrl the base url of the participant
    * @param customPayloads generic payloads required from client side and helix only works as proxy
-   * @return a map where key is custom stoppable check name and boolean value indicates if the check succeeds
+   * @return a map where key is custom stoppable check name and boolean value indicates if the check
+   *         succeeds
+   * @throws IOException
    */
-  Map<String, Boolean> getInstanceStoppableCheck(Map<String, String> customPayloads);
+  Map<String, Boolean> getInstanceStoppableCheck(String baseUrl, Map<String, String> customPayloads)
+      throws IOException;
+
   /**
    * Get stoppable check result on partition
-   *
+   * @param baseUrl the base url of the participant
+   * @param partitions a list of partitions maintained by the participant
    * @param customPayloads generic payloads required from client side and helix only works as proxy
-   * @return a map where key is custom stoppable check name and boolean value indicates if the check succeeds
-  */
-  Map<String, Boolean> getPartitionStoppableCheck(Map<String, String> customPayloads);
+   * @return a map where key is partition name and boolean value indicates if the partition is
+   *         healthy
+   * @throws IOException
+   */
+  Map<String, Boolean> getPartitionStoppableCheck(String baseUrl, List<String> partitions,
+      Map<String, String> customPayloads) throws IOException;
 }

@@ -19,17 +19,33 @@ package org.apache.helix.rest.client;
  * under the License.
  */
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * The memory efficient factory to create instances for {@link CustomRestClient}
  */
 public class CustomRestClientFactory {
-  private static final String INSTANCE_HEALTH_STATUS = "/instanceHealthStatus";
-  private static final String PARTITION_HEALTH_STATUS = "/partitionHealthStatus";
+  private static final Logger LOG = LoggerFactory.getLogger(CustomRestClientFactory.class);
 
-  private CustomRestClientFactory() {}
+  private static CustomRestClient INSTANCE = null;
+
+  private CustomRestClientFactory() {
+  }
 
   public static CustomRestClient get(String jsonContent) {
-    //TODO: add implementation
-    return new CustomRestClientImpl();
+    if (INSTANCE == null) {
+      synchronized (CustomRestClientFactory.class) {
+        if (INSTANCE == null) {
+          try {
+            INSTANCE = new CustomRestClientImpl();
+          } catch (Exception e) {
+            LOG.error("Exception when initializing CustomRestClient", e);
+          }
+        }
+      }
+    }
+
+    return INSTANCE;
   }
 }

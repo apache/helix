@@ -19,6 +19,7 @@ package org.apache.helix.rest.server.service;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -97,5 +98,5 @@ public interface InstanceService {
       List<HealthCheck> healthChecks);
 
   StoppableCheck checkSingleInstanceStoppable(String clusterId, String instanceName,
-      String jsonContent);
+      String jsonContent) throws IOException;
 }

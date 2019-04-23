@@ -127,6 +127,16 @@ public class InstanceConfig extends HelixProperty {
 
   /**
    * Domain represents a hierarchy identifier for an instance.
+   * This is to ensure backward compatibility, going forward please use {@link InstanceConfig#getDomainAsString()}
+   * @return
+   */
+  @Deprecated
+  public String getDomain() {
+    return _record.getSimpleField(InstanceConfigProperty.DOMAIN.name());
+  }
+
+  /**
+   * Domain represents a hierarchy identifier for an instance.
    * @return
    */
   public String getDomainAsString() {

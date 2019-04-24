@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
@@ -38,8 +39,12 @@ import org.codehaus.jackson.map.SerializationConfig;
 import org.restlet.Context;
 import org.restlet.Request;
 import org.restlet.data.Form;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class ResourceUtil {
+  private static final Logger LOG = LoggerFactory.getLogger(ResourceUtil.class);
   private static final String EMPTY_ZNRECORD_STRING =
       objectToJson(ClusterRepresentationUtil.EMPTY_ZNRECORD);
 
@@ -134,8 +139,14 @@ public class ResourceUtil {
   }
 
   public static String readZkAsBytes(ZkClient zkclient, PropertyKey propertyKey) {
-    byte[] bytes = zkclient.readData(propertyKey.getPath());
-    return bytes == null ? EMPTY_ZNRECORD_STRING : new String(bytes);
+    try {
+      byte[] bytes = zkclient.readData(propertyKey.getPath());
+      return new String(bytes);
+    } catch (Exception e) {
+      String errorMessage = "Exception occurred when reading data from path: " + propertyKey.getPath();
+      LOG.error(errorMessage, e);
+      throw new HelixException(errorMessage, e);
+    }
   }
 
   static String extractSimpleFieldFromZNRecord(String recordStr, String key) {

@@ -879,9 +879,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         LOG.warn(String
             .format("%s current session %s does not match leader session %s", warnLogPrefix,
                 _sessionId, sessionId));
+      } else {
+        LOG.warn(String.format("%s leader ZNode is null", warnLogPrefix));
       }
-      LOG.warn(String.format("%s leader ZNode is null", warnLogPrefix));
-
     } catch (Exception e) {
       LOG.warn(String.format("%s exception happen when session check", warnLogPrefix), e);
     }

@@ -666,7 +666,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   /**
    * Indicate that a full read should be done on the next refresh
    */
-  public synchronized void requireFullRefresh() {
+  public void requireFullRefresh() {
     for (HelixConstants.ChangeType type : HelixConstants.ChangeType.values()) {
       if (!_noFullRefreshProperty.contains(type)) {
         _propertyDataChangedMap.put(type, true);

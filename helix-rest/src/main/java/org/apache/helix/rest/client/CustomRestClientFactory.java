@@ -33,12 +33,13 @@ public class CustomRestClientFactory {
   private CustomRestClientFactory() {
   }
 
-  public static CustomRestClient get(String jsonContent) {
+  public static CustomRestClient get() {
     if (INSTANCE == null) {
       synchronized (CustomRestClientFactory.class) {
         if (INSTANCE == null) {
           try {
             INSTANCE = new CustomRestClientImpl();
+            return INSTANCE;
           } catch (Exception e) {
             LOG.error("Exception when initializing CustomRestClient", e);
           }

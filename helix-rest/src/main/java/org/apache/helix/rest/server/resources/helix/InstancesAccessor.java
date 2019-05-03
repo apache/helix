@@ -20,8 +20,10 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.rest.common.HelixDataAccessorWrapper;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.resources.exceptions.HelixHealthException;
 import org.apache.helix.rest.server.service.ClusterService;
@@ -171,13 +173,13 @@ public class InstancesAccessor extends AbstractHelixResource {
       ObjectNode failedStoppableInstances = result.putObject(
           InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
       InstanceService instanceService =
-          new InstanceServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
+          new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) getDataAccssor(clusterId)), getConfigAccessor());
       switch (selectionBase) {
       case zone_based:
         List<String> zoneBasedInstance = getZoneBasedInstances(clusterId, instances, orderOfZone);
         for (String instance : zoneBasedInstance) {
           StoppableCheck stoppableCheckResult =
-              instanceService.checkSingleInstanceStoppable(clusterId, instance, customizedInput);
+              instanceService.getInstanceStoppableCheck(clusterId, instance, customizedInput);
           if (!stoppableCheckResult.isStoppable()) {
             ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
             for (String failedReason : stoppableCheckResult.getFailedChecks()) {

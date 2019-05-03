@@ -27,12 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.ResourceConfig;
@@ -563,11 +563,11 @@ public class ConfigAccessor {
   }
 
   /**
-   * Get ClusterConfig of the given cluster.
+   * Get RestConfig of the given cluster.
    *
-   * @param clusterName
+   * @param clusterName The cluster
    *
-   * @return
+   * @return The instance of {@link RESTConfig}
    */
   public RESTConfig getRESTConfig(String clusterName) {
     HelixConfigScope scope =
@@ -575,7 +575,7 @@ public class ConfigAccessor {
     ZNRecord record = getConfigZnRecord(scope);
 
     if (record == null) {
-      LOG.warn("No config found at " + scope.getZkPath());
+      LOG.warn("No rest config found at " + scope.getZkPath());
       return null;
     }
 

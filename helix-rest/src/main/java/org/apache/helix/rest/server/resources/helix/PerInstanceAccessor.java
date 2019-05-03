@@ -19,32 +19,17 @@ package org.apache.helix.rest.server.resources.helix;
  * under the License.
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.List;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
+
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
+
+import org.apache.helix.*;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.*;
 import org.apache.helix.model.Error;
-import org.apache.helix.model.HealthStat;
-import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.Message;
-import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
@@ -59,10 +44,11 @@ import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Path("/clusters/{clusterId}/instances/{instanceName}")
 public class PerInstanceAccessor extends AbstractHelixResource {
-  private final static Logger _logger = LoggerFactory.getLogger(PerInstanceAccessor.class);
+  private final static Logger LOG = LoggerFactory.getLogger(PerInstanceAccessor.class);
 
   public enum PerInstanceProperties {
     config,
@@ -86,8 +72,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
     // TODO reduce GC by dependency injection
     InstanceService instanceService =
-        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor),
-            getConfigAccessor());
+        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
     InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
         InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
 
@@ -100,13 +85,16 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   public Response isInstanceStoppable(String jsonContent, @PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
+    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+    InstanceService instanceService =
+        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
     StoppableCheck stoppableCheck = null;
     try {
-      stoppableCheck = new InstanceServiceImpl(getDataAccssor(clusterId), getConfigAccessor())
-          .checkSingleInstanceStoppable(clusterId, instanceName, jsonContent);
+      stoppableCheck =
+          instanceService.getInstanceStoppableCheck(clusterId, instanceName, jsonContent);
     } catch (HelixException e) {
-      _logger
-          .error(String.format("Current cluster %s has issue with health checks!", clusterId), e);
+      LOG.error(String.format("Current cluster %s has issue with health checks!", clusterId),
+          e);
       return serverError(e);
     }
     return OK(objectMapper.writeValueAsString(stoppableCheck));
@@ -120,14 +108,14 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      LOG.error("Failed to deserialize user's input " + content + ", Exception: " + e);
       return badRequest("Input is not a vaild ZNRecord!");
     }
 
     try {
       admin.addInstance(clusterId, new InstanceConfig(record));
     } catch (Exception ex) {
-      _logger.error("Error in adding an instance: " + instanceName, ex);
+      LOG.error("Error in adding an instance: " + instanceName, ex);
       return serverError(ex);
     }
 
@@ -207,11 +195,11 @@ public class PerInstanceAccessor extends AbstractHelixResource {
                     OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class)));
         break;
       default:
-        _logger.error("Unsupported command :" + command);
+        LOG.error("Unsupported command :" + command);
         return badRequest("Unsupported command :" + command);
       }
     } catch (Exception e) {
-      _logger.error("Failed in updating instance : " + instanceName, e);
+      LOG.error("Failed in updating instance : " + instanceName, e);
       return badRequest(e.getMessage());
     }
     return OK();
@@ -266,7 +254,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      LOG.error("Failed to deserialize user's input " + content + ", Exception: " + e);
       return badRequest("Input is not a vaild ZNRecord!");
     }
     InstanceConfig instanceConfig = new InstanceConfig(record);
@@ -288,7 +276,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error(String.format("Error in update instance config for instance: %s", instanceName),
+      LOG.error(String.format("Error in update instance config for instance: %s", instanceName),
           ex);
       return serverError(ex);
     }
@@ -423,14 +411,14 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     List<String> messageNames =
         accessor.getChildNames(accessor.keyBuilder().messages(instanceName));
     if (messageNames == null || messageNames.size() == 0) {
-      _logger.warn("Unable to get any messages on instance: " + instanceName);
+      LOG.warn("Unable to get any messages on instance: " + instanceName);
       return notFound();
     }
 
     for (String messageName : messageNames) {
       Message message = accessor.getProperty(accessor.keyBuilder().message(instanceName, messageName));
       if (message == null) {
-        _logger.warn("Message is deleted given message name: ", messageName);
+        LOG.warn("Message is deleted given message name: ", messageName);
         continue;
       }
       // if stateModelDef is valid, keep messages with StateModelDef equals to the parameter

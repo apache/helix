@@ -22,12 +22,11 @@ package org.apache.helix.rest.server.service;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
+import org.apache.helix.rest.server.json.instance.StoppableCheck;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.helix.rest.server.json.instance.StoppableCheck;
 
 public interface InstanceService {
   enum HealthCheck {
@@ -79,24 +78,20 @@ public interface InstanceService {
   }
 
   /**
-   * Get the current instance stoppable checks based on Helix own business logic
-   * @param clusterId
-   * @param instanceName
-   * @return a map where key is stoppable check name and boolean value represents whether the check
-   *         succeeds
-   */
-  Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
-      List<HealthCheck> healthChecks);
-
-  /**
    * Get the overall status of the instance
-   * @param clusterId
-   * @param instanceName
-   * @return
+   * @param clusterId The cluster id
+   * @param instanceName The instance name
+   * @return An instance of {@link InstanceInfo} easily convertible to JSON
    */
   InstanceInfo getInstanceInfo(String clusterId, String instanceName,
       List<HealthCheck> healthChecks);
 
-  StoppableCheck checkSingleInstanceStoppable(String clusterId, String instanceName,
+  /**
+   * Get the current instance stoppable checks
+   * @param clusterId The cluster id
+   * @param instanceName The instance name
+   * @return An instance of {@link StoppableCheck} easily convertible to JSON
+   */
+  StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
       String jsonContent) throws IOException;
 }

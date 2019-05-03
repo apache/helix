@@ -19,54 +19,52 @@ package org.apache.helix.rest.server.json.instance;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 public class StoppableCheck {
-  private static final String HELIX_CHECK_PREFIX = "Helix:";
-  private static final String CUSTOM_CHECK_PREFIX = "Custom:";
+  // Category to differentiate which step the check fails
+  public enum Category {
+    HELIX_OWN_CHECK("Helix:"),
+    CUSTOM_INSTANCE_CHECK("CustomInstance:"),
+    CUSTOM_PARTITION_CHECK("CustomPartition:");
+
+    String prefix;
+
+    Category(String prefix) {
+      this.prefix = prefix;
+    }
+  }
 
   @JsonProperty("stoppable")
   private boolean isStoppable;
+  // The list of failed checks should be sorted to make test consistent pass
   @JsonProperty("failedChecks")
   private List<String> failedChecks;
 
-  public StoppableCheck(boolean isStoppable, List<String> failedChecks) {
+  public StoppableCheck(boolean isStoppable, List<String> failedChecks, Category category) {
     this.isStoppable = isStoppable;
-    // sort the failed checks in order so that tests can always pass
-    Collections.sort(failedChecks);
-    this.failedChecks = failedChecks;
+    this.failedChecks = failedChecks.stream()
+        .sorted()
+        .map(checkName -> appendPrefix(checkName, category))
+        .collect(Collectors.toList());
   }
 
-  public static StoppableCheck mergeStoppableChecks(Map<String, Boolean> helixChecks, Map<String, Boolean> customChecks) {
-    Map<String, Boolean> mergedResult = ImmutableMap.<String, Boolean>builder()
-        .putAll(appendPrefix(helixChecks, HELIX_CHECK_PREFIX))
-        .putAll(appendPrefix(customChecks, CUSTOM_CHECK_PREFIX))
-        .build();
-
-    List<String> failedChecks = new ArrayList<>();
-    for (Map.Entry<String, Boolean> entry : mergedResult.entrySet()) {
-      if (!entry.getValue()) {
-        failedChecks.add(entry.getKey());
-      }
-    }
-
-    return new StoppableCheck(failedChecks.isEmpty(), failedChecks);
+  public StoppableCheck(Map<String, Boolean> checks, Category category) {
+    this.failedChecks = Maps.filterValues(checks, Boolean.FALSE::equals).keySet()
+        .stream()
+        .sorted()
+        .map(checkName -> appendPrefix(checkName, category))
+        .collect(Collectors.toList());
+    this.isStoppable = this.failedChecks.isEmpty();
   }
 
-  private static Map<String, Boolean> appendPrefix(Map<String, Boolean> checks, String prefix) {
-    Map<String, Boolean> result = new HashMap<>();
-    for (Map.Entry<String, Boolean> entry : checks.entrySet()) {
-      result.put(prefix + entry.getKey(), entry.getValue());
-    }
-
-    return result;
+  private String appendPrefix(String checkName, Category category) {
+    return category.prefix + checkName;
   }
 
   public boolean isStoppable() {

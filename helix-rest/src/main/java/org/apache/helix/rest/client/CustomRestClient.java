@@ -39,7 +39,8 @@ public interface CustomRestClient {
       throws IOException;
 
   /**
-   * Get stoppable check result on partition
+   * Get stoppable check result on a list of partitions on the instance
+   *
    * @param baseUrl the base url of the participant
    * @param partitions a list of partitions maintained by the participant
    * @param customPayloads generic payloads required from client side and helix only works as proxy

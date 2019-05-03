@@ -20,52 +20,44 @@ package org.apache.helix.rest.server.json.cluster;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
 
 public class PartitionHealth {
   // Partition health map stores the global metadata about the partition health in the format of
   // instanceName -> partitionName -> isHealthy
-  private Map<String, Map<String, Boolean>> _paritionHealthMap;
-  private Map<String, List<String>> _instancesThatNeedDirectCallWithPartitions;
+  private Map<String, Map<String, Boolean>> _instanceToPartitionHealthMap;
+  private Map<String, List<String>> _instanceToPartitionsMap;
 
   public PartitionHealth() {
-    _paritionHealthMap = new HashMap<>();
-    _instancesThatNeedDirectCallWithPartitions = new HashMap<>();
+    _instanceToPartitionHealthMap = new HashMap<>();
+    _instanceToPartitionsMap = new HashMap<>();
   }
 
   public void addInstanceThatNeedDirectCallWithPartition(String instanceName,
       String partitionName) {
-    _instancesThatNeedDirectCallWithPartitions
+    _instanceToPartitionsMap
         .computeIfAbsent(instanceName, partitions -> new ArrayList<>()).add(partitionName);
-  }
-
-  public void setPartitionHealthForInstance(String instanceName,
-      Map<String, Boolean> partitionHealth) {
-    _paritionHealthMap.put(instanceName, partitionHealth);
   }
 
   public void addSinglePartitionHealthForInstance(String instanceName, String partitionName,
       Boolean isHealthy) {
-    _paritionHealthMap.computeIfAbsent(instanceName, partitionMap -> new HashMap<>())
+    _instanceToPartitionHealthMap.computeIfAbsent(instanceName, partitionMap -> new HashMap<>())
         .put(partitionName, isHealthy);
   }
 
-  public List<String> getInstanceThatNeedDirectCallWithPartitions(String instanceName) {
-    return _instancesThatNeedDirectCallWithPartitions.getOrDefault(instanceName,
-        Collections.EMPTY_LIST);
+  public Map<String, List<String>> getExpiredRecords() {
+      return _instanceToPartitionsMap;
   }
 
-  public Map<String, Map<String, Boolean>> getParitionHealthMap() {
-    return _paritionHealthMap;
+  public void updatePartitionHealth(String instance, String partition, boolean isHealthy) {
+    _instanceToPartitionHealthMap.get(instance).put(partition, isHealthy);
   }
 
-  public void removePartitionHealthForInstance(String instanceName) {
-    _paritionHealthMap.remove(instanceName);
+  public Map<String, Map<String, Boolean>> getGlobalPartitionHealth() {
+    return _instanceToPartitionHealthMap;
   }
 
   @Override
@@ -74,8 +66,8 @@ public class PartitionHealth {
       return false;
     }
 
-    return _paritionHealthMap.equals(((PartitionHealth) o)._paritionHealthMap)
-        && _instancesThatNeedDirectCallWithPartitions
-        .equals(((PartitionHealth) o)._instancesThatNeedDirectCallWithPartitions);
+    return _instanceToPartitionHealthMap.equals(((PartitionHealth) o)._instanceToPartitionHealthMap)
+        && _instanceToPartitionsMap
+        .equals(((PartitionHealth) o)._instanceToPartitionsMap);
   }
 }

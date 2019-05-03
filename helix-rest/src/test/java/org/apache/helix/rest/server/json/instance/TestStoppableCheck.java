@@ -19,42 +19,30 @@ package org.apache.helix.rest.server.json.instance;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Map;
-
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class TestStoppableCheck {
 
   @Test
   public void whenSerializingStoppableCheck() throws JsonProcessingException {
-    StoppableCheck stoppableCheck = new StoppableCheck(false, new ArrayList<String>() {
-      {
-        add("failedCheck");
-      }
-    });
+    StoppableCheck stoppableCheck = new StoppableCheck(false, ImmutableList.of("check"), StoppableCheck.Category.HELIX_OWN_CHECK);
 
     ObjectMapper mapper = new ObjectMapper();
     String result = mapper.writeValueAsString(stoppableCheck);
 
-    Assert.assertEquals(result, "{\"stoppable\":false,\"failedChecks\":[\"failedCheck\"]}");
+    Assert.assertEquals(result, "{\"stoppable\":false,\"failedChecks\":[\"Helix:check\"]}");
   }
 
   @Test
-  public void testMergeStoppableChecks() throws JsonProcessingException {
-    Map<String, Boolean> helixCheck = ImmutableMap.of("check0", false, "check1", false);
-    Map<String, Boolean> customCheck = ImmutableMap.of("check1", true, "check2", true);
-
-    StoppableCheck stoppableCheck = StoppableCheck.mergeStoppableChecks(helixCheck, customCheck);
-    ObjectMapper mapper = new ObjectMapper();
-    String result = mapper.writeValueAsString(stoppableCheck);
-
-    Assert.assertEquals(result,
-        "{\"stoppable\":false,\"failedChecks\":[\"Helix:check0\",\"Helix:check1\"]}");
+  public void testConstructorSortingOrder() {
+    StoppableCheck stoppableCheck = new StoppableCheck(ImmutableMap.of("a", true, "c", false, "b", false), StoppableCheck.Category.HELIX_OWN_CHECK);
+    Assert.assertFalse(stoppableCheck.isStoppable());
+    Assert.assertEquals(stoppableCheck.getFailedChecks(), ImmutableList.of("Helix:b", "Helix:c"));
   }
 }

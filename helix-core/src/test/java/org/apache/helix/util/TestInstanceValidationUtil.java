@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 public class TestInstanceValidationUtil {
   private static final String TEST_CLUSTER = "testCluster";
   private static final String TEST_INSTANCE = "instance0";
+  private static final PropertyKey.Builder BUILDER = new PropertyKey.Builder(TEST_CLUSTER);
 
   @DataProvider
   Object[][] isEnabledTestSuite() {
@@ -52,15 +53,15 @@ public class TestInstanceValidationUtil {
     InstanceConfig instanceConfig = new InstanceConfig(TEST_INSTANCE);
     instanceConfig.setInstanceEnabled(instanceConfigEnabled);
     doReturn(instanceConfig).when(mock.dataAccessor)
-        .getProperty(argThat(new PropertyKeyArgument(PropertyType.CONFIGS)));
+        .getProperty(BUILDER.instanceConfig(TEST_INSTANCE));
     ClusterConfig clusterConfig = new ClusterConfig(TEST_CLUSTER);
     if (!clusterConfigEnabled) {
       clusterConfig.setDisabledInstances(ImmutableMap.of(TEST_INSTANCE, "12345"));
     }
-    when(mock.configAccessor.getClusterConfig(TEST_CLUSTER)).thenReturn(clusterConfig);
+    doReturn(clusterConfig).when(mock.dataAccessor)
+        .getProperty(BUILDER.clusterConfig());
 
-    boolean isEnabled = InstanceValidationUtil.isEnabled(mock.dataAccessor, mock.configAccessor,
-        TEST_CLUSTER, TEST_INSTANCE);
+    boolean isEnabled = InstanceValidationUtil.isEnabled(mock.dataAccessor, TEST_INSTANCE);
 
     Assert.assertEquals(isEnabled, expected);
   }
@@ -70,11 +71,8 @@ public class TestInstanceValidationUtil {
     Mock mock = new Mock();
     doReturn(null).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.CONFIGS)));
-    when(mock.configAccessor.getClusterConfig(TEST_CLUSTER))
-        .thenReturn(new ClusterConfig(TEST_CLUSTER));
 
-    InstanceValidationUtil.isEnabled(mock.dataAccessor, mock.configAccessor, TEST_CLUSTER,
-        TEST_INSTANCE);
+    InstanceValidationUtil.isEnabled(mock.dataAccessor, TEST_INSTANCE);
   }
 
   @Test(expectedExceptions = HelixException.class)
@@ -82,10 +80,10 @@ public class TestInstanceValidationUtil {
     Mock mock = new Mock();
     doReturn(new InstanceConfig(TEST_INSTANCE)).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.CONFIGS)));
-    when(mock.configAccessor.getClusterConfig(TEST_CLUSTER)).thenReturn(null);
+    doReturn(null).when(mock.dataAccessor)
+        .getProperty(BUILDER.clusterConfig());
 
-    InstanceValidationUtil.isEnabled(mock.dataAccessor, mock.configAccessor, TEST_CLUSTER,
-        TEST_INSTANCE);
+    InstanceValidationUtil.isEnabled(mock.dataAccessor, TEST_INSTANCE);
   }
 
   @Test
@@ -94,8 +92,7 @@ public class TestInstanceValidationUtil {
     doReturn(new LiveInstance(TEST_INSTANCE)).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.LIVEINSTANCES)));
 
-    Assert
-        .assertTrue(InstanceValidationUtil.isAlive(mock.dataAccessor, TEST_CLUSTER, TEST_INSTANCE));
+    Assert.assertTrue(InstanceValidationUtil.isAlive(mock.dataAccessor, TEST_INSTANCE));
   }
 
   @Test
@@ -263,7 +260,8 @@ public class TestInstanceValidationUtil {
     IdealState idealState = mock(IdealState.class);
     when(idealState.isEnabled()).thenReturn(true);
     when(idealState.getPartitionSet()).thenReturn(ImmutableSet.of("db0"));
-    when(idealState.getInstanceStateMap("db0")).thenReturn(ImmutableMap.of(TEST_INSTANCE, "Master"));
+    when(idealState.getInstanceStateMap("db0"))
+        .thenReturn(ImmutableMap.of(TEST_INSTANCE, "Master"));
     when(idealState.isValid()).thenReturn(true);
     when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
     doReturn(idealState).when(mock.dataAccessor)
@@ -416,7 +414,7 @@ public class TestInstanceValidationUtil {
     Mock() {
       this.dataAccessor = mock(HelixDataAccessor.class);
       this.configAccessor = mock(ConfigAccessor.class);
-      when(dataAccessor.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
+      when(dataAccessor.keyBuilder()).thenReturn(BUILDER);
     }
   }
 

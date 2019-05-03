@@ -3,18 +3,20 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
-public class RESTConfig extends HelixProperty {
-  public enum RESTConfigProperty {
-    CUSTOMIZED_HEALTH_URL // User customized URL for getting participant health status or partition
-                          // health status.
-  }
 
+/**
+ * The configuration entry for persisting the client side rest endpoint
+ * The rest endpoint is used for helix to fetch the health status or other important status of the participant at runtime
+ */
+public class RESTConfig extends HelixProperty {
   /**
-   * Instantiate REST config for a specific cluster
-   * @param cluster the cluster identifier
+   * Corresponds to "simpleFields" concept in ZnNode
    */
-  public RESTConfig(String cluster) {
-    super(cluster);
+  public enum SimpleFields {
+    /**
+     * Customized URL for getting participant(instance)'s health status or partition's health status.
+     */
+    CUSTOMIZED_HEALTH_URL
   }
 
   /**
@@ -26,26 +28,15 @@ public class RESTConfig extends HelixProperty {
     super(record);
   }
 
-  /**
-   * Set up the user defined URL for check per participant health / per partition health by combine
-   * URL and final endpoint. It must ended without "/"
-   *
-   * eg: http://*:12345/customized/path/check
-   *
-   * @param customizedHealthURL
-   */
-  public void setCustomizedHealthURL(String customizedHealthURL) {
-    _record.setSimpleField(RESTConfigProperty.CUSTOMIZED_HEALTH_URL.name(), customizedHealthURL);
+  public RESTConfig(String id) {
+    super(id);
   }
 
-  /**
-   * Get user defined URL to construct per participant health / partition health
-   * Return null if it does not exist.
-   *
-   * @return
-   */
-  public String getCustomizedHealthURL() {
-    return _record.getSimpleField(RESTConfigProperty.CUSTOMIZED_HEALTH_URL.name());
+  public void set(SimpleFields property, String value) {
+    _record.setSimpleField(property.name(), value);
   }
 
+  public String get(SimpleFields property) {
+    return _record.getSimpleField(property.name());
+  }
 }

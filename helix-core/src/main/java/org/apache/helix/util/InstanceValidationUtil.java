@@ -19,28 +19,20 @@ package org.apache.helix.util;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.apache.helix.ConfigAccessor;
+import java.util.*;
+import java.util.stream.Collectors;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.*;
 import org.apache.helix.task.TaskConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Utility class for validating Helix properties
@@ -53,27 +45,19 @@ public class InstanceValidationUtil {
   public static Set<String> UNHEALTHY_STATES =
       ImmutableSet.of(HelixDefinedState.DROPPED.name(), HelixDefinedState.ERROR.name());
 
-  public enum HealthStatusType {
-    instanceHealthStatus,
-    partitionHealthStatus
-  }
-
   private InstanceValidationUtil() {
   }
 
   /**
    * Method to check if the instance is enabled by configuration
    * @param dataAccessor
-   * @param configAccessor
-   * @param clusterId
    * @param instanceName
    * @return
    */
-  public static boolean isEnabled(HelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
-      String clusterId, String instanceName) {
+  public static boolean isEnabled(HelixDataAccessor dataAccessor, String instanceName) {
     PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
     InstanceConfig instanceConfig = dataAccessor.getProperty(propertyKeyBuilder.instanceConfig(instanceName));
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterId);
+    ClusterConfig clusterConfig = dataAccessor.getProperty(propertyKeyBuilder.clusterConfig());
     // TODO deprecate instance level config checks once migrated the enable status to cluster config only
     if (instanceConfig == null || clusterConfig == null) {
       throw new HelixException("InstanceConfig or ClusterConfig is NULL");
@@ -89,12 +73,10 @@ public class InstanceValidationUtil {
   /**
    * Method to check if the instance is up and running by configuration
    * @param dataAccessor
-   * @param clusterId
    * @param instanceName
    * @return
    */
-  public static boolean isAlive(HelixDataAccessor dataAccessor, String clusterId,
-      String instanceName) {
+  public static boolean isAlive(HelixDataAccessor dataAccessor, String instanceName) {
     LiveInstance liveInstance = dataAccessor.getProperty(dataAccessor.keyBuilder().liveInstance(instanceName));
     return liveInstance != null;
   }
@@ -193,34 +175,42 @@ public class InstanceValidationUtil {
   }
 
   /**
-   * Perform sibling node partition health check
-   * @param partitionHealthMap
-   * @return
+   * Get the problematic partitions on the to-be-stop instance
+   * Requirement:
+   *  If the instance gets stopped and the partitions on the instance are OFFLINE,
+   *  the cluster still have enough "healthy" replicas on other sibling instances
+   *
+   *  - sibling instances mean those who share the same partition (replicas) of the to-be-stop instance
+   *
+   * @param globalPartitionHealthStatus (instance => (partition name, health status))
+   * @param instanceToBeStop The instance to be stopped
+   * @param dataAccessor The data accessor
+   * @return A list of problematic partitions if the instance is stopped
    */
   public static List<String> perPartitionHealthCheck(List<ExternalView> externalViews,
-      Map<String, Map<String, Boolean>> partitionHealthMap, String instanceName,
-      HelixDataAccessor accessor) {
+      Map<String, Map<String, Boolean>> globalPartitionHealthStatus, String instanceToBeStop,
+      HelixDataAccessor dataAccessor) {
     List<String> unhealthyPartitions = new ArrayList<>();
 
     for (ExternalView externalView : externalViews) {
-      StateModelDefinition stateModelDefinition = accessor
-          .getProperty(accessor.keyBuilder().stateModelDef(externalView.getStateModelDefRef()));
+      StateModelDefinition stateModelDefinition = dataAccessor
+          .getProperty(dataAccessor.keyBuilder().stateModelDef(externalView.getStateModelDefRef()));
       for (String partition : externalView.getPartitionSet()) {
         Map<String, String> stateMap = externalView.getStateMap(partition);
         // Only check if instance holds top state
-        if (stateMap.containsKey(instanceName) && stateMap.get(instanceName)
-            .equals(stateModelDefinition.getTopState())) {
+        if (stateMap.containsKey(instanceToBeStop)
+            && stateMap.get(instanceToBeStop).equals(stateModelDefinition.getTopState())) {
           for (String siblingInstance : stateMap.keySet()) {
             // Skip this self check
-            if (siblingInstance.equals(instanceName)) {
+            if (siblingInstance.equals(instanceToBeStop)) {
               continue;
             }
 
             // We are checking sibling partition healthy status. So if partition health does not
             // exist or it is not healthy. We should mark this partition is unhealthy.
-            if (!partitionHealthMap.containsKey(siblingInstance) || !partitionHealthMap
-                .get(siblingInstance).containsKey(partition)
-                || !partitionHealthMap.get(siblingInstance).get(partition)) {
+            if (!globalPartitionHealthStatus.containsKey(siblingInstance)
+                || !globalPartitionHealthStatus.get(siblingInstance).containsKey(partition)
+                || !globalPartitionHealthStatus.get(siblingInstance).get(partition)) {
               unhealthyPartitions.add(partition);
               break;
             }

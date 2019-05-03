@@ -331,8 +331,14 @@ public class TestInstanceValidationUtil {
     Mock mock = new Mock();
     doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
         .getChildNames(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
-    doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
-        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+    // set ideal state
+    IdealState idealState = mock(IdealState.class);
+    when(idealState.isEnabled()).thenReturn(true);
+    when(idealState.isValid()).thenReturn(true);
+    when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
+    doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+
+    // set external view
     ExternalView externalView = mock(ExternalView.class);
     when(externalView.getMinActiveReplicas()).thenReturn(2);
     when(externalView.getStateModelDefRef()).thenReturn("MasterSlave");
@@ -358,8 +364,13 @@ public class TestInstanceValidationUtil {
     Mock mock = new Mock();
     doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
         .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
-    doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
-        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
+    // set ideal state
+    IdealState idealState = mock(IdealState.class);
+    when(idealState.isEnabled()).thenReturn(true);
+    when(idealState.isValid()).thenReturn(true);
+    when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
+    doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+
     ExternalView externalView = mock(ExternalView.class);
     when(externalView.getMinActiveReplicas()).thenReturn(3);
     when(externalView.getStateModelDefRef()).thenReturn("MasterSlave");
@@ -385,8 +396,13 @@ public class TestInstanceValidationUtil {
     Mock mock = new Mock();
     doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
         .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
-    doReturn(Collections.emptyList()).when(mock.dataAccessor)
-        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
+    // set ideal state
+    IdealState idealState = mock(IdealState.class);
+    when(idealState.isEnabled()).thenReturn(true);
+    when(idealState.isValid()).thenReturn(true);
+    when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
+    doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+    //set externalView
     ExternalView externalView = mock(ExternalView.class);
     when(externalView.getMinActiveReplicas()).thenReturn(-1);
     doReturn(externalView).when(mock.dataAccessor)
@@ -396,13 +412,20 @@ public class TestInstanceValidationUtil {
   }
 
   @Test(expectedExceptions = HelixException.class)
-  public void TestSiblingNodesActiveReplicaCheck_exception_whenMissingMinActiveReplicas() {
+  public void TestSiblingNodesActiveReplicaCheck_exception_whenExternalViewUnavailable() {
     String resource = "resource";
     Mock mock = new Mock();
     doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
         .getChildNames(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
-    doReturn(Collections.emptyList()).when(mock.dataAccessor)
-        .getChildNames(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
+    // set ideal state
+    IdealState idealState = mock(IdealState.class);
+    when(idealState.isEnabled()).thenReturn(true);
+    when(idealState.isValid()).thenReturn(true);
+    when(idealState.getStateModelDefRef()).thenReturn("MasterSlave");
+    doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
+
+    doReturn(null).when(mock.dataAccessor)
+        .getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
 
     InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
   }

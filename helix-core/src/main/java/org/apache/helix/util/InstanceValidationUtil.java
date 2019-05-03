@@ -19,20 +19,28 @@ package org.apache.helix.util;
  * under the License.
  */
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.model.*;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 /**
  * Utility class for validating Helix properties
@@ -279,26 +287,25 @@ public class InstanceValidationUtil {
    */
   public static boolean siblingNodesActiveReplicaCheck(HelixDataAccessor dataAccessor, String instanceName) {
     PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
-    List<String> idealStates = dataAccessor.getChildNames(propertyKeyBuilder.idealStates());
-    List<String> externalViews = dataAccessor.getChildNames(propertyKeyBuilder.externalViews());
-    if (idealStates.size() != externalViews.size()) {
-      throw new HelixException(
-          "The following resources in IdealStates are not found in ExternalViews: "
-              + Sets.difference(new HashSet<>(idealStates), new HashSet<>(externalViews)));
-    }
+    List<String> resources = dataAccessor.getChildNames(propertyKeyBuilder.idealStates());
 
-    for (String externalViewName : externalViews) {
-      ExternalView externalView =
-          dataAccessor.getProperty(propertyKeyBuilder.externalView(externalViewName));
-      if (externalView == null) {
-        _logger.error("ExternalView for {} doesn't exist", externalViewName);
+    for (String resourceName : resources) {
+      IdealState idealState = dataAccessor.getProperty(propertyKeyBuilder.idealStates(resourceName));
+      if (idealState == null || !idealState.isEnabled() || !idealState.isValid()
+          || TaskConstants.STATE_MODEL_NAME.equals(idealState.getStateModelDefRef())) {
         continue;
+      }
+      ExternalView externalView =
+          dataAccessor.getProperty(propertyKeyBuilder.externalView(resourceName));
+      if (externalView == null) {
+        throw new HelixException(
+            String.format("Resource %s does not have external view!", resourceName));
       }
       // Get the minActiveReplicas constraint for the resource
       int minActiveReplicas = externalView.getMinActiveReplicas();
       if (minActiveReplicas == -1) {
         throw new HelixException(
-            "ExternalView " + externalViewName + " is missing minActiveReplica field");
+            "ExternalView " + resourceName + " is missing minActiveReplica field");
       }
       String stateModeDef = externalView.getStateModelDefRef();
       StateModelDefinition stateModelDefinition =

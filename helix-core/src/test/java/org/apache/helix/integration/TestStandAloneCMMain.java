@@ -20,11 +20,11 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.TestHelper.Verifier;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -42,40 +42,41 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase {
   @Test()
   public void testStandAloneCMMain() throws Exception {
     logger.info("RUN testStandAloneCMMain() at " + new Date(System.currentTimeMillis()));
+
+    // Keep references to the controllers created so that they could be shut down
+    Set<ClusterControllerManager> controllers = new HashSet<>();
+
     ClusterControllerManager newController = null;
     for (int i = 1; i <= 2; i++) {
       String controllerName = "controller_" + i;
-      newController =
-          new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+      newController = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
       newController.syncStart();
+      controllers.add(newController);
     }
 
-    // stopCurrentLeader(_zkClient, CLUSTER_NAME, _startCMResultMap);
     _controller.syncStop();
 
     final HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
     final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     final String newControllerName = newController.getInstanceName();
-    TestHelper.verify(new Verifier() {
-
-      @Override
-      public boolean verify() throws Exception {
-        LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
-        if (leader == null) {
-          return false;
-        }
-        return leader.getInstanceName().equals(newControllerName);
-
+    TestHelper.verify(() -> {
+      LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+      if (leader == null) {
+        return false;
       }
+      return leader.getInstanceName().equals(newControllerName);
+
     }, 30 * 1000);
 
-    boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
+    Assert.assertTrue(ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME)));
+
+    // Shut down all controllers so that the cluster could be deleted
+    for (ClusterControllerManager controller : controllers) {
+      controller.syncStop();
+    }
 
     logger.info("STOP testStandAloneCMMain() at " + new Date(System.currentTimeMillis()));
   }
-
 }

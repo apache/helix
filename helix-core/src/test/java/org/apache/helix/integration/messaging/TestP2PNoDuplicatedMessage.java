@@ -126,9 +126,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
   public void afterClass() throws Exception {
     _controller.syncStop();
     for (MockParticipantManager p : _participants) {
-      if (p.isConnected()) {
-        p.syncStop();
-      }
+      p.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));

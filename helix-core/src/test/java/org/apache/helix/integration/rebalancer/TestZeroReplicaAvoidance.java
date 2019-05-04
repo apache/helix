@@ -41,27 +41,29 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZeroReplicaAvoidance extends ZkTestBase implements
-    ExternalViewChangeListener, IdealStateChangeListener{
-  final int NUM_NODE = 6;
-  final int START_PORT = 12918;
-  final String CLASS_NAME = getShortClassName();
-  final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
+public class TestZeroReplicaAvoidance extends ZkTestBase
+    implements ExternalViewChangeListener, IdealStateChangeListener {
+  private final int NUM_NODE = 6;
+  private final int START_PORT = 12918;
+  private final String CLASS_NAME = getShortClassName();
+  private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
-  List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
-  ZkHelixClusterVerifier _clusterVerifier;
-  boolean _testSuccess = true;
-  boolean _startListen = false;
+  private List<MockParticipantManager> _participants = new ArrayList<>();
+  private ZkHelixClusterVerifier _clusterVerifier;
+  private boolean _testSuccess = true;
+  private boolean _startListen = false;
+
+  private ClusterControllerManager _controller;
 
   @BeforeClass
   public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     _gSetupTool.addCluster(CLUSTER_NAME, true);
-
     for (int i = 0; i < NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
@@ -73,15 +75,27 @@ public class TestZeroReplicaAvoidance extends ZkTestBase implements
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
-    ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
-    controller.syncStart();
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller.syncStart();
 
     _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
   }
 
-  protected String[] TestStateModels = {
+  @AfterClass
+  public void afterClass() {
+    if (_controller != null && _controller.isConnected()) {
+      _controller.syncStop();
+    }
+    for (MockParticipantManager participant : _participants) {
+      if (participant != null && participant.isConnected()) {
+        participant.syncStop();
+      }
+    }
+    deleteCluster(CLUSTER_NAME);
+  }
+
+  private String[] TestStateModels = {
       BuiltInStateModelDefinitions.MasterSlave.name(),
       BuiltInStateModelDefinitions.OnlineOffline.name(),
       BuiltInStateModelDefinitions.LeaderStandby.name()
@@ -109,17 +123,21 @@ public class TestZeroReplicaAvoidance extends ZkTestBase implements
       createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, partition, replica, replica,
           0);
     }
-    Assert.assertTrue(_clusterVerifier.verify(50000));
+    Assert.assertTrue(_clusterVerifier.verify(50000L));
 
     _startListen = true;
-    DelayedTransition.setDelay(50);
+    DelayedTransition.setDelay(5);
 
     // add the other half of nodes.
     for (; i < NUM_NODE; i++) {
       _participants.get(i).syncStart();
     }
-    Assert.assertTrue(_clusterVerifier.verify(50000));
+    Assert.assertTrue(_clusterVerifier.verify(70000L));
     Assert.assertTrue(_testSuccess);
+
+    if (manager.isConnected()) {
+      manager.disconnect();
+    }
   }
 
   /**
@@ -148,8 +166,8 @@ public class TestZeroReplicaAvoidance extends ZkTestBase implements
     }
     if (instanceStateMap.size() < replica) {
       _testSuccess = false;
-      Assert.fail(String
-          .format("Resource %s partition %s has %d active replica, less than required %d!",
+      Assert.fail(
+          String.format("Resource %s partition %s has %d active replica, less than required %d!",
               resource, partition, instanceStateMap.size(), replica));
     }
 
@@ -164,9 +182,8 @@ public class TestZeroReplicaAvoidance extends ZkTestBase implements
       }
       if (topCount > 1) {
         _testSuccess = false;
-        Assert.fail(String
-            .format("Resource %s partition %s has %d replica in %s, more than 1!", resource,
-                partition, topCount, topState));
+        Assert.fail(String.format("Resource %s partition %s has %d replica in %s, more than 1!",
+            resource, partition, topCount, topState));
       }
     }
   }
@@ -178,14 +195,14 @@ public class TestZeroReplicaAvoidance extends ZkTestBase implements
       return;
     }
     for (ExternalView view : externalViewList) {
-      IdealState is = _gSetupTool.getClusterManagementTool()
-          .getResourceIdealState(CLUSTER_NAME, view.getResourceName());
+      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME,
+          view.getResourceName());
       validateNoZeroReplica(is, view);
     }
   }
 
-  @Override public void onIdealStateChange(List<IdealState> idealStates,
-      NotificationContext changeContext) {
+  @Override
+  public void onIdealStateChange(List<IdealState> idealStates, NotificationContext changeContext) {
     if (!_startListen) {
       return;
     }
@@ -199,9 +216,10 @@ public class TestZeroReplicaAvoidance extends ZkTestBase implements
   private static class DelayedTransition extends MockTransition {
     private static long _delay = 0;
 
-    public static void setDelay (int delay) {
+    public static void setDelay(int delay) {
       _delay = delay;
     }
+
     @Override
     public void doTransition(Message message, NotificationContext context)
         throws InterruptedException {

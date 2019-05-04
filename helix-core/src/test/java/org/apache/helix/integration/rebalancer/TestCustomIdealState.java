@@ -24,13 +24,9 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.TestDriver;
 import org.apache.helix.tools.ClusterSetup;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
 
 public class TestCustomIdealState extends ZkTestBase {
-  private static Logger LOG = LoggerFactory.getLogger(TestCustomIdealState.class);
-
   @Test
   public void testBasic() throws Exception {
 
@@ -39,9 +35,8 @@ public class TestCustomIdealState extends ZkTestBase {
     int numInstance = 5;
     int replica = 3;
 
-    String uniqClusterName =
-        "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource + "_n"
-            + numInstance + "_r" + replica + "_basic";
+    String uniqClusterName = "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource
+        + "_n" + numInstance + "_r" + replica + "_basic";
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
@@ -57,6 +52,7 @@ public class TestCustomIdealState extends ZkTestBase {
 
     TestDriver.stopCluster(uniqClusterName);
 
+    deleteCluster(uniqClusterName);
     System.out.println("STOP " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -67,9 +63,8 @@ public class TestCustomIdealState extends ZkTestBase {
     int numInstance = 5;
     int replica = 3;
 
-    String uniqClusterName =
-        "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource + "_n"
-            + numInstance + "_r" + replica + "_nonalive";
+    String uniqClusterName = "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource
+        + "_n" + numInstance + "_r" + replica + "_nonalive";
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
@@ -94,8 +89,8 @@ public class TestCustomIdealState extends ZkTestBase {
 
     TestDriver.stopCluster(uniqClusterName);
 
+    deleteCluster(uniqClusterName);
     System.out.println("STOP " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test()
@@ -105,9 +100,8 @@ public class TestCustomIdealState extends ZkTestBase {
     int numInstance = 5;
     int replica = 3;
 
-    String uniqClusterName =
-        "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource + "_n"
-            + numInstance + "_r" + replica + "_drop";
+    String uniqClusterName = "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource
+        + "_n" + numInstance + "_r" + replica + "_drop";
 
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
     TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
@@ -125,13 +119,12 @@ public class TestCustomIdealState extends ZkTestBase {
     setup.dropResourceFromCluster(uniqClusterName, "TestDB0");
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, uniqClusterName,
-        "TestDB0", TestHelper.<String> setOf("localhost_12918", "localhost_12919",
-            "localhost_12920", "localhost_12921", "localhost_12922"), ZK_ADDR);
+        "TestDB0", TestHelper.setOf("localhost_12918", "localhost_12919",
+            "localhost_12920", "localhost_12921", "localhost_12922"),
+        ZK_ADDR);
 
     TestDriver.stopCluster(uniqClusterName);
+    deleteCluster(uniqClusterName);
     System.out.println("STOP " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
   }
-
-  // TODO add a test case that verify (in case of node failure) best possible
-  // state is a subset of ideal state
 }

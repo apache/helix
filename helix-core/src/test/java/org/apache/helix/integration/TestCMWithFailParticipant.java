@@ -63,6 +63,7 @@ public class TestCMWithFailParticipant extends ZkTestBase {
     TestDriver.stopDummyParticipant(uniqClusterName, 2000, 0);
     TestDriver.verifyCluster(uniqClusterName, 3000, 50 * 1000);
     TestDriver.stopCluster(uniqClusterName);
+    deleteCluster(uniqClusterName);
 
     System.out.println("END " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 

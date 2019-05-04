@@ -28,7 +28,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(TestRoutingTableProviderPeriodicRefresh.class);
+  private static final org.slf4j.Logger logger =
+      LoggerFactory.getLogger(TestRoutingTableProviderPeriodicRefresh.class);
 
   private static final String STATE_MODEL = BuiltInStateModelDefinitions.MasterSlave.name();
   private static final String TEST_DB = "TestDB";

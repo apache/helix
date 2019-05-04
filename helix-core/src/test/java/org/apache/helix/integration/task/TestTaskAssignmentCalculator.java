@@ -19,11 +19,12 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -32,7 +33,6 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
-import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskDriver;
@@ -40,17 +40,12 @@ import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
-
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
-import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.testng.collections.Sets;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  * This class tests basic job and test assignment/scheduling functionality of
@@ -79,14 +74,9 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
       final String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
 
       // Set task callbacks
-      Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
+      Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
 
-      taskFactoryReg.put("TaskOne", new TaskFactory() {
-        @Override
-        public Task createNewTask(TaskCallbackContext context) {
-          return new TaskOne(context, instanceName);
-        }
-      });
+      taskFactoryReg.put("TaskOne", context -> new TaskOne(context, instanceName));
 
       _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
 
@@ -124,7 +114,7 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
 
     for (int i = 0; i < 20; i++) {
       List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
-      taskConfigs.add(new TaskConfig("TaskOne", new HashMap<String, String>()));
+      taskConfigs.add(new TaskConfig("TaskOne", new HashMap<>()));
       JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
           .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap);
       workflowBuilder.addJob("JOB" + i, jobBuilder);
@@ -153,7 +143,7 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
 
     for (int i = 0; i < 40; i++) {
       List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
-      taskConfigs.add(new TaskConfig("TaskOne", new HashMap<String, String>()));
+      taskConfigs.add(new TaskConfig("TaskOne", new HashMap<>()));
       JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
           .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap);
       workflowBuilder.addJob("JOB" + i, jobBuilder);
@@ -218,7 +208,7 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
   private class TaskOne extends MockTask {
     private final String _instanceName;
 
-    public TaskOne(TaskCallbackContext context, String instanceName) {
+    TaskOne(TaskCallbackContext context, String instanceName) {
       super(context);
 
       // Initialize the count for this instance if not already done

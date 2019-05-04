@@ -1,22 +1,34 @@
 package org.apache.helix.integration.messaging;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.Date;
-import java.util.Random;
 import java.util.UUID;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.common.ZkTestBase;
-import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
-import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.model.Message;
-import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -35,8 +47,6 @@ public class TestGroupCommitAddBackData extends ZkTestBase {
 
   private MockParticipantManager _participant;
 
-  private int _replica = 3;
-
   @BeforeClass
   public void beforeClass() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -50,8 +60,8 @@ public class TestGroupCommitAddBackData extends ZkTestBase {
     _participant.syncStart();
 
     // create cluster manager
-    _manager = HelixManagerFactory
-        .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
+    _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
+        InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
   }
 
@@ -72,6 +82,7 @@ public class TestGroupCommitAddBackData extends ZkTestBase {
       } catch (Exception ex) {
         System.err.println(
             "Failed to delete cluster " + CLUSTER_NAME + ", error: " + ex.getLocalizedMessage());
+        _gSetupTool.deleteCluster(CLUSTER_NAME);
       }
     }
 
@@ -99,9 +110,9 @@ public class TestGroupCommitAddBackData extends ZkTestBase {
           accessor.keyBuilder().message(_participant.getInstanceName(), dropped.getMsgId()),
           dropped);
       Assert.assertTrue(waitForMessageProcessed(accessor, dropped.getMsgId()));
-      Assert.assertFalse(accessor.getBaseDataAccessor().exists(accessor.keyBuilder()
-          .currentState(_participant.getInstanceName(), _participant.getSessionId(),
-              WorkflowGenerator.DEFAULT_TGT_DB).getPath(), 0));
+      Assert.assertFalse(accessor.getBaseDataAccessor()
+          .exists(accessor.keyBuilder().currentState(_participant.getInstanceName(),
+              _participant.getSessionId(), WorkflowGenerator.DEFAULT_TGT_DB).getPath(), 0));
     }
   }
 

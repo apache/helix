@@ -1,5 +1,24 @@
 package org.apache.helix.integration.spectator;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.List;
 import java.util.Set;
 import org.apache.helix.HelixManager;
@@ -20,7 +39,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
 public class TestRoutingTableSnapshot extends ZkTestBase {
   private HelixManager _manager;
   private final int NUM_NODES = 10;
@@ -33,7 +51,7 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    _participants =  new MockParticipantManager[NUM_NODES];
+    _participants = new MockParticipantManager[NUM_NODES];
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     _participants = new MockParticipantManager[NUM_NODES];
@@ -48,8 +66,8 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
       _participants[i].syncStart();
     }
 
-    _manager = HelixManagerFactory
-        .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
+    _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
+        InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
 
     String controllerName = CONTROLLER_PREFIX + "_0";
@@ -59,12 +77,18 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    _manager.disconnect();
+    if (_manager != null && _manager.isConnected()) {
+      _manager.disconnect();
+    }
     for (int i = 0; i < NUM_NODES; i++) {
       if (_participants[i] != null && _participants[i].isConnected()) {
         _participants[i].reset();
       }
     }
+    if (_controller != null && _controller.isConnected()) {
+      _controller.syncStop();
+    }
+    deleteCluster(CLUSTER_NAME);
   }
 
   @Test
@@ -74,7 +98,8 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
 
     try {
       String db1 = "TestDB-1";
-      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db1, NUM_PARTITIONS, "MasterSlave", IdealState.RebalanceMode.FULL_AUTO.name());
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db1, NUM_PARTITIONS, "MasterSlave",
+          IdealState.RebalanceMode.FULL_AUTO.name());
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db1, NUM_REPLICAS);
 
       Thread.sleep(200);
@@ -95,7 +120,8 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
 
       // add new DB and shutdown an instance
       String db2 = "TestDB-2";
-      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db2, NUM_PARTITIONS, "MasterSlave", IdealState.RebalanceMode.FULL_AUTO.name());
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db2, NUM_PARTITIONS, "MasterSlave",
+          IdealState.RebalanceMode.FULL_AUTO.name());
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, NUM_REPLICAS);
 
       // shutdown an instance
@@ -133,4 +159,3 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
     }
   }
 }
-

@@ -138,7 +138,7 @@ public class TestDistributedCMMain extends ZkTestBase {
     Assert.assertTrue(result, "first cluster NOT in ideal state");
 
     // stop controller_0-5
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(controllerClusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     for (int i = 0; i < n; i++) {
@@ -163,11 +163,15 @@ public class TestDistributedCMMain extends ZkTestBase {
     // wait for all zk callbacks done
     System.out.println("Cleaning up...");
     for (int i = 0; i < 2 * n; i++) {
-      controllers[i].syncStop();
+      if (controllers[i] != null && controllers[i].isConnected()) {
+        controllers[i].syncStop();
+      }
     }
 
     for (int i = 0; i < n; i++) {
-      participants[i].syncStop();
+      if (participants[i] != null && participants[i].isConnected()) {
+        participants[i].syncStop();
+      }
     }
 
     for (String cluster : _clusters) {

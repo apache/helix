@@ -201,13 +201,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       Map<String, IdealState> idealStates = new HashMap<>(_dataProvider.getIdealStates());
 
       // filter out all resources that use Task state model
-      Iterator<Map.Entry<String, IdealState>> it = idealStates.entrySet().iterator();
-      while (it.hasNext()) {
-        Map.Entry<String, IdealState> pair = it.next();
-        if (pair.getValue().getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
-          it.remove();
-        }
-      }
+      idealStates.entrySet()
+          .removeIf(pair -> pair.getValue().getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME));
 
       // verify live instances.
       if (_expectLiveInstances != null && !_expectLiveInstances.isEmpty()) {

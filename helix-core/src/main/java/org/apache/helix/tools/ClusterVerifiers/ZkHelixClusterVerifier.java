@@ -45,7 +45,7 @@ public abstract class ZkHelixClusterVerifier
     implements IZkChildListener, IZkDataListener, HelixClusterVerifier {
   private static Logger LOG = LoggerFactory.getLogger(ZkHelixClusterVerifier.class);
   protected static int DEFAULT_TIMEOUT = 300 * 1000;
-  protected static int DEFAULT_PERIOD = 100;
+  protected static int DEFAULT_PERIOD = 500;
 
 
   protected final HelixZkClient _zkClient;
@@ -55,11 +55,7 @@ public abstract class ZkHelixClusterVerifier
   private CountDownLatch _countdown;
 
   private ExecutorService _verifyTaskThreadPool =
-      Executors.newSingleThreadExecutor(new ThreadFactory() {
-        @Override public Thread newThread(Runnable r) {
-          return new Thread(r, "ZkHelixClusterVerifier-verify_thread");
-        }
-      });
+      Executors.newSingleThreadExecutor(r -> new Thread(r, "ZkHelixClusterVerifier-verify_thread"));
 
   protected static class ClusterVerifyTrigger {
     final PropertyKey _triggerKey;
@@ -98,7 +94,7 @@ public abstract class ZkHelixClusterVerifier
     }
     _zkClient = zkClient;
     _clusterName = clusterName;
-    _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
   }
 
@@ -110,7 +106,7 @@ public abstract class ZkHelixClusterVerifier
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     _clusterName = clusterName;
-    _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
   }
 

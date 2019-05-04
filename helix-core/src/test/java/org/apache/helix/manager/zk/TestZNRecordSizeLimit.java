@@ -31,14 +31,10 @@ import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZNRecordSizeLimit extends ZkUnitTestBase {
-  private static Logger LOG = LoggerFactory.getLogger(TestZNRecordSizeLimit.class);
-
   @Test
   public void testZNRecordSizeLimitUseZNRecordSerializer() {
     String className = getShortClassName();
@@ -47,7 +43,6 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     ZNRecordSerializer serializer = new ZNRecordSerializer();
 
-    String root = className;
     byte[] buf = new byte[1024];
     for (int i = 0; i < 1024; i++) {
       buf[i] = 'a';
@@ -63,7 +58,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       smallRecord.setSimpleField(i + "", bufStr);
     }
 
-    String path1 = "/" + root + "/test1";
+    String path1 = "/" + className + "/test1";
     _gZkClient.createPersistent(path1, true);
     _gZkClient.writeData(path1, smallRecord);
 
@@ -77,7 +72,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     for (int i = 0; i < 1024; i++) {
       largeRecord.setSimpleField(i + "", bufStr);
     }
-    String path2 = "/" + root + "/test2";
+    String path2 = "/" + className + "/test2";
     _gZkClient.createPersistent(path2, true);
     try {
       _gZkClient.writeData(path2, largeRecord);
@@ -109,7 +104,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // oversized data should not create any new data on zk
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(className, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(className, new ZkBaseDataAccessor<>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     IdealState idealState = new IdealState("currentState");
@@ -122,9 +117,8 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     }
     boolean succeed = accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
     Assert.assertFalse(succeed);
-    HelixProperty property =
-        accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918", "session_1",
-            "partition_1"));
+    HelixProperty property = accessor.getProperty(
+        keyBuilder.stateTransitionStatus("localhost_12918", "session_1", "partition_1"));
     Assert.assertNull(property);
 
     // legal sized data gets written to zk
@@ -157,6 +151,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     arrNew = serializer.serialize(recordNew);
     Assert.assertTrue(Arrays.equals(arr, arrNew));
 
+    deleteCluster(className);
     System.out.println("END testZNRecordSizeLimitUseZNRecordSerializer at "
         + new Date(System.currentTimeMillis()));
   }
@@ -168,12 +163,11 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
         + new Date(System.currentTimeMillis()));
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
-    HelixZkClient zkClient =
-        SharedZkClientFactory.getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
 
     try {
       zkClient.setZkSerializer(serializer);
-      String root = className;
       byte[] buf = new byte[1024];
       for (int i = 0; i < 1024; i++) {
         buf[i] = 'a';
@@ -189,7 +183,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
         smallRecord.setSimpleField(i + "", bufStr);
       }
 
-      String path1 = "/" + root + "/test1";
+      String path1 = "/" + className + "/test1";
       zkClient.createPersistent(path1, true);
       zkClient.writeData(path1, smallRecord);
 
@@ -203,7 +197,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       for (int i = 0; i < 1024; i++) {
         largeRecord.setSimpleField(i + "", bufStr);
       }
-      String path2 = "/" + root + "/test2";
+      String path2 = "/" + className + "/test2";
       zkClient.createPersistent(path2, true);
       try {
         zkClient.writeData(path2, largeRecord);
@@ -234,7 +228,8 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       admin.addInstance(className, instanceConfig);
 
       // oversized data should not create any new data on zk
-      ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(className, new ZkBaseDataAccessor(zkClient));
+      ZKHelixDataAccessor accessor =
+          new ZKHelixDataAccessor(className, new ZkBaseDataAccessor<>(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       // ZNRecord statusUpdates = new ZNRecord("statusUpdates");
@@ -285,6 +280,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       zkClient.close();
     }
 
+    deleteCluster(className);
     System.out.println("END testZNRecordSizeLimitUseZNRecordStreamingSerializer at "
         + new Date(System.currentTimeMillis()));
   }

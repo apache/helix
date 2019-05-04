@@ -43,19 +43,18 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZkSessionExpiry extends ZkUnitTestBase {
-  final static String DUMMY_MSG_TYPE = "DUMMY";
+  private final static String DUMMY_MSG_TYPE = "DUMMY";
 
   static class DummyMessageHandler extends MessageHandler {
     final Set<String> _handledMsgSet;
 
-    public DummyMessageHandler(Message message, NotificationContext context,
-        Set<String> handledMsgSet) {
+    DummyMessageHandler(Message message, NotificationContext context, Set<String> handledMsgSet) {
       super(message, context);
       _handledMsgSet = handledMsgSet;
     }
 
     @Override
-    public HelixTaskResult handleMessage() throws InterruptedException {
+    public HelixTaskResult handleMessage() {
       _handledMsgSet.add(_message.getId());
       HelixTaskResult ret = new HelixTaskResult();
       ret.setSuccess(true);
@@ -72,7 +71,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
   static class DummyMessageHandlerFactory implements MultiTypeMessageHandlerFactory {
     final Set<String> _handledMsgSet;
 
-    public DummyMessageHandlerFactory(Set<String> handledMsgSet) {
+    DummyMessageHandlerFactory(Set<String> handledMsgSet) {
       _handledMsgSet = handledMsgSet;
     }
 
@@ -86,7 +85,8 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
       return DUMMY_MSG_TYPE;
     }
 
-    @Override public List<String> getMessageTypes() {
+    @Override
+    public List<String> getMessageTypes() {
       return ImmutableList.of(DUMMY_MSG_TYPE);
     }
 
@@ -120,7 +120,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
     controller.syncStart();
 
     // start participants
-    Set<String> handledMsgSet = new HashSet<String>();
+    Set<String> handledMsgSet = new HashSet<>();
     MockParticipantManager[] participants = new MockParticipantManager[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
@@ -131,10 +131,8 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
+    boolean result = ClusterStateVerifier.verifyByZkCallback(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // trigger dummy message handler
@@ -142,10 +140,8 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
 
     // expire localhost_12918
     ZkTestHelper.expireSession(participants[0].getZkClient());
-    result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
+    result = ClusterStateVerifier.verifyByZkCallback(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // trigger dummy message handler again
@@ -157,6 +153,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -166,21 +163,14 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
    * @param handledMsgSet
    * @throws Exception
    */
-  private static void checkDummyMsgHandler(HelixManager manager,
-      final Set<String> handledMsgSet) throws Exception {
+  private static void checkDummyMsgHandler(HelixManager manager, final Set<String> handledMsgSet)
+      throws Exception {
 
     final Message aMsg = newMsg();
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.message(manager.getInstanceName(), aMsg.getId()), aMsg);
-    boolean result = TestHelper.verify(new TestHelper.Verifier() {
-
-      @Override
-      public boolean verify() throws Exception {
-
-        return handledMsgSet.contains(aMsg.getId());
-      }
-    }, 5 * 1000);
+    boolean result = TestHelper.verify(() -> handledMsgSet.contains(aMsg.getId()), 5 * 1000);
     Assert.assertTrue(result);
   }
 

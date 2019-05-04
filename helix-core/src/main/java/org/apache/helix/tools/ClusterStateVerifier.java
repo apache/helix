@@ -71,7 +71,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class is deprecated, please use dedicated verifier classes, such as BestPossibleExternViewVerifier, etc, in tools.ClusterVerifiers
+ * This class is deprecated, please use dedicated verifier classes, such as
+ * BestPossibleExternalViewVerifier, etc, in tools.ClusterVerifiers.
  */
 @Deprecated
 public class ClusterStateVerifier {

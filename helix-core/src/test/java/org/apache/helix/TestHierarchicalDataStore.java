@@ -68,6 +68,8 @@ public class TestHierarchicalDataStore extends ZkUnitTestBase {
     set(path + "/child1", "new child 1 data");
     AssertJUnit.assertTrue(dataHolder.refreshData());
     dataHolder.print();
+
+    deleteCluster("tmp");
   }
 
   private void set(String path, String data) {

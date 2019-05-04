@@ -50,19 +50,17 @@ import org.testng.annotations.Test;
 import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.CLUSTER_DN_KEY;
 import static org.apache.helix.util.StatusUpdateUtil.ErrorType.RebalanceResourceFailure;
 
-public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit
-    extends ZkTestBase {
-  static final int NUM_NODE = 10;
-  static final int START_PORT = 12918;
-  static final int _PARTITIONS = 5;
+public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit extends ZkTestBase {
+  private static final int NUM_NODE = 10;
+  private static final int START_PORT = 12918;
+  private static final int _PARTITIONS = 5;
   private static final MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
 
-  final String CLASS_NAME = getShortClassName();
-  final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
+  private final String CLASS_NAME = getShortClassName();
+  private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   private ClusterControllerManager _controller;
 
-  private List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
-  private ZkHelixClusterVerifier _clusterVerifier;
+  private List<MockParticipantManager> _participants = new ArrayList<>();
   private HelixDataAccessor _dataAccessor;
   private int _maxOfflineInstancesAllowed = 4;
 
@@ -88,7 +86,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    _clusterVerifier =
+    ZkHelixClusterVerifier clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
@@ -105,7 +103,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit
           BuiltInStateModelDefinitions.MasterSlave.name(), _PARTITIONS, 3, 3, -1);
     }
     Thread.sleep(100);
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
   }
 
   @AfterMethod
@@ -152,8 +150,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit
     admin.enableMaintenanceMode(CLUSTER_NAME, false);
   }
 
-
-  @Test (dependsOnMethods = "testWithDisabledInstancesLimit")
+  @Test(dependsOnMethods = "testWithDisabledInstancesLimit")
   public void testWithOfflineInstancesLimit() throws Exception {
     MaintenanceSignal maintenanceSignal =
         _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
@@ -184,33 +181,29 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit
 
   @AfterClass
   public void afterClass() throws Exception {
-    /**
+    /*
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */
     _controller.syncStop();
     for (MockParticipantManager participant : _participants) {
-      if (participant.isConnected()) {
-        participant.syncStop();
-      }
+      participant.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void checkForRebalanceError(final boolean expectError) throws Exception {
-    boolean result = TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() throws Exception {
-        /* TODO re-enable this check when we start recording rebalance error again
-        ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-        PropertyKey errorNodeKey =
-            accessor.keyBuilder().controllerTaskError(RebalanceResourceFailure.name());
-        Assert.assertEquals(accessor.getProperty(errorNodeKey) != null, expectError);
-        */
-        Long value =
-            (Long) _server.getAttribute(getClusterMbeanName(CLUSTER_NAME), "RebalanceFailureGauge");
-        return expectError == (value != null && value.longValue() > 0);
-      }
+    boolean result = TestHelper.verify(() -> {
+      /*
+       * TODO re-enable this check when we start recording rebalance error again
+       * ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+       * PropertyKey errorNodeKey =
+       * accessor.keyBuilder().controllerTaskError(RebalanceResourceFailure.name());
+       * Assert.assertEquals(accessor.getProperty(errorNodeKey) != null, expectError);
+       */
+      Long value =
+          (Long) _server.getAttribute(getClusterMbeanName(CLUSTER_NAME), "RebalanceFailureGauge");
+      return expectError == (value != null && value > 0);
     }, 5000);
     Assert.assertTrue(result);
   }
@@ -222,10 +215,8 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit
     accessor.removeProperty(errorNodeKey);
   }
 
-  private ObjectName getClusterMbeanName(String clusterName)
-      throws MalformedObjectNameException {
-    String clusterBeanName =
-        String.format("%s=%s", CLUSTER_DN_KEY, clusterName);
+  private ObjectName getClusterMbeanName(String clusterName) throws MalformedObjectNameException {
+    String clusterBeanName = String.format("%s=%s", CLUSTER_DN_KEY, clusterName);
     return new ObjectName(
         String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), clusterBeanName));
   }

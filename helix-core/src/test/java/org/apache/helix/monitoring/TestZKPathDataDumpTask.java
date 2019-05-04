@@ -58,7 +58,7 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     BaseDataAccessor<ZNRecord> baseAccessor = accessor.getBaseDataAccessor();
 
@@ -88,8 +88,8 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
 
     // add controller status updates and errors
     controllerStatusUpdateKey = keyBuilder.controllerTaskStatus("session_0", "TestDB");
-    accessor.setProperty(controllerStatusUpdateKey, new StatusUpdate(new ZNRecord(
-        "controllerStatusUpdate")));
+    accessor.setProperty(controllerStatusUpdateKey,
+        new StatusUpdate(new ZNRecord("controllerStatusUpdate")));
     controllerErrorKey = keyBuilder.controllerTaskError("TestDB_error");
     accessor.setProperty(controllerErrorKey, new Error(new ZNRecord("controllerError")));
 
@@ -108,8 +108,8 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
     Assert.assertTrue(baseAccessor.exists(statusUpdateKey.getPath(), 0));
     errorKey = keyBuilder.stateTransitionErrors("localhost_12918");
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test
@@ -131,7 +131,7 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     BaseDataAccessor<ZNRecord> baseAccessor = accessor.getBaseDataAccessor();
 
@@ -162,8 +162,8 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
 
     // add controller status updates and errors (one of each, should not trigger anything)
     controllerStatusUpdateKey = keyBuilder.controllerTaskStatus("session_0", "TestDB");
-    accessor.setProperty(controllerStatusUpdateKey, new StatusUpdate(new ZNRecord(
-        "controllerStatusUpdate")));
+    accessor.setProperty(controllerStatusUpdateKey,
+        new StatusUpdate(new ZNRecord("controllerStatusUpdate")));
     controllerErrorKey = keyBuilder.controllerTaskError("TestDB_error");
     accessor.setProperty(controllerErrorKey, new Error(new ZNRecord("controllerError")));
 
@@ -182,8 +182,8 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
         keyBuilder.stateTransitionError("localhost_12918", "session_0", "TestDB0", "TestDB0_1");
     accessor.setProperty(errorKey, new Error(new ZNRecord("error")));
     controllerStatusUpdateKey = keyBuilder.controllerTaskStatus("session_0", "TestDB1");
-    accessor.setProperty(controllerStatusUpdateKey, new StatusUpdate(new ZNRecord(
-        "controllerStatusUpdate")));
+    accessor.setProperty(controllerStatusUpdateKey,
+        new StatusUpdate(new ZNRecord("controllerStatusUpdate")));
     controllerErrorKey = keyBuilder.controllerTaskError("TestDB1_error");
     accessor.setProperty(controllerErrorKey, new Error(new ZNRecord("controllerError")));
 
@@ -193,5 +193,6 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
     Assert.assertFalse(baseAccessor.exists(controllerErrorKey.getPath(), 0));
     Assert.assertFalse(baseAccessor.exists(statusUpdateKey.getPath(), 0));
     Assert.assertFalse(baseAccessor.exists(errorKey.getPath(), 0));
+    deleteCluster(clusterName);
   }
 }

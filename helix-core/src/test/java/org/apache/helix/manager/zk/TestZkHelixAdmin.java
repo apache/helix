@@ -63,12 +63,11 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
   @BeforeClass
   public void beforeClass() {
-
   }
 
   @Test()
   public void testZkHelixAdmin() {
-    //TODO refactor this test into small test cases and use @before annotations
+    // TODO refactor this test into small test cases and use @before annotations
     System.out.println("START testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
 
     final String clusterName = getShortClassName();
@@ -104,7 +103,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     InstanceConfig config = new InstanceConfig(instanceName);
     config.setHostName(hostname);
     config.setPort(port);
-    List<String> dummyList = new ArrayList<String>();
+    List<String> dummyList = new ArrayList<>();
     dummyList.add("foo");
     dummyList.add("bar");
     config.getRecord().setListField("dummy", dummyList);
@@ -157,7 +156,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     AssertJUnit.assertEquals(2, dummyList.size());
 
     // test: should not drop instance when it is still alive
-    HelixManager manager = initializeHelixManager(clusterName, config.getInstanceName(), ZK_ADDR, "id1");
+    HelixManager manager = initializeHelixManager(clusterName, config.getInstanceName());
     try {
       manager.connect();
     } catch (Exception e) {
@@ -203,17 +202,15 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       path = PropertyPathBuilder.stateModelDef(clusterName, "id1");
       AssertJUnit.assertTrue(_gZkClient.exists(path));
       Assert.fail("should fail");
-    } catch (HelixException e) {
-      // OK
-    } catch (IllegalArgumentException ex) {
+    } catch (HelixException | IllegalArgumentException e) {
       // OK
     }
 
-    tool.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
-        StateModelConfigGenerator.generateConfigForMasterSlave()));
+    tool.addStateModelDef(clusterName, "MasterSlave",
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
     stateModelRecord = StateModelConfigGenerator.generateConfigForMasterSlave();
-    tool.addStateModelDef(clusterName, stateModelRecord.getId(), new StateModelDefinition(
-        stateModelRecord));
+    tool.addStateModelDef(clusterName, stateModelRecord.getId(),
+        new StateModelDefinition(stateModelRecord));
     list = tool.getStateModelDefs(clusterName);
     AssertJUnit.assertEquals(list.size(), 1);
 
@@ -246,11 +243,10 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     // test config support
     // ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
     // .forResource("testResource").forPartition("testPartition").build();
-    HelixConfigScope scope =
-        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION).forCluster(clusterName)
-            .forResource("testResource").forPartition("testPartition").build();
+    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION)
+        .forCluster(clusterName).forResource("testResource").forPartition("testPartition").build();
 
-    Map<String, String> properties = new HashMap<String, String>();
+    Map<String, String> properties = new HashMap<>();
     properties.put("pKey1", "pValue1");
     properties.put("pKey2", "pValue2");
 
@@ -259,26 +255,24 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     for (int i = 0; i < 100; i++) {
       tool.setConfig(scope, properties);
       Map<String, String> newProperties =
-          tool.getConfig(scope, new ArrayList<String>(properties.keySet()));
+          tool.getConfig(scope, new ArrayList<>(properties.keySet()));
       Assert.assertEquals(newProperties.size(), 2);
       Assert.assertEquals(newProperties.get("pKey1"), "pValue1");
       Assert.assertEquals(newProperties.get("pKey2"), "pValue2");
     }
-    // Assert.assertTrue(ZkClient.getNumberOfConnections() - nbOfZkClients < 5);
 
+    deleteCluster(clusterName);
     System.out.println("END testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
   }
 
-  private HelixManager initializeHelixManager(String clusterName, String instanceName, String zkAddress,
-      String stateModelName)
-  {
+  private HelixManager initializeHelixManager(String clusterName, String instanceName) {
     HelixManager manager = HelixManagerFactory.getZKHelixManager(clusterName, instanceName,
-        InstanceType.PARTICIPANT, zkAddress);
+        InstanceType.PARTICIPANT, org.apache.helix.common.ZkTestBase.ZK_ADDR);
 
     MasterSlaveStateModelFactory stateModelFactory = new MasterSlaveStateModelFactory(instanceName);
 
     StateMachineEngine stateMach = manager.getStateMachineEngine();
-    stateMach.registerStateModelFactory(stateModelName, stateModelFactory);
+    stateMach.registerStateModelFactory("id1", stateModelFactory);
     return manager;
   }
 
@@ -295,13 +289,13 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     tool.addCluster(clusterName, true);
     Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
 
-    tool.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
-        StateModelConfigGenerator.generateConfigForMasterSlave()));
+    tool.addStateModelDef(clusterName, "MasterSlave",
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
     tool.addResource(clusterName, "test-db", 4, "MasterSlave");
-    Map<String, String> resourceConfig = new HashMap<String, String>();
+    Map<String, String> resourceConfig = new HashMap<>();
     resourceConfig.put("key1", "value1");
-    tool.setConfig(new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE)
-        .forCluster(clusterName).forResource("test-db").build(), resourceConfig);
+    tool.setConfig(new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(clusterName)
+        .forResource("test-db").build(), resourceConfig);
 
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     Assert.assertTrue(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()),
@@ -353,7 +347,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
         builder.build());
 
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     constraints =
         accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
@@ -393,11 +387,11 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     admin.addCluster(clusterName, true);
     Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
     String resourceName = "TestDB";
-    admin.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
-        StateModelConfigGenerator.generateConfigForMasterSlave()));
+    admin.addStateModelDef(clusterName, "MasterSlave",
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
     admin.addResource(clusterName, resourceName, 4, "MasterSlave");
     admin.enableResource(clusterName, resourceName, false);
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
@@ -476,9 +470,9 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     // Test disable instances with resources
     admin.enablePartition(false, clusterName, instanceName, testResourcePrefix + "0",
-        Arrays.asList(new String[]{"1", "2"}));
+        Arrays.asList("1", "2"));
     admin.enablePartition(false, clusterName, instanceName, testResourcePrefix + "1",
-        Arrays.asList(new String[]{"2", "3", "4"}));
+        Arrays.asList("2", "3", "4"));
     InstanceConfig instanceConfig = admin.getInstanceConfig(clusterName, instanceName);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "0").size(), 2);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "1").size(), 3);
@@ -496,20 +490,19 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     String instanceName = "TestInstanceLegacy";
     String testResourcePrefix = "TestResourceLegacy";
     ZNRecord record = new ZNRecord(instanceName);
-    List<String> disabledPartitions =
-        new ArrayList<String>(Arrays.asList(new String[] { "1", "2", "3" }));
+    List<String> disabledPartitions = new ArrayList<>(Arrays.asList("1", "2", "3"));
     record.setListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(),
         disabledPartitions);
     InstanceConfig instanceConfig = new InstanceConfig(record);
     instanceConfig.setInstanceEnabledForPartition(testResourcePrefix, "2", false);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix).size(), 3);
     Assert.assertEquals(instanceConfig.getRecord()
-            .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
+        .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
         3);
     instanceConfig.setInstanceEnabledForPartition(testResourcePrefix, "2", true);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix).size(), 2);
     Assert.assertEquals(instanceConfig.getRecord()
-            .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
+        .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
         2);
   }
 }

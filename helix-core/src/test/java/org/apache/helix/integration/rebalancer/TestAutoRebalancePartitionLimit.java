@@ -38,20 +38,15 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
-  private static final Logger LOG = LoggerFactory.getLogger(TestAutoRebalancePartitionLimit.class
-      .getName());
 
   @Override
   @BeforeClass
   public void beforeClass() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     // setup storage cluster
@@ -70,21 +65,20 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    HelixManager manager = _controller; // _startCMResultMap.get(controllerName)._manager;
+    HelixManager manager = _controller;
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
+
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
       _participants[i].syncStart();
       Thread.sleep(100);
-      boolean result =
-          ClusterStateVerifier.verifyByPolling(new ExternalViewBalancedVerifier(_gZkClient,
-              CLUSTER_NAME, TEST_DB), 10000, 100);
+      boolean result = ClusterStateVerifier.verifyByPolling(
+          new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB), 10000, 100);
       Assert.assertTrue(result);
       ExternalView ev =
           manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().externalView(TEST_DB));
-      System.out.println(ev.getPartitionSet().size());
       if (i < 3) {
         Assert.assertEquals(ev.getPartitionSet().size(), 25 * (i + 1));
       } else {
@@ -92,23 +86,20 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
       }
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
-            CLUSTER_NAME, TEST_DB));
+    boolean result = ClusterStateVerifier
+        .verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB));
 
     Assert.assertTrue(result);
   }
 
   @Test()
-  public void testAutoRebalanceWithMaxPartitionPerNode() throws Exception {
+  public void testAutoRebalanceWithMaxPartitionPerNode() {
     HelixManager manager = _controller;
     // kill 1 node
     _participants[0].syncStop();
 
-    // verifyBalanceExternalView();
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
-            CLUSTER_NAME, TEST_DB));
+    boolean result = ClusterStateVerifier
+        .verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB));
     Assert.assertTrue(result);
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     ExternalView ev =
@@ -117,15 +108,14 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
 
     _participants[1].syncStop();
 
-    // verifyBalanceExternalView();
-    result =
-        ClusterStateVerifier.verifyByPolling(new ExternalViewBalancedVerifier(_gZkClient,
-            CLUSTER_NAME, TEST_DB));
+    result = ClusterStateVerifier
+        .verifyByPolling(new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB));
     Assert.assertTrue(result);
     ev = manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().externalView(TEST_DB));
     Assert.assertEquals(ev.getPartitionSet().size(), 75);
 
     // add 2 nodes
+    MockParticipantManager[] newParticipants = new MockParticipantManager[2];
     for (int i = 0; i < 2; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (1000 + i);
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
@@ -133,22 +123,26 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
       String newInstanceName = storageNodeName.replace(':', '_');
       MockParticipantManager participant =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, newInstanceName);
+      newParticipants[i] = participant;
       participant.syncStart();
     }
 
-    Thread.sleep(100);
-    result =
-        ClusterStateVerifier.verifyByPolling(new ExternalViewBalancedVerifier(_gZkClient,
-            CLUSTER_NAME, TEST_DB), 10000, 100);
-    Assert.assertTrue(result);
+    Assert.assertTrue(ClusterStateVerifier.verifyByPolling(
+        new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB), 10000, 100));
+
+    // Clean up the extra mock participants
+    for (MockParticipantManager participant : newParticipants) {
+      if (participant != null && participant.isConnected()) {
+        participant.syncStop();
+      }
+    }
   }
 
-  static boolean verifyBalanceExternalView(ZNRecord externalView, int partitionCount,
+  private static boolean verifyBalanceExternalView(ZNRecord externalView, int partitionCount,
       String masterState, int replica, int instances, int maxPerInstance) {
-    Map<String, Integer> masterPartitionsCountMap = new HashMap<String, Integer>();
+    Map<String, Integer> masterPartitionsCountMap = new HashMap<>();
     for (String partitionName : externalView.getMapFields().keySet()) {
       Map<String, String> assignmentMap = externalView.getMapField(partitionName);
-      // Assert.assertTrue(assignmentMap.size() >= replica);
       for (String instance : assignmentMap.keySet()) {
         if (assignmentMap.get(instance).equals(masterState)) {
           if (!masterPartitionsCountMap.containsKey(instance)) {
@@ -166,7 +160,8 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
       int instancePartitionCount = masterPartitionsCountMap.get(instanceName);
       totalCount += instancePartitionCount;
       if (!(instancePartitionCount == perInstancePartition
-          || instancePartitionCount == perInstancePartition + 1 || instancePartitionCount == maxPerInstance)) {
+          || instancePartitionCount == perInstancePartition + 1
+          || instancePartitionCount == maxPerInstance)) {
         return false;
       }
       if (instancePartitionCount == maxPerInstance) {
@@ -181,11 +176,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     if (totalCount == maxPerInstance * instances) {
       return true;
     }
-    if (partitionCount != totalCount) {
-      return false;
-    }
-    return true;
-
+    return partitionCount == totalCount;
   }
 
   public static class ExternalViewBalancedVerifier implements ZkVerifier {
@@ -193,7 +184,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     String _resourceName;
     HelixZkClient _client;
 
-    public ExternalViewBalancedVerifier(HelixZkClient client, String clusterName, String resourceName) {
+    ExternalViewBalancedVerifier(HelixZkClient client, String clusterName, String resourceName) {
       _clusterName = clusterName;
       _resourceName = resourceName;
       _client = client;
@@ -202,19 +193,19 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     @Override
     public boolean verify() {
       HelixDataAccessor accessor =
-          new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+          new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<>(_gZkClient));
       Builder keyBuilder = accessor.keyBuilder();
-      int numberOfPartitions =
-          accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
-              .size();
+      int numberOfPartitions = accessor.getProperty(keyBuilder.idealStates(_resourceName))
+          .getRecord().getListFields().size();
       ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
       cache.refresh(accessor);
       String masterValue =
           cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
               .getStatesPriorityList().get(0);
       int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
-      return verifyBalanceExternalView(accessor.getProperty(keyBuilder.externalView(_resourceName))
-          .getRecord(), numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size(),
+      return verifyBalanceExternalView(
+          accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(),
+          numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size(),
           cache.getIdealState(_resourceName).getMaxPartitionsPerInstance());
     }
 

@@ -20,7 +20,6 @@ package org.apache.helix.store.zk;
  */
 
 import java.util.Date;
-import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.TestHelper;
@@ -33,7 +32,6 @@ import org.testng.annotations.Test;
 public class TestZkManagerWithAutoFallbackStore extends ZkUnitTestBase {
   @Test
   public void testBasic() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -84,15 +82,11 @@ public class TestZkManagerWithAutoFallbackStore extends ZkUnitTestBase {
     // update shall update new paths
     for (int i = 0; i < 10; i++) {
       String path = String.format("/%d", i);
-      store.update(path, new DataUpdater<ZNRecord>() {
-
-        @Override
-        public ZNRecord update(ZNRecord currentData) {
-          if (currentData != null) {
-            currentData.setSimpleField("key2", "value2");
-          }
-          return currentData;
+      store.update(path, currentData -> {
+        if (currentData != null) {
+          currentData.setSimpleField("key2", "value2");
         }
+        return currentData;
       }, AccessOption.PERSISTENT);
     }
 
@@ -125,7 +119,7 @@ public class TestZkManagerWithAutoFallbackStore extends ZkUnitTestBase {
     }
 
     participants[0].syncStop();
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
-
 }

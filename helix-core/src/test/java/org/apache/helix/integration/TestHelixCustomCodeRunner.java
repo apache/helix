@@ -24,10 +24,8 @@ import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -46,8 +44,6 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestHelixCustomCodeRunner.class);
 
   private final String _clusterName = "CLUSTER_" + getShortClassName();
-  private final int _nodeNb = 5;
-  private final int _startPort = 12918;
   private final MockCallback _callback = new MockCallback();
 
   class MockCallback implements CustomCodeCallbackHandler {
@@ -55,8 +51,6 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
 
     @Override
     public void onCallback(NotificationContext context) {
-      HelixManager manager = context.getManager();
-      Type type = context.getType();
       _isCallbackInvoked = true;
       // System.out.println(type + ": TestCallback invoked on " + manager.getInstanceName());
     }
@@ -83,13 +77,15 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
   public void testCustomCodeRunner() throws Exception {
     System.out.println("START " + _clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(_clusterName, ZK_ADDR, _startPort, "localhost", // participant name
-                                                                            // prefix
+    int nodeNb = 5;
+    int startPort = 12918;
+    TestHelper.setupCluster(_clusterName, ZK_ADDR, startPort, "localhost", // participant name
+                                                                           // prefix
         "TestDB", // resource name prefix
         1, // resourceNb
         5, // partitionNb
-        _nodeNb, // nodesNb
-        _nodeNb, // replica
+        nodeNb, // nodesNb
+        nodeNb, // replica
         "MasterSlave", true);
 
     ClusterControllerManager controller =
@@ -97,17 +93,16 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
     controller.syncStart();
 
     MockParticipantManager[] participants = new MockParticipantManager[5];
-    for (int i = 0; i < _nodeNb; i++) {
-      String instanceName = "localhost_" + (_startPort + i);
+    for (int i = 0; i < nodeNb; i++) {
+      String instanceName = "localhost_" + (startPort + i);
 
       participants[i] = new MockParticipantManager(ZK_ADDR, _clusterName, instanceName);
 
       registerCustomCodeRunner(participants[i]);
       participants[i].syncStart();
     }
-    boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, _clusterName));
+    boolean result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName));
     Assert.assertTrue(result);
 
     Thread.sleep(1000); // wait for the INIT type callback to finish
@@ -116,7 +111,7 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
 
     // add a new live instance
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance newLiveIns = new LiveInstance("newLiveInstance");
@@ -129,7 +124,7 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
 
     // clean up
     controller.syncStop();
-    for (int i = 0; i < _nodeNb; i++) {
+    for (int i = 0; i < nodeNb; i++) {
       participants[i].syncStop();
     }
     accessor.removeProperty(keyBuilder.liveInstance("newLiveInstance"));

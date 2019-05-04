@@ -21,7 +21,7 @@ package org.apache.helix.store.zk;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +43,7 @@ import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.helix.store.HelixPropertyListener;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
 public class TestZkHelixPropertyStore extends ZkUnitTestBase {
@@ -55,9 +56,9 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
   // final int totalNodes = firstLevelNr * secondLevelNr;
 
   class TestListener implements HelixPropertyListener {
-    Map<String, Long> _changeKeys = new HashMap<String, Long>();
-    Map<String, Long> _createKeys = new HashMap<String, Long>();
-    Map<String, Long> _deleteKeys = new HashMap<String, Long>();
+    Map<String, Long> _changeKeys = new HashMap<>();
+    Map<String, Long> _createKeys = new HashMap<>();
+    Map<String, Long> _deleteKeys = new HashMap<>();
 
     public void reset() {
       _changeKeys.clear();
@@ -67,18 +68,23 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     @Override
     public void onDataChange(String path) {
-      _changeKeys.put(path, new Long(System.currentTimeMillis()));
+      _changeKeys.put(path, System.currentTimeMillis());
     }
 
     @Override
     public void onDataCreate(String path) {
-      _createKeys.put(path, new Long(System.currentTimeMillis()));
+      _createKeys.put(path, System.currentTimeMillis());
     }
 
     @Override
     public void onDataDelete(String path) {
-      _deleteKeys.put(path, new Long(System.currentTimeMillis()));
+      _deleteKeys.put(path, System.currentTimeMillis());
     }
+  }
+
+  @AfterClass
+  public void afterClass() {
+    deleteCluster(getShortClassName());
   }
 
   @Test
@@ -88,11 +94,10 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     System.out.println("START testSet() at " + new Date(System.currentTimeMillis()));
 
     String subRoot = _root + "/" + "set";
-    List<String> subscribedPaths = new ArrayList<String>();
+    List<String> subscribedPaths = new ArrayList<>();
     subscribedPaths.add(subRoot);
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient), subRoot,
-            subscribedPaths);
+        new ZkHelixPropertyStore<>(new ZkBaseDataAccessor<>(_gZkClient), subRoot, subscribedPaths);
 
     // test set
     setNodes(store, 'a', false);
@@ -114,8 +119,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     long endT = System.currentTimeMillis();
     System.out.println("1000 Get() time used: " + (endT - startT) + "ms");
     long latency = endT - startT;
-    Assert.assertTrue(latency < 200, "1000 Gets should be finished within 200ms, but was "
-        + latency + " ms");
+    Assert.assertTrue(latency < 200,
+        "1000 Gets should be finished within 200ms, but was " + latency + " ms");
 
     store.stop();
     System.out.println("END testSet() at " + new Date(System.currentTimeMillis()));
@@ -125,8 +130,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
   public void testSetInvalidPath() {
     String subRoot = _root + "/" + "setInvalidPath";
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient), subRoot,
-            null);
+        new ZkHelixPropertyStore<>(new ZkBaseDataAccessor<>(_gZkClient), subRoot, null);
     try {
       store.set("abc/xyz", new ZNRecord("testInvalid"), AccessOption.PERSISTENT);
       Assert.fail("Should throw illegal-argument-exception since path doesn't start with /");
@@ -140,15 +144,14 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
   @Test
   public void testLocalTriggeredCallback() throws Exception {
-    System.out.println("START testLocalTriggeredCallback() at "
-        + new Date(System.currentTimeMillis()));
+    System.out
+        .println("START testLocalTriggeredCallback() at " + new Date(System.currentTimeMillis()));
 
     String subRoot = _root + "/" + "localCallback";
-    List<String> subscribedPaths = new ArrayList<String>();
+    List<String> subscribedPaths = new ArrayList<>();
     subscribedPaths.add(subRoot);
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient), subRoot,
-            subscribedPaths);
+        new ZkHelixPropertyStore<>(new ZkBaseDataAccessor<>(_gZkClient), subRoot, subscribedPaths);
 
     // change nodes via property store interface
     // and verify all notifications have been received
@@ -164,8 +167,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     int expectCreateNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
-    Assert.assertTrue(listener._createKeys.size() == expectCreateNodes, "Should receive "
-        + expectCreateNodes + " create callbacks");
+    Assert.assertEquals(expectCreateNodes, listener._createKeys.size(),
+        "Should receive " + expectCreateNodes + " create callbacks");
 
     // test dataChange callbacks
     listener.reset();
@@ -176,8 +179,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     int expectChangeNodes = firstLevelNr * secondLevelNr;
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
-    Assert.assertTrue(listener._changeKeys.size() >= expectChangeNodes, "Should receive at least "
-        + expectChangeNodes + " change callbacks");
+    Assert.assertTrue(listener._changeKeys.size() >= expectChangeNodes,
+        "Should receive at least " + expectChangeNodes + " change callbacks");
 
     // test delete callbacks
     listener.reset();
@@ -192,12 +195,12 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
-    Assert.assertTrue(listener._deleteKeys.size() == expectDeleteNodes, "Should receive "
-        + expectDeleteNodes + " delete callbacks");
+    Assert.assertEquals(expectDeleteNodes, listener._deleteKeys.size(),
+        "Should receive " + expectDeleteNodes + " delete callbacks");
 
     store.stop();
-    System.out.println("END testLocalTriggeredCallback() at "
-        + new Date(System.currentTimeMillis()));
+    System.out
+        .println("END testLocalTriggeredCallback() at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -206,10 +209,9 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
         .println("START testZkTriggeredCallback() at " + new Date(System.currentTimeMillis()));
 
     String subRoot = _root + "/" + "zkCallback";
-    List<String> subscribedPaths = Arrays.asList(subRoot);
+    List<String> subscribedPaths = Collections.singletonList(subRoot);
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient), subRoot,
-            subscribedPaths);
+        new ZkHelixPropertyStore<>(new ZkBaseDataAccessor<>(_gZkClient), subRoot, subscribedPaths);
 
     // change nodes via property store interface
     // and verify all notifications have been received
@@ -224,8 +226,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
-    Assert.assertTrue(listener._createKeys.size() == expectCreateNodes, "Should receive "
-        + expectCreateNodes + " create callbacks");
+    Assert.assertEquals(expectCreateNodes, listener._createKeys.size(),
+        "Should receive " + expectCreateNodes + " create callbacks");
 
     // test change callbacks
     listener.reset();
@@ -239,8 +241,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
-    Assert.assertTrue(listener._changeKeys.size() >= expectChangeNodes, "Should receive at least "
-        + expectChangeNodes + " change callbacks");
+    Assert.assertTrue(listener._changeKeys.size() >= expectChangeNodes,
+        "Should receive at least " + expectChangeNodes + " change callbacks");
 
     // test delete callbacks
     listener.reset();
@@ -250,8 +252,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
-    Assert.assertTrue(listener._deleteKeys.size() == expectDeleteNodes, "Should receive "
-        + expectDeleteNodes + " delete callbacks");
+    Assert.assertEquals(expectDeleteNodes, listener._deleteKeys.size(),
+        "Should receive " + expectDeleteNodes + " delete callbacks");
 
     store.stop();
     System.out.println("END testZkTriggeredCallback() at " + new Date(System.currentTimeMillis()));
@@ -259,15 +261,14 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
   @Test
   public void testBackToBackRemoveAndSet() throws Exception {
-    System.out.println("START testBackToBackRemoveAndSet() at "
-        + new Date(System.currentTimeMillis()));
+    System.out
+        .println("START testBackToBackRemoveAndSet() at " + new Date(System.currentTimeMillis()));
 
     String subRoot = _root + "/" + "backToBackRemoveAndSet";
-    List<String> subscribedPaths = new ArrayList<String>();
+    List<String> subscribedPaths = new ArrayList<>();
     subscribedPaths.add(subRoot);
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient), subRoot,
-            subscribedPaths);
+        new ZkHelixPropertyStore<>(new ZkBaseDataAccessor<>(_gZkClient), subRoot, subscribedPaths);
 
     store.set("/child0", new ZNRecord("child0"), AccessOption.PERSISTENT);
 
@@ -283,8 +284,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     Thread.sleep(500); // should wait for zk callback to add "/child0" into cache
     record = store.get("/child0", null, 0);
-    Assert
-        .assertEquals(record.getId(), "child0-new-1", "Cache shoulde be updated to latest create");
+    Assert.assertEquals(record.getId(), "child0-new-1",
+        "Cache shoulde be updated to latest create");
     // System.out.println("2:get:" + record);
 
     _gZkClient.delete(child0Path);
@@ -298,8 +299,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     // System.out.println("3:get:" + record);
 
     store.stop();
-    System.out.println("END testBackToBackRemoveAndSet() at "
-        + new Date(System.currentTimeMillis()));
+    System.out
+        .println("END testBackToBackRemoveAndSet() at " + new Date(System.currentTimeMillis()));
   }
 
   private String getNodeId(int i, int j) {
@@ -321,7 +322,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
       data[i] = c;
     }
 
-    Map<String, String> map = new TreeMap<String, String>();
+    Map<String, String> map = new TreeMap<>();
     for (int i = 0; i < mapNr; i++) {
       map.put("key_" + i, new String(data));
     }
@@ -348,7 +349,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
       data[i] = c;
     }
 
-    Map<String, String> map = new TreeMap<String, String>();
+    Map<String, String> map = new TreeMap<>();
     for (int i = 0; i < mapNr; i++) {
       map.put("key_" + i, new String(data));
     }
@@ -380,12 +381,11 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     final String TEST_ROOT = "/test_root";
 
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(ZK_ADDR, new SerializableSerializer(), TEST_ROOT);
+        new ZkHelixPropertyStore<>(ZK_ADDR, new SerializableSerializer(), TEST_ROOT);
 
-    ObjectName name = MBeanRegistrar
-        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
-            ZkHelixPropertyStore.MONITOR_TYPE, ZkClientMonitor.MONITOR_KEY, TEST_ROOT,
-            ZkClientPathMonitor.MONITOR_PATH, "Root");
+    ObjectName name = MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixZkClient.name(),
+        ZkClientMonitor.MONITOR_TYPE, ZkHelixPropertyStore.MONITOR_TYPE,
+        ZkClientMonitor.MONITOR_KEY, TEST_ROOT, ZkClientPathMonitor.MONITOR_PATH, "Root");
     MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
     Assert.assertTrue(beanServer.isRegistered(name));
 

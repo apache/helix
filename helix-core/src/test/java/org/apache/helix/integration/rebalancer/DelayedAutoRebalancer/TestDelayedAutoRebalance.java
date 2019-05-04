@@ -54,7 +54,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   protected ClusterControllerManager _controller;
 
-  List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
+  List<MockParticipantManager> _participants = new ArrayList<>();
   int _replica = 3;
   int _minActiveReplica = _replica - 1;
   ZkHelixClusterVerifier _clusterVerifier;
@@ -320,8 +320,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    /**
-     * shutdown order: 1) disconnect the controller 2) disconnect participants
+    /*
+      shutdown order: 1) disconnect the controller 2) disconnect participants
      */
     _controller.syncStop();
     for (MockParticipantManager participant : _participants) {

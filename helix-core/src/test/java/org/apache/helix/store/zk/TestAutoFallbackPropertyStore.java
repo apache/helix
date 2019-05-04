@@ -34,11 +34,10 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
-
   class MyDataUpdater implements DataUpdater<ZNRecord> {
     final String _id;
 
-    public MyDataUpdater(String id) {
+    MyDataUpdater(String id) {
       _id = id;
     }
 
@@ -62,7 +61,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     // create 0 under fallbackRoot
     for (int i = 0; i < 1; i++) {
@@ -71,7 +70,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
     String path = String.format("/%d", 0);
     Assert.assertFalse(baseAccessor.exists(String.format("%s%s", root, path), 0),
@@ -95,6 +94,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     Assert.assertNotNull(record.getSimpleField("key"));
     Assert.assertEquals(record.getSimpleField("key"), "value");
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -107,7 +107,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     // create 0 under both fallbackRoot and root
     for (int i = 0; i < 1; i++) {
@@ -119,7 +119,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
     String path = String.format("/%d", 0);
     Assert.assertTrue(baseAccessor.exists(String.format("%s%s", root, path), 0),
@@ -141,6 +141,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     Assert.assertNotNull(record.getSimpleField("key"));
     Assert.assertEquals(record.getSimpleField("key"), "value");
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -153,7 +154,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     // create 0-9 under fallbackRoot
     for (int i = 0; i < 10; i++) {
@@ -162,10 +163,10 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
-    List<String> paths = new ArrayList<String>();
-    List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
+    List<String> paths = new ArrayList<>();
+    List<DataUpdater<ZNRecord>> updaters = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       String path = String.format("/%d", i);
       Assert.assertFalse(baseAccessor.exists(String.format("%s%s", root, path), 0),
@@ -176,7 +177,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
       updaters.add(new MyDataUpdater("new" + i));
     }
 
-    boolean succeed[] = store.updateChildren(paths, updaters, AccessOption.PERSISTENT);
+    boolean[] succeed = store.updateChildren(paths, updaters, AccessOption.PERSISTENT);
     for (int i = 0; i < 10; i++) {
       Assert.assertTrue(succeed[i]);
       String path = paths.get(i);
@@ -195,6 +196,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
       Assert.assertEquals(record.getSimpleField("key"), "value");
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -207,7 +209,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     // create 0-9 under both fallbackRoot and new root
     for (int i = 0; i < 10; i++) {
@@ -219,10 +221,10 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
-    List<String> paths = new ArrayList<String>();
-    List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
+    List<String> paths = new ArrayList<>();
+    List<DataUpdater<ZNRecord>> updaters = new ArrayList<>();
     for (int i = 0; i < 20; i++) {
       String path = String.format("/%d", i);
       if (i < 10) {
@@ -240,35 +242,28 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
       updaters.add(new MyDataUpdater("new" + i));
     }
 
-    boolean succeed[] = store.updateChildren(paths, updaters, AccessOption.PERSISTENT);
+    boolean[] succeed = store.updateChildren(paths, updaters, AccessOption.PERSISTENT);
     for (int i = 0; i < 10; i++) {
       Assert.assertTrue(succeed[i]);
       String path = paths.get(i);
 
       // fallback path should remain unchanged
-      if (i < 10) {
+      {
         ZNRecord record = baseAccessor.get(String.format("%s%s", fallbackRoot, path), null, 0);
         Assert.assertNotNull(record);
         Assert.assertEquals(record.getId(), "" + i);
         Assert.assertNull(record.getSimpleField("key"));
-      } else {
-        Assert.assertFalse(baseAccessor.exists(String.format("%s%s", fallbackRoot, path), 0),
-            "Should not exist under fallback location");
       }
 
       // new path should have simple field set
       ZNRecord record = baseAccessor.get(String.format("%s%s", root, path), null, 0);
       Assert.assertNotNull(record);
       Assert.assertEquals(record.getId(), "new" + i);
-      if (i < 10) {
-        Assert.assertNotNull(record.getSimpleField("key"));
-        Assert.assertEquals(record.getSimpleField("key"), "value");
-      } else {
-        Assert.assertNull(record.getSimpleField("key"));
-      }
-
+      Assert.assertNotNull(record.getSimpleField("key"));
+      Assert.assertEquals(record.getSimpleField("key"), "value");
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -281,7 +276,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     // create 0 under fallbackRoot
     for (int i = 0; i < 1; i++) {
@@ -290,7 +285,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
     String path = String.format("/%d", 0);
     Assert.assertFalse(baseAccessor.exists(String.format("%s%s", root, path), 0),
@@ -309,6 +304,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     Assert.assertNotNull(record);
     Assert.assertEquals(record.getId(), "new0");
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -321,7 +317,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     // create 0-9 under fallbackRoot
     for (int i = 0; i < 10; i++) {
@@ -330,10 +326,10 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
-    List<String> paths = new ArrayList<String>();
-    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    List<String> paths = new ArrayList<>();
+    List<ZNRecord> records = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       String path = String.format("/%d", i);
       Assert.assertFalse(baseAccessor.exists(String.format("%s%s", root, path), 0),
@@ -345,7 +341,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
       records.add(record);
     }
 
-    boolean succeed[] = store.setChildren(paths, records, AccessOption.PERSISTENT);
+    boolean[] succeed = store.setChildren(paths, records, AccessOption.PERSISTENT);
     for (int i = 0; i < 10; i++) {
       Assert.assertTrue(succeed[i]);
       String path = String.format("/%d", i);
@@ -358,6 +354,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
       Assert.assertEquals(record.getId(), "new" + i);
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -370,7 +367,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     // create 0 under fallbackRoot
     for (int i = 0; i < 1; i++) {
@@ -379,7 +376,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
     String path = String.format("/%d", 0);
     Assert.assertFalse(baseAccessor.exists(String.format("%s%s", root, path), 0),
@@ -402,8 +399,8 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     Assert.assertFalse(baseAccessor.exists(String.format("%s%s", root, path), 0),
         "Should not exist under new location after get");
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test
@@ -415,7 +412,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     // create 0-9 under fallbackRoot
     for (int i = 0; i < 10; i++) {
@@ -424,9 +421,9 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
-    List<String> paths = new ArrayList<String>();
+    List<String> paths = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       String path = String.format("/%d", i);
       Assert.assertFalse(baseAccessor.exists(String.format("%s%s", root, path), 0),
@@ -437,13 +434,13 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     // test multi-exist
-    boolean exists[] = store.exists(paths, 0);
+    boolean[] exists = store.exists(paths, 0);
     for (int i = 0; i < paths.size(); i++) {
       Assert.assertTrue(exists[i]);
     }
 
     // test multi-getStat
-    Stat stats[] = store.getStats(paths, 0);
+    Stat[] stats = store.getStats(paths, 0);
     for (int i = 0; i < paths.size(); i++) {
       Assert.assertNotNull(stats[i]);
     }
@@ -461,6 +458,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
           "Should not exist under new location after get");
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -473,10 +471,10 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
     String path = String.format("/%d", 0);
     Assert.assertFalse(baseAccessor.exists(String.format("%s%s", root, path), 0),
@@ -496,6 +494,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     ZNRecord record = store.get(path, null, 0);
     Assert.assertNull(record);
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -508,7 +507,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     // create 0-9 under fallbackRoot
     for (int i = 0; i < 10; i++) {
@@ -517,9 +516,9 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
-    List<String> paths = new ArrayList<String>();
+    List<String> paths = new ArrayList<>();
     for (int i = 0; i < 20; i++) {
       String path = String.format("/%d", i);
       Assert.assertFalse(baseAccessor.exists(String.format("%s%s", root, path), 0),
@@ -535,7 +534,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     // test multi-exist
-    boolean exists[] = store.exists(paths, 0);
+    boolean[] exists = store.exists(paths, 0);
     for (int i = 0; i < paths.size(); i++) {
       if (i < 10) {
         Assert.assertTrue(exists[i]);
@@ -545,7 +544,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     // test multi-getStat
-    Stat stats[] = store.getStats(paths, 0);
+    Stat[] stats = store.getStats(paths, 0);
     for (int i = 0; i < paths.size(); i++) {
       if (i < 10) {
         Assert.assertNotNull(stats[i]);
@@ -571,6 +570,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
           "Should not exist under new location after get");
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -583,7 +583,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     // create 0-9 under fallbackRoot and 10-19 under root
     for (int i = 0; i < 20; i++) {
@@ -598,9 +598,9 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     AutoFallbackPropertyStore<ZNRecord> store =
-        new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
+        new AutoFallbackPropertyStore<>(baseAccessor, root, fallbackRoot);
 
-    List<String> paths = new ArrayList<String>();
+    List<String> paths = new ArrayList<>();
     for (int i = 0; i < 20; i++) {
       String path = String.format("/%d", i);
       if (i < 10) {
@@ -637,6 +637,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
       Assert.assertTrue(childs.contains(id));
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

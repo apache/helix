@@ -1,5 +1,24 @@
 package org.apache.helix.integration.task;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -14,10 +33,9 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
-public class TestDeleteWorkflow extends TaskTestBase  {
+public class TestDeleteWorkflow extends TaskTestBase {
   private static final int DELETE_DELAY = 2000;
-
+  private static final long FORCE_DELETE_BACKOFF = 200L;
   private HelixAdmin admin;
 
   @BeforeClass
@@ -31,17 +49,17 @@ public class TestDeleteWorkflow extends TaskTestBase  {
   public void testDeleteWorkflow() throws InterruptedException {
     String jobQueueName = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setMaxAttemptsPerTask(1)
-        .setWorkflow(jobQueueName)
+        .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "100000"));
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
     jobQueue.enqueueJob("job1", jobBuilder);
     _driver.start(jobQueue.build());
-    _driver.pollForJobState(jobQueueName,
-        TaskUtil.getNamespacedJobName(jobQueueName, "job1"), TaskState.IN_PROGRESS);
+    _driver.pollForJobState(jobQueueName, TaskUtil.getNamespacedJobName(jobQueueName, "job1"),
+        TaskState.IN_PROGRESS);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this job queue
+    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this job
+    // queue
     Assert.assertNotNull(_driver.getWorkflowConfig(jobQueueName));
     Assert.assertNotNull(_driver.getWorkflowContext(jobQueueName));
     Assert.assertNotNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
@@ -52,7 +70,8 @@ public class TestDeleteWorkflow extends TaskTestBase  {
     // Attempt the deletion and time out
     try {
       _driver.deleteAndWaitForCompletion(jobQueueName, DELETE_DELAY);
-      Assert.fail("Delete must time out and throw a HelixException with the Controller paused, but did not!");
+      Assert.fail(
+          "Delete must time out and throw a HelixException with the Controller paused, but did not!");
     } catch (HelixException e) {
       // Pass
     }
@@ -71,8 +90,7 @@ public class TestDeleteWorkflow extends TaskTestBase  {
   public void testDeleteWorkflowForcefully() throws InterruptedException {
     String jobQueueName = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setMaxAttemptsPerTask(1)
-        .setWorkflow(jobQueueName)
+        .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000000"));
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
@@ -81,11 +99,13 @@ public class TestDeleteWorkflow extends TaskTestBase  {
     _driver.pollForJobState(jobQueueName, TaskUtil.getNamespacedJobName(jobQueueName, "job1"),
         TaskState.IN_PROGRESS);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this job queue
+    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this job
+    // queue
     Assert.assertNotNull(_driver.getWorkflowConfig(jobQueueName));
     Assert.assertNotNull(_driver.getWorkflowContext(jobQueueName));
     Assert.assertNotNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
-    Assert.assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
+    Assert
+        .assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
     Assert.assertNotNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
 
     // Delete the idealstate of workflow
@@ -97,7 +117,8 @@ public class TestDeleteWorkflow extends TaskTestBase  {
     // Attempt the deletion and and it should time out since idealstate does not exist anymore.
     try {
       _driver.deleteAndWaitForCompletion(jobQueueName, DELETE_DELAY);
-      Assert.fail("Delete must time out and throw a HelixException with the Controller paused, but did not!");
+      Assert.fail(
+          "Delete must time out and throw a HelixException with the Controller paused, but did not!");
     } catch (HelixException e) {
       // Pass
     }
@@ -116,8 +137,7 @@ public class TestDeleteWorkflow extends TaskTestBase  {
   public void testDeleteHangingJobs() throws InterruptedException {
     String jobQueueName = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setMaxAttemptsPerTask(1)
-        .setWorkflow(jobQueueName)
+        .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000000"));
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
@@ -126,11 +146,13 @@ public class TestDeleteWorkflow extends TaskTestBase  {
     _driver.pollForJobState(jobQueueName, TaskUtil.getNamespacedJobName(jobQueueName, "job1"),
         TaskState.IN_PROGRESS);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this job queue
+    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this job
+    // queue
     Assert.assertNotNull(_driver.getWorkflowConfig(jobQueueName));
     Assert.assertNotNull(_driver.getWorkflowContext(jobQueueName));
     Assert.assertNotNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
-    Assert.assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
+    Assert
+        .assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
     Assert.assertNotNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
 
     // Delete the idealstate, workflowconfig and context of workflow
@@ -153,7 +175,7 @@ public class TestDeleteWorkflow extends TaskTestBase  {
     Assert.assertNull(_driver.getWorkflowConfig(jobQueueName));
     Assert.assertNull(_driver.getWorkflowContext(jobQueueName));
 
-    // attemp to delete the job and it should fail with exception.
+    // Attempt to delete the job and it should fail with exception.
     try {
       _driver.deleteJob(jobQueueName, "job1");
       Assert.fail("Delete must be rejected and throw a HelixException, but did not!");
@@ -161,12 +183,20 @@ public class TestDeleteWorkflow extends TaskTestBase  {
       // Pass
     }
 
-    // delete forcefully
-    _driver.deleteJob(jobQueueName, "job1", true);
+    // delete forcefully a few times with a backoff (the controller may write back the ZNodes
+    // because force delete does not remove the job from the cache)
+    for (int i = 0; i < 3; i++) {
+      try {
+        _driver.deleteJob(jobQueueName, "job1", true);
+      } catch (Exception e) {
+        // Multiple delete calls are okay
+      }
+      Thread.sleep(FORCE_DELETE_BACKOFF);
+    }
 
     Assert.assertNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
     Assert.assertNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
-    Assert.assertNull(admin
-        .getResourceIdealState(CLUSTER_NAME, TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
+    Assert.assertNull(admin.getResourceIdealState(CLUSTER_NAME,
+        TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
   }
 }

@@ -24,31 +24,27 @@ import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestAddClusterV2 extends ZkTestBase {
-  private static Logger LOG = LoggerFactory.getLogger(TestAddClusterV2.class);
-
-  protected static final int CLUSTER_NR = 10;
+  private static final int CLUSTER_NR = 10;
   protected static final int NODE_NR = 5;
   protected static final int START_PORT = 12918;
   protected static final String STATE_MODEL = "MasterSlave";
 
   protected final String CLASS_NAME = getShortClassName();
-  protected final String CONTROLLER_CLUSTER = CONTROLLER_CLUSTER_PREFIX + "_" + CLASS_NAME;
+  private final String CONTROLLER_CLUSTER = CONTROLLER_CLUSTER_PREFIX + "_" + CLASS_NAME;
 
   protected static final String TEST_DB = "TestDB";
 
   MockParticipantManager[] _participants = new MockParticipantManager[NODE_NR];
-  ClusterDistributedController[] _distControllers = new ClusterDistributedController[NODE_NR];
+  private ClusterDistributedController[] _distControllers =
+      new ClusterDistributedController[NODE_NR];
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -128,7 +124,7 @@ public class TestAddClusterV2 extends ZkTestBase {
       String clusterName = CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
       deleteCluster(clusterName);
     }
-
+    deleteCluster(CONTROLLER_CLUSTER);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -136,7 +132,7 @@ public class TestAddClusterV2 extends ZkTestBase {
    * verify the external view (against the best possible state)
    * in the controller cluster and the first cluster
    */
-  protected void verifyClusters() {
+  private void verifyClusters() {
     ZkHelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CONTROLLER_CLUSTER).setZkClient(_gZkClient)
             .build();

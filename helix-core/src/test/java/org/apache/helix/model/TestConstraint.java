@@ -39,7 +39,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestConstraint extends ZkUnitTestBase {
-  private static Logger LOG = LoggerFactory.getLogger(TestConstraint.class);
 
   @Test
   public void testMsgConstraint() {
@@ -231,6 +230,7 @@ public class TestConstraint extends ZkUnitTestBase {
     // Assert.assertTrue(contains(matches, constraint0));
     // Assert.assertTrue(contains(matches, constraint2));
 
+    deleteCluster(clusterName);
     System.out.println("END testStateConstraint() at " + new Date(System.currentTimeMillis()));
   }
 

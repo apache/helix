@@ -50,7 +50,7 @@ public class TestSessionExpiryInTransition extends ZkTestBase {
       String partition = message.getPartitionName();
       if (instance.equals("localhost_12918") && partition.equals("TestDB0_1") // TestDB0_1 is SLAVE
                                                                               // on localhost_12918
-          && _done.getAndSet(true) == false) {
+          && !_done.getAndSet(true)) {
         try {
           ZkTestHelper.expireSession(manager.getZkClient());
         } catch (Exception e) {
@@ -62,8 +62,6 @@ public class TestSessionExpiryInTransition extends ZkTestBase {
 
   @Test
   public void testSessionExpiryInTransition() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.WARN);
-
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
@@ -94,9 +92,8 @@ public class TestSessionExpiryInTransition extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+    boolean result = ClusterStateVerifier
+        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // clean up
@@ -105,7 +102,7 @@ public class TestSessionExpiryInTransition extends ZkTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 }

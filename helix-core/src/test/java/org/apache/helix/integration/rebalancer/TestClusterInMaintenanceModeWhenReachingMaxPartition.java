@@ -39,7 +39,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTestBase {
-  final int NUM_NODE = 5;
+  private final int NUM_NODE = 5;
   protected static final int START_PORT = 12918;
   protected static final int _PARTITIONS = 5;
 
@@ -47,11 +47,10 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   protected ClusterControllerManager _controller;
 
-  List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
-  int _replica = 3;
-  ZkHelixClusterVerifier _clusterVerifier;
-  List<String> _testDBs = new ArrayList<String>();
-  HelixDataAccessor _dataAccessor;
+  private List<MockParticipantManager> _participants = new ArrayList<>();
+  private ZkHelixClusterVerifier _clusterVerifier;
+  private List<String> _testDBs = new ArrayList<>();
+  private HelixDataAccessor _dataAccessor;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -82,7 +81,7 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
     _dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
   }
 
-  protected String[] TestStateModels = {
+  private String[] TestStateModels = {
       BuiltInStateModelDefinitions.MasterSlave.name(),
       BuiltInStateModelDefinitions.OnlineOffline.name(),
       BuiltInStateModelDefinitions.LeaderStandby.name()
@@ -98,14 +97,16 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
     int i = 0;
     for (String stateModel : TestStateModels) {
       String db = "Test-DB-" + i++;
-      createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
-          _replica, -1);
+      int replica = 3;
+      createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, replica,
+          replica, -1);
       _testDBs.add(db);
     }
     Thread.sleep(100L);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    MaintenanceSignal maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+    MaintenanceSignal maintenanceSignal =
+        _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
     Assert.assertNull(maintenanceSignal);
 
     for (i = 2; i < NUM_NODE; i++) {
@@ -120,14 +121,12 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
 
   @AfterClass
   public void afterClass() throws Exception {
-    /**
+    /*
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */
     _controller.syncStop();
     for (MockParticipantManager participant : _participants) {
-      if (participant.isConnected()) {
-        participant.syncStop();
-      }
+      participant.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));

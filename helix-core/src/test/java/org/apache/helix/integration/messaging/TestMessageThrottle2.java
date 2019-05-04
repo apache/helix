@@ -24,8 +24,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixAdmin;
@@ -65,106 +67,107 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-// test case from Ming Fang
 public class TestMessageThrottle2 extends ZkTestBase {
-  final static String clusterName = "TestMessageThrottle2";
-  final static String resourceName = "MyResource";
+  private final static String _clusterName = "TestMessageThrottle2";
+  private final static String _resourceName = "MyResource";
+  private HelixManager _helixController;
 
   @Test
   public void test() throws Exception {
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + _clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    // Keep mock participant references so that they could be shut down after testing
+    Set<MyProcess> participants = new HashSet<>();
 
     startAdmin();
     startController();
 
     // start node2 first
-    Node.main(new String[] {
-      "2"
-    });
+    participants.add(Node.main(new String[] {
+        "2"
+    }));
 
     // wait for node2 becoming MASTER
-    final Builder keyBuilder = new Builder(clusterName);
+    final Builder keyBuilder = new Builder(_clusterName);
     final HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    TestHelper.verify(new TestHelper.Verifier() {
+        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    TestHelper.verify(() -> {
+      ExternalView view = accessor.getProperty(keyBuilder.externalView(_resourceName));
+      String state = null;
 
-      @Override
-      public boolean verify() throws Exception {
-        ExternalView view = accessor.getProperty(keyBuilder.externalView(resourceName));
-        String state = null;
-
-        if (view != null) {
-          Map<String, String> map = view.getStateMap(resourceName);
-          if (map != null) {
-            state = map.get("node2");
-          }
+      if (view != null) {
+        Map<String, String> map = view.getStateMap(_resourceName);
+        if (map != null) {
+          state = map.get("node2");
         }
-        return state != null && state.equals("MASTER");
       }
+      return state != null && state.equals("MASTER");
     }, 10 * 1000);
 
     // start node 1
-    Node.main(new String[] {
-      "1"
-    });
+    participants.add(Node.main(new String[] {
+        "1"
+    }));
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+    boolean result = ClusterStateVerifier
+        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName));
     Assert.assertTrue(result);
 
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    // Clean up after testing
+    _helixController.disconnect();
+    participants.forEach(MyProcess::stop);
+    deleteCluster(_clusterName);
+    System.out.println("END " + _clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  void startController() throws Exception {
-    // start helixController
+  private void startController() throws Exception {
+    // start _helixController
     System.out.println(String.format("Starting Controller{Cluster:%s, Port:%s, Zookeeper:%s}",
-        clusterName, 12000, ZK_ADDR));
-    HelixManager helixController =
-        HelixControllerMain.startHelixController(ZK_ADDR, clusterName, "localhost_" + 12000,
-            HelixControllerMain.STANDALONE);
+        _clusterName, 12000, ZK_ADDR));
+    _helixController = HelixControllerMain.startHelixController(ZK_ADDR, _clusterName,
+        "localhost_" + 12000, HelixControllerMain.STANDALONE);
 
-    StatusPrinter statusPrinter = new StatusPrinter();
-    statusPrinter.registerWith(helixController);
+    // StatusPrinter statusPrinter = new StatusPrinter();
+    // statusPrinter.registerWith(_helixController);
   }
 
-  void startAdmin() throws Exception {
+  private void startAdmin() {
     HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
 
     // create cluster
-    System.out.println("Creating cluster: " + clusterName);
-    admin.addCluster(clusterName, true);
+    System.out.println("Creating cluster: " + _clusterName);
+    admin.addCluster(_clusterName, true);
 
     // add MasterSlave state mode definition
-    admin.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
-        generateConfigForMasterSlave()));
+    admin.addStateModelDef(_clusterName, "MasterSlave",
+        new StateModelDefinition(generateConfigForMasterSlave()));
 
     // ideal-state znrecord
-    ZNRecord record = new ZNRecord(resourceName);
+    ZNRecord record = new ZNRecord(_resourceName);
     record.setSimpleField("IDEAL_STATE_MODE", "AUTO");
     record.setSimpleField("NUM_PARTITIONS", "1");
     record.setSimpleField("REPLICAS", "2");
     record.setSimpleField("STATE_MODEL_DEF_REF", "MasterSlave");
-    record.setListField(resourceName, Arrays.asList("node1", "node2"));
+    record.setListField(_resourceName, Arrays.asList("node1", "node2"));
 
-    admin.setResourceIdealState(clusterName, resourceName, new IdealState(record));
+    admin.setResourceIdealState(_clusterName, _resourceName, new IdealState(record));
 
     ConstraintItemBuilder builder = new ConstraintItemBuilder();
 
     // limit one transition message at a time across the entire cluster
     builder.addConstraintAttribute("MESSAGE_TYPE", "STATE_TRANSITION")
-    // .addConstraintAttribute("INSTANCE", ".*") // un-comment this line if using instance-level
-    // constraint
+        // .addConstraintAttribute("INSTANCE", ".*") // un-comment this line if using instance-level
+        // constraint
         .addConstraintAttribute("CONSTRAINT_VALUE", "1");
-    admin.setConstraint(clusterName, ClusterConstraints.ConstraintType.MESSAGE_CONSTRAINT,
+    admin.setConstraint(_clusterName, ClusterConstraints.ConstraintType.MESSAGE_CONSTRAINT,
         "constraint1", builder.build());
   }
 
-  ZNRecord generateConfigForMasterSlave() {
+  private ZNRecord generateConfigForMasterSlave() {
     ZNRecord record = new ZNRecord("MasterSlave");
     record.setSimpleField(
         StateModelDefinition.StateModelDefinitionProperty.INITIAL_STATE.toString(), "OFFLINE");
-    List<String> statePriorityList = new ArrayList<String>();
+    List<String> statePriorityList = new ArrayList<>();
     statePriorityList.add("MASTER");
     statePriorityList.add("SLAVE");
     statePriorityList.add("OFFLINE");
@@ -175,53 +178,62 @@ public class TestMessageThrottle2 extends ZkTestBase {
         statePriorityList);
     for (String state : statePriorityList) {
       String key = state + ".meta";
-      Map<String, String> metadata = new HashMap<String, String>();
-      if (state.equals("MASTER")) {
+      Map<String, String> metadata = new HashMap<>();
+      switch (state) {
+      case "MASTER":
         metadata.put("count", "1");
         record.setMapField(key, metadata);
-      } else if (state.equals("SLAVE")) {
+        break;
+      case "SLAVE":
         metadata.put("count", "R");
         record.setMapField(key, metadata);
-      } else if (state.equals("OFFLINE")) {
+        break;
+      case "OFFLINE":
+      case "DROPPED":
+      case "ERROR":
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
-      } else if (state.equals("DROPPED")) {
-        metadata.put("count", "-1");
-        record.setMapField(key, metadata);
-      } else if (state.equals("ERROR")) {
-        metadata.put("count", "-1");
-        record.setMapField(key, metadata);
+        break;
       }
     }
     for (String state : statePriorityList) {
       String key = state + ".next";
-      if (state.equals("MASTER")) {
-        Map<String, String> metadata = new HashMap<String, String>();
+      switch (state) {
+      case "MASTER": {
+        Map<String, String> metadata = new HashMap<>();
         metadata.put("SLAVE", "SLAVE");
         metadata.put("OFFLINE", "SLAVE");
         metadata.put("DROPPED", "SLAVE");
         record.setMapField(key, metadata);
-      } else if (state.equals("SLAVE")) {
-        Map<String, String> metadata = new HashMap<String, String>();
+        break;
+      }
+      case "SLAVE": {
+        Map<String, String> metadata = new HashMap<>();
         metadata.put("MASTER", "MASTER");
         metadata.put("OFFLINE", "OFFLINE");
         metadata.put("DROPPED", "OFFLINE");
         record.setMapField(key, metadata);
-      } else if (state.equals("OFFLINE")) {
-        Map<String, String> metadata = new HashMap<String, String>();
+        break;
+      }
+      case "OFFLINE": {
+        Map<String, String> metadata = new HashMap<>();
         metadata.put("SLAVE", "SLAVE");
         metadata.put("MASTER", "SLAVE");
         metadata.put("DROPPED", "DROPPED");
         record.setMapField(key, metadata);
-      } else if (state.equals("ERROR")) {
-        Map<String, String> metadata = new HashMap<String, String>();
+        break;
+      }
+      case "ERROR": {
+        Map<String, String> metadata = new HashMap<>();
         metadata.put("OFFLINE", "OFFLINE");
         record.setMapField(key, metadata);
+        break;
+      }
       }
     }
 
     // change the transition priority list
-    List<String> stateTransitionPriorityList = new ArrayList<String>();
+    List<String> stateTransitionPriorityList = new ArrayList<>();
     stateTransitionPriorityList.add("SLAVE-MASTER");
     stateTransitionPriorityList.add("OFFLINE-SLAVE");
     stateTransitionPriorityList.add("MASTER-SLAVE");
@@ -231,38 +243,36 @@ public class TestMessageThrottle2 extends ZkTestBase {
         StateModelDefinition.StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
         stateTransitionPriorityList);
     return record;
-    // ZNRecordSerializer serializer = new ZNRecordSerializer();
-    // System.out.println(new String(serializer.serialize(record)));
   }
 
   static final class MyProcess {
-    private final String instanceName;
-    private HelixManager helixManager;
+    private final String _instanceName;
+    private HelixManager _helixManager;
 
     public MyProcess(String instanceName) {
-      this.instanceName = instanceName;
+      this._instanceName = instanceName;
     }
 
     public void start() throws Exception {
-      helixManager =
-          new ZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR);
+      _helixManager =
+          new ZKHelixManager(_clusterName, _instanceName, InstanceType.PARTICIPANT, ZK_ADDR);
       {
         // hack to set sessionTimeout
         Field sessionTimeout = ZKHelixManager.class.getDeclaredField("_sessionTimeout");
         sessionTimeout.setAccessible(true);
-        sessionTimeout.setInt(helixManager, 1000);
+        sessionTimeout.setInt(_helixManager, 1000);
       }
 
-      StateMachineEngine stateMach = helixManager.getStateMachineEngine();
-      stateMach.registerStateModelFactory("MasterSlave", new MyStateModelFactory(helixManager));
-      helixManager.connect();
+      StateMachineEngine stateMach = _helixManager.getStateMachineEngine();
+      stateMach.registerStateModelFactory("MasterSlave", new MyStateModelFactory(_helixManager));
+      _helixManager.connect();
 
-      StatusPrinter statusPrinter = new StatusPrinter();
-      statusPrinter.registerWith(helixManager);
+      // StatusPrinter statusPrinter = new StatusPrinter();
+      // statusPrinter.registerWith(_helixManager);
     }
 
     public void stop() {
-      helixManager.disconnect();
+      _helixManager.disconnect();
     }
   }
 
@@ -343,7 +353,7 @@ public class TestMessageThrottle2 extends ZkTestBase {
 
     // --------------------------- main() method ---------------------------
 
-    public static void main(String[] args) throws Exception {
+    public static MyProcess main(String[] args) throws Exception {
       if (args.length < 1) {
         LOGGER.info("usage: id");
         System.exit(0);
@@ -352,7 +362,8 @@ public class TestMessageThrottle2 extends ZkTestBase {
       String instanceName = "node" + id;
 
       addInstanceConfig(instanceName);
-      startProcess(instanceName);
+      // Return the thread so that it could be interrupted after testing
+      return startProcess(instanceName);
     }
 
     private static void addInstanceConfig(String instanceName) {
@@ -361,15 +372,15 @@ public class TestMessageThrottle2 extends ZkTestBase {
 
       InstanceConfig instanceConfig = null;
       try {
-        instanceConfig = admin.getInstanceConfig(clusterName, instanceName);
-      } catch (Exception e) {
+        instanceConfig = admin.getInstanceConfig(_clusterName, instanceName);
+      } catch (Exception ignored) {
       }
       if (instanceConfig == null) {
         InstanceConfig config = new InstanceConfig(instanceName);
         config.setHostName("localhost");
         config.setInstanceEnabled(true);
         echo("Adding InstanceConfig:" + config);
-        admin.addInstance(clusterName, config);
+        admin.addInstance(_clusterName, config);
       }
     }
 
@@ -377,17 +388,16 @@ public class TestMessageThrottle2 extends ZkTestBase {
       LOGGER.info(obj.toString());
     }
 
-    private static void startProcess(String instanceName) throws Exception {
+    private static MyProcess startProcess(String instanceName) throws Exception {
       MyProcess process = new MyProcess(instanceName);
       process.start();
+      return process;
     }
   }
 
   static class StatusPrinter implements IdealStateChangeListener, InstanceConfigChangeListener,
       ExternalViewChangeListener, LiveInstanceChangeListener, ControllerChangeListener {
     // ------------------------------ FIELDS ------------------------------
-
-    private HelixManager helixManager;
 
     // ------------------------ INTERFACE METHODS ------------------------
 
@@ -428,8 +438,8 @@ public class TestMessageThrottle2 extends ZkTestBase {
     public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
         NotificationContext context) {
       for (InstanceConfig instanceConfig : instanceConfigs) {
-        System.out.println("StatusPrinter.onInstanceConfigChange:" + "instanceConfig = "
-            + instanceConfig);
+        System.out.println(
+            "StatusPrinter.onInstanceConfigChange:" + "instanceConfig = " + instanceConfig);
       }
     }
 
@@ -447,8 +457,7 @@ public class TestMessageThrottle2 extends ZkTestBase {
 
     // -------------------------- OTHER METHODS --------------------------
 
-    public void registerWith(HelixManager helixManager) throws Exception {
-      this.helixManager = helixManager;
+    void registerWith(HelixManager helixManager) throws Exception {
       helixManager.addIdealStateChangeListener(this);
       helixManager.addInstanceConfigChangeListener(this);
       helixManager.addExternalViewChangeListener(this);

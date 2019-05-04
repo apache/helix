@@ -57,7 +57,7 @@ public class TestGetSetUserContentStore extends TaskTestBase {
     String jobName;
     String taskPartitionId;
 
-    public TaskRecord(String workflow, String job, String task) {
+    TaskRecord(String workflow, String job, String task) {
       workflowName = workflow;
       jobName = job;
       taskPartitionId = task;
@@ -86,12 +86,7 @@ public class TestGetSetUserContentStore extends TaskTestBase {
 
       // Set task callbacks
       Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
-      TaskFactory shortTaskFactory = new TaskFactory() {
-        @Override
-        public Task createNewTask(TaskCallbackContext context) {
-          return new WriteTask(context);
-        }
-      };
+      TaskFactory shortTaskFactory = WriteTask::new;
       taskFactoryReg.put("WriteTask", shortTaskFactory);
 
       _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
@@ -129,7 +124,7 @@ public class TestGetSetUserContentStore extends TaskTestBase {
     // Create 5 jobs with 1 WriteTask each
     for (int i = 0; i < NUM_JOB; i++) {
       List<TaskConfig> taskConfigs = new ArrayList<>();
-      taskConfigs.add(new TaskConfig("WriteTask", new HashMap<String, String>()));
+      taskConfigs.add(new TaskConfig("WriteTask", new HashMap<>()));
       JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
           .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap);
       String jobName = "JOB" + i;
@@ -185,7 +180,7 @@ public class TestGetSetUserContentStore extends TaskTestBase {
    */
   private class WriteTask extends MockTask {
 
-    public WriteTask(TaskCallbackContext context) {
+    WriteTask(TaskCallbackContext context) {
       super(context);
     }
 

@@ -75,6 +75,9 @@ public class TestCorrectnessOnConnectivityLoss {
 
   @AfterMethod
   public void afterMethod() {
+    if (_controller.isConnected()) {
+      _controller.disconnect();
+    }
     TestHelper.stopZkServer(_zkServer);
   }
 
@@ -109,6 +112,10 @@ public class TestCorrectnessOnConnectivityLoss {
     Assert.assertEquals(stateReachedCounts.size(), 1);
     Assert.assertTrue(stateReachedCounts.containsKey("ONLINE"));
     Assert.assertEquals(stateReachedCounts.get("ONLINE").intValue(), 1);
+
+    if (participant.isConnected()) {
+      participant.disconnect();
+    }
   }
 
   @SuppressWarnings("deprecation")
@@ -140,6 +147,9 @@ public class TestCorrectnessOnConnectivityLoss {
       Assert.assertEquals(routingTableProvider.getInstances("resource0", "OFFLINE").size(), 0);
     } finally {
       routingTableProvider.shutdown();
+      if (participant.isConnected()) {
+        participant.disconnect();
+      }
     }
   }
 

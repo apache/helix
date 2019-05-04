@@ -20,6 +20,8 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -43,6 +45,8 @@ public class TestDistributedClusterController extends ZkTestBase {
     String clusterNamePrefix = className + "_" + methodName;
     final int n = 5;
     final int clusterNb = 10;
+
+    Set<MockParticipantManager> participantRefs = new HashSet<>();
 
     System.out
         .println("START " + clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
@@ -82,10 +86,9 @@ public class TestDistributedClusterController extends ZkTestBase {
       controllers[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(
-            new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, controllerClusterName),
-            30000);
+    boolean result = ClusterStateVerifier.verifyByZkCallback(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, controllerClusterName),
+        30000);
     Assert.assertTrue(result, "Controller cluster NOT in ideal state");
 
     // start first cluster
@@ -95,11 +98,11 @@ public class TestDistributedClusterController extends ZkTestBase {
       String instanceName = "localhost0_" + (12918 + i);
       participants[i] = new MockParticipantManager(ZK_ADDR, firstClusterName, instanceName);
       participants[i].syncStart();
+      participantRefs.add(participants[i]);
     }
 
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            firstClusterName));
+    result = ClusterStateVerifier
+        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, firstClusterName));
     Assert.assertTrue(result, "first cluster NOT in ideal state");
 
     // stop current leader in controller cluster
@@ -118,29 +121,30 @@ public class TestDistributedClusterController extends ZkTestBase {
       String instanceName = "localhost1_" + (12918 + i);
       participants2[i] = new MockParticipantManager(ZK_ADDR, secondClusterName, instanceName);
       participants2[i].syncStart();
+      participantRefs.add(participants2[i]);
     }
 
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            secondClusterName));
+    result = ClusterStateVerifier
+        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, secondClusterName));
     Assert.assertTrue(result, "second cluster NOT in ideal state");
 
     // clean up
     // wait for all zk callbacks done
     System.out.println("Cleaning up...");
     for (int i = 0; i < 5; i++) {
-      result =
-          ClusterStateVerifier
-              .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                  controllerClusterName));
+      Assert.assertTrue(ClusterStateVerifier
+          .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, controllerClusterName)));
       controllers[i].syncStop();
     }
 
-    for (int i = 0; i < 5; i++) {
-      participants[i].syncStop();
+    for (MockParticipantManager participant : participantRefs) {
+      participant.syncStop();
     }
 
-    System.out.println("END " + clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
-
+    // delete 10 clusters
+    for (int i = 0; i < clusterNb; i++) {
+      deleteCluster(clusterNamePrefix + "0_" + i);
+    }
+    deleteCluster(controllerClusterName);
   }
 }

@@ -47,19 +47,19 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     HelixZkClient extZkclient = SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
     extZkclient.setZkSerializer(new ZNRecordSerializer());
-    ZkBaseDataAccessor<ZNRecord> extBaseAccessor = new ZkBaseDataAccessor<ZNRecord>(extZkclient);
+    ZkBaseDataAccessor<ZNRecord> extBaseAccessor = new ZkBaseDataAccessor<>(extZkclient);
 
     // init zkCacheBaseDataAccessor
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
     String extViewPath = PropertyPathBuilder.externalView(clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     extBaseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
     List<String> zkCacheInitPaths = Arrays.asList(curStatePath, extViewPath);
     ZkCacheBaseDataAccessor<ZNRecord> accessor =
-        new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor, null, null, zkCacheInitPaths);
+        new ZkCacheBaseDataAccessor<>(baseAccessor, null, null, zkCacheInitPaths);
 
     // TestHelper.printCache(accessor._zkCache);
     boolean ret =
@@ -67,10 +67,11 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // create 10 current states using external base accessor
-    List<String> paths = new ArrayList<String>();
-    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    List<String> paths = new ArrayList<>();
+    List<ZNRecord> records = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
+          "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -87,7 +88,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     for (int i = 0; i < 10; i++) {
       // TestHelper.printCache(accessor._zkCache);
       ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
-      if (ret == true)
+      if (ret)
         break;
       Thread.sleep(100);
     }
@@ -96,7 +97,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // update each current state 10 times by external base accessor
-    List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
+    List<DataUpdater<ZNRecord>> updaters = new ArrayList<>();
     for (int j = 0; j < 10; j++) {
       paths.clear();
       updaters.clear();
@@ -168,12 +169,12 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // clean up
     extZkclient.close();
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test
-  public void testHappyPathSelfOpZkCacheBaseDataAccessor() throws Exception {
+  public void testHappyPathSelfOpZkCacheBaseDataAccessor() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -183,13 +184,13 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
     String extViewPath = PropertyPathBuilder.externalView(clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
     List<String> zkCacheInitPaths = Arrays.asList(curStatePath, extViewPath);
     ZkCacheBaseDataAccessor<ZNRecord> accessor =
-        new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor, null, null, zkCacheInitPaths);
+        new ZkCacheBaseDataAccessor<>(baseAccessor, null, null, zkCacheInitPaths);
 
     // TestHelper.printCache(accessor._zkCache._cache);
     boolean ret =
@@ -197,10 +198,11 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // create 10 current states using this accessor
-    List<String> paths = new ArrayList<String>();
-    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    List<String> paths = new ArrayList<>();
+    List<ZNRecord> records = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
+          "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -218,7 +220,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // update each current state 10 times by this accessor
-    List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
+    List<DataUpdater<ZNRecord>> updaters = new ArrayList<>();
     for (int j = 0; j < 10; j++) {
       paths.clear();
       updaters.clear();
@@ -239,9 +241,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths, zkCacheInitPaths, accessor._zkCache._cache,
-            _gZkClient, true);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, zkCacheInitPaths, accessor._zkCache._cache,
+        _gZkClient, true);
     // ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor, _gZkClient, true);
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
@@ -306,8 +307,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
       Assert.assertTrue(success[i], "Should exits: " + paths.get(i));
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
-
 }

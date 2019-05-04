@@ -79,7 +79,6 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
 
   @Test
   public void testParticipant() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -156,6 +155,7 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -257,6 +257,7 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
     Assert.assertNull(pollForProperty(LiveInstance.class, accessor, keyBuilder.controllerLeader(),
         false));
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 

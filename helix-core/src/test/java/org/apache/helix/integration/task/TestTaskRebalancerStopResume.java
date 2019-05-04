@@ -56,11 +56,11 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestTaskRebalancerStopResume.class);
   private static final String JOB_RESOURCE = "SomeJob";
 
-  @Test public void stopAndResume() throws Exception {
+  @Test
+  public void stopAndResume() throws Exception {
     Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(100));
 
-    JobConfig.Builder jobBuilder =
-        JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
     Workflow flow =
         WorkflowGenerator.generateSingleJobWorkflowBuilder(JOB_RESOURCE, jobBuilder).build();
@@ -115,14 +115,13 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.enqueueJob(queueName, job1Name, job1);
 
     Set<String> slave = Sets.newHashSet("SLAVE");
-    JobConfig.Builder job2 =
-        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
+    JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     String job2Name = "slaveJob";
     LOG.info("Enqueuing job: " + job2Name);
     _driver.enqueueJob(queueName, job2Name, job2);
 
-    String namespacedJob1 = String.format("%s_%s", queueName,  job1Name);
+    String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.IN_PROGRESS);
 
     // stop job1
@@ -159,7 +158,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     verifyJobNotInQueue(queueName, namespacedJob2);
   }
 
-
   @Test
   public void stopDeleteJobAndResumeNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
@@ -173,11 +171,10 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     for (int i = 0; i <= 4; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
-      JobConfig.Builder jobBuilder =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-              .setTargetPartitionStates(Sets.newHashSet(targetPartition))
-              .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "200"));
+      JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+          .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+          .setTargetPartitionStates(Sets.newHashSet(targetPartition))
+          .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "200"));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
       LOG.info("Enqueuing job: " + jobName);
       queueBuilder.enqueueJob(jobName, jobBuilder);
@@ -284,11 +281,9 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     for (int i = 0; i <= 4; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
-      JobConfig.Builder job =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-              .setJobCommandConfigMap(commandConfig)
-              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+      JobConfig.Builder job = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+          .setJobCommandConfigMap(commandConfig).setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+          .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
       LOG.info("Enqueuing job: " + jobName);
       queueBuilder.enqueueJob(jobName, job);
@@ -371,7 +366,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     List<String> jobNames = new ArrayList<String>();
     Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(200));
 
-
     int JOB_COUNTS = 3;
     for (int i = 0; i < JOB_COUNTS; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
@@ -384,7 +378,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
       jobNames.add(jobName);
     }
 
-    for (int i = 0; i < JOB_COUNTS -1; i++) {
+    for (int i = 0; i < JOB_COUNTS - 1; i++) {
       queueBuilder.enqueueJob(jobNames.get(i), jobs.get(i));
     }
 
@@ -407,7 +401,8 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.deleteJob(queueName, jobNames.get(JOB_COUNTS - 1));
 
     // verify
-    verifyJobDeleted(queueName, String.format("%s_%s", scheduledQueue, jobNames.get(JOB_COUNTS - 1)));
+    verifyJobDeleted(queueName,
+        String.format("%s_%s", scheduledQueue, jobNames.get(JOB_COUNTS - 1)));
   }
 
   @Test
@@ -416,39 +411,37 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // Create a queue
     System.out.println("START " + queueName + " at " + new Date(System.currentTimeMillis()));
-    WorkflowConfig wfCfg = new WorkflowConfig.Builder(queueName).setExpiry(2, TimeUnit.MINUTES).build();
+    WorkflowConfig wfCfg =
+        new WorkflowConfig.Builder(queueName).setExpiry(2, TimeUnit.MINUTES).build();
     JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
     _driver.createQueue(qCfg);
 
     // Enqueue 2 jobs
     Set<String> master = Sets.newHashSet("MASTER");
-    JobConfig.Builder job1 =
-        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
+    JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     String job1Name = "masterJob";
     LOG.info("Enqueuing job1: " + job1Name);
     _driver.enqueueJob(queueName, job1Name, job1);
 
     Set<String> slave = Sets.newHashSet("SLAVE");
-    JobConfig.Builder job2 =
-        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
+    JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     String job2Name = "slaveJob";
     LOG.info("Enqueuing job2: " + job2Name);
     _driver.enqueueJob(queueName, job2Name, job2);
 
-    String namespacedJob1 = String.format("%s_%s", queueName,  job1Name);
+    String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
 
-    String namespacedJob2 = String.format("%s_%s", queueName,  job2Name);
+    String namespacedJob2 = String.format("%s_%s", queueName, job2Name);
     _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
 
     // Stop queue
     _driver.stop(queueName);
 
-    boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+    boolean result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     // Delete queue
@@ -456,16 +449,16 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // Wait until all status are cleaned up
     result = TestHelper.verify(new TestHelper.Verifier() {
-      @Override public boolean verify() throws Exception {
+      @Override
+      public boolean verify() throws Exception {
         HelixDataAccessor accessor = _manager.getHelixDataAccessor();
         PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
         // check paths for resource-config, ideal-state, external-view, property-store
-        List<String> paths
-            = Lists.newArrayList(keyBuilder.resourceConfigs().getPath(),
-            keyBuilder.idealStates().getPath(),
-            keyBuilder.externalViews().getPath(),
-            PropertyPathBuilder.propertyStore(CLUSTER_NAME) + TaskConstants.REBALANCER_CONTEXT_ROOT);
+        List<String> paths = Lists.newArrayList(keyBuilder.resourceConfigs().getPath(),
+            keyBuilder.idealStates().getPath(), keyBuilder.externalViews().getPath(),
+            PropertyPathBuilder.propertyStore(CLUSTER_NAME)
+                + TaskConstants.REBALANCER_CONTEXT_ROOT);
 
         for (String path : paths) {
           List<String> childNames = accessor.getBaseDataAccessor().getChildNames(path, 0);
@@ -495,12 +488,10 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     Map<String, String> jobCommandConfigMap = new HashMap<String, String>();
     jobCommandConfigMap.put(MockTask.JOB_DELAY, "1000000");
     jobCommandConfigMap.put(MockTask.NOT_ALLOW_TO_CANCEL, String.valueOf(true));
-    List<TaskConfig> taskConfigs = ImmutableList
-        .of(new TaskConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTaskId("testTask")
-            .build());
+    List<TaskConfig> taskConfigs = ImmutableList.of(
+        new TaskConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTaskId("testTask").build());
     JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-   .addTaskConfigs(taskConfigs)
-        .setJobCommandConfigMap(jobCommandConfigMap);
+        .addTaskConfigs(taskConfigs).setJobCommandConfigMap(jobCommandConfigMap);
     String job1Name = "Job1";
 
     JobConfig.Builder job2 =
@@ -526,8 +517,10 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(jobName)), jobName + "'s idealstate has not been deleted!");
-    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(jobName)), jobName + "'s resourceConfig has not been deleted!");
+    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(jobName)),
+        jobName + "'s idealstate has not been deleted!");
+    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(jobName)),
+        jobName + "'s resourceConfig has not been deleted!");
     TaskTestUtil.pollForEmptyJobState(_driver, queueName, jobName);
   }
 

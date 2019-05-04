@@ -57,13 +57,14 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   protected ClusterControllerManager _controller;
 
-  List<MockParticipantManager> _participants = new ArrayList<MockParticipantManager>();
-  Map<String, String> _nodeToTagMap = new HashMap<String, String>();
+  List<MockParticipantManager> _participants = new ArrayList<>();
+  Map<String, String> _nodeToTagMap = new HashMap<>();
   List<String> _nodes = new ArrayList<>();
-  Set<String> _allDBs = new HashSet<>();
-  int _replica = 3;
+  private Set<String> _allDBs = new HashSet<>();
+  private int _replica = 3;
 
-  private static String[] _testModels = { BuiltInStateModelDefinitions.OnlineOffline.name(),
+  private static String[] _testModels = {
+      BuiltInStateModelDefinitions.OnlineOffline.name(),
       BuiltInStateModelDefinitions.MasterSlave.name(),
       BuiltInStateModelDefinitions.LeaderStandby.name()
   };
@@ -106,14 +107,15 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     _controller.syncStart();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
-    //enableTopologyAwareRebalance(_gZkClient, CLUSTER_NAME, true);
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    _controller.syncStop();
+    if (_controller != null && _controller.isConnected()) {
+      _controller.syncStop();
+    }
     for (MockParticipantManager p : _participants) {
-      if (p.isConnected()) {
+      if (p != null && p.isConnected()) {
         p.syncStop();
       }
     }
@@ -123,8 +125,12 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
 
   @DataProvider(name = "rebalanceStrategies")
   public static String[][] rebalanceStrategies() {
-    return new String[][] { { "CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName() },
-        {"CrushEdRebalanceStrategy", CrushEdRebalanceStrategy.class.getName()}
+    return new String[][] {
+        {
+            "CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName()
+        }, {
+            "CrushEdRebalanceStrategy", CrushEdRebalanceStrategy.class.getName()
+        }
     };
   }
 
@@ -146,7 +152,8 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
     for (String db : _allDBs) {
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, _replica);
@@ -163,7 +170,8 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
       _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS,
           BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO + "",
           rebalanceStrategyClass);
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       is.setInstanceGroupTag(tag);
       _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, db, is);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
@@ -176,7 +184,8 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
     for (String db : _allDBs) {
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, _replica);
@@ -211,7 +220,8 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
     for (String db : _allDBs) {
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, 2);
@@ -234,8 +244,8 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     for (int i = 2; i < _participants.size(); i++) {
       MockParticipantManager p = _participants.get(i);
       p.syncStop();
-      _gSetupTool.getClusterManagementTool()
-          .enableInstance(CLUSTER_NAME, p.getInstanceName(), false);
+      _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, p.getInstanceName(),
+          false);
       _gSetupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
 
     }
@@ -254,7 +264,8 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _allDBs) {
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, 2);
@@ -304,6 +315,6 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     }
     _allDBs.clear();
     // waiting for all DB be dropped.
-    Thread.sleep(200);
+    Thread.sleep(200L);
   }
 }

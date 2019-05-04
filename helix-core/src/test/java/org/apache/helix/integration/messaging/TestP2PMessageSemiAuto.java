@@ -64,10 +64,10 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   HelixDataAccessor _accessor;
 
   @BeforeClass
-  public void beforeClass()
-      throws InterruptedException {
-    System.out.println(
-        "START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
+  public void beforeClass() throws Exception {
+    super.beforeClass();
+    System.out
+        .println("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
 
     // setup storage cluster
     _gSetupTool.addCluster(CLUSTER_NAME, true);
@@ -97,7 +97,8 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+    _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     _configAccessor = new ConfigAccessor(_gZkClient);
@@ -108,9 +109,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
   public void afterClass() throws Exception {
     _controller.syncStop();
     for (MockParticipantManager p : _participants) {
-      if (p.isConnected()) {
-        p.syncStop();
-      }
+      p.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
@@ -123,11 +122,12 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, false);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    verifyP2PMessage(DB_NAME_1,_instances.get(1), MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName(), 1);
-    verifyP2PMessage(DB_NAME_2,_instances.get(1), MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName(), 1);
+    verifyP2PMessage(DB_NAME_1, _instances.get(1), MasterSlaveSMD.States.MASTER.name(),
+        _controller.getInstanceName(), 1);
+    verifyP2PMessage(DB_NAME_2, _instances.get(1), MasterSlaveSMD.States.MASTER.name(),
+        _controller.getInstanceName(), 1);
 
-
-    //re-enable the old master
+    // re-enable the old master
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -137,67 +137,78 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
         _controller.getInstanceName(), 1);
   }
 
-  @Test (dependsOnMethods = {"testP2PStateTransitionDisabled"})
+  @Test(dependsOnMethods = {
+      "testP2PStateTransitionDisabled"
+  })
   public void testP2PStateTransitionEnabledInCluster() {
     enableP2PInCluster(CLUSTER_NAME, _configAccessor, true);
-    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_1,false);
-    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_2,false);
+    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_1, false);
+    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_2, false);
 
     // disable the master instance
     String prevMasterInstance = _instances.get(0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, false);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    verifyP2PMessage(DB_NAME_1, _instances.get(1), MasterSlaveSMD.States.MASTER.name(), prevMasterInstance);
-    verifyP2PMessage(DB_NAME_2, _instances.get(1), MasterSlaveSMD.States.MASTER.name(), prevMasterInstance);
+    verifyP2PMessage(DB_NAME_1, _instances.get(1), MasterSlaveSMD.States.MASTER.name(),
+        prevMasterInstance);
+    verifyP2PMessage(DB_NAME_2, _instances.get(1), MasterSlaveSMD.States.MASTER.name(),
+        prevMasterInstance);
 
-    //re-enable the old master
+    // re-enable the old master
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    verifyP2PMessage(DB_NAME_1, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _instances.get(
-        1));
-    verifyP2PMessage(DB_NAME_2, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _instances.get(
-        1));
+    verifyP2PMessage(DB_NAME_1, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(),
+        _instances.get(1));
+    verifyP2PMessage(DB_NAME_2, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(),
+        _instances.get(1));
   }
 
-  @Test (dependsOnMethods = {"testP2PStateTransitionDisabled"})
+  @Test(dependsOnMethods = {
+      "testP2PStateTransitionDisabled"
+  })
   public void testP2PStateTransitionEnabledInResource() {
     enableP2PInCluster(CLUSTER_NAME, _configAccessor, false);
-    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_1,true);
-    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_2,false);
-
+    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_1, true);
+    enableP2PInResource(CLUSTER_NAME, _configAccessor, DB_NAME_2, false);
 
     // disable the master instance
     String prevMasterInstance = _instances.get(0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, false);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    verifyP2PMessage(DB_NAME_1, _instances.get(1), MasterSlaveSMD.States.MASTER.name(), prevMasterInstance);
-    verifyP2PMessage(DB_NAME_2, _instances.get(1), MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName(), 1);
+    verifyP2PMessage(DB_NAME_1, _instances.get(1), MasterSlaveSMD.States.MASTER.name(),
+        prevMasterInstance);
+    verifyP2PMessage(DB_NAME_2, _instances.get(1), MasterSlaveSMD.States.MASTER.name(),
+        _controller.getInstanceName(), 1);
 
-
-    //re-enable the old master
+    // re-enable the old master
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    verifyP2PMessage(DB_NAME_1, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _instances.get(1));
-    verifyP2PMessage(DB_NAME_2, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(), _controller.getInstanceName(), 1);
+    verifyP2PMessage(DB_NAME_1, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(),
+        _instances.get(1));
+    verifyP2PMessage(DB_NAME_2, prevMasterInstance, MasterSlaveSMD.States.MASTER.name(),
+        _controller.getInstanceName(), 1);
   }
 
-  private void verifyP2PMessage(String dbName, String instance, String expectedState, String expectedTriggerHost) {
-    verifyP2PMessage(dbName, instance, expectedState, expectedTriggerHost, 0.6);
+  private void verifyP2PMessage(String dbName, String instance, String expectedState,
+      String expectedTriggerHost) {
+    // Use 0.1 as the expected ratio. Here we want to check the presence of P2P messages
+    verifyP2PMessage(dbName, instance, expectedState, expectedTriggerHost, 0.1);
   }
 
-  private void verifyP2PMessage(String dbName, String instance, String expectedState, String expectedTriggerHost, double expectedRatio) {
+  private void verifyP2PMessage(String dbName, String instance, String expectedState,
+      String expectedTriggerHost, double expectedRatio) {
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider(CLUSTER_NAME);
     dataCache.refresh(_accessor);
 
     Map<String, LiveInstance> liveInstanceMap = dataCache.getLiveInstances();
     LiveInstance liveInstance = liveInstanceMap.get(instance);
 
-    Map<String, CurrentState> currentStateMap = dataCache.getCurrentState(instance,
-        liveInstance.getSessionId());
+    Map<String, CurrentState> currentStateMap =
+        dataCache.getCurrentState(instance, liveInstance.getSessionId());
     Assert.assertNotNull(currentStateMap);
     CurrentState currentState = currentStateMap.get(dbName);
     Assert.assertNotNull(currentState);
@@ -211,15 +222,15 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
           dbName + " Partition " + partition + "'s state is different as expected!");
       String triggerHost = currentState.getTriggerHost(partition);
       if (triggerHost.equals(expectedTriggerHost)) {
-        expectedHost ++;
+        expectedHost++;
       }
-      total ++;
+      total++;
     }
 
     double ratio = ((double) expectedHost) / ((double) total);
-    Assert.assertTrue(ratio >= expectedRatio, String
-        .format("Only %d out of %d percent transitions to Master were triggered by expected host!",
+    Assert.assertTrue(ratio >= expectedRatio,
+        String.format(
+            "Only %d out of %d percent transitions to Master were triggered by expected host!",
             expectedHost, total));
   }
 }
-

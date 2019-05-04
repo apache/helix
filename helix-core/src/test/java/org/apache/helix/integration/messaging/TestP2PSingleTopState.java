@@ -41,15 +41,12 @@ import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestP2PSingleTopState extends ZkTestBase {
-  private static Logger logger = LoggerFactory.getLogger(TestP2PSingleTopState.class);
 
   final String CLASS_NAME = getShortClassName();
   final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
@@ -100,7 +97,7 @@ public class TestP2PSingleTopState extends ZkTestBase {
     _accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
 
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true, 1000000);
-    //enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, false);
+    // enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, false);
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
     enableP2PInCluster(CLUSTER_NAME, _configAccessor, true);
 
@@ -123,9 +120,7 @@ public class TestP2PSingleTopState extends ZkTestBase {
   public void afterClass() throws Exception {
     _controller.syncStop();
     for (MockParticipantManager p : _participants) {
-      if (p.isConnected()) {
-        p.syncStop();
-      }
+      p.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
@@ -137,11 +132,11 @@ public class TestP2PSingleTopState extends ZkTestBase {
     for (String ins : _instances) {
       System.out.println("Disable " + ins);
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, false);
-      Thread.sleep (1000);
+      Thread.sleep(1000L);
       Assert.assertTrue(_clusterVerifier.verifyByPolling());
       System.out.println("Enable " + ins);
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, true);
-      Thread.sleep(1000);
+      Thread.sleep(1000L);
       Assert.assertTrue(_clusterVerifier.verifyByPolling());
     }
 
@@ -178,7 +173,7 @@ public class TestP2PSingleTopState extends ZkTestBase {
 
     String _instanceName;
 
-    public TestTransition(String instanceName) {
+    TestTransition(String instanceName) {
       _instanceName = instanceName;
     }
 
@@ -202,7 +197,7 @@ public class TestP2PSingleTopState extends ZkTestBase {
         }
       }
 
-      ExternalViews.putIfAbsent(key, new ConcurrentHashMap<String, String>());
+      ExternalViews.putIfAbsent(key, new ConcurrentHashMap<>());
       if (to.equalsIgnoreCase("DROPPED")) {
         ExternalViews.get(key).remove(_instanceName);
       } else {
@@ -211,4 +206,3 @@ public class TestP2PSingleTopState extends ZkTestBase {
     }
   }
 }
-

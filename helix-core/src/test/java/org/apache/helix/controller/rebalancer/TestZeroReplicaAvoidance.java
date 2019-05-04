@@ -1,5 +1,24 @@
 package org.apache.helix.controller.rebalancer;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -27,37 +46,19 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
 public class TestZeroReplicaAvoidance extends BaseStageTest {
 
   @Test(dataProvider = "zeroReplicaInput")
   public void testZeroReplicaAvoidanceDuringRebalance(StateModelDefinition stateModelDef,
-      List<String> instancePreferenceList, Map<String, String> currentStateMap, Map<String, List<Message>> pendingMessages,
-      Map<String, String> expectedBestPossibleMap) {
-    System.out.println("START TestDelayedAutoRebalancer at " + new Date(System.currentTimeMillis()));
+      List<String> instancePreferenceList, Map<String, String> currentStateMap,
+      Map<String, List<Message>> pendingMessages, Map<String, String> expectedBestPossibleMap) {
+    System.out
+        .println("START TestDelayedAutoRebalancer at " + new Date(System.currentTimeMillis()));
 
     System.err.println("Test input: " + instancePreferenceList + ":" + currentStateMap + ":");
 
     int numNode = 6;
-    Set<String> liveInstances = new HashSet<String>();
+    Set<String> liveInstances = new HashSet<>();
     for (int i = 0; i < numNode; i++) {
       liveInstances.add("localhost_" + i);
     }
@@ -68,8 +69,8 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
     DelayedAutoRebalancer rebalancer = new DelayedAutoRebalancer();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     for (String instance : currentStateMap.keySet()) {
-      currentStateOutput
-          .setCurrentState("test", partition, instance, currentStateMap.get(instance));
+      currentStateOutput.setCurrentState("test", partition, instance,
+          currentStateMap.get(instance));
     }
     Set<String> allInstances = new HashSet<>(instancePreferenceList);
     allInstances.addAll(currentStateMap.keySet());
@@ -83,26 +84,25 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
         }
       }
     }
-    Map<String, String> bestPossibleMap = rebalancer
-        .computeBestPossibleStateForPartition(liveInstances, stateModelDef, instancePreferenceList,
-            currentStateOutput, Collections.<String>emptySet(), is,
-            new ClusterConfig("TestCluster"), partition);
+    Map<String, String> bestPossibleMap = rebalancer.computeBestPossibleStateForPartition(
+        liveInstances, stateModelDef, instancePreferenceList, currentStateOutput,
+        Collections.emptySet(), is, new ClusterConfig("TestCluster"), partition);
     Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap,
         "Differs, get " + bestPossibleMap + "\nexpected: " + expectedBestPossibleMap
             + "\ncurrentState: " + currentStateMap + "\npreferenceList: " + instancePreferenceList);
 
-    System.out.println(
-        "END TestBestPossibleStateCalcStage at " + new Date(System.currentTimeMillis()));
+    System.out
+        .println("END TestBestPossibleStateCalcStage at " + new Date(System.currentTimeMillis()));
   }
 
   @DataProvider(name = "zeroReplicaInput")
   public Object[][] rebalanceStrategies() {
-    List<Object[]> data = new ArrayList<Object[]>();
+    List<Object[]> data = new ArrayList<>();
     data.addAll(loadTestInputs("TestDelayedAutoRebalancer.MasterSlave.json"));
     data.addAll(loadTestInputs("TestDelayedAutoRebalancer.OnlineOffline.json"));
 
     Object[][] ret = new Object[data.size()][];
-    for(int i = 0; i < data.size(); i++) {
+    for (int i = 0; i < data.size(); i++) {
       ret[i] = data.get(i);
     }
     return ret;
@@ -127,7 +127,7 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
           BuiltInStateModelDefinitions.valueOf(stateModelName).getStateModelDefinition();
 
       List<Map<String, Object>> inputs = (List<Map<String, Object>>) inputMaps.get(INPUT);
-      ret = new ArrayList<Object[]>();
+      ret = new ArrayList<>();
       for (Map<String, Object> inMap : inputs) {
         Map<String, String> currentStates = (Map<String, String>) inMap.get(CURRENT_STATE);
         Map<String, String> bestPossibleStates =
@@ -139,7 +139,7 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
           Random r = new Random();
           pendingMessages = new HashMap<>();
           for (String instance : pendingStates.keySet()) {
-            pendingMessages.put(instance, new ArrayList<Message>());
+            pendingMessages.put(instance, new ArrayList<>());
             Message m = new Message(new ZNRecord(UUID.randomUUID().toString()));
             m.setFromState(pendingStates.get(instance).split(":")[0]);
             m.setToState(pendingStates.get(instance).split(":")[1]);
@@ -147,7 +147,9 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
           }
         }
 
-        ret.add(new Object[] { stateModelDef, preferenceList, currentStates, pendingMessages, bestPossibleStates });
+        ret.add(new Object[] {
+            stateModelDef, preferenceList, currentStates, pendingMessages, bestPossibleStates
+        });
       }
     } catch (IOException e) {
       e.printStackTrace();

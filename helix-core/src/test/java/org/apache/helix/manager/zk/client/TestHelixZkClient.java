@@ -30,21 +30,21 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestHelixZkClient extends ZkUnitTestBase {
-  final String TEST_NODE = "/test_helix_zkclient";
+  private final String TEST_NODE = "/test_helix_zkclient";
 
-  @Test public void testZkConnectionManager() {
+  @Test
+  public void testZkConnectionManager() {
     final String TEST_ROOT = "/testZkConnectionManager/IDEALSTATES";
     final String TEST_PATH = TEST_ROOT + TEST_NODE;
 
-    ZkConnectionManager zkConnectionManager =
-        new ZkConnectionManager(new ZkConnection(ZK_ADDR), HelixZkClient.DEFAULT_CONNECTION_TIMEOUT,
-            null);
+    ZkConnectionManager zkConnectionManager = new ZkConnectionManager(new ZkConnection(ZK_ADDR),
+        HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, null);
     Assert.assertTrue(zkConnectionManager.waitUntilConnected(1, TimeUnit.SECONDS));
 
     // This client can write/read from ZK
     zkConnectionManager.createPersistent(TEST_PATH, true);
     zkConnectionManager.writeData(TEST_PATH, "Test");
-    Assert.assertTrue(zkConnectionManager.readData(TEST_PATH) != null);
+    Assert.assertNotNull(zkConnectionManager.readData(TEST_PATH));
     zkConnectionManager.deleteRecursively(TEST_ROOT);
 
     // This client can be shared, and cannot close when sharing
@@ -73,14 +73,17 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     } catch (HelixException hex) {
       // expected
     }
+
+    deleteCluster("testZkConnectionManager");
   }
 
-  @Test(dependsOnMethods = "testZkConnectionManager") public void testSharingZkClient()
-      throws Exception {
-    final String TEST_ROOT = "/testSharedZkClient/IDEALSTATES";
+  @Test(dependsOnMethods = "testZkConnectionManager")
+  public void testSharingZkClient() throws Exception {
+    final String TEST_ROOT = "/testSharingZkClient/IDEALSTATES";
     final String TEST_PATH = TEST_ROOT + TEST_NODE;
 
-    // A factory just for this tests, this for avoiding the impact from other tests running in parallel.
+    // A factory just for this tests, this for avoiding the impact from other tests running in
+    // parallel.
     final SharedZkClientFactory testFactory = new SharedZkClientFactory();
 
     HelixZkClient.ZkConnectionConfig connectionConfig =
@@ -99,42 +102,42 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     Assert.assertEquals(sharedZkClientA.getSessionId(), sharedZkClientB.getSessionId());
     long sessionId = sharedZkClientA.getSessionId();
 
-    final int[] notificationCountA = { 0, 0 };
+    final int[] notificationCountA = {
+        0, 0
+    };
     sharedZkClientA.subscribeDataChanges(TEST_PATH, new IZkDataListener() {
-      @Override public void handleDataChange(String s, Object o) {
+      @Override
+      public void handleDataChange(String s, Object o) {
         notificationCountA[0]++;
       }
 
-      @Override public void handleDataDeleted(String s) {
+      @Override
+      public void handleDataDeleted(String s) {
         notificationCountA[1]++;
       }
     });
-    final int[] notificationCountB = { 0, 0 };
+    final int[] notificationCountB = {
+        0, 0
+    };
     sharedZkClientB.subscribeDataChanges(TEST_PATH, new IZkDataListener() {
-      @Override public void handleDataChange(String s, Object o) {
+      @Override
+      public void handleDataChange(String s, Object o) {
         notificationCountB[0]++;
       }
 
-      @Override public void handleDataDeleted(String s) {
+      @Override
+      public void handleDataDeleted(String s) {
         notificationCountB[1]++;
       }
     });
 
     // Modify using client A and client B will get notification.
     sharedZkClientA.createPersistent(TEST_PATH, true);
-    Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-      @Override public boolean verify() {
-        return notificationCountB[0] == 1;
-      }
-    }, 1000));
+    Assert.assertTrue(TestHelper.verify(() -> notificationCountB[0] == 1, 1000));
     Assert.assertEquals(notificationCountB[1], 0);
 
     sharedZkClientA.deleteRecursively(TEST_ROOT);
-    Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-      @Override public boolean verify() {
-        return notificationCountB[1] == 1;
-      }
-    }, 1000));
+    Assert.assertTrue(TestHelper.verify(() -> notificationCountB[1] == 1, 1000));
     Assert.assertEquals(notificationCountB[0], 1);
 
     try {
@@ -162,16 +165,8 @@ public class TestHelixZkClient extends ZkUnitTestBase {
 
     // Now modify using client B, and client A won't get notification.
     sharedZkClientB.createPersistent(TEST_PATH, true);
-    Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-      @Override public boolean verify() {
-        return notificationCountB[0] == 2;
-      }
-    }, 1000));
-    Assert.assertFalse(TestHelper.verify(new TestHelper.Verifier() {
-      @Override public boolean verify() {
-        return notificationCountA[0] == 2;
-      }
-    }, 1000));
+    Assert.assertTrue(TestHelper.verify(() -> notificationCountB[0] == 2, 1000));
+    Assert.assertFalse(TestHelper.verify(() -> notificationCountA[0] == 2, 1000));
     sharedZkClientB.deleteRecursively(TEST_ROOT);
 
     Assert.assertEquals(testFactory.getActiveConnectionCount(), 1);
@@ -193,5 +188,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     Assert.assertTrue(sharedZkClientC.isClosed());
     Assert.assertFalse(sharedZkClientC.waitUntilConnected(100, TimeUnit.MILLISECONDS));
     Assert.assertEquals(testFactory.getActiveConnectionCount(), 0);
+
+    deleteCluster("testSharingZkClient");
   }
 }

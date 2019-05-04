@@ -48,24 +48,23 @@ public class TestZkBasis extends ZkUnitTestBase {
     CountDownLatch _dataDeleteCountDown = new CountDownLatch(1);
 
     @Override
-    public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception {
+    public void handleChildChange(String parentPath, List<String> currentChilds) {
       _parentPath = parentPath;
       _currentChilds = currentChilds;
       _childChangeCountDown.countDown();
     }
 
     @Override
-    public void handleDataChange(String dataPath, Object data) throws Exception {
+    public void handleDataChange(String dataPath, Object data) {
       // To change body of implemented methods use File | Settings | File Templates.
     }
 
     @Override
-    public void handleDataDeleted(String dataPath) throws Exception {
+    public void handleDataDeleted(String dataPath) {
       _dataDeletePath = dataPath;
       _dataDeleteCountDown.countDown();
     }
   }
-
 
   @Test
   public void testZkSessionExpiry() throws Exception {
@@ -74,9 +73,8 @@ public class TestZkBasis extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    ZkClient client =
-        new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
-            HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+    ZkClient client = new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
+        HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
 
     String path = String.format("/%s", clusterName);
     client.createEphemeral(path);
@@ -96,15 +94,14 @@ public class TestZkBasis extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    ZkClient client =
-        new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
-            HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+    ZkClient client = new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
+        HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
     String path = String.format("/%s", clusterName);
     client.createEphemeral(path);
 
     client.close();
-    Assert.assertFalse(_gZkClient.exists(path), "Ephemeral node: " + path
-        + " should be removed after ZkClient#close()");
+    Assert.assertFalse(_gZkClient.exists(path),
+        "Ephemeral node: " + path + " should be removed after ZkClient#close()");
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -116,19 +113,18 @@ public class TestZkBasis extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     final CountDownLatch waitCallback = new CountDownLatch(1);
-    final ZkClient client =
-        new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
-            HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+    final ZkClient client = new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
+        HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
     String path = String.format("/%s", clusterName);
     client.createEphemeral(path);
     client.subscribeDataChanges(path, new IZkDataListener() {
 
       @Override
-      public void handleDataDeleted(String dataPath) throws Exception {
+      public void handleDataDeleted(String dataPath) {
       }
 
       @Override
-      public void handleDataChange(String dataPath, Object data) throws Exception {
+      public void handleDataChange(String dataPath, Object data) {
         client.close();
         waitCallback.countDown();
       }
@@ -159,9 +155,8 @@ public class TestZkBasis extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
 
-    final ZkClient client =
-        new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
-            HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+    final ZkClient client = new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
+        HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
     // make sure "/testName/test" doesn't exist
     final String path = "/" + testName + "/test";
     client.delete(path);
@@ -204,9 +199,8 @@ public class TestZkBasis extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
 
-    final ZkClient client =
-        new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
-            HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+    final ZkClient client = new ZkClient(ZK_ADDR, HelixZkClient.DEFAULT_SESSION_TIMEOUT,
+        HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
     // make sure "/testName/test" doesn't exist
     final String path = "/" + testName + "/test";
     client.createPersistent(path, true);
@@ -219,8 +213,8 @@ public class TestZkBasis extends ZkUnitTestBase {
     Map<String, Set<IZkDataListener>> dataListenerMap = ZkTestHelper.getZkDataListener(client);
     Assert.assertEquals(dataListenerMap.size(), 1, "ZkClient#_dataListener should have 1 listener");
     Set<IZkDataListener> dataListenerSet = dataListenerMap.get(path);
-    Assert.assertNotNull(dataListenerSet, "ZkClient#_dataListener should have 1 listener on path: "
-        + path);
+    Assert.assertNotNull(dataListenerSet,
+        "ZkClient#_dataListener should have 1 listener on path: " + path);
     Assert.assertEquals(dataListenerSet.size(), 1,
         "ZkClient#_dataListener should have 1 listener on path: " + path);
 
@@ -266,5 +260,6 @@ public class TestZkBasis extends ZkUnitTestBase {
     Assert.assertTrue(childWatch.isEmpty(), "ZooKeeper#watchManager#childWatches should be empty");
 
     client.close();
+    deleteCluster(testName);
   }
 }

@@ -160,6 +160,7 @@ public class TestDisableExternalView extends ZkTestBase {
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].syncStop();
     }
-  }
 
+    deleteCluster(CLUSTER_NAME);
+  }
 }

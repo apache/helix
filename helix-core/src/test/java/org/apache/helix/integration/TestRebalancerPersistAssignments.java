@@ -39,12 +39,11 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
-  Set<String> _instanceNames = new HashSet<>();
+  private Set<String> _instanceNames = new HashSet<>();
 
   @Override
   @BeforeClass
   public void beforeClass() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     // setup storage cluster
@@ -70,13 +69,18 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
   }
 
   @DataProvider(name = "rebalanceModes")
-  public static Object [][] rebalanceModes() {
-    return new RebalanceMode[][] { {RebalanceMode.SEMI_AUTO}, {RebalanceMode.FULL_AUTO}};
+  public static Object[][] rebalanceModes() {
+    return new RebalanceMode[][] {
+        {
+            RebalanceMode.SEMI_AUTO
+        }, {
+            RebalanceMode.FULL_AUTO
+        }
+    };
   }
 
   @Test(dataProvider = "rebalanceModes")
-  public void testDisablePersist(RebalanceMode rebalanceMode)
-      throws Exception {
+  public void testDisablePersist(RebalanceMode rebalanceMode) {
     String testDb = "TestDB2-" + rebalanceMode.name();
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
@@ -85,14 +89,14 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
 
     BestPossibleExternalViewVerifier.Builder verifierBuilder =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(new HashSet<String>(Collections.singleton(testDb)));
+            .setResources(new HashSet<>(Collections.singleton(testDb)));
 
     Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
     // kill 1 node
     _participants[0].syncStop();
 
-    Set<String> liveInstances = new HashSet<String>(_instanceNames);
+    Set<String> liveInstances = new HashSet<>(_instanceNames);
     liveInstances.remove(_participants[0].getInstanceName());
     verifierBuilder.setExpectLiveInstances(liveInstances);
     Assert.assertTrue(verifierBuilder.build().verifyByPolling());
@@ -100,7 +104,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     IdealState idealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
 
-    Set<String> excludedInstances = new HashSet<String>();
+    Set<String> excludedInstances = new HashSet<>();
     excludedInstances.add(_participants[0].getInstanceName());
     verifyAssignmentInIdealStateWithPersistDisabled(idealState, excludedInstances);
 
@@ -111,9 +115,10 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     _participants[0].syncStart();
   }
 
-  @Test(dataProvider = "rebalanceModes", dependsOnMethods = {"testDisablePersist"})
-  public void testEnablePersist(RebalanceMode rebalanceMode)
-      throws Exception {
+  @Test(dataProvider = "rebalanceModes", dependsOnMethods = {
+      "testDisablePersist"
+  })
+  public void testEnablePersist(RebalanceMode rebalanceMode) {
     String testDb = "TestDB1-" + rebalanceMode.name();
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
@@ -123,18 +128,18 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
 
     BestPossibleExternalViewVerifier.Builder verifierBuilder =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(new HashSet<String>(Collections.singleton(testDb)));
+            .setResources(new HashSet<>(Collections.singleton(testDb)));
 
     Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
     IdealState idealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
-    verifyAssignmentInIdealStateWithPersistEnabled(idealState, new HashSet<String>());
+    verifyAssignmentInIdealStateWithPersistEnabled(idealState, new HashSet<>());
 
     // kill 1 node
     _participants[0].syncStop();
 
-    Set<String> liveInstances = new HashSet<String>(_instanceNames);
+    Set<String> liveInstances = new HashSet<>(_instanceNames);
     liveInstances.remove(_participants[0].getInstanceName());
     verifierBuilder.setExpectLiveInstances(liveInstances);
     Assert.assertTrue(verifierBuilder.build().verifyByPolling());
@@ -142,7 +147,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
     // verify that IdealState contains updated assignment in it map fields.
 
-    Set<String> excludedInstances = new HashSet<String>();
+    Set<String> excludedInstances = new HashSet<>();
     excludedInstances.add(_participants[0].getInstanceName());
     verifyAssignmentInIdealStateWithPersistEnabled(idealState, excludedInstances);
 
@@ -154,12 +159,13 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
   }
 
   /**
-   * This test is to test the temporary solution for solving Espresso/Databus back-compatible map format issue.
-   *
-   * @throws Exception
+   * This test is to test the temporary solution for solving Espresso/Databus back-compatible map
+   * format issue.
    */
-  @Test(dependsOnMethods = { "testDisablePersist" })
-  public void testSemiAutoEnablePersistMasterSlave() throws Exception {
+  @Test(dependsOnMethods = {
+      "testDisablePersist"
+  })
+  public void testSemiAutoEnablePersistMasterSlave() {
     String testDb = "TestDB1-MasterSlave";
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
@@ -169,7 +175,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
 
     BestPossibleExternalViewVerifier.Builder verifierBuilder =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(new HashSet<String>(Collections.singleton(testDb)));
+            .setResources(new HashSet<>(Collections.singleton(testDb)));
 
     Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
@@ -180,7 +186,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     // kill 1 node
     _participants[0].syncStop();
 
-    Set<String> liveInstances = new HashSet<String>(_instanceNames);
+    Set<String> liveInstances = new HashSet<>(_instanceNames);
     liveInstances.remove(_participants[0].getInstanceName());
     verifierBuilder.setExpectLiveInstances(liveInstances);
     Assert.assertTrue(verifierBuilder.build().verifyByPolling());
@@ -189,15 +195,15 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     verifySemiAutoMasterSlaveAssignment(idealState);
 
     // disable an instance
-    _gSetupTool.getClusterManagementTool()
-        .enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), false);
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
+        _participants[1].getInstanceName(), false);
     idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
     verifySemiAutoMasterSlaveAssignment(idealState);
 
     // clean up
     _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
-    _gSetupTool.getClusterManagementTool()
-        .enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), true);
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
+        _participants[1].getInstanceName(), true);
     _participants[0].reset();
     _participants[0].syncStart();
   }
@@ -212,8 +218,8 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
         Assert.assertTrue(instanceStateMap.containsKey(ins),
             String.format("Instance %s from preference list not in the map", ins));
         String state = instanceStateMap.get(ins);
-        Assert.assertTrue(state.equals(MasterSlaveSMD.States.MASTER.name()) || state
-            .equals(MasterSlaveSMD.States.SLAVE.name()), "Actual State" + state);
+        Assert.assertTrue(state.equals(MasterSlaveSMD.States.MASTER.name())
+            || state.equals(MasterSlaveSMD.States.SLAVE.name()), "Actual State" + state);
         if (state.equals(MasterSlaveSMD.States.MASTER.name())) {
           numMaster++;
         }
@@ -238,7 +244,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
         Assert.assertTrue(instanceInList.containsAll(instancesInMap));
       }
 
-      if(idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
+      if (idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
         // preference list should be persisted in IS.
         List<String> instanceList = idealState.getPreferenceList(partition);
         Assert.assertNotNull(instanceList);
@@ -267,11 +273,11 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
       mapFieldEmpty = false;
       Set<String> instancesInMap = instanceStateMap.keySet();
       for (String ins : excludedInstances) {
-        if(instancesInMap.contains(ins)) {
+        if (instancesInMap.contains(ins)) {
           // if at least one excluded instance is included, it means assignment was not updated.
           assignmentNotChanged = true;
         }
-        if(idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
+        if (idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
           List<String> instanceList = idealState.getPreferenceList(partition);
           if (instanceList.contains(ins)) {
             assignmentNotChanged = true;

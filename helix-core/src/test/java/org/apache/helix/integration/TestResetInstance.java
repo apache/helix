@@ -107,6 +107,7 @@ public class TestResetInstance extends ZkTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }

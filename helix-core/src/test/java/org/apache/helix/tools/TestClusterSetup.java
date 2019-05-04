@@ -55,7 +55,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
   protected static final String STATE_MODEL = "MasterSlave";
   protected static final String TEST_NODE = "testnode_1";
 
-  ClusterSetup _clusterSetup;
+  private ClusterSetup _clusterSetup;
 
   private static String[] createArgs(String str) {
     String[] split = str.split("[ ]+");
@@ -65,12 +65,13 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
   @BeforeClass()
   public void beforeClass() throws Exception {
-    System.out.println("START TestClusterSetup.beforeClass() "
-        + new Date(System.currentTimeMillis()));
+    System.out
+        .println("START TestClusterSetup.beforeClass() " + new Date(System.currentTimeMillis()));
   }
 
   @AfterClass()
   public void afterClass() {
+    deleteCluster(CLUSTER_NAME);
     System.out.println("END TestClusterSetup.afterClass() " + new Date(System.currentTimeMillis()));
   }
 
@@ -105,7 +106,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
   @Test()
   public void testAddInstancesToCluster() throws Exception {
-    String instanceAddresses[] = new String[3];
+    String[] instanceAddresses = new String[3];
     for (int i = 0; i < 3; i++) {
       String currInstance = INSTANCE_PREFIX + i;
       instanceAddresses[i] = currInstance;
@@ -134,7 +135,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
   @Test()
   public void testDisableDropInstancesFromCluster() throws Exception {
     testAddInstancesToCluster();
-    String instanceAddresses[] = new String[3];
+    String[] instanceAddresses = new String[3];
     for (int i = 0; i < 3; i++) {
       String currInstance = INSTANCE_PREFIX + i;
       instanceAddresses[i] = currInstance;
@@ -167,11 +168,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
       caughtException = true;
     }
     AssertJUnit.assertTrue(caughtException);
-    /*
-     * //drop a set _clusterSetup.getClusterManagementTool().enableInstances(CLUSTER_NAME,
-     * instanceAddresses, false); _clusterSetup.dropInstancesFromCluster(CLUSTER_NAME,
-     * instanceAddresses);
-     */
 
     // bad format disable, drop
     String badFormatInstance = "badinstance";
@@ -197,7 +193,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
   public void testAddResource() throws Exception {
     try {
       _clusterSetup.addResourceToCluster(CLUSTER_NAME, TEST_DB, 16, STATE_MODEL);
-    } catch (Exception e) {
+    } catch (Exception ignored) {
     }
     verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
   }
@@ -219,23 +215,14 @@ public class TestClusterSetup extends ZkUnitTestBase {
     verifyReplication(_gZkClient, CLUSTER_NAME, TEST_DB, 4);
   }
 
-  /*
-   * @Test (groups = {"unitTest"}) public void testPrintUsage() throws Exception { Options
-   * cliOptions = ClusterSetup.constructCommandLineOptions();
-   * ClusterSetup.printUsage(null); }
-   */
-
   @Test()
   public void testParseCommandLinesArgs() throws Exception {
-    // ClusterSetup
-    // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+ " help"));
-
     // wipe ZK
     _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
     _clusterSetup = new ClusterSetup(ZK_ADDR);
 
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addCluster "
-        + CLUSTER_NAME));
+    ClusterSetup
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addCluster " + CLUSTER_NAME));
 
     // wipe again
     _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
@@ -243,50 +230,26 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     _clusterSetup.setupTestCluster(CLUSTER_NAME);
 
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addNode "
-        + CLUSTER_NAME + " " + TEST_NODE));
+    ClusterSetup.processCommandLineArgs(
+        createArgs("-zkSvr " + ZK_ADDR + " --addNode " + CLUSTER_NAME + " " + TEST_NODE));
     verifyInstance(_gZkClient, CLUSTER_NAME, TEST_NODE, true);
     try {
       ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addResource "
           + CLUSTER_NAME + " " + TEST_DB + " 4 " + STATE_MODEL));
-    } catch (Exception e) {
-
+    } catch (Exception ignored) {
     }
     verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
     // ClusterSetup
     // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --addNode node-1"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --enableInstance "
-        + CLUSTER_NAME + " " + TEST_NODE + " true"));
+    ClusterSetup.processCommandLineArgs(createArgs(
+        "-zkSvr " + ZK_ADDR + " --enableInstance " + CLUSTER_NAME + " " + TEST_NODE + " true"));
     verifyEnabled(_gZkClient, CLUSTER_NAME, TEST_NODE, true);
 
-    // TODO: verify list commands
-    /*
-     * ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listClusterInfo "
-     * +CLUSTER_NAME)); ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listClusters"));
-     * ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listInstanceInfo "
-     * +CLUSTER_NAME+" "+instanceColonToUnderscoreFormat(TEST_NODE))); ClusterSetup
-     * .processCommandLineArgs
-     * (createArgs("-zkSvr "+ZK_ADDR+" --listInstances "+CLUSTER_NAME)); ClusterSetup
-     * .processCommandLineArgs
-     * (createArgs("-zkSvr "+ZK_ADDR+" --listResourceInfo "+CLUSTER_NAME +" "+TEST_DB));
-     * ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listResources "
-     * +CLUSTER_NAME)); ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listStateModel "
-     * +CLUSTER_NAME+" "+STATE_MODEL)); ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "
-     * +ZK_ADDR+" --listStateModels "+CLUSTER_NAME));
-     */
-    // ClusterSetup
-    // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --rebalance "+CLUSTER_NAME+" "+TEST_DB+" 1"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --enableInstance "
-        + CLUSTER_NAME + " " + TEST_NODE + " false"));
+    ClusterSetup.processCommandLineArgs(createArgs(
+        "-zkSvr " + ZK_ADDR + " --enableInstance " + CLUSTER_NAME + " " + TEST_NODE + " false"));
     verifyEnabled(_gZkClient, CLUSTER_NAME, TEST_NODE, false);
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --dropNode "
-        + CLUSTER_NAME + " " + TEST_NODE));
+    ClusterSetup.processCommandLineArgs(
+        createArgs("-zkSvr " + ZK_ADDR + " --dropNode " + CLUSTER_NAME + " " + TEST_NODE));
   }
 
   @Test()
@@ -317,14 +280,15 @@ public class TestClusterSetup extends ZkUnitTestBase {
     Assert.assertEquals(record.getSimpleField("key2"), "value2");
 
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--removeConfig", ConfigScopeProperty.PARTICIPANT.toString(),
-        scopeArgs, keys
+        "--zkSvr", ZK_ADDR, "--removeConfig", ConfigScopeProperty.PARTICIPANT.toString(), scopeArgs,
+        keys
     });
     valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
     record = (ZNRecord) serializer.deserialize(valuesStr.getBytes());
     Assert.assertNull(record.getSimpleField("key1"));
     Assert.assertNull(record.getSimpleField("key2"));
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -367,7 +331,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
     TestHelper.dropCluster(clusterName, _gZkClient);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test

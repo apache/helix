@@ -57,7 +57,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
   private static final String DEFAULT_QUOTA_TYPE = "DEFAULT";
   private static final String JOB_COMMAND = "DummyCommand";
   private Map<String, String> _jobCommandMap;
-  private Map<String, Integer> _quotaTypeExecutionCount = new ConcurrentHashMap<>();
+  private final Map<String, Integer> _quotaTypeExecutionCount = new ConcurrentHashMap<>();
   private Set<String> _availableQuotaTypes = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private boolean _finishTask = false;
 
@@ -606,15 +606,19 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
         _quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
       }
       // Initialize the count for this quotaType if not already done
-      if (_quotaType != null && !_quotaTypeExecutionCount.containsKey(_quotaType)) {
-        _quotaTypeExecutionCount.put(_quotaType, 0);
+      synchronized (_quotaTypeExecutionCount) {
+        if (_quotaType != null && !_quotaTypeExecutionCount.containsKey(_quotaType)) {
+          _quotaTypeExecutionCount.put(_quotaType, 0);
+        }
       }
     }
 
     @Override
     public TaskResult run() {
       if (_quotaType != null) {
-        _quotaTypeExecutionCount.put(_quotaType, _quotaTypeExecutionCount.get(_quotaType) + 1);
+        synchronized (_quotaTypeExecutionCount) {
+          _quotaTypeExecutionCount.put(_quotaType, _quotaTypeExecutionCount.get(_quotaType) + 1);
+        }
       }
       return new TaskResult(TaskResult.Status.COMPLETED,
           generateInfoMessageForDebugging(_instanceName, _quotaType));
@@ -637,14 +641,18 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       }
       // Initialize the count for this quotaType if not already done
       if (_quotaType != null && !_quotaTypeExecutionCount.containsKey(_quotaType)) {
-        _quotaTypeExecutionCount.put(_quotaType, 0);
+        synchronized (_quotaTypeExecutionCount) {
+          _quotaTypeExecutionCount.put(_quotaType, 0);
+        }
       }
     }
 
     @Override
     public TaskResult run() {
       if (_quotaType != null) {
-        _quotaTypeExecutionCount.put(_quotaType, _quotaTypeExecutionCount.get(_quotaType) + 1);
+        synchronized (_quotaTypeExecutionCount) {
+          _quotaTypeExecutionCount.put(_quotaType, _quotaTypeExecutionCount.get(_quotaType) + 1);
+        }
       }
       // Only take long if finishTask is false
       while (!_finishTask) {
@@ -675,14 +683,18 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       }
       // Initialize the count for this quotaType if not already done
       if (_quotaType != null && !_quotaTypeExecutionCount.containsKey(_quotaType)) {
-        _quotaTypeExecutionCount.put(_quotaType, 0);
+        synchronized (_quotaTypeExecutionCount) {
+          _quotaTypeExecutionCount.put(_quotaType, 0);
+        }
       }
     }
 
     @Override
     public TaskResult run() {
       if (_quotaType != null) {
-        _quotaTypeExecutionCount.put(_quotaType, _quotaTypeExecutionCount.get(_quotaType) + 1);
+        synchronized (_quotaTypeExecutionCount) {
+          _quotaTypeExecutionCount.put(_quotaType, _quotaTypeExecutionCount.get(_quotaType) + 1);
+        }
       }
       return new TaskResult(TaskResult.Status.FAILED,
           generateInfoMessageForDebugging(_instanceName, _quotaType));

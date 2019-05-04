@@ -21,6 +21,7 @@ package org.apache.helix.integration.task;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,15 +64,16 @@ public final class TestJobFailure extends TaskSynchronizedTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, CONTROLLER_PREFIX);
     _controller.syncStart();
 
-    Thread.sleep(1000); // Wait for cluster to setup.
+    Thread.sleep(1000L); // Wait for cluster to setup.
   }
 
   private static final String EXPECTED_ENDING_STATE = "ExpectedEndingState";
   private static int testNum = 0;
 
   @Test(dataProvider = "testJobFailureInput")
-  public void testNormalJobFailure(String comment, List<String> taskStates, List<String> expectedTaskEndingStates,
-      String expectedJobEndingStates, String expectedWorkflowEndingStates) throws InterruptedException {
+  public void testNormalJobFailure(String comment, List<String> taskStates,
+      List<String> expectedTaskEndingStates, String expectedJobEndingStates,
+      String expectedWorkflowEndingStates) throws InterruptedException {
     final String JOB_NAME = "test_job";
     final String WORKFLOW_NAME = TestHelper.getTestMethodName() + testNum++;
     System.out.println("Test case comment: " + comment);
@@ -79,51 +81,56 @@ public final class TestJobFailure extends TaskSynchronizedTestBase {
     Map<String, Map<String, String>> targetPartitionConfigs =
         createPartitionConfig(taskStates, expectedTaskEndingStates);
 
-    JobConfig.Builder firstJobBuilder = new JobConfig.Builder()
-        .setWorkflow(WORKFLOW_NAME)
-        .setTargetResource(DB_NAME)
-        .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
-        .setCommand(MockTask.TASK_COMMAND)
-        .setJobCommandConfigMap(ImmutableMap.of(
-            MockTask.TARGET_PARTITION_CONFIG, MockTask.serializeTargetPartitionConfig(targetPartitionConfigs)));
+    JobConfig.Builder firstJobBuilder =
+        new JobConfig.Builder().setWorkflow(WORKFLOW_NAME).setTargetResource(DB_NAME)
+            .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
+            .setCommand(MockTask.TASK_COMMAND)
+            .setJobCommandConfigMap(ImmutableMap.of(MockTask.TARGET_PARTITION_CONFIG,
+                MockTask.serializeTargetPartitionConfig(targetPartitionConfigs)));
 
-    Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW_NAME)
-        .addJob(JOB_NAME, firstJobBuilder);
+    Workflow.Builder workflowBuilder =
+        new Workflow.Builder(WORKFLOW_NAME).addJob(JOB_NAME, firstJobBuilder);
 
     _driver.start(workflowBuilder.build());
-
     _driver.pollForJobState(WORKFLOW_NAME, TaskUtil.getNamespacedJobName(WORKFLOW_NAME, JOB_NAME),
         TaskState.valueOf(expectedJobEndingStates));
     _driver.pollForWorkflowState(WORKFLOW_NAME, TaskState.valueOf(expectedWorkflowEndingStates));
 
-    Thread.sleep(2000);
-    JobContext jobContext = _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, JOB_NAME));
+    JobContext jobContext =
+        _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, JOB_NAME));
     for (int pId : jobContext.getPartitionSet()) {
-      Map<String, String> targetPartitionConfig = targetPartitionConfigs.get(jobContext.getTargetForPartition(pId));
-      Assert.assertEquals(jobContext.getPartitionState(pId).name(), targetPartitionConfig.get(EXPECTED_ENDING_STATE));
+      Map<String, String> targetPartitionConfig =
+          targetPartitionConfigs.get(jobContext.getTargetForPartition(pId));
+      Assert
+          .assertTrue(Arrays.asList(targetPartitionConfig.get(EXPECTED_ENDING_STATE).split("\\s+"))
+              .contains(jobContext.getPartitionState(pId).name()));
     }
   }
 
   @DataProvider(name = "testJobFailureInput")
   public Object[][] loadtestJobFailureInput() {
-    String[] params = {"comment", "taskStates", "expectedTaskEndingStates", "expectedJobEndingStates",
-        "expectedWorkflowEndingStates"};
+    String[] params = {
+        "comment", "taskStates", "expectedTaskEndingStates", "expectedJobEndingStates",
+        "expectedWorkflowEndingStates"
+    };
     return TestInputLoader.loadTestInputs("TestJobFailure.json", params);
   }
 
   private Map<String, Map<String, String>> createPartitionConfig(List<String> taskStates,
       List<String> expectedTaskEndingStates) {
-    Map<String, Map<String, String>> targetPartitionConfigs = new HashMap<String, Map<String, String>>();
-    ExternalView externalView = _manager.getClusterManagmentTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);
+    Map<String, Map<String, String>> targetPartitionConfigs = new HashMap<>();
+    ExternalView externalView =
+        _manager.getClusterManagmentTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);
     Set<String> partitionSet = externalView.getPartitionSet();
     if (taskStates.size() != partitionSet.size()) {
       throw new IllegalArgumentException(
           "Input size does not match number of partitions for target resource: " + DB_NAME);
     }
     int i = 0;
-    // Set job command configs for target partitions(order doesn't matter) according to specified task states.
+    // Set job command configs for target partitions(order doesn't matter) according to specified
+    // task states.
     for (String partition : partitionSet) {
-      Map<String, String> config = new HashMap<String, String>();
+      Map<String, String> config = new HashMap<>();
       if (taskStates.get(i).equals(TaskPartitionState.COMPLETED.name())) {
         config.put(MockTask.TASK_RESULT_STATUS, TaskResult.Status.COMPLETED.name());
       } else if (taskStates.get(i).equals(TaskPartitionState.TASK_ERROR.name())) {

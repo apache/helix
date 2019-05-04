@@ -19,7 +19,7 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -67,12 +67,11 @@ public class TestErrorPartition extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    Map<String, Map<String, String>> errStates = new HashMap<String, Map<String, String>>();
-    errStates.put("TestDB0", new HashMap<String, String>());
+    Map<String, Map<String, String>> errStates = new HashMap<>();
+    errStates.put("TestDB0", new HashMap<>());
     errStates.get("TestDB0").put("TestDB0_4", "localhost_12918");
-    boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName, errStates));
+    boolean result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStates));
     Assert.assertTrue(result);
 
     Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>() {
@@ -86,11 +85,10 @@ public class TestErrorPartition extends ZkTestBase {
 
     // disable a partition on a node with error state
     tool.enablePartition(false, clusterName, "localhost_12918", "TestDB0",
-        Arrays.asList("TestDB0_4"));
+        Collections.singletonList("TestDB0_4"));
 
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName, errStates));
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStates));
     Assert.assertTrue(result);
 
     TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
@@ -98,27 +96,24 @@ public class TestErrorPartition extends ZkTestBase {
     // disable a node with error state
     tool.enableInstance(clusterName, "localhost_12918", false);
 
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName, errStates));
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStates));
     Assert.assertTrue(result);
 
     // make sure after restart stale ERROR state is gone
     tool.enablePartition(true, clusterName, "localhost_12918", "TestDB0",
-        Arrays.asList("TestDB0_4"));
+        Collections.singletonList("TestDB0_4"));
     tool.enableInstance(clusterName, "localhost_12918", true);
 
     participants[0].syncStop();
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
     participants[0] = new MockParticipantManager(ZK_ADDR, clusterName, "localhost_12918");
     new Thread(participants[0]).start();
 
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // clean up
@@ -127,6 +122,7 @@ public class TestErrorPartition extends ZkTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END testErrorPartition() at " + new Date(System.currentTimeMillis()));
   }
 }

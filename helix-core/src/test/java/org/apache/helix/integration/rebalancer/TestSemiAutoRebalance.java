@@ -57,10 +57,9 @@ public class TestSemiAutoRebalance extends ZkTestBase {
   protected PropertyKey.Builder _keyBuilder;
 
   @BeforeClass
-  public void beforeClass()
-      throws InterruptedException {
-    System.out.println(
-        "START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
+  public void beforeClass() throws InterruptedException {
+    System.out
+        .println("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
 
     // setup storage cluster
     _gSetupTool.addCluster(CLUSTER_NAME, true);
@@ -125,17 +124,14 @@ public class TestSemiAutoRebalance extends ZkTestBase {
   public void afterClass() throws Exception {
     _controller.syncStop();
     for (MockParticipantManager p : _participants) {
-      if (p.isConnected()) {
-        p.syncStop();
-      }
+      p.syncStop();
     }
     deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
-  public void testAddParticipant()
-      throws InterruptedException {
+  public void testAddParticipant() throws InterruptedException {
     String newInstance = PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT + _participants.size());
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, newInstance);
 
@@ -174,8 +170,7 @@ public class TestSemiAutoRebalance extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testAddParticipant")
-  public void testStopAndReStartParticipant()
-      throws InterruptedException {
+  public void testStopAndReStartParticipant() throws InterruptedException {
     MockParticipantManager participant = _participants.get(0);
     String instance = participant.getInstanceName();
 
@@ -199,9 +194,8 @@ public class TestSemiAutoRebalance extends ZkTestBase {
     startParticipant(participant, affectedPartitions);
   }
 
-  private void stopParticipant(
-      MockParticipantManager participant, Map<String, MasterSlaveSMD.States> affectedPartitions)
-      throws InterruptedException {
+  private void stopParticipant(MockParticipantManager participant,
+      Map<String, MasterSlaveSMD.States> affectedPartitions) throws InterruptedException {
     participant.syncStop();
 
     Thread.sleep(1000);
@@ -215,9 +209,8 @@ public class TestSemiAutoRebalance extends ZkTestBase {
     }
   }
 
-  private void startParticipant(
-      MockParticipantManager participant, Map<String, MasterSlaveSMD.States> affectedPartitions)
-      throws InterruptedException {
+  private void startParticipant(MockParticipantManager participant,
+      Map<String, MasterSlaveSMD.States> affectedPartitions) throws InterruptedException {
     String instance = participant.getInstanceName();
     participant.syncStart();
 

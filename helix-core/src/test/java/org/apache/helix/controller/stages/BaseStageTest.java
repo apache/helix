@@ -106,8 +106,7 @@ public class BaseStageTest {
       int replicas, RebalanceMode rebalanceMode, String stateModelName, String rebalanceClassName,
       String rebalanceStrategyName) {
     List<IdealState> idealStates = new ArrayList<IdealState>();
-    for (int i = 0; i < resources.length; i++) {
-      String resourceName = resources[i];
+    for (String resourceName : resources) {
       ZNRecord record = new ZNRecord(resourceName);
       for (int p = 0; p < partitions; p++) {
         List<String> value = new ArrayList<String>();

@@ -20,16 +20,13 @@ package org.apache.helix.integration.rebalancer;
  */
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -42,113 +39,87 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
   public void beforeClass() throws Exception {
     super.beforeClass();
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB_2, _PARTITIONS, STATE_MODEL,
-        RebalanceMode.FULL_AUTO + "");
+        RebalanceMode.FULL_AUTO.name());
     _gSetupTool.rebalanceResource(CLUSTER_NAME, TEST_DB_2, _replica);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   @Test()
-  public void testDisableEnableInstanceAutoRebalance() throws Exception {
+  public void testDisableEnableInstanceAutoRebalance() throws InterruptedException {
     String disabledInstance = _participants[0].getInstanceName();
 
-    // TODO: preference list is not persisted in IS for full-auto,
-    // Need a way to find how helix assigns partitions to nodes.
-    /*
-    Set<String> assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2,
-        disabledInstance);
-    Assert.assertFalse(assignedPartitions.isEmpty());
-    */
-
-    Set<String> currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2,
-        disabledInstance);
+    Set<String> currentPartitions =
+        getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertFalse(currentPartitions.isEmpty());
 
     // disable instance
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, false);
+    // check that the instance is really disabled
+    if (_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, disabledInstance)
+        .getInstanceEnabled()) {
+      Thread.sleep(2000L);
+    }
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
-    // TODO: preference list is not persisted in IS for full-auto,
-    // Need a way to find how helix assigns partitions to nodes.
-    /*
-    assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
-    Assert.assertTrue(assignedPartitions.isEmpty());
-    */
 
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertTrue(currentPartitions.isEmpty());
 
-    //enable instance
+    // enable instance
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, true);
+    // check that the instance is really enabled
+    if (!_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, disabledInstance)
+        .getInstanceEnabled()) {
+      Thread.sleep(2000L);
+    }
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
-
-    // TODO: preference list is not persisted in IS for full-auto,
-    // Need a way to find how helix assigns partitions to nodes.
-    /*
-    assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
-    Assert.assertFalse(assignedPartitions.isEmpty());
-    */
 
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertFalse(currentPartitions.isEmpty());
   }
 
   @Test()
-  public void testAddDisabledInstanceAutoRebalance() throws Exception {
+  public void testAddDisabledInstanceAutoRebalance() throws InterruptedException {
     // add disabled instance.
     String nodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + NODE_NR);
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, nodeName);
     MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, nodeName);
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, nodeName);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, nodeName, false);
+    // check that the instance is really disabled
+    if (_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, nodeName)
+        .getInstanceEnabled()) {
+      Thread.sleep(2000L);
+    }
 
     participant.syncStart();
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    // TODO: preference list is not persisted in IS for full-auto,
-    // Need a way to find how helix assigns partitions to nodes.
-    /*
-    Set<String> assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
-    Assert.assertTrue(assignedPartitions.isEmpty());
-    */
-    Set<String> currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2,
-        nodeName);
+
+    Set<String> currentPartitions =
+        getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
     Assert.assertTrue(currentPartitions.isEmpty());
 
-    //enable instance
+    // enable instance
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, nodeName, true);
+    // check that the instance is really enabled
+    if (!_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, nodeName)
+        .getInstanceEnabled()) {
+      Thread.sleep(2000L);
+    }
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    // TODO: preference list is not persisted in IS for full-auto,
-    // Need a way to find how helix assigns partitions to nodes.
-    /*
-    assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
-    Assert.assertFalse(assignedPartitions.isEmpty());
-    */
 
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
     Assert.assertFalse(currentPartitions.isEmpty());
+
+    // Kill the newly added MockParticipant so that the cluster could be cleaned up
+    participant.syncStop();
   }
 
-  private Set<String> getPartitionsAssignedtoInstance(String cluster, String dbName, String instance) {
+  private Set<String> getCurrentPartitionsOnInstance(String cluster, String dbName,
+      String instance) {
     HelixAdmin admin = _gSetupTool.getClusterManagementTool();
-    Set<String> partitionSet = new HashSet<String>();
-    IdealState is = admin.getResourceIdealState(cluster, dbName);
-    for (String partition : is.getRecord().getListFields().keySet()) {
-      List<String> assignments = is.getRecord().getListField(partition);
-      for (String ins : assignments) {
-        if (ins.equals(instance)) {
-          partitionSet.add(partition);
-        }
-      }
-    }
-
-    return partitionSet;
-  }
-
-  private Set<String> getCurrentPartitionsOnInstance(String cluster, String dbName, String instance) {
-    HelixAdmin admin = _gSetupTool.getClusterManagementTool();
-    Set<String> partitionSet = new HashSet<String>();
+    Set<String> partitionSet = new HashSet<>();
 
     ExternalView ev = admin.getResourceExternalView(cluster, dbName);
     for (String partition : ev.getRecord().getMapFields().keySet()) {

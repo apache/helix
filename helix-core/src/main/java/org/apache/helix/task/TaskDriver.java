@@ -72,7 +72,7 @@ public class TaskDriver {
   private static final Logger LOG = LoggerFactory.getLogger(TaskDriver.class);
 
   /** Default time out for monitoring workflow or job state */
-  private final static int _defaultTimeout = 3 * 60 * 1000; /* 3 mins */
+  private final static int DEFAULT_TIMEOUT = 5 * 60 * 1000; /* 5 mins */
 
   // HELIX-619 This is a temporary solution for too many ZK nodes issue.
   // Limit workflows/jobs creation to prevent the problem.
@@ -896,7 +896,7 @@ public class TaskDriver {
    */
   public TaskState pollForWorkflowState(String workflowName, TaskState... targetStates)
       throws InterruptedException {
-    return pollForWorkflowState(workflowName, _defaultTimeout, targetStates);
+    return pollForWorkflowState(workflowName, DEFAULT_TIMEOUT, targetStates);
   }
 
   /**
@@ -964,7 +964,7 @@ public class TaskDriver {
    */
   public TaskState pollForJobState(String workflowName, String jobName, TaskState... states)
       throws InterruptedException {
-    return pollForJobState(workflowName, jobName, _defaultTimeout, states);
+    return pollForJobState(workflowName, jobName, DEFAULT_TIMEOUT, states);
   }
 
   /**

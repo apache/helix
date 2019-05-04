@@ -22,12 +22,10 @@ package org.apache.helix.integration;
 import java.util.Date;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.tools.ClusterSetup;
@@ -39,7 +37,6 @@ import org.testng.annotations.Test;
 public class TestPauseSignal extends ZkTestBase {
   @Test()
   public void testPauseSignal() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
@@ -70,14 +67,13 @@ public class TestPauseSignal extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+    boolean result = ClusterStateVerifier
+        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // pause the cluster and make sure pause is persistent
     final HelixDataAccessor tmpAccessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
 
     String cmd = "-zkSvr " + ZK_ADDR + " -enableCluster " + clusterName + " false";
     ClusterSetup.processCommandLineArgs(cmd.split(" "));
@@ -94,18 +90,18 @@ public class TestPauseSignal extends ZkTestBase {
 
     // make sure TestDB1 external view is empty
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 1000, clusterName, "TestDB1",
-        TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",
-            "localhost_12921", "localhost_12922"), ZK_ADDR);
+        TestHelper.setOf("localhost_12918", "localhost_12919", "localhost_12920",
+            "localhost_12921", "localhost_12922"),
+        ZK_ADDR);
 
     // resume controller
     final HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
 
     cmd = "-zkSvr " + ZK_ADDR + " -enableCluster " + clusterName + " true";
     ClusterSetup.processCommandLineArgs(cmd.split(" "));
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+    result = ClusterStateVerifier
+        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // clean up
@@ -114,6 +110,7 @@ public class TestPauseSignal extends ZkTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -1,5 +1,24 @@
 package org.apache.helix.integration.spectator;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -90,11 +109,10 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
     if (_manager != null && _manager.isConnected()) {
       _manager.disconnect();
     }
-
     deleteCluster(CLUSTER_NAME);
   }
 
-  @Test (expectedExceptions = HelixException.class)
+  @Test(expectedExceptions = HelixException.class)
   public void testTargetExternalViewWithoutEnable() {
     new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW);
   }
@@ -133,14 +151,11 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
       Assert.assertEquals(externalViewMasters.size(), 0);
 
       final Set<InstanceConfig> targetExternalViewMasters = new HashSet<>();
-      Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-        @Override
-        public boolean verify() {
-          targetExternalViewMasters.clear();
-          targetExternalViewMasters.addAll(targetExternalViewProvider
-              .getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER"));
-          return targetExternalViewMasters.size() == NUM_NODES;
-        }
+      Assert.assertTrue(TestHelper.verify(() -> {
+        targetExternalViewMasters.clear();
+        targetExternalViewMasters.addAll(targetExternalViewProvider
+            .getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER"));
+        return targetExternalViewMasters.size() == NUM_NODES;
       }, 3000));
 
       // TargetExternalView MASTERS mapping should exactly match IdealState MASTERS mapping
@@ -160,7 +175,7 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
       for (InstanceConfig instanceConfig : targetExternalViewMasters) {
         targetMasters.add(instanceConfig.getInstanceName());
       }
-      Assert.assertTrue(idealMasters.equals(targetMasters));
+      Assert.assertEquals(targetMasters, idealMasters);
     } finally {
       externalViewProvider.shutdown();
       targetExternalViewProvider.shutdown();

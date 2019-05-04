@@ -57,27 +57,25 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase {
     LOG.info("START testDisablePartition() at " + new Date(System.currentTimeMillis()));
 
     // localhost_12919 is MASTER for TestDB_0
-    String command =
-        "--zkSvr " + ZK_ADDR + " --enablePartition false " + CLUSTER_NAME
-            + " localhost_12919 TestDB TestDB_0 TestDB_9";
+    String command = "--zkSvr " + ZK_ADDR + " --enablePartition false " + CLUSTER_NAME
+        + " localhost_12919 TestDB TestDB_0 TestDB_9";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    Map<String, Set<String>> map = new HashMap<String, Set<String>>();
+    Map<String, Set<String>> map = new HashMap<>();
     map.put("TestDB_0", TestHelper.setOf("localhost_12919"));
     map.put("TestDB_9", TestHelper.setOf("localhost_12919"));
 
-    boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+    boolean result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     TestHelper.verifyState(CLUSTER_NAME, ZK_ADDR, map, "OFFLINE");
 
     ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
-    tool.enablePartition(true, CLUSTER_NAME, "localhost_12919", "TestDB", Arrays.asList("TestDB_9"));
+    tool.enablePartition(true, CLUSTER_NAME, "localhost_12919", "TestDB",
+        Collections.singletonList("TestDB_9"));
 
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     map.clear();
@@ -92,10 +90,15 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase {
 
   }
 
-
   @DataProvider(name = "rebalancer")
   public static String[][] rebalancers() {
-    return new String[][] { { AutoRebalancer.class.getName() }, { DelayedAutoRebalancer.class.getName() } };
+    return new String[][] {
+        {
+            AutoRebalancer.class.getName()
+        }, {
+            DelayedAutoRebalancer.class.getName()
+        }
+    };
   }
 
   @Test(dataProvider = "rebalancer", enabled = true)
@@ -171,8 +174,8 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase {
     int[] pid = {
         0, 7
     };
-    for (int i = 0; i < pid.length; i++) {
-      String partitionName = resourceName + '_' + pid[i];
+    for (int value : pid) {
+      String partitionName = resourceName + '_' + value;
       Map<String, String> stateMap = externalView.getStateMap(partitionName);
       String leader = null;
       for (String participantName : stateMap.keySet()) {
@@ -182,8 +185,7 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase {
         }
       }
       List<String> partitionNames = Lists.newArrayList(partitionName);
-      admin.enablePartition(false, clusterName, leader, idealState.getResourceName(),
-          partitionNames);
+      admin.enablePartition(false, clusterName, leader, idealState.getResourceName(), partitionNames);
 
       Thread.sleep(1000);
     }
@@ -204,6 +206,7 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase {
     for (MockParticipantManager participant : participants) {
       participant.syncStop();
     }
-  }
 
+    deleteCluster(clusterName);
+  }
 }

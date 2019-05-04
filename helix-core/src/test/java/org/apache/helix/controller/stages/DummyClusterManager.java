@@ -74,7 +74,6 @@ public class DummyClusterManager implements HelixManager {
   @Override
   public void disconnect() {
     // TODO Auto-generated method stub
-
   }
 
   @Override

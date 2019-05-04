@@ -64,7 +64,6 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     if (_adminController != null && _adminController.isConnected()) {
       _adminController.syncStop();
     }
-
     deleteCluster(ADMIN_CLUSTER_NAME);
     super.afterClass();
   }
@@ -74,8 +73,8 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     String hostDest = "localhost_" + (START_PORT + 1);
 
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    _participants[1].getMessagingService()
-        .registerMessageHandlerFactory(factory.getMessageTypes(), factory);
+    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageTypes(),
+        factory);
 
     String msgId = new UUID(123, 456).toString();
     Message msg = new Message(factory.getMessageTypes().get(0), msgId);
@@ -93,7 +92,7 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     cr.setClusterName(CLUSTER_NAME);
 
     int nMsgs = _adminController.getMessagingService().send(cr, msg);
-    AssertJUnit.assertTrue(nMsgs == 1);
+    AssertJUnit.assertEquals(nMsgs, 1);
     Thread.sleep(2500);
     AssertJUnit.assertTrue(TestMessagingHandlerFactory._processedMsgIds.contains(para));
 
@@ -106,7 +105,7 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
 
     // nMsgs = _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg);
     nMsgs = _adminController.getMessagingService().send(cr, msg);
-    AssertJUnit.assertTrue(nMsgs == 1);
+    AssertJUnit.assertEquals(nMsgs, 1);
     Thread.sleep(2500);
     AssertJUnit.assertTrue(TestMessagingHandlerFactory._processedMsgIds.contains(para));
   }
@@ -116,10 +115,10 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     String hostDest = "localhost_" + (START_PORT + 1);
 
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    _participants[1].getMessagingService()
-        .registerMessageHandlerFactory(factory.getMessageTypes(), factory);
-    _participants[0].getMessagingService()
-        .registerMessageHandlerFactory(factory.getMessageTypes(), factory);
+    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageTypes(),
+        factory);
+    _participants[0].getMessagingService().registerMessageHandlerFactory(factory.getMessageTypes(),
+        factory);
 
     String msgId = new UUID(123, 456).toString();
     Message msg = new Message(factory.getMessageTypes().get(0), msgId);
@@ -142,7 +141,7 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
 
     Thread.sleep(2000);
     AssertJUnit.assertTrue(TestAsyncCallback._replyedMessageContents.contains("TestReplyMessage"));
-    AssertJUnit.assertTrue(callback.getMessageReplied().size() == 1);
+    AssertJUnit.assertEquals(callback.getMessageReplied().size(), 1);
 
     TestAsyncCallback callback2 = new TestAsyncCallback(500);
     _adminController.getMessagingService().send(cr, msg, callback2, 500);
@@ -163,7 +162,7 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
 
     Thread.sleep(2000);
     AssertJUnit.assertTrue(TestAsyncCallback._replyedMessageContents.contains("TestReplyMessage"));
-    AssertJUnit.assertTrue(callback.getMessageReplied().size() == 1);
+    AssertJUnit.assertEquals(callback.getMessageReplied().size(), 1);
 
     callback2 = new TestAsyncCallback(500);
     _adminController.getMessagingService().send(cr, msg, callback2, 500);
@@ -177,8 +176,8 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     String hostDest = "localhost_" + (START_PORT + 1);
 
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    _participants[1].getMessagingService()
-        .registerMessageHandlerFactory(factory.getMessageTypes(), factory);
+    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageTypes(),
+        factory);
 
     String msgId = new UUID(123, 456).toString();
     Message msg = new Message(factory.getMessageTypes().get(0), msgId);
@@ -199,10 +198,11 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     int messagesSent =
         _adminController.getMessagingService().sendAndWait(cr, msg, asyncCallback, 60000);
 
-    AssertJUnit.assertTrue(asyncCallback.getMessageReplied().get(0).getRecord()
-        .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage")
-        .equals("TestReplyMessage"));
-    AssertJUnit.assertTrue(asyncCallback.getMessageReplied().size() == 1);
+    AssertJUnit.assertEquals(
+        asyncCallback.getMessageReplied().get(0).getRecord()
+            .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage"),
+        "TestReplyMessage");
+    AssertJUnit.assertEquals(asyncCallback.getMessageReplied().size(), 1);
 
     AsyncCallback asyncCallback2 = new MockAsyncCallback();
     messagesSent = _adminController.getMessagingService().sendAndWait(cr, msg, asyncCallback2, 500);
@@ -210,7 +210,7 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
   }
 
   @Test()
-  public void TestMultiMessageCriteria() throws Exception {
+  public void TestMultiMessageCriteria() {
     for (int i = 0; i < NODE_NR; i++) {
       TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
       _participants[i].getMessagingService()
@@ -235,10 +235,11 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     int messageSent1 =
         _adminController.getMessagingService().sendAndWait(cr, msg, callback1, 10000);
 
-    AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
-        .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage")
-        .equals("TestReplyMessage"));
-    AssertJUnit.assertTrue(callback1.getMessageReplied().size() == NODE_NR);
+    AssertJUnit.assertEquals(
+        callback1.getMessageReplied().get(0).getRecord()
+            .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage"),
+        "TestReplyMessage");
+    AssertJUnit.assertEquals(NODE_NR, callback1.getMessageReplied().size());
 
     AsyncCallback callback2 = new MockAsyncCallback();
     int messageSent2 = _adminController.getMessagingService().sendAndWait(cr, msg, callback2, 500);
@@ -249,25 +250,25 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     AsyncCallback callback3 = new MockAsyncCallback();
     int messageSent3 =
         _adminController.getMessagingService().sendAndWait(cr, msg, callback3, 10000);
-    AssertJUnit.assertTrue(callback3.getMessageReplied().size() == _replica);
+    AssertJUnit.assertEquals(_replica, callback3.getMessageReplied().size());
 
     cr.setPartition("TestDB_15");
     AsyncCallback callback4 = new MockAsyncCallback();
     int messageSent4 =
         _adminController.getMessagingService().sendAndWait(cr, msg, callback4, 10000);
-    AssertJUnit.assertTrue(callback4.getMessageReplied().size() == _replica);
+    AssertJUnit.assertEquals(_replica, callback4.getMessageReplied().size());
 
     cr.setPartitionState("SLAVE");
     AsyncCallback callback5 = new MockAsyncCallback();
     int messageSent5 =
         _adminController.getMessagingService().sendAndWait(cr, msg, callback5, 10000);
-    AssertJUnit.assertTrue(callback5.getMessageReplied().size() == _replica - 1);
+    AssertJUnit.assertEquals(_replica - 1, callback5.getMessageReplied().size());
 
     cr.setDataSource(DataSource.IDEALSTATES);
     AsyncCallback callback6 = new MockAsyncCallback();
     int messageSent6 =
         _adminController.getMessagingService().sendAndWait(cr, msg, callback6, 10000);
-    AssertJUnit.assertTrue(callback6.getMessageReplied().size() == _replica - 1);
+    AssertJUnit.assertEquals(_replica - 1, callback6.getMessageReplied().size());
   }
 
   @Test()
@@ -299,8 +300,8 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
 
     AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ControllerResult")
-        .indexOf(_hostSrc) != -1);
-    AssertJUnit.assertTrue(callback1.getMessageReplied().size() == 1);
+        .contains(_hostSrc));
+    AssertJUnit.assertEquals(callback1.getMessageReplied().size(), 1);
 
     msgId = UUID.randomUUID().toString();
     msg.setMsgId(msgId);
@@ -310,9 +311,9 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
 
     AssertJUnit.assertTrue(callback2.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ControllerResult")
-        .indexOf(_hostSrc) != -1);
+        .contains(_hostSrc));
 
-    AssertJUnit.assertTrue(callback2.getMessageReplied().size() == 1);
+    AssertJUnit.assertEquals(callback2.getMessageReplied().size(), 1);
 
     msgId = UUID.randomUUID().toString();
     msg.setMsgId(msgId);
@@ -321,9 +322,9 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     messagesSent = _adminController.getMessagingService().sendAndWait(cr, msg, callback3, 10000);
     AssertJUnit.assertTrue(callback3.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ControllerResult")
-        .indexOf(_hostSrc) != -1);
+        .contains(_hostSrc));
 
-    AssertJUnit.assertTrue(callback3.getMessageReplied().size() == 1);
+    AssertJUnit.assertEquals(callback3.getMessageReplied().size(), 1);
   }
 
   @Test(enabled = false)

@@ -85,11 +85,11 @@ public class TestExternalViewUpdates extends ZkTestBase {
     // 10 Resources, 1 partition, 1 replica, so there are at most 10 ZK writes for EV (assume)
     // worst case that no event is batched in controller. Therefore, EV version should be < 10
     Builder keyBuilder = new Builder(clusterName);
-    BaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    BaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
     String parentPath = keyBuilder.externalViews().getPath();
     List<String> childNames = accessor.getChildNames(parentPath, 0);
 
-    List<String> paths = new ArrayList<String>();
+    List<String> paths = new ArrayList<>();
     for (String name : childNames) {
       paths.add(parentPath + "/" + name);
     }
@@ -106,6 +106,7 @@ public class TestExternalViewUpdates extends ZkTestBase {
     for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }
+    deleteCluster(clusterName);
     System.out.println("END testExternalViewUpdates at " + new Date(System.currentTimeMillis()));
   }
 }

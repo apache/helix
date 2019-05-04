@@ -20,6 +20,7 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.helix.BaseDataAccessor;
@@ -38,6 +39,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -67,29 +69,44 @@ public class TestDisableResource extends ZkUnitTestBase {
     controller.syncStart();
 
     // start participants
-    MockParticipantManager participants[] = new MockParticipantManager[N];
+    MockParticipantManager[] participants = new MockParticipantManager[N];
     for (int i = 0; i < N; i++) {
       String instanceName = "localhost_" + (12918 + i);
-
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
+    // Check for connection status
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    for (int i = 0; i < N; i++) {
+      List<String> liveInstances = accessor.getChildNames(accessor.keyBuilder().liveInstances());
+      if (!liveInstances.contains(participants[i].getInstanceName())) {
+        Thread.sleep(1000L);
+      }
+    }
 
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
+    boolean result = ClusterStateVerifier.verifyByZkCallback(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // Disable TestDB0
     enableResource(clusterName, false);
+    if (_gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, "TestDB0")
+        .isEnabled()) {
+      Thread.sleep(1000L);
+    }
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
     checkExternalView(clusterName);
 
     // Re-enable TestDB0
     enableResource(clusterName, true);
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+    if (!_gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, "TestDB0")
+        .isEnabled()) {
+      Thread.sleep(1000L);
+    }
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // Clean up
@@ -97,6 +114,7 @@ public class TestDisableResource extends ZkUnitTestBase {
     for (int i = 0; i < N; i++) {
       participants[i].syncStop();
     }
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -122,29 +140,41 @@ public class TestDisableResource extends ZkUnitTestBase {
     controller.syncStart();
 
     // start participants
-    MockParticipantManager participants[] = new MockParticipantManager[N];
+    MockParticipantManager[] participants = new MockParticipantManager[N];
     for (int i = 0; i < N; i++) {
       String instanceName = "localhost_" + (12918 + i);
-
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
-
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
-    Assert.assertTrue(result);
+    // Check for connection status
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    for (int i = 0; i < N; i++) {
+      List<String> liveInstances = accessor.getChildNames(accessor.keyBuilder().liveInstances());
+      if (!liveInstances.contains(participants[i].getInstanceName())) {
+        Thread.sleep(1000L);
+      }
+    }
 
     // disable TestDB0
     enableResource(clusterName, false);
+    if (_gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, "TestDB0")
+        .isEnabled()) {
+      Thread.sleep(1000L);
+    }
+    boolean result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
+
     checkExternalView(clusterName);
 
     // Re-enable TestDB0
     enableResource(clusterName, true);
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+    if (!_gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, "TestDB0")
+        .isEnabled()) {
+      Thread.sleep(1000L);
+    }
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // Clean up
@@ -175,8 +205,7 @@ public class TestDisableResource extends ZkUnitTestBase {
         "MasterSlave", RebalanceMode.CUSTOMIZED, true); // do rebalance
 
     // set up custom ideal-state
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setPartitionState("TestDB0_0", "localhost_12918", "SLAVE");
@@ -188,31 +217,43 @@ public class TestDisableResource extends ZkUnitTestBase {
     controller.syncStart();
 
     // start participants
-    MockParticipantManager participants[] = new MockParticipantManager[N];
+    MockParticipantManager[] participants = new MockParticipantManager[N];
     for (int i = 0; i < N; i++) {
       String instanceName = "localhost_" + (12918 + i);
-
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
+    // Check for connection status
+    for (int i = 0; i < N; i++) {
+      List<String> liveInstances = accessor.getChildNames(accessor.keyBuilder().liveInstances());
+      if (!liveInstances.contains(participants[i].getInstanceName())) {
+        Thread.sleep(1000L);
+      }
+    }
 
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
-    Assert.assertTrue(result);
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
+            .setZkClient(_gZkClient).build();
 
     // Disable TestDB0
     enableResource(clusterName, false);
+    // Check that the resource has been disabled
+    if (_gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, "TestDB0")
+        .isEnabled()) {
+      Thread.sleep(1000L);
+    }
+    Assert.assertTrue(verifier.verifyByPolling());
+
     checkExternalView(clusterName);
 
     // Re-enable TestDB0
     enableResource(clusterName, true);
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR,
-                clusterName));
-    Assert.assertTrue(result);
+    // Check that the resource has been enabled
+    if (!_gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, "TestDB0")
+        .isEnabled()) {
+      Thread.sleep(1000L);
+    }
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // Clean up
     controller.syncStop();
@@ -239,30 +280,26 @@ public class TestDisableResource extends ZkUnitTestBase {
     final HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
 
     // verify that states of TestDB0 are all OFFLINE
-    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+    boolean result = TestHelper.verify(() -> {
+      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-      @Override
-      public boolean verify() throws Exception {
-        PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-
-        ExternalView extView = accessor.getProperty(keyBuilder.externalView("TestDB0"));
-        if (extView == null) {
-          return false;
-        }
-        Set<String> partitionSet = extView.getPartitionSet();
-        if (partitionSet == null || partitionSet.size() != PARTITION_NUM) {
-          return false;
-        }
-        for (String partition : partitionSet) {
-          Map<String, String> instanceStates = extView.getStateMap(partition);
-          for (String state : instanceStates.values()) {
-            if (!"OFFLINE".equals(state)) {
-              return false;
-            }
+      ExternalView extView = accessor.getProperty(keyBuilder.externalView("TestDB0"));
+      if (extView == null) {
+        return false;
+      }
+      Set<String> partitionSet = extView.getPartitionSet();
+      if (partitionSet == null || partitionSet.size() != PARTITION_NUM) {
+        return false;
+      }
+      for (String partition : partitionSet) {
+        Map<String, String> instanceStates = extView.getStateMap(partition);
+        for (String state : instanceStates.values()) {
+          if (!"OFFLINE".equals(state)) {
+            return false;
           }
         }
-        return true;
       }
+      return true;
     }, 10 * 1000);
     Assert.assertTrue(result);
   }

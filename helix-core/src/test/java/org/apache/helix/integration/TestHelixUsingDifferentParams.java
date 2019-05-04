@@ -30,32 +30,30 @@ public class TestHelixUsingDifferentParams extends ZkTestBase {
 
   @Test()
   public void testCMUsingDifferentParams() throws Exception {
-    System.out.println("START " + getShortClassName() + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out
+        .println("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
 
-    int numResourceArray[] = new int[] {
-      1
-    }; // , 2}; // , 3, 6};
-    int numPartitionsPerResourceArray[] = new int[] {
-      10
-    }; // , 20, 50, 100}; // ,
-    // 1000};
-    int numInstances[] = new int[] {
-      5
-    }; // , 10}; // , 50, 100, 1000};
-    int replicas[] = new int[] {
-      2
-    }; // , 3}; //, 4, 5};
+    int[] numResourceArray = new int[] {
+        1
+    };
+    int[] numPartitionsPerResourceArray = new int[] {
+        10
+    };
+    int[] numInstances = new int[] {
+        5
+    };
+    int[] replicas = new int[] {
+        2
+    };
 
     for (int numResources : numResourceArray) {
       for (int numPartitionsPerResource : numPartitionsPerResourceArray) {
         for (int numInstance : numInstances) {
           for (int replica : replicas) {
-            String uniqClusterName =
-                "TestDiffParam_" + "rg" + numResources + "_p" + numPartitionsPerResource + "_n"
-                    + numInstance + "_r" + replica;
-            System.out.println("START " + uniqClusterName + " at "
-                + new Date(System.currentTimeMillis()));
+            String uniqClusterName = "TestDiffParam_" + "rg" + numResources + "_p"
+                + numPartitionsPerResource + "_n" + numInstance + "_r" + replica;
+            System.out.println(
+                "START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
             TestDriver.setupCluster(uniqClusterName, ZK_ADDR, numResources,
                 numPartitionsPerResource, numInstance, replica);
@@ -67,9 +65,9 @@ public class TestHelixUsingDifferentParams extends ZkTestBase {
             TestDriver.startController(uniqClusterName);
             TestDriver.verifyCluster(uniqClusterName, 1000, 50 * 1000);
             TestDriver.stopCluster(uniqClusterName);
-
-            System.out.println("END " + uniqClusterName + " at "
-                + new Date(System.currentTimeMillis()));
+            deleteCluster(uniqClusterName);
+            System.out
+                .println("END " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
           }
         }
       }

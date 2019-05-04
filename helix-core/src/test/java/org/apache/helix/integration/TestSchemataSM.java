@@ -19,12 +19,11 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -60,13 +59,13 @@ public class TestSchemataSM extends ZkTestBase {
 
     // rebalance ideal-state to use ANY_LIVEINSTANCE for preference list
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     PropertyKey key = keyBuilder.idealStates("TestSchemata0");
     IdealState idealState = accessor.getProperty(key);
     idealState.setReplicas(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString());
     idealState.getRecord().setListField("TestSchemata0_0",
-        Arrays.asList(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString()));
+        Collections.singletonList(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString()));
     accessor.setProperty(key, idealState);
 
     ClusterControllerManager controller =
@@ -81,9 +80,8 @@ public class TestSchemataSM extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+    boolean result = ClusterStateVerifier
+        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // start the remaining 1 participant
@@ -91,9 +89,8 @@ public class TestSchemataSM extends ZkTestBase {
     participants[0].syncStart();
 
     // make sure we have all participants in MASTER state
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+    result = ClusterStateVerifier
+        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
     key = keyBuilder.externalView("TestSchemata0");
     ExternalView externalView = accessor.getProperty(key);
@@ -112,6 +109,7 @@ public class TestSchemataSM extends ZkTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

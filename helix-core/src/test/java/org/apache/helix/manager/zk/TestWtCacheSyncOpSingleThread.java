@@ -20,6 +20,7 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import org.apache.helix.AccessOption;
@@ -32,10 +33,9 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase {
-  // TODO: add TestZkCacheSyncOpSingleThread
-  // TODO: add TestZkCacheAsyncOpMultiThread
+
   @Test
-  public void testHappyPathZkCacheBaseDataAccessor() throws Exception {
+  public void testHappyPathZkCacheBaseDataAccessor() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -45,13 +45,13 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase {
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
     String extViewPath = PropertyPathBuilder.externalView(clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
     List<String> cachePaths = Arrays.asList(curStatePath, extViewPath);
     ZkCacheBaseDataAccessor<ZNRecord> accessor =
-        new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor, null, cachePaths, null);
+        new ZkCacheBaseDataAccessor<>(baseAccessor, null, cachePaths, null);
 
     boolean ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _gZkClient, true);
     Assert.assertTrue(ret, "wtCache doesn't match data on Zk");
@@ -115,11 +115,13 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase {
 
     // exists
     for (int i = 0; i < 10; i++) {
-      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
+          "session_0", "TestDB" + i);
 
       Assert.assertTrue(accessor.exists(path, 0));
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -133,25 +135,28 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase {
     // init zkCacheDataAccessor
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
-    ZkCacheBaseDataAccessor<ZNRecord> accessor =
-        new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor, null, Arrays.asList(curStatePath), null);
+    ZkCacheBaseDataAccessor<ZNRecord> accessor = new ZkCacheBaseDataAccessor<>(baseAccessor, null,
+        Collections.singletonList(curStatePath), null);
 
     // create 10 current states
     for (int i = 0; i < 10; i++) {
-      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901", "session_1", "TestDB" + i);
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
+          "session_1", "TestDB" + i);
       boolean success = accessor.create(path, new ZNRecord("TestDB" + i), AccessOption.PERSISTENT);
       Assert.assertTrue(success, "Should succeed in create: " + path);
     }
 
     // create same 10 current states again, should fail
     for (int i = 0; i < 10; i++) {
-      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901", "session_1", "TestDB" + i);
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
+          "session_1", "TestDB" + i);
       boolean success = accessor.create(path, new ZNRecord("TestDB" + i), AccessOption.PERSISTENT);
       Assert.assertFalse(success, "Should fail in create due to NodeExists: " + path);
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

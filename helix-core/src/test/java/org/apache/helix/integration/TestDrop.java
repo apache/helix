@@ -29,7 +29,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -55,8 +54,10 @@ public class TestDrop extends ZkTestBase {
    * @param db
    * @param participants
    */
-  private void assertEmptyCSandEV(String clusterName, String db, MockParticipantManager[] participants) {
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+  private void assertEmptyCSandEV(String clusterName, String db,
+      MockParticipantManager[] participants) {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Assert.assertNull(accessor.getProperty(keyBuilder.externalView(db)));
 
@@ -95,7 +96,6 @@ public class TestDrop extends ZkTestBase {
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
@@ -112,6 +112,11 @@ public class TestDrop extends ZkTestBase {
 
     assertEmptyCSandEV(clusterName, "TestDB0", participants);
 
+    controller.syncStop();
+    for (int i = 0; i < n; i++) {
+      participants[i].syncStop();
+    }
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -142,7 +147,7 @@ public class TestDrop extends ZkTestBase {
     controller.syncStart();
 
     // start participants
-    Map<String, Set<String>> errTransitions = new HashMap<String, Set<String>>();
+    Map<String, Set<String>> errTransitions = new HashMap<>();
     errTransitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
     errTransitions.put("OFFLINE-SLAVE", TestHelper.setOf("TestDB0_8"));
 
@@ -158,14 +163,13 @@ public class TestDrop extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    Map<String, Map<String, String>> errStateMap = new HashMap<String, Map<String, String>>();
-    errStateMap.put("TestDB0", new HashMap<String, String>());
+    Map<String, Map<String, String>> errStateMap = new HashMap<>();
+    errStateMap.put("TestDB0", new HashMap<>());
     errStateMap.get("TestDB0").put("TestDB0_4", "localhost_12918");
     errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
 
-    ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
-            .setErrStates(errStateMap).build();
+    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
+        .setZkAddr(ZK_ADDR).setErrStates(errStateMap).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should drop the partition successfully
@@ -174,8 +178,7 @@ public class TestDrop extends ZkTestBase {
     });
 
     // make sure TestDB0_4 and TestDB0_8 partitions are dropped
-    verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+    verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     Thread.sleep(400);
@@ -188,12 +191,12 @@ public class TestDrop extends ZkTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testDropErrorPartitionFailedAutoIS() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -218,7 +221,7 @@ public class TestDrop extends ZkTestBase {
     controller.syncStart();
 
     // start participants
-    Map<String, Set<String>> errTransitions = new HashMap<String, Set<String>>();
+    Map<String, Set<String>> errTransitions = new HashMap<>();
     errTransitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
     errTransitions.put("ERROR-DROPPED", TestHelper.setOf("TestDB0_4"));
 
@@ -235,12 +238,11 @@ public class TestDrop extends ZkTestBase {
     }
 
     Map<String, Map<String, String>> errStateMap = new HashMap<>();
-    errStateMap.put("TestDB0", new HashMap<String, String>());
+    errStateMap.put("TestDB0", new HashMap<>());
     errStateMap.get("TestDB0").put("TestDB0_4", "localhost_12918");
 
-    ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
-            .setErrStates(errStateMap).build();
+    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
+        .setZkAddr(ZK_ADDR).setErrStates(errStateMap).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should invoke error->dropped transition
@@ -249,12 +251,12 @@ public class TestDrop extends ZkTestBase {
         "--zkSvr", ZK_ADDR, "--dropResource", clusterName, "TestDB0"
     });
 
-    Thread.sleep(100);
+    Thread.sleep(100L);
     // make sure TestDB0_4 stay in ERROR state and is disabled
     Assert.assertTrue(verifier.verifyByPolling());
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig("localhost_12918"));
     List<String> disabledPartitions = config.getDisabledPartitions();
@@ -263,7 +265,7 @@ public class TestDrop extends ZkTestBase {
     Assert.assertEquals(disabledPartitions.get(0), "TestDB0_4");
 
     // ExternalView should have TestDB0_4->localhost_12918_>ERROR
-    Thread.sleep(100L);
+    Thread.sleep(250L);
     ExternalView ev = accessor.getProperty(keyBuilder.externalView("TestDB0"));
     Set<String> partitions = ev.getPartitionSet();
     Assert.assertEquals(partitions.size(), 1, "Should have TestDB0_4->localhost_12918->ERROR");
@@ -275,8 +277,9 @@ public class TestDrop extends ZkTestBase {
     Assert.assertEquals(stateMap.get("localhost_12918"), HelixDefinedState.ERROR.name());
 
     // localhost_12918 should have TestDB0_4 in ERROR state
-    CurrentState cs = accessor.getProperty(keyBuilder.currentState(participants[0].getInstanceName(),
-        participants[0].getSessionId(), "TestDB0"));
+    CurrentState cs =
+        accessor.getProperty(keyBuilder.currentState(participants[0].getInstanceName(),
+            participants[0].getSessionId(), "TestDB0"));
     Map<String, String> partitionStateMap = cs.getPartitionStateMap();
     Assert.assertEquals(partitionStateMap.size(), 1);
     Assert.assertEquals(partitionStateMap.keySet().iterator().next(), "TestDB0_4");
@@ -286,7 +289,8 @@ public class TestDrop extends ZkTestBase {
     for (int i = 1; i < n; i++) {
       String instanceName = participants[i].getInstanceName();
       String sessionId = participants[i].getSessionId();
-      Assert.assertNull(accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, "TestDB0")));
+      Assert.assertNull(
+          accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, "TestDB0")));
     }
 
     // clean up
@@ -295,6 +299,7 @@ public class TestDrop extends ZkTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -330,7 +335,7 @@ public class TestDrop extends ZkTestBase {
     isBuilder.assignInstanceAndState("TestDB0_1", "localhost_12918", "SLAVE");
 
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), isBuilder.build());
 
@@ -340,7 +345,7 @@ public class TestDrop extends ZkTestBase {
     controller.syncStart();
 
     // start participants
-    Map<String, Set<String>> errTransitions = new HashMap<String, Set<String>>();
+    Map<String, Set<String>> errTransitions = new HashMap<>();
     errTransitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_0"));
 
     for (int i = 0; i < n; i++) {
@@ -355,13 +360,12 @@ public class TestDrop extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    Map<String, Map<String, String>> errStateMap = new HashMap<String, Map<String, String>>();
-    errStateMap.put("TestDB0", new HashMap<String, String>());
+    Map<String, Map<String, String>> errStateMap = new HashMap<>();
+    errStateMap.put("TestDB0", new HashMap<>());
     errStateMap.get("TestDB0").put("TestDB0_0", "localhost_12918");
 
-    ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
-            .setErrStates(errStateMap).build();
+    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
+        .setZkAddr(ZK_ADDR).setErrStates(errStateMap).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should drop the partition successfully
@@ -370,8 +374,7 @@ public class TestDrop extends ZkTestBase {
     });
 
     // make sure TestDB0_0 partition is dropped
-    verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+    verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
     Assert.assertTrue(verifier.verifyByPolling(), "Should be empty exeternal-view");
     Thread.sleep(400);
 
@@ -383,6 +386,7 @@ public class TestDrop extends ZkTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -425,9 +429,8 @@ public class TestDrop extends ZkTestBase {
     Assert.assertTrue(verifier.verifyByPolling());
 
     // add schemata resource group
-    String command =
-        "--zkSvr " + ZK_ADDR + " --addResource " + clusterName
-            + " schemata 1 STORAGE_DEFAULT_SM_SCHEMATA";
+    String command = "--zkSvr " + ZK_ADDR + " --addResource " + clusterName
+        + " schemata 1 STORAGE_DEFAULT_SM_SCHEMATA";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     command = "--zkSvr " + ZK_ADDR + " --rebalance " + clusterName + " schemata " + n;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
@@ -450,6 +453,7 @@ public class TestDrop extends ZkTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

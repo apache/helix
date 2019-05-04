@@ -47,7 +47,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class TestCrushAutoRebalance extends ZkTestBase {
-  final int NUM_NODE = 6;
+  private final int NUM_NODE = 6;
   protected static final int START_PORT = 12918;
   protected static final int _PARTITIONS = 20;
 
@@ -62,7 +62,8 @@ public class TestCrushAutoRebalance extends ZkTestBase {
   Set<String> _allDBs = new HashSet<>();
   int _replica = 3;
 
-  String[] _testModels = { BuiltInStateModelDefinitions.OnlineOffline.name(),
+  String[] _testModels = {
+      BuiltInStateModelDefinitions.OnlineOffline.name(),
       BuiltInStateModelDefinitions.MasterSlave.name(),
       BuiltInStateModelDefinitions.LeaderStandby.name()
   };
@@ -87,8 +88,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
 
     // start dummy participants
     for (String node : _nodes) {
-      MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, node);
+      MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, node);
       participant.syncStart();
       _participants.add(participant);
     }
@@ -103,10 +103,15 @@ public class TestCrushAutoRebalance extends ZkTestBase {
   }
 
   @DataProvider(name = "rebalanceStrategies")
-  public static Object [][] rebalanceStrategies() {
-    return new String[][] { {"CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName()},
-        {"MultiRoundCrushRebalanceStrategy", MultiRoundCrushRebalanceStrategy.class.getName()},
-        {"CrushEdRebalanceStrategy", CrushEdRebalanceStrategy.class.getName()}
+  public static Object[][] rebalanceStrategies() {
+    return new String[][] {
+        {
+            "CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName()
+        }, {
+            "MultiRoundCrushRebalanceStrategy", MultiRoundCrushRebalanceStrategy.class.getName()
+        }, {
+            "CrushEdRebalanceStrategy", CrushEdRebalanceStrategy.class.getName()
+        }
     };
   }
 
@@ -130,7 +135,8 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _allDBs) {
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateZoneAndTagIsolation(is, ev, _replica);
@@ -138,8 +144,8 @@ public class TestCrushAutoRebalance extends ZkTestBase {
   }
 
   @Test(dataProvider = "rebalanceStrategies")
-  public void testZoneIsolationWithInstanceTag(
-      String rebalanceStrategyName, String rebalanceStrategyClass) throws Exception {
+  public void testZoneIsolationWithInstanceTag(String rebalanceStrategyName,
+      String rebalanceStrategyClass) throws Exception {
     Set<String> tags = new HashSet<String>(_nodeToTagMap.values());
     int i = 0;
     for (String tag : tags) {
@@ -147,7 +153,8 @@ public class TestCrushAutoRebalance extends ZkTestBase {
       _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS,
           BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO + "",
           rebalanceStrategyClass);
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       is.setInstanceGroupTag(tag);
       _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, db, is);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
@@ -161,14 +168,17 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _allDBs) {
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateZoneAndTagIsolation(is, ev, _replica);
     }
   }
 
-  @Test (dependsOnMethods = { "testZoneIsolation", "testZoneIsolationWithInstanceTag"})
+  @Test(dependsOnMethods = {
+      "testZoneIsolation", "testZoneIsolationWithInstanceTag"
+  })
   public void testLackEnoughLiveRacks() throws Exception {
     System.out.println("TestLackEnoughInstances");
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
@@ -177,7 +187,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     String zone = _nodeToZoneMap.values().iterator().next();
     for (int i = 0; i < _participants.size(); i++) {
       MockParticipantManager p = _participants.get(i);
-      if (_nodeToZoneMap.get(p.getInstanceName()).equals(zone)){
+      if (_nodeToZoneMap.get(p.getInstanceName()).equals(zone)) {
         p.syncStop();
       }
     }
@@ -197,14 +207,17 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _allDBs) {
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateZoneAndTagIsolation(is, ev, 2);
     }
   }
 
-  @Test (dependsOnMethods = { "testLackEnoughLiveRacks"})
+  @Test(dependsOnMethods = {
+      "testLackEnoughLiveRacks"
+  })
   public void testLackEnoughRacks() throws Exception {
     System.out.println("TestLackEnoughInstances ");
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
@@ -213,10 +226,10 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     String zone = _nodeToZoneMap.values().iterator().next();
     for (int i = 0; i < _participants.size(); i++) {
       MockParticipantManager p = _participants.get(i);
-      if (_nodeToZoneMap.get(p.getInstanceName()).equals(zone)){
+      if (_nodeToZoneMap.get(p.getInstanceName()).equals(zone)) {
         p.syncStop();
-        _gSetupTool.getClusterManagementTool()
-            .enableInstance(CLUSTER_NAME, p.getInstanceName(), false);
+        _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, p.getInstanceName(),
+            false);
         Thread.sleep(50);
         _gSetupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
       }
@@ -238,7 +251,8 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _allDBs) {
-      IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateZoneAndTagIsolation(is, ev, 2);
@@ -266,7 +280,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
       Map<String, String> assignmentMap = ev.getRecord().getMapField(partition);
       Set<String> instancesInEV = assignmentMap.keySet();
       // TODO: preference List is not persisted in IS.
-      //Assert.assertEquals(instancesInEV, instancesInIs);
+      // Assert.assertEquals(instancesInEV, instancesInIs);
       for (String instance : instancesInEV) {
         assignedZones.add(_nodeToZoneMap.get(instance));
         if (tag != null) {
@@ -281,27 +295,29 @@ public class TestCrushAutoRebalance extends ZkTestBase {
 
   @Test()
   public void testAddZone() throws Exception {
-    //TODO
+    // TODO
   }
 
   @Test()
   public void testAddNodes() throws Exception {
-    //TODO
+    // TODO
   }
 
   @Test()
   public void testNodeFailure() throws Exception {
-    //TODO
+    // TODO
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    /**
+    /*
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */
-    _controller.syncStop();
+    if (_controller != null && _controller.isConnected()) {
+      _controller.syncStop();
+    }
     for (MockParticipantManager p : _participants) {
-      if (p.isConnected()) {
+      if (p != null && p.isConnected()) {
         p.syncStop();
       }
     }

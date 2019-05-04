@@ -43,7 +43,7 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableMap;
 
 public class TestNoDoubleAssign extends TaskTestBase {
-  private static final int THREAD_COUNT = 20;
+  private static final int THREAD_COUNT = 10;
   private static final long CONNECTION_DELAY = 100L;
   private static final long POLL_DELAY = 50L;
   private static final String TASK_DURATION = "200";
@@ -106,18 +106,16 @@ public class TestNoDoubleAssign extends TaskTestBase {
     _executorServicePoll.shutdown();
     _executorServiceConnection.shutdown();
     try {
-      if (!_executorServicePoll.awaitTermination(60, TimeUnit.SECONDS)) {
+      if (!_executorServicePoll.awaitTermination(180, TimeUnit.SECONDS)) {
         _executorServicePoll.shutdownNow();
       }
-      if (!_executorServiceConnection.awaitTermination(60, TimeUnit.SECONDS)) {
+      if (!_executorServiceConnection.awaitTermination(180, TimeUnit.SECONDS)) {
         _executorServiceConnection.shutdownNow();
       }
     } catch (InterruptedException e) {
       _executorServicePoll.shutdownNow();
       _executorServiceConnection.shutdownNow();
     }
-    Thread.sleep(500L);
-
     Assert.assertFalse(_existsDoubleAssign.get());
   }
 
@@ -127,25 +125,25 @@ public class TestNoDoubleAssign extends TaskTestBase {
    */
   private void pollForDoubleAssign() {
     _executorServicePoll = Executors.newScheduledThreadPool(THREAD_COUNT);
-    _executorServicePoll.scheduleAtFixedRate(new Runnable() {
-      @Override
-      public void run() {
-        if (!_existsDoubleAssign.get()) {
-          // Get JobContexts and test that they are assigned to disparate Participants
-          for (String job : _jobNames) {
-            JobContext jobContext = _driver.getJobContext(job);
-            if (jobContext == null) {
-              continue;
-            }
-            Set<String> instanceCache = new HashSet<>();
-            for (int partition : jobContext.getPartitionSet()) {
-              if (jobContext.getPartitionState(partition) == TaskPartitionState.RUNNING) {
-                if (instanceCache.contains(jobContext.getAssignedParticipant(partition))) {
+    _executorServicePoll.scheduleAtFixedRate(() -> {
+      if (!_existsDoubleAssign.get()) {
+        // Get JobContexts and test that they are assigned to disparate Participants
+        for (String job : _jobNames) {
+          JobContext jobContext = _driver.getJobContext(job);
+          if (jobContext == null) {
+            continue;
+          }
+          Set<String> instanceCache = new HashSet<>();
+          for (int partition : jobContext.getPartitionSet()) {
+            if (jobContext.getPartitionState(partition) == TaskPartitionState.RUNNING) {
+              String assignedParticipant = jobContext.getAssignedParticipant(partition);
+              if (assignedParticipant != null) {
+                if (instanceCache.contains(assignedParticipant)) {
                   // Two tasks running on the same instance at the same time
                   _existsDoubleAssign.set(true);
                   return;
                 }
-                instanceCache.add(jobContext.getAssignedParticipant(partition));
+                instanceCache.add(assignedParticipant);
               }
             }
           }
@@ -159,14 +157,11 @@ public class TestNoDoubleAssign extends TaskTestBase {
    */
   private void breakConnection() {
     _executorServiceConnection = Executors.newScheduledThreadPool(THREAD_COUNT);
-    _executorServiceConnection.scheduleAtFixedRate(new Runnable() {
-      @Override
-      public void run() {
-        // Randomly pick a Participant and cause a transient connection issue
-        int participantIndex = RANDOM.nextInt(_numNodes);
-        _participants[participantIndex].syncStop();
-        startParticipant(participantIndex);
-      }
+    _executorServiceConnection.scheduleAtFixedRate(() -> {
+      // Randomly pick a Participant and cause a transient connection issue
+      int participantIndex = RANDOM.nextInt(_numNodes);
+      _participants[participantIndex].disconnect();
+      startParticipant(participantIndex);
     }, 0L, CONNECTION_DELAY, TimeUnit.MILLISECONDS);
   }
 }

@@ -42,9 +42,9 @@ import org.testng.annotations.Test;
 
 public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
   class TestListener implements HelixPropertyListener {
-    ConcurrentLinkedQueue<String> _deletePathQueue = new ConcurrentLinkedQueue<String>();
-    ConcurrentLinkedQueue<String> _createPathQueue = new ConcurrentLinkedQueue<String>();
-    ConcurrentLinkedQueue<String> _changePathQueue = new ConcurrentLinkedQueue<String>();
+    ConcurrentLinkedQueue<String> _deletePathQueue = new ConcurrentLinkedQueue<>();
+    ConcurrentLinkedQueue<String> _createPathQueue = new ConcurrentLinkedQueue<>();
+    ConcurrentLinkedQueue<String> _changePathQueue = new ConcurrentLinkedQueue<>();
 
     @Override
     public void onDataDelete(String path) {
@@ -88,20 +88,19 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
     String extViewPath = PropertyPathBuilder.externalView(clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     extBaseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
     List<String> cachePaths = Arrays.asList(curStatePath, extViewPath);
     ZkCacheBaseDataAccessor<ZNRecord> accessor =
-        new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor, null, null, cachePaths);
-    // TestHelper.printCache(accessor._zkCache._cache);
+        new ZkCacheBaseDataAccessor<>(baseAccessor, null, null, cachePaths);
 
     TestListener listener = new TestListener();
     accessor.subscribe(curStatePath, listener);
 
     // create 10 current states
-    List<String> createPaths = new ArrayList<String>();
+    List<String> createPaths = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       String path = curStatePath + "/session_0/TestDB" + i;
       createPaths.add(path);
@@ -122,15 +121,15 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
 
     // verify each callback path
     createPaths.add(curStatePath + "/session_0");
-    List<String> createCallbackPaths = new ArrayList<String>(listener._createPathQueue);
+    List<String> createCallbackPaths = new ArrayList<>(listener._createPathQueue);
     Collections.sort(createPaths);
     Collections.sort(createCallbackPaths);
     // System.out.println("createCallbackPaths: " + createCallbackPaths);
-    Assert.assertEquals(createCallbackPaths, createPaths, "Should get create callbacks at "
-        + createPaths + ", but was " + createCallbackPaths);
+    Assert.assertEquals(createCallbackPaths, createPaths,
+        "Should get create callbacks at " + createPaths + ", but was " + createCallbackPaths);
 
     // update each current state, single thread
-    List<String> updatePaths = new ArrayList<String>();
+    List<String> updatePaths = new ArrayList<>();
     listener.reset();
     for (int i = 0; i < 10; i++) {
       String path = curStatePath + "/session_0/TestDB" + i;
@@ -154,14 +153,14 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
     Assert.assertEquals(listener._changePathQueue.size(), 100, "Shall get 100 onChange callbacks.");
 
     // verify each callback path
-    List<String> updateCallbackPaths = new ArrayList<String>(listener._changePathQueue);
+    List<String> updateCallbackPaths = new ArrayList<>(listener._changePathQueue);
     Collections.sort(updatePaths);
     Collections.sort(updateCallbackPaths);
-    Assert.assertEquals(updateCallbackPaths, updatePaths, "Should get change callbacks at "
-        + updatePaths + ", but was " + updateCallbackPaths);
+    Assert.assertEquals(updateCallbackPaths, updatePaths,
+        "Should get change callbacks at " + updatePaths + ", but was " + updateCallbackPaths);
 
     // remove 10 current states
-    TreeSet<String> removePaths = new TreeSet<String>();
+    TreeSet<String> removePaths = new TreeSet<>();
     listener.reset();
     for (int i = 0; i < 10; i++) {
       String path = curStatePath + "/session_0/TestDB" + i;
@@ -181,10 +180,11 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
         "Shall get at least 10 onDelete callbacks.");
 
     // verify each callback path
-    Set<String> removeCallbackPaths = new TreeSet<String>(listener._deletePathQueue);
-    Assert.assertEquals(removeCallbackPaths, removePaths, "Should get remove callbacks at "
-        + removePaths + ", but was " + removeCallbackPaths);
+    Set<String> removeCallbackPaths = new TreeSet<>(listener._deletePathQueue);
+    Assert.assertEquals(removeCallbackPaths, removePaths,
+        "Should get remove callbacks at " + removePaths + ", but was " + removeCallbackPaths);
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

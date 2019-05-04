@@ -51,8 +51,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
   private static final int PARTITION_NUM = 1;
 
   class DummyCallback implements CustomCodeCallbackHandler {
-    private final Map<NotificationContext.Type, Boolean> _callbackInvokeMap =
-        new HashMap<NotificationContext.Type, Boolean>();
+    private final Map<NotificationContext.Type, Boolean> _callbackInvokeMap = new HashMap<>();
 
     @Override
     public void onCallback(NotificationContext context) {
@@ -64,15 +63,15 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
       _callbackInvokeMap.clear();
     }
 
-    public boolean isInitTypeInvoked() {
+    boolean isInitTypeInvoked() {
       return _callbackInvokeMap.containsKey(NotificationContext.Type.INIT);
     }
 
-    public boolean isCallbackTypeInvoked() {
+    boolean isCallbackTypeInvoked() {
       return _callbackInvokeMap.containsKey(NotificationContext.Type.CALLBACK);
     }
 
-    public boolean isFinalizeTypeInvoked() {
+    boolean isFinalizeTypeInvoked() {
       return _callbackInvokeMap.containsKey(NotificationContext.Type.FINALIZE);
     }
   }
@@ -99,19 +98,17 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     controller.syncStart();
 
     // start participants
-    Map<String, MockParticipantManager> participants =
-        new HashMap<String, MockParticipantManager>();
-    Map<String, HelixCustomCodeRunner> customCodeRunners =
-        new HashMap<String, HelixCustomCodeRunner>();
-    Map<String, DummyCallback> callbacks = new HashMap<String, DummyCallback>();
+    Map<String, MockParticipantManager> participants = new HashMap<>();
+    Map<String, HelixCustomCodeRunner> customCodeRunners = new HashMap<>();
+    Map<String, DummyCallback> callbacks = new HashMap<>();
     for (int i = 0; i < N; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants
-          .put(instanceName, new MockParticipantManager(ZK_ADDR, clusterName, instanceName));
+      participants.put(instanceName,
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName));
 
-      customCodeRunners.put(instanceName, new HelixCustomCodeRunner(participants.get(instanceName),
-          ZK_ADDR));
+      customCodeRunners.put(instanceName,
+          new HelixCustomCodeRunner(participants.get(instanceName), ZK_ADDR));
       callbacks.put(instanceName, new DummyCallback());
 
       customCodeRunners.get(instanceName).invoke(callbacks.get(instanceName))
@@ -119,14 +116,12 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
       participants.get(instanceName).syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
+    boolean result = ClusterStateVerifier.verifyByZkCallback(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // Make sure callback is registered
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
     final HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     final String customCodeRunnerResource =
@@ -157,31 +152,27 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     admin.enableResource(clusterName, customCodeRunnerResource, false);
 
     // Verify that states of custom-code runner are all OFFLINE
-    result = TestHelper.verify(new TestHelper.Verifier() {
+    result = TestHelper.verify(() -> {
+      PropertyKey.Builder keyBuilder1 = accessor.keyBuilder();
 
-      @Override
-      public boolean verify() throws Exception {
-        PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-
-        ExternalView extView =
-            accessor.getProperty(keyBuilder.externalView(customCodeRunnerResource));
-        if (extView == null) {
-          return false;
-        }
-        Set<String> partitionSet = extView.getPartitionSet();
-        if (partitionSet == null || partitionSet.size() != PARTITION_NUM) {
-          return false;
-        }
-        for (String partition : partitionSet) {
-          Map<String, String> instanceStates = extView.getStateMap(partition);
-          for (String state : instanceStates.values()) {
-            if (!"OFFLINE".equals(state)) {
-              return false;
-            }
+      ExternalView extView1 =
+          accessor.getProperty(keyBuilder1.externalView(customCodeRunnerResource));
+      if (extView1 == null) {
+        return false;
+      }
+      Set<String> partitionSet = extView1.getPartitionSet();
+      if (partitionSet == null || partitionSet.size() != PARTITION_NUM) {
+        return false;
+      }
+      for (String partition : partitionSet) {
+        Map<String, String> instanceStates1 = extView1.getStateMap(partition);
+        for (String state : instanceStates1.values()) {
+          if (!"OFFLINE".equals(state)) {
+            return false;
           }
         }
-        return true;
       }
+      return true;
     }, 10 * 1000);
     Assert.assertTrue(result);
 
@@ -209,10 +200,8 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
 
     // Re-enable custom-code runner
     admin.enableResource(clusterName, customCodeRunnerResource, true);
-    result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
+    result = ClusterStateVerifier.verifyByZkCallback(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // Verify that custom-invoke is invoked again
@@ -255,6 +244,8 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
       participant.syncStop();
     }
 
+    deleteLiveInstances(clusterName);
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

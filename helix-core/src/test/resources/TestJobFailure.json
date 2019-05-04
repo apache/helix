@@ -16,7 +16,7 @@
       "TASK_ERROR","RUNNING"
     ],
     "expectedTaskEndingStates": [
-      "TASK_ERROR","TASK_ABORTED"
+      "TASK_ERROR TASK_ABORTED","TASK_ABORTED"
     ],
     "expectedJobEndingStates" : "FAILED",
     "expectedWorkflowEndingStates" : "FAILED"

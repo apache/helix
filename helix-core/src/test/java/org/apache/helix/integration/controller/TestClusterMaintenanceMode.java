@@ -68,29 +68,30 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
   @Test
   public void testNotInMaintenanceMode() {
-    boolean isInMaintenanceMode = _gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME);
+    boolean isInMaintenanceMode =
+        _gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME);
     Assert.assertFalse(isInMaintenanceMode);
   }
 
-  @Test (dependsOnMethods = "testNotInMaintenanceMode")
+  @Test(dependsOnMethods = "testNotInMaintenanceMode")
   public void testInMaintenanceMode() {
     _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, true, "Test");
-    boolean isInMaintenanceMode = _gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME);
+    boolean isInMaintenanceMode =
+        _gSetupTool.getClusterManagementTool().isInMaintenanceMode(CLUSTER_NAME);
     Assert.assertTrue(isInMaintenanceMode);
   }
 
-  @Test (dependsOnMethods = "testInMaintenanceMode")
-  public void testMaintenanceModeAddNewInstance() throws InterruptedException {
+  @Test(dependsOnMethods = "testInMaintenanceMode")
+  public void testMaintenanceModeAddNewInstance() {
     _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, true, "Test");
     ExternalView prevExternalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + 10);
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instanceName);
-    _newInstance =
-        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+    _newInstance = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
     _newInstance.syncStart();
-    _gSetupTool.getClusterManagementTool()
-        .rebalance(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, 3);
+    _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
+        3);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     ExternalView newExternalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
@@ -98,21 +99,21 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         newExternalView.getRecord().getMapFields());
   }
 
-  @Test (dependsOnMethods = "testMaintenanceModeAddNewInstance")
-  public void testMaintenanceModeAddNewResource() throws InterruptedException {
-    _gSetupTool.getClusterManagementTool()
-        .addResource(CLUSTER_NAME, newResourceAddedDuringMaintenanceMode, 7, "MasterSlave",
-            IdealState.RebalanceMode.FULL_AUTO.name());
-    _gSetupTool.getClusterManagementTool()
-        .rebalance(CLUSTER_NAME, newResourceAddedDuringMaintenanceMode, 3);
+  @Test(dependsOnMethods = "testMaintenanceModeAddNewInstance")
+  public void testMaintenanceModeAddNewResource() {
+    _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME,
+        newResourceAddedDuringMaintenanceMode, 7, "MasterSlave",
+        IdealState.RebalanceMode.FULL_AUTO.name());
+    _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME,
+        newResourceAddedDuringMaintenanceMode, 3);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
         .getResourceExternalView(CLUSTER_NAME, newResourceAddedDuringMaintenanceMode);
     Assert.assertNull(externalView);
   }
 
-  @Test (dependsOnMethods = "testMaintenanceModeAddNewResource")
-  public void testMaintenanceModeInstanceDown() throws InterruptedException {
+  @Test(dependsOnMethods = "testMaintenanceModeAddNewResource")
+  public void testMaintenanceModeInstanceDown() {
     _participants[0].syncStop();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
@@ -122,8 +123,8 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
     }
   }
 
-  @Test (dependsOnMethods = "testMaintenanceModeInstanceDown")
-  public void testMaintenanceModeInstanceBack() throws InterruptedException {
+  @Test(dependsOnMethods = "testMaintenanceModeInstanceDown")
+  public void testMaintenanceModeInstanceBack() {
     _participants[0] =
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _participants[0].getInstanceName());
     _participants[0].syncStart();
@@ -132,13 +133,13 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         .getResourceExternalView(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
     for (Map<String, String> stateMap : externalView.getRecord().getMapFields().values()) {
       if (stateMap.containsKey(_participants[0].getInstanceName())) {
-        Assert.assertTrue(stateMap.get(_participants[0].getInstanceName()).equals("SLAVE"));
+        Assert.assertEquals(stateMap.get(_participants[0].getInstanceName()), "SLAVE");
       }
     }
   }
 
-  @Test (dependsOnMethods = "testMaintenanceModeInstanceBack")
-  public void testExitMaintenanceModeNewResourceRecovery() throws InterruptedException {
+  @Test(dependsOnMethods = "testMaintenanceModeInstanceBack")
+  public void testExitMaintenanceModeNewResourceRecovery() {
     _gSetupTool.getClusterManagementTool().enableMaintenanceMode(CLUSTER_NAME, false);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     ExternalView externalView = _gSetupTool.getClusterManagementTool()
@@ -186,7 +187,8 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   @Test(dependsOnMethods = "testAutoExitMaintenanceMode")
   public void testNoAutoExitWhenManuallyPutInMaintenance() throws InterruptedException {
     // Manually put the cluster in maintenance
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true, null, null);
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, true, null,
+        null);
 
     // Kill 2 instances, which makes it a total of 3 down instances
     for (int i = 0; i < 2; i++) {
@@ -214,7 +216,8 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   @Test(dependsOnMethods = "testNoAutoExitWhenManuallyPutInMaintenance")
   public void testManualEnablingOverridesAutoEnabling() throws InterruptedException {
     // Exit maintenance mode manually
-    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null, null);
+    _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null,
+        null);
 
     // Kill 3 instances, which would put cluster in maintenance automatically
     for (int i = 0; i < 3; i++) {

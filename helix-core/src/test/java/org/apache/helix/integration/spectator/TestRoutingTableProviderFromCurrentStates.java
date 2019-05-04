@@ -1,5 +1,24 @@
 package org.apache.helix.integration.spectator;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.lang.management.ManagementFactory;
 import java.util.HashSet;
 import java.util.List;
@@ -62,8 +81,8 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       _participants[i].syncStart();
     }
 
-    _manager = HelixManagerFactory
-        .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
+    _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
+        InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
 
     String controllerName = CONTROLLER_PREFIX + "_0";
@@ -78,7 +97,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    /**
+    /*
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */
     if (_controller != null && _controller.isConnected()) {
@@ -92,7 +111,6 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
     if (_manager != null && _manager.isConnected()) {
       _manager.disconnect();
     }
-
     deleteCluster(CLUSTER_NAME);
   }
 
@@ -100,19 +118,22 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
   public void testRoutingTableWithCurrentStates() throws Exception {
     RoutingTableProvider routingTableEV =
         new RoutingTableProvider(_manager, PropertyType.EXTERNALVIEW);
-    RoutingTableProvider routingTableCurrentStates = new RoutingTableProvider(_manager, PropertyType.CURRENTSTATES);
+    RoutingTableProvider routingTableCurrentStates =
+        new RoutingTableProvider(_manager, PropertyType.CURRENTSTATES);
 
     try {
       String db1 = "TestDB-1";
-      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db1, NUM_PARTITIONS, "MasterSlave", IdealState.RebalanceMode.FULL_AUTO.name());
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db1, NUM_PARTITIONS, "MasterSlave",
+          IdealState.RebalanceMode.FULL_AUTO.name());
       long startTime = System.currentTimeMillis();
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db1, NUM_REPLICAS);
 
-      Thread.sleep(200);
+      Thread.sleep(1000L);
       ZkHelixClusterVerifier clusterVerifier =
           new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
       Assert.assertTrue(clusterVerifier.verifyByPolling());
-      validatePropagationLatency(PropertyType.CURRENTSTATES, System.currentTimeMillis() - startTime);
+      validatePropagationLatency(PropertyType.CURRENTSTATES,
+          System.currentTimeMillis() - startTime);
 
       IdealState idealState1 =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db1);
@@ -120,13 +141,15 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
 
       // add new DB
       String db2 = "TestDB-2";
-      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db2, NUM_PARTITIONS, "MasterSlave", IdealState.RebalanceMode.FULL_AUTO.name());
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, db2, NUM_PARTITIONS, "MasterSlave",
+          IdealState.RebalanceMode.FULL_AUTO.name());
       startTime = System.currentTimeMillis();
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, NUM_REPLICAS);
 
-      Thread.sleep(200);
+      Thread.sleep(1000L);
       Assert.assertTrue(clusterVerifier.verifyByPolling());
-      validatePropagationLatency(PropertyType.CURRENTSTATES, System.currentTimeMillis() - startTime);
+      validatePropagationLatency(PropertyType.CURRENTSTATES,
+          System.currentTimeMillis() - startTime);
 
       IdealState idealState2 =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db2);
@@ -135,9 +158,10 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       // shutdown an instance
       startTime = System.currentTimeMillis();
       _participants[0].syncStop();
-      Thread.sleep(200);
+      Thread.sleep(1000L);
       Assert.assertTrue(clusterVerifier.verifyByPolling());
-      validatePropagationLatency(PropertyType.CURRENTSTATES, System.currentTimeMillis() - startTime);
+      validatePropagationLatency(PropertyType.CURRENTSTATES,
+          System.currentTimeMillis() - startTime);
 
       validate(idealState1, routingTableEV, routingTableCurrentStates);
       validate(idealState2, routingTableEV, routingTableCurrentStates);
@@ -147,25 +171,24 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
     }
   }
 
-  private ObjectName buildObjectName(PropertyType type)
-      throws MalformedObjectNameException {
+  private ObjectName buildObjectName(PropertyType type) throws MalformedObjectNameException {
     return MBeanRegistrar.buildObjectName(MonitorDomainNames.RoutingTableProvider.name(),
-        RoutingTableProviderMonitor.CLUSTER_KEY, CLUSTER_NAME, RoutingTableProviderMonitor.DATA_TYPE_KEY,
-        type.name());
+        RoutingTableProviderMonitor.CLUSTER_KEY, CLUSTER_NAME,
+        RoutingTableProviderMonitor.DATA_TYPE_KEY, type.name());
   }
 
   private void validatePropagationLatency(PropertyType type, final long upperBound)
       throws Exception {
     final ObjectName name = buildObjectName(type);
-    Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-      @Override public boolean verify() throws Exception {
-        long stateLatency = (long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
-        return stateLatency > 0 && stateLatency <= upperBound;
-      }
+    Assert.assertTrue(TestHelper.verify(() -> {
+      long stateLatency = (long) _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
+      return stateLatency > 0 && stateLatency <= upperBound;
     }, 1000));
   }
 
-  @Test (dependsOnMethods = {"testRoutingTableWithCurrentStates"})
+  @Test(dependsOnMethods = {
+      "testRoutingTableWithCurrentStates"
+  })
   public void testWithSupportSourceDataType() {
     new RoutingTableProvider(_manager, PropertyType.EXTERNALVIEW).shutdown();
     new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW).shutdown();

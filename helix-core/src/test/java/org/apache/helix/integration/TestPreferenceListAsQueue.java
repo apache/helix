@@ -21,6 +21,7 @@ package org.apache.helix.integration;
 
 import com.google.common.collect.Lists;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
@@ -51,6 +52,8 @@ import org.apache.helix.tools.ClusterSetup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -80,6 +83,11 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     _clusterName = className + "_" + methodName;
     _clusterSetup.addCluster(_clusterName, true);
+  }
+
+  @AfterClass
+  public void afterClass() {
+    deleteCluster(_clusterName);
   }
 
   /**
@@ -118,7 +126,7 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
 
     // Add a state model with the parallelism implicit
     _clusterSetup.addStateModelDef(_clusterName, _stateModel,
-        createEnforcedParallelismStateModelDef(_stateModel, PARALLELISM));
+        createEnforcedParallelismStateModelDef(_stateModel));
     runTest();
   }
 
@@ -155,9 +163,8 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     // Start some instances
     HelixManager[] participants = new HelixManager[NUM_INSTANCES];
     for (int i = 0; i < NUM_INSTANCES; i++) {
-      participants[i] =
-          HelixManagerFactory.getZKHelixManager(_clusterName, instanceInfoArray[i],
-              InstanceType.PARTICIPANT, ZK_ADDR);
+      participants[i] = HelixManagerFactory.getZKHelixManager(_clusterName, instanceInfoArray[i],
+          InstanceType.PARTICIPANT, ZK_ADDR);
       participants[i].getStateMachineEngine().registerStateModelFactory(_stateModel,
           new PrefListTaskOnlineOfflineStateModelFactory());
       participants[i].connect();
@@ -180,19 +187,19 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
 
     // Add one instance
     addInstanceToPreferences(participants[0].getHelixDataAccessor(),
-        participants[0].getInstanceName(), RESOURCE_NAME, Arrays.asList(partitionName));
+        participants[0].getInstanceName(), RESOURCE_NAME, Collections.singletonList(partitionName));
     Assert.assertTrue(preferenceListIsCorrect(_admin, _clusterName, RESOURCE_NAME, partitionName,
         Arrays.asList("localhost_1", "")));
 
     // Add a second instance immediately; the first one should still exist
     addInstanceToPreferences(participants[1].getHelixDataAccessor(),
-        participants[1].getInstanceName(), RESOURCE_NAME, Arrays.asList(partitionName));
+        participants[1].getInstanceName(), RESOURCE_NAME, Collections.singletonList(partitionName));
     Assert.assertTrue(preferenceListIsCorrect(_admin, _clusterName, RESOURCE_NAME, partitionName,
         Arrays.asList("localhost_1", "localhost_2")));
 
     // Add the first instance again; it should already exist
     addInstanceToPreferences(participants[0].getHelixDataAccessor(),
-        participants[0].getInstanceName(), RESOURCE_NAME, Arrays.asList(partitionName));
+        participants[0].getInstanceName(), RESOURCE_NAME, Collections.singletonList(partitionName));
     Assert.assertTrue(preferenceListIsCorrect(_admin, _clusterName, RESOURCE_NAME, partitionName,
         Arrays.asList("localhost_1", "localhost_2")));
 
@@ -208,6 +215,7 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     boolean countReached = _onlineLatch.await(10000, TimeUnit.MILLISECONDS);
     Assert.assertTrue(countReached);
     List<String> top = _prefListHistory.poll();
+    assert top != null;
     Assert.assertTrue(top.equals(Arrays.asList("localhost_1", ""))
         || top.equals(Arrays.asList("localhost_2", "")));
     Assert.assertEquals(_prefListHistory.poll(), Arrays.asList("", ""));
@@ -219,9 +227,9 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     // Add back the instances in the opposite order
     _admin.enableCluster(_clusterName, false);
     addInstanceToPreferences(participants[0].getHelixDataAccessor(),
-        participants[1].getInstanceName(), RESOURCE_NAME, Arrays.asList(partitionName));
+        participants[1].getInstanceName(), RESOURCE_NAME, Collections.singletonList(partitionName));
     addInstanceToPreferences(participants[0].getHelixDataAccessor(),
-        participants[0].getInstanceName(), RESOURCE_NAME, Arrays.asList(partitionName));
+        participants[0].getInstanceName(), RESOURCE_NAME, Collections.singletonList(partitionName));
     Assert.assertTrue(preferenceListIsCorrect(_admin, _clusterName, RESOURCE_NAME, partitionName,
         Arrays.asList("localhost_2", "localhost_1")));
 
@@ -234,6 +242,7 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     countReached = _onlineLatch.await(10000, TimeUnit.MILLISECONDS);
     Assert.assertTrue(countReached);
     top = _prefListHistory.poll();
+    assert top != null;
     Assert.assertTrue(top.equals(Arrays.asList("localhost_1", ""))
         || top.equals(Arrays.asList("localhost_2", "")));
     Assert.assertEquals(_prefListHistory.poll(), Arrays.asList("", ""));
@@ -253,13 +262,12 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
    * @return
    */
   private StateModelDefinition createReprioritizedStateModelDef(String stateModelName) {
-    StateModelDefinition.Builder builder =
-        new StateModelDefinition.Builder(stateModelName).addState("ONLINE", 1).addState("OFFLINE")
-            .addState("DROPPED").addState("ERROR").initialState("OFFLINE")
-            .addTransition("ERROR", "OFFLINE", 1).addTransition("ONLINE", "OFFLINE", 2)
-            .addTransition("OFFLINE", "DROPPED", 3).addTransition("OFFLINE", "ONLINE", 4)
-            .dynamicUpperBound("ONLINE", "R").upperBound("OFFLINE", -1).upperBound("DROPPED", -1)
-            .upperBound("ERROR", -1);
+    StateModelDefinition.Builder builder = new StateModelDefinition.Builder(stateModelName)
+        .addState("ONLINE", 1).addState("OFFLINE").addState("DROPPED").addState("ERROR")
+        .initialState("OFFLINE").addTransition("ERROR", "OFFLINE", 1)
+        .addTransition("ONLINE", "OFFLINE", 2).addTransition("OFFLINE", "DROPPED", 3)
+        .addTransition("OFFLINE", "ONLINE", 4).dynamicUpperBound("ONLINE", "R")
+        .upperBound("OFFLINE", -1).upperBound("DROPPED", -1).upperBound("ERROR", -1);
     return builder.build();
   }
 
@@ -267,11 +275,9 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
    * Create a modified version of OnlineOffline where the parallelism is enforced by the upper bound
    * of ONLINE
    * @param stateModelName
-   * @param parallelism
    * @return
    */
-  private StateModelDefinition createEnforcedParallelismStateModelDef(String stateModelName,
-      int parallelism) {
+  private StateModelDefinition createEnforcedParallelismStateModelDef(String stateModelName) {
     StateModelDefinition.Builder builder =
         new StateModelDefinition.Builder(stateModelName).addState("ONLINE", 1).addState("OFFLINE")
             .addState("DROPPED").addState("ERROR").initialState("OFFLINE")
@@ -291,8 +297,8 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
    * @param expectPreferenceList
    * @return
    */
-  private boolean preferenceListIsCorrect(HelixAdmin admin, String clusterName,
-      String resourceName, String partitionName, List<String> expectPreferenceList) {
+  private boolean preferenceListIsCorrect(HelixAdmin admin, String clusterName, String resourceName,
+      String partitionName, List<String> expectPreferenceList) {
     IdealState idealState = admin.getResourceIdealState(clusterName, resourceName);
     List<String> preferenceList = idealState.getPreferenceList(partitionName);
     return expectPreferenceList.equals(preferenceList);
@@ -313,23 +319,21 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     synchronized (_prefListHistory) {
       // Updater for ideal state
       final List<String> prefList = Lists.newLinkedList();
-      DataUpdater<ZNRecord> idealStateUpdater = new DataUpdater<ZNRecord>() {
-        @Override
-        public ZNRecord update(ZNRecord currentData) {
-          List<String> preferenceList = currentData.getListField(partitionName);
-          int numReplicas =
-              Integer.valueOf(currentData.getSimpleField(IdealStateProperty.REPLICAS.toString()));
-          List<String> newPrefList =
-              removeInstanceFromPreferenceList(preferenceList, instanceName, numReplicas);
-          currentData.setListField(partitionName, newPrefList);
-          prefList.clear();
-          prefList.addAll(newPrefList);
-          return currentData;
-        }
+      DataUpdater<ZNRecord> idealStateUpdater = currentData -> {
+        List<String> preferenceList = currentData.getListField(partitionName);
+        int numReplicas =
+            Integer.valueOf(currentData.getSimpleField(IdealStateProperty.REPLICAS.toString()));
+        List<String> newPrefList =
+            removeInstanceFromPreferenceList(preferenceList, instanceName, numReplicas);
+        currentData.setListField(partitionName, newPrefList);
+        prefList.clear();
+        prefList.addAll(newPrefList);
+        return currentData;
       };
       List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
       updaters.add(idealStateUpdater);
-      accessor.updateChildren(Arrays.asList(idealStatePath), updaters, AccessOption.PERSISTENT);
+      accessor.updateChildren(Collections.singletonList(idealStatePath), updaters,
+          AccessOption.PERSISTENT);
       _prefListHistory.add(prefList);
     }
   }
@@ -349,27 +353,25 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     synchronized (_prefListHistory) {
       // Updater for ideal state
       final List<String> prefList = Lists.newLinkedList();
-      DataUpdater<ZNRecord> idealStateUpdater = new DataUpdater<ZNRecord>() {
-        @Override
-        public ZNRecord update(ZNRecord currentData) {
-          for (String partitionName : partitions) {
-            List<String> preferenceList = currentData.getListField(partitionName);
-            int numReplicas =
-                Integer.valueOf(currentData.getSimpleField(IdealStateProperty.REPLICAS.toString()));
-            List<String> newPrefList =
-                addInstanceToPreferenceList(preferenceList, instanceName, numReplicas);
-            currentData.setListField(partitionName, newPrefList);
-            prefList.clear();
-            prefList.addAll(newPrefList);
-          }
-          return currentData;
+      DataUpdater<ZNRecord> idealStateUpdater = currentData -> {
+        for (String partitionName : partitions) {
+          List<String> preferenceList = currentData.getListField(partitionName);
+          int numReplicas =
+              Integer.valueOf(currentData.getSimpleField(IdealStateProperty.REPLICAS.toString()));
+          List<String> newPrefList =
+              addInstanceToPreferenceList(preferenceList, instanceName, numReplicas);
+          currentData.setListField(partitionName, newPrefList);
+          prefList.clear();
+          prefList.addAll(newPrefList);
         }
+        return currentData;
       };
 
       // Send update requests together
       List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
       updaters.add(idealStateUpdater);
-      accessor.updateChildren(Arrays.asList(idealStatePath), updaters, AccessOption.PERSISTENT);
+      accessor.updateChildren(Collections.singletonList(idealStatePath), updaters,
+          AccessOption.PERSISTENT);
       _prefListHistory.add(prefList);
     }
   }
@@ -498,10 +500,11 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     }
   }
 
-  public class PrefListTaskOnlineOfflineStateModelFactory extends
-      StateModelFactory<PrefListTaskOnlineOfflineStateModel> {
+  public class PrefListTaskOnlineOfflineStateModelFactory
+      extends StateModelFactory<PrefListTaskOnlineOfflineStateModel> {
     @Override
-    public PrefListTaskOnlineOfflineStateModel createNewStateModel(String resource, String partitionName) {
+    public PrefListTaskOnlineOfflineStateModel createNewStateModel(String resource,
+        String partitionName) {
       return new PrefListTaskOnlineOfflineStateModel();
     }
   }

@@ -37,8 +37,10 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskPartitionState;
+import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -83,34 +85,40 @@ public class TestZkHelixAdmin extends TaskTestBase {
   @Test
   public void testEnableDisablePartitions() throws InterruptedException {
     _admin.enablePartition(false, CLUSTER_NAME, (PARTICIPANT_PREFIX + "_" + _startPort),
-        WorkflowGenerator.DEFAULT_TGT_DB, Arrays.asList(new String[] { "TestDB_0", "TestDB_2" }));
+        WorkflowGenerator.DEFAULT_TGT_DB, Arrays.asList("TestDB_0", "TestDB_2"));
     _admin.enablePartition(false, CLUSTER_NAME, (PARTICIPANT_PREFIX + "_" + (_startPort + 1)),
-        WorkflowGenerator.DEFAULT_TGT_DB, Arrays.asList(new String[] { "TestDB_0", "TestDB_2" }));
+        WorkflowGenerator.DEFAULT_TGT_DB, Arrays.asList("TestDB_0", "TestDB_2"));
 
     IdealState idealState =
         _admin.getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
-    List<String> preferenceList =
-        Arrays.asList(new String[] { "localhost_12919", "localhost_12918" });
+    List<String> preferenceList = Arrays.asList("localhost_12919", "localhost_12918");
     for (String partitionName : idealState.getPartitionSet()) {
       idealState.setPreferenceList(partitionName, preferenceList);
     }
     idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
     _admin.setResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, idealState);
 
+    // Let the cluster rebalance
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder builder = new Workflow.Builder(workflowName);
-    JobConfig.Builder jobBuilder =
-        new JobConfig.Builder().setWorkflow(workflowName).setCommand(MockTask.TASK_COMMAND)
-            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-            .setTargetPartitionStates(Collections.singleton("SLAVE"));
+    JobConfig.Builder jobBuilder = new JobConfig.Builder().setWorkflow(workflowName)
+        .setCommand(MockTask.TASK_COMMAND).setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+        .setTargetPartitionStates(Collections.singleton("SLAVE"));
     builder.addJob("JOB", jobBuilder);
     _driver.start(builder.build());
-    Thread.sleep(2000L);
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, "JOB"),
+        TaskState.IN_PROGRESS);
+    Thread.sleep(3000L);
     JobContext jobContext =
         _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "JOB"));
-    Assert.assertEquals(jobContext.getPartitionState(0), null);
+    Assert.assertNull(jobContext.getPartitionState(0));
     Assert.assertEquals(jobContext.getPartitionState(1), TaskPartitionState.COMPLETED);
-    Assert.assertEquals(jobContext.getPartitionState(2), null);
+    Assert.assertNull(jobContext.getPartitionState(2));
   }
 
   private List<ViewClusterSourceConfig> generateViewClusterSourceConfig() {
@@ -122,8 +130,8 @@ public class TestZkHelixAdmin extends TaskTestBase {
     List<ViewClusterSourceConfig> sourceConfigs = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       String clusterName = clusterNamePrefix + i;
-      String configJSON = String
-          .format(testJsonTemplate, clusterName, zkConnection, PropertyType.INSTANCES.name(),
+      String configJSON =
+          String.format(testJsonTemplate, clusterName, zkConnection, PropertyType.INSTANCES.name(),
               PropertyType.EXTERNALVIEW.name(), PropertyType.LIVEINSTANCES.name());
 
       sourceConfigs.add(ViewClusterSourceConfig.fromJson(configJSON));

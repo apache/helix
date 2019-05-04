@@ -20,6 +20,7 @@ package org.apache.helix.common;
  */
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.BaseDataAccessor;
@@ -85,6 +88,7 @@ import org.testng.AssertJUnit;
 import org.testng.ITestContext;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterSuite;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 
@@ -95,13 +99,13 @@ public class ZkTestBase {
   protected static HelixZkClient _gZkClient;
   protected static ClusterSetup _gSetupTool;
   protected static BaseDataAccessor<ZNRecord> _baseAccessor;
+  protected static MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
 
   public static final String ZK_ADDR = "localhost:2183";
   protected static final String CLUSTER_PREFIX = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
   protected final String CONTROLLER_PREFIX = "controller";
   protected final String PARTICIPANT_PREFIX = "localhost";
-
 
   @BeforeSuite
   public void beforeSuite() throws Exception {
@@ -114,7 +118,16 @@ public class ZkTestBase {
     System.setProperty(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, "3000");
 
     _zkServer = TestHelper.startZkServer(ZK_ADDR);
-    AssertJUnit.assertTrue(_zkServer != null);
+    AssertJUnit.assertNotNull(_zkServer);
+
+    // Clean up all JMX objects
+    for (ObjectName mbean : _server.queryNames(null, null)) {
+      try {
+        _server.unregisterMBean(mbean);
+      } catch (Exception e) {
+        // OK
+      }
+    }
 
     HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
     clientConfig.setZkSerializer(new ZNRecordSerializer());
@@ -125,13 +138,39 @@ public class ZkTestBase {
   }
 
   @AfterSuite
-  public void afterSuite() {
+  public void afterSuite() throws IOException {
+    // Clean up all JMX objects
+    for (ObjectName mbean : _server.queryNames(null, null)) {
+      try {
+        _server.unregisterMBean(mbean);
+      } catch (Exception e) {
+        // OK
+      }
+    }
+
     _gZkClient.close();
     TestHelper.stopZkServer(_zkServer);
   }
 
+  @BeforeClass
+  public void beforeClass() throws Exception {
+    // Clean up all JMX objects
+    for (ObjectName mbean : _server.queryNames(null, null)) {
+      try {
+        _server.unregisterMBean(mbean);
+      } catch (Exception e) {
+        // OK
+      }
+    }
+
+    // Giving each test some time to settle (such as gc pause, etc).
+    // Note that this is the best effort we could make to stabilize tests, not a complete solution
+    Runtime.getRuntime().gc();
+    Thread.sleep(1000L);
+  }
+
   @BeforeMethod
-  public void beforeTest(Method testMethod, ITestContext testContext){
+  public void beforeTest(Method testMethod, ITestContext testContext) {
     long startTime = System.currentTimeMillis();
     System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
     testContext.setAttribute("StartTime", System.currentTimeMillis());
@@ -141,11 +180,9 @@ public class ZkTestBase {
   public void endTest(Method testMethod, ITestContext testContext) {
     Long startTime = (Long) testContext.getAttribute("StartTime");
     long endTime = System.currentTimeMillis();
-    System.out.println(
-        "END " + testMethod.getName() + " at " + new Date(endTime) + ", took: " + (endTime
-            - startTime) + "ms.");
+    System.out.println("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
+        + (endTime - startTime) + "ms.");
   }
-
 
   protected String getShortClassName() {
     return this.getClass().getSimpleName();
@@ -153,7 +190,7 @@ public class ZkTestBase {
 
   protected String getCurrentLeader(HelixZkClient zkClient, String clusterName) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
@@ -193,7 +230,7 @@ public class ZkTestBase {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
-    if (isNewLeaderElected == false) {
+    if (!isNewLeaderElected) {
       System.out.println("fail to elect a new leader elected in " + clusterName);
     }
     AssertJUnit.assertTrue(isNewLeaderElected);
@@ -308,8 +345,7 @@ public class ZkTestBase {
           IdealState.RebalanceMode.FULL_AUTO + "", rebalanceStrategy);
     }
 
-    idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
+    idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
     idealState.setMinActiveReplicas(minActiveReplica);
     if (!idealState.isDelayRebalanceEnabled()) {
       idealState.setDelayRebalanceEnabled(true);
@@ -320,8 +356,7 @@ public class ZkTestBase {
     idealState.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
     _gSetupTool.getClusterManagementTool().setResourceIdealState(clusterName, db, idealState);
     _gSetupTool.rebalanceStorageCluster(clusterName, db, replica);
-    idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
+    idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
 
     return idealState;
   }
@@ -329,9 +364,8 @@ public class ZkTestBase {
   protected IdealState createIdealState(String resourceGroupName, String instanceGroupTag,
       List<String> instanceNames, int numPartition, int replica, String rebalanceMode,
       String stateModelDef) {
-    IdealState is = _gSetupTool
-        .createIdealStateForResourceGroup(resourceGroupName, instanceGroupTag, numPartition,
-            replica, rebalanceMode, stateModelDef);
+    IdealState is = _gSetupTool.createIdealStateForResourceGroup(resourceGroupName,
+        instanceGroupTag, numPartition, replica, rebalanceMode, stateModelDef);
 
     // setup initial partition->instance mapping.
     int nodeIdx = 0;
@@ -364,7 +398,8 @@ public class ZkTestBase {
   }
 
   /**
-   * Validate there should be always minimal active replica and top state replica for each partition.
+   * Validate there should be always minimal active replica and top state replica for each
+   * partition.
    * Also make sure there is always some partitions with only active replica count.
    */
   protected void validateMinActiveAndTopStateReplica(IdealState is, ExternalView ev,
@@ -374,8 +409,7 @@ public class ZkTestBase {
     String topState = stateModelDef.getStatesPriorityList().get(0);
     int replica = Integer.valueOf(is.getReplicas());
 
-    Map<String, Integer> stateCount =
-        stateModelDef.getStateCountMap(numNodes, replica);
+    Map<String, Integer> stateCount = stateModelDef.getStateCountMap(numNodes, replica);
     Set<String> activeStates = stateCount.keySet();
 
     for (String partition : is.getPartitionSet()) {
@@ -401,8 +435,8 @@ public class ZkTestBase {
       }
 
       Assert.assertTrue(hasTopState, String.format("%s missing %s replica", partition, topState));
-      Assert.assertTrue(activeReplica >= minActiveReplica, String
-          .format("%s has less active replica %d then required %d", partition, activeReplica,
+      Assert.assertTrue(activeReplica >= minActiveReplica,
+          String.format("%s has less active replica %d then required %d", partition, activeReplica,
               minActiveReplica));
     }
   }
@@ -449,7 +483,8 @@ public class ZkTestBase {
     AssertJUnit.assertEquals(wantEnabled, config.getInstanceEnabled());
   }
 
-  public void verifyReplication(HelixZkClient zkClient, String clusterName, String resource, int repl) {
+  public void verifyReplication(HelixZkClient zkClient, String clusterName, String resource,
+      int repl) {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
@@ -464,8 +499,8 @@ public class ZkTestBase {
     }
   }
 
-  protected void simulateSessionExpiry(ZkConnection zkConnection) throws IOException,
-      InterruptedException {
+  protected void simulateSessionExpiry(ZkConnection zkConnection)
+      throws IOException, InterruptedException {
     ZooKeeper oldZookeeper = zkConnection.getZookeeper();
     LOG.info("Old sessionId = " + oldZookeeper.getSessionId());
 
@@ -532,7 +567,7 @@ public class ZkTestBase {
 
   protected void setupStateModel(String clusterName) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     StateModelDefinition masterSlave =
@@ -549,8 +584,8 @@ public class ZkTestBase {
 
   }
 
-  protected Message createMessage(Message.MessageType type, String msgId, String fromState, String toState,
-      String resourceName, String tgtName) {
+  protected Message createMessage(Message.MessageType type, String msgId, String fromState,
+      String toState, String resourceName, String tgtName) {
     Message msg = new Message(type.toString(), msgId);
     msg.setFromState(fromState);
     msg.setToState(toState);
@@ -562,11 +597,11 @@ public class ZkTestBase {
   protected List<IdealState> setupIdealState(String clusterName, int[] nodes, String[] resources,
       int partitions, int replicas) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    List<IdealState> idealStates = new ArrayList<IdealState>();
-    List<String> instances = new ArrayList<String>();
+    List<IdealState> idealStates = new ArrayList<>();
+    List<String> instances = new ArrayList<>();
     for (int i : nodes) {
       instances.add("localhost_" + i);
     }
@@ -574,7 +609,7 @@ public class ZkTestBase {
     for (String resourceName : resources) {
       IdealState idealState = new IdealState(resourceName);
       for (int p = 0; p < partitions; p++) {
-        List<String> value = new ArrayList<String>();
+        List<String> value = new ArrayList<>();
         for (int r = 0; r < replicas; r++) {
           int n = nodes[(p + r) % nodes.length];
           value.add("localhost_" + n);
@@ -596,7 +631,7 @@ public class ZkTestBase {
 
   protected void setupLiveInstances(String clusterName, int[] liveInstances) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     for (int i = 0; i < liveInstances.length; i++) {
@@ -605,6 +640,16 @@ public class ZkTestBase {
       liveInstance.setSessionId("session_" + liveInstances[i]);
       liveInstance.setHelixVersion("0.0.0");
       accessor.setProperty(keyBuilder.liveInstance(instance), liveInstance);
+    }
+  }
+
+  protected void deleteLiveInstances(String clusterName) {
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    for (String liveInstance : accessor.getChildNames(keyBuilder.liveInstances())) {
+      accessor.removeProperty(keyBuilder.liveInstance(liveInstance));
     }
   }
 
@@ -625,8 +670,9 @@ public class ZkTestBase {
       pipeline.handle(event);
       pipeline.finish();
     } catch (Exception e) {
-      LOG.error("Exception while executing pipeline:" + pipeline
-          + ". Will not continue to next pipeline", e);
+      LOG.error(
+          "Exception while executing pipeline:" + pipeline + ". Will not continue to next pipeline",
+          e);
     }
   }
 
@@ -684,8 +730,7 @@ public class ZkTestBase {
 
     /**
      * Instantiate the verifier
-     *
-     * @param clusterName  the cluster to verify
+     * @param clusterName the cluster to verify
      * @param resourceName the resource to verify
      */
     public EmptyZkVerifier(String clusterName, String resourceName) {
@@ -743,4 +788,3 @@ public class ZkTestBase {
     }
   }
 }
-

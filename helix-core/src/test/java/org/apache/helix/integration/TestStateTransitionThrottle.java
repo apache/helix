@@ -29,7 +29,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -47,9 +46,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestStateTransitionThrottle extends ZkTestBase {
-  int participantCount = 4;
+  private int participantCount = 4;
   String resourceName = "TestDB0";
-  String resourceNamePrefix = "TestDB";
 
   @Test
   public void testTransitionThrottleOnRecoveryPartition() throws Exception {
@@ -59,7 +57,7 @@ public class TestStateTransitionThrottle extends ZkTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     final ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     setupCluster(clusterName, accessor);
 
     // start partial participants
@@ -123,7 +121,7 @@ public class TestStateTransitionThrottle extends ZkTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     final ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     setupCluster(clusterName, accessor);
 
     // Set throttle config to enable throttling
@@ -191,6 +189,7 @@ public class TestStateTransitionThrottle extends ZkTestBase {
   }
 
   private void setupCluster(String clusterName, ZKHelixDataAccessor accessor) throws Exception {
+    String resourceNamePrefix = "TestDB";
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start port
         "localhost", // participant name prefix
         resourceNamePrefix, // resource name prefix
@@ -218,15 +217,12 @@ public class TestStateTransitionThrottle extends ZkTestBase {
   private static boolean pollForPartitionAssignment(final HelixDataAccessor accessor,
       final MockParticipantManager participant, final String resourceName, final int timeout)
       throws Exception {
-    return TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() throws Exception {
-        PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-        PropertyKey partitionStatusKey = keyBuilder.currentState(participant.getInstanceName(),
-            participant.getSessionId(), resourceName);
-        CurrentState currentState = accessor.getProperty(partitionStatusKey);
-        return currentState != null && !currentState.getPartitionStateMap().isEmpty();
-      }
+    return TestHelper.verify(() -> {
+      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+      PropertyKey partitionStatusKey = keyBuilder.currentState(participant.getInstanceName(),
+          participant.getSessionId(), resourceName);
+      CurrentState currentState = accessor.getProperty(partitionStatusKey);
+      return currentState != null && !currentState.getPartitionStateMap().isEmpty();
     }, timeout);
   }
 }

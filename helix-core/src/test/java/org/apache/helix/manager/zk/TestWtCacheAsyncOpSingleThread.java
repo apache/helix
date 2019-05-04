@@ -45,22 +45,23 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase {
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
     String extViewPath = PropertyPathBuilder.externalView(clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
     List<String> cachePaths = Arrays.asList(curStatePath, extViewPath);
     ZkCacheBaseDataAccessor<ZNRecord> accessor =
-        new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor, null, cachePaths, null);
+        new ZkCacheBaseDataAccessor<>(baseAccessor, null, cachePaths, null);
 
     boolean ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _gZkClient, false);
     Assert.assertTrue(ret, "wtCache doesn't match data on Zk");
 
     // create 10 current states
-    List<String> paths = new ArrayList<String>();
-    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    List<String> paths = new ArrayList<>();
+    List<ZNRecord> records = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
+          "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -78,7 +79,7 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase {
     Assert.assertTrue(ret, "wtCache doesn't match data on Zk");
 
     // update each current state 10 times
-    List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
+    List<DataUpdater<ZNRecord>> updaters = new ArrayList<>();
     for (int j = 0; j < 10; j++) {
       paths.clear();
       updaters.clear();
@@ -145,7 +146,8 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase {
     // exists
     paths.clear();
     for (int i = 0; i < 10; i++) {
-      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
+          "session_0", "TestDB" + i);
       paths.add(path);
     }
     success = accessor.exists(paths, 0);
@@ -153,6 +155,7 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase {
       Assert.assertTrue(success[i], "Should exits: TestDB" + i);
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -167,23 +170,23 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase {
     String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
     String extViewPath = PropertyPathBuilder.externalView(clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
-    ZkCacheBaseDataAccessor<ZNRecord> accessor =
-        new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor, null, Arrays.asList(curStatePath,
-            extViewPath), null);
+    ZkCacheBaseDataAccessor<ZNRecord> accessor = new ZkCacheBaseDataAccessor<>(baseAccessor, null,
+        Arrays.asList(curStatePath, extViewPath), null);
 
-    Assert
-        .assertEquals(accessor._wtCache._cache.size(), 1, "Should contain only:\n" + curStatePath);
+    Assert.assertEquals(accessor._wtCache._cache.size(), 1,
+        "Should contain only:\n" + curStatePath);
     Assert.assertTrue(accessor._wtCache._cache.containsKey(curStatePath));
 
     // create 10 current states
-    List<String> paths = new ArrayList<String>();
-    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    List<String> paths = new ArrayList<>();
+    List<ZNRecord> records = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901", "session_1", "TestDB" + i);
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
+          "session_1", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -202,7 +205,7 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase {
       Assert.assertFalse(success[i], "Should fail on create: " + paths.get(i));
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 }

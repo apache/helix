@@ -38,11 +38,11 @@ import org.testng.annotations.Test;
 public class TestSemiAutoStateTransition extends TaskTestBase {
 
   protected HelixDataAccessor _accessor;
-  protected PropertyKey.Builder _keyBuilder;
+  private PropertyKey.Builder _keyBuilder;
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    _participants =  new MockParticipantManager[_numNodes];
+    _participants = new MockParticipantManager[_numNodes];
     _numPartitions = 1;
 
     _gSetupTool.addCluster(CLUSTER_NAME, true);
@@ -68,7 +68,8 @@ public class TestSemiAutoStateTransition extends TaskTestBase {
     createManagers();
   }
 
-  @Test public void testOfflineToSecondTopState() throws Exception {
+  @Test
+  public void testOfflineToSecondTopState() throws Exception {
     _participants[0].syncStop();
     Thread.sleep(2000L);
 

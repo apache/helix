@@ -27,17 +27,12 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestStandAloneCMSessionExpiry extends ZkTestBase {
-  private static Logger LOG = LoggerFactory.getLogger(TestStandAloneCMSessionExpiry.class);
-
   @Test()
   public void testStandAloneCMSessionExpiry() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.DEBUG);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -59,20 +54,19 @@ public class TestStandAloneCMSessionExpiry extends ZkTestBase {
     controller.syncStart();
 
     boolean result;
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // participant session expiry
     MockParticipantManager participantToExpire = participants[1];
 
-    System.out.println("Expire participant session");
+    // System.out.println("Expire participant session");
     String oldSessionId = participantToExpire.getSessionId();
 
     ZkTestHelper.expireSession(participantToExpire.getZkClient());
     String newSessionId = participantToExpire.getSessionId();
-    System.out.println("oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
+    // System.out.println("oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
     Assert.assertTrue(newSessionId.compareTo(oldSessionId) > 0,
         "Session id should be increased after expiry");
 
@@ -80,38 +74,34 @@ public class TestStandAloneCMSessionExpiry extends ZkTestBase {
     setupTool.addResourceToCluster(clusterName, "TestDB1", 10, "MasterSlave");
     setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // controller session expiry
-    System.out.println("Expire controller session");
+    // System.out.println("Expire controller session");
     oldSessionId = controller.getSessionId();
     ZkTestHelper.expireSession(controller.getZkClient());
     newSessionId = controller.getSessionId();
-    System.out.println("oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
+    // System.out.println("oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
     Assert.assertTrue(newSessionId.compareTo(oldSessionId) > 0,
         "Session id should be increased after expiry");
 
     setupTool.addResourceToCluster(clusterName, "TestDB2", 8, "MasterSlave");
     setupTool.rebalanceStorageCluster(clusterName, "TestDB2", 3);
 
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // clean up
     System.out.println("Clean up ...");
-    // Logger.getRootLogger().setLevel(Level.DEBUG);
     controller.syncStop();
     for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
-
 }

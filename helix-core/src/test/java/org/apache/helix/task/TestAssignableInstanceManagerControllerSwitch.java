@@ -28,7 +28,6 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.caches.TaskDataCache;
-import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;

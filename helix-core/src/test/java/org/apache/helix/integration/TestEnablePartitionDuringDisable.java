@@ -38,10 +38,6 @@ import org.testng.annotations.Test;
 public class TestEnablePartitionDuringDisable extends ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestEnablePartitionDuringDisable.class);
 
-  static {
-    // Logger.getRootLogger().setLevel(Level.INFO);
-  }
-
   class EnablePartitionTransition extends MockTransition {
     int slaveToOfflineCnt = 0;
     int offlineToSlave = 0;
@@ -60,16 +56,16 @@ public class TestEnablePartitionDuringDisable extends ZkTestBase {
           slaveToOfflineCnt++;
 
           try {
-            String command =
-                "--zkSvr " + ZK_ADDR + " --enablePartition true " + clusterName
-                    + " localhost_12919 TestDB0 TestDB0_0";
+            String command = "--zkSvr " + ZK_ADDR + " --enablePartition true " + clusterName
+                + " localhost_12919 TestDB0 TestDB0_0";
 
             ClusterSetup.processCommandLineArgs(command.split("\\s+"));
           } catch (Exception e) {
             LOG.error("Exception in cluster setup", e);
           }
 
-        } else if (slaveToOfflineCnt > 0 && fromState.equals("OFFLINE") && toState.equals("SLAVE")) {
+        } else if (slaveToOfflineCnt > 0 && fromState.equals("OFFLINE")
+            && toState.equals("SLAVE")) {
           offlineToSlave++;
         }
       }
@@ -114,15 +110,13 @@ public class TestEnablePartitionDuringDisable extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+    boolean result = ClusterStateVerifier.verifyByZkCallback(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // disable partitions
-    String command =
-        "--zkSvr " + ZK_ADDR + " --enablePartition false " + clusterName
-            + " localhost_12919 TestDB0 TestDB0_0";
+    String command = "--zkSvr " + ZK_ADDR + " --enablePartition false " + clusterName
+        + " localhost_12919 TestDB0 TestDB0_0";
 
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
@@ -147,6 +141,7 @@ public class TestEnablePartitionDuringDisable extends ZkTestBase {
       participants[i].syncStop();
     }
 
+    deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }

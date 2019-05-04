@@ -1,5 +1,24 @@
 package org.apache.helix.integration;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.Date;
 import java.util.List;
 import org.apache.helix.InstanceType;
@@ -18,11 +37,11 @@ import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestSyncSessionToController extends ZkTestBase {
   @Test
   public void testSyncSessionToController() throws Exception {
-    System.out.println("START testSyncSessionToController at " + new Date(System.currentTimeMillis()));
+    System.out
+        .println("START testSyncSessionToController at " + new Date(System.currentTimeMillis()));
 
     String clusterName = getShortClassName();
     MockParticipantManager[] participants = new MockParticipantManager[5];
@@ -43,41 +62,49 @@ public class TestSyncSessionToController extends ZkTestBase {
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
-
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
-    ZKHelixManager zkHelixManager = new ZKHelixManager(clusterName, "controllerMessageListener", InstanceType.CONTROLLER, ZK_ADDR);
+    ZKHelixManager zkHelixManager = new ZKHelixManager(clusterName, "controllerMessageListener",
+        InstanceType.CONTROLLER, ZK_ADDR);
     zkHelixManager.connect();
     MockMessageListener mockMessageListener = new MockMessageListener();
     zkHelixManager.addControllerMessageListener(mockMessageListener);
 
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
     String path = keyBuilder.liveInstance("localhost_12918").getPath();
     Stat stat = new Stat();
     ZNRecord data = accessor.get(path, stat, 2);
     data.getSimpleFields().put("SESSION_ID", "invalid-id");
     accessor.set(path, data, 2);
     Thread.sleep(2000);
-
     Assert.assertTrue(mockMessageListener.isSessionSyncMessageSent());
+
+    // Cleanup
+    controller.syncStop();
+    zkHelixManager.disconnect();
+    for (int i = 0; i < 5; i++) {
+      participants[i].syncStop();
+    }
+    deleteCluster(clusterName);
   }
 
   class MockMessageListener implements MessageListener {
     private boolean sessionSyncMessageSent = false;
 
     @Override
-    public void onMessage(String instanceName, List<Message> messages, NotificationContext changeContext) {
-      for (Message message: messages) {
+    public void onMessage(String instanceName, List<Message> messages,
+        NotificationContext changeContext) {
+      for (Message message : messages) {
         if (message.getMsgId().equals("SESSION-SYNC")) {
           sessionSyncMessageSent = true;
         }
       }
     }
 
-    public boolean isSessionSyncMessageSent() {
+    boolean isSessionSyncMessageSent() {
       return sessionSyncMessageSent;
     }
   }

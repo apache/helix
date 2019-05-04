@@ -39,7 +39,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
 public class TestTaskThrottling extends TaskTestBase {
 
   @BeforeClass
@@ -49,9 +48,14 @@ public class TestTaskThrottling extends TaskTestBase {
     super.beforeClass();
   }
 
+  /**
+   * This test has been disabled/deprecated because Task Framework 2.0 uses quotas that are meant to
+   * throttle tasks.
+   * @throws InterruptedException
+   */
   @Test
   public void testTaskThrottle() throws InterruptedException {
-    int numTasks = 30 * _numNodes;
+    int numTasks = 30 * _numNodes; // 60 tasks
     int perNodeTaskLimitation = 5;
 
     JobConfig.Builder jobConfig = generateLongRunJobConfig(numTasks);
@@ -63,7 +67,7 @@ public class TestTaskThrottling extends TaskTestBase {
     _driver.pollForJobState(flow.getName(), TaskUtil.getNamespacedJobName(flow.getName(), jobName1),
         TaskState.IN_PROGRESS);
     // Wait for tasks to be picked up
-    Thread.sleep(2000);
+    Thread.sleep(1000L);
 
     Assert.assertEquals(countRunningPartition(flow, jobName1), numTasks);
 
@@ -74,10 +78,11 @@ public class TestTaskThrottling extends TaskTestBase {
 
     // Configuring cluster
     HelixConfigScope scope =
-        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER).forCluster(CLUSTER_NAME).build();
-    Map<String, String> properties = new HashMap<String, String>();
+        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
+            .forCluster(CLUSTER_NAME).build();
+    Map<String, String> properties = new HashMap<>();
     properties.put(ClusterConfig.ClusterConfigProperty.MAX_CONCURRENT_TASK_PER_INSTANCE.name(),
-        new Integer(perNodeTaskLimitation).toString());
+        Integer.toString(perNodeTaskLimitation));
     _gSetupTool.getClusterManagementTool().setConfig(scope, properties);
 
     String jobName2 = "Job2";
@@ -86,8 +91,9 @@ public class TestTaskThrottling extends TaskTestBase {
     _driver.pollForJobState(flow.getName(), TaskUtil.getNamespacedJobName(flow.getName(), jobName2),
         TaskState.IN_PROGRESS);
     // Wait for tasks to be picked up
-    Thread.sleep(4000);
+    Thread.sleep(1000L);
 
+    // Expect 10 tasks
     Assert.assertEquals(countRunningPartition(flow, jobName2), _numNodes * perNodeTaskLimitation);
 
     _driver.stop(flow.getName());
@@ -103,7 +109,9 @@ public class TestTaskThrottling extends TaskTestBase {
   }
 
   // Disable this test since helix will have priority map when integrate with JobIterator.
-  @Test(dependsOnMethods = {"testTaskThrottle"}, enabled = false)
+  @Test(dependsOnMethods = {
+      "testTaskThrottle"
+  }, enabled = false)
   public void testJobPriority() throws InterruptedException {
     int numTasks = 30 * _numNodes;
     int perNodeTaskLimitation = 5;
@@ -115,20 +123,22 @@ public class TestTaskThrottling extends TaskTestBase {
 
     // schedule job1
     String jobName1 = "PriorityJob1";
-    Workflow flow1 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig).build();
+    Workflow flow1 =
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig).build();
     _driver.start(flow1);
-    _driver.pollForJobState(flow1.getName(), TaskUtil.getNamespacedJobName(flow1.getName(), jobName1),
-        TaskState.IN_PROGRESS);
+    _driver.pollForJobState(flow1.getName(),
+        TaskUtil.getNamespacedJobName(flow1.getName(), jobName1), TaskState.IN_PROGRESS);
     // Wait for tasks to be picked up
-    Thread.sleep(4000);
+    Thread.sleep(1000L);
     Assert.assertEquals(countRunningPartition(flow1, jobName1), _numNodes * perNodeTaskLimitation);
 
     // schedule job2
     String jobName2 = "PriorityJob2";
-    Workflow flow2 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName2, jobConfig).build();
+    Workflow flow2 =
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName2, jobConfig).build();
     _driver.start(flow2);
-    _driver.pollForJobState(flow2.getName(), TaskUtil.getNamespacedJobName(flow2.getName(), jobName2),
-        TaskState.IN_PROGRESS);
+    _driver.pollForJobState(flow2.getName(),
+        TaskUtil.getNamespacedJobName(flow2.getName(), jobName2), TaskState.IN_PROGRESS);
     // Wait for tasks to be picked up
     Thread.sleep(1500);
     Assert.assertEquals(countRunningPartition(flow2, jobName2), 0);
@@ -150,10 +160,11 @@ public class TestTaskThrottling extends TaskTestBase {
 
   private int countRunningPartition(Workflow flow, String jobName) {
     int runningPartition = 0;
-    JobContext jobContext = _driver.getJobContext(TaskUtil.getNamespacedJobName(flow.getName(), jobName));
+    JobContext jobContext =
+        _driver.getJobContext(TaskUtil.getNamespacedJobName(flow.getName(), jobName));
     for (int partition : jobContext.getPartitionSet()) {
-      if (jobContext.getPartitionState(partition) != null && jobContext.getPartitionState(partition)
-          .equals(TaskPartitionState.RUNNING)) {
+      if (jobContext.getPartitionState(partition) != null
+          && jobContext.getPartitionState(partition).equals(TaskPartitionState.RUNNING)) {
         runningPartition++;
       }
     }
@@ -162,12 +173,12 @@ public class TestTaskThrottling extends TaskTestBase {
 
   private JobConfig.Builder generateLongRunJobConfig(int numTasks) {
     JobConfig.Builder jobConfig = new JobConfig.Builder();
-    List<TaskConfig> taskConfigs = new ArrayList<TaskConfig>();
+    List<TaskConfig> taskConfigs = new ArrayList<>();
     for (int j = 0; j < numTasks; j++) {
-      taskConfigs.add(new TaskConfig.Builder().setTaskId("task_" + j).setCommand(MockTask.TASK_COMMAND).build());
+      taskConfigs.add(new TaskConfig.Builder().setTaskId("task_" + j)
+          .setCommand(MockTask.TASK_COMMAND).build());
     }
-    jobConfig.addTaskConfigs(taskConfigs)
-        .setNumConcurrentTasksPerInstance(numTasks)
+    jobConfig.addTaskConfigs(taskConfigs).setNumConcurrentTasksPerInstance(numTasks)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "120000"));
     return jobConfig;
   }
@@ -177,8 +188,8 @@ public class TestTaskThrottling extends TaskTestBase {
       InstanceConfig instanceConfig = _gSetupTool.getClusterManagementTool()
           .getInstanceConfig(CLUSTER_NAME, PARTICIPANT_PREFIX + "_" + (_startPort + i));
       instanceConfig.setMaxConcurrentTask(perNodeTaskLimitation);
-      _gSetupTool.getClusterManagementTool()
-          .setInstanceConfig(CLUSTER_NAME, PARTICIPANT_PREFIX + "_" + (_startPort + i), instanceConfig);
+      _gSetupTool.getClusterManagementTool().setInstanceConfig(CLUSTER_NAME,
+          PARTICIPANT_PREFIX + "_" + (_startPort + i), instanceConfig);
     }
   }
 }

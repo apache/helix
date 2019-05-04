@@ -21,9 +21,11 @@ package org.apache.helix.integration.task;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import java.util.Map;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -33,6 +35,7 @@ import org.apache.helix.task.TaskSynchronizedTestBase;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -45,7 +48,7 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
     _numPartitions = 2;
     _numReplicas = 1; // only Master, no Slave
     _numDbs = 1;
-    _participants =  new MockParticipantManager[_numNodes];
+    _participants = new MockParticipantManager[_numNodes];
 
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants();
@@ -58,36 +61,35 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
 
   @Test
   public void testTaskRunningIndefinitely() throws InterruptedException {
-    // first job runs indefinitely and timeout, the second job runs successfully, the workflow succeed.
+    // first job runs indefinitely and timeout, the second job runs successfully, the workflow
+    // succeed.
     final String FIRST_JOB = "first_job";
     final String SECOND_JOB = "second_job";
     final String WORKFLOW_NAME = TestHelper.getTestMethodName();
     final String DB_NAME = WorkflowGenerator.DEFAULT_TGT_DB;
 
-    JobConfig.Builder firstJobBuilder = new JobConfig.Builder()
-        .setWorkflow(WORKFLOW_NAME)
-        .setTargetResource(DB_NAME)
-        .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
-        .setCommand(MockTask.TASK_COMMAND)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999")) // task stuck
-        .setTimeout(1000);
+    JobConfig.Builder firstJobBuilder =
+        new JobConfig.Builder().setWorkflow(WORKFLOW_NAME).setTargetResource(DB_NAME)
+            .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
+            .setCommand(MockTask.TASK_COMMAND)
+            .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999")) // task stuck
+            .setTimeout(10);
 
-    JobConfig.Builder secondJobBuilder = new JobConfig.Builder()
-        .setWorkflow(WORKFLOW_NAME)
-        .setTargetResource(DB_NAME)
-        .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
-        .setCommand(MockTask.TASK_COMMAND)
-        .setIgnoreDependentJobFailure(true); // ignore first job's timeout
+    JobConfig.Builder secondJobBuilder =
+        new JobConfig.Builder().setWorkflow(WORKFLOW_NAME).setTargetResource(DB_NAME)
+            .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
+            .setCommand(MockTask.TASK_COMMAND).setIgnoreDependentJobFailure(true); // ignore first
+                                                                                   // job's timeout
 
-    WorkflowConfig.Builder workflowConfigBuilder = new WorkflowConfig.Builder(WORKFLOW_NAME)
-        .setFailureThreshold(
-            1); // workflow ignores first job's timeout and schedule second job and succeed.
+    WorkflowConfig.Builder workflowConfigBuilder =
+        new WorkflowConfig.Builder(WORKFLOW_NAME).setFailureThreshold(1); // workflow ignores first
+                                                                          // job's timeout and
+                                                                          // schedule second job and
+                                                                          // succeed.
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW_NAME)
-        .setWorkflowConfig(workflowConfigBuilder.build())
-        .addJob(FIRST_JOB, firstJobBuilder)
-        .addJob(SECOND_JOB, secondJobBuilder)
-        .addParentChildDependency(FIRST_JOB, SECOND_JOB);
+        .setWorkflowConfig(workflowConfigBuilder.build()).addJob(FIRST_JOB, firstJobBuilder)
+        .addJob(SECOND_JOB, secondJobBuilder).addParentChildDependency(FIRST_JOB, SECOND_JOB);
 
     _driver.start(workflowBuilder.build());
 
@@ -97,7 +99,8 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
         TaskState.COMPLETED);
     _driver.pollForWorkflowState(WORKFLOW_NAME, TaskState.COMPLETED);
 
-    JobContext jobContext = _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, FIRST_JOB));
+    JobContext jobContext =
+        _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, FIRST_JOB));
     for (int pId : jobContext.getPartitionSet()) {
       // All tasks aborted because of job timeout
       Assert.assertEquals(jobContext.getPartitionState(pId), TaskPartitionState.TASK_ABORTED);
@@ -106,36 +109,54 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
 
   @Test
   public void testNoSlaveToRunTask() throws InterruptedException {
-    // first job can't be assigned to any instance and stuck, timeout, second job runs and workflow succeed.
+    // first job can't be assigned to any instance and stuck, timeout, second job runs and workflow
+    // succeed.
     final String FIRST_JOB = "first_job";
     final String SECOND_JOB = "second_job";
     final String WORKFLOW_NAME = TestHelper.getTestMethodName();
     final String DB_NAME = WorkflowGenerator.DEFAULT_TGT_DB;
 
-    JobConfig.Builder firstJobBuilder = new JobConfig.Builder()
-        .setWorkflow(WORKFLOW_NAME)
-        .setTargetResource(DB_NAME)
-        // since replica=1, there's no Slave, but target only Slave, the task can't be assigned, job stuck and timeout
-        .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.SLAVE.name()))
-        .setCommand(MockTask.TASK_COMMAND)
-        .setTimeout(1000);
+    JobConfig.Builder firstJobBuilder =
+        new JobConfig.Builder().setWorkflow(WORKFLOW_NAME).setTargetResource(DB_NAME)
+            // since replica=1, there's no Slave, but target only Slave, the task can't be assigned,
+            // job stuck and timeout
+            .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.SLAVE.name()))
+            .setCommand(MockTask.TASK_COMMAND).setTimeout(1000);
 
-    JobConfig.Builder secondJobBuilder = new JobConfig.Builder()
-        .setWorkflow(WORKFLOW_NAME)
-        .setTargetResource(DB_NAME)
-        .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
-        .setCommand(MockTask.TASK_COMMAND)
-        .setIgnoreDependentJobFailure(true); // ignore first job's timeout
+    JobConfig.Builder secondJobBuilder =
+        new JobConfig.Builder().setWorkflow(WORKFLOW_NAME).setTargetResource(DB_NAME)
+            .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
+            .setCommand(MockTask.TASK_COMMAND).setIgnoreDependentJobFailure(true); // ignore first
+                                                                                   // job's timeout
 
-    WorkflowConfig.Builder workflowConfigBuilder = new WorkflowConfig.Builder(WORKFLOW_NAME)
-        .setFailureThreshold(
-            1); // workflow ignores first job's timeout and schedule second job and succeed.
+    WorkflowConfig.Builder workflowConfigBuilder =
+        new WorkflowConfig.Builder(WORKFLOW_NAME).setFailureThreshold(1); // workflow ignores first
+                                                                          // job's timeout and
+                                                                          // schedule second job and
+                                                                          // succeed.
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW_NAME)
-        .setWorkflowConfig(workflowConfigBuilder.build())
-        .addJob(FIRST_JOB, firstJobBuilder)
-        .addJob(SECOND_JOB, secondJobBuilder)
-        .addParentChildDependency(FIRST_JOB, SECOND_JOB);
+        .setWorkflowConfig(workflowConfigBuilder.build()).addJob(FIRST_JOB, firstJobBuilder)
+        .addJob(SECOND_JOB, secondJobBuilder).addParentChildDependency(FIRST_JOB, SECOND_JOB);
+
+    // Check that there are no SLAVE replicas
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+    ExternalView view =
+        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);
+    view.getPartitionSet().forEach(partition -> {
+      for (Map.Entry<String, String> entry : view.getStateMap(partition).entrySet()) {
+        if (!entry.getValue().equals("MASTER")) {
+          try {
+            Thread.sleep(2000L);
+          } catch (InterruptedException e) {
+            // OK
+          }
+        }
+      }
+    });
 
     _driver.start(workflowBuilder.build());
 
@@ -145,10 +166,11 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
         TaskState.COMPLETED);
     _driver.pollForWorkflowState(WORKFLOW_NAME, TaskState.COMPLETED);
 
-    JobContext jobContext = _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, FIRST_JOB));
+    JobContext jobContext =
+        _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, FIRST_JOB));
     for (int pId : jobContext.getPartitionSet()) {
       // No task assigned for first job
-      Assert.assertEquals(jobContext.getPartitionState(pId), null);
+      Assert.assertNull(jobContext.getPartitionState(pId));
     }
   }
 }

@@ -40,9 +40,8 @@ public class TestTaskCreateThrottling extends TaskTestBase {
 
   @Test
   public void testTaskCreatingThrottle() {
-    Workflow flow = WorkflowGenerator
-        .generateDefaultRepeatedJobWorkflowBuilder("hugeWorkflow", (int) _driver._configsLimitation + 1)
-        .build();
+    Workflow flow = WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder("hugeWorkflow",
+        (int) _driver._configsLimitation + 1).build();
     try {
       _driver.start(flow);
       Assert.fail("Creating a huge workflow contains more jobs than expected should fail.");
@@ -51,7 +50,9 @@ public class TestTaskCreateThrottling extends TaskTestBase {
     }
   }
 
-  @Test(dependsOnMethods = { "testTaskCreatingThrottle" })
+  @Test(dependsOnMethods = {
+      "testTaskCreatingThrottle"
+  })
   public void testEnqueueJobsThrottle() throws InterruptedException {
     List<String> jobs = new ArrayList<>();
     // Use a short name for testing
@@ -69,6 +70,7 @@ public class TestTaskCreateThrottling extends TaskTestBase {
     // check if large number of jobs smaller than the threshold is OK.
     _driver.start(jobQueue);
     _driver.stop(jobQueue.getName());
+    _driver.pollForWorkflowState(jobQueue.getName(), TaskState.STOPPED);
     try {
       for (int i = 0; i < _driver._configsLimitation; i++) {
         _driver.enqueueJob(jobQueue.getName(), "EJ" + i, jobBuilder);
@@ -80,7 +82,11 @@ public class TestTaskCreateThrottling extends TaskTestBase {
     }
 
     for (String job : jobs) {
-      _driver.deleteJob(jobQueue.getName(), job);
+      try {
+        _driver.deleteJob(jobQueue.getName(), job);
+      } catch (Exception e) {
+        // OK
+      }
     }
     _driver.delete(jobQueue.getName());
   }

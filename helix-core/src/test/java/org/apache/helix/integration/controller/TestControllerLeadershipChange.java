@@ -65,9 +65,8 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     participant.syncStart();
 
     // Create controller, since this is the only controller, it will be the leader
-    HelixManager manager1 = HelixManagerFactory
-        .getZKHelixManager(clusterName, clusterName + "-manager1", InstanceType.CONTROLLER,
-            ZK_ADDR);
+    HelixManager manager1 = HelixManagerFactory.getZKHelixManager(clusterName,
+        clusterName + "-manager1", InstanceType.CONTROLLER, ZK_ADDR);
     manager1.connect();
     Assert.assertTrue(manager1.isLeader());
 
@@ -76,8 +75,7 @@ public class TestControllerLeadershipChange extends ZkTestBase {
         IdealState.RebalanceMode.SEMI_AUTO.name());
 
     // Rebalance Resource
-    _gSetupTool
-        .rebalanceResource(clusterName, resourceName, numReplica);
+    _gSetupTool.rebalanceResource(clusterName, resourceName, numReplica);
 
     // Wait for rebalance
     Assert.assertTrue(clusterVerifier.verifyByPolling());
@@ -88,9 +86,8 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     Thread.sleep(1000);
 
     // Starting manager2
-    HelixManager manager2 = HelixManagerFactory
-        .getZKHelixManager(clusterName, clusterName + "-manager2", InstanceType.CONTROLLER,
-            ZK_ADDR);
+    HelixManager manager2 = HelixManagerFactory.getZKHelixManager(clusterName,
+        clusterName + "-manager2", InstanceType.CONTROLLER, ZK_ADDR);
     manager2.connect();
 
     // Set leader to manager2
@@ -112,7 +109,6 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     participant = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
     participant.syncStart();
 
-
     _gSetupTool.rebalanceResource(clusterName, resourceName, numReplica);
 
     Assert.assertTrue(clusterVerifier.verifyByPolling());
@@ -120,9 +116,13 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     // Resource lost top state, and manager1 lost leadership for 2000ms, because manager1 will
     // clean monitoring cache after re-gaining leadership, so max value of hand off duration should
     // not have such a large value
-    Assert.assertTrue((long) beanServer
-        .getAttribute(resourceMBeanObjectName, "PartitionTopStateHandoffDurationGauge.Max") < 500);
+    Assert.assertTrue((long) beanServer.getAttribute(resourceMBeanObjectName,
+        "PartitionTopStateHandoffDurationGauge.Max") < 500);
 
+    participant.syncStop();
+    manager1.disconnect();
+    manager2.disconnect();
+    deleteCluster(clusterName);
   }
 
   private void setLeader(HelixManager manager) throws Exception {
@@ -135,17 +135,15 @@ public class TestControllerLeadershipChange extends ZkTestBase {
 
     // Delete the current controller leader node so it will trigger leader election
     while (!manager.isLeader()) {
-      accessor.getBaseDataAccessor()
-          .remove(PropertyPathBuilder.controllerLeader(manager.getClusterName()), AccessOption.EPHEMERAL);
+      accessor.getBaseDataAccessor().remove(
+          PropertyPathBuilder.controllerLeader(manager.getClusterName()), AccessOption.EPHEMERAL);
       Thread.sleep(50);
     }
   }
 
   private ObjectName getResourceMonitorObjectName(String clusterName, String resourceName)
       throws Exception {
-    return new ObjectName(String
-        .format("%s:cluster=%s,resourceName=%s", MonitorDomainNames.ClusterStatus.name(),
-            clusterName, resourceName));
+    return new ObjectName(String.format("%s:cluster=%s,resourceName=%s",
+        MonitorDomainNames.ClusterStatus.name(), clusterName, resourceName));
   }
-
 }

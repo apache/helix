@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.TestCommand;
@@ -48,7 +47,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
   @Test()
   public void testBasic() throws Exception {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
-    List<TestCommand> commandList = new ArrayList<TestCommand>();
+    List<TestCommand> commandList = new ArrayList<>();
 
     // test case for the basic flow, no timeout, no data trigger
     String pathChild1 = PREFIX + "/basic_child1";
@@ -60,7 +59,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
     command = new TestCommand(CommandType.MODIFY, arg);
     commandList.add(command);
 
-    List<String> list = new ArrayList<String>();
+    List<String> list = new ArrayList<>();
     list.add("listValue1");
     list.add("listValue2");
     arg = new ZnodeOpArg(pathChild1, ZnodePropertyType.LIST, "+", "key2", list);
@@ -95,7 +94,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
   @Test()
   public void testDataTrigger() throws Exception {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
-    List<TestCommand> commandList = new ArrayList<TestCommand>();
+    List<TestCommand> commandList = new ArrayList<>();
 
     // test case for data trigger, no timeout
     String pathChild1 = PREFIX + "/data_trigger_child1";
@@ -133,7 +132,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
 
     Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
 
-    boolean result = results.remove(command1).booleanValue();
+    boolean result = results.remove(command1);
     AssertJUnit.assertFalse(result);
     for (Map.Entry<TestCommand, Boolean> entry : results.entrySet()) {
       Assert.assertTrue(entry.getValue());
@@ -145,7 +144,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
   @Test()
   public void testTimeout() throws Exception {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
-    List<TestCommand> commandList = new ArrayList<TestCommand>();
+    List<TestCommand> commandList = new ArrayList<>();
 
     // test case for timeout, no data trigger
     String pathChild1 = PREFIX + "/timeout_child1";
@@ -185,7 +184,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
   @Test()
   public void testDataTriggerWithTimeout() throws Exception {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
-    List<TestCommand> commandList = new ArrayList<TestCommand>();
+    List<TestCommand> commandList = new ArrayList<>();
 
     // test case for data trigger with timeout
     final String pathChild1 = PREFIX + "/dataTriggerWithTimeout_child1";
@@ -204,31 +203,26 @@ public class TestZnodeModify extends ZkUnitTestBase {
     commandList.add(command1);
 
     // start a separate thread to change znode at pathChild1
-    new Thread() {
-      @Override
-      public void run() {
-        try {
-          Thread.sleep(3000);
-          _gZkClient.createPersistent(pathChild1, true);
-          _gZkClient.writeData(pathChild1, record);
-        } catch (InterruptedException e) {
-          logger.error("Interrupted sleep", e);
-        }
+    new Thread(() -> {
+      try {
+        Thread.sleep(3000);
+        _gZkClient.createPersistent(pathChild1, true);
+        _gZkClient.writeData(pathChild1, record);
+      } catch (InterruptedException e) {
+        logger.error("Interrupted sleep", e);
       }
-    }.start();
+    }).start();
 
     Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
     for (Map.Entry<TestCommand, Boolean> entry : results.entrySet()) {
       Assert.assertTrue(entry.getValue());
-      // System.out.println(entry.getValue() + ":" + entry.getKey());
     }
-
   }
 
   @BeforeClass()
   public void beforeClass() {
-    System.out.println("START " + getShortClassName() + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out
+        .println("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
     if (_gZkClient.exists(PREFIX)) {
       _gZkClient.deleteRecursively(PREFIX);
     }
@@ -236,6 +230,9 @@ public class TestZnodeModify extends ZkUnitTestBase {
 
   @AfterClass
   public void afterClass() {
+    if (_gZkClient.exists(PREFIX)) {
+      _gZkClient.deleteRecursively(PREFIX);
+    }
     System.out
         .println("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
   }
@@ -244,12 +241,12 @@ public class TestZnodeModify extends ZkUnitTestBase {
     ZNRecord record = new ZNRecord("TestDB");
     record.setSimpleField(IdealStateProperty.REBALANCE_MODE.toString(),
         RebalanceMode.CUSTOMIZED.toString());
-    Map<String, String> map = new HashMap<String, String>();
+    Map<String, String> map = new HashMap<>();
     map.put("localhost_12918", "MASTER");
     map.put("localhost_12919", "SLAVE");
     record.setMapField("TestDB_0", map);
 
-    List<String> list = new ArrayList<String>();
+    List<String> list = new ArrayList<>();
     list.add("localhost_12918");
     list.add("localhost_12919");
     record.setListField("TestDB_0", list);

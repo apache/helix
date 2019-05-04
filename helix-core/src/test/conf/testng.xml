@@ -18,7 +18,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
-<suite name="Suite" parallel="none" time-out="300000">
+<suite name="Suite" time-out="300000">
   <test name="Test" preserve-order="true">
     <packages>
         <package name="org.apache.helix.*"/>

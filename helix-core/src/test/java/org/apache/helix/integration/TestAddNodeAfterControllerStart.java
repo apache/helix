@@ -21,6 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 import java.util.List;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
@@ -29,14 +30,15 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.CallbackHandler;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestAddNodeAfterControllerStart extends ZkTestBase {
-  private static Logger LOG = LoggerFactory.getLogger(TestAddNodeAfterControllerStart.class);
   final String className = getShortClassName();
 
   @Test
@@ -61,9 +63,8 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     controller.syncStart();
 
     boolean result;
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
     String msgPath = PropertyPathBuilder.instanceMessage(clusterName, "localhost_12918");
     result = checkHandlers(controller.getHandlers(), msgPath);
@@ -74,9 +75,8 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
 
     participants[nodeNr - 1] = new MockParticipantManager(ZK_ADDR, clusterName, "localhost_12922");
     new Thread(participants[nodeNr - 1]).start();
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+    result = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
     msgPath = PropertyPathBuilder.instanceMessage(clusterName, "localhost_12922");
     result = checkHandlers(controller.getHandlers(), msgPath);
@@ -99,8 +99,8 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
 
     // setup grand cluster
     final String grandClusterName = "GRAND_" + clusterName;
-    TestHelper.setupCluster(grandClusterName, ZK_ADDR, 0, "controller", null, 0, 0, 1, 0,
-        null, true);
+    TestHelper.setupCluster(grandClusterName, ZK_ADDR, 0, "controller", null, 0, 0, 1, 0, null,
+        true);
 
     ClusterDistributedController distController =
         new ClusterDistributedController(ZK_ADDR, grandClusterName, "controller_0");
@@ -110,11 +110,10 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     _gSetupTool.addCluster(clusterName, true);
     _gSetupTool.activateCluster(clusterName, "GRAND_" + clusterName, true); // addCluster2
 
-    boolean result;
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, "GRAND_" + clusterName));
-    Assert.assertTrue(result);
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(grandClusterName).setZkAddr(ZK_ADDR)
+            .setZkClient(_gZkClient).build();
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // add node/resource, and do rebalance
     final int nodeNr = 2;
@@ -125,6 +124,10 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
 
     _gSetupTool.addResourceToCluster(clusterName, "TestDB0", 1, "LeaderStandby");
     _gSetupTool.rebalanceStorageCluster(clusterName, "TestDB0", 1);
+    BestPossibleExternalViewVerifier verifier2 =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
+            .setZkClient(_gZkClient).build();
+    Assert.assertTrue(verifier2.verifyByPolling());
 
     MockParticipantManager[] participants = new MockParticipantManager[nodeNr];
     for (int i = 0; i < nodeNr - 1; i++) {
@@ -133,10 +136,19 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
-    Assert.assertTrue(result);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    // Make sure new participants are connected
+    for (int i = 0; i < nodeNr - 1; i++) {
+      List<String> liveInstances = accessor.getChildNames(accessor.keyBuilder().liveInstances());
+      if (!participants[i].isConnected()
+          || !liveInstances.contains(participants[i].getInstanceName())) {
+        Thread.sleep(500L); // Give it more delay
+      }
+    }
+
+    verifier2 = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
+        .setZkClient(_gZkClient).build();
+    Assert.assertTrue(verifier2.verifyByPolling());
 
     // check if controller_0 has message listener for localhost_12918
     String msgPath = PropertyPathBuilder.instanceMessage(clusterName, "localhost_12918");
@@ -149,10 +161,11 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
 
     participants[nodeNr - 1] = new MockParticipantManager(ZK_ADDR, clusterName, "localhost_12919");
     participants[nodeNr - 1].syncStart();
-    result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
-    Assert.assertTrue(result);
+
+    BestPossibleExternalViewVerifier verifier3 =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
+            .setZkClient(_gZkClient).build();
+    Assert.assertTrue(verifier3.verifyByPolling());
     // check if controller_0 has message listener for localhost_12919
     msgPath = PropertyPathBuilder.instanceMessage(clusterName, "localhost_12919");
     numberOfListeners = ZkTestHelper.numberOfListeners(ZK_ADDR, msgPath);
@@ -165,20 +178,17 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
+    deleteCluster(grandClusterName);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  boolean checkHandlers(List<CallbackHandler> handlers, String path) {
-    // System.out.println(handlers.size() + " handlers: ");
+  private boolean checkHandlers(List<CallbackHandler> handlers, String path) {
     for (CallbackHandler handler : handlers) {
-      // System.out.println(handler.getPath());
       if (handler.getPath().equals(path)) {
         return true;
       }
     }
     return false;
   }
-
-  // TODO: need to add a test case for ParticipantCodeRunner
 }

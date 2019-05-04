@@ -1,5 +1,24 @@
 package org.apache.helix.integration;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -28,8 +47,6 @@ import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.util.WeightAwareRebalanceUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -38,7 +55,6 @@ import org.testng.annotations.Test;
 import static org.apache.helix.controller.rebalancer.constraint.dataprovider.ZkBasedPartitionWeightProvider.DEFAULT_WEIGHT_VALUE;
 
 public class TestWeightBasedRebalanceUtil extends ZkTestBase {
-  private static Logger _logger = LoggerFactory.getLogger(TestWeightBasedRebalanceUtil.class);
   private static String CLUSTER_NAME;
 
   final String resourceNamePrefix = "resource";
@@ -180,13 +196,14 @@ public class TestWeightBasedRebalanceUtil extends ZkTestBase {
 
     WeightAwareRebalanceUtil util = new WeightAwareRebalanceUtil(clusterConfig, instanceConfigs);
     ResourcesStateMap assignment = util.buildIncrementalRebalanceAssignment(resourceConfigs, null,
-        Collections.<AbstractRebalanceHardConstraint>singletonList(capacityConstraint),
-        Collections.<AbstractRebalanceSoftConstraint>singletonList(evenConstraint));
+        Collections.<AbstractRebalanceHardConstraint> singletonList(capacityConstraint),
+        Collections.<AbstractRebalanceSoftConstraint> singletonList(evenConstraint));
     Map<String, Integer> weightCount = checkPartitionUsage(assignment, weightProvider);
 
     int max = Collections.max(weightCount.values());
     int min = Collections.min(weightCount.values());
-    // Since the accuracy of Default evenness constraint is 0.01, diff should be 1/100 of participant capacity in max.
+    // Since the accuracy of Default evenness constraint is 0.01, diff should be 1/100 of
+    // participant capacity in max.
     Assert.assertTrue((max - min) <= defaultCapacity / 100);
   }
 
@@ -195,10 +212,10 @@ public class TestWeightBasedRebalanceUtil extends ZkTestBase {
     Map<String, Integer> resourceDefaultWeightMap = new HashMap<>();
     resourceDefaultWeightMap.put(resourceNames.get(0), resourceWeight * 2);
     Map<String, Map<String, Integer>> partitionWeightMap = new HashMap<>();
-    partitionWeightMap
-        .put(resourceNames.get(0), Collections.singletonMap(partitions.get(0), resourceWeight * 3));
-    partitionWeightMap
-        .put(resourceNames.get(1), Collections.singletonMap(partitions.get(0), resourceWeight * 3));
+    partitionWeightMap.put(resourceNames.get(0),
+        Collections.singletonMap(partitions.get(0), resourceWeight * 3));
+    partitionWeightMap.put(resourceNames.get(1),
+        Collections.singletonMap(partitions.get(0), resourceWeight * 3));
 
     ZkBasedPartitionWeightProvider weightProvider =
         new ZkBasedPartitionWeightProvider(ZK_ADDR, CLUSTER_NAME, "Test");
@@ -300,13 +317,14 @@ public class TestWeightBasedRebalanceUtil extends ZkTestBase {
 
     WeightAwareRebalanceUtil util = new WeightAwareRebalanceUtil(clusterConfig, instanceConfigs);
     ResourcesStateMap assignment = util.buildIncrementalRebalanceAssignment(resourceConfigs, null,
-        Collections.<AbstractRebalanceHardConstraint>singletonList(capacityConstraint),
-        Collections.<AbstractRebalanceSoftConstraint>singletonList(evenConstraint));
+        Collections.<AbstractRebalanceHardConstraint> singletonList(capacityConstraint),
+        Collections.<AbstractRebalanceSoftConstraint> singletonList(evenConstraint));
     Map<String, Integer> weightCount = checkPartitionUsage(assignment, weightProvider);
 
     int max = Collections.max(weightCount.values());
     int min = Collections.min(weightCount.values());
-    // Since the accuracy of Default evenness constraint is 0.01, diff should be 1/100 of participant capacity in max.
+    // Since the accuracy of Default evenness constraint is 0.01, diff should be 1/100 of
+    // participant capacity in max.
     Assert.assertTrue((max - min) <= defaultCapacity / 100);
   }
 
@@ -338,14 +356,14 @@ public class TestWeightBasedRebalanceUtil extends ZkTestBase {
 
     WeightAwareRebalanceUtil util = new WeightAwareRebalanceUtil(clusterConfig, instanceConfigs);
     ResourcesStateMap assignment = util.buildIncrementalRebalanceAssignment(resourceConfigs, null,
-        Collections.<AbstractRebalanceHardConstraint>singletonList(hardConstraint),
-        Collections.<AbstractRebalanceSoftConstraint>singletonList(evenConstraint));
+        Collections.<AbstractRebalanceHardConstraint> singletonList(hardConstraint),
+        Collections.<AbstractRebalanceSoftConstraint> singletonList(evenConstraint));
     Map<String, Integer> weightCount = checkPartitionUsage(assignment, weightProvider);
 
     for (int i = 0; i < instanceNames.size(); i++) {
       String instance = instanceNames.get(i);
       if (i % 7 == 0) {
-        Assert.assertTrue(!weightCount.containsKey(instance));
+        Assert.assertFalse(weightCount.containsKey(instance));
       } else {
         Assert.assertTrue(weightCount.get(instance) > 0);
       }
@@ -376,40 +394,38 @@ public class TestWeightBasedRebalanceUtil extends ZkTestBase {
     String targetResource = resourceNames.get(0);
     for (String partition : partitions) {
       for (int i = 0; i < nReplicas; i++) {
-        existingAssignment
-            .setState(targetResource, new Partition(partition), instanceNames.get(i), topState);
+        existingAssignment.setState(targetResource, new Partition(partition), instanceNames.get(i),
+            topState);
       }
     }
 
     WeightAwareRebalanceUtil util = new WeightAwareRebalanceUtil(clusterConfig, instanceConfigs);
 
     // INCREMENTAL
-    ResourcesStateMap assignment =
-        util.buildIncrementalRebalanceAssignment(resourceConfigs, existingAssignment,
-            Collections.EMPTY_LIST,
-            Collections.<AbstractRebalanceSoftConstraint>singletonList(evenConstraint));
+    ResourcesStateMap assignment = util.buildIncrementalRebalanceAssignment(resourceConfigs,
+        existingAssignment, Collections.EMPTY_LIST,
+        Collections.<AbstractRebalanceSoftConstraint> singletonList(evenConstraint));
     // check if the existingAssignment is changed
     for (String partition : partitions) {
-      Assert.assertTrue(
-          assignment.getInstanceStateMap(targetResource, new Partition(partition)).keySet()
-              .containsAll(instanceNames.subList(0, nReplicas)));
+      Assert.assertTrue(assignment.getInstanceStateMap(targetResource, new Partition(partition))
+          .keySet().containsAll(instanceNames.subList(0, nReplicas)));
     }
     // still need to check for balance
     Map<String, Integer> weightCount = checkPartitionUsage(assignment, weightProvider);
     int max = Collections.max(weightCount.values());
     int min = Collections.min(weightCount.values());
-    // Since the accuracy of Default evenness constraint is 0.01, diff should be 1/100 of participant capacity in max.
+    // Since the accuracy of Default evenness constraint is 0.01, diff should be 1/100 of
+    // participant capacity in max.
     Assert.assertTrue((max - min) <= defaultCapacity / 100);
 
     // FULL
     assignment = util.buildFullRebalanceAssignment(resourceConfigs, existingAssignment,
         Collections.EMPTY_LIST,
-        Collections.<AbstractRebalanceSoftConstraint>singletonList(evenConstraint));
+        Collections.<AbstractRebalanceSoftConstraint> singletonList(evenConstraint));
     // check if the existingAssignment is changed
     for (String partition : partitions) {
-      Assert.assertFalse(
-          assignment.getInstanceStateMap(targetResource, new Partition(partition)).keySet()
-              .containsAll(instanceNames.subList(0, nReplicas)));
+      Assert.assertFalse(assignment.getInstanceStateMap(targetResource, new Partition(partition))
+          .keySet().containsAll(instanceNames.subList(0, nReplicas)));
     }
   }
 
@@ -459,7 +475,7 @@ public class TestWeightBasedRebalanceUtil extends ZkTestBase {
           .setRebalanceMode(RebalanceConfig.RebalanceMode.FULL_AUTO);
       util.buildIncrementalRebalanceAssignment(
           Collections.singletonList(invalidResourceBuilder.build()), null,
-          Collections.<AbstractRebalanceHardConstraint>singletonList(capacityConstraint),
+          Collections.<AbstractRebalanceHardConstraint> singletonList(capacityConstraint),
           Collections.EMPTY_LIST);
       Assert.fail("Should fail due to full auto resource config.");
     } catch (HelixException ex) {
@@ -473,7 +489,7 @@ public class TestWeightBasedRebalanceUtil extends ZkTestBase {
       invalidResourceBuilder.setStateModelDefRef("CustomizedOnlineOffline");
       util.buildIncrementalRebalanceAssignment(
           Collections.singletonList(invalidResourceBuilder.build()), null,
-          Collections.<AbstractRebalanceHardConstraint>singletonList(capacityConstraint),
+          Collections.<AbstractRebalanceHardConstraint> singletonList(capacityConstraint),
           Collections.EMPTY_LIST);
       Assert.fail("Should fail due to unknown state model def ref.");
     } catch (IllegalArgumentException ex) {
@@ -481,7 +497,7 @@ public class TestWeightBasedRebalanceUtil extends ZkTestBase {
       util.registerCustomizedStateModelDef("CustomizedOnlineOffline", OnlineOfflineSMD.build());
       ResourcesStateMap assignment = util.buildIncrementalRebalanceAssignment(
           Collections.singletonList(invalidResourceBuilder.build()), null,
-          Collections.<AbstractRebalanceHardConstraint>singletonList(capacityConstraint),
+          Collections.<AbstractRebalanceHardConstraint> singletonList(capacityConstraint),
           Collections.EMPTY_LIST);
       checkPartitionUsage(assignment, weightProvider);
     }

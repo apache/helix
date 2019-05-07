@@ -406,7 +406,55 @@ Now, let\'s look at one of the partitions:
 
 ```
 # helix-admin.sh --zkSvr <zk_address> --listResourceInfo <clusterName> <partition>
-./helix-admin.sh --zkSvr localhost:2199 --listResourceInfo mycluster myDB_0
+./helix-admin.sh --zkSvr localhost:2199 --listPartitionInfo mycluster myDB_0
+
+IdealState for myDB/myDB_0:
+{
+  "id" : "myDB/myDB_0",
+  "mapFields" : {
+    "myDB_0" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "MASTER",
+      "localhost_12915" : "SLAVE"
+    }
+  },
+  "listFields" : {
+    "myDB_0" : [ "localhost_12914", "localhost_12915", "localhost_12913" ]
+  },
+  "simpleFields" : {
+    "IDEAL_STATE_MODE" : "AUTO",
+    "NUM_PARTITIONS" : "6",
+    "REBALANCE_MODE" : "SEMI_AUTO",
+    "REBALANCE_STRATEGY" : "DEFAULT",
+    "REPLICAS" : "3",
+    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
+  }
+}
+
+ExternalView for myDB/myDB_0:
+{
+  "id" : "myDB/myDB_0",
+  "mapFields" : {
+    "myDB_0" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "MASTER",
+      "localhost_12915" : "SLAVE"
+    }
+  },
+  "listFields" : {
+  },
+  "simpleFields" : {
+    "BUCKET_SIZE" : "0",
+    "IDEAL_STATE_MODE" : "AUTO",
+    "NUM_PARTITIONS" : "6",
+    "REBALANCE_MODE" : "SEMI_AUTO",
+    "REBALANCE_STRATEGY" : "DEFAULT",
+    "REPLICAS" : "3",
+    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
+  }
+}
 ```
 
 ### Expand the Cluster

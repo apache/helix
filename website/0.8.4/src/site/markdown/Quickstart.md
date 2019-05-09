@@ -405,8 +405,8 @@ ExternalView for myDB:
 Now, let\'s look at one of the partitions:
 
 ```
-# helix-admin.sh --zkSvr <zk_address> --listResourceInfo <clusterName> <partition>
-./helix-admin.sh --zkSvr localhost:2199 --listPartitionInfo mycluster myDB_0
+# helix-admin.sh --zkSvr <zk_address> --listPartitionInfo <clusterName> <resourceName> <partitionName>
+./helix-admin.sh --zkSvr localhost:2199 --listPartitionInfo MYCLUSTER myDB myDB_0
 
 IdealState for myDB/myDB_0:
 {

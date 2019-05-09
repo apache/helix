@@ -37,7 +37,7 @@ import org.apache.helix.model.Message;
 public interface ClusterMessagingService {
   /**
    * Send message matching the specifications mentioned in recipientCriteria.
-   * @param recipientCriteria criteria to be met, defined as {@link Criteria}
+   * @param receipientCriteria criteria to be met, defined as {@link Criteria}
    * @See Criteria
    * @param message
    *          message to be sent. Some attributes of this message will be
@@ -55,24 +55,24 @@ public interface ClusterMessagingService {
    * This is useful when message need to be sent and current thread need not
    * wait for response since processing will be done in another thread.
    * @see #send(Criteria, Message)
-   * @param recipientCriteria
+   * @param receipientCriteria
    * @param message
    * @param callbackOnReply callback to trigger on completion
    * @param timeOut Time to wait before failing the send
    * @return the number of messages that were successfully sent
    */
-  int send(Criteria recipientCriteria, Message message, AsyncCallback callbackOnReply, int timeOut);
+  int send(Criteria receipientCriteria, Message message, AsyncCallback callbackOnReply, int timeOut);
 
   /**
    * @see #send(Criteria, Message, AsyncCallback, int)
-   * @param recipientCriteria
+   * @param receipientCriteria
    * @param message
    * @param callbackOnReply
    * @param timeOut
    * @param retryCount maximum number of times to retry the send
    * @return the number of messages that were successfully sent
    */
-  int send(Criteria recipientCriteria, Message message, AsyncCallback callbackOnReply,
+  int send(Criteria receipientCriteria, Message message, AsyncCallback callbackOnReply,
       int timeOut, int retryCount);
 
   /**
@@ -86,13 +86,14 @@ public interface ClusterMessagingService {
    * The current thread can use callbackOnReply instance to store application
    * specific data.
    * @see #send(Criteria, Message, AsyncCallback, int)
-   * @param recipientCriteria
+   * @param receipientCriteria
    * @param message
    * @param callbackOnReply
    * @param timeOut
+   * @param retryCount
    * @return the number of messages that were successfully sent
    */
-  int sendAndWait(Criteria recipientCriteria, Message message, AsyncCallback callbackOnReply,
+  int sendAndWait(Criteria receipientCriteria, Message message, AsyncCallback callbackOnReply,
       int timeOut);
 
   /**
@@ -143,7 +144,7 @@ public interface ClusterMessagingService {
   /**
    * This will generate all messages to be sent given the recipientCriteria and MessageTemplate,
    * the messages are not sent.
-   * @param recipientCriteria criteria to be met, defined as {@link Criteria}
+   * @param receipientCriteria criteria to be met, defined as {@link Criteria}
    * @param messageTemplate the Message on which to base the messages to send
    * @return messages to be sent, grouped by the type of instance to send the message to
    */

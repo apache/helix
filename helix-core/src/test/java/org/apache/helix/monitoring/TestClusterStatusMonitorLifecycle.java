@@ -19,26 +19,21 @@ package org.apache.helix.monitoring;
  * under the License.
  */
 
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
-import javax.management.InstanceNotFoundException;
-import javax.management.MBeanServerConnection;
-import javax.management.MBeanServerNotification;
-import javax.management.MalformedObjectNameException;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import javax.management.Query;
 import javax.management.QueryExp;
+import java.lang.management.ManagementFactory;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
@@ -67,8 +62,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     String className = TestHelper.getTestClassName();
     _clusterNamePrefix = className;
 
-    System.out
-        .println("START " + _clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + _clusterNamePrefix + " at "
+        + new Date(System.currentTimeMillis()));
 
     // setup 10 clusters
     for (int i = 0; i < clusterNb; i++) {
@@ -97,7 +92,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
         clusterNb, // partitions per resource
         n, // number of nodes
         3, // replicas
-        "LeaderStandby", true); // do rebalance
+        "LeaderStandby",
+        true); // do rebalance
 
     // start distributed cluster controllers
     _controllers = new ClusterDistributedController[n + n];
@@ -175,32 +171,6 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     }
 
     System.out.println("END " + _clusterNamePrefix + " at " + new Date(System.currentTimeMillis()));
-  }
-
-  class ParticipantMonitorListener extends ClusterMBeanObserver {
-
-    int _nMbeansUnregistered = 0;
-    int _nMbeansRegistered = 0;
-
-    public ParticipantMonitorListener(String domain)
-        throws InstanceNotFoundException, IOException, MalformedObjectNameException,
-        NullPointerException {
-      super(domain);
-    }
-
-    @Override
-    public void onMBeanRegistered(MBeanServerConnection server,
-        MBeanServerNotification mbsNotification) {
-      LOG.info("Register mbean: " + mbsNotification.getMBeanName());
-      _nMbeansRegistered++;
-    }
-
-    @Override
-    public void onMBeanUnRegistered(MBeanServerConnection server,
-        MBeanServerNotification mbsNotification) {
-      LOG.info("Unregister mbean: " + mbsNotification.getMBeanName());
-      _nMbeansUnregistered++;
-    }
   }
 
   private void cleanupControllers() {
@@ -326,7 +296,6 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     cleanupControllers();
     // Check if any MBeans leftover.
     // Note that MessageQueueStatus is not bound with controller only. So it will still exist.
-
     final QueryExp exp2 = Query.and(
         Query.not(Query.match(Query.attr("SensorName"), Query.value("MessageQueueStatus.*"))),
         exp1);

@@ -110,8 +110,8 @@ public class CurrentStateOutput {
     _currentStateMap.get(resourceName).get(partition).put(instanceName, state);
   }
 
-  public void setEndTime(String resourceName, Partition partition,
-      String instanceName, Long timestamp) {
+  public void setEndTime(String resourceName, Partition partition, String instanceName,
+      Long timestamp) {
     if (!_currentStateEndTimeMap.containsKey(resourceName)) {
       _currentStateEndTimeMap.put(resourceName, new HashMap<Partition, Map<String, Long>>());
     }
@@ -193,8 +193,7 @@ public class CurrentStateOutput {
     return null;
   }
 
-  public Long getEndTime(String resourceName, Partition partition,
-      String instanceName) {
+  public Long getEndTime(String resourceName, Partition partition, String instanceName) {
     Map<Partition, Map<String, Long>> partitionInfo = _currentStateEndTimeMap.get(resourceName);
     if (partitionInfo != null) {
       Map<String, Long> instanceInfo = partitionInfo.get(partition);
@@ -279,7 +278,7 @@ public class CurrentStateOutput {
    */
   public Map<Partition, Map<String, String>> getCurrentStateMap(String resourceName) {
     if (_currentStateMap.containsKey(resourceName)) {
-      return  _currentStateMap.get(resourceName);
+      return _currentStateMap.get(resourceName);
     }
     return Collections.emptyMap();
   }
@@ -356,32 +355,43 @@ public class CurrentStateOutput {
   }
 
   /**
-   * Get the partitions count for each participant with the pending state and given resource state model
+   * Get the partitions count for each participant with the pending state and given resource state
+   * model
    * @param resourceStateModel specified resource state model to look up
    * @param state specified pending resource state to look up
    * @return set of participants to partitions mapping
    */
-  public Map<String, Integer> getPartitionCountWithPendingState(String resourceStateModel, String state) {
+  public Map<String, Integer> getPartitionCountWithPendingState(String resourceStateModel,
+      String state) {
     return getPartitionCountWithState(resourceStateModel, state, (Map) _pendingMessageMap);
   }
 
   /**
-   * Get the partitions count for each participant in the current state and with given resource state model
+   * Get the partitions count for each participant in the current state and with given resource
+   * state model
    * @param resourceStateModel specified resource state model to look up
    * @param state specified current resource state to look up
    * @return set of participants to partitions mapping
    */
-  public Map<String, Integer> getPartitionCountWithCurrentState(String resourceStateModel, String state) {
+  public Map<String, Integer> getPartitionCountWithCurrentState(String resourceStateModel,
+      String state) {
     return getPartitionCountWithState(resourceStateModel, state, (Map) _currentStateMap);
   }
 
+  /**
+   * Count partitions in pendingStates and currentStates.
+   * @param resourceStateModel
+   * @param state
+   * @param stateMap
+   * @return
+   */
   private Map<String, Integer> getPartitionCountWithState(String resourceStateModel, String state,
       Map<String, Map<Partition, Map<String, Object>>> stateMap) {
     Map<String, Integer> currentPartitionCount = new HashMap<>();
     for (String resource : stateMap.keySet()) {
       String stateModel = _resourceStateModelMap.get(resource);
-      if ((stateModel != null && stateModel.equals(resourceStateModel)) || (stateModel == null
-          && resourceStateModel == null)) {
+      if ((stateModel != null && stateModel.equals(resourceStateModel))
+          || (stateModel == null && resourceStateModel == null)) {
         for (Partition partition : stateMap.get(resource).keySet()) {
           Map<String, Object> partitionMessage = stateMap.get(resource).get(partition);
           for (Map.Entry<String, Object> participantMap : partitionMessage.entrySet()) {
@@ -399,7 +409,8 @@ public class CurrentStateOutput {
                 currState = curStateObj.toString();
               }
             }
-            if ((currState != null && currState.equals(state)) || (currState == null && state == null)) {
+            if ((currState != null && currState.equals(state))
+                || (currState == null && state == null)) {
               currentPartitionCount.put(participant, currentPartitionCount.get(participant) + 1);
             }
           }

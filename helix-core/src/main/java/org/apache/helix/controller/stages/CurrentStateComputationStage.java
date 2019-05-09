@@ -121,6 +121,11 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           }
         }
       }
+
+      // Add the state model into the map for lookup of Task Framework pending partitions
+      if (resource.getStateModelDefRef() != null) {
+        currentStateOutput.setResourceStateModelDef(resourceName, resource.getStateModelDefRef());
+      }
     }
 
 

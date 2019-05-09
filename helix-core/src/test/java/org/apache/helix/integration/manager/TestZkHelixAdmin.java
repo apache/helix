@@ -19,16 +19,20 @@ package org.apache.helix.integration.manager;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.config.ViewClusterSourceConfig;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -54,6 +58,26 @@ public class TestZkHelixAdmin extends TaskTestBase {
     _admin = new ZKHelixAdmin(_gZkClient);
     _configAccessor = new ConfigAccessor(_gZkClient);
     super.beforeClass();
+  }
+
+  @Test
+  public void testViewClusterOperations() {
+    String testCluster = "testViewCluster";
+    List<ViewClusterSourceConfig> sourceConfigs = generateViewClusterSourceConfig();
+    int refreshPeriod = 10;
+
+    _admin.addCluster(testCluster);
+    ClusterConfig config = _configAccessor.getClusterConfig(testCluster);
+    config.setViewCluster();
+    config.setViewClusterRefreshPeriod(refreshPeriod);
+    config.setViewClusterSourceConfigs(sourceConfigs);
+    _configAccessor.setClusterConfig(testCluster, config);
+
+    ClusterConfig fetchedConfig = _configAccessor.getClusterConfig(testCluster);
+    Assert.assertTrue(fetchedConfig.isViewCluster());
+    Assert.assertEquals(fetchedConfig.getViewClusterSourceConfigs().size(), sourceConfigs.size());
+    Assert.assertEquals(fetchedConfig.getViewClusterRefershPeriod(), refreshPeriod);
+    _admin.dropCluster(testCluster);
   }
 
   @Test
@@ -87,5 +111,23 @@ public class TestZkHelixAdmin extends TaskTestBase {
     Assert.assertEquals(jobContext.getPartitionState(0), null);
     Assert.assertEquals(jobContext.getPartitionState(1), TaskPartitionState.COMPLETED);
     Assert.assertEquals(jobContext.getPartitionState(2), null);
+  }
+
+  private List<ViewClusterSourceConfig> generateViewClusterSourceConfig() {
+    String clusterNamePrefix = "mySourceCluster";
+    String zkConnection = "zookeeper.test.com:2121";
+    String testJsonTemplate =
+        "{\"name\": \"%s\", \"zkAddress\": \"%s\", \"properties\": [\"%s\", \"%s\", \"%s\"]}";
+
+    List<ViewClusterSourceConfig> sourceConfigs = new ArrayList<>();
+    for (int i = 0; i < 3; i++) {
+      String clusterName = clusterNamePrefix + i;
+      String configJSON = String
+          .format(testJsonTemplate, clusterName, zkConnection, PropertyType.INSTANCES.name(),
+              PropertyType.EXTERNALVIEW.name(), PropertyType.LIVEINSTANCES.name());
+
+      sourceConfigs.add(ViewClusterSourceConfig.fromJson(configJSON));
+    }
+    return sourceConfigs;
   }
 }

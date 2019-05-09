@@ -81,23 +81,25 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     _gZkClient.createPersistent(path2, true);
     try {
       _gZkClient.writeData(path2, largeRecord);
+      Assert.fail("Should fail because data size is larger than 1M");
     } catch (HelixException e) {
-      Assert.fail("Should not fail because data size is larger than 1M since compression applied");
+      // OK
     }
     record = _gZkClient.readData(path2);
-    Assert.assertNotNull(record);
+    Assert.assertNull(record);
 
     // oversized write doesn't overwrite existing data on zk
     record = _gZkClient.readData(path1);
     try {
       _gZkClient.writeData(path1, largeRecord);
+      Assert.fail("Should fail because data size is larger than 1M");
     } catch (HelixException e) {
-      Assert.fail("Should not fail because data size is larger than 1M since compression applied");
+      // OK
     }
     ZNRecord recordNew = _gZkClient.readData(path1);
     byte[] arr = serializer.serialize(record);
     byte[] arrNew = serializer.serialize(recordNew);
-    Assert.assertFalse(Arrays.equals(arr, arrNew));
+    Assert.assertTrue(Arrays.equals(arr, arrNew));
 
     // test ZkDataAccessor
     ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
@@ -119,7 +121,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
     boolean succeed = accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
-    Assert.assertTrue(succeed);
+    Assert.assertFalse(succeed);
     HelixProperty property =
         accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918", "session_1",
             "partition_1"));
@@ -149,11 +151,11 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     }
     // System.out.println("record: " + idealState.getRecord());
     succeed = accessor.updateProperty(keyBuilder.idealStates("TestDB1"), idealState);
-    Assert.assertTrue(succeed);
+    Assert.assertFalse(succeed);
     recordNew = accessor.getProperty(keyBuilder.idealStates("TestDB1")).getRecord();
     arr = serializer.serialize(record);
     arrNew = serializer.serialize(recordNew);
-    Assert.assertFalse(Arrays.equals(arr, arrNew));
+    Assert.assertTrue(Arrays.equals(arr, arrNew));
 
     System.out.println("END testZNRecordSizeLimitUseZNRecordSerializer at "
         + new Date(System.currentTimeMillis()));
@@ -162,12 +164,12 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
   @Test
   public void testZNRecordSizeLimitUseZNRecordStreamingSerializer() {
     String className = getShortClassName();
-    System.out.println("START testZNRecordSizeLimitUseZNRecordStreamingSerializer at " + new Date(
-        System.currentTimeMillis()));
+    System.out.println("START testZNRecordSizeLimitUseZNRecordStreamingSerializer at "
+        + new Date(System.currentTimeMillis()));
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
-    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+    HelixZkClient zkClient =
+        SharedZkClientFactory.getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
 
     try {
       zkClient.setZkSerializer(serializer);
@@ -205,25 +207,25 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       zkClient.createPersistent(path2, true);
       try {
         zkClient.writeData(path2, largeRecord);
+        Assert.fail("Should fail because data size is larger than 1M");
       } catch (HelixException e) {
-        Assert
-            .fail("Should not fail because data size is larger than 1M since compression applied");
+        // OK
       }
       record = zkClient.readData(path2);
-      Assert.assertNotNull(record);
+      Assert.assertNull(record);
 
       // oversized write doesn't overwrite existing data on zk
       record = zkClient.readData(path1);
       try {
         zkClient.writeData(path1, largeRecord);
+        Assert.fail("Should fail because data size is larger than 1M");
       } catch (HelixException e) {
-        Assert
-            .fail("Should not fail because data size is larger than 1M since compression applied");
+        // OK
       }
       ZNRecord recordNew = zkClient.readData(path1);
       byte[] arr = serializer.serialize(record);
       byte[] arrNew = serializer.serialize(recordNew);
-      Assert.assertFalse(Arrays.equals(arr, arrNew));
+      Assert.assertTrue(Arrays.equals(arr, arrNew));
 
       // test ZkDataAccessor
       ZKHelixAdmin admin = new ZKHelixAdmin(zkClient);
@@ -232,8 +234,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       admin.addInstance(className, instanceConfig);
 
       // oversized data should not create any new data on zk
-      ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(className, new ZkBaseDataAccessor(zkClient));
+      ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(className, new ZkBaseDataAccessor(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       // ZNRecord statusUpdates = new ZNRecord("statusUpdates");
@@ -246,9 +247,9 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
         idealState.getRecord().setSimpleField(i + "", bufStr);
       }
       boolean succeed = accessor.setProperty(keyBuilder.idealStates("TestDB_1"), idealState);
-      Assert.assertTrue(succeed);
+      Assert.assertFalse(succeed);
       HelixProperty property = accessor.getProperty(keyBuilder.idealStates("TestDB_1"));
-      Assert.assertNotNull(property);
+      Assert.assertNull(property);
 
       // legal sized data gets written to zk
       idealState.getRecord().getSimpleFields().clear();
@@ -275,18 +276,16 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       }
       // System.out.println("record: " + idealState.getRecord());
       succeed = accessor.updateProperty(keyBuilder.idealStates("TestDB_2"), idealState);
-      Assert.assertTrue(succeed);
+      Assert.assertFalse(succeed);
       recordNew = accessor.getProperty(keyBuilder.idealStates("TestDB_2")).getRecord();
       arr = serializer.serialize(record);
       arrNew = serializer.serialize(recordNew);
-      Assert.assertFalse(Arrays.equals(arr, arrNew));
-    } catch (HelixException ex) {
-      Assert.fail("Should not fail because data size is larger than 1M since compression applied");
+      Assert.assertTrue(Arrays.equals(arr, arrNew));
     } finally {
       zkClient.close();
     }
 
-    System.out.println("END testZNRecordSizeLimitUseZNRecordStreamingSerializer at " + new Date(
-        System.currentTimeMillis()));
+    System.out.println("END testZNRecordSizeLimitUseZNRecordStreamingSerializer at "
+        + new Date(System.currentTimeMillis()));
   }
 }

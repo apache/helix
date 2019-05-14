@@ -35,9 +35,12 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.rest.common.HelixRestNamespace;
@@ -390,6 +393,25 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
     Assert.assertFalse(
         accessor.getBaseDataAccessor().exists(accessor.keyBuilder().maintenance().getPath(), 0));
+  }
+
+  @Test()
+  public void testActivateSuperCluster() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = "TestCluster_0";
+    post("clusters/" + cluster,
+        ImmutableMap.of("command", "activate", "superCluster", "superCluster"),
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK .getStatusCode());
+
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(_superCluster, _baseAccessor);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(cluster));
+    Assert.assertEquals(idealState.getRebalanceMode(), IdealState.RebalanceMode.FULL_AUTO);
+    Assert.assertEquals(idealState.getRebalancerClassName(), DelayedAutoRebalancer.class.getName());
+    Assert.assertEquals(idealState.getRebalanceStrategy(), CrushEdRebalanceStrategy.class.getName());
+    // Note, set expected replicas value to 3, as the same value of DEFAULT_SUPERCLUSTER_REPLICA in ClusterAccessor.
+    Assert.assertEquals(idealState.getReplicas(), "3");
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {

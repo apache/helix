@@ -53,6 +53,9 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
@@ -84,6 +87,7 @@ import org.slf4j.LoggerFactory;
 public class ZKHelixAdmin implements HelixAdmin {
   public static final String CONNECTION_TIMEOUT = "helixAdmin.timeOutInSec";
   private static final String MAINTENANCE_ZNODE_ID = "maintenance";
+  private static final int DEFAULT_SUPERCLUSTER_REPLICA = 3;
 
   private final HelixZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
@@ -1064,17 +1068,15 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     idealState.setNumPartitions(1);
     idealState.setStateModelDefRef("LeaderStandby");
+    idealState.setRebalanceMode(RebalanceMode.FULL_AUTO);
+    idealState.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
+    idealState.setRebalanceStrategy(CrushEdRebalanceStrategy.class.getName());
+    // TODO: Give user an option, say from RestAPI to config the number of replicas.
+    idealState.setReplicas(Integer.toString(DEFAULT_SUPERCLUSTER_REPLICA));
 
     List<String> controllers = getInstancesInCluster(grandCluster);
     if (controllers.size() == 0) {
       throw new HelixException("Grand cluster " + grandCluster + " has no instances");
-    }
-    idealState.setReplicas(Integer.toString(controllers.size()));
-    Collections.shuffle(controllers);
-    idealState.getRecord().setListField(clusterName, controllers);
-    idealState.setPartitionState(clusterName, controllers.get(0), "LEADER");
-    for (int i = 1; i < controllers.size(); i++) {
-      idealState.setPartitionState(clusterName, controllers.get(i), "STANDBY");
     }
 
     ZKHelixDataAccessor accessor =

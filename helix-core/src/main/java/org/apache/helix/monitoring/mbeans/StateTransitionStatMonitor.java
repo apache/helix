@@ -19,37 +19,70 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.util.concurrent.ConcurrentHashMap;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import javax.management.JMException;
+import javax.management.ObjectName;
 import org.apache.helix.monitoring.StatCollector;
 import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // TODO convert StateTransitionStatMonitor to extends DynamicMBeanProvider.
 // Note this might change the attributes name.
-public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBean {
+public class StateTransitionStatMonitor extends DynamicMBeanProvider {
   private static final Logger _logger = LoggerFactory.getLogger(StateTransitionStatMonitor.class);
-  public enum LATENCY_TYPE {
-    TOTAL,
-    EXECUTION,
-    MESSAGE
-  }
+  private List<DynamicMetric<?, ?>> _attributeList;
+  // For registering dynamic metrics
+  private final ObjectName _initObjectName;
 
-  private long _numDataPoints;
-  private long _successCount;
+  private SimpleDynamicMetric<Long> _totalStateTransitionCounter;
+  private SimpleDynamicMetric<Long> _totalFailedTransitionCounter;
+  private SimpleDynamicMetric<Long> _totalSuccessTransitionCounter;
 
-  private ConcurrentHashMap<LATENCY_TYPE, StatCollector> _monitorMap = new ConcurrentHashMap<>();
+  private HistogramDynamicMetric _transitionLatencyGauge;
+  private HistogramDynamicMetric _transitionExecutionLatencyGauge;
+  private HistogramDynamicMetric _transitionMessageLatency;
 
   StateTransitionContext _context;
 
-  public StateTransitionStatMonitor(StateTransitionContext context) {
+  public StateTransitionStatMonitor(StateTransitionContext context, ObjectName objectName) {
     _context = context;
-    for (LATENCY_TYPE type : LATENCY_TYPE.values()) {
-      _monitorMap.put(type, new StatCollector());
-    }
-    reset();
+    _initObjectName = objectName;
+    _attributeList = new ArrayList<>();
+    _totalStateTransitionCounter = new SimpleDynamicMetric<>("TotalStateTransitionCounter", 0L);
+    _totalFailedTransitionCounter = new SimpleDynamicMetric<>("TotalFailedTransitionCounter", 0L);
+    _totalSuccessTransitionCounter = new SimpleDynamicMetric<>("TotalSuccessTransitionCounter", 0L);
+
+    _transitionLatencyGauge = new HistogramDynamicMetric("TransitionLatencyGauge", new Histogram(
+        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    _transitionExecutionLatencyGauge = new HistogramDynamicMetric("TransitionExecutionLatencyGauge",
+        new Histogram(
+            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+    _transitionMessageLatency = new HistogramDynamicMetric("TransitionMessageLatencyGauge",
+        new Histogram(
+            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+  }
+
+  @Override
+  public DynamicMBeanProvider register() throws JMException {
+    _attributeList.add(_totalStateTransitionCounter);
+    _attributeList.add(_totalFailedTransitionCounter);
+    _attributeList.add(_totalSuccessTransitionCounter);
+    _attributeList.add(_transitionLatencyGauge);
+    _attributeList.add(_transitionExecutionLatencyGauge);
+    _attributeList.add(_transitionMessageLatency);
+    doRegister(_attributeList, _initObjectName);
+    return this;
   }
 
   public StateTransitionContext getContext() {
@@ -62,105 +95,15 @@ public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBe
   }
 
   public void addDataPoint(StateTransitionDataPoint data) {
-    _numDataPoints++;
+    incrementSimpleDynamicMetric(_totalStateTransitionCounter);
     if (data.getSuccess()) {
-      _successCount++;
+      incrementSimpleDynamicMetric(_totalSuccessTransitionCounter);
+    } else {
+      incrementSimpleDynamicMetric(_totalFailedTransitionCounter);
     }
-    addLatency(LATENCY_TYPE.TOTAL, data.getTotalDelay());
-    addLatency(LATENCY_TYPE.EXECUTION, data.getExecutionDelay());
-    addLatency(LATENCY_TYPE.MESSAGE, data.getMessageLatency());
-  }
 
-  private void addLatency(LATENCY_TYPE type, double latency) {
-    if (latency < 0) {
-      _logger.warn("Ignore negative latency data {} for type {}.", latency, type.name());
-      return;
-    }
-    assert(_monitorMap.containsKey(type));
-    _monitorMap.get(type).addData(latency);
+    _transitionLatencyGauge.updateValue(data.getTotalDelay());
+    _transitionExecutionLatencyGauge.updateValue(data.getExecutionDelay());
+    _transitionMessageLatency.updateValue(data.getMessageLatency());
   }
-
-  public void reset() {
-    _numDataPoints = 0;
-    _successCount = 0;
-    for (StatCollector monitor : _monitorMap.values()) {
-      monitor.reset();
-    }
-  }
-
-  @Override
-  public long getTotalStateTransitionGauge() {
-    return _numDataPoints;
-  }
-
-  @Override
-  public long getTotalFailedTransitionGauge() {
-    return _numDataPoints - _successCount;
-  }
-
-  @Override
-  public long getTotalSuccessTransitionGauge() {
-    return _successCount;
-  }
-
-  @Override
-  public double getMeanTransitionLatency() {
-    return _monitorMap.get(LATENCY_TYPE.TOTAL).getMean();
-  }
-
-  @Override
-  public double getMaxTransitionLatency() {
-    return _monitorMap.get(LATENCY_TYPE.TOTAL).getMax();
-  }
-
-  @Override
-  public double getMinTransitionLatency() {
-    return _monitorMap.get(LATENCY_TYPE.TOTAL).getMin();
-  }
-
-  @Override
-  public double getPercentileTransitionLatency(int percentage) {
-    return _monitorMap.get(LATENCY_TYPE.TOTAL).getPercentile(percentage);
-  }
-
-  @Override
-  public double getMeanTransitionExecuteLatency() {
-    return _monitorMap.get(LATENCY_TYPE.EXECUTION).getMean();
-  }
-
-  @Override
-  public double getMaxTransitionExecuteLatency() {
-    return _monitorMap.get(LATENCY_TYPE.EXECUTION).getMax();
-  }
-
-  @Override
-  public double getMinTransitionExecuteLatency() {
-    return _monitorMap.get(LATENCY_TYPE.EXECUTION).getMin();
-  }
-
-  @Override
-  public double getPercentileTransitionExecuteLatency(int percentage) {
-    return _monitorMap.get(LATENCY_TYPE.EXECUTION).getPercentile(percentage);
-  }
-
-  @Override
-  public double getMeanTransitionMessageLatency() {
-    return _monitorMap.get(LATENCY_TYPE.MESSAGE).getMean();
-  }
-
-  @Override
-  public double getMaxTransitionMessageLatency() {
-    return _monitorMap.get(LATENCY_TYPE.MESSAGE).getMax();
-  }
-
-  @Override
-  public double getMinTransitionMessageLatency() {
-    return _monitorMap.get(LATENCY_TYPE.MESSAGE).getMin();
-  }
-
-  @Override
-  public double getPercentileTransitionMessageLatency(int percentage) {
-    return _monitorMap.get(LATENCY_TYPE.MESSAGE).getPercentile(percentage);
-  }
-
 }

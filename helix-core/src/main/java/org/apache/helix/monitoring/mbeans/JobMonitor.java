@@ -204,21 +204,4 @@ public class JobMonitor extends DynamicMBeanProvider {
     doRegister(attributeList, _initObjectName);
     return this;
   }
-
-  /**
-   * NOTE: This method is not thread-safe nor atomic.
-   * Increment the value of a given SimpleDynamicMetric by 1.
-   */
-  private void incrementSimpleDynamicMetric(SimpleDynamicMetric<Long> metric) {
-    metric.updateValue(metric.getValue() + 1);
-  }
-
-  /**
-   * NOTE: This method is not thread-safe nor atomic.
-   * Increment the value of a given SimpleDynamicMetric by 1.
-   */
-  private void incrementSimpleDynamicMetric(SimpleDynamicMetric<Long> metric, long value) {
-    metric.updateValue(metric.getValue() + value);
-  }
-
 }

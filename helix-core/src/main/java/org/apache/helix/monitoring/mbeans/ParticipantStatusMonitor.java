@@ -101,10 +101,9 @@ public class ParticipantStatusMonitor {
         synchronized (this) {
           if (!_monitorMap.containsKey(cxt)) {
             StateTransitionStatMonitor bean =
-                new StateTransitionStatMonitor(cxt);
+                new StateTransitionStatMonitor(cxt, getObjectName(cxt.toString()));
             _monitorMap.put(cxt, bean);
-            String beanName = cxt.toString();
-            register(bean, getObjectName(beanName));
+            bean.register();
           }
         }
       }

@@ -124,13 +124,13 @@ public class TestParticipantMonitor {
 
     // Note the values in listener's map is the snapshot when the MBean is detected.
     Assert.assertEquals(monitorListener._beanValueMap.get(getObjectName(cxt.toString()).toString())
-        .get("MeanTransitionLatency"), 2000.0);
+        .get("TransitionLatencyGauge.Mean"), 2000.0);
     Assert.assertEquals(monitorListener._beanValueMap.get(getObjectName(cxt.toString()).toString())
-        .get("MeanTransitionExecuteLatency"), 1100.0);
+        .get("TransitionExecutionLatencyGauge.Mean"), 1100.0);
     Assert.assertEquals(monitorListener._beanValueMap.get(getObjectName(cxt.toString()).toString())
-        .get("MeanTransitionMessageLatency"), 600.0);
+        .get("TransitionMessageLatencyGauge.Mean"), 600.0);
     Assert.assertEquals(monitorListener._beanValueMap.get(getObjectName(cxt.toString()).toString())
-        .get("TotalStateTransitionGauge"), 2L);
+        .get("TotalStateTransitionCounter"), 2L);
 
     data = new StateTransitionDataPoint(2000, 500, 600, true);
     monitor.reportTransitionStat(cxt, data);

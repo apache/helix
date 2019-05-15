@@ -210,4 +210,20 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
     // No operation supported
     return null;
   }
+
+  /**
+   * NOTE: This method is not thread-safe nor atomic.
+   * Increment the value of a given SimpleDynamicMetric by 1.
+   */
+  protected void incrementSimpleDynamicMetric(SimpleDynamicMetric<Long> metric) {
+    incrementSimpleDynamicMetric(metric, 1);
+  }
+
+  /**
+   * NOTE: This method is not thread-safe nor atomic.
+   * Increment the value of a given SimpleDynamicMetric with input value.
+   */
+  protected void incrementSimpleDynamicMetric(SimpleDynamicMetric<Long> metric, long value) {
+    metric.updateValue(metric.getValue() + value);
+  }
 }

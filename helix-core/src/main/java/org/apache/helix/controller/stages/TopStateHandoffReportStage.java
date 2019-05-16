@@ -21,8 +21,9 @@ package org.apache.helix.controller.stages;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
+
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -500,10 +501,10 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     }
   }
 
-  private void logMissingTopStateInfo(long totalDuration, long userLatency, boolean isGraceful,
+  private void logMissingTopStateInfo(long totalDuration, long helixLatency, boolean isGraceful,
       String partitionName) {
-    LogUtil.logInfo(LOG, _eventId, String
-        .format("Missing top state duration is %s/%s for partition %s. Graceful: %s", userLatency,
-            totalDuration, partitionName, isGraceful));
+    LogUtil.logInfo(LOG, _eventId, String.format(
+        "Missing top state duration is %s/%s (helix latency / end to end latency) for partition %s. Graceful: %s",
+        helixLatency, totalDuration, partitionName, isGraceful));
   }
 }

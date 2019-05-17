@@ -168,6 +168,8 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
 
     // Verify there is no rebalance error logged
     Assert.assertNull(accessor.getProperty(errorNodeKey));
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     checkRebalanceFailureGauge(false);
     checkResourceBestPossibleCalFailureState(ResourceMonitor.RebalanceStatus.NORMAL, testDb);
 

@@ -106,6 +106,7 @@ public class ZkTestBase {
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
   protected final String CONTROLLER_PREFIX = "controller";
   protected final String PARTICIPANT_PREFIX = "localhost";
+  private static final long MANUAL_GC_PAUSE = 4000L;
 
   @BeforeSuite
   public void beforeSuite() throws Exception {
@@ -154,19 +155,12 @@ public class ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    // Clean up all JMX objects
-    for (ObjectName mbean : _server.queryNames(null, null)) {
-      try {
-        _server.unregisterMBean(mbean);
-      } catch (Exception e) {
-        // OK
-      }
-    }
+    cleanupJMXObjects();
 
     // Giving each test some time to settle (such as gc pause, etc).
     // Note that this is the best effort we could make to stabilize tests, not a complete solution
     Runtime.getRuntime().gc();
-    Thread.sleep(1000L);
+    Thread.sleep(MANUAL_GC_PAUSE);
   }
 
   @BeforeMethod
@@ -182,6 +176,17 @@ public class ZkTestBase {
     long endTime = System.currentTimeMillis();
     System.out.println("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
         + (endTime - startTime) + "ms.");
+  }
+
+  protected void cleanupJMXObjects() throws IOException {
+    // Clean up all JMX objects
+    for (ObjectName mbean : _server.queryNames(null, null)) {
+      try {
+        _server.unregisterMBean(mbean);
+      } catch (Exception e) {
+        // OK
+      }
+    }
   }
 
   protected String getShortClassName() {

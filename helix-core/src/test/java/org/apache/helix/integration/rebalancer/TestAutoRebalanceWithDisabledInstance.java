@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ExternalView;
@@ -46,7 +47,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
   }
 
   @Test()
-  public void testDisableEnableInstanceAutoRebalance() throws InterruptedException {
+  public void testDisableEnableInstanceAutoRebalance() throws Exception {
     String disabledInstance = _participants[0].getInstanceName();
 
     Set<String> currentPartitions =
@@ -56,10 +57,11 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     // disable instance
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, false);
     // check that the instance is really disabled
-    if (_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, disabledInstance)
-        .getInstanceEnabled()) {
-      Thread.sleep(2000L);
-    }
+    boolean result = TestHelper.verify(
+        () -> !_gSetupTool.getClusterManagementTool()
+            .getInstanceConfig(CLUSTER_NAME, disabledInstance).getInstanceEnabled(),
+        TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
@@ -68,10 +70,11 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     // enable instance
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, true);
     // check that the instance is really enabled
-    if (!_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, disabledInstance)
-        .getInstanceEnabled()) {
-      Thread.sleep(2000L);
-    }
+    result = TestHelper.verify(
+        () -> _gSetupTool.getClusterManagementTool()
+            .getInstanceConfig(CLUSTER_NAME, disabledInstance).getInstanceEnabled(),
+        TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
@@ -79,7 +82,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
   }
 
   @Test()
-  public void testAddDisabledInstanceAutoRebalance() throws InterruptedException {
+  public void testAddDisabledInstanceAutoRebalance() throws Exception {
     // add disabled instance.
     String nodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + NODE_NR);
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, nodeName);
@@ -87,13 +90,15 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, nodeName);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, nodeName, false);
     // check that the instance is really disabled
-    if (_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, nodeName)
-        .getInstanceEnabled()) {
-      Thread.sleep(2000L);
-    }
+    boolean result =
+        TestHelper
+            .verify(
+                () -> !_gSetupTool.getClusterManagementTool()
+                    .getInstanceConfig(CLUSTER_NAME, nodeName).getInstanceEnabled(),
+                TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
 
     participant.syncStart();
-
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     Set<String> currentPartitions =
@@ -103,10 +108,13 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     // enable instance
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, nodeName, true);
     // check that the instance is really enabled
-    if (!_gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, nodeName)
-        .getInstanceEnabled()) {
-      Thread.sleep(2000L);
-    }
+    result =
+        TestHelper
+            .verify(
+                () -> _gSetupTool.getClusterManagementTool()
+                    .getInstanceConfig(CLUSTER_NAME, nodeName).getInstanceEnabled(),
+                TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, nodeName);

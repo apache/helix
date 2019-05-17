@@ -74,44 +74,25 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
       final String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
 
       // Set task callbacks
-      Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
-      taskFactoryReg.put("TaskOne", new TaskFactory() {
+      Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
+      taskFactoryReg.put("TaskOne", context -> new TaskOne(context, instanceName));
+      taskFactoryReg.put("TaskTwo", context -> new TaskTwo(context, instanceName));
+      taskFactoryReg.put("ControllableFailTask", context -> new Task() {
         @Override
-        public Task createNewTask(TaskCallbackContext context) {
-          return new TaskOne(context, instanceName);
+        public TaskResult run() {
+          if (_failureCtl.get()) {
+            return new TaskResult(Status.FAILED, null);
+          } else {
+            return new TaskResult(Status.COMPLETED, null);
+          }
         }
-      });
-      taskFactoryReg.put("TaskTwo", new TaskFactory() {
-        @Override
-        public Task createNewTask(TaskCallbackContext context) {
-          return new TaskTwo(context, instanceName);
-        }
-      });
-      taskFactoryReg.put("ControllableFailTask", new TaskFactory() {
-        @Override public Task createNewTask(TaskCallbackContext context) {
-          return new Task() {
-            @Override
-            public TaskResult run() {
-              if (_failureCtl.get()) {
-                return new TaskResult(Status.FAILED, null);
-              } else {
-                return new TaskResult(Status.COMPLETED, null);
-              }
-            }
 
-            @Override
-            public void cancel() {
-
-            }
-          };
-        }
-      });
-      taskFactoryReg.put("SingleFailTask", new TaskFactory() {
         @Override
-        public Task createNewTask(TaskCallbackContext context) {
-          return new SingleFailTask();
+        public void cancel() {
+
         }
       });
+      taskFactoryReg.put("SingleFailTask", context -> new SingleFailTask());
 
       _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
 
@@ -200,7 +181,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
 
-    TaskConfig taskConfig1 = new TaskConfig("ControllableFailTask", new HashMap<String, String>());
+    TaskConfig taskConfig1 = new TaskConfig("ControllableFailTask", new HashMap<>());
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();
     jobCommandMap.put("Timeout", "1000");
@@ -300,7 +281,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     private final boolean _shouldFail;
     private final String _instanceName;
 
-    public TaskOne(TaskCallbackContext context, String instanceName) {
+    TaskOne(TaskCallbackContext context, String instanceName) {
       super(context);
 
       // Check whether or not this task should succeed
@@ -325,7 +306,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     }
 
     @Override
-    public TaskResult run() {
+    public synchronized TaskResult run() {
       _invokedClasses.add(getClass().getName());
       _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
 
@@ -339,16 +320,16 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
   }
 
   private class TaskTwo extends TaskOne {
-    public TaskTwo(TaskCallbackContext context, String instanceName) {
+    TaskTwo(TaskCallbackContext context, String instanceName) {
       super(context, instanceName);
     }
   }
 
   private static class SingleFailTask implements Task {
-    public static boolean hasFailed = false;
+    static boolean hasFailed = false;
 
     @Override
-    public TaskResult run() {
+    public synchronized TaskResult run() {
       if (!hasFailed) {
         hasFailed = true;
         return new TaskResult(Status.ERROR, null);

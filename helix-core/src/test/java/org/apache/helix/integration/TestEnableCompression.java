@@ -16,6 +16,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.util.GZipCompressionUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -104,7 +105,7 @@ public class TestEnableCompression extends ZkTestBase {
     }
 
     boolean result = ClusterStateVerifier
-        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName), 120000);
+        .verifyByPolling(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName), 120000L);
     Assert.assertTrue(result);
 
     List<String> compressedPaths = new ArrayList<>();

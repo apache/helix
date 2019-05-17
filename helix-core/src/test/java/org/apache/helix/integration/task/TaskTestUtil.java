@@ -201,8 +201,8 @@ public class TaskTestUtil {
   }
 
   public static JobQueue.Builder buildRecurrentJobQueue(String jobQueueName, int delayStart,
-      int recurrenInSeconds) {
-    return buildRecurrentJobQueue(jobQueueName, delayStart, recurrenInSeconds, null);
+      int recurrenceInSeconds) {
+    return buildRecurrentJobQueue(jobQueueName, delayStart, recurrenceInSeconds, null);
   }
 
   public static JobQueue.Builder buildRecurrentJobQueue(String jobQueueName, int delayStart,

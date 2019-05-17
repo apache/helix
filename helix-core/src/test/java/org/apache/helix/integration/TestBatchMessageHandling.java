@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.mock.participant.MockMSStateModel;
@@ -41,7 +42,7 @@ import org.testng.annotations.Test;
 public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
 
   @Test
-  public void testSubMessageFailed() throws InterruptedException {
+  public void testSubMessageFailed() throws Exception {
     TestOnlineOfflineStateModel._numOfSuccessBeforeFailure.set(6);
 
     // Let one instance handle all the batch messages.
@@ -53,14 +54,18 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
 
     HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     // Check that the Participants really stopped
-    for (int i = 1; i < _participants.length; i++) {
+    boolean result = TestHelper.verify(() -> {
       List<String> liveInstances =
           dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances());
-      if (_participants[i].isConnected()
-          || liveInstances.contains(_participants[i].getInstanceName())) {
-        Thread.sleep(1000L);
+      for (int i = 1; i < _participants.length; i++) {
+        if (_participants[i].isConnected()
+            || liveInstances.contains(_participants[i].getInstanceName())) {
+          return false;
+        }
       }
-    }
+      return true;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
 
     // Add 1 db with batch message enabled. Each db has 10 partitions.
     // So it will have 1 batch message and 10 sub messages.
@@ -71,6 +76,11 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
     _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
 
     // Check that IdealState has really been added
+    result = TestHelper.verify(
+        () -> dataAccessor.getPropertyStat(dataAccessor.keyBuilder().idealStates(dbName)) != null,
+        TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
+
     for (int i = 0; i < 5; i++) {
       IdealState is =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
@@ -93,10 +103,6 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
       if (externalView.getStateMap(partition).values().contains("ERROR")) {
         numOfErrors++;
       }
-    }
-    if (numOfErrors != 4 || numOfOnlines != 6) {
-      System.out.println("IdealState: " + idealState);
-      System.out.println("ExternalView: " + externalView);
     }
     Assert.assertEquals(numOfErrors, 4);
     Assert.assertEquals(numOfOnlines, 6);

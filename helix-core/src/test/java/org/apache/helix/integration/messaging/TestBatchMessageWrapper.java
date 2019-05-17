@@ -103,11 +103,15 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].getStateMachineEngine().registerStateModelFactory("MasterSlave", ftys[i]);
       participants[i].syncStart();
+      int finalI = i;
+      TestHelper.verify(() -> participants[finalI].isConnected()
+          && accessor.getChildNames(keyBuilder.liveInstances())
+              .contains(participants[finalI].getInstanceName()),
+          TestHelper.WAIT_DURATION);
 
       // wait for each participant to complete state transitions, so we have deterministic results
       ZkHelixClusterVerifier _clusterVerifier =
           new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
-      Thread.sleep(100);
       Assert.assertTrue(_clusterVerifier.verifyByPolling(),
           "participant: " + instanceName + " fails to complete all transitions");
     }

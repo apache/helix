@@ -29,6 +29,7 @@ import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -161,6 +162,11 @@ public class TestDeleteWorkflow extends TaskTestBase {
     accessor.removeProperty(keyBuild.idealStates(jobQueueName));
     accessor.removeProperty(keyBuild.resourceConfig(jobQueueName));
     accessor.removeProperty(keyBuild.workflowContext(jobQueueName));
+
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+            .setZkClient(_gZkClient).build();
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // Sometimes it's a ZK write fail - delete one more time to lower test failure rate
     if (admin.getResourceIdealState(CLUSTER_NAME, jobQueueName) != null

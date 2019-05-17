@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
@@ -37,6 +38,7 @@ import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.integration.task.WorkflowGenerator;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
@@ -107,21 +109,36 @@ public class TestZkConnectionLost extends TaskTestBase {
     System.setProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT, "1000");
     try {
       String queueName = TestHelper.getTestMethodName();
-
       startParticipants(_zkAddr);
+      HelixDataAccessor accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+      TestHelper.verify(() -> {
+        List<String> liveInstances = accessor.getChildNames(accessor.keyBuilder().liveInstances());
+        for (MockParticipantManager participant : _participants) {
+          if (!liveInstances.contains(participant.getInstanceName())
+              || !participant.isConnected()) {
+            return false;
+          }
+        }
+        return true;
+      }, TestHelper.WAIT_DURATION);
 
       // Create a queue
       LOG.info("Starting job-queue: " + queueName);
-      JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 6000);
+      JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 60);
       createAndEnqueueJob(queueBuild, 3);
-
       _driver.start(queueBuild.build());
-
       restartZkServer();
-
-      WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
-      String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-      _driver.pollForWorkflowState(scheduledQueue, 30000, TaskState.COMPLETED);
+      try {
+        WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+        String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+        _driver.pollForWorkflowState(scheduledQueue, 30000, TaskState.COMPLETED);
+      } catch (Exception e) {
+        // 2nd try because ZK connection problem might prevent the first recurrent workflow to get
+        // scheduled
+        WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+        String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+        _driver.pollForWorkflowState(scheduledQueue, 30000, TaskState.COMPLETED);
+      }
     } finally {
       System.clearProperty(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT);
       System.clearProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT);

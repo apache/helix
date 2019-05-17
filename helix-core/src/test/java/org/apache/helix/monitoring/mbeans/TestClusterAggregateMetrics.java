@@ -35,6 +35,7 @@ import javax.management.QueryExp;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -159,14 +160,18 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
       _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);
     }
     // Confirm that the Participants have been disabled
-    for (int i = 0; i < NUM_PARTICIPANTS; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      InstanceConfig instanceConfig =
-          _manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instanceName);
-      if (instanceConfig.getInstanceEnabled()) {
-        Thread.sleep(1000L);
+    boolean result = TestHelper.verify(() -> {
+      for (int i = 0; i < NUM_PARTICIPANTS; i++) {
+        String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+        InstanceConfig instanceConfig =
+            _manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instanceName);
+        if (instanceConfig.getInstanceEnabled()) {
+          return false;
+        }
       }
-    }
+      return true;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
     Assert.assertTrue(verifier.verifyByPolling());
 
     updateMetrics();
@@ -181,14 +186,18 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
       _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, true);
     }
     // Confirm that the Participants have been enabled
-    for (int i = 0; i < NUM_PARTICIPANTS; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      InstanceConfig instanceConfig =
-          _manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instanceName);
-      if (!instanceConfig.getInstanceEnabled()) {
-        Thread.sleep(1000L);
+    result = TestHelper.verify(() -> {
+      for (int i = 0; i < NUM_PARTICIPANTS; i++) {
+        String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+        InstanceConfig instanceConfig =
+            _manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instanceName);
+        if (!instanceConfig.getInstanceEnabled()) {
+          return false;
+        }
       }
-    }
+      return true;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
     Assert.assertTrue(verifier.verifyByPolling());
 
     updateMetrics();
@@ -200,10 +209,11 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
     // Drop the resource and check that all metrics are zero.
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, TEST_DB);
     // Check that the resource has been removed
-    if (_manager.getHelixDataAccessor().getPropertyStat(
-        _manager.getHelixDataAccessor().keyBuilder().idealStates(TEST_DB)) != null) {
-      Thread.sleep(1000L);
-    }
+    result = TestHelper.verify(
+        () -> _manager.getHelixDataAccessor().getPropertyStat(
+            _manager.getHelixDataAccessor().keyBuilder().idealStates(TEST_DB)) == null,
+        TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
     Assert.assertTrue(verifier.verifyByPolling());
 
     updateMetrics();

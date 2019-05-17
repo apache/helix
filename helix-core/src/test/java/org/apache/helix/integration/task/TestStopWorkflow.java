@@ -54,6 +54,8 @@ public class TestStopWorkflow extends TaskTestBase {
 
   @Test
   public void testStopWorkflow() throws InterruptedException {
+    stopTestSetup(5);
+
     String jobQueueName = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
         .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
@@ -77,6 +79,8 @@ public class TestStopWorkflow extends TaskTestBase {
 
     Assert.assertEquals(TaskState.STOPPED,
         _driver.getWorkflowContext(jobQueueName).getWorkflowState());
+
+    cleanupParticipants(5);
   }
 
   /**
@@ -110,6 +114,8 @@ public class TestStopWorkflow extends TaskTestBase {
 
     Assert.assertEquals(TaskDriver.getWorkflowContext(_manager, workflowName).getWorkflowState(),
         TaskState.STOPPED);
+
+    cleanupParticipants(1);
   }
 
   /**
@@ -168,6 +174,8 @@ public class TestStopWorkflow extends TaskTestBase {
     Assert.assertEquals(
         TaskDriver.getWorkflowContext(_manager, workflowToComplete).getWorkflowState(),
         TaskState.COMPLETED);
+
+    cleanupParticipants(1);
   }
 
   /**
@@ -225,6 +233,8 @@ public class TestStopWorkflow extends TaskTestBase {
     _driver.start(workflowBuilder_2.build());
     Assert.assertEquals(_driver.pollForWorkflowState(workflowName_2, TaskState.COMPLETED),
         TaskState.COMPLETED);
+
+    cleanupParticipants(1);
   }
 
   /**
@@ -250,6 +260,14 @@ public class TestStopWorkflow extends TaskTestBase {
           new TaskStateModelFactory(_participants[i], taskFactoryReg));
 
       _participants[i].syncStart();
+    }
+  }
+
+  private void cleanupParticipants(int numNodes) {
+    for (int i = 0; i < numNodes; i++) {
+      if (_participants[i] != null && _participants[i].isConnected()) {
+        _participants[i].syncStop();
+      }
     }
   }
 

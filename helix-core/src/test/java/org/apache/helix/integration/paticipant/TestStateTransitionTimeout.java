@@ -28,6 +28,7 @@ import java.util.Set;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -164,15 +165,26 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
     Assert.assertTrue(result);
     HelixDataAccessor accessor = _participants[0].getHelixDataAccessor();
 
+    TestHelper.verify(() -> verify(accessor, idealState, factories), 5000);
+    Assert.assertTrue(verify(accessor, idealState, factories));
+  }
+
+  private boolean verify(HelixDataAccessor accessor, IdealState idealState,
+      Map<String, SleepStateModelFactory> factoryMap) {
     Builder kb = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));
     for (String p : idealState.getPartitionSet()) {
       String idealMaster = idealState.getPreferenceList(p).get(0);
-      Assert.assertTrue(ev.getStateMap(p).get(idealMaster).equals("ERROR"));
+      if (!ev.getStateMap(p).get(idealMaster).equals("ERROR")) {
+        return false;
+      }
 
-      TimeOutStateModel model = factories.get(idealMaster).getStateModel(TEST_DB, p);
-      Assert.assertEquals(model._errorCallcount, 1);
-      Assert.assertEquals(model._error.getCode(), ErrorCode.TIMEOUT);
+      TimeOutStateModel model = factoryMap.get(idealMaster).getStateModel(TEST_DB, p);
+      if (model._errorCallcount != 1 || model._error.getCode() != ErrorCode.TIMEOUT) {
+        return false;
+      }
     }
+
+    return true;
   }
 }

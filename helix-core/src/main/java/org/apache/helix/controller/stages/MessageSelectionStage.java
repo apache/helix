@@ -184,7 +184,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
       }
 
       if (!messagesGroupByStateTransitPriority.containsKey(priority)) {
-        messagesGroupByStateTransitPriority.put(priority, new ArrayList<Message>());
+        messagesGroupByStateTransitPriority.put(priority, new ArrayList<>());
       }
       messagesGroupByStateTransitPriority.get(priority).add(message);
 
@@ -195,25 +195,25 @@ public class MessageSelectionStage extends AbstractBaseStage {
 
     // select messages
     for (List<Message> messageList : messagesGroupByStateTransitPriority.values()) {
+      NextMessage:
       for (Message message : messageList) {
         String toState = message.getToState();
         String fromState = message.getFromState();
 
         if (toState.equals(stateModelDef.getTopState())) {
           // find if there are any pending relay messages match this message.
-          // if yes, rebuild the message to use the same message id from the original relay message.
+          // if the pending relay message targets the same host, we are fine to continue send the message,
+          // if it targets to different host, we should not send the message now (should send after the relay message gets expired).
           for (Message relayMsg : pendingRelayMessages) {
             if (relayMsg.getToState().equals(toState) && relayMsg.getFromState()
                 .equals(fromState)) {
-              if (relayMsg.getTgtName().equals(message.getTgtName())) {
-                message = new Message(message, relayMsg.getMsgId());
-              } else {
-                // if there are pending relay message that was sent to a different host than the current message
-                // we should not send the toState message now.
+              LOG.info(
+                  "There is pending relay message, pending relay message: {}", relayMsg);
+              if (!relayMsg.getTgtName().equals(message.getTgtName())) {
                 LOG.info(
                     "There is pending relay message to a different host, not send message: {}, pending relay message: {}",
                     message, relayMsg);
-                continue;
+                continue NextMessage;
               }
             }
           }

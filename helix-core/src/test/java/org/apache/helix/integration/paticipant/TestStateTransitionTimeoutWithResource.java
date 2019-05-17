@@ -30,6 +30,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
@@ -168,11 +169,12 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
             .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
-    verify(TEST_DB);
+    TestHelper.verify(() -> verify(TEST_DB), 5000);
+    Assert.assertTrue(verify(TEST_DB));
   }
 
   @Test
-  public void testStateTransitionTimeoutByClusterLevel() throws InterruptedException {
+  public void testStateTransitionTimeoutByClusterLevel() throws Exception {
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB + 1, _PARTITIONS, STATE_MODEL);
     _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, TEST_DB + 1, false);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB  + 1, 3);
@@ -191,22 +193,29 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
         ClusterStateVerifier
             .verifyByPolling(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
-    verify(TEST_DB + 1);
+
+    TestHelper.verify(() -> verify(TEST_DB + 1), 5000);
+    Assert.assertTrue(verify(TEST_DB + 1));
   }
 
-  private void verify(String dbName) {
+  private boolean verify(String dbName) {
     IdealState idealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     ExternalView ev = accessor.getProperty(accessor.keyBuilder().externalView(dbName));
     for (String p : idealState.getPartitionSet()) {
       String idealMaster = idealState.getPreferenceList(p).get(0);
-      Assert.assertTrue(ev.getStateMap(p).get(idealMaster).equals("ERROR"));
+      if(!ev.getStateMap(p).get(idealMaster).equals("ERROR")) {
+        return false;
+      }
 
       TimeOutStateModel model = _factories.get(idealMaster).getStateModel(dbName, p);
-      Assert.assertEquals(model._errorCallcount, 1);
-      Assert.assertEquals(model._error.getCode(), ErrorCode.TIMEOUT);
+      if (model._errorCallcount != 1 || model._error.getCode() != ErrorCode.TIMEOUT) {
+        return false;
+      }
     }
+
+    return true;
   }
 
   private void setParticipants(String dbName) throws InterruptedException {

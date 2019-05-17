@@ -160,7 +160,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     private CallbackHandler _handler;
 
     public CallbackProcessor(CallbackHandler handler) {
-      super(_manager.getClusterName(), "CallbackProcessor");
+      super(_manager.getClusterName(),
+          "CallbackProcessor@" + Integer.toHexString(handler.hashCode()));
       _handler = handler;
     }
 

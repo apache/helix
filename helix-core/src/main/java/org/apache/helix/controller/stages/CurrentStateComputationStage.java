@@ -190,12 +190,18 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         if (partition != null) {
           currentStateOutput.setCurrentState(resourceName, partition, instanceName,
               currentState.getState(partitionName));
-          currentStateOutput.setRequestedState(resourceName, partition, instanceName,
-              currentState.getRequestedState(partitionName));
-          currentStateOutput
-              .setInfo(resourceName, partition, instanceName, currentState.getInfo(partitionName));
           currentStateOutput.setEndTime(resourceName, partition, instanceName,
               currentState.getEndTime(partitionName));
+          String info = currentState.getInfo(partitionName);
+          // This is to avoid null value entries in the map, and reduce memory usage by avoiding extra empty entries in the map.
+          if (info != null) {
+            currentStateOutput.setInfo(resourceName, partition, instanceName, info);
+          }
+          String requestState = currentState.getRequestedState(partitionName);
+          if (requestState != null) {
+            currentStateOutput
+                .setRequestedState(resourceName, partition, instanceName, requestState);
+          }
         }
       }
     }

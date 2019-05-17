@@ -390,8 +390,8 @@ public class TestInstanceValidationUtil {
     Assert.assertFalse(result);
   }
 
-  @Test(expectedExceptions = HelixException.class)
-  public void TestSiblingNodesActiveReplicaCheck_exception_whenIdealStatesMisMatch() {
+  @Test
+  public void TestSiblingNodesActiveReplicaCheck_whenNoMinActiveReplica() {
     String resource = "resource";
     Mock mock = new Mock();
     doReturn(ImmutableList.of(resource)).when(mock.dataAccessor)
@@ -404,11 +404,13 @@ public class TestInstanceValidationUtil {
     doReturn(idealState).when(mock.dataAccessor).getProperty(argThat(new PropertyKeyArgument(PropertyType.IDEALSTATES)));
     //set externalView
     ExternalView externalView = mock(ExternalView.class);
+    // the resource sibling check will be skipped by design
     when(externalView.getMinActiveReplicas()).thenReturn(-1);
     doReturn(externalView).when(mock.dataAccessor)
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.EXTERNALVIEW)));
 
-    InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
+    boolean result = InstanceValidationUtil.siblingNodesActiveReplicaCheck(mock.dataAccessor, TEST_INSTANCE);
+    Assert.assertTrue(result);
   }
 
   @Test(expectedExceptions = HelixException.class)

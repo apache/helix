@@ -304,8 +304,9 @@ public class InstanceValidationUtil {
       // Get the minActiveReplicas constraint for the resource
       int minActiveReplicas = externalView.getMinActiveReplicas();
       if (minActiveReplicas == -1) {
-        throw new HelixException(
-            "ExternalView " + resourceName + " is missing minActiveReplica field");
+        _logger.warn("Resource " + resourceName
+            + " is missing minActiveReplica field. Skip the sibling check");
+        continue;
       }
       String stateModeDef = externalView.getStateModelDefRef();
       StateModelDefinition stateModelDefinition =

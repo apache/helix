@@ -164,20 +164,20 @@ public class TestZKUtil extends ZkUnitTestBase {
 
   @Test()
   public void testCreateOrUpdate() {
-    String path = PropertyPathBuilder.instanceConfig(clusterName, "id7");
-    ZNRecord record = new ZNRecord("id7");
+    String path = PropertyPathBuilder.instanceConfig(clusterName, "id9");
+    ZNRecord record = new ZNRecord("id9");
     ZKUtil.createOrMerge(_gZkClient, path, record, true, true);
     record = _gZkClient.readData(path);
-    AssertJUnit.assertEquals("id7", record.getId());
+    AssertJUnit.assertEquals("id9", record.getId());
 
-    record = new ZNRecord("id7");
+    record = new ZNRecord("id9");
     List<String> list = Arrays.asList("value1", "value2");
     record.setListField("list", list);
     ZKUtil.createOrUpdate(_gZkClient, path, record, true, true);
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals(list, record.getListField("list"));
 
-    record = new ZNRecord("id7");
+    record = new ZNRecord("id9");
     List<String> list2 = Arrays.asList("value3", "value4");
     record.setListField("list", list2);
     ZKUtil.createOrUpdate(_gZkClient, path, record, true, true);
@@ -191,7 +191,7 @@ public class TestZKUtil extends ZkUnitTestBase {
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals(map, record.getMapField("map"));
 
-    record = new ZNRecord("id7");
+    record = new ZNRecord("id9");
     Map<String, String> map2 = new HashMap<String, String>() {{put("k2", "v2");}};
     record.setMapField("map", map2);
     ZKUtil.createOrUpdate(_gZkClient, path, record, true, true);

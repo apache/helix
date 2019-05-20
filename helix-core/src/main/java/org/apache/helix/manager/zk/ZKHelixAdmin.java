@@ -1073,6 +1073,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     idealState.setRebalanceStrategy(CrushEdRebalanceStrategy.class.getName());
     // TODO: Give user an option, say from RestAPI to config the number of replicas.
     idealState.setReplicas(Integer.toString(DEFAULT_SUPERCLUSTER_REPLICA));
+    idealState.getRecord().setListField(clusterName, new ArrayList<String>());
 
     List<String> controllers = getInstancesInCluster(grandCluster);
     if (controllers.size() == 0) {

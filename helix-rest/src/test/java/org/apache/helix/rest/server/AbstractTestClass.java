@@ -126,7 +126,8 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static Map<String, Set<String>> _liveInstancesMap = new HashMap<>();
   protected static Map<String, Set<String>> _resourcesMap = new HashMap<>();
   protected static Map<String, Map<String, Workflow>> _workflowMap = new HashMap<>();
-
+  protected static List<ClusterControllerManager> _clusterControllerManagers = new ArrayList<>();
+  protected static List<MockParticipantManager> _mockParticipantManagers = new ArrayList<>();
   protected static MockAuditLogger _auditLogger = new MockAuditLogger();
   protected static HelixRestServer _helixRestServer;
 
@@ -254,6 +255,19 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
   @AfterSuite
   public void afterSuite() throws Exception {
+    // tear down orphan-ed threads
+    for (ClusterControllerManager cm : _clusterControllerManagers) {
+      if (cm != null && cm.isConnected()) {
+        cm.syncStop();
+      }
+    }
+
+    for (MockParticipantManager mm: _mockParticipantManagers) {
+      if (mm != null && mm.isConnected()) {
+        mm.syncStop();
+      }
+    }
+
     ZKClientPool.reset();
     if (_gZkClient != null) {
       _gZkClient.close();
@@ -298,7 +312,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       _instancesMap.put(cluster, instances);
       _liveInstancesMap.put(cluster, liveInstances);
       _resourcesMap.put(cluster, resources);
-      startController(cluster);
+      _clusterControllerManagers.add(startController(cluster));
     }
     preSetupForParallelInstancesStoppableTest(STOPPABLE_CLUSTER, STOPPABLE_INSTANCES);
   }
@@ -356,6 +370,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       stateMachineEngine.registerStateModelFactory("Task",
           new TaskStateModelFactory(participant, taskFactoryReg));
       participant.syncStart();
+      _mockParticipantManagers.add(participant);
       liveInstances.add(instance);
       if (++i > numLiveinstances) {
         break;
@@ -532,7 +547,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     // Start participant
     startInstances(clusterName, new TreeSet<>(instances), 3);
     createResources(clusterName, 1);
-    startController(clusterName);
+    _clusterControllerManagers.add(startController(clusterName));
 
     _clusters.add(STOPPABLE_CLUSTER);
     _workflowMap.put(STOPPABLE_CLUSTER, createWorkflows(STOPPABLE_CLUSTER, 3));

@@ -20,6 +20,7 @@ package org.apache.helix.rest.server;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -37,11 +38,14 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
+import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
@@ -49,7 +53,10 @@ import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.AbstractResource.Command;
 import org.apache.helix.rest.server.resources.helix.ClusterAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
+import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.annotate.JsonTypeInfo;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
@@ -396,22 +403,82 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   @Test()
-  public void testActivateSuperCluster() {
+  public void testActivateSuperCluster() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String cluster = "TestCluster_0";
-    post("clusters/" + cluster,
-        ImmutableMap.of("command", "activate", "superCluster", "superCluster"),
+    final String ACTIVATE_SUPER_CLUSTER = "RestSuperClusterActivationTest_SuperCluster";
+    final String ACTIVATE_NORM_CLUSTER = "RestSuperClusterActivationTest_NormalCluster";
+
+    // create testCluster
+    _gSetupTool.addCluster(ACTIVATE_NORM_CLUSTER, true);
+    ClusterConfig clusterConfig = new ClusterConfig(ACTIVATE_NORM_CLUSTER);
+    clusterConfig.setFaultZoneType("helixZoneId");
+    _configAccessor.setClusterConfig(ACTIVATE_NORM_CLUSTER, clusterConfig);
+    Set<String> resources = createResourceConfigs(ACTIVATE_NORM_CLUSTER, 8);
+
+    // create superCluster
+    _gSetupTool.addCluster(ACTIVATE_SUPER_CLUSTER,true);
+    ClusterConfig superClusterConfig = new ClusterConfig(ACTIVATE_SUPER_CLUSTER);
+    _configAccessor.setClusterConfig(ACTIVATE_SUPER_CLUSTER, superClusterConfig);
+    Set<String> instances = createInstances(ACTIVATE_SUPER_CLUSTER, 4);
+    List<ClusterDistributedController> clusterDistributedControllers = new ArrayList<>();
+    for (String instance : instances) {
+      ClusterDistributedController controllerParticipant =
+          new ClusterDistributedController(ZK_ADDR, ACTIVATE_SUPER_CLUSTER, instance);
+      clusterDistributedControllers.add(controllerParticipant);
+      controllerParticipant.syncStart();
+    }
+
+    post("clusters/" + ACTIVATE_NORM_CLUSTER,
+        ImmutableMap.of("command", "activate", "superCluster", ACTIVATE_SUPER_CLUSTER),
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK .getStatusCode());
 
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(_superCluster, _baseAccessor);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(ACTIVATE_SUPER_CLUSTER, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(cluster));
+    final HelixDataAccessor normalAccessor = new ZKHelixDataAccessor(ACTIVATE_NORM_CLUSTER, _baseAccessor);
+    final PropertyKey.Builder normKeyBuilder = normalAccessor.keyBuilder();
+
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() {
+        LiveInstance leader = normalAccessor.getProperty(normKeyBuilder.controllerLeader());
+        return leader != null;
+      }
+    }, 12000);
+    Assert.assertTrue(result);
+
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(ACTIVATE_SUPER_CLUSTER).setZkAddr(ZK_ADDR)
+            .setZkClient(_gZkClient).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
+    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(ACTIVATE_NORM_CLUSTER));
     Assert.assertEquals(idealState.getRebalanceMode(), IdealState.RebalanceMode.FULL_AUTO);
     Assert.assertEquals(idealState.getRebalancerClassName(), DelayedAutoRebalancer.class.getName());
     Assert.assertEquals(idealState.getRebalanceStrategy(), CrushEdRebalanceStrategy.class.getName());
     // Note, set expected replicas value to 3, as the same value of DEFAULT_SUPERCLUSTER_REPLICA in ClusterAccessor.
     Assert.assertEquals(idealState.getReplicas(), "3");
+
+
+    ExternalView externalView = accessor.getProperty(keyBuilder.externalView(ACTIVATE_NORM_CLUSTER));
+    Map<String, String> extViewMapping = externalView.getRecord().getMapField(ACTIVATE_NORM_CLUSTER);
+    String superClusterleader = null;
+    for (Map.Entry<String, String> entry: extViewMapping.entrySet()) {
+      if (entry.getValue().equals("LEADER")) {
+        superClusterleader = entry.getKey();
+      }
+    }
+    LiveInstance leader = normalAccessor.getProperty(normKeyBuilder.controllerLeader());
+    Assert.assertEquals(leader.getId(), superClusterleader);
+
+    // clean up by tearing down controllers and delete clusters
+    for (ClusterDistributedController dc: clusterDistributedControllers) {
+      if (dc != null && dc.isConnected()) {
+        dc.syncStop();
+      }
+    }
+    _gSetupTool.deleteCluster(ACTIVATE_NORM_CLUSTER);
+    _gSetupTool.deleteCluster(ACTIVATE_SUPER_CLUSTER);
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {

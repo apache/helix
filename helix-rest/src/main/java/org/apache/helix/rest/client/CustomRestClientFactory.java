@@ -19,6 +19,11 @@ package org.apache.helix.rest.client;
  * under the License.
  */
 
+import org.apache.helix.rest.server.HelixRestServer;
+import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +43,17 @@ public class CustomRestClientFactory {
       synchronized (CustomRestClientFactory.class) {
         if (INSTANCE == null) {
           try {
-            INSTANCE = new CustomRestClientImpl();
+            HttpClient httpClient;
+            if (HelixRestServer.REST_SERVER_SSL_CONTEXT != null) {
+              httpClient =
+                  HttpClients.custom().setSSLContext(HelixRestServer.REST_SERVER_SSL_CONTEXT)
+                      .setSSLSocketFactory(new SSLConnectionSocketFactory(
+                          HelixRestServer.REST_SERVER_SSL_CONTEXT, new NoopHostnameVerifier()))
+                      .build();
+            } else {
+              httpClient = HttpClients.createDefault();
+            }
+            INSTANCE = new CustomRestClientImpl(httpClient);
             return INSTANCE;
           } catch (Exception e) {
             LOG.error("Exception when initializing CustomRestClient", e);
@@ -46,7 +61,6 @@ public class CustomRestClientFactory {
         }
       }
     }
-
     return INSTANCE;
   }
 }

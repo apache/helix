@@ -19,12 +19,14 @@ package org.apache.helix.rest.client;
  * under the License.
  */
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -32,15 +34,10 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 
 class CustomRestClientImpl implements CustomRestClient {
   private static final Logger LOG = LoggerFactory.getLogger(CustomRestClient.class);
@@ -60,14 +57,6 @@ class CustomRestClientImpl implements CustomRestClient {
     Map<String, Boolean> convert(JsonNode jsonNode);
   }
 
-  /**
-   * TODO: create Config to initialize SSLContext for Https endpoint
-   * Override the constructor if https endpoint is expected
-   */
-  public CustomRestClientImpl() {
-    _httpClient = HttpClients.createDefault();
-  }
-
   public CustomRestClientImpl(HttpClient httpClient) {
     _httpClient = httpClient;
   }
@@ -80,8 +69,7 @@ class CustomRestClientImpl implements CustomRestClient {
     String url = baseUrl + INSTANCE_HEALTH_STATUS;
     JsonConverter jsonConverter = jsonNode -> {
       Map<String, Boolean> result = new HashMap<>();
-      jsonNode.fields()
-          .forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asBoolean()));
+      jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asBoolean()));
       return result;
     };
     return handleResponse(post(url, customPayloads), jsonConverter);
@@ -104,8 +92,8 @@ class CustomRestClientImpl implements CustomRestClient {
     payLoads.put(PARTITIONS, partitions.toString());
     JsonConverter jsonConverter = jsonNode -> {
       Map<String, Boolean> result = new HashMap<>();
-      jsonNode.fields()
-          .forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().get(IS_HEALTHY_FIELD).asBoolean()));
+      jsonNode.fields().forEachRemaining(
+          kv -> result.put(kv.getKey(), kv.getValue().get(IS_HEALTHY_FIELD).asBoolean()));
       return result;
     };
     return handleResponse(post(url, payLoads), jsonConverter);

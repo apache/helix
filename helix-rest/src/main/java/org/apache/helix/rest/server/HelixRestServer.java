@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.net.ssl.SSLContext;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
@@ -48,6 +49,8 @@ import org.slf4j.LoggerFactory;
 
 public class HelixRestServer {
   private static Logger LOG = LoggerFactory.getLogger(HelixRestServer.class);
+  // TODO: consider moving the following static context to ServerContext or any other place
+  public static SSLContext REST_SERVER_SSL_CONTEXT;
 
   private int _port;
   private String _urlPrefix;
@@ -218,5 +221,13 @@ public class HelixRestServer {
         LOG.error("Failed to setup Helix SSL rest server, " + ex);
       }
     }
+  }
+
+  /**
+   * Register a SSLContext so that it could be used to create HTTPS clients.
+   * @param sslContext
+   */
+  public void registerServerSSLContext(SSLContext sslContext) {
+    REST_SERVER_SSL_CONTEXT = sslContext;
   }
 }

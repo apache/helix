@@ -19,10 +19,12 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
-import javax.management.*;
 
-import org.apache.helix.manager.zk.zookeeper.ZkEventThread;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -138,5 +140,15 @@ public class TestZkClientMonitor {
         .assertTrue((long) _beanServer.getAttribute(instancesName, "WriteLatencyGauge.Max") >= 10);
     Assert.assertTrue(
         (long) _beanServer.getAttribute(instancesName, "WriteTotalLatencyCounter") >= 10);
+
+    monitor
+        .recordDataPropagationLatency("TEST/INSTANCES/node_1/CURRENTSTATES/session_1/Resource", 5);
+    Assert
+        .assertEquals((long) _beanServer.getAttribute(rootName, "DataPropagationLatencyGuage.Max"), 5);
+    Assert.assertEquals(
+        (long) _beanServer.getAttribute(currentStateName, "DataPropagationLatencyGuage.Max"), 5);
+    Assert
+        .assertEquals((long) _beanServer.getAttribute(idealStateName, "DataPropagationLatencyGuage.Max"),
+            0);
   }
 }

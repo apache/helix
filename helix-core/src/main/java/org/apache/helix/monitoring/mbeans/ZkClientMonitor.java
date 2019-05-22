@@ -24,6 +24,7 @@ import javax.management.MBeanAttributeInfo;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -152,17 +153,33 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     }
   }
 
+  public void recordDataPropagationLatency(String path, long latencyMilliSec) {
+    if (null == path) {
+      return;
+    }
+    Arrays.stream(ZkClientPathMonitor.PredefinedPath.values())
+        .filter(predefinedPath -> predefinedPath.match(path))
+        .forEach(predefinedPath -> {
+      ZkClientPathMonitor zkClientPathMonitor = _zkClientPathMonitorMap.get(predefinedPath);
+      if (zkClientPathMonitor != null) {
+        zkClientPathMonitor.recordDataPropagationLatency(latencyMilliSec);
+      }
+    });
+  }
+
   private void record(String path, int bytes, long latencyMilliSec, boolean isFailure,
       boolean isRead) {
-    for (ZkClientPathMonitor.PredefinedPath predefinedPath : ZkClientPathMonitor.PredefinedPath
-        .values()) {
-      if (predefinedPath.match(path)) {
-        ZkClientPathMonitor zkClientPathMonitor = _zkClientPathMonitorMap.get(predefinedPath);
-        if (zkClientPathMonitor != null) {
-          zkClientPathMonitor.record(bytes, latencyMilliSec, isFailure, isRead);
-        }
-      }
+    if (null == path) {
+      return;
     }
+    Arrays.stream(ZkClientPathMonitor.PredefinedPath.values())
+        .filter(predefinedPath -> predefinedPath.match(path))
+        .forEach(predefinedPath -> {
+      ZkClientPathMonitor zkClientPathMonitor = _zkClientPathMonitorMap.get(predefinedPath);
+      if (zkClientPathMonitor != null) {
+        zkClientPathMonitor.record(bytes, latencyMilliSec, isFailure, isRead);
+      }
+    });
   }
 
   public void record(String path, int dataSize, long startTimeMilliSec, AccessType accessType) {

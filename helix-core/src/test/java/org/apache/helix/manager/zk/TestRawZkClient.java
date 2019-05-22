@@ -19,6 +19,8 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,8 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
+
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkServer;
@@ -40,6 +41,7 @@ import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
@@ -59,7 +61,6 @@ public class TestRawZkClient extends ZkUnitTestBase {
   @BeforeClass
   public void beforeClass() {
     _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
   }
 
   @AfterClass
@@ -86,7 +87,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
     newStat = _zkClient.getStat(path);
     AssertJUnit.assertEquals(stat, newStat);
 
-    _zkClient.writeData(path, new ZNRecord("Test"));
+    _zkClient.writeData(path, "Test");
     newStat = _zkClient.getStat(path);
     AssertJUnit.assertNotSame(stat, newStat);
   }
@@ -265,10 +266,15 @@ public class TestRawZkClient extends ZkUnitTestBase {
     zkClient.subscribeDataChanges(TEST_PATH, new IZkDataListener() {
       @Override
       public void handleDataChange(String dataPath, Object data) {
+        callbackLock();
       }
 
       @Override
       public void handleDataDeleted(String dataPath) {
+        callbackLock();
+      }
+
+      private void callbackLock() {
         lock.lock();
         try {
           callbackFinish.signal();
@@ -278,13 +284,24 @@ public class TestRawZkClient extends ZkUnitTestBase {
       }
     });
     lock.lock();
-    _zkClient.delete(TEST_PATH);
+    _zkClient.writeData(TEST_PATH, "Test");
     Assert.assertTrue(callbackFinish.await(10, TimeUnit.SECONDS));
     Assert.assertEquals((long) beanServer.getAttribute(name, "DataChangeEventCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackHandledCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "PendingCallbackGauge"), 0);
+
+    // Simulate a delayed callback
+    int waitTime = 10;
+    Thread.sleep(waitTime);
+    lock.lock();
+    zkClient.process(new WatchedEvent(Watcher.Event.EventType.NodeDataChanged, null, TEST_PATH));
+    Assert.assertTrue(callbackFinish.await(10, TimeUnit.SECONDS));
+    Assert.assertTrue(
+        (long) beanServer.getAttribute(rootname, "DataPropagationLatencyGuage.Max") >= waitTime);
+
+    _zkClient.delete(TEST_PATH);
   }
 
   @Test(dependsOnMethods = "testZkClientMonitor")

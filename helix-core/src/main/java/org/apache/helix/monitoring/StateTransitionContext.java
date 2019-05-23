@@ -25,6 +25,8 @@ public class StateTransitionContext {
   private final String _instanceName;
   private final String _transition;
 
+  // To keep it backward compatible, we still have the constructor with instance name and resource
+  // name as input. But it will not be used in generating metrics object name.
   public StateTransitionContext(String clusterName, String instanceName, String resourceName,
       String transition) {
     _clusterName = clusterName;
@@ -57,9 +59,6 @@ public class StateTransitionContext {
 
     StateTransitionContext otherCxt = (StateTransitionContext) other;
     return _clusterName.equals(otherCxt.getClusterName())
-        &&
-        // _instanceName.equals(otherCxt.getInstanceName()) &&
-        _resourceName.equals(otherCxt.getResourceName())
         && _transition.equals(otherCxt.getTransition());
   }
 
@@ -70,9 +69,7 @@ public class StateTransitionContext {
   }
 
   public String toString() {
-    return "Cluster=" + _clusterName + "," +
-    // "instance=" + _instanceName + "," +
-        "Resource=" + _resourceName + "," + "Transition=" + _transition;
+    return "Cluster=" + _clusterName + "," + "Transition=" + _transition;
   }
 
 }

@@ -142,9 +142,10 @@ public class TestParticipantMonitor {
     monitor.reportTransitionStat(cxt2, data);
     monitor.reportTransitionStat(cxt2, data);
     Thread.sleep(1000);
-    Assert.assertEquals(monitorListener._beanValueMap.size(), monitorNum + 2);
+    // Only one metric will be generated for db_1 and db_2
+    Assert.assertEquals(monitorListener._beanValueMap.size(), monitorNum + 1);
 
-    Assert.assertFalse(cxt.equals(cxt2));
+    Assert.assertTrue(cxt.equals(cxt2));
     Assert.assertFalse(cxt.equals(new Object()));
     Assert.assertTrue(cxt.equals(new StateTransitionContext(CLUSTER_NAME, "instance", "db_1", "a-b")));
 
@@ -154,7 +155,8 @@ public class TestParticipantMonitor {
         new ParticipantMonitorListener("CLMParticipantReport");
 
     Thread.sleep(1000);
-    Assert.assertEquals(monitorListener2._beanValueMap.size(), monitorNum + 2);
+    // Same here. Helix only measures per cluster + per state transitions.
+    Assert.assertEquals(monitorListener2._beanValueMap.size(), monitorNum + 1);
 
     monitorListener2.disconnect();
     monitorListener.disconnect();

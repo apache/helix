@@ -10,6 +10,7 @@
  */
 package org.apache.helix.manager.zk.zookeeper;
 
+import javax.management.JMException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
@@ -21,7 +22,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
-import javax.management.JMException;
+
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.ExceptionUtil;
 import org.I0Itec.zkclient.IZkChildListener;
@@ -128,6 +129,25 @@ public class ZkClient implements Watcher {
       return _dataListener.hashCode();
     }
   }
+
+  private class ZkPathStatRecord {
+    private Stat _stat = null;
+    private boolean _checked = false;
+
+    public boolean pathExists() {
+      return _stat != null;
+    }
+
+    public boolean pathChecked() {
+      return _checked;
+    }
+
+    public void recordPathStat(Stat stat) {
+      _checked = true;
+      _stat = stat;
+    }
+  }
+
 
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
@@ -754,15 +774,14 @@ public class ZkClient implements Watcher {
   }
 
   public Stat getStat(final String path) {
+    return getStat(path, false);
+  }
+
+  private Stat getStat(final String path, final boolean watch) {
     long startT = System.currentTimeMillis();
     try {
-      Stat stat = retryUntilConnected(new Callable<Stat>() {
-        @Override
-        public Stat call() throws Exception {
-          Stat stat = ((ZkConnection) getConnection()).getZookeeper().exists(path, false);
-          return stat;
-        }
-      });
+      Stat stat = retryUntilConnected(
+          () -> ((ZkConnection) getConnection()).getZookeeper().exists(path, watch));
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
       return stat;
     } catch (Exception e) {
@@ -945,55 +964,72 @@ public class ZkClient implements Watcher {
   }
 
   private void fireDataChangedEvents(final String path, Set<IZkDataListenerEntry> listeners) {
-    for (final IZkDataListenerEntry listener : listeners) {
-      _eventThread.send(new ZkEvent(
-          "Data of " + path + " changed sent to " + listener.getDataListener() + " prefetch data: "
-              + listener.isPrefetchData()) {
-
-        @Override public void run() throws Exception {
-          // reinstall watch
-          boolean exist = exists(path, true);
-          if (exist) {
-            try {
+    try {
+      final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord();
+      // Trigger listener callbacks
+      for (final IZkDataListenerEntry listener : listeners) {
+        _eventThread.send(new ZkEvent(
+            "Data of " + path + " changed sent to " + listener.getDataListener()
+                + " prefetch data: " + listener.isPrefetchData()) {
+          @Override
+          public void run() throws Exception {
+            // Reinstall watch before listener callbacks to check the znode status
+            if (!pathStatRecord.pathChecked()) {
+              pathStatRecord.recordPathStat(getStat(path, true));
+            }
+            if (!pathStatRecord.pathExists()) {
+              // no znode found at the path, trigger data deleted handler.
+              listener.getDataListener().handleDataDeleted(path);
+            } else {
               Object data = null;
               if (listener.isPrefetchData()) {
                 if (LOG.isDebugEnabled()) {
-                  LOG.debug("Prefetch data for path: " + path);
+                  LOG.debug("Prefetch data for path: {}", path);
                 }
-                data = readData(path, null, true);
+                try {
+                  data = readData(path, null, true);
+                } catch (ZkNoNodeException e) {
+                  LOG.warn("Prefetch data for path: {} failed.", path, e);
+                  listener.getDataListener().handleDataDeleted(path);
+                  return;
+                }
               }
               listener.getDataListener().handleDataChange(path, data);
-            } catch (ZkNoNodeException e) {
-              listener.getDataListener().handleDataDeleted(path);
-            }
-          } else {
-            listener.getDataListener().handleDataDeleted(path);
-          }
-        }
-      });
-    }
-  }
-
-  private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners) {
-    try {
-      // reinstall the watch
-      for (final IZkChildListener listener : childListeners) {
-        _eventThread.send(new ZkEvent("Children of " + path + " changed sent to " + listener) {
-
-          @Override public void run() throws Exception {
-            try {
-              // if the node doesn't exist we should listen for the root node to reappear
-              exists(path);
-              List<String> children = getChildren(path);
-              listener.handleChildChange(path, children);
-            } catch (ZkNoNodeException e) {
-              listener.handleChildChange(path, null);
             }
           }
         });
       }
     } catch (Exception e) {
-      LOG.error("Failed to fire child changed event. Unable to getChildren.  ", e);
+      LOG.error("Failed to fire data changed event for path: {}", path, e);
+    }
+  }
+
+  private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners) {
+    try {
+      final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord();
+      for (final IZkChildListener listener : childListeners) {
+        _eventThread.send(new ZkEvent("Children of " + path + " changed sent to " + listener) {
+          @Override
+          public void run() throws Exception {
+            // Reinstall watch before listener callbacks to check the znode status
+            if (!pathStatRecord.pathChecked()) {
+              pathStatRecord.recordPathStat(getStat(path, hasListeners(path)));
+            }
+            List<String> children = null;
+            if (pathStatRecord.pathExists()) {
+              try {
+                children = getChildren(path);
+              } catch (ZkNoNodeException e) {
+                LOG.warn("Get children under path: {} failed.", path, e);
+                // Continue trigger the change handler
+              }
+            }
+            listener.handleChildChange(path, children);
+          }
+        });
+      }
+    } catch (Exception e) {
+      LOG.error("Failed to fire child changed event. Unable to getChildren.", e);
     }
   }
 

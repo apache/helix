@@ -19,28 +19,22 @@ package org.apache.helix.integration.manager;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
-import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.api.config.ViewClusterSourceConfig;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskPartitionState;
-import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
-import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -63,79 +57,35 @@ public class TestZkHelixAdmin extends TaskTestBase {
   }
 
   @Test
-  public void testViewClusterOperations() {
-    String testCluster = "testViewCluster";
-    List<ViewClusterSourceConfig> sourceConfigs = generateViewClusterSourceConfig();
-    int refreshPeriod = 10;
-
-    _admin.addCluster(testCluster);
-    ClusterConfig config = _configAccessor.getClusterConfig(testCluster);
-    config.setViewCluster();
-    config.setViewClusterRefreshPeriod(refreshPeriod);
-    config.setViewClusterSourceConfigs(sourceConfigs);
-    _configAccessor.setClusterConfig(testCluster, config);
-
-    ClusterConfig fetchedConfig = _configAccessor.getClusterConfig(testCluster);
-    Assert.assertTrue(fetchedConfig.isViewCluster());
-    Assert.assertEquals(fetchedConfig.getViewClusterSourceConfigs().size(), sourceConfigs.size());
-    Assert.assertEquals(fetchedConfig.getViewClusterRefershPeriod(), refreshPeriod);
-    _admin.dropCluster(testCluster);
-  }
-
-  @Test
   public void testEnableDisablePartitions() throws InterruptedException {
     _admin.enablePartition(false, CLUSTER_NAME, (PARTICIPANT_PREFIX + "_" + _startPort),
-        WorkflowGenerator.DEFAULT_TGT_DB, Arrays.asList("TestDB_0", "TestDB_2"));
+        WorkflowGenerator.DEFAULT_TGT_DB, Arrays.asList(new String[] { "TestDB_0", "TestDB_2" }));
     _admin.enablePartition(false, CLUSTER_NAME, (PARTICIPANT_PREFIX + "_" + (_startPort + 1)),
-        WorkflowGenerator.DEFAULT_TGT_DB, Arrays.asList("TestDB_0", "TestDB_2"));
+        WorkflowGenerator.DEFAULT_TGT_DB, Arrays.asList(new String[] { "TestDB_0", "TestDB_2" }));
 
     IdealState idealState =
         _admin.getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
-    List<String> preferenceList = Arrays.asList("localhost_12919", "localhost_12918");
+    List<String> preferenceList =
+        Arrays.asList(new String[] { "localhost_12919", "localhost_12918" });
     for (String partitionName : idealState.getPartitionSet()) {
       idealState.setPreferenceList(partitionName, preferenceList);
     }
     idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
     _admin.setResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, idealState);
 
-    // Let the cluster rebalance
-    BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
-            .setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(verifier.verifyByPolling());
-
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder builder = new Workflow.Builder(workflowName);
-    JobConfig.Builder jobBuilder = new JobConfig.Builder().setWorkflow(workflowName)
-        .setCommand(MockTask.TASK_COMMAND).setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-        .setTargetPartitionStates(Collections.singleton("SLAVE"));
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setWorkflow(workflowName).setCommand(MockTask.TASK_COMMAND)
+            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+            .setTargetPartitionStates(Collections.singleton("SLAVE"));
     builder.addJob("JOB", jobBuilder);
     _driver.start(builder.build());
-    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, "JOB"),
-        TaskState.IN_PROGRESS);
-    Thread.sleep(3000L);
+    Thread.sleep(2000L);
     JobContext jobContext =
         _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "JOB"));
-    Assert.assertNull(jobContext.getPartitionState(0));
+    Assert.assertEquals(jobContext.getPartitionState(0), null);
     Assert.assertEquals(jobContext.getPartitionState(1), TaskPartitionState.COMPLETED);
-    Assert.assertNull(jobContext.getPartitionState(2));
-  }
-
-  private List<ViewClusterSourceConfig> generateViewClusterSourceConfig() {
-    String clusterNamePrefix = "mySourceCluster";
-    String zkConnection = "zookeeper.test.com:2121";
-    String testJsonTemplate =
-        "{\"name\": \"%s\", \"zkAddress\": \"%s\", \"properties\": [\"%s\", \"%s\", \"%s\"]}";
-
-    List<ViewClusterSourceConfig> sourceConfigs = new ArrayList<>();
-    for (int i = 0; i < 3; i++) {
-      String clusterName = clusterNamePrefix + i;
-      String configJSON =
-          String.format(testJsonTemplate, clusterName, zkConnection, PropertyType.INSTANCES.name(),
-              PropertyType.EXTERNALVIEW.name(), PropertyType.LIVEINSTANCES.name());
-
-      sourceConfigs.add(ViewClusterSourceConfig.fromJson(configJSON));
-    }
-    return sourceConfigs;
+    Assert.assertEquals(jobContext.getPartitionState(2), null);
   }
 }

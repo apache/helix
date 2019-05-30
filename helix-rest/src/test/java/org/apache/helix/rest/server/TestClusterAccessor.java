@@ -113,7 +113,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     String response = new JerseyUriRequestBuilder("clusters/{}/topology").format(cluster).get(this);
 
     Assert.assertEquals(response,
-        "{\"id\":\"TestCluster_1\",\"zones\":[{\"id\":\"123\",\"instances\":[{\"id\":\"TestCluster_1localhost_12920\"}]}]}");
+        "{\"id\":\"TestCluster_1\",\"zones\":[{\"id\":\"123\",\"instances\":[{\"id\":\"TestCluster_1localhost_12920\"}]}],"
+            + "\"allInstances\":[\"TestCluster_1localhost_12918\",\"TestCluster_1localhost_12919\",\"TestCluster_1localhost_12924\","
+            + "\"TestCluster_1localhost_12925\",\"TestCluster_1localhost_12926\",\"TestCluster_1localhost_12927\",\"TestCluster_1localhost_12920\","
+            + "\"TestCluster_1localhost_12921\",\"TestCluster_1localhost_12922\",\"TestCluster_1localhost_12923\"]}");
   }
 
   @Test(dependsOnMethods = "testGetClusterTopology")

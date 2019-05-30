@@ -1,6 +1,7 @@
 package org.apache.helix.rest.server.json.cluster;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import org.testng.Assert;
@@ -18,11 +19,12 @@ public class TestClusterTopology {
 
     List<ClusterTopology.Zone> zones = ImmutableList.of(new ClusterTopology.Zone("zone", instances));
 
-    ClusterTopology clusterTopology = new ClusterTopology("cluster0", zones);
+    ClusterTopology clusterTopology =
+        new ClusterTopology("cluster0", zones, Collections.emptySet());
     ObjectMapper mapper = new ObjectMapper();
     String result = mapper.writeValueAsString(clusterTopology);
 
     Assert.assertEquals(result,
-        "{\"id\":\"cluster0\",\"zones\":[{\"id\":\"zone\",\"instances\":[{\"id\":\"instance\"}]}]}");
+        "{\"id\":\"cluster0\",\"zones\":[{\"id\":\"zone\",\"instances\":[{\"id\":\"instance\"}]}],\"allInstances\":[]}");
   }
 }

@@ -23,10 +23,14 @@ public class ClusterTopology {
   private final String clusterId;
   @JsonProperty("zones")
   private List<Zone> zones;
+  @JsonProperty("allInstances")
+  private Set<String> allInstances;
 
-  public ClusterTopology(String clusterId, List<Zone> zones) {
+
+  public ClusterTopology(String clusterId, List<Zone> zones, Set<String> allInstances) {
     this.clusterId = clusterId;
     this.zones = zones;
+    this.allInstances = allInstances;
   }
 
   public String getClusterId() {
@@ -35,6 +39,10 @@ public class ClusterTopology {
 
   public List<Zone> getZones() {
     return zones;
+  }
+
+  public Set<String> getAllInstances() {
+    return allInstances;
   }
 
   public static final class Zone {

@@ -24,6 +24,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
+import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.resources.exceptions.HelixHealthException;
 import org.apache.helix.rest.server.service.ClusterService;
@@ -40,7 +41,10 @@ import org.slf4j.LoggerFactory;
 @Path("/clusters/{clusterId}/instances")
 public class InstancesAccessor extends AbstractHelixResource {
   private final static Logger _logger = LoggerFactory.getLogger(InstancesAccessor.class);
-
+  // This type does not belongs to real HealthCheck failed reason. Also if we add this type
+  // to HealthCheck enum, it could introduce more unnecessary check step since the InstanceServiceImpl
+  // loops all the types to do corresponding checks.
+  private final static String INSTANCE_NOT_EXIST = "Helix:INSTANCE_NOT_EXIST";
   public enum InstancesProperties {
     instances,
     online,
@@ -56,7 +60,6 @@ public class InstancesAccessor extends AbstractHelixResource {
     instance_based,
     zone_based
   }
-
 
   @GET
   public Response getAllInstances(@PathParam("clusterId") String clusterId) {
@@ -174,9 +177,13 @@ public class InstancesAccessor extends AbstractHelixResource {
           InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
       InstanceService instanceService =
           new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) getDataAccssor(clusterId)), getConfigAccessor());
+      ClusterService clusterService =
+          new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
+      ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
       switch (selectionBase) {
       case zone_based:
-        List<String> zoneBasedInstance = getZoneBasedInstances(clusterId, instances, orderOfZone);
+        List<String> zoneBasedInstance =
+            getZoneBasedInstances(instances, orderOfZone, clusterTopology.toZoneMapping());
         for (String instance : zoneBasedInstance) {
           StoppableCheck stoppableCheckResult =
               instanceService.getInstanceStoppableCheck(clusterId, instance, customizedInput);
@@ -189,6 +196,22 @@ public class InstancesAccessor extends AbstractHelixResource {
             stoppableInstances.add(instance);
           }
         }
+
+        // Adding following logic to check whether instances exist or not. An instance exist could be
+        // checking following scenario:
+        // 1. Instance got dropped. (InstanceConfig is gone.)
+        // 2. Instance name has typo.
+
+        // If we dont add this check, the instance, which does not exist, will be disappeared from
+        // result since Helix skips instances for instances not in the selected zone. User may get
+        // confused with the output.
+        Set<String> nonSelectedInstances = new HashSet<>(instances);
+        nonSelectedInstances.removeAll(clusterTopology.getAllInstances());
+        for (String nonSelectedInstance : nonSelectedInstances) {
+          ArrayNode failedReasonsNode = failedStoppableInstances.putArray(nonSelectedInstance);
+          failedReasonsNode.add(JsonNodeFactory.instance.textNode(INSTANCE_NOT_EXIST));
+        }
+
         break;
       case instance_based:
       default:
@@ -214,17 +237,13 @@ public class InstancesAccessor extends AbstractHelixResource {
    * The order of zones can directly come from user input. If user did not specify it, Helix will order
    * zones with alphabetical order.
    *
-   * @param clusterId
    * @param instances
    * @param orderedZones
    * @return
    */
-  private List<String> getZoneBasedInstances(String clusterId, List<String> instances,
-      List<String> orderedZones) {
-    ClusterService clusterService =
-        new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
-    Map<String, Set<String>> zoneMapping =
-        clusterService.getClusterTopology(clusterId).toZoneMapping();
+  private List<String> getZoneBasedInstances(List<String> instances, List<String> orderedZones,
+      Map<String, Set<String>> zoneMapping) {
+
     if (orderedZones == null) {
       orderedZones = new ArrayList<>(zoneMapping.keySet());
     }

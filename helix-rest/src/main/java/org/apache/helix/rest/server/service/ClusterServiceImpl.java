@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import java.util.stream.Collectors;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
@@ -56,7 +57,9 @@ public class ClusterServiceImpl implements ClusterService {
       zones.add(zone);
     }
 
-    return new ClusterTopology(cluster, zones);
+    // Get all the instances names
+    return new ClusterTopology(cluster, zones,
+        instanceConfigs.stream().map(InstanceConfig::getInstanceName).collect(Collectors.toSet()));
   }
 
   @Override

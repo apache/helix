@@ -30,11 +30,11 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Select instances with zone based
     String content =
-        String.format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]}",
+        String.format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"]}",
             InstancesAccessor.InstancesProperties.selection_base.name(),
             InstancesAccessor.InstanceHealthSelectionBase.zone_based.name(),
             InstancesAccessor.InstancesProperties.instances.name(), "instance0", "instance1",
-            "instance2", "instance3", "instance4", "instance5");
+            "instance2", "instance3", "instance4", "instance5", "invalidInstance");
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances?command=stoppable")
         .format(STOPPABLE_CLUSTER)
         .post(this, Entity.entity(content, MediaType.APPLICATION_JSON_TYPE));
@@ -45,7 +45,8 @@ public class TestInstancesAccessor extends AbstractTestClass {
         + "    \"instance1\" : [ \"Helix:EMPTY_RESOURCE_ASSIGNMENT\", \"Helix:INSTANCE_NOT_ENABLED\", \"Helix:INSTANCE_NOT_STABLE\" ],\n"
         + "    \"instance2\" : [ \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
         + "    \"instance3\" : [ \"Helix:HAS_DISABLED_PARTITION\", \"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\" ],\n"
-        + "    \"instance4\" : [ \"Helix:EMPTY_RESOURCE_ASSIGNMENT\", \"Helix:INSTANCE_NOT_ALIVE\", \"Helix:INSTANCE_NOT_STABLE\" ]\n"
+        + "    \"instance4\" : [ \"Helix:EMPTY_RESOURCE_ASSIGNMENT\", \"Helix:INSTANCE_NOT_ALIVE\", \"Helix:INSTANCE_NOT_STABLE\" ],\n"
+        + "    \"invalidInstance\" : [ \"Helix:INSTANCE_NOT_EXIST\" ]\n"
         + "  }\n" + "}\n");
   }
 

@@ -50,13 +50,18 @@ public class TestInstancesAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testInstancesStoppable_zoneBased")
-  public void testInstancesStoppable_disableOneInstance() {
+  public void testInstancesStoppable_disableOneInstance() throws InterruptedException {
     // Disable one selected instance0, it should failed to check
     String instance = "instance0";
     InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER, instance);
     instanceConfig.setInstanceEnabled(false);
     instanceConfig.setInstanceEnabledForPartition("FakeResource", "FakePartition", false);
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER, instance, instanceConfig);
+
+    // It takes time to reflect the changes.
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verifyByPolling());
 
     Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
@@ -69,8 +74,6 @@ public class TestInstancesAccessor extends AbstractTestClass {
     instanceConfig.setInstanceEnabled(true);
     instanceConfig.setInstanceEnabledForPartition("FakeResource", "FakePartition", true);
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER, instance, instanceConfig);
-    BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER).setZkAddr(ZK_ADDR).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);

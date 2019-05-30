@@ -130,7 +130,16 @@ public class InstanceValidationUtil {
     PropertyKey propertyKey = dataAccessor.keyBuilder().instanceConfig(instanceName);
     InstanceConfig instanceConfig = dataAccessor.getProperty(propertyKey);
     if (instanceConfig != null) {
-      return !instanceConfig.getDisabledPartitionsMap().isEmpty();
+      // Originally, Helix only checks whether disabled partition map has entries or not. But this
+      // could cause problem when some of partitions disabled and enabled back, the resource entries
+      // are still left there. For detailed check, we shall check the whether partition list is empty
+      // or not
+      for (List<String> disabledPartitions : instanceConfig.getDisabledPartitionsMap().values()) {
+        if (disabledPartitions != null && disabledPartitions.size() > 0) {
+          return true;
+        }
+      }
+      return false;
     }
 
     throw new HelixException("Fail to get instance config for " + instanceName);

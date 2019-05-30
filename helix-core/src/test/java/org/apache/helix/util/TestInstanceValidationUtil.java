@@ -2,6 +2,7 @@ package org.apache.helix.util;
 
 import static org.mockito.Mockito.*;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -158,11 +159,23 @@ public class TestInstanceValidationUtil {
   }
 
   @Test
+  public void TestHasDisabledPartitions_with_only_names() {
+    Mock mock = new Mock();
+    InstanceConfig instanceConfig = mock(InstanceConfig.class);
+    when(instanceConfig.getDisabledPartitionsMap())
+        .thenReturn(ImmutableMap.of("db0", Collections.emptyList()));
+    when(mock.dataAccessor.getProperty(any(PropertyKey.class))).thenReturn(instanceConfig);
+
+    Assert.assertFalse(InstanceValidationUtil.hasDisabledPartitions(mock.dataAccessor, TEST_CLUSTER,
+        TEST_INSTANCE));
+  }
+
+  @Test
   public void TestHasDisabledPartitions_true() {
     Mock mock = new Mock();
     InstanceConfig instanceConfig = mock(InstanceConfig.class);
     when(instanceConfig.getDisabledPartitionsMap())
-        .thenReturn(ImmutableMap.of("db0", Collections.<String> emptyList()));
+        .thenReturn(ImmutableMap.of("db0", Arrays.asList("p1")));
     when(mock.dataAccessor.getProperty(any(PropertyKey.class))).thenReturn(instanceConfig);
 
     Assert.assertTrue(InstanceValidationUtil.hasDisabledPartitions(mock.dataAccessor, TEST_CLUSTER,

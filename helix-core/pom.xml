@@ -85,7 +85,7 @@ under the License.
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
-      <version>3.4.11</version>
+      <version>3.4.13</version>
       <exclusions>
         <exclusion>
           <groupId>junit</groupId>

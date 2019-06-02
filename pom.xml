@@ -252,7 +252,7 @@ under the License.
     <module>helix-admin-webapp</module>
     <module>helix-rest</module>
     <module>helix-agent</module>
-    <!--<module>helix-front</module>-->
+    <module>helix-front</module>
     <module>recipes</module>
   </modules>
 

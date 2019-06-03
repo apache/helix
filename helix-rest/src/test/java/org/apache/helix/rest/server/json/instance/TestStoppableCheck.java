@@ -31,7 +31,8 @@ public class TestStoppableCheck {
 
   @Test
   public void whenSerializingStoppableCheck() throws JsonProcessingException {
-    StoppableCheck stoppableCheck = new StoppableCheck(false, ImmutableList.of("check"), StoppableCheck.Category.HELIX_OWN_CHECK);
+    StoppableCheck stoppableCheck = new StoppableCheck(false, ImmutableList.of("check"),
+        StoppableCheck.Category.HELIX_OWN_CHECK);
 
     ObjectMapper mapper = new ObjectMapper();
     String result = mapper.writeValueAsString(stoppableCheck);
@@ -41,7 +42,9 @@ public class TestStoppableCheck {
 
   @Test
   public void testConstructorSortingOrder() {
-    StoppableCheck stoppableCheck = new StoppableCheck(ImmutableMap.of("a", true, "c", false, "b", false), StoppableCheck.Category.HELIX_OWN_CHECK);
+    StoppableCheck stoppableCheck =
+        new StoppableCheck(ImmutableMap.of("a", true, "c", false, "b", false),
+            StoppableCheck.Category.HELIX_OWN_CHECK);
     Assert.assertFalse(stoppableCheck.isStoppable());
     Assert.assertEquals(stoppableCheck.getFailedChecks(), ImmutableList.of("Helix:b", "Helix:c"));
   }

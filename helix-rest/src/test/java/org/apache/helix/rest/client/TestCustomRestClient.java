@@ -13,6 +13,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.HttpClients;
 import org.junit.Assert;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -128,6 +129,20 @@ public class TestCustomRestClient {
 
     customRestClient.getPartitionStoppableCheck(HTTP_LOCALHOST,
         ImmutableList.of("db0", "db1"), Collections.emptyMap());
+  }
+
+  @Test (description = "Validate if the post request has the correct format")
+  public void testPostRequestFormat() throws IOException {
+    // a popular echo server that echos all the inputs
+    // TODO: add a mock rest server
+    final String echoServer = "http://httpbin.org/post";
+    CustomRestClientImpl customRestClient = new CustomRestClientImpl(HttpClients.createDefault());
+    HttpResponse response = customRestClient.post(echoServer, Collections.emptyMap());
+    JsonNode json = customRestClient.getJsonObject(response);
+
+    Assert.assertEquals(response.getStatusLine().getStatusCode(), HttpStatus.SC_OK);
+    Assert.assertEquals(json.get("headers").get("Accept").asText(), "application/json");
+    Assert.assertEquals(json.get("data").asText(), "{}");
   }
 
   private class MockCustomRestClient extends CustomRestClientImpl {

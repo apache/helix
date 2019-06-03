@@ -19,25 +19,26 @@ package org.apache.helix.rest.client;
  * under the License.
  */
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 
 class CustomRestClientImpl implements CustomRestClient {
   private static final Logger LOG = LoggerFactory.getLogger(CustomRestClient.class);
@@ -103,13 +104,15 @@ class CustomRestClientImpl implements CustomRestClient {
   protected JsonNode getJsonObject(HttpResponse httpResponse) throws IOException {
     HttpEntity httpEntity = httpResponse.getEntity();
     String str = EntityUtils.toString(httpEntity);
+    LOG.info("Converting Response Content {} to JsonNode", str);
     return OBJECT_MAPPER.readTree(str);
   }
 
   private Map<String, Boolean> handleResponse(HttpResponse httpResponse,
       JsonConverter jsonConverter) throws IOException {
     int status = httpResponse.getStatusLine().getStatusCode();
-    if (status == 200) {
+    if (status == HttpStatus.SC_OK) {
+      LOG.info("Expected HttpResponse statusCode: {}", HttpStatus.SC_OK);
       return jsonConverter.convert(getJsonObject(httpResponse));
     } else {
       throw new ClientProtocolException("Unexpected response status: " + status + ", reason: "
@@ -117,15 +120,16 @@ class CustomRestClientImpl implements CustomRestClient {
     }
   }
 
-  private HttpResponse post(String url, Map<String, String> payloads) throws IOException {
-    List<NameValuePair> params = payloads.entrySet().stream()
-        .map(entry -> new BasicNameValuePair(entry.getKey(), entry.getValue()))
-        .collect(Collectors.toList());
+  @VisibleForTesting
+  protected HttpResponse post(String url, Map<String, String> payloads) throws IOException {
     try {
       HttpPost postRequest = new HttpPost(url);
       postRequest.setHeader("Accept", ACCEPT_CONTENT_TYPE);
-      postRequest.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
-      LOG.info("Executing request {}", postRequest.getRequestLine());
+      StringEntity entity = new StringEntity(OBJECT_MAPPER.writeValueAsString(payloads),
+          ContentType.APPLICATION_JSON);
+      postRequest.setEntity(entity);
+      LOG.info("Executing request: {}, headers: {}, entity: {}", postRequest.getRequestLine(),
+          postRequest.getAllHeaders(), postRequest.getEntity());
       return _httpClient.execute(postRequest);
     } catch (IOException e) {
       LOG.error("Failed to perform customized health check. Is participant endpoint {} available?",

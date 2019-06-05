@@ -208,11 +208,12 @@ public class MessageSelectionStage extends AbstractBaseStage {
             if (relayMsg.getToState().equals(toState) && relayMsg.getFromState()
                 .equals(fromState)) {
               LOG.info(
-                  "There is pending relay message, pending relay message: {}", relayMsg);
+                  "There is pending relay message, pending relay message: {}, relay time starts {}, expiry timeout {}.",
+                  relayMsg.getMsgId(), relayMsg.getRelayTime(), relayMsg.getExpiryPeriod());
               if (!relayMsg.getTgtName().equals(message.getTgtName())) {
                 LOG.info(
-                    "There is pending relay message to a different host, not send message: {}, pending relay message: {}",
-                    message, relayMsg);
+                    "The pending relay message was sent to a different host, not send message: {}, pending relay message: {}",
+                    message.getMsgId(), relayMsg.getId());
                 continue NextMessage;
               }
             }

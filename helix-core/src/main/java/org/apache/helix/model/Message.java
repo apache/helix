@@ -112,6 +112,10 @@ public class Message extends HelixProperty {
   // default expiry time period for a relay message.
   public static final long RELAY_MESSAGE_DEFAULT_EXPIRY = 5 * 1000;  //5 second
 
+  // This field is not persisted in zk/znode, i.e, the value will only be changed in local cached copy of the message.
+  // Currently, the field is only used for invalidating messages in controller's message cache.
+  private boolean _expired = false;
+
   /**
    * Compares the creation time of two Messages
    */
@@ -821,13 +825,16 @@ public class Message extends HelixProperty {
    * @return
    */
   public boolean isExpired() {
+    if (_expired) {
+      return true;
+    }
+
     long expiry = getExpiryPeriod();
     if (expiry < 0) {
       return false;
     }
 
     long current = System.currentTimeMillis();
-
     // use relay time if this is a relay message
     if (isRelayMessage()) {
       long relayTime = getRelayTime();
@@ -835,6 +842,19 @@ public class Message extends HelixProperty {
     }
 
     return getCreateTimeStamp() + expiry < current;
+  }
+
+  /**
+   * Set a message to expired.
+   *
+   * !! CAUTION: The expired field is not persisted into ZNODE,
+   * i.e, set this field will only change its value in its local cache version,
+   * not the one on ZK, even ZkClient.Set(Message) is called to persist it into ZK.
+   * This method should NOT be called by any non-Helix code.
+   * @param expired
+   */
+  public void setExpired(boolean expired) {
+    _expired = expired;
   }
 
   /**

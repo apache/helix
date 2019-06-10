@@ -601,7 +601,15 @@ under the License.
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.8</version>
+          <version>0.13</version>
+          <configuration>
+            <!-- Exclude files/folders for Apache release -->
+            <excludes>
+              <exclude>website/**</exclude>
+              <exclude>.reviewboardrc</exclude>
+              <exclude>scripts/**</exclude>
+            </excludes>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>

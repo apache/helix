@@ -347,8 +347,8 @@ under the License.
 
     <sonar.host.url>https://analysis.apache.org/</sonar.host.url>
 
-    <maven-scm-provider-svnjava.version>3.0.0</maven-scm-provider-svnjava.version>
-    <svnkit.version>1.10.0</svnkit.version>
+    <maven-scm-provider-svnjava.version>2.0.6</maven-scm-provider-svnjava.version>
+    <svnkit.version>1.7.11</svnkit.version>
 
     <helix.siteFilePath>${user.home}/helix-site/helix-site-deploy</helix.siteFilePath>
     <!-- you can use javasvn too -->

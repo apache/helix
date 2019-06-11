@@ -48,6 +48,7 @@ under the License.
     <module>0.8.2</module>
     <module>0.8.3</module>
     <module>0.8.4</module>
+    <module>0.9.0</module>
   </modules>
 
   <properties>

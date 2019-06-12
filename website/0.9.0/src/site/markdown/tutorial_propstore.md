@@ -31,4 +31,4 @@ It is common that an application needs support for distributed, shared data stru
 
 While you could use ZooKeeper directly, Helix supports caching the data with a write-through cache. This is far more efficient than reading from ZooKeeper for every access.
 
-See [HelixManager.getHelixPropertyStore](http://helix.apache.org/javadocs/0.8.4/reference/org/apache/helix/store/package-summary.html) for details.
+See [HelixManager.getHelixPropertyStore](http://helix.apache.org/javadocs/0.9.0/reference/org/apache/helix/store/package-summary.html) for details.

@@ -84,7 +84,7 @@ Helix provides these additional features compared to other implementations avail
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout tags/helix-0.8.4
+git checkout tags/helix-0.9.0
 mvn clean install package -DskipTests
 cd recipes/service-discovery/target/service-discovery-pkg/bin
 chmod +x *

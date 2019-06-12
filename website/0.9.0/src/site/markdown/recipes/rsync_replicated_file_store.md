@@ -36,7 +36,7 @@ Near-Realtime Rsync Replicated File System
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout tags/helix-0.8.4
+git checkout tags/helix-0.9.0
 cd recipes/rsync-replicated-file-system/
 mvn clean install package -DskipTests
 cd target/rsync-replicated-file-system-pkg/bin

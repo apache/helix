@@ -44,7 +44,7 @@ Get the command line tool:
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout tags/helix-0.8.4
+git checkout tags/helix-0.9.0
 ./build
 cd helix-rest/target/helix-rest-pkg/bin
 chmod +x *.sh
@@ -178,7 +178,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
     {
       "id" : "myCluster",
       "controller" : "test.helix.apache.org:1234",
-      "HELIX_VERSION":"0.8.4",
+      "HELIX_VERSION":"0.9.0",
       "LIVE_INSTANCE":"16261@test.helix.apache.org:1234",
       "SESSION_ID":"35ab496aba54c99"
     }

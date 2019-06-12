@@ -67,4 +67,4 @@ int sentMessageCount = messagingService.sendAndWait(recipientCriteria,
     requestBackupUriRequest, responseHandler, timeout);
 ```
 
-See HelixManager.DefaultMessagingService in the [Javadocs](http://helix.apache.org/javadocs/0.8.4/reference/org/apache/helix/messaging/DefaultMessagingService.html) for more information.
+See HelixManager.DefaultMessagingService in the [Javadocs](http://helix.apache.org/javadocs/0.9.0/reference/org/apache/helix/messaging/DefaultMessagingService.html) for more information.

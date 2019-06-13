@@ -43,6 +43,7 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,6 +141,8 @@ public class HelixRestServer {
     ResourceConfig cfg = new ResourceConfig();
     cfg.packages(type.getServletPackageArray());
 
+    // Enable the default statistical monitoring MBean for Jersey server
+    cfg.property(ServerProperties.MONITORING_STATISTICS_MBEANS_ENABLED, true);
     cfg.property(ContextPropertyKeys.SERVER_CONTEXT.name(),
         new ServerContext(namespace.getMetadataStoreAddress()));
     if (type == ServletType.DEFAULT_SERVLET) {

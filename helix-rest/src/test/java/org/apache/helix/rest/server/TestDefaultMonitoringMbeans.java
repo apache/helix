@@ -1,0 +1,71 @@
+package org.apache.helix.rest.server;
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import java.lang.management.ManagementFactory;
+import java.util.Random;
+import javax.management.AttributeNotFoundException;
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.ReflectionException;
+import javax.ws.rs.core.Response;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+public class TestDefaultMonitoringMbeans extends AbstractTestClass {
+
+  // For entire testing environment, we could have 2 - 4 rest server during the testing. So we dont
+  // know which REST server got the request and report number. So we have to loop all of them to
+  // report data.
+  @Test
+  public void testDefaultMonitoringMbeans()
+      throws MBeanException, ReflectionException, InstanceNotFoundException, InterruptedException {
+    int listClusters = new Random().nextInt(10);
+    for (int i = 0; i < listClusters; i++) {
+      get("clusters", null, Response.Status.OK.getStatusCode(), true);
+    }
+
+    MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
+    boolean correctReports = false;
+
+    // It may take couple milisecond to propagate the data to MBeanServer
+    while (!correctReports) {
+      for (ObjectName objectName : beanServer.queryNames(null, null)) {
+        if (objectName.toString().contains("getClusters")) {
+          // The object name is complicated, so we get the matched one and try to find out whether
+          // they have the expected attributes and value matched our expectation.
+          try {
+            if (beanServer.getAttribute(objectName, "RequestCount_total")
+                .equals(Long.valueOf(listClusters))) {
+              correctReports = true;
+            }
+          } catch (AttributeNotFoundException e) {
+
+          }
+        }
+      }
+      Thread.sleep(50);
+    }
+
+    Assert.assertTrue(correctReports);
+  }
+}

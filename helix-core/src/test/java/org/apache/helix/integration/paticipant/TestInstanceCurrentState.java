@@ -43,7 +43,7 @@ public class TestInstanceCurrentState extends TaskTestBase {
     LiveInstance liveInstance =
         accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName));
     CurrentState currentState = accessor.getProperty(accessor.keyBuilder()
-        .currentState(instanceName, liveInstance.getSessionId(), WorkflowGenerator.DEFAULT_TGT_DB));
+        .currentState(instanceName, liveInstance.getEphemeralOwner(), WorkflowGenerator.DEFAULT_TGT_DB));
     // Test start time should happen after test start time
     Assert.assertTrue(
         currentState.getStartTime(WorkflowGenerator.DEFAULT_TGT_DB + "_0") >= _testStartTime);

@@ -66,21 +66,41 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
-   * TODO Deprecate this method since session Id should always read from node stat. It should be readonly. -- JJ
-   * Set the session that this instance corresponds to
+   * Set the session that this instance corresponds to in the content of the LiveInstance node.
+   * Please only use this method for testing or logging purposes. The source of truth should be the node's ephemeral owner.
    * @param sessionId session identifier
    */
+  @Deprecated
   public void setSessionId(String sessionId) {
     _record.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(), sessionId);
   }
 
   /**
-   * TODO Read the session Id directly from node stat. -- JJ
-   * Get the session that this instance corresponds to
+   * Get the session that this instance corresponds to from the content of the LiveInstance node.
+   * Please only use this method for testing or logging purposes. The source of truth should be the node's ephemeral owner.
    * @return session identifier
    */
+  @Deprecated
   public String getSessionId() {
     return _record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
+  }
+
+  /**
+   * Get the ephemeral owner of the LiveInstance node.
+   *
+   * TODO This field should be "SessionId", we used getEphemeralOwner to avoid conflict with the existing method.
+   * Note that we cannot rename or remove the existing method for backward compatibility for now.
+   * Once the Deprecated method is removed, we shall change the name back to getSessionId.
+   *
+   * @return session identifier
+   */
+  public String getEphemeralOwner() {
+    long ephemeralOwner = _record.getEphemeralOwner();
+    if (ephemeralOwner <= 0) {
+      // For backward compatibility, if the ephemeral owner is empty in ZNRecord, still read from node content.
+      return _record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
+    }
+    return Long.toHexString(ephemeralOwner);
   }
 
   /**
@@ -171,7 +191,7 @@ public class LiveInstance extends HelixProperty {
 
   @Override
   public boolean isValid() {
-    if (getSessionId() == null) {
+    if (getEphemeralOwner() == null) {
       _logger.error("liveInstance does not have session id. id:" + _record.getId());
       return false;
     }

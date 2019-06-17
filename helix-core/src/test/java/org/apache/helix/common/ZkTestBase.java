@@ -23,7 +23,9 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,6 +88,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.ITestContext;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeClass;
@@ -100,6 +103,8 @@ public class ZkTestBase {
   protected static ClusterSetup _gSetupTool;
   protected static BaseDataAccessor<ZNRecord> _baseAccessor;
   protected static MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
+
+  private Map<String, Map<String, HelixZkClient>> _liveInstanceOwners = new HashMap<>();
 
   public static final String ZK_ADDR = "localhost:2183";
   protected static final String CLUSTER_PREFIX = "CLUSTER";
@@ -156,7 +161,6 @@ public class ZkTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     cleanupJMXObjects();
-
     // Giving each test some time to settle (such as gc pause, etc).
     // Note that this is the best effort we could make to stabilize tests, not a complete solution
     Runtime.getRuntime().gc();
@@ -634,18 +638,48 @@ public class ZkTestBase {
     return idealStates;
   }
 
-  protected void setupLiveInstances(String clusterName, int[] liveInstances) {
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+  @AfterClass
+  public void cleanupLiveInstanceOwners() {
+    for (String cluster : _liveInstanceOwners.keySet()) {
+      Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(cluster);
+      for (HelixZkClient client : clientMap.values()) {
+        client.close();
+      }
+      clientMap.clear();
+    }
+    _liveInstanceOwners.clear();
+  }
+
+  protected List<LiveInstance> setupLiveInstances(String clusterName, int[] liveInstances) {
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(new ZNRecordSerializer());
+
+    List<LiveInstance> result = new ArrayList<>();
 
     for (int i = 0; i < liveInstances.length; i++) {
       String instance = "localhost_" + liveInstances[i];
+
+      _liveInstanceOwners.putIfAbsent(clusterName, new HashMap<>());
+      Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(clusterName);
+      clientMap.putIfAbsent(instance, DedicatedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR), clientConfig));
+      HelixZkClient client = clientMap.get(instance);
+
+          ZKHelixDataAccessor accessor =
+          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(client));
+      Builder keyBuilder = accessor.keyBuilder();
+
       LiveInstance liveInstance = new LiveInstance(instance);
-      liveInstance.setSessionId("session_" + liveInstances[i]);
-      liveInstance.setHelixVersion("0.0.0");
+      // Keep setting the session id in the deprecated field for ensure the same behavior as a real participant.
+      // Note the participant is doing so for backward compatibility.
+      liveInstance.setSessionId(Long.toHexString(client.getSessionId()));
+      // Please refer to the version requirement here: helix-core/src/main/resources/cluster-manager-version.properties
+      // Ensuring version compatibility can avoid the warning message during test.
+      liveInstance.setHelixVersion("0.4");
       accessor.setProperty(keyBuilder.liveInstance(instance), liveInstance);
+      result.add(accessor.getProperty(keyBuilder.liveInstance(instance)));
     }
+    return result;
   }
 
   protected void deleteLiveInstances(String clusterName) {
@@ -653,8 +687,21 @@ public class ZkTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
+    Map<String, HelixZkClient> clientMap = _liveInstanceOwners.getOrDefault(clusterName, Collections.emptyMap());
+
     for (String liveInstance : accessor.getChildNames(keyBuilder.liveInstances())) {
-      accessor.removeProperty(keyBuilder.liveInstance(liveInstance));
+      ZKHelixDataAccessor dataAccessor =
+          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+      dataAccessor.removeProperty(keyBuilder.liveInstance(liveInstance));
+
+      HelixZkClient client = clientMap.remove(liveInstance);
+      if (client != null) {
+        client.close();
+      }
+    }
+
+    if (clientMap.isEmpty()) {
+      _liveInstanceOwners.remove(clusterName);
     }
   }
 

@@ -542,7 +542,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // check partition is in ERROR state
-    String sessionId = liveInstance.getSessionId();
+    String sessionId = liveInstance.getEphemeralOwner();
     CurrentState curState =
         accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
     for (String partitionName : resetPartitionNames) {

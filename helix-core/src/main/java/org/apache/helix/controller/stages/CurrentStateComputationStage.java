@@ -56,7 +56,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
     for (LiveInstance instance : liveInstances.values()) {
       String instanceName = instance.getInstanceName();
-      String instanceSessionId = instance.getSessionId();
+      String instanceSessionId = instance.getEphemeralOwner();
 
       // update pending messages
       Map<String, Message> messages = cache.getMessages(instanceName);
@@ -76,7 +76,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       CurrentStateOutput currentStateOutput, Collection<Message> pendingRelayMessages,
       Map<String, Resource> resourceMap) {
     String instanceName = instance.getInstanceName();
-    String instanceSessionId = instance.getSessionId();
+    String instanceSessionId = instance.getEphemeralOwner();
 
     // update all pending messages
     for (Message message : pendingMessages) {
@@ -166,7 +166,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
   private void updateCurrentStates(LiveInstance instance, Collection<CurrentState> currentStates,
       CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap) {
     String instanceName = instance.getInstanceName();
-    String instanceSessionId = instance.getSessionId();
+    String instanceSessionId = instance.getEphemeralOwner();
 
     for (CurrentState currentState : currentStates) {
       if (!instanceSessionId.equals(currentState.getSessionId())) {

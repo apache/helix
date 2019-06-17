@@ -217,7 +217,7 @@ public class TestP2PMessages extends BaseStageTest {
     // Old master (initialMaster) failed the M->S transition,
     // but has not forward p2p message to new master (secondMaster) yet.
     // Validate: Controller should ignore the ERROR partition and send S->M message to new master.
-    String session = _dataCache.getLiveInstances().get(_initialMaster).getSessionId();
+    String session = _dataCache.getLiveInstances().get(_initialMaster).getEphemeralOwner();
     PropertyKey currentStateKey =
         new PropertyKey.Builder(_clusterName).currentState(_initialMaster, session, _db);
     CurrentState currentState = accessor.getProperty(currentStateKey);
@@ -307,7 +307,7 @@ public class TestP2PMessages extends BaseStageTest {
   private void handleMessage(String instance, String resource) {
     PropertyKey propertyKey = new PropertyKey.Builder(_clusterName).messages(instance);
     List<Message> messages = accessor.getChildValues(propertyKey);
-    String session = _dataCache.getLiveInstances().get(instance).getSessionId();
+    String session = _dataCache.getLiveInstances().get(instance).getEphemeralOwner();
 
     for (Message m : messages) {
       if (m.getResourceName().equals(resource)) {
@@ -374,7 +374,7 @@ public class TestP2PMessages extends BaseStageTest {
       Map<String, String> partitionState = partitionStateMap.get(p);
       for (String instance : partitionState.keySet()) {
         String state = partitionState.get(instance);
-        String session = _liveInstanceMap.get(instance).getSessionId();
+        String session = _liveInstanceMap.get(instance).getEphemeralOwner();
         PropertyKey currentStateKey =
             new PropertyKey.Builder(_clusterName).currentState(instance, session, resource);
         CurrentState currentState = accessor.getProperty(currentStateKey);

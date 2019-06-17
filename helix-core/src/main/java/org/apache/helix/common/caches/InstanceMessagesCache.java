@@ -304,7 +304,7 @@ public class InstanceMessagesCache {
       return;
     }
 
-    String instanceSessionId = liveInstanceMap.get(targetHost).getSessionId();
+    String instanceSessionId = liveInstanceMap.get(targetHost).getEphemeralOwner();
 
     // Target host's session has been changed, remove relay message
     if (!instanceSessionId.equals(sessionId)) {
@@ -370,7 +370,7 @@ public class InstanceMessagesCache {
       setMessageRelayTime(relayMessage, currentTime);
       return;
     }
-    String instanceSessionId = liveInstanceMap.get(relayInstance).getSessionId();
+    String instanceSessionId = liveInstanceMap.get(relayInstance).getEphemeralOwner();
     if (!instanceSessionId.equals(sessionId)) {
       LOG.info("Relay instance sessionId {} does not match sessionId {} in hosted message {}, "
               + "set relay message {} to be expired.", instanceSessionId, sessionId,

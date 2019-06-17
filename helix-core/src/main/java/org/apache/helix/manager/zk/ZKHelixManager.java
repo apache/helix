@@ -871,7 +871,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       LiveInstance leader = _dataAccessor.getProperty(_keyBuilder.controllerLeader());
       if (leader != null) {
         String leaderName = leader.getInstanceName();
-        String sessionId = Long.toHexString(leader.getRecord().getEphemeralOwner());
+        String sessionId = leader.getEphemeralOwner();
         if (leaderName != null && leaderName.equals(_instanceName) && sessionId
             .equals(_sessionId)) {
           return true;
@@ -896,7 +896,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       String path = PropertyPathBuilder.propertyStore(_clusterName);
       String fallbackPath = String.format("/%s/%s", _clusterName, "HELIX_PROPERTYSTORE");
       _helixPropertyStore =
-          new AutoFallbackPropertyStore<>(new ZkBaseDataAccessor<ZNRecord>(_zkclient),
+          new AutoFallbackPropertyStore<>(new ZkBaseDataAccessor<>(_zkclient),
               path, fallbackPath);
     }
 

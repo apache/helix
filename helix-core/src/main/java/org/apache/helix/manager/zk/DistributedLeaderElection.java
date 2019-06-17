@@ -143,14 +143,14 @@ public class DistributedLeaderElection implements ControllerChangeListener {
 
     LiveInstance currentLeader = accessor.getProperty(keyBuilder.controllerLeader());
     if (currentLeader != null) {
-      String currentSession = currentLeader.getSessionId();
+      String currentSession = currentLeader.getEphemeralOwner();
       LOG.info("Leader exists for cluster: " + manager.getClusterName() + ", currentLeader: "
           + currentLeader.getInstanceName() + ", leaderSessionId: " + currentSession);
-      if (currentSession != null && currentSession.equals(newLeader.getSessionId())) {
+      if (currentSession != null && currentSession.equals(newLeader.getEphemeralOwner())) {
         return true;
       } else {
         LOG.warn("The existing leader has a different session. Expected session Id: " + newLeader
-            .getSessionId());
+            .getEphemeralOwner());
       }
     }
     return false;
@@ -165,15 +165,12 @@ public class DistributedLeaderElection implements ControllerChangeListener {
 
     // Record a MaintenanceSignal history
     if (!accessor.getBaseDataAccessor().update(keyBuilder.controllerLeaderHistory().getPath(),
-        new DataUpdater<ZNRecord>() {
-          @Override
-          public ZNRecord update(ZNRecord oldRecord) {
-            if (oldRecord == null) {
-              oldRecord = new ZNRecord(PropertyType.HISTORY.toString());
-            }
-            return new ControllerHistory(oldRecord).updateHistory(clusterName, instanceName,
-                version);
+        oldRecord -> {
+          if (oldRecord == null) {
+            oldRecord = new ZNRecord(PropertyType.HISTORY.toString());
           }
+          return new ControllerHistory(oldRecord).updateHistory(clusterName, instanceName,
+              version);
         }, AccessOption.PERSISTENT)) {
       LOG.error("Failed to persist leader history to ZK!");
     }

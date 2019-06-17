@@ -21,15 +21,20 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 import java.util.List;
+
+import org.apache.helix.AccessOption;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.InstanceType;
-import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.ZkTestHelper;
+import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.Message;
@@ -80,7 +85,31 @@ public class TestSyncSessionToController extends ZkTestBase {
     data.getSimpleFields().put("SESSION_ID", "invalid-id");
     accessor.set(path, data, 2);
     Thread.sleep(2000);
-    Assert.assertTrue(mockMessageListener.isSessionSyncMessageSent());
+    // Since we always read the content from ephemeral nodes, sync message won't be sent
+    Assert.assertFalse(mockMessageListener.isSessionSyncMessageSent());
+
+    // Even after reconnect, session sync won't happen
+    ZkTestHelper.expireSession(participants[0].getZkClient());
+    Assert.assertFalse(mockMessageListener.isSessionSyncMessageSent());
+
+    // Inject an invalid session message to trigger sync message
+    PropertyKey messageKey = keyBuilder.message("localhost_12918", "Mocked Invalid Message");
+    Message msg = new Message(Message.MessageType.STATE_TRANSITION, "Mocked Invalid Message");
+    msg.setSrcName(controller.getInstanceName());
+    msg.setTgtSessionId("invalid-id");
+    msg.setMsgState(Message.MessageState.NEW);
+    msg.setMsgId("Mocked Invalid Message");
+    msg.setTgtName("localhost_12918");
+    msg.setPartitionName("foo");
+    msg.setResourceName("bar");
+    msg.setFromState("SLAVE");
+    msg.setToState("MASTER");
+    msg.setSrcSessionId(controller.getSessionId());
+    msg.setStateModelDef("MasterSlave");
+    msg.setStateModelFactoryName("DEFAULT");
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(clusterName, accessor);
+    dataAccessor.setProperty(messageKey, msg);
+    Assert.assertTrue(TestHelper.verify(() -> mockMessageListener.isSessionSyncMessageSent(), 1500));
 
     // Cleanup
     controller.syncStop();

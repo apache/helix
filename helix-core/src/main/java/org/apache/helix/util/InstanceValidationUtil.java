@@ -102,7 +102,7 @@ public class InstanceValidationUtil {
     PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
     LiveInstance liveInstance = dataAccessor.getProperty(propertyKeyBuilder.liveInstance(instanceName));
     if (liveInstance != null) {
-      String sessionId = liveInstance.getSessionId();
+      String sessionId = liveInstance.getEphemeralOwner();
 
       List<String> resourceNames = dataAccessor.getChildNames(propertyKeyBuilder.currentStates(instanceName, sessionId));
       for (String resourceName : resourceNames) {
@@ -172,7 +172,7 @@ public class InstanceValidationUtil {
     PropertyKey liveInstanceKey = propertyKeyBuilder.liveInstance(instanceName);
     LiveInstance liveInstance = dataAccessor.getProperty(liveInstanceKey);
     if (liveInstance != null) {
-      String sessionId = liveInstance.getSessionId();
+      String sessionId = liveInstance.getEphemeralOwner();
 
       PropertyKey currentStatesKey = propertyKeyBuilder.currentStates(instanceName, sessionId);
       List<String> resourceNames = dataAccessor.getChildNames(currentStatesKey);

@@ -91,7 +91,7 @@ public class InstanceServiceImpl implements InstanceService {
     }
     if (liveInstance != null) {
       instanceInfoBuilder.liveInstance(liveInstance.getRecord());
-      String sessionId = liveInstance.getSessionId();
+      String sessionId = liveInstance.getEphemeralOwner();
 
       List<String> resourceNames = _dataAccessor
           .getChildNames(_dataAccessor.keyBuilder().currentStates(instanceName, sessionId));

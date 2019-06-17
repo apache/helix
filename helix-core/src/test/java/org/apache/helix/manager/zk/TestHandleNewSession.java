@@ -105,13 +105,10 @@ public class TestHandleNewSession extends ZkTestBase {
     manager.connect();
 
     // Ensure the controller successfully acquired leadership.
-    Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() {
-        LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
-        return liveInstance != null && controllerName.equals(liveInstance.getInstanceName())
-            && manager.getSessionId().equals(liveInstance.getSessionId());
-      }
+    Assert.assertTrue(TestHelper.verify(() -> {
+      LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
+      return liveInstance != null && controllerName.equals(liveInstance.getInstanceName())
+          && manager.getSessionId().equals(liveInstance.getEphemeralOwner());
     }, 1000));
     // Record the original connection info.
     final String originalSessionId = manager.getSessionId();
@@ -124,24 +121,17 @@ public class TestHandleNewSession extends ZkTestBase {
     accessor.removeProperty(keyBuilder.controllerLeader());
     // 3. expire the session and create a new session
     ZkTestHelper.asyncExpireSession(manager._zkclient);
-    Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() {
-        return !((ZkClient) manager._zkclient).getConnection().getZookeeperState().isAlive();
-      }
-    }, 3000));
+    Assert.assertTrue(TestHelper.verify(
+        () -> !((ZkClient) manager._zkclient).getConnection().getZookeeperState().isAlive(), 3000));
     // 4. start processing event again
     ((ZkClient) manager._zkclient).getEventLock().unlock();
 
     // Wait until the ZkClient has got a new session, and the original leader node gone
-    Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() {
-        try {
-          return !Long.toHexString(manager._zkclient.getSessionId()).equals(originalSessionId);
-        } catch (HelixException hex) {
-          return false;
-        }
+    Assert.assertTrue(TestHelper.verify(() -> {
+      try {
+        return !Long.toHexString(manager._zkclient.getSessionId()).equals(originalSessionId);
+      } catch (HelixException hex) {
+        return false;
       }
     }, 2000));
     // ensure that the manager has not process the new session event yet
@@ -151,34 +141,26 @@ public class TestHandleNewSession extends ZkTestBase {
     // Note that this is the expected behavior but NOT desired behavior. Ideally, the new node should
     // be created with the right session directly. We will need to improve this.
     // TODO We should recording session Id in the zk event so the stale events are discarded instead of processed. After this is done, there won't be invalid node.
-    Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() {
-        // Newly created node should have a new creating time but with old session.
-        LiveInstance invalidLeaderNode = accessor.getProperty(keyBuilder.controllerLeader());
-        // node exist
-        if (invalidLeaderNode == null)
-          return false;
-        // node is newly created
-        if (invalidLeaderNode.getStat().getCreationTime() == originalCreationTime)
-          return false;
-        // node has the same session as the old one, so it's invalid
-        if (!invalidLeaderNode.getSessionId().equals(originalSessionId))
-          return false;
-        return true;
-      }
+    Assert.assertTrue(TestHelper.verify(() -> {
+      // Newly created node should have a new creating time but with old session.
+      LiveInstance invalidLeaderNode = accessor.getProperty(keyBuilder.controllerLeader());
+      // node exist
+      if (invalidLeaderNode == null)
+        return false;
+      // node is newly created
+      if (invalidLeaderNode.getStat().getCreationTime() == originalCreationTime)
+        return false;
+      // node has the same session as the old one, so it's invalid
+      if (!invalidLeaderNode.getSessionId().equals(originalSessionId))
+        return false;
+      return true;
     }, 2000));
     Assert.assertFalse(manager.isLeader());
 
     // 5. proceed the new session handling, so the manager will get the new session.
     manager.proceedNewSessionHandling();
     // Since the new session handling will re-create the leader node, a new valid node shall be created.
-    Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() {
-        return manager.isLeader();
-      }
-    }, 1000));
+    Assert.assertTrue(TestHelper.verify(() -> manager.isLeader(), 1000));
 
     manager.disconnect();
     TestHelper.dropCluster(clusterName, _gZkClient);

@@ -104,7 +104,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
     if (availableInstances != null && availableInstances.size() > 0) {
       for (LiveInstance instance : availableInstances.values()) {
         String instanceName = instance.getInstanceName();
-        String clientSessionId = instance.getSessionId();
+        String clientSessionId = instance.getEphemeralOwner();
 
         Map<String, CurrentState> currentStateMap =
             cache.getCurrentState(instanceName, clientSessionId);

@@ -326,7 +326,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
           .logDebug(logger, getClusterEventId(), "LiveInstances: " + getLiveInstances().keySet());
       for (LiveInstance instance : getLiveInstances().values()) {
         LogUtil.logDebug(logger, getClusterEventId(),
-            "live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
+            "live instance: " + instance.getInstanceName() + " " + instance.getEphemeralOwner());
       }
       LogUtil.logDebug(logger, getClusterEventId(), "IdealStates: " + getIdealStates().keySet());
       LogUtil.logDebug(logger, getClusterEventId(),

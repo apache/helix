@@ -208,7 +208,7 @@ public class TestP2PMessageSemiAuto extends ZkTestBase {
     LiveInstance liveInstance = liveInstanceMap.get(instance);
 
     Map<String, CurrentState> currentStateMap =
-        dataCache.getCurrentState(instance, liveInstance.getSessionId());
+        dataCache.getCurrentState(instance, liveInstance.getEphemeralOwner());
     Assert.assertNotNull(currentStateMap);
     CurrentState currentState = currentStateMap.get(dbName);
     Assert.assertNotNull(currentState);

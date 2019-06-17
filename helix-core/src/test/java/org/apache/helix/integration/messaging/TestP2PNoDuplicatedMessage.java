@@ -188,7 +188,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
 
     for (LiveInstance instance : liveInstanceMap.values()) {
       Map<String, CurrentState> currentStateMap =
-          dataCache.getCurrentState(instance.getInstanceName(), instance.getSessionId());
+          dataCache.getCurrentState(instance.getInstanceName(), instance.getEphemeralOwner());
       Assert.assertNotNull(currentStateMap);
       for (CurrentState currentState : currentStateMap.values()) {
         for (String partition : currentState.getPartitionStateMap().keySet()) {
@@ -214,7 +214,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
 
     for (LiveInstance instance : liveInstanceMap.values()) {
       Map<String, CurrentState> currentStateMap =
-          dataCache.getCurrentState(instance.getInstanceName(), instance.getSessionId());
+          dataCache.getCurrentState(instance.getInstanceName(), instance.getEphemeralOwner());
       Assert.assertNotNull(currentStateMap);
       for (CurrentState currentState : currentStateMap.values()) {
         for (String partition : currentState.getPartitionStateMap().keySet()) {

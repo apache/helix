@@ -486,7 +486,7 @@ public class RoutingTableProvider
 
     Map<String, LiveInstance> curSessions = new HashMap<>();
     for (LiveInstance liveInstance : liveInstances) {
-      curSessions.put(liveInstance.getSessionId(), liveInstance);
+      curSessions.put(liveInstance.getEphemeralOwner(), liveInstance);
     }
 
     // Go though the live instance list and update CurrentState listeners

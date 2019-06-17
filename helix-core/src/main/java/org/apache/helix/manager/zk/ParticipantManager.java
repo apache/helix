@@ -43,17 +43,17 @@ import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.zookeeper.data.Stat;
 
 /**
  * Class to handle all session related work for a participant.
@@ -110,6 +110,8 @@ public class ParticipantManager {
       callback.onPreConnect();
     }
 
+    // TODO create live instance node after all the init works done --JJ
+    // This will help to prevent controller from sending any message prematurely.
     createLiveInstance();
     carryOverPreviousCurrentState();
 
@@ -181,7 +183,7 @@ public class ParticipantManager {
       retry = false;
       try {
         _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
-        LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getSessionId());
+        LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getEphemeralOwner());
       } catch (ZkNodeExistsException e) {
         LOG.warn("found another instance with same instanceName: " + _instanceName + " in cluster "
             + _clusterName);
@@ -200,14 +202,14 @@ public class ParticipantManager {
              * update sessionId field in live-instance if necessary
              */
             LiveInstance curLiveInstance = new LiveInstance(record);
-            if (!curLiveInstance.getSessionId().equals(_sessionId)) {
+            if (!curLiveInstance.getEphemeralOwner().equals(_sessionId)) {
               /**
                * in last handle-new-session,
                * live-instance is created by new zkconnection with stale session-id inside
                * just update session-id field
                */
               LOG.info("overwriting session-id by ephemeralOwner: " + ephemeralOwner
-                  + ", old-sessionId: " + curLiveInstance.getSessionId() + ", new-sessionId: "
+                  + ", old-sessionId: " + curLiveInstance.getEphemeralOwner() + ", new-sessionId: "
                   + _sessionId);
 
               curLiveInstance.setSessionId(_sessionId);
@@ -239,7 +241,8 @@ public class ParticipantManager {
     if (retry) {
       try {
         _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
-        LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getSessionId());
+        LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance
+            .getEphemeralOwner());
       } catch (Exception e) {
         String errorMessage =
             "instance: " + _instanceName + " already has a live-instance in cluster "
@@ -252,6 +255,12 @@ public class ParticipantManager {
     ParticipantHistory history = getHistory();
     history.reportOnline(_sessionId, _manager.getVersion());
     persistHistory(history);
+
+    if (!liveInstance.getEphemeralOwner().equals(liveInstance.getSessionId())) {
+      LOG.warn(
+          "Session ID {} (Deprecated) in the znode does not match the Ephemeral Owner session ID {}. Will use the Ephemeral Owner session ID.",
+          liveInstance.getSessionId(), liveInstance.getEphemeralOwner());
+    }
   }
 
   /**

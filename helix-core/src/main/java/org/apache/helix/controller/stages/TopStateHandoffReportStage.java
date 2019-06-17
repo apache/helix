@@ -246,7 +246,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
 
     // Current state output generation logic guarantees that current top state instance
     // must be a live instance
-    String curTopStateSession = cache.getLiveInstances().get(curTopStateInstance).getSessionId();
+    String curTopStateSession = cache.getLiveInstances().get(curTopStateInstance).getEphemeralOwner();
     long endTime =
         cache.getCurrentState(curTopStateInstance, curTopStateSession).get(resourceName)
             .getEndTime(partition.getPartitionName());
@@ -260,7 +260,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     // Make sure last top state instance has not bounced during cluster data cache refresh
     if (cache.getLiveInstances().containsKey(lastTopStateInstance)) {
       String lastTopStateSession =
-          cache.getLiveInstances().get(lastTopStateInstance).getSessionId();
+          cache.getLiveInstances().get(lastTopStateInstance).getEphemeralOwner();
       // We need this null check as there are test cases creating incomplete current state
       if (cache.getCurrentState(lastTopStateInstance, lastTopStateSession).get(resourceName)
           != null) {
@@ -363,7 +363,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
       Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
       if (liveInstances.containsKey(missingStateInstance)) {
         CurrentState currentState = cache.getCurrentState(missingStateInstance,
-            liveInstances.get(missingStateInstance).getSessionId()).get(resourceName);
+            liveInstances.get(missingStateInstance).getEphemeralOwner()).get(resourceName);
 
         if (currentState != null
             && currentState.getPreviousState(partition.getPartitionName()) != null && currentState
@@ -460,7 +460,7 @@ public class TopStateHandoffReportStage extends AbstractBaseStage {
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     for (String instanceName : stateMap.keySet()) {
       CurrentState currentState =
-          cache.getCurrentState(instanceName, liveInstances.get(instanceName).getSessionId())
+          cache.getCurrentState(instanceName, liveInstances.get(instanceName).getEphemeralOwner())
               .get(resourceName);
       if (currentState.getState(partition.getPartitionName()).equalsIgnoreCase(topState)) {
         if (currentState.getEndTime(partition.getPartitionName()) <= handOffEndTime) {

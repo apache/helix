@@ -189,7 +189,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
         List<LiveInstance> liveInstances = targetDataAccessor.getChildValues(keyBuilder.liveInstances());
 
         for (LiveInstance liveInstance : liveInstances) {
-          sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId());
+          sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getEphemeralOwner());
         }
       }
       for (Map<String, String> map : matchedList) {

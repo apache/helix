@@ -89,7 +89,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     Map<String, String> sessionIdMap = new HashMap<>();
 
     for (LiveInstance liveInstance : liveInstances.values()) {
-      sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId());
+      sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getEphemeralOwner());
     }
     MessageOutput output = new MessageOutput();
 

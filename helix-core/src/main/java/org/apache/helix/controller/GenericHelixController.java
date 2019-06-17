@@ -980,7 +980,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     Map<String, LiveInstance> curSessions = new HashMap<>();
     for (LiveInstance liveInstance : liveInstances) {
       curInstances.put(liveInstance.getInstanceName(), liveInstance);
-      curSessions.put(liveInstance.getSessionId(), liveInstance);
+      curSessions.put(liveInstance.getEphemeralOwner(), liveInstance);
     }
 
     // TODO: remove the synchronization here once we move this update into dataCache.

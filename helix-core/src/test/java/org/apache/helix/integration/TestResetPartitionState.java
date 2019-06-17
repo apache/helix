@@ -189,7 +189,7 @@ public class TestResetPartitionState extends ZkTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instance));
-    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getSessionId(),
+    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getEphemeralOwner(),
         resource, partition));
 
   }

@@ -121,7 +121,7 @@ public class CurrentStateCache extends AbstractDataCache<CurrentState> {
     Set<PropertyKey> currentStateKeys = new HashSet<>();
     for (String instanceName : liveInstanceMap.keySet()) {
       LiveInstance liveInstance = liveInstanceMap.get(instanceName);
-      String sessionId = liveInstance.getSessionId();
+      String sessionId = liveInstance.getEphemeralOwner();
       List<String> currentStateNames =
           accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
       for (String currentStateName : currentStateNames) {

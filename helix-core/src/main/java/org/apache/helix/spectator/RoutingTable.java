@@ -114,7 +114,7 @@ class RoutingTable {
       }
       for (LiveInstance liveInstance : _liveInstances) {
         String instanceName = liveInstance.getInstanceName();
-        String sessionId = liveInstance.getSessionId();
+        String sessionId = liveInstance.getEphemeralOwner();
         InstanceConfig instanceConfig = instanceConfigMap.get(instanceName);
         if (instanceConfig == null) {
           logger.warn(

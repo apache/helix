@@ -98,11 +98,11 @@ public class TestCleanupExternalView extends ZkUnitTestBase {
 
     // System.out.println("remove current-state");
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12918"));
-    accessor.removeProperty(keyBuilder.currentState("localhost_12918", liveInstance.getSessionId(),
+    accessor.removeProperty(keyBuilder.currentState("localhost_12918", liveInstance.getEphemeralOwner(),
         "TestDB0"));
     liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12919"));
     accessor.removeProperty(
-        keyBuilder.currentState("localhost_12919", liveInstance.getSessionId(), "TestDB0"));
+        keyBuilder.currentState("localhost_12919", liveInstance.getEphemeralOwner(), "TestDB0"));
 
     // re-enable controller shall remove orphan external-view
     // System.out.println("re-enabling controller");

@@ -33,14 +33,17 @@ public class TestIdealStateAssignment {
   private static final String fileNamePrefix = "TestIdealStateAssignment";
 
   @Test(dataProvider = "IdealStateInput")
-  public void testIdealStateAssignment(String clusterName,
-      List<String> instances, List<String> partitions, String numReplicas, String stateModeDef,
-      String strategyName, Map<String, Map<String, String>> expectedMapping)
+  public void testIdealStateAssignment(String clusterName, List<String> instances,
+      List<String> partitions, String numReplicas, String stateModeDef, String strategyName,
+      Map<String, Map<String, String>> expectedMapping, List<String> disabledInstances)
       throws IllegalAccessException, InstantiationException, ClassNotFoundException {
     ClusterConfig clusterConfig = new ClusterConfig(clusterName);
     List<InstanceConfig> instanceConfigs = new ArrayList<>();
     for (String instance : instances) {
       instanceConfigs.add(new InstanceConfig(instance));
+      if (disabledInstances.contains(instance)) {
+        instanceConfigs.get(instanceConfigs.size() - 1).setInstanceEnabled(false);
+      }
     }
 
     IdealState idealState = new IdealState("TestResource");
@@ -58,7 +61,7 @@ public class TestIdealStateAssignment {
   public Object[][] getIdealStateInput() {
     final String[] inputs =
         { "ClusterName", "Instances", "Partitions", "NumReplica", "StateModelDef", "StrategyName",
-            "ExpectedMapping"
+            "ExpectedMapping", "DisabledInstances"
         };
     return TestInputLoader.loadTestInputs(fileNamePrefix + ".NoIdealState.json", inputs);
   }

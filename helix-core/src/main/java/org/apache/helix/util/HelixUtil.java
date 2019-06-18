@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -174,6 +175,12 @@ public final class HelixUtil {
     strategy.init(idealState.getResourceName(), partitions, stateModelDefinition
             .getStateCountMap(liveInstances.size(), Integer.parseInt(idealState.getReplicas())),
         idealState.getMaxPartitionsPerInstance());
+
+    // Remove all disabled instances so that Helix will not consider them live.
+    List<String> disabledInstance =
+        instanceConfigs.stream().filter(enabled -> !enabled.getInstanceEnabled())
+            .map(InstanceConfig::getInstanceName).collect(Collectors.toList());
+    liveInstances.removeAll(disabledInstance);
 
     Map<String, List<String>> preferenceLists = strategy
         .computePartitionAssignment(allNodes, liveInstances,

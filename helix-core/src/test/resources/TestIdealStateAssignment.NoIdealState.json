@@ -34,7 +34,8 @@
         "localhost_5" : "MASTER",
         "localhost_4" : "SLAVE"
       }
-    }
+    },
+    "DisabledInstances" : []
   },
   {
     "ClusterName": "TestCluster2",
@@ -79,6 +80,45 @@
         "localhost_1" : "SLAVE",
         "localhost_2" : "SLAVE"
       }
-    }
+    },
+    "DisabledInstances" : []
+  },
+  {
+    "ClusterName": "TestCluster3",
+    "Instances": [
+      "localhost_1",
+      "localhost_2",
+      "localhost_3",
+      "localhost_4",
+      "localhost_5"
+    ],
+    "Partitions": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "NumReplica": "2",
+    "StateModelDef": "MasterSlave",
+    "StrategyName": "org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy",
+    "ExpectedMapping" : {
+      "0" : {
+        "localhost_3" : "MASTER",
+        "localhost_5" : "SLAVE"
+      },
+      "1" : {
+        "localhost_1" : "MASTER",
+        "localhost_5" : "SLAVE"
+      },
+      "2" : {
+        "localhost_3" : "MASTER",
+        "localhost_1" : "SLAVE"
+      },
+      "3" : {
+        "localhost_5" : "MASTER",
+        "localhost_1" : "SLAVE"
+      }
+    },
+    "DisabledInstances" : ["localhost_2", "localhost_4"]
   }
 ]

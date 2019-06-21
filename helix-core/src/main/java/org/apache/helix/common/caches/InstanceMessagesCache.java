@@ -25,6 +25,7 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -170,7 +171,7 @@ public class InstanceMessagesCache {
     long nextRebalanceTime = Long.MAX_VALUE;
     long currentTime = System.currentTimeMillis();
     Map<String, Map<String, Message>> relayMessageMap = new HashMap<>();
-
+    Set<String> targetInstanceToRemove = new HashSet<>();
     // Iterate all relay message in the cache, remove invalid or expired ones.
     for (String targetInstance : _relayMessageCache.keySet()) {
       Map<String, Message> relayMessages = _relayMessageCache.get(targetInstance);
@@ -261,9 +262,10 @@ public class InstanceMessagesCache {
       } // end while (iterator.hasNext())
 
       if (relayMessages.isEmpty()) {
-        _relayMessageCache.remove(targetInstance);
+        targetInstanceToRemove.add(targetInstance);
       }
     }
+    _relayMessageCache.keySet().removeAll(targetInstanceToRemove);
 
     if (nextRebalanceTime < Long.MAX_VALUE) {
       scheduleFuturePipeline(nextRebalanceTime);

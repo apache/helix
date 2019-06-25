@@ -337,10 +337,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     return get(paths, stats, needRead, false);
   }
 
-
   @Override
-  public List<T> get(List<String> paths, List<Stat> stats, int options,
-      boolean throwException) throws HelixException {
+  public List<T> get(List<String> paths, List<Stat> stats, int options, boolean throwException)
+      throws HelixException {
     boolean[] needRead = new boolean[paths.size()];
     Arrays.fill(needRead, true);
 
@@ -401,7 +400,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
             stats.set(i, cb._stat);
           }
         } else if (Code.get(cb.getRc()) != Code.NONODE && throwException) {
-          throw new HelixMetaDataAccessException(String.format("Failed to read node %s", paths.get(i)));
+          throw new HelixMetaDataAccessException(
+              String.format("Failed to read node %s", paths.get(i)));
         } else {
           pathFailToRead.put(paths.get(i), cb.getRc());
         }
@@ -442,12 +442,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         return records;
       } catch (HelixMetaDataAccessException e) {
         if (readCount == 0) {
-          throw new HelixMetaDataAccessException(String.format("Failed to get full list of %s", parentPath), e);
+          throw new HelixMetaDataAccessException(
+              String.format("Failed to get full list of %s", parentPath), e);
         }
         try {
           Thread.sleep(retryInterval);
         } catch (InterruptedException interruptedException) {
-          throw new HelixMetaDataAccessException("Fail to interrupt the sleep", interruptedException);
+          throw new HelixMetaDataAccessException("Fail to interrupt the sleep",
+              interruptedException);
         }
       }
     }
@@ -535,7 +537,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   @Override
   public boolean remove(String path, int options) {
     try {
-      // operation will not throw exception  when path successfully deleted or does not exist
+      // operation will not throw exception when path successfully deleted or does not exist
       // despite real error, operation will throw exception when path not empty, and in this
       // case, we try to delete recursively
       _zkClient.delete(path);
@@ -585,8 +587,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         _zkClient.asyncCreate(path, record, mode, cbList[i]);
       }
 
-      List<String> parentPaths =
-          new ArrayList<>(Collections.<String>nCopies(paths.size(), null));
+      List<String> parentPaths = new ArrayList<>(Collections.<String> nCopies(paths.size(), null));
       boolean failOnNoNode = false;
 
       for (int i = 0; i < paths.size(); i++) {
@@ -657,7 +658,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     boolean[] needCreate = new boolean[paths.size()];
     Arrays.fill(needCreate, true);
     List<List<String>> pathsCreated =
-        new ArrayList<>(Collections.<List<String>>nCopies(paths.size(), null));
+        new ArrayList<>(Collections.<List<String>> nCopies(paths.size(), null));
 
     long startT = System.nanoTime();
     try {
@@ -674,8 +675,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("create_async, size: " + paths.size() + ", paths: " + paths.get(0)
-            + ",... time: " + (endT - startT) + " ns");
+        LOG.trace("create_async, size: " + paths.size() + ", paths: " + paths.get(0) + ",... time: "
+            + (endT - startT) + " ns");
       }
     }
   }
@@ -711,7 +712,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return success;
     }
 
-    List<Stat> setStats = new ArrayList<>(Collections.<Stat>nCopies(paths.size(), null));
+    List<Stat> setStats = new ArrayList<>(Collections.<Stat> nCopies(paths.size(), null));
     SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[paths.size()];
     CreateCallbackHandler[] createCbList = null;
     boolean[] needSet = new boolean[paths.size()];
@@ -836,8 +837,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * async update
    * return: updatedData on success or null on fail
    */
-  List<T> update(List<String> paths, List<DataUpdater<T>> updaters,
-      List<List<String>> pathsCreated, List<Stat> stats, int options) {
+  List<T> update(List<String> paths, List<DataUpdater<T>> updaters, List<List<String>> pathsCreated,
+      List<Stat> stats, int options) {
     if (paths == null || paths.size() == 0) {
       LOG.error("paths is null or empty");
       return Collections.emptyList();
@@ -845,7 +846,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
     if (updaters.size() != paths.size()
         || (pathsCreated != null && pathsCreated.size() != paths.size())) {
-      throw new IllegalArgumentException("paths, updaters, and pathsCreated should be of same size");
+      throw new IllegalArgumentException(
+          "paths, updaters, and pathsCreated should be of same size");
     }
 
     List<Stat> setStats = new ArrayList<Stat>(Collections.<Stat> nCopies(paths.size(), null));
@@ -1029,8 +1031,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("exists_async, size: " + paths.size() + ", paths: " + paths.get(0)
-            + ",... time: " + (endT - startT) + " ns");
+        LOG.trace("exists_async, size: " + paths.size() + ", paths: " + paths.get(0) + ",... time: "
+            + (endT - startT) + " ns");
       }
     }
   }
@@ -1067,8 +1069,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("delete_async, size: " + paths.size() + ", paths: " + paths.get(0)
-            + ",... time: " + (endT - startT) + " ns");
+        LOG.trace("delete_async, size: " + paths.size() + ", paths: " + paths.get(0) + ",... time: "
+            + (endT - startT) + " ns");
       }
     }
   }

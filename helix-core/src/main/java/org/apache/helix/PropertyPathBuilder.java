@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.helix.PropertyType.*;
 
-
 /**
  * Utility mapping properties to their Zookeeper locations
  */
@@ -139,8 +138,8 @@ public class PropertyPathBuilder {
     // RESOURCE
     addEntry(PropertyType.WORKFLOWCONTEXT, 2,
         "/{clusterName}/PROPERTYSTORE/TaskRebalancer/{workflowName}/Context"); // Old
-                                                                               // WorkflowContext
-                                                                               // path
+    // WorkflowContext
+    // path
     addEntry(PropertyType.TASK_CONFIG_ROOT, 1, "/{clusterName}/CONFIGS/TASK");
     addEntry(PropertyType.WORKFLOW_CONFIG, 3,
         "/{clusterName}/CONFIGS/TASK/{workflowName}/{workflowName}");

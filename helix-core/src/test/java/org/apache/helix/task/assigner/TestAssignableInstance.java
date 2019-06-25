@@ -274,10 +274,10 @@ public class TestAssignableInstance extends AssignerTestBase {
     AssignableInstance ai =
         new AssignableInstance(createClusterConfig(testQuotaTypes, testQuotaRatio, true),
             new InstanceConfig(testInstanceName), createLiveInstance(new String[] {
-            LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name()
-        }, new String[] {
-            "40"
-        }));
+                LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name()
+            }, new String[] {
+                "40"
+            }));
 
     Map<String, TaskConfig> currentAssignments = new HashMap<>();
     TaskConfig supportedTask = new TaskConfig("", null, "supportedTask", "");

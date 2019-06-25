@@ -53,14 +53,15 @@ class RoutingTable {
   private final Collection<ExternalView> _externalViews;
 
   public RoutingTable() {
-    this(Collections.<ExternalView>emptyList(), Collections.<InstanceConfig>emptyList(),
-        Collections.<LiveInstance>emptyList());
+    this(Collections.<ExternalView> emptyList(), Collections.<InstanceConfig> emptyList(),
+        Collections.<LiveInstance> emptyList());
   }
 
   public RoutingTable(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
       Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
-    // TODO Aggregate currentState to an ExternalView in the RoutingTable, so there is no need to refresh according to the currentStateMap. - jjwang
-    this(Collections.<ExternalView>emptyList(), instanceConfigs, liveInstances);
+    // TODO Aggregate currentState to an ExternalView in the RoutingTable, so there is no need to
+    // refresh according to the currentStateMap. - jjwang
+    this(Collections.<ExternalView> emptyList(), instanceConfigs, liveInstances);
     refresh(currentStateMap);
   }
 
@@ -125,8 +126,8 @@ class RoutingTable {
         }
 
         Map<String, CurrentState> currentStates = Collections.emptyMap();
-        if (currentStateMap.containsKey(instanceName) && currentStateMap.get(instanceName)
-            .containsKey(sessionId)) {
+        if (currentStateMap.containsKey(instanceName)
+            && currentStateMap.get(instanceName).containsKey(sessionId)) {
           currentStates = currentStateMap.get(instanceName).get(sessionId);
         }
 
@@ -195,10 +196,8 @@ class RoutingTable {
 
   /**
    * returns all instances for all resources in {resource group} that are in a specific {state}
-   *
    * @param resourceGroupName
    * @param state
-   *
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state) {
@@ -216,10 +215,8 @@ class RoutingTable {
   /**
    * returns all instances for resources contains any given tags in {resource group} that are in a
    * specific {state}
-   *
    * @param resourceGroupName
    * @param state
-   *
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
@@ -268,14 +265,11 @@ class RoutingTable {
   /**
    * returns the instances for {resource group,partition} pair in all resources belongs to the given
    * resource group that are in a specific {state}.
-   *
    * The return results aggregate all partition states from all the resources in the given resource
    * group.
-   *
    * @param resourceGroupName
    * @param partitionName
    * @param state
-   *
    * @return empty list if there is no instance in a given state
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
@@ -320,19 +314,16 @@ class RoutingTable {
   /**
    * returns the instances for {resource group,partition} pair contains any of the given tags
    * that are in a specific {state}.
-   *
    * Find all resources belongs to the given resource group that have any of the given resource tags
    * and return the aggregated partition states from all these resources.
-   *
    * @param resourceGroupName
    * @param partitionName
    * @param state
    * @param resourceTags
-   *
    * @return empty list if there is no instance in a given state
    */
-  public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String partitionName,
-      String state, List<String> resourceTags) {
+  public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
+      String partitionName, String state, List<String> resourceTags) {
     ResourceGroupInfo resourceGroupInfo = getResourceGroup(resourceGroupName);
     List<InstanceConfig> instanceList = null;
     if (resourceGroupInfo != null) {
@@ -413,7 +404,8 @@ class RoutingTable {
       tagToResourceMap = new HashMap<>();
     }
 
-    public void addEntry(String resourceTag, String stateUnitKey, String state, InstanceConfig config) {
+    public void addEntry(String resourceTag, String stateUnitKey, String state,
+        InstanceConfig config) {
       // add the new entry to the aggregated resource info
       aggregatedResourceInfo.addEntry(stateUnitKey, state, config);
 

@@ -1,5 +1,24 @@
 package org.apache.helix.integration.task;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.lang.management.ManagementFactory;
@@ -37,19 +56,14 @@ public class TestWorkflowTermination extends TaskTestBase {
     super.beforeClass();
   }
 
-  private JobConfig.Builder createJobConfigBuilder(String workflow, boolean shouldJobFail, long timeoutMs) {
+  private JobConfig.Builder createJobConfigBuilder(String workflow, boolean shouldJobFail,
+      long timeoutMs) {
     String taskState = shouldJobFail ? TaskState.FAILED.name() : TaskState.COMPLETED.name();
-    return new JobConfig.Builder()
-        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+    return new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
         .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
-        .setWorkflow(workflow)
-        .setCommand(MockTask.TASK_COMMAND)
-        .setJobCommandConfigMap(
-            ImmutableMap.of(
-                MockTask.JOB_DELAY, Long.toString(timeoutMs),
-                MockTask.TASK_RESULT_STATUS, taskState
-            )
-        );
+        .setWorkflow(workflow).setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, Long.toString(timeoutMs),
+            MockTask.TASK_RESULT_STATUS, taskState));
   }
 
   @Test
@@ -60,14 +74,9 @@ public class TestWorkflowTermination extends TaskTestBase {
     JobConfig.Builder jobBuilder = createJobConfigBuilder(workflowName, false, 50);
     jobBuilder.setWorkflow(workflowName);
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName)
-        .setWorkflowConfig(
-            new WorkflowConfig.Builder(workflowName)
-                .setTimeout(timeout)
-                .setWorkFlowType(WORKFLOW_TYPE)
-                .build()
-        )
-        .addJob(JOB_NAME, jobBuilder)
-        .setExpiry(workflowExpiry);
+        .setWorkflowConfig(new WorkflowConfig.Builder(workflowName).setTimeout(timeout)
+            .setWorkFlowType(WORKFLOW_TYPE).build())
+        .addJob(JOB_NAME, jobBuilder).setExpiry(workflowExpiry);
     _driver.start(workflowBuilder.build());
 
     // Timeout is longer than job finish so workflow status should be COMPLETED
@@ -81,7 +90,8 @@ public class TestWorkflowTermination extends TaskTestBase {
 
     ObjectName objectName = getWorkflowMBeanObjectName(workflowName);
     Assert.assertEquals((long) beanServer.getAttribute(objectName, "SuccessfulWorkflowCount"), 1);
-    Assert.assertTrue((long) beanServer.getAttribute(objectName, "MaximumWorkflowLatencyGauge") > 0);
+    Assert
+        .assertTrue((long) beanServer.getAttribute(objectName, "MaximumWorkflowLatencyGauge") > 0);
     Assert.assertTrue((long) beanServer.getAttribute(objectName, "WorkflowLatencyCount") > 0);
 
   }
@@ -97,16 +107,10 @@ public class TestWorkflowTermination extends TaskTestBase {
 
     // Create a workflow where job2 depends on job1. Workflow would timeout before job1 finishes
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName)
-        .setWorkflowConfig(
-            new WorkflowConfig.Builder(workflowName)
-                .setTimeout(timeout)
-                .setWorkFlowType(WORKFLOW_TYPE)
-                .build()
-        )
-        .addJob(JOB_NAME, jobBuilder)
-        .addJob(notStartedJobName, jobBuilder)
-        .addParentChildDependency(JOB_NAME, notStartedJobName)
-        .setExpiry(workflowExpiry);
+        .setWorkflowConfig(new WorkflowConfig.Builder(workflowName).setTimeout(timeout)
+            .setWorkFlowType(WORKFLOW_TYPE).build())
+        .addJob(JOB_NAME, jobBuilder).addJob(notStartedJobName, jobBuilder)
+        .addParentChildDependency(JOB_NAME, notStartedJobName).setExpiry(workflowExpiry);
 
     _driver.start(workflowBuilder.build());
 
@@ -114,7 +118,8 @@ public class TestWorkflowTermination extends TaskTestBase {
 
     // Running job should be marked as timeout
     // and job not started should not appear in workflow context
-    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, JOB_NAME), 10000L, TaskState.TIMED_OUT);
+    _driver.pollForJobState(workflowName, getJobNameToPoll(workflowName, JOB_NAME), 10000L,
+        TaskState.TIMED_OUT);
 
     WorkflowContext context = _driver.getWorkflowContext(workflowName);
     Assert.assertNull(context.getJobState(notStartedJobName));
@@ -136,16 +141,10 @@ public class TestWorkflowTermination extends TaskTestBase {
     JobConfig.Builder jobBuilder = createJobConfigBuilder(workflowName, false, 5000);
     jobBuilder.setWorkflow(workflowName);
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName)
-        .setWorkflowConfig(
-            new WorkflowConfig.Builder(workflowName)
-                .setTimeout(timeout)
-                .setWorkFlowType(WORKFLOW_TYPE)
-                .build()
-        )
-        .addJob(JOB_NAME, jobBuilder)
-        .addJob(notStartedJobName, jobBuilder)
-        .addParentChildDependency(JOB_NAME, notStartedJobName)
-        .setExpiry(workflowExpiry);
+        .setWorkflowConfig(new WorkflowConfig.Builder(workflowName).setTimeout(timeout)
+            .setWorkFlowType(WORKFLOW_TYPE).build())
+        .addJob(JOB_NAME, jobBuilder).addJob(notStartedJobName, jobBuilder)
+        .addParentChildDependency(JOB_NAME, notStartedJobName).setExpiry(workflowExpiry);
 
     _driver.start(workflowBuilder.build());
 
@@ -179,14 +178,10 @@ public class TestWorkflowTermination extends TaskTestBase {
     // Make jobs run success
     JobConfig.Builder jobBuilder = createJobConfigBuilder(queueName, false, 10);
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(queueName);
-    jobQueue.setWorkflowConfig(
-        new WorkflowConfig.Builder(queueName)
-            .setTimeout(timeout)
-            .setWorkFlowType(WORKFLOW_TYPE)
-            .build()
-    )
-        .enqueueJob(JOB_NAME, jobBuilder)
-        .enqueueJob(JOB_NAME + 1, jobBuilder);
+    jobQueue
+        .setWorkflowConfig(new WorkflowConfig.Builder(queueName).setTimeout(timeout)
+            .setWorkFlowType(WORKFLOW_TYPE).build())
+        .enqueueJob(JOB_NAME, jobBuilder).enqueueJob(JOB_NAME + 1, jobBuilder);
 
     _driver.start(jobQueue.build());
 
@@ -215,22 +210,12 @@ public class TestWorkflowTermination extends TaskTestBase {
     JobConfig.Builder failedJobBuilder = createJobConfigBuilder(workflowName, true, 1);
 
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName)
-        .setWorkflowConfig(
-            new WorkflowConfig.Builder(workflowName)
-                .setWorkFlowType(WORKFLOW_TYPE)
-                .setTimeout(timeout).setParallelJobs(4)
-                .setFailureThreshold(1)
-                .build()
-        )
-        .addJob(job1, jobBuilder)
-        .addJob(job2, jobBuilder)
-        .addJob(job3, failedJobBuilder)
-        .addJob(job4, jobBuilder)
-        .addParentChildDependency(job1, job2)
-        .addParentChildDependency(job1, job3)
-        .addParentChildDependency(job2, job4)
-        .addParentChildDependency(job3, job4)
-        .setExpiry(workflowExpiry);
+        .setWorkflowConfig(new WorkflowConfig.Builder(workflowName).setWorkFlowType(WORKFLOW_TYPE)
+            .setTimeout(timeout).setParallelJobs(4).setFailureThreshold(1).build())
+        .addJob(job1, jobBuilder).addJob(job2, jobBuilder).addJob(job3, failedJobBuilder)
+        .addJob(job4, jobBuilder).addParentChildDependency(job1, job2)
+        .addParentChildDependency(job1, job3).addParentChildDependency(job2, job4)
+        .addParentChildDependency(job3, job4).setExpiry(workflowExpiry);
 
     _driver.start(workflowBuilder.build());
 
@@ -262,13 +247,9 @@ public class TestWorkflowTermination extends TaskTestBase {
 
     // For a failed workflow, after timing out, it will be purged
     Thread.sleep(workflowExpiry + 200);
-    verifyWorkflowCleanup(
-        workflowName,
-        getJobNameToPoll(workflowName, job1),
-        getJobNameToPoll(workflowName, job2),
-        getJobNameToPoll(workflowName, job3),
-        getJobNameToPoll(workflowName, job4)
-    );
+    verifyWorkflowCleanup(workflowName, getJobNameToPoll(workflowName, job1),
+        getJobNameToPoll(workflowName, job2), getJobNameToPoll(workflowName, job3),
+        getJobNameToPoll(workflowName, job4));
   }
 
   private void verifyWorkflowCleanup(String workflowName, String... jobNames) {
@@ -286,8 +267,7 @@ public class TestWorkflowTermination extends TaskTestBase {
 
   private ObjectName getWorkflowMBeanObjectName(String workflowName)
       throws MalformedObjectNameException {
-    return new ObjectName(String
-        .format("%s:%s=%s, %s=%s", MonitorDomainNames.ClusterStatus.name(), "cluster",
-            CLUSTER_NAME, "workflowType", WORKFLOW_TYPE));
+    return new ObjectName(String.format("%s:%s=%s, %s=%s", MonitorDomainNames.ClusterStatus.name(),
+        "cluster", CLUSTER_NAME, "workflowType", WORKFLOW_TYPE));
   }
 }

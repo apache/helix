@@ -92,9 +92,8 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
   void preHandleMessage() throws Exception {
     if (!_message.isValid()) {
-      String errorMessage =
-          "Invalid Message, ensure that message: " + _message + " has all the required fields: "
-              + Arrays.toString(Message.Attributes.values());
+      String errorMessage = "Invalid Message, ensure that message: " + _message
+          + " has all the required fields: " + Arrays.toString(Message.Attributes.values());
 
       _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, errorMessage,
           _manager);
@@ -102,11 +101,10 @@ public class HelixStateTransitionHandler extends MessageHandler {
       throw new HelixException(errorMessage);
     }
 
-    logger.info(
-        "handling message: " + _message.getMsgId() + " transit " + _message.getResourceName()
-            + "." + _message.getPartitionName() + "|" + _message.getPartitionNames() + " from:"
-            + _message.getFromState() + " to:" + _message.getToState() + ", relayedFrom: "
-            + _message.getRelaySrcHost());
+    logger.info("handling message: " + _message.getMsgId() + " transit "
+        + _message.getResourceName() + "." + _message.getPartitionName() + "|"
+        + _message.getPartitionNames() + " from:" + _message.getFromState() + " to:"
+        + _message.getToState() + ", relayedFrom: " + _message.getRelaySrcHost());
 
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
 
@@ -118,8 +116,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // getting current state from state model will provide most up-to-date
     // current state. In case current state is null, partition is in initial
     // state and we are setting it in current state
-    String state = _stateModel.getCurrentState() != null
-        ? _stateModel.getCurrentState()
+    String state = _stateModel.getCurrentState() != null ? _stateModel.getCurrentState()
         : _currentStateDelta.getState(partitionName);
 
     // Set start time right before invoke client logic
@@ -130,34 +127,29 @@ public class HelixStateTransitionHandler extends MessageHandler {
       // To state equals current state, we can just ignore the message
       err = new HelixDuplicatedStateTransitionException(
           String.format("Partition %s current state is same as toState (%s->%s) from message.",
-              partitionName, fromState, toState)
-      );
+              partitionName, fromState, toState));
     } else if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
       // If current state is neither toState nor fromState in message, there is a problem
-      err = new HelixStateMismatchException(
-          String.format(
-              "Current state of stateModel does not match the fromState in Message, CurrentState: %s, Message: %s->%s, Partition: %s, from: %s, to: %s",
-              state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName())
-      );
+      err = new HelixStateMismatchException(String.format(
+          "Current state of stateModel does not match the fromState in Message, CurrentState: %s, Message: %s->%s, Partition: %s, from: %s, to: %s",
+          state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName()));
     }
 
     if (err != null) {
-      _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, err.getMessage(), _manager);
+      _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, err.getMessage(),
+          _manager);
       logger.error(err.getMessage());
       throw err;
     }
 
     // Reset the REQUESTED_STATE property if it exists.
-    try
-    {
+    try {
       String instance = _manager.getInstanceName();
       String sessionId = _message.getTgtSessionId();
       String resource = _message.getResourceName();
       ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(_message.getBucketSize());
-      PropertyKey key = accessor.keyBuilder().currentState(instance,
-                                                           sessionId,
-                                                           resource,
-                                                           bucketizer.getBucketName(partitionName));
+      PropertyKey key = accessor.keyBuilder().currentState(instance, sessionId, resource,
+          bucketizer.getBucketName(partitionName));
       ZNRecord rec = new ZNRecord(resource);
       Map<String, String> map = new TreeMap<String, String>();
       map.put(CurrentState.CurrentStateProperty.REQUESTED_STATE.name(), null);
@@ -170,22 +162,19 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
       // Update the ZK current state of the node
       if (!accessor.updateProperty(key, currStateUpdate)) {
-        logger.error(
-            "Fails to persist current state back to ZK for resource " + resource + " partition: "
-                + partitionName);
+        logger.error("Fails to persist current state back to ZK for resource " + resource
+            + " partition: " + partitionName);
       }
-    }
-    catch (Exception e)
-    {
-      logger.error("Error when removing " +
-                       CurrentState.CurrentStateProperty.REQUESTED_STATE.name() +  " from current state.", e);
-      StateTransitionError error = new StateTransitionError(ErrorType.FRAMEWORK, ErrorCode.ERROR, e);
+    } catch (Exception e) {
+      logger.error("Error when removing " + CurrentState.CurrentStateProperty.REQUESTED_STATE.name()
+          + " from current state.", e);
+      StateTransitionError error =
+          new StateTransitionError(ErrorType.FRAMEWORK, ErrorCode.ERROR, e);
       _stateModel.rollbackOnError(_message, _notificationContext, error);
-      _statusUpdateUtil.logError(_message,
-                                 HelixStateTransitionHandler.class,
-                                 e,
-                                 "Error when removing " + CurrentState.CurrentStateProperty.REQUESTED_STATE.name() +  " from current state.",
-                                 _manager);
+      _statusUpdateUtil.logError(
+          _message, HelixStateTransitionHandler.class, e, "Error when removing "
+              + CurrentState.CurrentStateProperty.REQUESTED_STATE.name() + " from current state.",
+          _manager);
     }
   }
 
@@ -267,8 +256,8 @@ public class HelixStateTransitionHandler extends MessageHandler {
           } else {
             // State transition interrupted but not caused by timeout. Keep the current
             // state in this case
-            logger
-                .error("State transition interrupted but not timeout. Not updating state. Partition : "
+            logger.error(
+                "State transition interrupted but not timeout. Not updating state. Partition : "
                     + _message.getPartitionName() + " MsgId : " + _message.getMsgId());
             return;
           }
@@ -286,15 +275,13 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
     try {
       // Update the ZK current state of the node
-      PropertyKey key =
-          keyBuilder.currentState(instanceName, sessionId, resource,
-              bucketizer.getBucketName(partitionKey));
+      PropertyKey key = keyBuilder.currentState(instanceName, sessionId, resource,
+          bucketizer.getBucketName(partitionKey));
       if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
         // normal message
         if (!accessor.updateProperty(key, _currentStateDelta)) {
-          throw new HelixException(
-              "Fails to persist current state back to ZK for resource " + resource + " partition: "
-                  + _message.getPartitionName());
+          throw new HelixException("Fails to persist current state back to ZK for resource "
+              + resource + " partition: " + _message.getPartitionName());
         }
       } else {
         // sub-message of a batch message
@@ -361,17 +348,16 @@ public class HelixStateTransitionHandler extends MessageHandler {
           e = (InterruptedException) e.getCause();
         }
 
-        if (e instanceof HelixRollbackException || (e.getCause() != null
-            && e.getCause() instanceof HelixRollbackException)) {
+        if (e instanceof HelixRollbackException
+            || (e.getCause() != null && e.getCause() instanceof HelixRollbackException)) {
           // TODO : Support cancel to any state
-          logger.info(
-              "Rollback happened of state transition on resource \"" + _message.getResourceName()
-                  + "\" partition \"" + _message.getPartitionName() + "\" from \"" + _message
-                  .getFromState() + "\" to \"" + _message.getToState() + "\"");
+          logger.info("Rollback happened of state transition on resource \""
+              + _message.getResourceName() + "\" partition \"" + _message.getPartitionName()
+              + "\" from \"" + _message.getFromState() + "\" to \"" + _message.getToState() + "\"");
           taskResult.setCancelled(true);
         } else {
-          _statusUpdateUtil
-              .logError(message, HelixStateTransitionHandler.class, e, errorMessage, manager);
+          _statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e, errorMessage,
+              manager);
           taskResult.setSuccess(false);
           taskResult.setMessage(e.toString());
           taskResult.setException(e);
@@ -388,9 +374,9 @@ public class HelixStateTransitionHandler extends MessageHandler {
     }
   }
 
-  private void invoke(HelixManager manager, NotificationContext context,
-      HelixTaskResult taskResult, Message message) throws IllegalAccessException,
-      InvocationTargetException, InterruptedException, HelixRollbackException {
+  private void invoke(HelixManager manager, NotificationContext context, HelixTaskResult taskResult,
+      Message message) throws IllegalAccessException, InvocationTargetException,
+      InterruptedException, HelixRollbackException {
     _statusUpdateUtil.logInfo(message, HelixStateTransitionHandler.class,
         "Message handling invoking", manager);
 
@@ -398,20 +384,15 @@ public class HelixStateTransitionHandler extends MessageHandler {
     Method methodToInvoke = null;
     String fromState = message.getFromState();
     String toState = message.getToState();
-    methodToInvoke =
-        _transitionMethodFinder.getMethodForTransition(_stateModel.getClass(),
-                                                       fromState,
-                                                       toState,
-                                                       new Class[] { Message.class,
-                                                           NotificationContext.class });
+    methodToInvoke = _transitionMethodFinder.getMethodForTransition(_stateModel.getClass(),
+        fromState, toState, new Class[] {
+            Message.class, NotificationContext.class
+        });
     if (methodToInvoke != null) {
-      logger.info(String.format("Instance %s, partition %s received state transition from %s to %s on session %s, message id: %s",
-                                message.getTgtName(),
-                                message.getPartitionName(),
-                                message.getFromState(),
-                                message.getToState(),
-                                message.getTgtSessionId(),
-                                message.getMsgId()));
+      logger.info(String.format(
+          "Instance %s, partition %s received state transition from %s to %s on session %s, message id: %s",
+          message.getTgtName(), message.getPartitionName(), message.getFromState(),
+          message.getToState(), message.getTgtSessionId(), message.getMsgId()));
 
       if (_cancelled) {
         throw new HelixRollbackException(String.format(
@@ -420,14 +401,9 @@ public class HelixStateTransitionHandler extends MessageHandler {
             message.getToState(), message.getTgtSessionId(), message.getMsgId()));
       }
 
-      if (_cancelled) {
-        throw new HelixRollbackException(String.format(
-            "Instance %s, partition %s state transition from %s to %s on session %s has been cancelled",
-            message.getTgtName(), message.getPartitionName(), message.getFromState(),
-            message.getToState(), message.getTgtSessionId()));
-      }
-
-      Object result = methodToInvoke.invoke(_stateModel, new Object[] { message, context });
+      Object result = methodToInvoke.invoke(_stateModel, new Object[] {
+          message, context
+      });
       taskResult.setSuccess(true);
       String resultStr;
       if (result == null || result instanceof Void) {
@@ -437,14 +413,12 @@ public class HelixStateTransitionHandler extends MessageHandler {
       }
       taskResult.setInfo(resultStr);
     } else {
-      String errorMessage =
-          "Unable to find method for transition from " + fromState + " to " + toState + " in "
-              + _stateModel.getClass();
+      String errorMessage = "Unable to find method for transition from " + fromState + " to "
+          + toState + " in " + _stateModel.getClass();
       logger.error(errorMessage);
       taskResult.setSuccess(false);
       taskResult.setInfo(errorMessage);
-      _statusUpdateUtil
-          .logError(message, HelixStateTransitionHandler.class, errorMessage, manager);
+      _statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, errorMessage, manager);
     }
   }
 
@@ -479,7 +453,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
             keyBuilder.currentState(instanceName, _message.getTgtSessionId(), resourceName),
             currentStateDelta)) {
           logger.error("Fails to persist ERROR current state to ZK for resource " + resourceName
-                  + " partition: " + partition);
+              + " partition: " + partition);
         }
       }
     } finally {
@@ -493,4 +467,4 @@ public class HelixStateTransitionHandler extends MessageHandler {
   public void onTimeout() {
     _isTimeout = true;
   }
-};
+}

@@ -110,9 +110,10 @@ public class Message extends HelixProperty {
   }
 
   // default expiry time period for a relay message.
-  public static final long RELAY_MESSAGE_DEFAULT_EXPIRY = 5 * 1000;  //5 second
+  public static final long RELAY_MESSAGE_DEFAULT_EXPIRY = 5 * 1000; // 5 second
 
-  // This field is not persisted in zk/znode, i.e, the value will only be changed in local cached copy of the message.
+  // This field is not persisted in zk/znode, i.e, the value will only be changed in local cached
+  // copy of the message.
   // Currently, the field is only used for invalidating messages in controller's message cache.
   private boolean _expired = false;
 
@@ -318,7 +319,7 @@ public class Message extends HelixProperty {
    * @param msgState {@link MessageState}
    */
   public void setMsgState(MessageState msgState) { // HACK: The "tolowerCase()" call is to make the
-                                                   // change backward compatible
+    // change backward compatible
     _record.setSimpleField(Attributes.MSG_STATE.toString(), msgState.toString().toLowerCase());
   }
 
@@ -433,7 +434,6 @@ public class Message extends HelixProperty {
 
   /**
    * Set the resource group associated with this message
-   *
    * @param resourceGroupName resource group name to set
    */
   public void setResourceGroupName(String resourceGroupName) {
@@ -442,7 +442,6 @@ public class Message extends HelixProperty {
 
   /**
    * Get the resource group name associated with this message
-   *
    * @return resource group name
    */
   public String getResourceGroupName() {
@@ -451,7 +450,6 @@ public class Message extends HelixProperty {
 
   /**
    * Set the resource tag associated with this message
-   *
    * @param resourceTag resource tag to set
    */
   public void setResourceTag(String resourceTag) {
@@ -460,7 +458,6 @@ public class Message extends HelixProperty {
 
   /**
    * Get the resource tag associated with this message
-   *
    * @return resource tag
    */
   public String getResourceTag() {
@@ -652,8 +649,8 @@ public class Message extends HelixProperty {
   public static Message createReplyMessage(Message srcMessage, String instanceName,
       Map<String, String> taskResultMap) {
     if (srcMessage.getCorrelationId() == null) {
-      throw new HelixException("Message " + srcMessage.getMsgId()
-          + " does not contain correlation id");
+      throw new HelixException(
+          "Message " + srcMessage.getMsgId() + " does not contain correlation id");
     }
     Message replyMessage = new Message(MessageType.TASK_REPLY, UUID.randomUUID().toString());
     replyMessage.setCorrelationId(srcMessage.getCorrelationId());
@@ -700,8 +697,8 @@ public class Message extends HelixProperty {
   /**
    * Get the completion time of previous task associated with this message.
    * This applies only when this is a relay message,
-   * which specified the completion time of the task running on the participant that sent this relay message.
-   *
+   * which specified the completion time of the task running on the participant that sent this relay
+   * message.
    * @return
    */
   public long getRelayTime() {
@@ -711,8 +708,8 @@ public class Message extends HelixProperty {
   /**
    * Set the completion time of previous task associated with this message.
    * This applies only when this is a relay message,
-   * which specified the completion time of the task running on the participant that sent this relay message.
-   *
+   * which specified the completion time of the task running on the participant that sent this relay
+   * message.
    * @param completionTime
    */
   public void setRelayTime(long completionTime) {
@@ -721,10 +718,8 @@ public class Message extends HelixProperty {
 
   /**
    * Attach a relayed message and its destination participant to this message.
-   *
    * WARNNING: only content in SimpleFields of relayed message will be carried over and sent,
    * all contents in either ListFields or MapFields will be ignored.
-   *
    * @param instance destination participant name
    * @param message relayed message.
    */
@@ -739,8 +734,7 @@ public class Message extends HelixProperty {
     messageInfo.put(Attributes.RELAY_MSG_ID.name(), message.getId());
     messageInfo.put(Attributes.MSG_SUBTYPE.name(), MessageType.RELAYED_MESSAGE.name());
     messageInfo.put(Attributes.RELAY_FROM.name(), getTgtName());
-    messageInfo
-        .put(Attributes.EXPIRY_PERIOD.name(), String.valueOf(RELAY_MESSAGE_DEFAULT_EXPIRY));
+    messageInfo.put(Attributes.EXPIRY_PERIOD.name(), String.valueOf(RELAY_MESSAGE_DEFAULT_EXPIRY));
     _record.setMapField(instance, messageInfo);
     _record.setListField(Attributes.RELAY_PARTICIPANTS.name(),
         Lists.newArrayList(relayParticipants));
@@ -748,7 +742,6 @@ public class Message extends HelixProperty {
 
   /**
    * Get relay message attached for the given instance.
-   *
    * @param instance
    * @return null if no message for the instance
    */
@@ -776,7 +769,6 @@ public class Message extends HelixProperty {
 
   /**
    * Get all relay messages attached to this message as a map (instance->message).
-   *
    * @return map of instanceName->message, empty map if none.
    */
   public Map<String, Message> getRelayMessages() {
@@ -796,7 +788,6 @@ public class Message extends HelixProperty {
 
   /**
    * Whether there are any relay message attached to this message.
-   *
    * @return
    */
   public boolean hasRelayMessages() {
@@ -816,12 +807,10 @@ public class Message extends HelixProperty {
 
   /**
    * Whether a message is expired.
-   *
    * A message is expired if:
-   *   1) creationTime + expiryPeriod > current time
-   *   or
-   *   2) relayTime + expiryPeriod > current time iff it is relay message.
-   *
+   * 1) creationTime + expiryPeriod > current time
+   * or
+   * 2) relayTime + expiryPeriod > current time iff it is relay message.
    * @return
    */
   public boolean isExpired() {
@@ -846,7 +835,6 @@ public class Message extends HelixProperty {
 
   /**
    * Set a message to expired.
-   *
    * !! CAUTION: The expired field is not persisted into ZNODE,
    * i.e, set this field will only change its value in its local cache version,
    * not the one on ZK, even ZkClient.Set(Message) is called to persist it into ZK.
@@ -859,7 +847,6 @@ public class Message extends HelixProperty {
 
   /**
    * Get the expiry period (in milliseconds)
-   *
    * @return
    */
   public long getExpiryPeriod() {
@@ -871,7 +858,6 @@ public class Message extends HelixProperty {
    * A message will be expired after this period of time from either its 1) creationTime or 2)
    * relayTime if it is relay message.
    * Default is -1 if it is not set.
-   *
    * @param expiry
    */
   public void setExpiryPeriod(long expiry) {
@@ -880,7 +866,8 @@ public class Message extends HelixProperty {
 
   /**
    * Get the source cluster name
-   * @return the source cluster from where the message was sent or null if the message was sent locally
+   * @return the source cluster from where the message was sent or null if the message was sent
+   *         locally
    */
   public String getSrcClusterName() {
     return _record.getStringField(Attributes.SRC_CLUSTER.name(), null);

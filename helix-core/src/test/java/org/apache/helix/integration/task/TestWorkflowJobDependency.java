@@ -56,7 +56,8 @@ public class TestWorkflowJobDependency extends TaskTestBase {
     for (int i = 0; i < _numDbs; i++) {
       // Let each job delay for 2 secs.
       JobConfig.Builder jobConfig = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-          .setTargetResource(_testDbs.get(i)).setTargetPartitionStates(Sets.newHashSet("SLAVE","MASTER"))
+          .setTargetResource(_testDbs.get(i))
+          .setTargetPartitionStates(Sets.newHashSet("SLAVE", "MASTER"))
           .setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG);
       String jobName = "job" + _testDbs.get(i);
       builder.addJob(jobName, jobConfig);
@@ -75,9 +76,8 @@ public class TestWorkflowJobDependency extends TaskTestBase {
     // Update the start time range.
     for (String jobName : workflow.getJobConfigs().keySet()) {
       JobContext context = _driver.getJobContext(jobName);
-      LOG.info(String
-          .format("JOB: %s starts from %s finishes at %s.", jobName, context.getStartTime(),
-              context.getFinishTime()));
+      LOG.info(String.format("JOB: %s starts from %s finishes at %s.", jobName,
+          context.getStartTime(), context.getFinishTime()));
 
       // Find job start time range.
       startTime = Math.max(context.getStartTime(), startTime);
@@ -101,7 +101,8 @@ public class TestWorkflowJobDependency extends TaskTestBase {
     builder.addParentChildDependency("job" + _testDbs.get(0), "job" + _testDbs.get(1));
     for (int i = 0; i < 2; i++) {
       JobConfig.Builder jobConfig = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-          .setTargetResource(_testDbs.get(i)).setTargetPartitionStates(Sets.newHashSet("SLAVE","MASTER"))
+          .setTargetResource(_testDbs.get(i))
+          .setTargetPartitionStates(Sets.newHashSet("SLAVE", "MASTER"))
           .setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG);
       String jobName = "job" + _testDbs.get(i);
       builder.addJob(jobName, jobConfig);
@@ -114,11 +115,10 @@ public class TestWorkflowJobDependency extends TaskTestBase {
     // Wait until the workflow completes
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
-
-    JobContext context1 = _driver
-        .getJobContext(TaskUtil.getNamespacedJobName(workflowName, "job" + _testDbs.get(0)));
-    JobContext context2 = _driver
-        .getJobContext(TaskUtil.getNamespacedJobName(workflowName, "job" + _testDbs.get(1)));
+    JobContext context1 =
+        _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "job" + _testDbs.get(0)));
+    JobContext context2 =
+        _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, "job" + _testDbs.get(1)));
     Assert.assertTrue(context2.getStartTime() - context1.getFinishTime() >= 0L);
   }
 }

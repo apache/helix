@@ -52,7 +52,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
 public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
   private static final String DB_NAME = WorkflowGenerator.DEFAULT_TGT_DB;
   private static final String UNBALANCED_DB_NAME = "UnbalancedDB";
@@ -61,7 +60,7 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    _participants =  new MockParticipantManager[_numNodes];
+    _participants = new MockParticipantManager[_numNodes];
     _numDbs = 1;
     _numNodes = 2;
     _numPartitions = 2;
@@ -81,19 +80,22 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
     clusterConfig.stateTransitionCancelEnabled(true);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
-    _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
   }
 
   protected void startParticipantsWithStuckTaskStateModelFactory() {
 
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
     taskFactoryReg.put(MockTask.TASK_COMMAND, new TaskFactory() {
-      @Override public Task createNewTask(TaskCallbackContext context) {
+      @Override
+      public Task createNewTask(TaskCallbackContext context) {
         return new MockTask(context);
       }
     });
 
-    List<String> instances = _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME);
+    List<String> instances =
+        _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME);
 
     _participants[0] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instances.get(0));
     StateMachineEngine stateMachine = _participants[0].getStateMachineEngine();
@@ -120,42 +122,42 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
     final String FAIL_JOB_NAME = "failJob";
 
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
-    final int numTask = configAccessor.getClusterConfig(CLUSTER_NAME).getMaxConcurrentTaskPerInstance();
+    final int numTask =
+        configAccessor.getClusterConfig(CLUSTER_NAME).getMaxConcurrentTaskPerInstance();
 
-    // Tasks targeting the unbalanced DB, the instance is setup to stuck on INIT->RUNNING, so it takes all threads
+    // Tasks targeting the unbalanced DB, the instance is setup to stuck on INIT->RUNNING, so it
+    // takes all threads
     // on that instance.
-    JobConfig.Builder blockJobBuilder = new JobConfig.Builder()
-        .setWorkflow(BLOCK_WORKFLOW_NAME)
+    JobConfig.Builder blockJobBuilder = new JobConfig.Builder().setWorkflow(BLOCK_WORKFLOW_NAME)
         .setTargetResource(UNBALANCED_DB_NAME)
         .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
-        .setCommand(MockTask.TASK_COMMAND)
-        .setNumConcurrentTasksPerInstance(numTask);
+        .setCommand(MockTask.TASK_COMMAND).setNumConcurrentTasksPerInstance(numTask);
 
-    Workflow.Builder blockWorkflowBuilder = new Workflow.Builder(BLOCK_WORKFLOW_NAME)
-        .addJob("blockJob", blockJobBuilder);
+    Workflow.Builder blockWorkflowBuilder =
+        new Workflow.Builder(BLOCK_WORKFLOW_NAME).addJob("blockJob", blockJobBuilder);
     _driver.start(blockWorkflowBuilder.build());
 
     Assert.assertTrue(TaskTestUtil.pollForAllTasksBlock(_manager.getHelixDataAccessor(),
         _blockedParticipant.getInstanceName(), numTask, 10000));
 
-    // Now, all HelixTask threads are stuck at INIT->RUNNING for task state transition(user task can't be submitted)
+    // Now, all HelixTask threads are stuck at INIT->RUNNING for task state transition(user task
+    // can't be submitted)
     // New tasks assigned to the instance won't start INIT->RUNNING transition at all.
 
     // A to-be-failed job, 2 tasks, 1 stuck and 1 fail, making the job fail.
-    JobConfig.Builder failJobBuilder = new JobConfig.Builder()
-        .setWorkflow(FAIL_WORKFLOW_NAME)
-        .setTargetResource(DB_NAME)
-        .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
-        .setCommand(MockTask.TASK_COMMAND)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TASK_RESULT_STATUS, TaskResult.Status.FAILED.name()));
+    JobConfig.Builder failJobBuilder =
+        new JobConfig.Builder().setWorkflow(FAIL_WORKFLOW_NAME).setTargetResource(DB_NAME)
+            .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
+            .setCommand(MockTask.TASK_COMMAND).setJobCommandConfigMap(
+                ImmutableMap.of(MockTask.TASK_RESULT_STATUS, TaskResult.Status.FAILED.name()));
 
-    Workflow.Builder failWorkflowBuilder = new Workflow.Builder(FAIL_WORKFLOW_NAME)
-        .addJob(FAIL_JOB_NAME, failJobBuilder);
+    Workflow.Builder failWorkflowBuilder =
+        new Workflow.Builder(FAIL_WORKFLOW_NAME).addJob(FAIL_JOB_NAME, failJobBuilder);
 
     _driver.start(failWorkflowBuilder.build());
 
-    _driver.pollForJobState(FAIL_WORKFLOW_NAME, TaskUtil.getNamespacedJobName(FAIL_WORKFLOW_NAME, FAIL_JOB_NAME),
-        TaskState.FAILED);
+    _driver.pollForJobState(FAIL_WORKFLOW_NAME,
+        TaskUtil.getNamespacedJobName(FAIL_WORKFLOW_NAME, FAIL_JOB_NAME), TaskState.FAILED);
     _driver.pollForWorkflowState(FAIL_WORKFLOW_NAME, TaskState.FAILED);
 
     JobContext jobContext =
@@ -182,15 +184,17 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, UNBALANCED_DB_NAME, 1);
 
     // Set preference list to put all partitions to one instance.
-    IdealState idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME,
-        UNBALANCED_DB_NAME);
+    IdealState idealState = _gSetupTool.getClusterManagementTool()
+        .getResourceIdealState(CLUSTER_NAME, UNBALANCED_DB_NAME);
     Set<String> partitions = idealState.getPartitionSet();
     for (String partition : partitions) {
-      idealState.setPreferenceList(partition, Lists.newArrayList(_blockedParticipant.getInstanceName()));
+      idealState.setPreferenceList(partition,
+          Lists.newArrayList(_blockedParticipant.getInstanceName()));
     }
     idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
 
-    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, UNBALANCED_DB_NAME, idealState);
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, UNBALANCED_DB_NAME,
+        idealState);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling(10000, 100));
   }

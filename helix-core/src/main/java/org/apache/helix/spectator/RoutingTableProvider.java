@@ -63,7 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class RoutingTableProvider
     implements ExternalViewChangeListener, InstanceConfigChangeListener, ConfigChangeListener,
-               LiveInstanceChangeListener, CurrentStateChangeListener {
+    LiveInstanceChangeListener, CurrentStateChangeListener {
   private static final Logger logger = LoggerFactory.getLogger(RoutingTableProvider.class);
   private static final long DEFAULT_PERIODIC_REFRESH_INTERVAL = 300000L; // 5 minutes
   private final AtomicReference<RoutingTable> _routingTableRef;
@@ -82,7 +82,6 @@ public class RoutingTableProvider
   private ExecutorService _reportExecutor;
   private Future _reportingTask = null;
 
-
   public RoutingTableProvider() {
     this(null);
   }
@@ -98,7 +97,6 @@ public class RoutingTableProvider
 
   /**
    * Initialize an instance of RoutingTableProvider
-   *
    * @param helixManager
    * @param sourceDataType
    * @param isPeriodicRefreshEnabled true if periodic refresh is enabled, false otherwise
@@ -126,40 +124,40 @@ public class RoutingTableProvider
 
     if (_helixManager != null) {
       switch (_sourceDataType) {
-        case EXTERNALVIEW:
-          try {
-            _helixManager.addExternalViewChangeListener(this);
-          } catch (Exception e) {
-            shutdown();
-            logger.error("Failed to attach ExternalView Listener to HelixManager!");
-            throw new HelixException("Failed to attach ExternalView Listener to HelixManager!", e);
-          }
-          break;
+      case EXTERNALVIEW:
+        try {
+          _helixManager.addExternalViewChangeListener(this);
+        } catch (Exception e) {
+          shutdown();
+          logger.error("Failed to attach ExternalView Listener to HelixManager!");
+          throw new HelixException("Failed to attach ExternalView Listener to HelixManager!", e);
+        }
+        break;
 
-        case TARGETEXTERNALVIEW:
-          // Check whether target external has been enabled or not
-          if (!_helixManager.getHelixDataAccessor().getBaseDataAccessor().exists(
-              _helixManager.getHelixDataAccessor().keyBuilder().targetExternalViews().getPath(), 0)) {
-            shutdown();
-            throw new HelixException("Target External View is not enabled!");
-          }
+      case TARGETEXTERNALVIEW:
+        // Check whether target external has been enabled or not
+        if (!_helixManager.getHelixDataAccessor().getBaseDataAccessor().exists(
+            _helixManager.getHelixDataAccessor().keyBuilder().targetExternalViews().getPath(), 0)) {
+          shutdown();
+          throw new HelixException("Target External View is not enabled!");
+        }
 
-          try {
-            _helixManager.addTargetExternalViewChangeListener(this);
-          } catch (Exception e) {
-            shutdown();
-            logger.error("Failed to attach TargetExternalView Listener to HelixManager!");
-            throw new HelixException("Failed to attach TargetExternalView Listener to HelixManager!",
-                e);
-          }
-          break;
+        try {
+          _helixManager.addTargetExternalViewChangeListener(this);
+        } catch (Exception e) {
+          shutdown();
+          logger.error("Failed to attach TargetExternalView Listener to HelixManager!");
+          throw new HelixException("Failed to attach TargetExternalView Listener to HelixManager!",
+              e);
+        }
+        break;
 
-        case CURRENTSTATES:
-          // CurrentState change listeners will be added later in LiveInstanceChange call.
-          break;
+      case CURRENTSTATES:
+        // CurrentState change listeners will be added later in LiveInstanceChange call.
+        break;
 
-        default:
-          throw new HelixException(String.format("Unsupported source data type: %s", sourceDataType));
+      default:
+        throw new HelixException(String.format("Unsupported source data type: %s", sourceDataType));
       }
 
       try {
@@ -215,19 +213,19 @@ public class RoutingTableProvider
     if (_helixManager != null) {
       PropertyKey.Builder keyBuilder = _helixManager.getHelixDataAccessor().keyBuilder();
       switch (_sourceDataType) {
-        case EXTERNALVIEW:
-          _helixManager.removeListener(keyBuilder.externalViews(), this);
-          break;
-        case TARGETEXTERNALVIEW:
-          _helixManager.removeListener(keyBuilder.targetExternalViews(), this);
-          break;
-        case CURRENTSTATES:
-          NotificationContext context = new NotificationContext(_helixManager);
-          context.setType(NotificationContext.Type.FINALIZE);
-          updateCurrentStatesListeners(Collections.<LiveInstance> emptyList(), context);
-          break;
-        default:
-          break;
+      case EXTERNALVIEW:
+        _helixManager.removeListener(keyBuilder.externalViews(), this);
+        break;
+      case TARGETEXTERNALVIEW:
+        _helixManager.removeListener(keyBuilder.targetExternalViews(), this);
+        break;
+      case CURRENTSTATES:
+        NotificationContext context = new NotificationContext(_helixManager);
+        context.setType(NotificationContext.Type.FINALIZE);
+        updateCurrentStatesListeners(Collections.<LiveInstance> emptyList(), context);
+        break;
+      default:
+        break;
       }
     }
   }
@@ -503,11 +501,12 @@ public class RoutingTableProvider
           try {
             // add current-state listeners for new sessions
             manager.addCurrentStateChangeListener(this, instanceName, session);
-            logger.info("{} added current-state listener for instance: {}, session: {}, listener: {}",
+            logger.info(
+                "{} added current-state listener for instance: {}, session: {}, listener: {}",
                 manager.getInstanceName(), instanceName, session, this);
           } catch (Exception e) {
-            logger.error("Fail to add current state listener for instance: {} with session: {}", instanceName, session,
-                e);
+            logger.error("Fail to add current state listener for instance: {} with session: {}",
+                instanceName, session, e);
           }
         }
       }
@@ -600,7 +599,8 @@ public class RoutingTableProvider
           throw new HelixException("HelixManager is null for router update event.");
         }
         if (!manager.isConnected()) {
-          logger.error(String.format("HelixManager is not connected for router update event: %s", event));
+          logger.error(
+              String.format("HelixManager is not connected for router update event: %s", event));
           throw new HelixException("HelixManager is not connected for router update event.");
         }
 
@@ -620,7 +620,8 @@ public class RoutingTableProvider
           refresh(_dataCache.getCurrentStatesMap(), _dataCache.getInstanceConfigMap().values(),
               _dataCache.getLiveInstances().values());
 
-          recordPropagationLatency(System.currentTimeMillis(), _dataCache.getCurrentStateSnapshot());
+          recordPropagationLatency(System.currentTimeMillis(),
+              _dataCache.getCurrentStateSnapshot());
           break;
         default:
           logger.warn("Unsupported source data type: {}, stop refreshing the routing table!",
@@ -635,13 +636,17 @@ public class RoutingTableProvider
      * Report current state to routing table propagation latency
      * This method is not threadsafe. Take care of _reportingTask atomicity if use in multi-threads.
      */
-    private void recordPropagationLatency(final long currentTime, final CurrentStateSnapshot currentStateSnapshot) {
-      // Note that due to the extra mem footprint introduced by currentStateSnapshot ref, we restrict running report task count to be 1.
+    private void recordPropagationLatency(final long currentTime,
+        final CurrentStateSnapshot currentStateSnapshot) {
+      // Note that due to the extra mem footprint introduced by currentStateSnapshot ref, we
+      // restrict running report task count to be 1.
       // Any parallel tasks will be skipped. So the reporting metric data is sampled.
       if (_reportingTask == null || _reportingTask.isDone()) {
         _reportingTask = _reportExecutor.submit(new Callable<Object>() {
-          @Override public Object call() {
-            // getNewCurrentStateEndTimes() needs to iterate all current states. Make it async to avoid performance impact.
+          @Override
+          public Object call() {
+            // getNewCurrentStateEndTimes() needs to iterate all current states. Make it async to
+            // avoid performance impact.
             Map<PropertyKey, Map<String, Long>> currentStateEndTimeMap =
                 currentStateSnapshot.getNewCurrentStateEndTimes();
             for (PropertyKey key : currentStateEndTimeMap.keySet()) {
@@ -654,7 +659,8 @@ public class RoutingTableProvider
                       "CurrentState updated in the routing table. Node Key {}, Partition {}, end time {}, Propagation latency {}",
                       key.toString(), partition, endTime, currentTime - endTime);
                 } else {
-                  // Verbose log in case currentTime < endTime. This could be the case that Router clock is slower than the participant clock.
+                  // Verbose log in case currentTime < endTime. This could be the case that Router
+                  // clock is slower than the participant clock.
                   logger.trace(
                       "CurrentState updated in the routing table. Node Key {}, Partition {}, end time {}, Propagation latency {}",
                       key.toString(), partition, endTime, currentTime - endTime);

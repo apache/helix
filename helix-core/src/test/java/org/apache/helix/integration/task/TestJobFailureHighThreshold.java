@@ -38,7 +38,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
 public class TestJobFailureHighThreshold extends TaskSynchronizedTestBase {
 
   private static final String DB_NAME = WorkflowGenerator.DEFAULT_TGT_DB;
@@ -65,30 +64,33 @@ public class TestJobFailureHighThreshold extends TaskSynchronizedTestBase {
   }
 
   /**
-   * Number of instance is equal to number of failure threshold, thus job failure mechanism needs to consider given up
-   * tasks that no longer exist on the instance, not only given up tasks currently reported on CurrentState.
+   * Number of instance is equal to number of failure threshold, thus job failure mechanism needs to
+   * consider given up
+   * tasks that no longer exist on the instance, not only given up tasks currently reported on
+   * CurrentState.
    */
   @Test
   public void testHighThreshold() throws InterruptedException {
     final String WORKFLOW_NAME = "testWorkflow";
     final String JOB_NAME = "testJob";
 
-    JobConfig.Builder jobBuilder = new JobConfig.Builder()
-        .setWorkflow(WORKFLOW_NAME)
-        .setTargetResource(DB_NAME)
-        .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
-        .setCommand(MockTask.TASK_COMMAND)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.TASK_RESULT_STATUS, TaskResult.Status.FATAL_FAILED.name()))
-        .setFailureThreshold(1);
-    Workflow.Builder workflowBuilder = new Workflow.Builder(WORKFLOW_NAME)
-        .addJob(JOB_NAME, jobBuilder);
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setWorkflow(WORKFLOW_NAME).setTargetResource(DB_NAME)
+            .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
+            .setCommand(MockTask.TASK_COMMAND)
+            .setJobCommandConfigMap(
+                ImmutableMap.of(MockTask.TASK_RESULT_STATUS, TaskResult.Status.FATAL_FAILED.name()))
+            .setFailureThreshold(1);
+    Workflow.Builder workflowBuilder =
+        new Workflow.Builder(WORKFLOW_NAME).addJob(JOB_NAME, jobBuilder);
     _driver.start(workflowBuilder.build());
 
     _driver.pollForJobState(WORKFLOW_NAME, TaskUtil.getNamespacedJobName(WORKFLOW_NAME, JOB_NAME),
         TaskState.FAILED);
     _driver.pollForWorkflowState(WORKFLOW_NAME, TaskState.FAILED);
 
-    JobContext jobContext = _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, JOB_NAME));
+    JobContext jobContext =
+        _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, JOB_NAME));
     int countAborted = 0;
     int countNoState = 0;
     for (int pId : jobContext.getPartitionSet()) {

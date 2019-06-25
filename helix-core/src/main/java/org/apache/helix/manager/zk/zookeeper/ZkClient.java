@@ -65,7 +65,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Abstracts the interaction with zookeeper and allows permanent (not just one time) watches on nodes in ZooKeeper.
+ * Abstracts the interaction with zookeeper and allows permanent (not just one time) watches on
+ * nodes in ZooKeeper.
  * WARN: Do not use this class directly, use {@link org.apache.helix.manager.zk.ZkClient} instead.
  */
 public class ZkClient implements Watcher {
@@ -74,8 +75,7 @@ public class ZkClient implements Watcher {
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
-  private final Map<String, Set<IZkChildListener>> _childListener =
-      new ConcurrentHashMap<>();
+  private final Map<String, Set<IZkChildListener>> _childListener = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, Set<IZkDataListenerEntry>> _dataListener =
       new ConcurrentHashMap<>();
   private final Set<IZkStateListener> _stateListener = new CopyOnWriteArraySet<>();
@@ -159,11 +159,11 @@ public class ZkClient implements Watcher {
         long updateTime = Math.max(stat.getCtime(), stat.getMtime());
         if (notificationTime.getAsLong() > updateTime) {
           _monitor.recordDataPropagationLatency(_path, notificationTime.getAsLong() - updateTime);
-        } // else, the node was updated again after the notification. Propagation latency is unavailable.
+        } // else, the node was updated again after the notification. Propagation latency is
+          // unavailable.
       }
     }
   }
-
 
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
@@ -179,11 +179,10 @@ public class ZkClient implements Watcher {
 
     // initiate monitor
     try {
-      if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null && !monitorType
-          .isEmpty()) {
-        _monitor =
-            new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly,
-                _eventThread);
+      if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null
+          && !monitorType.isEmpty()) {
+        _monitor = new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName,
+            monitorRootPathOnly, _eventThread);
         _monitor.register();
       } else {
         LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
@@ -228,9 +227,8 @@ public class ZkClient implements Watcher {
       listenerEntries.add(listenerEntry);
       if (prefetchEnabled) {
         if (LOG.isDebugEnabled()) {
-          LOG.debug(
-              "Subscribed data changes for " + path + ", listener: " + listener + ", prefetch data: "
-                  + prefetchEnabled);
+          LOG.debug("Subscribed data changes for " + path + ", listener: " + listener
+              + ", prefetch data: " + prefetchEnabled);
         }
       }
     }
@@ -248,16 +246,15 @@ public class ZkClient implements Watcher {
 
     Method callbackMethod = IZkDataListener.class.getMethods()[0];
     try {
-      Method method = dataListener.getClass()
-          .getMethod(callbackMethod.getName(), callbackMethod.getParameterTypes());
+      Method method = dataListener.getClass().getMethod(callbackMethod.getName(),
+          callbackMethod.getParameterTypes());
       PreFetch preFetchInMethod = method.getAnnotation(PreFetch.class);
       if (preFetchInMethod != null) {
         return preFetchInMethod.enabled();
       }
     } catch (NoSuchMethodException e) {
-      LOG.warn(
-          "No method " + callbackMethod.getName() + " defined in listener " + dataListener.getClass()
-              .getCanonicalName());
+      LOG.warn("No method " + callbackMethod.getName() + " defined in listener "
+          + dataListener.getClass().getCanonicalName());
     }
 
     return true;
@@ -304,16 +301,15 @@ public class ZkClient implements Watcher {
 
   /**
    * Create a persistent node.
-   *
    * @param path
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public void createPersistent(String path)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -322,19 +318,19 @@ public class ZkClient implements Watcher {
 
   /**
    * Create a persistent node and set its ACLs.
-   *
    * @param path
    * @param createParents
-   *            if true all parent dirs are created as well and no {@link ZkNodeExistsException} is thrown in case the
-   *            path already exists
+   *          if true all parent dirs are created as well and no {@link ZkNodeExistsException} is
+   *          thrown in case the
+   *          path already exists
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public void createPersistent(String path, boolean createParents)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -343,21 +339,21 @@ public class ZkClient implements Watcher {
 
   /**
    * Create a persistent node and set its ACLs.
-   *
    * @param path
    * @param acl
-   *            List of ACL permissions to assign to the node
+   *          List of ACL permissions to assign to the node
    * @param createParents
-   *            if true all parent dirs are created as well and no {@link ZkNodeExistsException} is thrown in case the
-   *            path already exists
+   *          if true all parent dirs are created as well and no {@link ZkNodeExistsException} is
+   *          thrown in case the
+   *          path already exists
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public void createPersistent(String path, boolean createParents, List<ACL> acl)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -379,17 +375,16 @@ public class ZkClient implements Watcher {
 
   /**
    * Create a persistent node.
-   *
    * @param path
    * @param data
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public void createPersistent(String path, Object data)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -398,18 +393,17 @@ public class ZkClient implements Watcher {
 
   /**
    * Create a persistent node.
-   *
    * @param path
    * @param data
    * @param acl
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public void createPersistent(String path, Object data, List<ACL> acl) {
     create(path, data, acl, CreateMode.PERSISTENT);
@@ -417,18 +411,17 @@ public class ZkClient implements Watcher {
 
   /**
    * Create a persistent, sequental node.
-   *
    * @param path
    * @param data
    * @return create node's path
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public String createPersistentSequential(String path, Object data)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -437,19 +430,18 @@ public class ZkClient implements Watcher {
 
   /**
    * Create a persistent, sequential node and set its ACL.
-   *
    * @param path
    * @param acl
    * @param data
    * @return create node's path
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public String createPersistentSequential(String path, Object data, List<ACL> acl)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -458,16 +450,15 @@ public class ZkClient implements Watcher {
 
   /**
    * Create an ephemeral node.
-   *
    * @param path
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public void createEphemeral(final String path)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -476,17 +467,16 @@ public class ZkClient implements Watcher {
 
   /**
    * Create an ephemeral node and set its ACL.
-   *
    * @param path
    * @param acl
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public void createEphemeral(final String path, final List<ACL> acl)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -495,19 +485,18 @@ public class ZkClient implements Watcher {
 
   /**
    * Create a node.
-   *
    * @param path
    * @param data
    * @param mode
    * @return create node's path
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public String create(final String path, Object data, final CreateMode mode)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -516,20 +505,19 @@ public class ZkClient implements Watcher {
 
   /**
    * Create a node with ACL.
-   *
    * @param path
    * @param datat
    * @param acl
    * @param mode
    * @return create node's path
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public String create(final String path, Object datat, final List<ACL> acl, final CreateMode mode)
       throws IllegalArgumentException, ZkException {
@@ -564,17 +552,16 @@ public class ZkClient implements Watcher {
 
   /**
    * Create an ephemeral node.
-   *
    * @param path
    * @param data
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public void createEphemeral(final String path, final Object data)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -583,18 +570,17 @@ public class ZkClient implements Watcher {
 
   /**
    * Create an ephemeral node.
-   *
    * @param path
    * @param data
    * @param acl
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public void createEphemeral(final String path, final Object data, final List<ACL> acl)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -603,18 +589,17 @@ public class ZkClient implements Watcher {
 
   /**
    * Create an ephemeral, sequential node.
-   *
    * @param path
    * @param data
    * @return created path
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public String createEphemeralSequential(final String path, final Object data)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -623,19 +608,18 @@ public class ZkClient implements Watcher {
 
   /**
    * Create an ephemeral, sequential node with ACL.
-   *
    * @param path
    * @param data
    * @param acl
    * @return created path
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs
+   *           if any other exception occurs
    */
   public String createEphemeralSequential(final String path, final Object data, final List<ACL> acl)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
@@ -656,7 +640,6 @@ public class ZkClient implements Watcher {
         || event.getType() == Event.EventType.NodeDeleted
         || event.getType() == Event.EventType.NodeCreated
         || event.getType() == Event.EventType.NodeChildrenChanged;
-
 
     if (event.getType() == Event.EventType.NodeDeleted) {
       if (LOG.isDebugEnabled()) {
@@ -685,7 +668,8 @@ public class ZkClient implements Watcher {
       if (stateChanged) {
         getEventLock().getStateChangedCondition().signalAll();
 
-        // If the session expired we have to signal all conditions, because watches might have been removed and
+        // If the session expired we have to signal all conditions, because watches might have been
+        // removed and
         // there is no guarantee that those
         // conditions will be signaled at all after an Expired event
         // TODO PVo write a test for this
@@ -748,10 +732,8 @@ public class ZkClient implements Watcher {
     }
   }
 
-
   /**
    * Counts number of children for the given path.
-   *
    * @param path
    * @return number of children or 0 if path does not exist.
    */
@@ -766,7 +748,6 @@ public class ZkClient implements Watcher {
   public boolean exists(final String path) {
     return exists(path, hasListeners(path));
   }
-
 
   protected boolean exists(final String path, final boolean watch) {
     long startT = System.currentTimeMillis();
@@ -872,7 +853,8 @@ public class ZkClient implements Watcher {
     for (final IZkStateListener stateListener : _stateListener) {
       _eventThread.send(new ZkEvent("New session event sent to " + stateListener) {
 
-        @Override public void run() throws Exception {
+        @Override
+        public void run() throws Exception {
           stateListener.handleNewSession();
         }
       });
@@ -883,7 +865,8 @@ public class ZkClient implements Watcher {
     for (final IZkStateListener stateListener : _stateListener) {
       _eventThread.send(new ZkEvent("State changed to " + state + " sent to " + stateListener) {
 
-        @Override public void run() throws Exception {
+        @Override
+        public void run() throws Exception {
           stateListener.handleStateChanged(state);
         }
       });
@@ -895,7 +878,8 @@ public class ZkClient implements Watcher {
       _eventThread
           .send(new ZkEvent("Session establishment error(" + error + ") sent to " + stateListener) {
 
-            @Override public void run() throws Exception {
+            @Override
+            public void run() throws Exception {
               stateListener.handleSessionEstablishmentError(error);
             }
           });
@@ -967,7 +951,8 @@ public class ZkClient implements Watcher {
         || event.getType() == EventType.NodeDeleted) {
       Set<IZkChildListener> childListeners = _childListener.get(path);
       if (childListeners != null && !childListeners.isEmpty()) {
-        // TODO recording child changed event propagation latency as well. Note this change will introduce additional ZK access.
+        // TODO recording child changed event propagation latency as well. Note this change will
+        // introduce additional ZK access.
         fireChildChangedEvents(path, childListeners);
       }
     }
@@ -987,9 +972,8 @@ public class ZkClient implements Watcher {
       final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(path);
       // Trigger listener callbacks
       for (final IZkDataListenerEntry listener : listeners) {
-        _eventThread.send(new ZkEvent(
-            "Data of " + path + " changed sent to " + listener.getDataListener()
-                + " prefetch data: " + listener.isPrefetchData()) {
+        _eventThread.send(new ZkEvent("Data of " + path + " changed sent to "
+            + listener.getDataListener() + " prefetch data: " + listener.isPrefetchData()) {
           @Override
           public void run() throws Exception {
             // Reinstall watch before listener callbacks to check the znode status
@@ -1032,7 +1016,8 @@ public class ZkClient implements Watcher {
           public void run() throws Exception {
             // Reinstall watch before listener callbacks to check the znode status
             if (!pathStatRecord.pathChecked()) {
-              pathStatRecord.recordPathStat(getStat(path, hasListeners(path)), OptionalLong.empty());
+              pathStatRecord.recordPathStat(getStat(path, hasListeners(path)),
+                  OptionalLong.empty());
             }
             List<String> children = null;
             if (pathStatRecord.pathExists()) {
@@ -1120,18 +1105,17 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   *
    * @param <T>
    * @param callable
    * @return result of Callable
    * @throws ZkInterruptedException
-   *             if operation was interrupted, or a required reconnection got interrupted
+   *           if operation was interrupted, or a required reconnection got interrupted
    * @throws IllegalArgumentException
-   *             if called from anything except the ZooKeeper event thread
+   *           if called from anything except the ZooKeeper event thread
    * @throws ZkException
-   *             if any ZooKeeper exception occurred
+   *           if any ZooKeeper exception occurred
    * @throws RuntimeException
-   *             if any other exception occurs from invoking the Callable
+   *           if any other exception occurs from invoking the Callable
    */
   public <T> T retryUntilConnected(final Callable<T> callable)
       throws IllegalArgumentException, ZkException {
@@ -1172,8 +1156,8 @@ public class ZkClient implements Watcher {
         }
         // before attempting a retry, check whether retry timeout has elapsed
         if (System.currentTimeMillis() - operationStartTime > _operationRetryTimeoutInMillis) {
-          throw new ZkTimeoutException("Operation cannot be retried because of retry timeout (" + _operationRetryTimeoutInMillis
-              + " milli seconds)");
+          throw new ZkTimeoutException("Operation cannot be retried because of retry timeout ("
+              + _operationRetryTimeoutInMillis + " milli seconds)");
         }
       }
     } finally {
@@ -1197,10 +1181,11 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Returns a mutex all zookeeper events are synchronized aginst. So in case you need to do something without getting
-   * any zookeeper event interruption synchronize against this mutex. Also all threads waiting on this mutex object
+   * Returns a mutex all zookeeper events are synchronized aginst. So in case you need to do
+   * something without getting
+   * any zookeeper event interruption synchronize against this mutex. Also all threads waiting on
+   * this mutex object
    * will be notified on an event.
-   *
    * @return the mutex.
    */
   public ZkLock getEventLock() {
@@ -1271,12 +1256,13 @@ public class ZkClient implements Watcher {
     return (T) _pathBasedZkSerializer.deserialize(data, path);
   }
 
-  @SuppressWarnings("unchecked") public <T extends Object> T readData(String path) {
+  @SuppressWarnings("unchecked")
+  public <T extends Object> T readData(String path) {
     return (T) readData(path, false);
   }
 
-  @SuppressWarnings("unchecked") public <T extends Object> T readData(String path,
-      boolean returnNullIfPathNotExists) {
+  @SuppressWarnings("unchecked")
+  public <T extends Object> T readData(String path, boolean returnNullIfPathNotExists) {
     T data = null;
     try {
       data = (T) readData(path, null);
@@ -1300,7 +1286,8 @@ public class ZkClient implements Watcher {
     try {
       data = retryUntilConnected(new Callable<byte[]>() {
 
-        @Override public byte[] call() throws Exception {
+        @Override
+        public byte[] call() throws Exception {
           return getConnection().readData(path, stat, watch);
         }
       });
@@ -1336,19 +1323,22 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Updates data of an existing znode. The current content of the znode is passed to the {@link DataUpdater} that is
-   * passed into this method, which returns the new content. The new content is only written back to ZooKeeper if
-   * nobody has modified the given znode in between. If a concurrent change has been detected the new data of the
-   * znode is passed to the updater once again until the new contents can be successfully written back to ZooKeeper.
-   *
+   * Updates data of an existing znode. The current content of the znode is passed to the
+   * {@link DataUpdater} that is
+   * passed into this method, which returns the new content. The new content is only written back to
+   * ZooKeeper if
+   * nobody has modified the given znode in between. If a concurrent change has been detected the
+   * new data of the
+   * znode is passed to the updater once again until the new contents can be successfully written
+   * back to ZooKeeper.
    * @param <T>
    * @param path
-   *            The path of the znode.
+   *          The path of the znode.
    * @param updater
-   *            Updater that creates the new contents.
+   *          Updater that creates the new contents.
    */
-  @SuppressWarnings("unchecked") public <T extends Object> void updateDataSerialized(String path,
-      DataUpdater<T> updater) {
+  @SuppressWarnings("unchecked")
+  public <T extends Object> void updateDataSerialized(String path, DataUpdater<T> updater) {
     Stat stat = new Stat();
     boolean retry;
     do {
@@ -1373,7 +1363,8 @@ public class ZkClient implements Watcher {
       final byte[] data = serialize(datat, path);
       checkDataSizeLimit(data);
       final Stat stat = (Stat) retryUntilConnected(new Callable<Object>() {
-        @Override public Object call() throws Exception {
+        @Override
+        public Object call() throws Exception {
           return getConnection().writeDataReturnStat(path, data, expectedVersion);
         }
       });
@@ -1394,14 +1385,15 @@ public class ZkClient implements Watcher {
     return writeDataReturnStat(path, datat, expectedVersion);
   }
 
-
   public void asyncCreate(final String path, Object datat, final CreateMode mode,
       final ZkAsyncCallbacks.CreateCallbackHandler cb) {
     final long startT = System.currentTimeMillis();
     final byte[] data = (datat == null ? null : serialize(datat, path));
     retryUntilConnected(new Callable<Object>() {
-      @Override public Object call() throws Exception {
-        ((ZkConnection) getConnection()).getZookeeper().create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+      @Override
+      public Object call() throws Exception {
+        ((ZkConnection) getConnection()).getZookeeper().create(path, data,
+            ZooDefs.Ids.OPEN_ACL_UNSAFE,
             // Arrays.asList(DEFAULT_ACL),
             mode, cb, new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
                 data == null ? 0 : data.length, false));
@@ -1416,7 +1408,8 @@ public class ZkClient implements Watcher {
     final long startT = System.currentTimeMillis();
     final byte[] data = serialize(datat, path);
     retryUntilConnected(new Callable<Object>() {
-      @Override public Object call() throws Exception {
+      @Override
+      public Object call() throws Exception {
         ((ZkConnection) getConnection()).getZookeeper().setData(path, data, version, cb,
             new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
                 data == null ? 0 : data.length, false));
@@ -1428,7 +1421,8 @@ public class ZkClient implements Watcher {
   public void asyncGetData(final String path, final ZkAsyncCallbacks.GetDataCallbackHandler cb) {
     final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
-      @Override public Object call() throws Exception {
+      @Override
+      public Object call() throws Exception {
         ((ZkConnection) getConnection()).getZookeeper().getData(path, null, cb,
             new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, true));
         return null;
@@ -1439,7 +1433,8 @@ public class ZkClient implements Watcher {
   public void asyncExists(final String path, final ZkAsyncCallbacks.ExistsCallbackHandler cb) {
     final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
-      @Override public Object call() throws Exception {
+      @Override
+      public Object call() throws Exception {
         ((ZkConnection) getConnection()).getZookeeper().exists(path, null, cb,
             new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, true));
         return null;
@@ -1450,7 +1445,8 @@ public class ZkClient implements Watcher {
   public void asyncDelete(final String path, final ZkAsyncCallbacks.DeleteCallbackHandler cb) {
     final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
-      @Override public Object call() throws Exception {
+      @Override
+      public Object call() throws Exception {
         ((ZkConnection) getConnection()).getZookeeper().delete(path, -1, cb,
             new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, false));
         return null;
@@ -1468,7 +1464,8 @@ public class ZkClient implements Watcher {
 
   public void watchForData(final String path) {
     retryUntilConnected(new Callable<Object>() {
-      @Override public Object call() throws Exception {
+      @Override
+      public Object call() throws Exception {
         getConnection().exists(path, true);
         return null;
       }
@@ -1477,16 +1474,17 @@ public class ZkClient implements Watcher {
 
   /**
    * Installs a child watch for the given path.
-   *
    * @param path
-   * @return the current children of the path or null if the zk node with the given path doesn't exist.
+   * @return the current children of the path or null if the zk node with the given path doesn't
+   *         exist.
    */
   public List<String> watchForChilds(final String path) {
     if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
       throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
     }
     return retryUntilConnected(new Callable<List<String>>() {
-      @Override public List<String> call() throws Exception {
+      @Override
+      public List<String> call() throws Exception {
         exists(path, true);
         try {
           return getChildren(path, true);
@@ -1499,15 +1497,16 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Add authentication information to the connection. This will be used to identify the user and check access to
+   * Add authentication information to the connection. This will be used to identify the user and
+   * check access to
    * nodes protected by ACLs
-   *
    * @param scheme
    * @param auth
    */
   public void addAuthInfo(final String scheme, final byte[] auth) {
     retryUntilConnected(new Callable<Object>() {
-      @Override public Object call() throws Exception {
+      @Override
+      public Object call() throws Exception {
         getConnection().addAuthInfo(scheme, auth);
         return null;
       }
@@ -1516,15 +1515,14 @@ public class ZkClient implements Watcher {
 
   /**
    * Connect to ZooKeeper.
-   *
    * @param maxMsToWaitUntilConnected
    * @param watcher
    * @throws ZkInterruptedException
-   *             if the connection timed out due to thread interruption
+   *           if the connection timed out due to thread interruption
    * @throws ZkTimeoutException
-   *             if the connection timed out
+   *           if the connection timed out
    * @throws IllegalStateException
-   *             if the connection timed out due to thread interruption
+   *           if the connection timed out due to thread interruption
    */
   public void connect(final long maxMsToWaitUntilConnected, Watcher watcher)
       throws ZkInterruptedException, ZkTimeoutException, IllegalStateException {
@@ -1591,7 +1589,6 @@ public class ZkClient implements Watcher {
 
   /**
    * Close the client.
-   *
    * @throws ZkInterruptedException
    */
   public void close() throws ZkInterruptedException {
@@ -1662,8 +1659,8 @@ public class ZkClient implements Watcher {
 
   public boolean isConnectionClosed() {
     IZkConnection connection = getConnection();
-    return (connection == null || connection.getZookeeperState() == null ||
-        !connection.getZookeeperState().isAlive());
+    return (connection == null || connection.getZookeeperState() == null
+        || !connection.getZookeeperState().isAlive());
   }
 
   public void setShutdownTrigger(boolean triggerState) {
@@ -1694,7 +1691,8 @@ public class ZkClient implements Watcher {
 
     return retryUntilConnected(new Callable<List<OpResult>>() {
 
-      @Override public List<OpResult> call() throws Exception {
+      @Override
+      public List<OpResult> call() throws Exception {
         return getConnection().multi(ops);
       }
     });
@@ -1719,7 +1717,8 @@ public class ZkClient implements Watcher {
   }
 
   // operations to update monitor's counters
-  private void record(String path, byte[] data, long startTimeMilliSec, ZkClientMonitor.AccessType accessType) {
+  private void record(String path, byte[] data, long startTimeMilliSec,
+      ZkClientMonitor.AccessType accessType) {
     if (_monitor != null) {
       int dataSize = (data != null) ? data.length : 0;
       _monitor.record(path, dataSize, startTimeMilliSec, accessType);

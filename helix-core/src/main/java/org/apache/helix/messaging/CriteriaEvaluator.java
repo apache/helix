@@ -56,9 +56,8 @@ public class CriteriaEvaluator {
 
   /**
    * Examine persisted data to match wildcards in {@link Criteria}
-   *
    * @param recipientCriteria Criteria specifying the message destinations
-   * @param accessor          connection to the persisted data
+   * @param accessor connection to the persisted data
    * @return map of evaluated criteria
    */
   public List<Map<String, String>> evaluateCriteria(Criteria recipientCriteria,
@@ -98,9 +97,10 @@ public class CriteriaEvaluator {
     Set<String> liveParticipants = accessor.getChildValuesMap(keyBuilder.liveInstances()).keySet();
     List<ZNRecordRow> result = Lists.newArrayList();
     for (ZNRecordRow row : allRows) {
-      // The participant instance name is stored in the return value of either getRecordId() or getMapSubKey()
-      if (rowMatches(recipientCriteria, row) &&
-          (liveParticipants.contains(row.getRecordId()) || liveParticipants.contains(row.getMapSubKey()))) {
+      // The participant instance name is stored in the return value of either getRecordId() or
+      // getMapSubKey()
+      if (rowMatches(recipientCriteria, row) && (liveParticipants.contains(row.getRecordId())
+          || liveParticipants.contains(row.getMapSubKey()))) {
         result.add(row);
       }
     }
@@ -110,13 +110,13 @@ public class CriteriaEvaluator {
     // deduplicate and convert the matches into the required format
     for (ZNRecordRow row : result) {
       Map<String, String> resultRow = new HashMap<String, String>();
-      resultRow.put("instanceName", !recipientCriteria.getInstanceName().equals("") ?
-          (!Strings.isNullOrEmpty(row.getMapSubKey()) ? row.getMapSubKey() : row.getRecordId()) :
-          "");
-      resultRow.put("resourceName", !recipientCriteria.getResource().equals("") ? row.getRecordId()
+      resultRow.put("instanceName", !recipientCriteria.getInstanceName().equals("")
+          ? (!Strings.isNullOrEmpty(row.getMapSubKey()) ? row.getMapSubKey() : row.getRecordId())
           : "");
-      resultRow.put("partitionName", !recipientCriteria.getPartition().equals("") ? row.getMapKey()
-          : "");
+      resultRow.put("resourceName",
+          !recipientCriteria.getResource().equals("") ? row.getRecordId() : "");
+      resultRow.put("partitionName",
+          !recipientCriteria.getPartition().equals("") ? row.getMapKey() : "");
       resultRow.put("partitionState",
           !recipientCriteria.getPartitionState().equals("") ? row.getMapValue() : "");
       selected.add(resultRow);
@@ -136,8 +136,8 @@ public class CriteriaEvaluator {
     String resourceName = normalizePattern(criteria.getResource());
     String partitionName = normalizePattern(criteria.getPartition());
     String partitionState = normalizePattern(criteria.getPartitionState());
-    return (stringMatches(instanceName, Strings.nullToEmpty(row.getMapSubKey())) ||
-            stringMatches(instanceName, Strings.nullToEmpty(row.getRecordId())))
+    return (stringMatches(instanceName, Strings.nullToEmpty(row.getMapSubKey()))
+        || stringMatches(instanceName, Strings.nullToEmpty(row.getRecordId())))
         && stringMatches(resourceName, Strings.nullToEmpty(row.getRecordId()))
         && stringMatches(partitionName, Strings.nullToEmpty(row.getMapKey()))
         && stringMatches(partitionState, Strings.nullToEmpty(row.getMapValue()));

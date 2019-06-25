@@ -36,7 +36,8 @@ public class TestTaskRetryDelay extends TaskTestBase {
     super.beforeClass();
   }
 
-  @Test public void testTaskRetryWithDelay() throws Exception {
+  @Test
+  public void testTaskRetryWithDelay() throws Exception {
     String jobResource = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG)
@@ -57,7 +58,8 @@ public class TestTaskRetryDelay extends TaskTestBase {
     Assert.assertTrue(finishedTime - startTime >= 2000L);
   }
 
-  @Test public void testTaskRetryWithoutDelay() throws Exception {
+  @Test
+  public void testTaskRetryWithoutDelay() throws Exception {
     String jobResource = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG)

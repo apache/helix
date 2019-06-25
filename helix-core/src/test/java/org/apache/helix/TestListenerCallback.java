@@ -46,7 +46,7 @@ public class TestListenerCallback extends ZkUnitTestBase {
       _configSize = configs.size();
     }
 
-    public void reset () {
+    public void reset() {
       _configChanged = false;
       _configSize = 0;
     }
@@ -69,8 +69,7 @@ public class TestListenerCallback extends ZkUnitTestBase {
     }
 
     @Override
-    public void onClusterConfigChange(ClusterConfig clusterConfig,
-        NotificationContext context) {
+    public void onClusterConfigChange(ClusterConfig clusterConfig, NotificationContext context) {
       _clusterConfigChanged = true;
       _clusterConfig = clusterConfig;
     }
@@ -82,7 +81,7 @@ public class TestListenerCallback extends ZkUnitTestBase {
       _resourceConfigs = resourceConfigs;
     }
 
-    public void reset () {
+    public void reset() {
       _instanceConfigChanged = false;
       _resourceConfigChanged = false;
       _clusterConfigChanged = false;
@@ -91,7 +90,6 @@ public class TestListenerCallback extends ZkUnitTestBase {
       _clusterConfig = null;
     }
   }
-
 
   int _numNodes = 3;
   int _numResources = 4;
@@ -112,8 +110,8 @@ public class TestListenerCallback extends ZkUnitTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    _manager = HelixManagerFactory
-        .getZKHelixManager(_clusterName, "localhost", InstanceType.SPECTATOR, ZK_ADDR);
+    _manager = HelixManagerFactory.getZKHelixManager(_clusterName, "localhost",
+        InstanceType.SPECTATOR, ZK_ADDR);
 
     _manager.connect();
   }
@@ -144,8 +142,7 @@ public class TestListenerCallback extends ZkUnitTestBase {
     _manager.addResourceConfigChangeListener(listener);
     Assert.assertTrue(listener._resourceConfigChanged,
         "Should get initial resourceConfig callback invoked");
-    Assert.assertEquals(listener._resourceConfigs.size(), 0,
-        "Instance Config size does not match");
+    Assert.assertEquals(listener._resourceConfigs.size(), 0, "Instance Config size does not match");
 
     // test change content
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -169,7 +166,6 @@ public class TestListenerCallback extends ZkUnitTestBase {
     Assert.assertTrue(listener._clusterConfigChanged,
         "Should get clusterConfig callback invoked since we change clusterConfig");
     Assert.assertNotNull(listener._clusterConfig, "Cluster Config size should not be null");
-
 
     String resourceName = "TestDB_0";
     value = new HelixProperty(resourceName);
@@ -200,14 +196,14 @@ public class TestListenerCallback extends ZkUnitTestBase {
 
     listener.reset();
     _manager.addConfigChangeListener(listener, ConfigScopeProperty.RESOURCE);
-    Assert
-        .assertTrue(listener._configChanged, "Should get initial resourceConfig callback invoked");
+    Assert.assertTrue(listener._configChanged,
+        "Should get initial resourceConfig callback invoked");
     Assert.assertEquals(listener._configSize, 0, "Resource Config size does not match");
 
     listener.reset();
     _manager.addConfigChangeListener(listener, ConfigScopeProperty.PARTICIPANT);
-    Assert
-        .assertTrue(listener._configChanged, "Should get initial instanceConfig callback invoked");
+    Assert.assertTrue(listener._configChanged,
+        "Should get initial instanceConfig callback invoked");
     Assert.assertEquals(listener._configSize, _numNodes, "Instance Config size does not match");
 
     // test change content

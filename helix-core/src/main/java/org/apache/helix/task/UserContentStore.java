@@ -75,17 +75,17 @@ public abstract class UserContentStore {
    */
   public void putUserContent(String key, String value, Scope scope) {
     switch (scope) {
-      case WORKFLOW:
-        TaskUtil.addWorkflowJobUserContent(_manager, _workflowName, key, value);
-        break;
-      case JOB:
-        TaskUtil.addWorkflowJobUserContent(_manager, _jobName, key, value);
-        break;
-      case TASK:
-        TaskUtil.addTaskUserContent(_manager, _jobName, _taskName, key, value);
-        break;
-      default:
-        throw new HelixException("Invalid scope : " + scope.name());
+    case WORKFLOW:
+      TaskUtil.addWorkflowJobUserContent(_manager, _workflowName, key, value);
+      break;
+    case JOB:
+      TaskUtil.addWorkflowJobUserContent(_manager, _jobName, key, value);
+      break;
+    case TASK:
+      TaskUtil.addTaskUserContent(_manager, _jobName, _taskName, key, value);
+      break;
+    default:
+      throw new HelixException("Invalid scope : " + scope.name());
     }
   }
 

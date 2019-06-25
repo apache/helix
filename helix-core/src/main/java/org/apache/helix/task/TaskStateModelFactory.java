@@ -50,7 +50,9 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     this(manager, taskFactoryRegistry,
         Executors.newScheduledThreadPool(TASK_THREADPOOL_SIZE, new ThreadFactory() {
           private AtomicInteger threadId = new AtomicInteger(0);
-          @Override public Thread newThread(Runnable r) {
+
+          @Override
+          public Thread newThread(Runnable r) {
             return new Thread(r, "TaskStateModelFactory-task_thread-" + threadId.getAndIncrement());
           }
         }));
@@ -62,7 +64,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     _taskFactoryRegistry = taskFactoryRegistry;
     _taskExecutor = taskExecutor;
     _timerTaskExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-      @Override public Thread newThread(Runnable r) {
+      @Override
+      public Thread newThread(Runnable r) {
         return new Thread(r, "TaskStateModelFactory-timeTask_thread");
       }
     });
@@ -87,7 +90,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     }
     _taskExecutor.shutdown();
     _timerTaskExecutor.shutdown();
-    if (_monitor != null ) {
+    if (_monitor != null) {
       _monitor.unregister();
     }
   }

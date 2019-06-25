@@ -5,8 +5,8 @@
   <mat-card-content>
     <section *ngFor="let section of groups[group]" class="section">
       <a *ngFor="let helix of keys(section)"
-        mat-button
-        [routerLink]="['/', group + '.' + helix]">
+         mat-button
+         [routerLink]="['/', group + '.' + helix]">
         <mat-icon>group_work</mat-icon>
         {{ helix }}
       </a>

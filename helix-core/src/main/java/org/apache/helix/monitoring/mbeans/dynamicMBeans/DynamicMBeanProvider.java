@@ -62,11 +62,10 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
 
   /**
    * Instantiates a new Dynamic MBean provider.
-   *
    * @param dynamicMetrics Dynamic Metrics that are exposed by this provider
-   * @param description    the MBean description
-   * @param domain         the MBean domain name
-   * @param keyValuePairs  the MBean object name components
+   * @param description the MBean description
+   * @param domain the MBean domain name
+   * @param keyValuePairs the MBean object name components
    */
   protected synchronized boolean doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       String description, String domain, String... keyValuePairs) throws JMException {
@@ -76,10 +75,9 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
 
   /**
    * Instantiates a new Dynamic MBean provider.
-   *
    * @param dynamicMetrics Dynamic Metrics that are exposed by this provider
-   * @param description    the MBean description
-   * @param objectName     the proposed MBean ObjectName
+   * @param description the MBean description
+   * @param objectName the proposed MBean ObjectName
    */
   protected synchronized boolean doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       String description, ObjectName objectName) throws JMException {
@@ -100,8 +98,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
 
   /**
    * Update the Dynamic MBean provider with new metric list.
-   *
-   * @param description    description of the MBean
+   * @param description description of the MBean
    * @param dynamicMetrics the DynamicMetrics
    */
   private void updateAttributtInfos(Collection<DynamicMetric<?, ?>> dynamicMetrics,
@@ -139,8 +136,9 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
     }
 
     _mBeanInfo = new MBeanInfo(getClass().getName(), description, attributeInfos,
-        new MBeanConstructorInfo[] { constructorInfo }, new MBeanOperationInfo[0],
-        new MBeanNotificationInfo[0]);
+        new MBeanConstructorInfo[] {
+            constructorInfo
+        }, new MBeanOperationInfo[0], new MBeanNotificationInfo[0]);
   }
 
   /**
@@ -191,9 +189,8 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   }
 
   @Override
-  public void setAttribute(Attribute attribute)
-      throws AttributeNotFoundException, InvalidAttributeValueException, MBeanException,
-             ReflectionException {
+  public void setAttribute(Attribute attribute) throws AttributeNotFoundException,
+      InvalidAttributeValueException, MBeanException, ReflectionException {
     // All MBeans are readonly
     return;
   }

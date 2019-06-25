@@ -54,10 +54,10 @@ import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
-
 @Path("/clusters/{clusterId}/resources")
 public class ResourceAccessor extends AbstractHelixResource {
   private final static Logger _logger = LoggerFactory.getLogger(ResourceAccessor.class);
+
   public enum ResourceProperties {
     idealState,
     idealStates,
@@ -100,7 +100,6 @@ public class ResourceAccessor extends AbstractHelixResource {
 
   /**
    * Returns health profile of all resources in the cluster
-   *
    * @param clusterId
    * @return JSON result
    */
@@ -110,20 +109,25 @@ public class ResourceAccessor extends AbstractHelixResource {
 
     HelixZkClient zkClient = getHelixZkClient();
 
-    List<String> resourcesInIdealState = zkClient.getChildren(PropertyPathBuilder.idealState(clusterId));
-    List<String> resourcesInExternalView = zkClient.getChildren(PropertyPathBuilder.externalView(clusterId));
+    List<String> resourcesInIdealState =
+        zkClient.getChildren(PropertyPathBuilder.idealState(clusterId));
+    List<String> resourcesInExternalView =
+        zkClient.getChildren(PropertyPathBuilder.externalView(clusterId));
 
     Map<String, String> resourceHealthResult = new HashMap<>();
 
     for (String resourceName : resourcesInIdealState) {
-      if(resourcesInExternalView.contains(resourceName)) {
+      if (resourcesInExternalView.contains(resourceName)) {
         Map<String, String> partitionHealth = computePartitionHealth(clusterId, resourceName);
 
-        if (partitionHealth.isEmpty() || partitionHealth.values().contains(HealthStatus.UNHEALTHY.name())) {
-          // No partitions for a resource or there exists one or more UNHEALTHY partitions in this resource, UNHEALTHY
+        if (partitionHealth.isEmpty()
+            || partitionHealth.values().contains(HealthStatus.UNHEALTHY.name())) {
+          // No partitions for a resource or there exists one or more UNHEALTHY partitions in this
+          // resource, UNHEALTHY
           resourceHealthResult.put(resourceName, HealthStatus.UNHEALTHY.name());
         } else if (partitionHealth.values().contains(HealthStatus.PARTIAL_HEALTHY.name())) {
-          // No UNHEALTHY partition, but one or more partially healthy partitions, resource is partially healthy
+          // No UNHEALTHY partition, but one or more partially healthy partitions, resource is
+          // partially healthy
           resourceHealthResult.put(resourceName, HealthStatus.PARTIAL_HEALTHY.name());
         } else {
           // No UNHEALTHY or partially healthy partitions and non-empty, resource is healthy
@@ -140,7 +144,6 @@ public class ResourceAccessor extends AbstractHelixResource {
 
   /**
    * Returns health profile of all partitions for the corresponding resource in the cluster
-   *
    * @param clusterId
    * @param resourceName
    * @return JSON result
@@ -231,7 +234,7 @@ public class ResourceAccessor extends AbstractHelixResource {
       @PathParam("resourceName") String resourceName, @QueryParam("command") String command,
       @DefaultValue("-1") @QueryParam("replicas") int replicas,
       @DefaultValue("") @QueryParam("keyPrefix") String keyPrefix,
-      @DefaultValue("") @QueryParam("group") String group){
+      @DefaultValue("") @QueryParam("group") String group) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
@@ -420,10 +423,16 @@ public class ResourceAccessor extends AbstractHelixResource {
     HelixAdmin admin = getHelixAdmin();
     IdealState idealState = admin.getResourceIdealState(clusterId, resourceName);
     ExternalView externalView = admin.getResourceExternalView(clusterId, resourceName);
-    StateModelDefinition stateModelDef = admin.getStateModelDef(clusterId, idealState.getStateModelDefRef());
+    StateModelDefinition stateModelDef =
+        admin.getStateModelDef(clusterId, idealState.getStateModelDefRef());
     String initialState = stateModelDef.getInitialState();
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-    statesPriorityList = statesPriorityList.subList(0, statesPriorityList.indexOf(initialState)); // Trim stateList to initialState and above
+    statesPriorityList = statesPriorityList.subList(0, statesPriorityList.indexOf(initialState)); // Trim
+                                                                                                  // stateList
+                                                                                                  // to
+                                                                                                  // initialState
+                                                                                                  // and
+                                                                                                  // above
     int minActiveReplicas = idealState.getMinActiveReplicas();
 
     // Start the logic that determines the health status of each partition
@@ -431,30 +440,37 @@ public class ResourceAccessor extends AbstractHelixResource {
     Set<String> allPartitionNames = idealState.getPartitionSet();
     if (!allPartitionNames.isEmpty()) {
       for (String partitionName : allPartitionNames) {
-        int replicaCount = idealState.getReplicaCount(idealState.getPreferenceList(partitionName).size());
-        // Simplify expectedStateCountMap by assuming that all instances are available to reduce computation load on this REST endpoint
+        int replicaCount =
+            idealState.getReplicaCount(idealState.getPreferenceList(partitionName).size());
+        // Simplify expectedStateCountMap by assuming that all instances are available to reduce
+        // computation load on this REST endpoint
         LinkedHashMap<String, Integer> expectedStateCountMap =
             stateModelDef.getStateCountMap(replicaCount, replicaCount);
         // Extract all states into Collections from ExternalView
         Map<String, String> stateMapInExternalView = externalView.getStateMap(partitionName);
         Collection<String> allReplicaStatesInExternalView =
-            (stateMapInExternalView != null && !stateMapInExternalView.isEmpty()) ?
-                stateMapInExternalView.values() : Collections.<String>emptyList();
+            (stateMapInExternalView != null && !stateMapInExternalView.isEmpty())
+                ? stateMapInExternalView.values()
+                : Collections.<String> emptyList();
         int numActiveReplicasInExternalView = 0;
         HealthStatus status = HealthStatus.HEALTHY;
 
         // Go through all states that are "active" states (higher priority than InitialState)
-        for (int statePriorityIndex = 0; statePriorityIndex < statesPriorityList.size(); statePriorityIndex++) {
+        for (int statePriorityIndex = 0; statePriorityIndex < statesPriorityList
+            .size(); statePriorityIndex++) {
           String currentState = statesPriorityList.get(statePriorityIndex);
           int currentStateCountInIdealState = expectedStateCountMap.get(currentState);
-          int currentStateCountInExternalView = Collections.frequency(allReplicaStatesInExternalView, currentState);
+          int currentStateCountInExternalView =
+              Collections.frequency(allReplicaStatesInExternalView, currentState);
           numActiveReplicasInExternalView += currentStateCountInExternalView;
           // Top state counts must match, if not, unhealthy
-          if (statePriorityIndex == 0 && currentStateCountInExternalView != currentStateCountInIdealState) {
+          if (statePriorityIndex == 0
+              && currentStateCountInExternalView != currentStateCountInIdealState) {
             status = HealthStatus.UNHEALTHY;
             break;
           } else if (currentStateCountInExternalView < currentStateCountInIdealState) {
-            // For non-top states, if count in ExternalView is less than count in IdealState, partially healthy
+            // For non-top states, if count in ExternalView is less than count in IdealState,
+            // partially healthy
             status = HealthStatus.PARTIAL_HEALTHY;
           }
         }

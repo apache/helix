@@ -68,33 +68,33 @@ class StateTransitionThrottleController {
 
     for (StateTransitionThrottleConfig config : throttleConfigs) {
       switch (config.getThrottleScope()) {
-        case CLUSTER:
-          _pendingTransitionAllowedInCluster.put(config.getRebalanceType(),
+      case CLUSTER:
+        _pendingTransitionAllowedInCluster.put(config.getRebalanceType(),
+            config.getMaxPartitionInTransition());
+        _throttleEnabled = true;
+        break;
+      case RESOURCE:
+        for (String resource : resources) {
+          if (!_pendingTransitionAllowedPerResource.containsKey(resource)) {
+            _pendingTransitionAllowedPerResource.put(resource,
+                new HashMap<StateTransitionThrottleConfig.RebalanceType, Long>());
+          }
+          _pendingTransitionAllowedPerResource.get(resource).put(config.getRebalanceType(),
               config.getMaxPartitionInTransition());
-          _throttleEnabled = true;
-          break;
-        case RESOURCE:
-          for (String resource : resources) {
-            if (!_pendingTransitionAllowedPerResource.containsKey(resource)) {
-              _pendingTransitionAllowedPerResource.put(resource,
-                  new HashMap<StateTransitionThrottleConfig.RebalanceType, Long>());
-            }
-            _pendingTransitionAllowedPerResource.get(resource).put(config.getRebalanceType(),
-                config.getMaxPartitionInTransition());
+        }
+        _throttleEnabled = true;
+        break;
+      case INSTANCE:
+        for (String instance : liveInstances) {
+          if (!_pendingTransitionAllowedPerInstance.containsKey(instance)) {
+            _pendingTransitionAllowedPerInstance.put(instance,
+                new HashMap<StateTransitionThrottleConfig.RebalanceType, Long>());
           }
-          _throttleEnabled = true;
-          break;
-        case INSTANCE:
-          for (String instance : liveInstances) {
-            if (!_pendingTransitionAllowedPerInstance.containsKey(instance)) {
-              _pendingTransitionAllowedPerInstance.put(instance,
-                  new HashMap<StateTransitionThrottleConfig.RebalanceType, Long>());
-            }
-            _pendingTransitionAllowedPerInstance.get(instance).put(config.getRebalanceType(),
-                config.getMaxPartitionInTransition());
-          }
-          _throttleEnabled = true;
-          break;
+          _pendingTransitionAllowedPerInstance.get(instance).put(config.getRebalanceType(),
+              config.getMaxPartitionInTransition());
+        }
+        _throttleEnabled = true;
+        break;
       }
     }
   }

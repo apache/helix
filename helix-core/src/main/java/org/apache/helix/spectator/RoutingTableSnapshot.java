@@ -27,7 +27,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 
 /**
- * The snapshot of RoutingTable information.  It is immutable, it reflects the routing table
+ * The snapshot of RoutingTable information. It is immutable, it reflects the routing table
  * information at the time it is generated.
  */
 public class RoutingTableSnapshot {
@@ -39,10 +39,8 @@ public class RoutingTableSnapshot {
 
   /**
    * returns all instances for {resource} that are in a specific {state}.
-   *
    * @param resourceName
    * @param state
-   *
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResource(String resourceName, String state) {
@@ -51,11 +49,9 @@ public class RoutingTableSnapshot {
 
   /**
    * returns the instances for {resource,partition} pair that are in a specific {state}
-   *
    * @param resourceName
    * @param partitionName
    * @param state
-   *
    * @return empty list if there is no instance in a given state
    */
   public List<InstanceConfig> getInstancesForResource(String resourceName, String partitionName,
@@ -66,10 +62,8 @@ public class RoutingTableSnapshot {
   /**
    * returns all instances for resources contains any given tags in {resource group} that are in a
    * specific {state}
-   *
    * @param resourceGroupName
    * @param state
-   *
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
@@ -79,10 +73,8 @@ public class RoutingTableSnapshot {
 
   /**
    * returns all instances for all resources in {resource group} that are in a specific {state}
-   *
    * @param resourceGroupName
    * @param state
-   *
    * @return empty set if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state) {
@@ -94,11 +86,9 @@ public class RoutingTableSnapshot {
    * resource group that are in a specific {state}.
    * The return results aggregate all partition states from all the resources in the given resource
    * group.
-   *
    * @param resourceGroupName
    * @param partitionName
    * @param state
-   *
    * @return empty list if there is no instance in a given state
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
@@ -111,23 +101,20 @@ public class RoutingTableSnapshot {
    * are in a specific {state}.
    * Find all resources belongs to the given resource group that have any of the given resource tags
    * and return the aggregated partition states from all these resources.
-   *
    * @param resourceGroupName
    * @param partitionName
    * @param state
    * @param resourceTags
-   *
    * @return empty list if there is no instance in a given state
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
       String partitionName, String state, List<String> resourceTags) {
-    return _routingTable
-        .getInstancesForResourceGroup(resourceGroupName, partitionName, state, resourceTags);
+    return _routingTable.getInstancesForResourceGroup(resourceGroupName, partitionName, state,
+        resourceTags);
   }
 
   /**
    * Return all liveInstances in the cluster now.
-   *
    * @return
    */
   public Collection<LiveInstance> getLiveInstances() {
@@ -136,7 +123,6 @@ public class RoutingTableSnapshot {
 
   /**
    * Return all instance's config in this cluster.
-   *
    * @return
    */
   public Collection<InstanceConfig> getInstanceConfigs() {

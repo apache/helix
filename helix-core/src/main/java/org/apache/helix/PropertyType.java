@@ -79,7 +79,6 @@ public enum PropertyType {
   // REST PROPERTIES
   RESTCONFIGS(Type.REST, true, false, false, false, true);
 
-
   // @formatter:on
 
   Type type;
@@ -102,23 +101,23 @@ public enum PropertyType {
     this(type, isPersistent, mergeOnUpdate, false);
   }
 
-  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
-      boolean updateOnlyOnExists) {
+  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate, boolean updateOnlyOnExists) {
     this(type, isPersistent, mergeOnUpdate, false, false);
   }
 
-  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
-      boolean updateOnlyOnExists, boolean createOnlyIfAbsent) {
+  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate, boolean updateOnlyOnExists,
+      boolean createOnlyIfAbsent) {
     this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, false);
   }
 
-  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
-      boolean updateOnlyOnExists, boolean createOnlyIfAbsent, boolean isCached) {
-    this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, isCached, false);
+  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate, boolean updateOnlyOnExists,
+      boolean createOnlyIfAbsent, boolean isCached) {
+    this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, isCached,
+        false);
   }
 
-  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
-      boolean updateOnlyOnExists, boolean createOnlyIfAbsent, boolean isCached, boolean isAsyncWrite) {
+  PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate, boolean updateOnlyOnExists,
+      boolean createOnlyIfAbsent, boolean isCached, boolean isAsyncWrite) {
     this.type = type;
     this.isPersistent = isPersistent;
     this.mergeOnUpdate = mergeOnUpdate;

@@ -36,6 +36,7 @@ public class TestTargetExternalView extends TaskTestBase {
 
   private ConfigAccessor _configAccessor;
   private HelixDataAccessor _accessor;
+
   @BeforeClass
   public void beforeClass() throws Exception {
     _numDbs = 3;
@@ -50,8 +51,7 @@ public class TestTargetExternalView extends TaskTestBase {
   @Test
   public void testTargetExternalViewEnable() throws InterruptedException {
     // Before enable target external view
-    Assert
-        .assertFalse(_gZkClient.exists(_accessor.keyBuilder().targetExternalViews().getPath()));
+    Assert.assertFalse(_gZkClient.exists(_accessor.keyBuilder().targetExternalViews().getPath()));
 
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.enableTargetExternalView(true);
@@ -59,12 +59,12 @@ public class TestTargetExternalView extends TaskTestBase {
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
     _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, _testDbs.get(0), 3);
 
-    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    ZkHelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
-    Assert
-        .assertEquals(_accessor.getChildNames(_accessor.keyBuilder().targetExternalViews()).size(),
-            3);
+    Assert.assertEquals(
+        _accessor.getChildNames(_accessor.keyBuilder().targetExternalViews()).size(), 3);
 
     List<ExternalView> targetExternalViews =
         _accessor.getChildValues(_accessor.keyBuilder().externalViews());
@@ -78,7 +78,8 @@ public class TestTargetExternalView extends TaskTestBase {
     }
 
     // Disable one instance to see whether the target external views changes.
-    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, _participants[0].getInstanceName(), false);
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
+        _participants[0].getInstanceName(), false);
 
     Assert.assertTrue(verifier.verifyByPolling());
     Thread.sleep(1000);

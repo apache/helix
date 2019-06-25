@@ -58,15 +58,13 @@ public interface HelixAdmin {
   InstanceConfig getInstanceConfig(String clusterName, String instanceName);
 
   /**
-   +   * Set the instance config of an existing instance under the given cluster.
-   +   *
-   +   * @param clusterName    the name of the cluster to which this instance belongs.
-   +   * @param instanceName   the name of this instance.
-   +   * @param instanceConfig the new {@link InstanceConfig} that will replace the current one
-   +   *                       associated with this instance.
-   +   *
-   +   * @return true if the operation was successful; false otherwise.
-   +   */
+   * Set the instance config of an existing instance under the given cluster.
+   * @param clusterName the name of the cluster to which this instance belongs.
+   * @param instanceName the name of this instance.
+   * @param instanceConfig the new {@link InstanceConfig} that will replace the current one
+   *          associated with this instance.
+   * @return true if the operation was successful; false otherwise.
+   */
   boolean setInstanceConfig(String clusterName, String instanceName, InstanceConfig instanceConfig);
 
   /**
@@ -77,10 +75,10 @@ public interface HelixAdmin {
   List<String> getResourcesInCluster(String clusterName);
 
   /**
-  * Get a list of resources in a cluster with a tag
-  * @param clusterName
-  * @param tag
-  */
+   * Get a list of resources in a cluster with a tag
+   * @param clusterName
+   * @param tag
+   */
   List<String> getResourcesInClusterWithTag(String clusterName, String tag);
 
   /**
@@ -112,7 +110,8 @@ public interface HelixAdmin {
    * @param numPartitions
    * @param stateModelRef
    */
-  void addResource(String clusterName, String resourceName, int numPartitions, String stateModelRef);
+  void addResource(String clusterName, String resourceName, int numPartitions,
+      String stateModelRef);
 
   /**
    * @param clusterName
@@ -129,8 +128,8 @@ public interface HelixAdmin {
    * @param stateModelRef
    * @param rebalancerMode
    */
-  void addResource(String clusterName, String resourceName, int numPartitions,
-      String stateModelRef, String rebalancerMode);
+  void addResource(String clusterName, String resourceName, int numPartitions, String stateModelRef,
+      String rebalancerMode);
 
   /**
    * Add a resource to a cluster
@@ -141,8 +140,8 @@ public interface HelixAdmin {
    * @param rebalancerMode
    * @param rebalanceStrategy
    */
-  void addResource(String clusterName, String resourceName, int numPartitions,
-      String stateModelRef, String rebalancerMode, String rebalanceStrategy);
+  void addResource(String clusterName, String resourceName, int numPartitions, String stateModelRef,
+      String rebalancerMode, String rebalanceStrategy);
 
   /**
    * Add a resource to a cluster, using a bucket size > 1
@@ -153,8 +152,8 @@ public interface HelixAdmin {
    * @param rebalancerMode
    * @param bucketSize
    */
-  void addResource(String clusterName, String resourceName, int numPartitions,
-      String stateModelRef, String rebalancerMode, int bucketSize);
+  void addResource(String clusterName, String resourceName, int numPartitions, String stateModelRef,
+      String rebalancerMode, int bucketSize);
 
   /**
    * Add a resource to a cluster, using a bucket size > 1
@@ -166,9 +165,8 @@ public interface HelixAdmin {
    * @param bucketSize
    * @param maxPartitionsPerInstance
    */
-  void addResource(String clusterName, String resourceName, int numPartitions,
-      String stateModelRef, String rebalancerMode, int bucketSize, int maxPartitionsPerInstance);
-
+  void addResource(String clusterName, String resourceName, int numPartitions, String stateModelRef,
+      String rebalancerMode, int bucketSize, int maxPartitionsPerInstance);
 
   /**
    * Add a resource to a cluster, using a bucket size > 1
@@ -181,8 +179,8 @@ public interface HelixAdmin {
    * @param bucketSize
    * @param maxPartitionsPerInstance
    */
-  void addResource(String clusterName, String resourceName, int numPartitions,
-      String stateModelRef, String rebalancerMode, String rebalanceStrategy, int bucketSize,
+  void addResource(String clusterName, String resourceName, int numPartitions, String stateModelRef,
+      String rebalancerMode, String rebalanceStrategy, int bucketSize,
       int maxPartitionsPerInstance);
 
   /**
@@ -276,8 +274,8 @@ public interface HelixAdmin {
   /**
    * @param clusterName
    * @param enabled
-   * @param reason      set additional string description on why the cluster is disabled when
-   *                    <code>enabled</code> is false.
+   * @param reason set additional string description on why the cluster is disabled when
+   *          <code>enabled</code> is false.
    */
   void enableCluster(String clusterName, boolean enabled, String reason);
 
@@ -543,7 +541,6 @@ public interface HelixAdmin {
   /**
    * Enable/disable batch message mode for specified cluster.
    * By default batch message mode is disabled.
-   *
    * @param clusterName
    * @param enabled
    */
@@ -558,8 +555,6 @@ public interface HelixAdmin {
    */
   void enableBatchMessageMode(String clusterName, String resourceName, boolean enabled);
 
-
-
   /**
    * Get batch disabled instance map (disabled instance -> disabled time) in a cluster. It will
    * include disabled instances and instances in disabled zones
@@ -570,7 +565,6 @@ public interface HelixAdmin {
 
   /**
    * Get list of instances by domain for a cluster
-   *
    * Example : domain could be "helixZoneId=1,rackId=3". All the instances domain contains these
    * two domains will be selected.
    * @param clusterName

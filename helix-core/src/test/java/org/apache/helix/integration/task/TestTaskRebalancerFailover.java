@@ -52,9 +52,8 @@ public class TestTaskRebalancerFailover extends TaskTestBase {
 
     // Enqueue jobs
     Set<String> master = Sets.newHashSet("MASTER");
-    JobConfig.Builder job =
-        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
+    JobConfig.Builder job = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     String job1Name = "masterJob";
     LOG.info("Enqueuing job: " + job1Name);
     _driver.enqueueJob(queueName, job1Name, job);

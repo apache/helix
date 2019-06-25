@@ -137,13 +137,13 @@ public class TestAssignableInstanceManagerControllerSwitch extends TaskTestBase 
         taskConfigs.add(taskConfigBuilder.build());
       }
       String jobName = "JOB_" + i;
+      // Long-running job
       JobConfig.Builder jobBuilder =
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(10000)
               .setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG)
               .addTaskConfigs(taskConfigs).setIgnoreDependentJobFailure(true)
               .setFailureThreshold(100000)
-              .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "120000")); // Long-running
-      // job
+              .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "120000"));
       builder.addJob(jobName, jobBuilder);
     }
     // Start the workflow

@@ -91,9 +91,8 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     Thread.sleep(2000);
 
     // Disable the resource
-    _gSetupTool.getClusterManagementTool()
-        .enableResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, false);
-
+    _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME,
+        WorkflowGenerator.DEFAULT_TGT_DB, false);
 
     // Wait for pipeline reaching final stage
     Assert.assertTrue(_verifier.verifyByPolling());
@@ -115,15 +114,15 @@ public class TestStateTransitionCancellation extends TaskTestBase {
 
     // Reenable resource
     stateCleanUp();
-    _gSetupTool.getClusterManagementTool()
-        .enableResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, true);
+    _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME,
+        WorkflowGenerator.DEFAULT_TGT_DB, true);
 
     // Wait for assignment done
     Thread.sleep(2000);
 
     // Disable the resource
-    _gSetupTool.getClusterManagementTool()
-        .enableResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, false);
+    _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME,
+        WorkflowGenerator.DEFAULT_TGT_DB, false);
 
     // Wait for pipeline reaching final stage
     Thread.sleep(2000L);
@@ -144,8 +143,8 @@ public class TestStateTransitionCancellation extends TaskTestBase {
 
     // Reenable resource
     stateCleanUp();
-    _gSetupTool.getClusterManagementTool()
-        .enableResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, true);
+    _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME,
+        WorkflowGenerator.DEFAULT_TGT_DB, true);
 
     // Wait for assignment done
     Thread.sleep(2000);
@@ -182,7 +181,8 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     InternalMockDelayMSStateModel._cancelledStatic = false;
   }
 
-  @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE", "ERROR"
+  @StateModelInfo(initialState = "OFFLINE", states = {
+      "MASTER", "SLAVE", "ERROR"
   })
   public static class InternalMockDelayMSStateModel extends StateModel {
     private static Logger LOG = LoggerFactory.getLogger(MockDelayMSStateModel.class);
@@ -196,8 +196,8 @@ public class TestStateTransitionCancellation extends TaskTestBase {
       _cancelledFirstTime = true;
     }
 
-    @Transition(to = "SLAVE", from = "OFFLINE") public void onBecomeSlaveFromOffline(
-        Message message, NotificationContext context) {
+    @Transition(to = "SLAVE", from = "OFFLINE")
+    public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
       if (_delay > 0) {
         try {
           Thread.sleep(_delay);
@@ -208,8 +208,9 @@ public class TestStateTransitionCancellation extends TaskTestBase {
       LOG.info("Become SLAVE from OFFLINE");
     }
 
-    @Transition(to = "MASTER", from = "SLAVE") public void onBecomeMasterFromSlave(Message message,
-        NotificationContext context) throws InterruptedException, HelixRollbackException {
+    @Transition(to = "MASTER", from = "SLAVE")
+    public void onBecomeMasterFromSlave(Message message, NotificationContext context)
+        throws InterruptedException, HelixRollbackException {
       if (_cancelledFirstTime && _delay < 0) {
         while (!_cancelledStatic) {
           Thread.sleep(Math.abs(1000L));
@@ -220,18 +221,18 @@ public class TestStateTransitionCancellation extends TaskTestBase {
       LOG.error("Become MASTER from SLAVE");
     }
 
-    @Transition(to = "SLAVE", from = "MASTER") public void onBecomeSlaveFromMaster(Message message,
-        NotificationContext context) {
+    @Transition(to = "SLAVE", from = "MASTER")
+    public void onBecomeSlaveFromMaster(Message message, NotificationContext context) {
       LOG.info("Become Slave from Master");
     }
 
-    @Transition(to = "OFFLINE", from = "SLAVE") public void onBecomeOfflineFromSlave(
-        Message message, NotificationContext context) {
+    @Transition(to = "OFFLINE", from = "SLAVE")
+    public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
       LOG.info("Become OFFLINE from SLAVE");
     }
 
-    @Transition(to = "DROPPED", from = "OFFLINE") public void onBecomeDroppedFromOffline(
-        Message message, NotificationContext context) {
+    @Transition(to = "DROPPED", from = "OFFLINE")
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
       LOG.info("Become DROPPED FROM OFFLINE");
     }
 

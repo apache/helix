@@ -97,7 +97,7 @@ public class JobConfig extends ResourceConfig {
     /**
      * The maximum number of times Helix will intentionally move a failing task
      */
-        MaxForcedReassignmentsPerTask,
+    MaxForcedReassignmentsPerTask,
     /**
      * The number of concurrent tasks that are allowed to run on an instance.
      */

@@ -18,7 +18,8 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -34,11 +35,12 @@ under the License.
   <name>Apache Helix</name>
 
   <description>
-    Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
+    Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and
+    distributed resources hosted on a cluster of nodes.
   </description>
 
   <url>http://helix.apache.org</url>
-<developers>
+  <developers>
     <developer>
       <id>kishoreg</id>
       <name>Kishore Gopalakrishna</name>
@@ -237,15 +239,6 @@ under the License.
       </roles>
       <timezone>-8</timezone>
     </developer>
-    <developer>
-      <id>hulee</id>
-      <name>Hunter Lee</name>
-      <email>hulee@apache.org</email>
-      <roles>
-        <role>Committer</role>
-      </roles>
-      <timezone>-8</timezone>
-    </developer>
   </developers>
   <modules>
     <module>helix-core</module>
@@ -357,7 +350,7 @@ under the License.
     <helix.scmPubCheckoutDirectory>${user.home}/helix-site/helix-site-content</helix.scmPubCheckoutDirectory>
     <scmSkipDeletedFiles>false</scmSkipDeletedFiles>
     <!-- fix issue with current apache parent pom -->
-    <arguments />
+    <arguments/>
 
     <!-- for svnpubsub site deployment -->
     <helix.release.preparationGoals>clean install</helix.release.preparationGoals>
@@ -368,14 +361,14 @@ under the License.
     <currentRelease>0.8.0</currentRelease>
 
     <!-- OSGi Properties -->
-    <osgi.import />
-    <osgi.dynamic.import />
-    <osgi.require.bundles />
-    <osgi.export />
-    <osgi.private />
-    <osgi.ignore />
-    <osgi.activator />
-    <osgi.export.service />
+    <osgi.import/>
+    <osgi.dynamic.import/>
+    <osgi.require.bundles/>
+    <osgi.export/>
+    <osgi.private/>
+    <osgi.ignore/>
+    <osgi.activator/>
+    <osgi.export.service/>
 
     <!--Skips test in default 'mvn clean install' build command-->
     <!-- <maven.test.skip.exec>true</maven.test.skip.exec> -->

@@ -38,6 +38,7 @@ public class StateTransitionThrottleConfig {
     REBALANCE_TYPE,
     THROTTLE_SCOPE,
     MAX_PARTITION_IN_TRANSITION
+
   }
 
   public enum ThrottleScope {

@@ -128,7 +128,8 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
     startParticipant(_initialNumNodes);
 
     JobConfig.Builder jobBuilder =
-        new JobConfig.Builder().setWorkflow(WORKFLOW).setNumberOfTasks(10) // should be enough for
+        new JobConfig.Builder().setWorkflow(WORKFLOW).setNumberOfTasks(10)
+            // should be enough for
             // consistent hashing to
             // place tasks on
             // different instances

@@ -65,7 +65,7 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     super.beforeClass();
-    _participants =  new MockParticipantManager[_numNodes];
+    _participants = new MockParticipantManager[_numNodes];
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants();
     setupDBs();
@@ -97,24 +97,26 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
       for (int i = 0; i < _numDbs; i++) {
         int varyNum = _partitionVary ? 10 * i : 0;
         String db = WorkflowGenerator.DEFAULT_TGT_DB + i;
-        clusterSetup
-            .addResourceToCluster(CLUSTER_NAME, db, _numPartitions + varyNum, MASTER_SLAVE_STATE_MODEL,
-                IdealState.RebalanceMode.FULL_AUTO.toString());
+        clusterSetup.addResourceToCluster(CLUSTER_NAME, db, _numPartitions + varyNum,
+            MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.toString());
         clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, db, _numReplicas);
         _testDbs.add(db);
       }
     } else {
       if (_instanceGroupTag) {
-        clusterSetup
-            .addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numPartitions,
-                "OnlineOffline", IdealState.RebalanceMode.FULL_AUTO.name());
-        IdealState idealState = clusterSetup.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
+        clusterSetup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
+            _numPartitions, "OnlineOffline", IdealState.RebalanceMode.FULL_AUTO.name());
+        IdealState idealState = clusterSetup.getClusterManagementTool()
+            .getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
         idealState.setInstanceGroupTag("TESTTAG0");
-        clusterSetup.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, idealState);
+        clusterSetup.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME,
+            WorkflowGenerator.DEFAULT_TGT_DB, idealState);
       } else {
-        clusterSetup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numPartitions, MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name());
+        clusterSetup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
+            _numPartitions, MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name());
       }
-      clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numReplicas);
+      clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
+          _numReplicas);
     }
   }
 
@@ -192,12 +194,11 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
   }
 
   protected void createManagers(String zkAddr, String clusterName) throws Exception {
-    _manager = HelixManagerFactory
-        .getZKHelixManager(clusterName, "Admin", InstanceType.ADMINISTRATOR, zkAddr);
+    _manager = HelixManagerFactory.getZKHelixManager(clusterName, "Admin",
+        InstanceType.ADMINISTRATOR, zkAddr);
     _manager.connect();
     _driver = new TaskDriver(_manager);
   }
-
 
   public void setSingleTestEnvironment() {
     _numDbs = 1;

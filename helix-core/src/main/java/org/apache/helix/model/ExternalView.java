@@ -40,7 +40,8 @@ public class ExternalView extends HelixProperty {
     RESOURCE_GROUP_NAME,
     GROUP_ROUTING_ENABLED,
     MIN_ACTIVE_REPLICAS,
-    STATE_MODEL_DEF_REF
+    STATE_MODEL_DEF_REF,
+    REPLICAS
   }
 
   /**
@@ -148,6 +149,14 @@ public class ExternalView extends HelixProperty {
    */
   public String getStateModelDefRef() {
     return _record.getSimpleField(ExternalViewProperty.STATE_MODEL_DEF_REF.toString());
+  }
+
+  /**
+   * Get the number of replicas for each partition of this resource
+   * @return number of replicas (as a string)
+   */
+  public String getReplicas() {
+    return _record.getSimpleField(ExternalViewProperty.REPLICAS.name());
   }
 
   @Override

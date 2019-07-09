@@ -35,6 +35,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.slf4j.Logger;
@@ -210,6 +211,13 @@ public class InstanceValidationUtil {
     List<String> unhealthyPartitions = new ArrayList<>();
 
     for (ExternalView externalView : externalViews) {
+      // Skip ANY_LIVEINSTANCES resources check, since ANY_LIVEINSTANCES resources have single partition
+      // with 1 replica. There is no need to check sibiling replicas.
+      if (ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.name()
+          .equals(externalView.getReplicas())) {
+        continue;
+      }
+
       StateModelDefinition stateModelDefinition = dataAccessor
           .getProperty(dataAccessor.keyBuilder().stateModelDef(externalView.getStateModelDefRef()));
       for (String partition : externalView.getPartitionSet()) {

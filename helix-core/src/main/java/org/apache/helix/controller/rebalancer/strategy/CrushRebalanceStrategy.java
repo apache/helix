@@ -89,7 +89,15 @@ public class CrushRebalanceStrategy implements RebalanceStrategy<ResourceControl
       long data = partitionName.hashCode();
 
       // apply the placement rules
-      List<Node> selected = select(topNode, data, _replicas, eventId);
+      List<Node> selected;
+      try {
+        selected = select(topNode, data, _replicas, eventId);
+      } catch (IllegalStateException e) {
+        String errorMessage = String
+            .format("Could not select enough number of nodes. %s partition %s, required %d",
+                _resourceName, partitionName, _replicas);
+        throw new HelixException(errorMessage, e);
+      }
 
       if (selected.size() < _replicas) {
         LogUtil.logError(Log, eventId, String

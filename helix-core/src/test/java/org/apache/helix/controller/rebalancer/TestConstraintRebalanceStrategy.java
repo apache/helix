@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import org.apache.helix.HelixException;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceHardConstraint;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceSoftConstraint;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.CapacityProvider;
@@ -271,7 +272,7 @@ public class TestConstraintRebalanceStrategy {
           Collections.<AbstractRebalanceHardConstraint>singletonList(capacityConstraint),
           Collections.EMPTY_LIST);
       Assert.fail("Assignment should fail because of insufficient capacity.");
-    } catch (IllegalStateException e) {
+    } catch (HelixException e) {
       // expected
     }
   }
@@ -300,7 +301,7 @@ public class TestConstraintRebalanceStrategy {
     try {
       calculateAssignment(constraints, Collections.EMPTY_LIST);
       Assert.fail("Assignment should fail because of the conflicting capacity constraint.");
-    } catch (IllegalStateException e) {
+    } catch (HelixException e) {
       // expected
     }
   }

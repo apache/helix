@@ -259,7 +259,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         return checkBestPossibleStateCalculation(idealState);
       } catch (Exception e) {
         LogUtil
-            .logError(logger, _eventId, "Error computing assignment for resource " + resourceName + ". Skipping.", e);
+            .logError(logger, _eventId, "Error computing assignment for resource " + resourceName + ". Skipping.");
         // TODO : remove this part after debugging NPE
         StringBuilder sb = new StringBuilder();
 

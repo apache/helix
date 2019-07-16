@@ -81,7 +81,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     Assert.assertTrue(taskcount >= numPartition * (numReplica + 1));
   }
 
-  @Test
+  @Test (dependsOnMethods = "TestThreadPoolSizeConfig")
   public void TestCustomizedResourceThreadPool() {
     int customizedPoolSize = 7;
     int configuredPoolSize = 9;
@@ -134,7 +134,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test
+  @Test (dependsOnMethods = "TestCustomizedResourceThreadPool")
   public void TestPerStateTransitionTypeThreadPool() throws InterruptedException {
     String MASTER_SLAVE = "MasterSlave";
 
@@ -173,7 +173,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test
+  @Test (dependsOnMethods = "TestPerStateTransitionTypeThreadPool")
   public void testBatchMessageThreadPoolSize() throws InterruptedException {
     int customizedPoolSize = 5;
     _participants[0].getStateMachineEngine().registerStateModelFactory("OnlineOffline",

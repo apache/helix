@@ -506,6 +506,9 @@ public class ZNRecord {
       }
     }
     for (String key : record.listFields.keySet()) {
+      // Default merge logic could introduce duplicated values. For example, old Record has list field
+      // with value [1, 2, 3]. New Record is exactly same as previous one. Merged result will be
+      // [1, 2, 3, 1, 2, 3].
       List<String> list = listFields.get(key);
       if (list != null) {
         list.addAll(record.listFields.get(key));

@@ -1,8 +1,10 @@
 package org.apache.helix.controller.rebalancer.util;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.model.IdealState;
 
 import org.apache.helix.model.ResourceConfig;
@@ -138,7 +140,9 @@ public class RebalanceScheduler {
     PropertyKey key = accessor.keyBuilder().idealStates(resource);
     IdealState is = accessor.getProperty(key);
     if (is != null) {
-      if (!accessor.updateProperty(key, is)) {
+      // Here it uses the updateProperty function with no-op DataUpdater. Otherwise, it will use default
+      // ZNRecordUpdater which will duplicate elements for listFields.
+      if (!accessor.updateProperty(key, znRecord -> znRecord, is)) {
         LOG.warn("Failed to invoke rebalance on resource {}", resource);
       }
     } else {
@@ -156,7 +160,9 @@ public class RebalanceScheduler {
     PropertyKey key = accessor.keyBuilder().resourceConfig(resource);
     ResourceConfig cfg = accessor.getProperty(key);
     if (cfg != null) {
-      if (!accessor.updateProperty(key, cfg)) {
+      // Here it uses the updateProperty function with no-op DataUpdater. Otherwise, it will use default
+      // ZNRecordUpdater which will duplicate elements for listFields.
+      if (!accessor.updateProperty(key, znRecord -> znRecord, cfg)) {
         LOG.warn("Failed to invoke rebalance on resource config {}", resource);
       }
     } else {

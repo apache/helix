@@ -133,7 +133,7 @@ public class TestResourceAccessor extends AbstractTestClass {
         _configAccessor.getResourceConfig(CLUSTER_NAME, RESOURCE_NAME));
   }
 
-  @Test(dependsOnMethods = "testAddResources")
+  @Test(dependsOnMethods = "testResourceConfig")
   public void testIdealState() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
@@ -144,7 +144,7 @@ public class TestResourceAccessor extends AbstractTestClass {
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, RESOURCE_NAME));
   }
 
-  @Test(dependsOnMethods = "testAddResources")
+  @Test(dependsOnMethods = "testIdealState")
   public void testExternalView() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
@@ -155,7 +155,7 @@ public class TestResourceAccessor extends AbstractTestClass {
         .getResourceExternalView(CLUSTER_NAME, RESOURCE_NAME));
   }
 
-  @Test
+  @Test(dependsOnMethods = "testExternalView")
   public void testPartitionHealth() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
@@ -380,7 +380,7 @@ public class TestResourceAccessor extends AbstractTestClass {
    * Test "update" command of updateResourceIdealState.
    * @throws Exception
    */
-  @Test(dependsOnMethods = "testResourceHealth")
+  @Test(dependsOnMethods = "deleteFromResourceConfig")
   public void updateResourceIdealState() throws Exception {
     // Get IdealState ZNode
     String zkPath = PropertyPathBuilder.idealState(CLUSTER_NAME, RESOURCE_NAME);

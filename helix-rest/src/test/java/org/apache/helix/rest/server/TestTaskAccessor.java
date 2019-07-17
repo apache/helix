@@ -58,7 +58,7 @@ public class TestTaskAccessor extends AbstractTestClass {
     Assert.assertEquals(contentStore, map1);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetAddTaskUserContent")
   public void testInvalidGetAddTaskUserContent() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String validURI = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/Job_0/tasks/0/userContent";

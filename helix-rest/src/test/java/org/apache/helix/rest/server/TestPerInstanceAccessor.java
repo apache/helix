@@ -161,7 +161,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME));
   }
 
-  @Test(dependsOnMethods = "updateInstance")
+  @Test(dependsOnMethods = "testGetInstanceById")
   public void testAddInstance() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     InstanceConfig instanceConfig = new InstanceConfig(INSTANCE_NAME + "TEST");
@@ -183,7 +183,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME + "TEST");
   }
 
-  @Test(dependsOnMethods = "testGetInstanceById")
+  @Test(dependsOnMethods = "testDeleteInstance")
   public void updateInstance() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Disable instance

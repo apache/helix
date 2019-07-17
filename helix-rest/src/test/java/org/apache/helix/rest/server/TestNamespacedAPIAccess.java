@@ -58,7 +58,7 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
   }
 
 
-  @Test
+  @Test(dependsOnMethods = "testDefaultNamespaceCompatibility")
   public void testNamespacedCRUD() throws IOException {
     String testClusterName = "testClusterForNamespacedCRUD";
 
@@ -91,7 +91,7 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(), false);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testNamespacedCRUD")
   public void testNamespaceServer() throws IOException {
     // Default endpoints should not have any namespace information returned
     get("/", null, Response.Status.NOT_FOUND.getStatusCode(), false);

@@ -721,6 +721,9 @@ public class ZkClient implements Watcher {
       });
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
       return children;
+    } catch (ZkNoNodeException e) {
+      record(path, null, startT, ZkClientMonitor.AccessType.READ);
+      throw e;
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.READ);
       throw e;
@@ -760,6 +763,9 @@ public class ZkClient implements Watcher {
       });
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
       return exists;
+    } catch (ZkNoNodeException e) {
+      record(path, null, startT, ZkClientMonitor.AccessType.READ);
+      throw e;
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.READ);
       throw e;
@@ -782,6 +788,9 @@ public class ZkClient implements Watcher {
           () -> ((ZkConnection) getConnection()).getZookeeper().exists(path, watch));
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
       return stat;
+    } catch (ZkNoNodeException e) {
+      record(path, null, startT, ZkClientMonitor.AccessType.READ);
+      throw e;
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.READ);
       throw e;
@@ -1293,6 +1302,9 @@ public class ZkClient implements Watcher {
       });
       record(path, data, startT, ZkClientMonitor.AccessType.READ);
       return (T) deserialize(data, path);
+    } catch (ZkNoNodeException e) {
+      record(path, data, startT, ZkClientMonitor.AccessType.READ);
+      throw e;
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.READ);
       throw e;

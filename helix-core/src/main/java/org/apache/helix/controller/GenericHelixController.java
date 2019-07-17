@@ -920,6 +920,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     enqueueEvent(_eventQueue, event);
     enqueueEvent(_taskEventQueue,
         event.clone(String.format("%s_%s", uid, Pipeline.Type.TASK.name())));
+    logger.info(String.format("Enqueue cluster event: %s, type: %s", event.getEventId(), event.getEventType()));
   }
 
   private void enqueueEvent(ClusterEventBlockingQueue queue, ClusterEvent event) {

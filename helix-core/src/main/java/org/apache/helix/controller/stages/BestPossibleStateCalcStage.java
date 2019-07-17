@@ -241,15 +241,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       try {
         HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
         rebalancer.init(manager);
-        idealState =
-            rebalancer.computeNewIdealState(resourceName, idealState, currentStateOutput, cache);
+        idealState = rebalancer.computeNewIdealState(resourceName, idealState, currentStateOutput, cache);
 
         output.setPreferenceLists(resourceName, idealState.getPreferenceLists());
 
         // Use the internal MappingCalculator interface to compute the final assignment
         // The next release will support rebalancers that compute the mapping from start to finish
-        partitionStateAssignment = mappingCalculator
-            .computeBestPossiblePartitionState(cache, idealState, resource, currentStateOutput);
+        partitionStateAssignment =
+            mappingCalculator.computeBestPossiblePartitionState(cache, idealState, resource, currentStateOutput);
         for (Partition partition : resource.getPartitions()) {
           Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
           output.setState(resourceName, partition, newStateMap);
@@ -257,9 +256,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
         // Check if calculation is done successfully
         return checkBestPossibleStateCalculation(idealState);
+      } catch (HelixException e){
+        //No eligible instance is found.
+        LogUtil
+            .logError(logger, _eventId, "PartitionStateAssignment is null. Skipping.");
       } catch (Exception e) {
         LogUtil
-            .logError(logger, _eventId, "Error computing assignment for resource " + resourceName + ". Skipping.");
+            .logError(logger, _eventId, "Error computing assignment for resource " + resourceName + ". Skipping.", e);
         // TODO : remove this part after debugging NPE
         StringBuilder sb = new StringBuilder();
 

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.util.JenkinsHash;
 import org.slf4j.Logger;
@@ -305,7 +306,7 @@ public class CRUSHPlacementAlgorithm {
         }
       }
       if (selected == null) {
-        throw new IllegalStateException();
+        throw new HelixException("Selected node is null");
       }
       return selected;
     }

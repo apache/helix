@@ -35,12 +35,14 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.client.HelixZkClient;
@@ -417,23 +419,98 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   @GET
+  @Path("{clusterId}/statemodeldefs/{statemodel}")
+  public Response getClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
+      @PathParam("statemodel") String statemodel) {
+    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+    StateModelDefinition stateModelDef = dataAccessor.getProperty(dataAccessor.keyBuilder().stateModelDef(statemodel));
+
+    if (stateModelDef == null) {
+      return badRequest("Statemodel not found!");
+    }
+    return JSONRepresentation(stateModelDef.getRecord());
+  }
+
+  @PUT
+  @Path("{clusterId}/statemodeldefs/{statemodel}")
+  public Response createClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
+      @PathParam("statemodel") String statemodel, String content) {
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      return badRequest("Input is not a valid ZNRecord!");
+    }
+    HelixZkClient zkClient = getHelixZkClient();
+    String path = PropertyPathBuilder.stateModelDef(clusterId);
+    try {
+      ZKUtil.createChildren(zkClient, path, record);
+    } catch (Exception e) {
+      _logger.error("Failed to create zk node with path " + path + ", Exception:" + e);
+      return badRequest("Failed to create a Znode for stateModel! " + e);
+    }
+
+    return OK();
+  }
+
+  @POST
+  @Path("{clusterId}/statemodeldefs/{statemodel}")
+  public Response setClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
+      @PathParam("statemodel") String statemodel, String content) {
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      return badRequest("Input is not a valid ZNRecord!");
+    }
+
+    StateModelDefinition stateModelDefinition = new StateModelDefinition(record);
+    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+
+    PropertyKey key = dataAccessor.keyBuilder().stateModelDef(stateModelDefinition.getId());
+    boolean retcode = true;
+    try {
+      retcode = dataAccessor.setProperty(key, stateModelDefinition);
+    } catch (Exception e) {
+      _logger.error("Failed to set StateModelDefinition key:" + key + ", Exception: " + e);
+      return badRequest("Failed to set the content " + content);
+    }
+
+    return OK();
+  }
+
+  @DELETE
+  @Path("{clusterId}/statemodeldefs/{statemodel}")
+  public Response removeClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
+      @PathParam("statemodel") String statemodel) {
+    //Shall we validate the statemodel string not having special character such as ../ etc?
+    if (!StringUtils.isAlphanumeric(statemodel)) {
+      return badRequest("Invalid statemodel name!");
+    }
+
+    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+    PropertyKey key = dataAccessor.keyBuilder().stateModelDef(statemodel);
+    boolean retcode = true;
+    try {
+      retcode = dataAccessor.removeProperty(key);
+    } catch (Exception e) {
+      _logger.error("Failed to remove StateModelDefinition key:" + key + ", Exception: " + e);
+      retcode = false;
+    }
+    if (!retcode) {
+      return badRequest("Failed to remove!");
+    }
+    return OK();
+  }
+
+  @GET
   @Path("{clusterId}/maintenance")
   public Response getClusterMaintenanceMode(@PathParam("clusterId") String clusterId) {
     return JSONRepresentation(
         ImmutableMap.of(ClusterProperties.maintenance.name(), getHelixAdmin().isInMaintenanceMode(clusterId)));
   }
-
-  @GET
-  @Path("{clusterId}/statemodeldefs/{statemodel}")
-  public Response getClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
-      @PathParam("statemodel") String statemodel) {
-    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    StateModelDefinition stateModelDef =
-        dataAccessor.getProperty(dataAccessor.keyBuilder().stateModelDef(statemodel));
-
-    return JSONRepresentation(stateModelDef.getRecord());
-  }
-
   private boolean doesClusterExist(String cluster) {
     HelixZkClient zkClient = getHelixZkClient();
     return ZKUtil.isClusterSetup(cluster, zkClient);

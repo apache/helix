@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -320,7 +321,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.NOT_FOUND.getStatusCode(), false);
   }
 
-  @Test(dependsOnMethods = "testEnableDisableMaintenanceModeWithCustomFields")
+  @Test(dependsOnMethods = "testEnableDisableMaintenanceMode")
   public void testGetControllerLeadershipHistory() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
@@ -380,7 +381,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertTrue(lastMaintenanceEntry.contains(reason));
   }
 
-  @Test(dependsOnMethods = "testEnableDisableMaintenanceMode")
+  @Test(dependsOnMethods = "testGetMaintenanceHistory")
   public void testEnableDisableMaintenanceModeWithCustomFields() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
@@ -405,7 +406,76 @@ public class TestClusterAccessor extends AbstractTestClass {
         accessor.getBaseDataAccessor().exists(accessor.keyBuilder().maintenance().getPath(), 0));
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testEnableDisableMaintenanceModeWithCustomFields")
+  public void testGetStateModelDef() throws IOException {
+
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = "TestCluster_1";
+    String urlBase = "clusters/TestCluster_1/statemodeldefs/";
+    String stateModelDefs =
+        get(urlBase, null, Response.Status.OK.getStatusCode(), true);
+    Map<String, Object> defMap = OBJECT_MAPPER.readValue(stateModelDefs, new TypeReference<HashMap<String, Object>>() {
+    });
+
+    Assert.assertTrue(defMap.size() == 2);
+    Assert.assertTrue(defMap.get("stateModelDefinitions") instanceof List);
+    List<String> stateModelNames = (List<String>) defMap.get("stateModelDefinitions");
+    Assert.assertEquals(stateModelNames.size(), 6);
+
+    String oneModel = stateModelNames.get(1);
+    String twoModel = stateModelNames.get(2);
+
+    String oneModelUri = urlBase + oneModel;
+    String oneResult = get(oneModelUri, null, Response.Status.OK.getStatusCode(), true);
+    ZNRecord oneRecord = OBJECT_MAPPER.readValue(oneResult, ZNRecord.class);
+
+    String twoResult =
+        get("clusters/" + cluster + "/statemodeldefs/" + twoModel, null, Response.Status.OK.getStatusCode(), true);
+    ZNRecord twoRecord = OBJECT_MAPPER.readValue(twoResult, ZNRecord.class);
+
+    // delete one, expect success
+    String deleteOneUri = urlBase + oneRecord.getId();
+    Response deleteOneRsp = target(deleteOneUri).request().delete();
+    Assert.assertEquals(deleteOneRsp.getStatus(), Response.Status.OK.getStatusCode());
+
+    Response queryRsp = target(oneModelUri).request().get();
+    Assert.assertTrue(queryRsp.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
+
+    // delete one again, expect success
+    Response deleteOneRsp2 = target(deleteOneUri).request().delete();
+    Assert.assertTrue(deleteOneRsp2.getStatus() == Response.Status.OK.getStatusCode());
+
+    // create the delete one, expect success
+    Response createOneRsp = target(oneModelUri).request()
+        .put(Entity.entity(OBJECT_MAPPER.writeValueAsString(oneRecord), MediaType.APPLICATION_JSON_TYPE));
+    Assert.assertTrue(createOneRsp.getStatus() == Response.Status.OK.getStatusCode());
+
+    // create the delete one again, expect failure
+    Response createOneRsp2 = target(oneModelUri).request()
+        .put(Entity.entity(OBJECT_MAPPER.writeValueAsString(oneRecord), MediaType.APPLICATION_JSON_TYPE));
+    Assert.assertTrue(createOneRsp2.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
+
+    // set the delete one with a modification
+    ZNRecord newRecord = new ZNRecord(twoRecord, oneRecord.getId());
+    Response setOneRsp = target(oneModelUri).request()
+        .post(Entity.entity(OBJECT_MAPPER.writeValueAsString(newRecord), MediaType.APPLICATION_JSON_TYPE));
+    Assert.assertTrue(setOneRsp.getStatus() == Response.Status.OK.getStatusCode());
+
+    String oneResult2 = get(oneModelUri, null, Response.Status.OK.getStatusCode(), true);
+    ZNRecord oneRecord2 = OBJECT_MAPPER.readValue(oneResult2, ZNRecord.class);
+    Assert.assertEquals(oneRecord2, newRecord);
+
+    // set the delete one with original; namely restore the original condition
+    Response setOneRsp2 = target(oneModelUri).request()
+        .post(Entity.entity(OBJECT_MAPPER.writeValueAsString(oneRecord), MediaType.APPLICATION_JSON_TYPE));
+    Assert.assertTrue(setOneRsp2.getStatus() == Response.Status.OK.getStatusCode());
+
+    String oneResult3 = get(oneModelUri, null, Response.Status.OK.getStatusCode(), true);
+    ZNRecord oneRecord3 = OBJECT_MAPPER.readValue(oneResult3, ZNRecord.class);
+    Assert.assertEquals(oneRecord3, oneRecord);
+  }
+
+  @Test(dependsOnMethods = "testGetStateModelDef")
   public void testActivateSuperCluster() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     final String ACTIVATE_SUPER_CLUSTER = "RestSuperClusterActivationTest_SuperCluster";

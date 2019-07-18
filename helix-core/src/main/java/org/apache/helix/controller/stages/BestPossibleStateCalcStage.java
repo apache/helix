@@ -257,9 +257,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         // Check if calculation is done successfully
         return checkBestPossibleStateCalculation(idealState);
       } catch (HelixException e){
-        //No eligible instance is found.
+        // No eligible instance is found.
         LogUtil
-            .logError(logger, _eventId, "PartitionStateAssignment is null. Skipping.");
+            .logError(logger, _eventId, e.getMessage());
       } catch (Exception e) {
         LogUtil
             .logError(logger, _eventId, "Error computing assignment for resource " + resourceName + ". Skipping.", e);

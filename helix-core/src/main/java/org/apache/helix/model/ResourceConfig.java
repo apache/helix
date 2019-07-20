@@ -19,18 +19,22 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import java.util.TreeMap;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Resource configurations
@@ -53,7 +57,8 @@ public class ResourceConfig extends HelixProperty {
     RESOURCE_TYPE,
     GROUP_ROUTING_ENABLED,
     EXTERNAL_VIEW_DISABLED,
-    DELAY_REBALANCE_ENABLED
+    DELAY_REBALANCE_ENABLED,
+    PARTITION_CAPACITY_MAP
   }
 
   public enum ResourceConfigConstants {
@@ -61,6 +66,10 @@ public class ResourceConfig extends HelixProperty {
   }
 
   private static final Logger _logger = LoggerFactory.getLogger(ResourceConfig.class.getName());
+  private static final ObjectMapper _objectMapper = new ObjectMapper();
+
+  public static final String DEFAULT_PARTITION_KEY = "DEFAULT";
+
   /**
    * Instantiate for a specific instance
    *
@@ -347,6 +356,57 @@ public class ResourceConfig extends HelixProperty {
    */
   public void setPreferenceLists(Map<String, List<String>> instanceLists) {
     _record.setListFields(instanceLists);
+  }
+
+  /**
+   * Get the partition capacity information from a JSON among the map fields.
+   * <CapacityKey, <PartitionName or DEFAULT_PARTITION_KEY, Capacity Number>>
+   *
+   * @return data map if it exists, or empty map
+   * @throws IOException - when JSON conversion fails
+   */
+  public Map<String, Map<String, Integer>> getPartitionCapacityMap() throws IOException {
+    Map<String, String> capacityData =
+        _record.getMapField(ResourceConfigProperty.PARTITION_CAPACITY_MAP.name());
+    Map<String, Map<String, Integer>> partitionCapacityMap = new HashMap<>();
+    if (capacityData != null) {
+      for (String key : capacityData.keySet()) {
+        Map<String, Integer> capacities = _objectMapper
+            .readValue(capacityData.get(key), new TypeReference<Map<String, Integer>>() {});
+        partitionCapacityMap.put(key, capacities);
+      }
+    }
+    return partitionCapacityMap;
+  }
+
+  /**
+   * Set the partition capacity information with a map <CapacityKey, <PartitionName or DEFAULT_PARTITION_KEY, Capacity Number>>
+   *
+   * @param partitionCapacityMap - map of partition capacity data
+   * @throws IllegalArgumentException - when any of the data value is a negative number or map is empty
+   * @throws IOException              - when JSON parsing fails
+   */
+  public void setPartitionCapacityMap(Map<String, Map<String, Integer>> partitionCapacityMap)
+      throws IllegalArgumentException, IOException {
+    if (partitionCapacityMap == null || partitionCapacityMap.isEmpty()) {
+      throw new IllegalArgumentException("Capacity Map is empty");
+    }
+
+    // Verify the input is valid
+    Map<String, String> newCapacityRecord = new HashMap<>();
+    for (String key : partitionCapacityMap.keySet()) {
+      Map<String, Integer> capacities = partitionCapacityMap.get(key);
+      if (capacities.isEmpty()) {
+        throw new IllegalArgumentException("Capacity Data is empty");
+      }
+      if (capacities.entrySet().stream().anyMatch(entry -> entry.getValue() < 0)) {
+        throw new IllegalArgumentException(
+            String.format("Capacity Data contains a negative value:%s", capacities.toString()));
+      }
+      newCapacityRecord.put(key, _objectMapper.writeValueAsString(capacities));
+    }
+
+    _record.setMapField(ResourceConfigProperty.PARTITION_CAPACITY_MAP.name(), newCapacityRecord);
   }
 
   /**

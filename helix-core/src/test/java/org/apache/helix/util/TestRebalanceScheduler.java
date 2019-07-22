@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import org.apache.commons.math.stat.inference.TestUtils;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -55,8 +56,9 @@ public class TestRebalanceScheduler extends ZkTestBase {
 
     IdealState newIdealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, resourceName);
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     ResourceConfig newResourceConfig =
-        _configAccessor.getResourceConfig(CLUSTER_NAME, resourceName);
+        accessor.getProperty(accessor.keyBuilder().resourceConfig(resourceName));
 
     // Starting version should be 0 and finally the version should be same as NUM_ATTEMPTS
     Assert.assertTrue(idealState.getRecord().equals(newIdealState.getRecord()));

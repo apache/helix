@@ -322,6 +322,22 @@ public class WorkflowConfig extends ResourceConfig {
     return Builder.fromMap(configs).setWorkflowId(property.getId()).build();
   }
 
+  /**
+   * Build a WorkflowConfig from a HelixProperty.
+   *
+   * @param property a HelixProperty
+   * @return a WorkflowConfig if the property is a valid WorkflowConfig.
+   *         Otherwise return null
+   */
+  public static WorkflowConfig parseWorkflowConfig(HelixProperty property)
+      throws IllegalArgumentException {
+    Map<String, String> configs = property.getRecord().getSimpleFields();
+    if (!configs.containsKey(WorkflowConfigProperty.Dag.name())) {
+      return null;
+    }
+    return Builder.fromMap(configs).setWorkflowId(property.getId()).build();
+  }
+
   public static class Builder {
     private String _workflowId = null;
     private JobDag _taskDag = DEFAULT_JOB_DAG;

@@ -27,6 +27,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -844,6 +852,56 @@ public class TaskDriver {
         workflowConfigMap.put(resource.getKey(), config);
       } catch (IllegalArgumentException ex) {
         // ignore if it is not a workflow config.
+      }
+    }
+
+    return workflowConfigMap;
+  }
+
+  /**
+   * Batch get the configurations of all workflows in this cluster
+   * within the specified timeout in milliseconds.
+   *
+   * @param timeout a long integer presents the timeout, in milliseconds
+   * @return a map of <String, WorkflowConfig>
+   * @throws InterruptedException if the future thread was interrupted
+   * @throws ExecutionException if the future task completed exceptionally
+   * @throws TimeoutException if waiting for result timed out
+   */
+  public Map<String, WorkflowConfig> getWorkflows(long timeout)
+    throws CancellationException, InterruptedException, ExecutionException, TimeoutException {
+    if (timeout <= 0L) {
+      throw new IllegalArgumentException("timeout must be positive.");
+    }
+    
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    Future<Map<String, ResourceConfig>> future = executorService.submit(() ->
+        _accessor.getChildValuesMap(_accessor.keyBuilder().resourceConfigs()));
+
+    Map<String, ResourceConfig> resourceConfigMap;
+
+    try {
+      // Fetch resourceConfigMap.
+      // If timed out, throw TimeoutException and cancel the task.
+      resourceConfigMap = future.get(timeout, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException ex) {
+      throw new TimeoutException("Timed out waiting for ResourceConfig after " + timeout + " ms.");
+    } finally {
+      if (future != null && (!future.isDone() || !future.isCancelled())) {
+        future.cancel(true);
+      }
+      executorService.shutdown();
+    }
+
+    // Build WorkflowConfig map with ResourceConfig map.
+    Map<String, WorkflowConfig> workflowConfigMap = new HashMap<>();
+
+    for (Map.Entry<String, ResourceConfig> resource : resourceConfigMap.entrySet()) {
+      WorkflowConfig config = WorkflowConfig.parseWorkflowConfig(resource.getValue());
+      // It is a valid WorkflowConfig.
+      if (config != null) {
+        workflowConfigMap.put(resource.getKey(), config);
       }
     }
 

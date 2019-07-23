@@ -35,7 +35,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.HelixDataAccessor;
@@ -1152,7 +1151,6 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     ClusterEventProcessor(BaseControllerDataProvider cache,
         ClusterEventBlockingQueue eventBlockingQueue, String processorName) {
-      super("HelixController-pipeline-" + processorName);
       _cache = cache;
       _eventBlockingQueue = eventBlockingQueue;
       _processorName = processorName;
@@ -1165,7 +1163,11 @@ public class GenericHelixController implements IdealStateChangeListener,
               + _processorName);
       while (!isInterrupted()) {
         try {
-          handleEvent(_eventBlockingQueue.take(), _cache);
+          ClusterEvent newClusterEvent = _eventBlockingQueue.take();
+          String threadName = String.format(
+              "HelixController-pipeline-%s-(%s)", _processorName, newClusterEvent.getEventId());
+          this.setName(threadName);
+          handleEvent(newClusterEvent, _cache);
         } catch (InterruptedException e) {
           logger.warn("ClusterEventProcessor interrupted " + _processorName, e);
           interrupt();

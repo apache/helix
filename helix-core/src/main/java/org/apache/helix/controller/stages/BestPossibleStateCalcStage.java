@@ -250,6 +250,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         // The next release will support rebalancers that compute the mapping from start to finish
         partitionStateAssignment = mappingCalculator
             .computeBestPossiblePartitionState(cache, idealState, resource, currentStateOutput);
+
+        if (partitionStateAssignment == null) {
+          LogUtil.logWarn(logger, _eventId,
+              "PartitionStateAssignment is null, resource: " + resourceName);
+          return false;
+        }
+
         for (Partition partition : resource.getPartitions()) {
           Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
           output.setState(resourceName, partition, newStateMap);
@@ -263,19 +270,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       } catch (Exception e) {
         LogUtil.logError(logger, _eventId,
             "Error computing assignment for resource " + resourceName + ". Skipping.");
-        // TODO : remove this part after debugging NPE
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(String
-            .format("HelixManager is null : %s\n", event.getAttribute("helixmanager") == null));
-        sb.append(String.format("Rebalancer is null : %s\n", rebalancer == null));
-        sb.append(String.format("Calculated idealState is null : %s\n", idealState == null));
-        sb.append(String.format("MappingCaculator is null : %s\n", mappingCalculator == null));
-        sb.append(
-            String.format("PartitionAssignment is null : %s\n", partitionStateAssignment == null));
-        sb.append(String.format("Output is null : %s\n", output == null));
-
-        LogUtil.logError(logger, _eventId, sb.toString());
       }
     }
     // Exception or rebalancer is not found

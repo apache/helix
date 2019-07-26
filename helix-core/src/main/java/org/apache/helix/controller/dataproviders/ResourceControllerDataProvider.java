@@ -21,8 +21,11 @@ package org.apache.helix.controller.dataproviders;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
@@ -108,17 +111,18 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   public synchronized void refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
-
-    // Invalidate cached information
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.IDEAL_STATE)
-        || _propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE)
-        || _propertyDataChangedMap.get(HelixConstants.ChangeType.INSTANCE_CONFIG)
-        || _propertyDataChangedMap.get(HelixConstants.ChangeType.RESOURCE_CONFIG)) {
-      clearCachedResourceAssignments();
-    }
+    Set<HelixConstants.ChangeType> propertyRefreshed = new HashSet<>();
 
     // Refresh base
-    super.refresh(accessor);
+    super.refresh(accessor, propertyRefreshed);
+
+    // Invalidate cached information if any of the important data has been refreshed
+    if (propertyRefreshed.contains(HelixConstants.ChangeType.IDEAL_STATE)
+        || propertyRefreshed.contains(HelixConstants.ChangeType.LIVE_INSTANCE)
+        || propertyRefreshed.contains(HelixConstants.ChangeType.INSTANCE_CONFIG)
+        || propertyRefreshed.contains(HelixConstants.ChangeType.RESOURCE_CONFIG)) {
+      clearCachedResourceAssignments();
+    }
 
     // Refresh resource controller specific property caches
     refreshExternalViews(accessor);

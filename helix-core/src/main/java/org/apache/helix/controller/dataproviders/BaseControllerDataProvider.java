@@ -19,17 +19,6 @@ package org.apache.helix.controller.dataproviders;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
@@ -53,6 +42,18 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Common building block for controller to cache their data. This common building block contains
@@ -217,11 +218,12 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _instanceMessagesCache = new InstanceMessagesCache(_clusterName);
   }
 
-  private void refreshIdealState(final HelixDataAccessor accessor) {
+  private void refreshIdealState(final HelixDataAccessor accessor,
+      Set<HelixConstants.ChangeType> refreshedType) {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.IDEAL_STATE)) {
       _propertyDataChangedMap.put(HelixConstants.ChangeType.IDEAL_STATE, false);
-
       _idealStateCache.refresh(accessor);
+      refreshedType.add(HelixConstants.ChangeType.IDEAL_STATE);
     } else {
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("No ideal state change for %s cluster, %s pipeline", _clusterName,
@@ -229,11 +231,13 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     }
   }
 
-  private void refreshLiveInstances(final HelixDataAccessor accessor) {
+  private void refreshLiveInstances(final HelixDataAccessor accessor,
+      Set<HelixConstants.ChangeType> refreshedType) {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE)) {
       _propertyDataChangedMap.put(HelixConstants.ChangeType.LIVE_INSTANCE, false);
       _liveInstanceCache.refresh(accessor);
       _updateInstanceOfflineTime = true;
+      refreshedType.add(HelixConstants.ChangeType.LIVE_INSTANCE);
     } else {
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("No live instance change for %s cluster, %s pipeline", _clusterName,
@@ -241,13 +245,15 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     }
   }
 
-  private void refreshInstanceConfigs(final HelixDataAccessor accessor) {
+  private void refreshInstanceConfigs(final HelixDataAccessor accessor,
+      Set<HelixConstants.ChangeType> refreshedType) {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.INSTANCE_CONFIG)) {
       _propertyDataChangedMap.put(HelixConstants.ChangeType.INSTANCE_CONFIG, false);
       _instanceConfigCache.refresh(accessor);
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("Reloaded InstanceConfig for cluster %s, %s pipeline. Keys: %s", _clusterName,
               getPipelineName(), _instanceConfigCache.getPropertyMap().keySet()));
+      refreshedType.add(HelixConstants.ChangeType.INSTANCE_CONFIG);
     } else {
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("No instance config change for %s cluster, %s pipeline", _clusterName,
@@ -255,13 +261,15 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     }
   }
 
-  private void refreshResourceConfig(final HelixDataAccessor accessor) {
+  private void refreshResourceConfig(final HelixDataAccessor accessor,
+      Set<HelixConstants.ChangeType> refreshedType) {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.RESOURCE_CONFIG)) {
       _propertyDataChangedMap.put(HelixConstants.ChangeType.RESOURCE_CONFIG, false);
       _resourceConfigCache.refresh(accessor);
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("Reloaded ResourceConfig for cluster %s, %s pipeline. Cnt: %s", _clusterName,
               getPipelineName(), _resourceConfigCache.getPropertyMap().keySet().size()));
+      refreshedType.add(HelixConstants.ChangeType.RESOURCE_CONFIG);
     } else {
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("No resource config change for %s cluster, %s pipeline", _clusterName,
@@ -290,12 +298,20 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   public synchronized void refresh(HelixDataAccessor accessor) {
+    refresh(accessor, new HashSet<>());
+  }
+
+  /**
+   * @param accessor
+   * @param refreshedType Record the types that has been updated during the refresh.
+   */
+  protected synchronized void refresh(HelixDataAccessor accessor, Set<HelixConstants.ChangeType> refreshedType) {
     // Refresh raw data
     _clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
-    refreshIdealState(accessor);
-    refreshLiveInstances(accessor);
-    refreshInstanceConfigs(accessor);
-    refreshResourceConfig(accessor);
+    refreshIdealState(accessor, refreshedType);
+    refreshLiveInstances(accessor, refreshedType);
+    refreshInstanceConfigs(accessor, refreshedType);
+    refreshResourceConfig(accessor, refreshedType);
     _stateModelDefinitionCache.refresh(accessor);
     _clusterConstraintsCache.refresh(accessor);
     updateMaintenanceInfo(accessor);

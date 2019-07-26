@@ -48,6 +48,8 @@ public class TestGetWorkflowsTimeout extends TaskTestBase {
       _driver.pollForWorkflowState(workflow.getName(), TaskState.COMPLETED);
     }
 
+    _driver.startPool();
+
     // Disconnect ZkManager to make getWorkflows timeout.
     _manager.disconnect();
 
@@ -56,5 +58,7 @@ public class TestGetWorkflowsTimeout extends TaskTestBase {
     } catch (Exception e) {
       // Exepected timeout.
     }
+
+    _driver.shutdownPool();
   }
 }

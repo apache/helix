@@ -102,7 +102,9 @@ public class TaskDriver {
   private final HelixPropertyStore<ZNRecord> _propertyStore;
   private final HelixAdmin _admin;
   private final String _clusterName;
-  private final ExecutorService pool;
+  private final int _poolSize;
+
+  private ExecutorService pool;
 
   public TaskDriver(HelixManager manager) {
     this(manager.getClusterManagmentTool(), manager.getHelixDataAccessor(),
@@ -166,7 +168,15 @@ public class TaskDriver {
     _accessor = accessor;
     _propertyStore = propertyStore;
     _clusterName = clusterName;
-    pool = Executors.newFixedThreadPool(poolSize);
+    _poolSize = poolSize;
+  }
+
+
+  /**
+   *  Start TaskDriver's thread-pool.
+   */
+  public void startPool() {
+    pool = Executors.newFixedThreadPool(_poolSize);
   }
 
 
@@ -175,7 +185,7 @@ public class TaskDriver {
    *  first by calling shutdown to reject incoming tasks,
    *  and then calling shutdownNow, if necessary, to cancel any lingering tasks
    */
-  public void shutdown() {
+  public void shutdownPool() {
     // Disable new tasks from being submitted
     pool.shutdown();
     try {
@@ -930,18 +940,10 @@ public class TaskDriver {
    *
    * @param timeoutMills a positive long integer presents the timeout, in milliseconds.
    * @return a map of <String, WorkflowConfig>
-   * @throws CancellationException task that has not completed
-   * [by the end of the timeout] was cancelled
-   * @throws InterruptedException if the future thread was interrupted
-   * while waiting for result
-   * @throws ExecutionException if the future task completed exceptionally
    * @throws TimeoutException if waiting for result timed out
    */
   public Map<String, WorkflowConfig> getWorkflows(long timeoutMillis)
-    throws CancellationException,
-           InterruptedException,
-           ExecutionException,
-           TimeoutException {
+    throws TimeoutException {
     if (timeoutMillis < 0L) {
       throw new HelixException("TimeoutMillis must be positive.");
     }
@@ -955,8 +957,11 @@ public class TaskDriver {
           ? future.get()
           : future.get(timeoutMillis, TimeUnit.MILLISECONDS);
     } catch (TimeoutException ex) {
-      throw new TimeoutException("Timed out waiting for resource config after "
+      throw new TimeoutException("Timed out waiting for workflow config after "
           + timeoutMillis + " ms.");
+    } catch (ExecutionException | InterruptedException | CancellationException e) {
+      LOG.error("Failed to get workflow config. Returning an empty map.");
+      workflowConfigMap = Collections.emptyMap();
     } finally {
       future.cancel(true);
     }

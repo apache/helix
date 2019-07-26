@@ -82,6 +82,9 @@ public class TaskDriver {
   /** Default time out for monitoring workflow or job state */
   private final static int DEFAULT_TIMEOUT = 5 * 60 * 1000; /* 5 mins */
 
+  /** Default pool size for the executor service. */
+  private static final int DEFAULT_POOL_SIZE = 5;
+
   // HELIX-619 This is a temporary solution for too many ZK nodes issue.
   // Limit workflows/jobs creation to prevent the problem.
   //
@@ -99,14 +102,27 @@ public class TaskDriver {
   private final HelixPropertyStore<ZNRecord> _propertyStore;
   private final HelixAdmin _admin;
   private final String _clusterName;
+  private final ExecutorService pool;
 
   public TaskDriver(HelixManager manager) {
     this(manager.getClusterManagmentTool(), manager.getHelixDataAccessor(),
         manager.getHelixPropertyStore(), manager.getClusterName());
   }
 
+  public TaskDriver(HelixManager manager, int poolSize) {
+    this(manager.getClusterManagmentTool(),
+         manager.getHelixDataAccessor(),
+         manager.getHelixPropertyStore(),
+         manager.getClusterName(),
+         poolSize);
+  }
+
   public TaskDriver(HelixZkClient client, String clusterName) {
     this(client, new ZkBaseDataAccessor<>(client), clusterName);
+  }
+
+  public TaskDriver(HelixZkClient client, String clusterName, int poolSize) {
+    this(client, new ZkBaseDataAccessor<>(client), clusterName, poolSize);
   }
 
   public TaskDriver(HelixZkClient client, ZkBaseDataAccessor<ZNRecord> baseAccessor,
@@ -114,7 +130,21 @@ public class TaskDriver {
     this(new ZKHelixAdmin(client), new ZKHelixDataAccessor(clusterName, baseAccessor),
         new ZkHelixPropertyStore<>(baseAccessor, PropertyPathBuilder.propertyStore(clusterName),
             null),
-        clusterName);
+        clusterName,
+        DEFAULT_POOL_SIZE);
+  }
+
+  public TaskDriver(HelixZkClient client,
+                    ZkBaseDataAccessor<ZNRecord> baseAccessor,
+                    String clusterName,
+                    int poolSize) {
+    this(new ZKHelixAdmin(client),
+         new ZKHelixDataAccessor(clusterName, baseAccessor),
+         new ZkHelixPropertyStore<>(baseAccessor,
+             PropertyPathBuilder.propertyStore(clusterName),
+             null),
+         clusterName,
+         poolSize);
   }
 
   @Deprecated
@@ -123,13 +153,49 @@ public class TaskDriver {
     this(admin, accessor, propertyStore, clusterName);
   }
 
+  public TaskDriver(HelixAdmin admin,
+                    HelixDataAccessor accessor,
+                    HelixPropertyStore<ZNRecord> propertyStore,
+                    String clusterName) {
+    this(admin, accessor, propertyStore, clusterName, DEFAULT_POOL_SIZE);
+  }
+
   public TaskDriver(HelixAdmin admin, HelixDataAccessor accessor,
-      HelixPropertyStore<ZNRecord> propertyStore, String clusterName) {
+      HelixPropertyStore<ZNRecord> propertyStore, String clusterName, int poolSize) {
     _admin = admin;
     _accessor = accessor;
     _propertyStore = propertyStore;
     _clusterName = clusterName;
+    pool = Executors.newFixedThreadPool(poolSize);
   }
+
+
+  /**
+   *  Shutdown TaskDriver's thread-pool in two phases,
+   *  first by calling shutdown to reject incoming tasks,
+   *  and then calling shutdownNow, if necessary, to cancel any lingering tasks
+   */
+  public void shutdown() {
+    // Disable new tasks from being submitted
+    pool.shutdown();
+    try {
+      // Wait a while for existing tasks to terminate
+      if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+        // Cancel currently executing tasks
+        pool.shutdownNow();
+        // Wait a while for tasks to respond to being cancelled
+        if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+          LOG.error("Pool did not terminate.");
+        }
+      }
+    } catch (InterruptedException ie) {
+      // (Re-)Cancel if current thread also interrupted
+      pool.shutdownNow();
+      // Preserve interrupt status
+      Thread.currentThread().interrupt();
+    }
+  }
+
 
   /**
    * Schedules a new workflow
@@ -860,49 +926,39 @@ public class TaskDriver {
 
   /**
    * Batch get the configurations of all workflows in this cluster
-   * within the specified timeout in milliseconds.
+   * within a specified timeout in milliseconds.
    *
-   * @param timeout a long integer presents the timeout, in milliseconds
+   * @param timeoutMills a positive long integer presents the timeout, in milliseconds.
    * @return a map of <String, WorkflowConfig>
+   * @throws CancellationException task that has not completed
+   * [by the end of the timeout] was cancelled
    * @throws InterruptedException if the future thread was interrupted
+   * while waiting for result
    * @throws ExecutionException if the future task completed exceptionally
    * @throws TimeoutException if waiting for result timed out
    */
-  public Map<String, WorkflowConfig> getWorkflows(long timeout)
-    throws CancellationException, InterruptedException, ExecutionException, TimeoutException {
-    if (timeout <= 0L) {
-      throw new IllegalArgumentException("timeout must be positive.");
+  public Map<String, WorkflowConfig> getWorkflows(long timeoutMillis)
+    throws CancellationException,
+           InterruptedException,
+           ExecutionException,
+           TimeoutException {
+    if (timeoutMillis < 0L) {
+      throw new HelixException("TimeoutMillis must be positive.");
     }
-    
-    ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-    Future<Map<String, ResourceConfig>> future = executorService.submit(() ->
-        _accessor.getChildValuesMap(_accessor.keyBuilder().resourceConfigs()));
+    Map<String, WorkflowConfig> workflowConfigMap = null;
 
-    Map<String, ResourceConfig> resourceConfigMap;
+    Future<Map<String, WorkflowConfig>> future = pool.submit(() -> getWorkflows());
 
     try {
-      // Fetch resourceConfigMap.
-      // If timed out, throw TimeoutException and cancel the task.
-      resourceConfigMap = future.get(timeout, TimeUnit.MILLISECONDS);
+      workflowConfigMap = timeoutMillis == 0
+          ? future.get()
+          : future.get(timeoutMillis, TimeUnit.MILLISECONDS);
     } catch (TimeoutException ex) {
-      throw new TimeoutException("Timed out waiting for ResourceConfig after " + timeout + " ms.");
+      throw new TimeoutException("Timed out waiting for resource config after "
+          + timeoutMillis + " ms.");
     } finally {
-      if (future != null && (!future.isDone() || !future.isCancelled())) {
-        future.cancel(true);
-      }
-      executorService.shutdown();
-    }
-
-    // Build WorkflowConfig map with ResourceConfig map.
-    Map<String, WorkflowConfig> workflowConfigMap = new HashMap<>();
-
-    for (Map.Entry<String, ResourceConfig> resource : resourceConfigMap.entrySet()) {
-      WorkflowConfig config = WorkflowConfig.parseWorkflowConfig(resource.getValue());
-      // It is a valid WorkflowConfig.
-      if (config != null) {
-        workflowConfigMap.put(resource.getKey(), config);
-      }
+      future.cancel(true);
     }
 
     return workflowConfigMap;

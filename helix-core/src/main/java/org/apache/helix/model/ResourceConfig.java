@@ -360,27 +360,29 @@ public class ResourceConfig extends HelixProperty {
 
   /**
    * Get the partition capacity information from a JSON among the map fields.
-   * <CapacityKey, <PartitionName or DEFAULT_PARTITION_KEY, Capacity Number>>
+   * <PartitionName or DEFAULT_PARTITION_KEY, <Capacity Key, Capacity Number>>
    *
    * @return data map if it exists, or empty map
    * @throws IOException - when JSON conversion fails
    */
   public Map<String, Map<String, Integer>> getPartitionCapacityMap() throws IOException {
-    Map<String, String> capacityData =
+    Map<String, String> partitionCapacityData =
         _record.getMapField(ResourceConfigProperty.PARTITION_CAPACITY_MAP.name());
     Map<String, Map<String, Integer>> partitionCapacityMap = new HashMap<>();
-    if (capacityData != null) {
-      for (String key : capacityData.keySet()) {
+    if (partitionCapacityData != null) {
+      for (String partition : partitionCapacityData.keySet()) {
         Map<String, Integer> capacities = _objectMapper
-            .readValue(capacityData.get(key), new TypeReference<Map<String, Integer>>() {});
-        partitionCapacityMap.put(key, capacities);
+            .readValue(partitionCapacityData.get(partition),
+                new TypeReference<Map<String, Integer>>() {
+                });
+        partitionCapacityMap.put(partition, capacities);
       }
     }
     return partitionCapacityMap;
   }
 
   /**
-   * Set the partition capacity information with a map <CapacityKey, <PartitionName or DEFAULT_PARTITION_KEY, Capacity Number>>
+   * Set the partition capacity information with a map <PartitionName or DEFAULT_PARTITION_KEY, <Capacity Key, Capacity Number>>
    *
    * @param partitionCapacityMap - map of partition capacity data
    * @throws IllegalArgumentException - when any of the data value is a negative number or map is empty
@@ -391,11 +393,16 @@ public class ResourceConfig extends HelixProperty {
     if (partitionCapacityMap == null || partitionCapacityMap.isEmpty()) {
       throw new IllegalArgumentException("Capacity Map is empty");
     }
+    if (!partitionCapacityMap.containsKey(DEFAULT_PARTITION_KEY)) {
+      throw new IllegalArgumentException(String
+          .format("The default partition capacity with the default key %s is required.",
+              DEFAULT_PARTITION_KEY));
+    }
 
     // Verify the input is valid
     Map<String, String> newCapacityRecord = new HashMap<>();
-    for (String key : partitionCapacityMap.keySet()) {
-      Map<String, Integer> capacities = partitionCapacityMap.get(key);
+    for (String partition : partitionCapacityMap.keySet()) {
+      Map<String, Integer> capacities = partitionCapacityMap.get(partition);
       if (capacities.isEmpty()) {
         throw new IllegalArgumentException("Capacity Data is empty");
       }
@@ -403,7 +410,7 @@ public class ResourceConfig extends HelixProperty {
         throw new IllegalArgumentException(
             String.format("Capacity Data contains a negative value:%s", capacities.toString()));
       }
-      newCapacityRecord.put(key, _objectMapper.writeValueAsString(capacities));
+      newCapacityRecord.put(partition, _objectMapper.writeValueAsString(capacities));
     }
 
     _record.setMapField(ResourceConfigProperty.PARTITION_CAPACITY_MAP.name(), newCapacityRecord);

@@ -102,7 +102,8 @@ public class TestResourceConfig {
         "item2", 2,
         "item3", 3);
 
-    Map<String, Map<String, Integer>> totalCapacityMap = ImmutableMap.of("partition1", capacityDataMap,
+    Map<String, Map<String, Integer>> totalCapacityMap =
+        ImmutableMap.of(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMap,
         "partition2", capacityDataMap,
         "partition3", capacityDataMap);
 
@@ -110,9 +111,9 @@ public class TestResourceConfig {
     testConfig.setPartitionCapacityMap(totalCapacityMap);
 
     Assert.assertNull(testConfig.getRecord().getMapField(ResourceConfig.ResourceConfigProperty.
-        PARTITION_CAPACITY_MAP.name()).get(ResourceConfig.DEFAULT_PARTITION_KEY));
+        PARTITION_CAPACITY_MAP.name()).get("partition1"));
     Assert.assertEquals(testConfig.getRecord().getMapField(ResourceConfig.ResourceConfigProperty.
-            PARTITION_CAPACITY_MAP.name()).get("partition1"),
+        PARTITION_CAPACITY_MAP.name()).get(ResourceConfig.DEFAULT_PARTITION_KEY),
         _objectMapper.writeValueAsString(capacityDataMap));
     Assert.assertEquals(testConfig.getRecord().getMapField(ResourceConfig.ResourceConfigProperty.
             PARTITION_CAPACITY_MAP.name()).get("partition2"),
@@ -129,6 +130,15 @@ public class TestResourceConfig {
     ResourceConfig testConfig = new ResourceConfig("testConfig");
     testConfig.setPartitionCapacityMap(
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMap));
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "The default partition capacity with the default key DEFAULT is required.")
+  public void testSetPartitionCapacityMapWithoutDefault() throws IOException {
+    Map<String, Integer> capacityDataMap = new HashMap<>();
+
+    ResourceConfig testConfig = new ResourceConfig("testConfig");
+    testConfig.setPartitionCapacityMap(
+        Collections.singletonMap("Random", capacityDataMap));
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Capacity Data contains a negative value:.+")

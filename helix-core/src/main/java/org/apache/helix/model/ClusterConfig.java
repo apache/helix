@@ -19,18 +19,20 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Cluster configurations
@@ -80,7 +82,19 @@ public class ClusterConfig extends HelixProperty {
     DISABLED_INSTANCES,
 
     // Specifies job types and used for quota allocation
-    QUOTA_TYPES
+    QUOTA_TYPES,
+
+    // The required instance capacity keys for resource partition assignment calculation.
+    INSTANCE_CAPACITY_KEYS,
+    // The preference of the rebalance result.
+    // EVENNESS - Evenness of the resource utilization, partition, and top state distribution.
+    // LESS_MOVEMENT - the tendency of keeping the current assignment instead of moving the partition for optimal assignment.
+    REBALANCE_PREFERENCE
+  }
+
+  public enum GlobalRebalancePreferenceKey {
+    EVENNESS,
+    LESS_MOVEMENT
   }
 
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
@@ -93,6 +107,15 @@ public class ClusterConfig extends HelixProperty {
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
 
   public final static String TASK_QUOTA_RATIO_NOT_SET = "-1";
+
+  // Default preference for all the aspects should be the same to ensure balanced setup.
+  public final static Map<GlobalRebalancePreferenceKey, Integer>
+      DEFAULT_GLOBAL_REBALANCE_PREFERENCE =
+      ImmutableMap.<GlobalRebalancePreferenceKey, Integer>builder()
+          .put(GlobalRebalancePreferenceKey.EVENNESS, 1)
+          .put(GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1).build();
+  private final static int MAX_REBALANCE_PREFERENCE = 10;
+  private final static int MIN_REBALANCE_PREFERENCE = 0;
 
   /**
    * Instantiate for a specific cluster
@@ -112,21 +135,21 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Set task quota type with the ratio of this quota.
-   * @param quotaType String
+   * @param quotaType  String
    * @param quotaRatio int
    */
   public void setTaskQuotaRatio(String quotaType, int quotaRatio) {
     if (_record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()) == null) {
       _record.setMapField(ClusterConfigProperty.QUOTA_TYPES.name(), new HashMap<String, String>());
     }
-    _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()).put(quotaType,
-        Integer.toString(quotaRatio));
+    _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name())
+        .put(quotaType, Integer.toString(quotaRatio));
   }
 
   /**
    * Set task quota type with the ratio of this quota. Quota ratio must be a String that is
    * parse-able into an int.
-   * @param quotaType String
+   * @param quotaType  String
    * @param quotaRatio String
    */
   public void setTaskQuotaRatio(String quotaType, String quotaRatio) {
@@ -209,8 +232,8 @@ public class ClusterConfig extends HelixProperty {
    * @return
    */
   public Boolean isPersistIntermediateAssignment() {
-    return _record.getBooleanField(ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString(),
-        false);
+    return _record
+        .getBooleanField(ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString(), false);
   }
 
   /**
@@ -232,8 +255,8 @@ public class ClusterConfig extends HelixProperty {
   }
 
   public Boolean isPipelineTriggersDisabled() {
-    return _record.getBooleanField(ClusterConfigProperty.HELIX_DISABLE_PIPELINE_TRIGGERS.toString(),
-        false);
+    return _record
+        .getBooleanField(ClusterConfigProperty.HELIX_DISABLE_PIPELINE_TRIGGERS.toString(), false);
   }
 
   /**
@@ -402,8 +425,8 @@ public class ClusterConfig extends HelixProperty {
    * @return
    */
   public int getNumOfflineInstancesForAutoExit() {
-    return _record.getIntField(ClusterConfigProperty.NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT.name(),
-        -1);
+    return _record
+        .getIntField(ClusterConfigProperty.NUM_OFFLINE_INSTANCES_FOR_AUTO_EXIT.name(), -1);
   }
 
   /**
@@ -443,9 +466,7 @@ public class ClusterConfig extends HelixProperty {
     if (obj instanceof ClusterConfig) {
       ClusterConfig that = (ClusterConfig) obj;
 
-      if (this.getId().equals(that.getId())) {
-        return true;
-      }
+      return this.getId().equals(that.getId());
     }
     return false;
   }
@@ -489,8 +510,8 @@ public class ClusterConfig extends HelixProperty {
     }
 
     if (!configStrs.isEmpty()) {
-      _record.setListField(ClusterConfigProperty.STATE_TRANSITION_THROTTLE_CONFIGS.name(),
-          configStrs);
+      _record
+          .setListField(ClusterConfigProperty.STATE_TRANSITION_THROTTLE_CONFIGS.name(), configStrs);
     }
   }
 
@@ -578,7 +599,7 @@ public class ClusterConfig extends HelixProperty {
   public int getErrorPartitionThresholdForLoadBalance() {
     return _record.getIntField(
         ClusterConfigProperty.ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE.name(),
-        DEFAULT_ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE);
+            DEFAULT_ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE);
   }
 
   /**
@@ -654,6 +675,70 @@ public class ClusterConfig extends HelixProperty {
    */
   public void enableP2PMessage(boolean enabled) {
     _record.setBooleanField(HelixConfigProperty.P2P_MESSAGE_ENABLED.name(), enabled);
+  }
+
+  /**
+   * Set the required Instance Capacity Keys.
+   * @param capacityKeys
+   */
+  public void setInstanceCapacityKeys(List<String> capacityKeys) {
+    if (capacityKeys == null || capacityKeys.isEmpty()) {
+      throw new IllegalArgumentException("The input instance capacity key list is empty.");
+    }
+    _record.setListField(ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), capacityKeys);
+  }
+
+  /**
+   * @return The required Instance Capacity Keys. If not configured, return an empty list.
+   */
+  public List<String> getInstanceCapacityKeys() {
+    List<String> capacityKeys = _record.getListField(ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name());
+    if (capacityKeys == null) {
+      return Collections.emptyList();
+    }
+    return capacityKeys;
+  }
+
+  /**
+   * Set the global rebalancer's assignment preference.
+   * @param preference A map of the GlobalRebalancePreferenceKey and the corresponding weight.
+   *                   The ratio of the configured weights will determine the rebalancer's behavior.
+   */
+  public void setGlobalRebalancePreference(Map<GlobalRebalancePreferenceKey, Integer> preference) {
+    Map<String, String> preferenceMap = new HashMap<>();
+
+    preference.entrySet().stream().forEach(entry -> {
+      if (entry.getValue() > MAX_REBALANCE_PREFERENCE
+          || entry.getValue() < MIN_REBALANCE_PREFERENCE) {
+        throw new IllegalArgumentException(String
+            .format("Invalid global rebalance preference configuration. Key %s, Value %d.",
+                entry.getKey().name(), entry.getValue()));
+      }
+      preferenceMap.put(entry.getKey().name(), Integer.toString(entry.getValue()));
+    });
+
+    _record.setMapField(ClusterConfigProperty.REBALANCE_PREFERENCE.name(), preferenceMap);
+  }
+
+  /**
+   * Get the global rebalancer's assignment preference.
+   */
+  public Map<GlobalRebalancePreferenceKey, Integer> getGlobalRebalancePreference() {
+    Map<String, String> preferenceStrMap =
+        _record.getMapField(ClusterConfigProperty.REBALANCE_PREFERENCE.name());
+    if (preferenceStrMap != null && !preferenceStrMap.isEmpty()) {
+      Map<GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
+      for (GlobalRebalancePreferenceKey key : GlobalRebalancePreferenceKey.values()) {
+        if (!preferenceStrMap.containsKey(key.name())) {
+          // If any key is not configured with a value, return the default config.
+          return DEFAULT_GLOBAL_REBALANCE_PREFERENCE;
+        }
+        preference.put(key, Integer.parseInt(preferenceStrMap.get(key.name())));
+      }
+      return preference;
+    }
+    // If configuration is not complete, return the default one.
+    return DEFAULT_GLOBAL_REBALANCE_PREFERENCE;
   }
 
   /**

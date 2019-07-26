@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Instance configurations
@@ -513,13 +514,12 @@ public class InstanceConfig extends HelixProperty {
   public Map<String, Integer> getInstanceCapacityMap() {
     Map<String, String> capacityData =
         _record.getMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name());
-    Map<String, Integer> capacityDataMap = new HashMap<>();
 
     if (capacityData != null) {
-      capacityData.entrySet().stream().forEach(
-          entry -> capacityDataMap.put(entry.getKey(), Integer.parseInt(entry.getValue())));
+      return capacityData.entrySet().stream().collect(
+          Collectors.toMap(entry -> entry.getKey(), entry -> Integer.parseInt(entry.getValue())));
     }
-    return capacityDataMap;
+    return Collections.emptyMap();
   }
 
   /**

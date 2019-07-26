@@ -151,4 +151,36 @@ public class TestResourceConfig {
     testConfig.setPartitionCapacityMap(
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMap));
   }
+
+  @Test
+  public void testWithResourceBuilder() throws IOException {
+    Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
+        "item2", 2,
+        "item3", 3);
+
+    ResourceConfig.Builder builder = new ResourceConfig.Builder("testConfig");
+    builder.setPartitionCapacity(capacityDataMap);
+    builder.setPartitionCapacity("partition1", capacityDataMap);
+
+    Assert.assertEquals(
+        builder.build().getPartitionCapacityMap().get(ResourceConfig.DEFAULT_PARTITION_KEY),
+        capacityDataMap);
+    Assert.assertEquals(
+        builder.build().getPartitionCapacityMap().get("partition1"),
+        capacityDataMap);
+    Assert.assertNull(
+        builder.build().getPartitionCapacityMap().get("Random"));
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "The default partition capacity with the default key DEFAULT is required.")
+  public void testWithResourceBuilderInvalidInput() {
+    Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
+        "item2", 2,
+        "item3", 3);
+
+    ResourceConfig.Builder builder = new ResourceConfig.Builder("testConfig");
+    builder.setPartitionCapacity("Random", capacityDataMap);
+
+    builder.build();
+  }
 }

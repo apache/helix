@@ -19,6 +19,7 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.HelixConfigProperty;
@@ -399,10 +400,10 @@ public class ResourceConfig extends HelixProperty {
               DEFAULT_PARTITION_KEY));
     }
 
-    // Verify the input is valid
     Map<String, String> newCapacityRecord = new HashMap<>();
     for (String partition : partitionCapacityMap.keySet()) {
       Map<String, Integer> capacities = partitionCapacityMap.get(partition);
+      // Verify the input is valid
       if (capacities.isEmpty()) {
         throw new IllegalArgumentException("Capacity Data is empty");
       }
@@ -543,6 +544,7 @@ public class ResourceConfig extends HelixProperty {
     private StateTransitionTimeoutConfig _stateTransitionTimeoutConfig;
     private Map<String, List<String>> _preferenceLists;
     private Map<String, Map<String, String>> _mapFields;
+    private Map<String, Map<String, Integer>> _partitionCapacityMap;
 
     public Builder(String resourceId) {
       _resourceId = resourceId;
@@ -731,6 +733,23 @@ public class ResourceConfig extends HelixProperty {
       return _preferenceLists;
     }
 
+    public Builder setPartitionCapacity(Map<String, Integer> defaultCapacity) {
+      setPartitionCapacity(DEFAULT_PARTITION_KEY, defaultCapacity);
+      return this;
+    }
+
+    public Builder setPartitionCapacity(String partition, Map<String, Integer> capacity) {
+      if (_partitionCapacityMap == null) {
+        _partitionCapacityMap = new HashMap<>();
+      }
+      _partitionCapacityMap.put(partition, capacity);
+      return this;
+    }
+
+    public Map<String, Integer> getPartitionCapacity(String partition) {
+      return _partitionCapacityMap.get(partition);
+    }
+
     public Builder setMapField(String key, Map<String, String> fields) {
       if (_mapFields == null) {
         _mapFields = new TreeMap<>();
@@ -775,17 +794,38 @@ public class ResourceConfig extends HelixProperty {
           }
         }
       }
+
+      if (_partitionCapacityMap != null) {
+        if (_partitionCapacityMap.keySet().stream()
+            .noneMatch(partition -> partition.equals(DEFAULT_PARTITION_KEY))) {
+          throw new IllegalArgumentException(
+              "Partition capacity is configured without the DEFAULT capacity!");
+        }
+        if (_partitionCapacityMap.values().stream()
+            .anyMatch(capacity -> capacity.values().stream().anyMatch(value -> value < 0))) {
+          throw new IllegalArgumentException(
+              "Partition capacity is configured with negative capacity value!");
+        }
+      }
     }
 
     public ResourceConfig build() {
       // TODO: Reenable the validation in the future when ResourceConfig is ready.
       // validate();
 
-      return new ResourceConfig(_resourceId, _monitorDisabled, _numPartitions, _stateModelDefRef,
+      ResourceConfig config = new ResourceConfig(_resourceId, _monitorDisabled, _numPartitions, _stateModelDefRef,
           _stateModelFactoryName, _numReplica, _minActiveReplica, _maxPartitionsPerInstance,
           _instanceGroupTag, _helixEnabled, _resourceGroupName, _resourceType, _groupRoutingEnabled,
           _externalViewDisabled, _rebalanceConfig, _stateTransitionTimeoutConfig, _preferenceLists,
           _mapFields, _p2pMessageEnabled);
+      if (_partitionCapacityMap != null) {
+        try {
+          config.setPartitionCapacityMap(_partitionCapacityMap);
+        } catch (IOException e) {
+          throw new HelixException("Failed to generate the capacity configuration.", e);
+        }
+      }
+      return config;
     }
   }
 }

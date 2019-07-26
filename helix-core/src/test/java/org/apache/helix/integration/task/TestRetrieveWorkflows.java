@@ -31,11 +31,15 @@ import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestRetrieveWorkflows extends TaskTestBase {
-  @Test public void testGetAllWorkflows() throws Exception {
-    List<Workflow> workflowList = new ArrayList<Workflow>();
+  private List<Workflow> workflowList;
+
+  @BeforeClass
+  private void buildWorkflows() throws Exception {
+    workflowList = new ArrayList<Workflow>();
     for (int i = 0; i < 2; i++) {
       Workflow workflow = WorkflowGenerator
           .generateDefaultRepeatedJobWorkflowBuilder(TestHelper.getTestMethodName() + i).build();
@@ -45,46 +49,38 @@ public class TestRetrieveWorkflows extends TaskTestBase {
 
     for (Workflow workflow : workflowList) {
       _driver.pollForWorkflowState(workflow.getName(), TaskState.COMPLETED);
-    }
-
-    Map<String, WorkflowConfig> workflowConfigMap = _driver.getWorkflows();
-    Assert.assertEquals(workflowConfigMap.size(), workflowList.size());
-
-    for (Map.Entry<String, WorkflowConfig> workflow : workflowConfigMap.entrySet()) {
-      WorkflowConfig workflowConfig = workflow.getValue();
-      WorkflowContext workflowContext = _driver.getWorkflowContext(workflow.getKey());
-      Assert.assertNotNull(workflowContext);
-
-      for (String job : workflowConfig.getJobDag().getAllNodes()) {
-        JobConfig jobConfig = _driver.getJobConfig(job);
-        JobContext jobContext = _driver.getJobContext(job);
-
-        Assert.assertNotNull(jobConfig);
-        Assert.assertNotNull(jobContext);
-      }
     }
   }
 
   @Test
+  public void testGetAllWorkflows() throws Exception {
+    Map<String, WorkflowConfig> workflowConfigMap = _driver.getWorkflows();
+    verifyConfig(workflowConfigMap);
+  }
+
+  @Test
   public void testGetWorkflowsTimeoutDisabled() throws Exception {
-    List<Workflow> workflowList = new ArrayList<>();
-    for (int i = 0; i < 2; i++) {
-      Workflow workflow = WorkflowGenerator
-          .generateDefaultRepeatedJobWorkflowBuilder(TestHelper.getTestMethodName() + i).build();
-      _driver.start(workflow);
-      workflowList.add(workflow);
-    }
-
-    for (Workflow workflow : workflowList) {
-      _driver.pollForWorkflowState(workflow.getName(), TaskState.COMPLETED);
-    }
-
     _driver.startPool();
 
     Map<String, WorkflowConfig> workflowConfigMap = _driver.getWorkflows(0L);
 
     _driver.shutdownPool();
 
+    verifyConfig(workflowConfigMap);
+  }
+
+  @Test
+  public void testGetWorkflowsWithinTimeout() throws Exception {
+    _driver.startPool();
+
+    Map<String, WorkflowConfig> workflowConfigMap = _driver.getWorkflows(2_000L);
+
+    _driver.shutdownPool();
+
+    verifyConfig(workflowConfigMap);
+  }
+
+  private void verifyConfig(Map<String, WorkflowConfig> workflowConfigMap) {
     Assert.assertEquals(workflowConfigMap.size(), workflowList.size());
 
     for (Map.Entry<String, WorkflowConfig> workflow : workflowConfigMap.entrySet()) {

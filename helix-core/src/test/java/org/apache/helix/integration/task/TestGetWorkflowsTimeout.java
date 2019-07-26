@@ -31,12 +31,13 @@ import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestGetWorkflowsTimeout extends TaskTestBase {
-  @Test
-  public void testGetWorkflowsTimeout() throws Exception {
-    List<Workflow> workflowList = new ArrayList<>();
+  @BeforeClass
+  private void buildWorkflows() throws Exception {
+    List<Workflow> workflowList = new ArrayList<Workflow>();
     for (int i = 0; i < 2; i++) {
       Workflow workflow = WorkflowGenerator
           .generateDefaultRepeatedJobWorkflowBuilder(TestHelper.getTestMethodName() + i).build();
@@ -47,7 +48,10 @@ public class TestGetWorkflowsTimeout extends TaskTestBase {
     for (Workflow workflow : workflowList) {
       _driver.pollForWorkflowState(workflow.getName(), TaskState.COMPLETED);
     }
+  }
 
+  @Test
+  public void testGetWorkflowsTimeout() throws Exception {
     _driver.startPool();
 
     // Disconnect ZkManager to make getWorkflows timeout.

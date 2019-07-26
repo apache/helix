@@ -82,6 +82,8 @@ public class TaskDriver {
   /** Default time out for monitoring workflow or job state */
   private final static int DEFAULT_TIMEOUT = 5 * 60 * 1000; /* 5 mins */
 
+  private static final int POOL_SHUTDOWN_TIMEOUT = 10;
+
   /** Default pool size for the executor service. */
   private static final int DEFAULT_POOL_SIZE = 5;
 
@@ -190,11 +192,11 @@ public class TaskDriver {
     pool.shutdown();
     try {
       // Wait a while for existing tasks to terminate
-      if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+      if (!pool.awaitTermination(POOL_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS)) {
         // Cancel currently executing tasks
         pool.shutdownNow();
         // Wait a while for tasks to respond to being cancelled
-        if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+        if (!pool.awaitTermination(POOL_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS)) {
           LOG.error("Pool did not terminate.");
         }
       }

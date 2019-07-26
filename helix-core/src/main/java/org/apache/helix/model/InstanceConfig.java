@@ -19,6 +19,14 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import com.google.common.base.Splitter;
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixProperty;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.util.HelixUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,15 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.helix.HelixException;
-import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.util.HelixUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Splitter;
+import java.util.stream.Collectors;
 
 /**
  * Instance configurations
@@ -55,7 +55,8 @@ public class InstanceConfig extends HelixProperty {
     INSTANCE_WEIGHT,
     DOMAIN,
     DELAY_REBALANCE_ENABLED,
-    MAX_CONCURRENT_TASK
+    MAX_CONCURRENT_TASK,
+    INSTANCE_CAPACITY_MAP
   }
 
   public static final int WEIGHT_NOT_SET = -1;
@@ -503,6 +504,47 @@ public class InstanceConfig extends HelixProperty {
 
   public void setMaxConcurrentTask(int maxConcurrentTask) {
     _record.setIntField(InstanceConfigProperty.MAX_CONCURRENT_TASK.name(), maxConcurrentTask);
+  }
+
+  /**
+   * Get the instance capacity information from the map fields
+   *
+   * @return data map if it exists, or empty map
+   */
+  public Map<String, Integer> getInstanceCapacityMap() {
+    Map<String, String> capacityData =
+        _record.getMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name());
+
+    if (capacityData != null) {
+      return capacityData.entrySet().stream().collect(
+          Collectors.toMap(entry -> entry.getKey(), entry -> Integer.parseInt(entry.getValue())));
+    }
+    return Collections.emptyMap();
+  }
+
+  /**
+   * Set the instance capacity information with an Integer mapping
+   * @param capacityDataMap - map of instance capacity data
+   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
+   */
+  public void setInstanceCapacityMap(Map<String, Integer> capacityDataMap)
+      throws IllegalArgumentException {
+    if (capacityDataMap == null || capacityDataMap.size() == 0) {
+      throw new IllegalArgumentException("Capacity Data is empty");
+    }
+
+    Map<String, String> capacityData = new HashMap<>();
+
+    capacityDataMap.entrySet().stream().forEach(entry -> {
+      if (entry.getValue() < 0) {
+        throw new IllegalArgumentException(String
+            .format("Capacity Data contains a negative value: %s = %d", entry.getKey(),
+                entry.getValue()));
+      }
+      capacityData.put(entry.getKey(), Integer.toString(entry.getValue()));
+    });
+
+    _record.setMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name(), capacityData);
   }
 
   @Override

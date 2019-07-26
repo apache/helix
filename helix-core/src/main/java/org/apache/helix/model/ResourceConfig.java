@@ -19,7 +19,6 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.HelixConfigProperty;
@@ -102,10 +101,24 @@ public class ResourceConfig extends HelixProperty {
       String stateModelDefRef, String stateModelFactoryName, String numReplica,
       int minActiveReplica, int maxPartitionsPerInstance, String instanceGroupTag,
       Boolean helixEnabled, String resourceGroupName, String resourceType,
-      Boolean groupRoutingEnabled, Boolean externalViewDisabled,
-      RebalanceConfig rebalanceConfig, StateTransitionTimeoutConfig stateTransitionTimeoutConfig,
+      Boolean groupRoutingEnabled, Boolean externalViewDisabled, RebalanceConfig rebalanceConfig,
+      StateTransitionTimeoutConfig stateTransitionTimeoutConfig,
       Map<String, List<String>> listFields, Map<String, Map<String, String>> mapFields,
       Boolean p2pMessageEnabled) {
+    this(resourceId, monitorDisabled, numPartitions, stateModelDefRef, stateModelFactoryName,
+        numReplica, minActiveReplica, maxPartitionsPerInstance, instanceGroupTag, helixEnabled,
+        resourceGroupName, resourceType, groupRoutingEnabled, externalViewDisabled, rebalanceConfig,
+        stateTransitionTimeoutConfig, listFields, mapFields, p2pMessageEnabled, null);
+  }
+
+  private ResourceConfig(String resourceId, Boolean monitorDisabled, int numPartitions,
+    String stateModelDefRef, String stateModelFactoryName, String numReplica,
+    int minActiveReplica, int maxPartitionsPerInstance, String instanceGroupTag,
+        Boolean helixEnabled, String resourceGroupName, String resourceType,
+        Boolean groupRoutingEnabled, Boolean externalViewDisabled,
+        RebalanceConfig rebalanceConfig, StateTransitionTimeoutConfig stateTransitionTimeoutConfig,
+        Map<String, List<String>> listFields, Map<String, Map<String, String>> mapFields,
+        Boolean p2pMessageEnabled, Map<String, Map<String, Integer>> partitionCapacityMap) {
     super(resourceId);
 
     if (monitorDisabled != null) {
@@ -181,6 +194,15 @@ public class ResourceConfig extends HelixProperty {
 
     if (mapFields != null) {
       _record.setMapFields(mapFields);
+    }
+
+    if (partitionCapacityMap != null) {
+      try {
+        setPartitionCapacityMap(partitionCapacityMap);
+      } catch (IOException e) {
+        throw new IllegalArgumentException(
+            "Failed to set partition capacity. Invalid capacity configuration.");
+      }
     }
   }
 
@@ -813,19 +835,11 @@ public class ResourceConfig extends HelixProperty {
       // TODO: Reenable the validation in the future when ResourceConfig is ready.
       // validate();
 
-      ResourceConfig config = new ResourceConfig(_resourceId, _monitorDisabled, _numPartitions, _stateModelDefRef,
+      return new ResourceConfig(_resourceId, _monitorDisabled, _numPartitions, _stateModelDefRef,
           _stateModelFactoryName, _numReplica, _minActiveReplica, _maxPartitionsPerInstance,
           _instanceGroupTag, _helixEnabled, _resourceGroupName, _resourceType, _groupRoutingEnabled,
           _externalViewDisabled, _rebalanceConfig, _stateTransitionTimeoutConfig, _preferenceLists,
-          _mapFields, _p2pMessageEnabled);
-      if (_partitionCapacityMap != null) {
-        try {
-          config.setPartitionCapacityMap(_partitionCapacityMap);
-        } catch (IOException e) {
-          throw new HelixException("Failed to generate the capacity configuration.", e);
-        }
-      }
-      return config;
+          _mapFields, _p2pMessageEnabled, _partitionCapacityMap);
     }
   }
 }

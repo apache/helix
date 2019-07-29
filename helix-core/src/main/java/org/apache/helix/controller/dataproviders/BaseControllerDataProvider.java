@@ -609,6 +609,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   /**
    * Notify the cache that some part of the cluster data has been changed.
+   *
+   * Don't lock the propertyDataChangedMap here because the refresh process, which also read this map,
+   * may take a long time to finish. If a lock is required, the notification might be blocked by refresh.
+   * In this case, the delayed notification processing might cause performance issue.
    */
   public void notifyDataChange(HelixConstants.ChangeType changeType) {
     _propertyDataChangedMap.get(changeType).set(true);

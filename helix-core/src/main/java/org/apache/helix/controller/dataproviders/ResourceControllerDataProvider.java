@@ -144,20 +144,16 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   private void refreshExternalViews(final HelixDataAccessor accessor) {
     // As we are not listening on external view change, external view will be
     // refreshed once during the cache's first refresh() call, or when full refresh is required
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW)) {
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW).getAndSet(false)) {
       _externalViewCache.refresh(accessor);
-      _propertyDataChangedMap.put(HelixConstants.ChangeType.EXTERNAL_VIEW, false);
     }
   }
 
   private void refreshTargetExternalViews(final HelixDataAccessor accessor) {
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW)) {
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW).getAndSet(false)) {
       if (getClusterConfig() != null && getClusterConfig().isTargetExternalViewEnabled()) {
+        // Only refresh with data accessor for the first time
         _targetExternalViewCache.refresh(accessor);
-
-        // Only set the change type back once we get refreshed with data accessor for the
-        // first time
-        _propertyDataChangedMap.put(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW, false);
       }
     }
   }

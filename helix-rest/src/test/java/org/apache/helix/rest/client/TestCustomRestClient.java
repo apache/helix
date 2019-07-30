@@ -1,12 +1,13 @@
 package org.apache.helix.rest.client;
 
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
@@ -17,15 +18,20 @@ import org.apache.http.impl.client.HttpClients;
 import org.junit.Assert;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 
 public class TestCustomRestClient {
+  private static final Logger LOG = Logger.getLogger(TestCustomRestClient.class.getName());
   private static final String HTTP_LOCALHOST = "http://localhost:1000";
+  static {
+    LOG.setLevel(Level.INFO);
+  }
   @Mock
   HttpClient _httpClient;
 
@@ -145,14 +151,113 @@ public class TestCustomRestClient {
     Assert.assertEquals(json.get("data").asText(), "{}");
   }
 
+  @Test (description = "Validate same http requests will get deduped and only be sent at most once")
+  public void testGetPartitionsStoppableCheckSameHttpRequestsShouldDedupe()
+      throws IOException, InterruptedException {
+    MockCustomRestClient customRestClient = new MockCustomRestClient(_httpClient);
+    String jsonResponse = "{\"test_partition\":{\"IS_HEALTHY\": \"false\"}}";
+
+    customRestClient.setJsonResponse(jsonResponse);
+    HttpResponse httpResponse = mock(HttpResponse.class);
+    StatusLine statusLine = mock(StatusLine.class);
+
+    when(statusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+    when(httpResponse.getStatusLine()).thenReturn(statusLine);
+    when(_httpClient.execute(any(HttpPost.class))).thenAnswer(new Answer<HttpResponse>() {
+      @Override
+      public HttpResponse answer(InvocationOnMock invocation) {
+        try {
+          // intentionally delay the response and verify if same requests will wait for 1st to return
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          LOG.info("Ignore the exception in test");
+        }
+        return httpResponse;
+      }
+    });
+
+    Runnable runnable = () -> {
+      try {
+        LOG.info("Executing " + Thread.currentThread().getName());
+        customRestClient.getPartitionStoppableCheck(HTTP_LOCALHOST, Collections.emptyList(), Collections.emptyMap());
+      } catch (IOException e) {
+        LOG.info("Ignore the exception in test");
+      }
+    };
+    long startTime = System.currentTimeMillis();
+    Thread[] threads = new Thread[10];
+    for (int i = 0; i < threads.length; i++) {
+      threads[i] = new Thread(runnable, "Thread: " + i);
+      threads[i].start();
+    }
+    for (Thread thread : threads) {
+      thread.join();
+    }
+
+    verify(_httpClient, times(1)).execute(any());
+    Assert.assertEquals(customRestClient.getCachedResults().size(), 1);
+    LOG.info("Elapsed time: " + (System.currentTimeMillis() - startTime));
+  }
+
+  @Test (description = "Validate different http requests will not get deduped nor wait for each other")
+  public void testGetPartitionsStoppableCheckDifferentHttpRequests()
+      throws IOException, InterruptedException {
+    MockCustomRestClient customRestClient = new MockCustomRestClient(_httpClient);
+
+    HttpResponse httpResponse = mock(HttpResponse.class);
+    StatusLine statusLine = mock(StatusLine.class);
+
+    when(statusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+    when(httpResponse.getStatusLine()).thenReturn(statusLine);
+    when(_httpClient.execute(any(HttpPost.class))).thenAnswer(new Answer<HttpResponse>() {
+      @Override
+      public HttpResponse answer(InvocationOnMock invocation) {
+        try {
+          // intentionally delay the response and verify if different requests will not wait for each other
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          LOG.info("Ignore the exception in test");
+        }
+        return httpResponse;
+      }
+    });
+
+    Runnable runnable = () -> {
+      try {
+        String threadName = Thread.currentThread().getName();
+        LOG.info("Executing " + threadName);
+        String jsonResponse = String.format("{\"%s\":{\"IS_HEALTHY\": \"false\"}}", threadName);
+        customRestClient.setJsonResponse(jsonResponse);
+        customRestClient.getPartitionStoppableCheck(HTTP_LOCALHOST, ImmutableList.of(threadName), Collections.emptyMap());
+      } catch (IOException e) {
+        LOG.info("Ignore the exception in test");
+      }
+    };
+    long startTime = System.currentTimeMillis();
+    Thread[] threads = new Thread[10];
+    for (int i = 0; i < threads.length; i++) {
+      threads[i] = new Thread(runnable, "Thread: " + i);
+      threads[i].start();
+    }
+    for (Thread thread : threads) {
+      thread.join();
+    }
+
+    verify(_httpClient, times(10)).execute(any());
+    // Cached map has size of 10, and each value is different
+    Assert.assertEquals(customRestClient.getCachedResults().values().size(), 10);
+    // The total elapsed time should be around 1 second
+    LOG.info("Elapsed time: " + (System.currentTimeMillis() - startTime));
+  }
+
   private class MockCustomRestClient extends CustomRestClientImpl {
-    private String _jsonResponse = "";
+    private String _jsonResponse = "{}";
 
     MockCustomRestClient(HttpClient mockHttpClient) {
       super(mockHttpClient);
     }
 
-    void setJsonResponse(String response) {
+    synchronized void setJsonResponse(String response) {
       _jsonResponse = response;
     }
 

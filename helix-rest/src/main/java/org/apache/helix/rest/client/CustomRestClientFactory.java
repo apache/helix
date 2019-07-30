@@ -33,34 +33,37 @@ import org.slf4j.LoggerFactory;
 public class CustomRestClientFactory {
   private static final Logger LOG = LoggerFactory.getLogger(CustomRestClientFactory.class);
 
-  private static CustomRestClient INSTANCE = null;
+  private static HttpClient HTTP_CLIENT_INSTANCE = null;
 
   private CustomRestClientFactory() {
   }
 
+  /**
+   * Because {@link CustomRestClientImpl} has a transient in-memory cache with lifecycle of one rest request, a new
+   * instance needs to be created
+   *
+   * @return an new instance of {@link CustomRestClient}
+   */
   public static CustomRestClient get() {
-    if (INSTANCE == null) {
+    return new CustomRestClientImpl(getHttpClient());
+  }
+
+  private static HttpClient getHttpClient() {
+    if (HTTP_CLIENT_INSTANCE == null) {
       synchronized (CustomRestClientFactory.class) {
-        if (INSTANCE == null) {
-          try {
-            HttpClient httpClient;
-            if (HelixRestServer.REST_SERVER_SSL_CONTEXT != null) {
-              httpClient =
-                  HttpClients.custom().setSSLContext(HelixRestServer.REST_SERVER_SSL_CONTEXT)
-                      .setSSLSocketFactory(new SSLConnectionSocketFactory(
-                          HelixRestServer.REST_SERVER_SSL_CONTEXT, new NoopHostnameVerifier()))
-                      .build();
-            } else {
-              httpClient = HttpClients.createDefault();
-            }
-            INSTANCE = new CustomRestClientImpl(httpClient);
-            return INSTANCE;
-          } catch (Exception e) {
-            LOG.error("Exception when initializing CustomRestClient", e);
+        if (HTTP_CLIENT_INSTANCE == null) {
+          if (HelixRestServer.REST_SERVER_SSL_CONTEXT != null) {
+            HTTP_CLIENT_INSTANCE = HttpClients.custom()
+                .setSSLContext(HelixRestServer.REST_SERVER_SSL_CONTEXT)
+                .setSSLSocketFactory(
+                    new SSLConnectionSocketFactory(HelixRestServer.REST_SERVER_SSL_CONTEXT, new NoopHostnameVerifier()))
+                .build();
+          } else {
+            HTTP_CLIENT_INSTANCE = HttpClients.createDefault();
           }
         }
       }
     }
-    return INSTANCE;
+    return HTTP_CLIENT_INSTANCE;
   }
 }

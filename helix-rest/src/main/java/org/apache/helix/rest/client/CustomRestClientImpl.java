@@ -19,11 +19,16 @@ package org.apache.helix.rest.client;
  * under the License.
  */
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Set;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -36,10 +41,10 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 
+/**
+ * The client interacts with customized rest endpoints on participant side
+ */
 class CustomRestClientImpl implements CustomRestClient {
   private static final Logger LOG = LoggerFactory.getLogger(CustomRestClient.class);
 
@@ -52,13 +57,16 @@ class CustomRestClientImpl implements CustomRestClient {
   private static final String ACCEPT_CONTENT_TYPE = "application/json";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private HttpClient _httpClient;
+  // Synchronization to allow the cached results blocks per key
+  private final Set<String> lockedKeys = new HashSet<>();
+  private final Map<String, Map<String, Boolean>> _cachedResults = new HashMap<>();
+  private final HttpClient _httpClient;
 
   private interface JsonConverter {
     Map<String, Boolean> convert(JsonNode jsonNode);
   }
 
-  public CustomRestClientImpl(HttpClient httpClient) {
+  CustomRestClientImpl(HttpClient httpClient) {
     _httpClient = httpClient;
   }
 
@@ -73,6 +81,7 @@ class CustomRestClientImpl implements CustomRestClient {
       jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asBoolean()));
       return result;
     };
+
     return handleResponse(post(url, customPayloads), jsonConverter);
   }
 
@@ -97,7 +106,45 @@ class CustomRestClientImpl implements CustomRestClient {
           kv -> result.put(kv.getKey(), kv.getValue().get(IS_HEALTHY_FIELD).asBoolean()));
       return result;
     };
-    return handleResponse(post(url, payLoads), jsonConverter);
+    String requestId = baseUrl + customPayloads.toString() + partitions.toString();
+    try {
+      lock(requestId);
+      if (_cachedResults.containsKey(requestId)) {
+        return _cachedResults.get(requestId);
+      }
+      Map<String, Boolean> result = handleResponse(post(url, payLoads), jsonConverter);
+      _cachedResults.put(requestId, result);
+      return result;
+    } catch (InterruptedException e) {
+      LOG.error("Error while acquiring the lock", e);
+    } finally {
+      unlock(requestId);
+    }
+    return Collections.emptyMap();
+  }
+
+  @VisibleForTesting
+  Map<String, Map<String, Boolean>> getCachedResults() {
+    return _cachedResults;
+  }
+
+  private void lock(String key) throws InterruptedException {
+    synchronized (lockedKeys) {
+      if (lockedKeys.contains(key)) {
+        LOG.debug(String.format("%s waits for %s", Thread.currentThread().getName(), key));
+        lockedKeys.wait();
+      }
+      LOG.debug(String.format("%s acquired key %s", Thread.currentThread().getName(), key));
+      lockedKeys.add(key);
+    }
+  }
+
+  private void unlock(String key) {
+    synchronized (lockedKeys) {
+      LOG.debug(String.format("%s release lock for %s", Thread.currentThread().getName(), key));
+      lockedKeys.remove(key);
+      lockedKeys.notifyAll();
+    }
   }
 
   @VisibleForTesting
@@ -122,18 +169,16 @@ class CustomRestClientImpl implements CustomRestClient {
 
   @VisibleForTesting
   protected HttpResponse post(String url, Map<String, String> payloads) throws IOException {
+    HttpPost postRequest = new HttpPost(url);
+    postRequest.setHeader("Accept", ACCEPT_CONTENT_TYPE);
+    StringEntity entity = new StringEntity(OBJECT_MAPPER.writeValueAsString(payloads), ContentType.APPLICATION_JSON);
+    postRequest.setEntity(entity);
     try {
-      HttpPost postRequest = new HttpPost(url);
-      postRequest.setHeader("Accept", ACCEPT_CONTENT_TYPE);
-      StringEntity entity = new StringEntity(OBJECT_MAPPER.writeValueAsString(payloads),
-          ContentType.APPLICATION_JSON);
-      postRequest.setEntity(entity);
       LOG.info("Executing request: {}, headers: {}, entity: {}", postRequest.getRequestLine(),
           postRequest.getAllHeaders(), postRequest.getEntity());
       return _httpClient.execute(postRequest);
     } catch (IOException e) {
-      LOG.error("Failed to perform customized health check. Is participant endpoint {} available?",
-          url, e);
+      LOG.error("Failed to perform customized health check. Is participant endpoint {} available?", url, e);
       throw e;
     }
   }

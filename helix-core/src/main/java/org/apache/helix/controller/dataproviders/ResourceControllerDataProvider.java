@@ -111,10 +111,9 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   public synchronized void refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
-    Set<HelixConstants.ChangeType> propertyRefreshed = new HashSet<>();
 
     // Refresh base
-    super.refresh(accessor, propertyRefreshed);
+    Set<HelixConstants.ChangeType> propertyRefreshed = super.doRefresh(accessor);
 
     // Invalidate cached information if any of the important data has been refreshed
     if (propertyRefreshed.contains(HelixConstants.ChangeType.IDEAL_STATE)

@@ -84,8 +84,7 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
 
   public synchronized void refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
-    Set<HelixConstants.ChangeType> propertyRefreshed = new HashSet<>();
-    super.refresh(accessor, propertyRefreshed);
+    Set<HelixConstants.ChangeType> propertyRefreshed = super.doRefresh(accessor);
 
     refreshClusterStateChangeFlags(propertyRefreshed);
 

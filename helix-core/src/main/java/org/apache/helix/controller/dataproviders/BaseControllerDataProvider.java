@@ -296,20 +296,22 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   public synchronized void refresh(HelixDataAccessor accessor) {
-    refresh(accessor, new HashSet<>());
+    doRefresh(accessor);
   }
 
   /**
    * @param accessor
-   * @param refreshedType Record the types that has been updated during the refresh.
+   * @return The types that has been updated during the refresh.
    */
-  protected synchronized void refresh(HelixDataAccessor accessor, Set<HelixConstants.ChangeType> refreshedType) {
+  protected synchronized Set<HelixConstants.ChangeType> doRefresh(HelixDataAccessor accessor) {
+    Set<HelixConstants.ChangeType> refreshedTypes = new HashSet<>();
+
     // Refresh raw data
     _clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
-    refreshIdealState(accessor, refreshedType);
-    refreshLiveInstances(accessor, refreshedType);
-    refreshInstanceConfigs(accessor, refreshedType);
-    refreshResourceConfig(accessor, refreshedType);
+    refreshIdealState(accessor, refreshedTypes);
+    refreshLiveInstances(accessor, refreshedTypes);
+    refreshInstanceConfigs(accessor, refreshedTypes);
+    refreshResourceConfig(accessor, refreshedTypes);
     _stateModelDefinitionCache.refresh(accessor);
     _clusterConstraintsCache.refresh(accessor);
     updateMaintenanceInfo(accessor);
@@ -328,6 +330,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
     updateIdealRuleMap();
     updateDisabledInstances();
+
+    return refreshedTypes;
   }
 
   protected void dumpDebugInfo() {

@@ -21,8 +21,11 @@ package org.apache.helix.controller.dataproviders;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
@@ -109,16 +112,16 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   public synchronized void refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
 
-    // Invalidate cached information
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.IDEAL_STATE)
-        || _propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE)
-        || _propertyDataChangedMap.get(HelixConstants.ChangeType.INSTANCE_CONFIG)
-        || _propertyDataChangedMap.get(HelixConstants.ChangeType.RESOURCE_CONFIG)) {
+    // Refresh base
+    Set<HelixConstants.ChangeType> propertyRefreshed = super.doRefresh(accessor);
+
+    // Invalidate cached information if any of the important data has been refreshed
+    if (propertyRefreshed.contains(HelixConstants.ChangeType.IDEAL_STATE)
+        || propertyRefreshed.contains(HelixConstants.ChangeType.LIVE_INSTANCE)
+        || propertyRefreshed.contains(HelixConstants.ChangeType.INSTANCE_CONFIG)
+        || propertyRefreshed.contains(HelixConstants.ChangeType.RESOURCE_CONFIG)) {
       clearCachedResourceAssignments();
     }
-
-    // Refresh base
-    super.refresh(accessor);
 
     // Refresh resource controller specific property caches
     refreshExternalViews(accessor);
@@ -140,20 +143,16 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   private void refreshExternalViews(final HelixDataAccessor accessor) {
     // As we are not listening on external view change, external view will be
     // refreshed once during the cache's first refresh() call, or when full refresh is required
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW)) {
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW).getAndSet(false)) {
       _externalViewCache.refresh(accessor);
-      _propertyDataChangedMap.put(HelixConstants.ChangeType.EXTERNAL_VIEW, false);
     }
   }
 
   private void refreshTargetExternalViews(final HelixDataAccessor accessor) {
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW)) {
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW).getAndSet(false)) {
       if (getClusterConfig() != null && getClusterConfig().isTargetExternalViewEnabled()) {
+        // Only refresh with data accessor for the first time
         _targetExternalViewCache.refresh(accessor);
-
-        // Only set the change type back once we get refreshed with data accessor for the
-        // first time
-        _propertyDataChangedMap.put(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW, false);
       }
     }
   }

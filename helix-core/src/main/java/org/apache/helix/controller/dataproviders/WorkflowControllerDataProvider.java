@@ -19,9 +19,6 @@ package org.apache.helix.controller.dataproviders;
  * under the License.
  */
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
@@ -41,6 +38,11 @@ import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Data provider for workflow controller.
@@ -69,24 +71,22 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
     _taskDataCache = new TaskDataCache(this);
   }
 
-  private void refreshClusterStateChangeFlags() {
+  private void refreshClusterStateChangeFlags(Set<HelixConstants.ChangeType> propertyRefreshed) {
     // This is for targeted jobs' task assignment. It needs to watch for current state changes for
     // when targeted resources' state transitions complete
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CURRENT_STATE)
-        || _propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE)) {
-      _existsLiveInstanceOrCurrentStateChange = true;
-
-      // BaseControllerDataProvider will take care of marking live instance change
-      _propertyDataChangedMap.put(HelixConstants.ChangeType.CURRENT_STATE, false);
-    } else {
-      _existsLiveInstanceOrCurrentStateChange = false;
-    }
+    _existsLiveInstanceOrCurrentStateChange =
+        // TODO read and update CURRENT_STATE in the BaseControllerDataProvider as well.
+        // This check (and set) is necessary for now since the current state flag in _propertyDataChangedMap is not used by the BaseControllerDataProvider for now.
+        _propertyDataChangedMap.get(HelixConstants.ChangeType.CURRENT_STATE).getAndSet(false)
+            || propertyRefreshed.contains(HelixConstants.ChangeType.CURRENT_STATE)
+            || propertyRefreshed.contains(HelixConstants.ChangeType.LIVE_INSTANCE);
   }
 
   public synchronized void refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
-    refreshClusterStateChangeFlags();
-    super.refresh(accessor);
+    Set<HelixConstants.ChangeType> propertyRefreshed = super.doRefresh(accessor);
+
+    refreshClusterStateChangeFlags(propertyRefreshed);
 
     // Refresh TaskCache
     _taskDataCache.refresh(accessor, getResourceConfigMap());

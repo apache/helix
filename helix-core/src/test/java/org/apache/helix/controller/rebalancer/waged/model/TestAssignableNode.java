@@ -133,7 +133,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     assignableNode.release(removingReplica);
   }
 
-  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Resource Resource1 already has a replica from partition Partition1 on this node")
+  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Resource Resource1 already has a replica from partition Partition1 on node testInstanceId")
   public void testAssignAlreadyExist() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
@@ -145,7 +145,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     assignableNode.assign(duplicateReplica);
   }
 
-  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "The domain configuration of instance testInstanceId is not complete. Type DOES_NOT_EXIST is not found.")
+  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "The domain configuration of node testInstanceId is not complete. Type DOES_NOT_EXIST is not found.")
   public void testComputeFaultZoneNotFound() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
 

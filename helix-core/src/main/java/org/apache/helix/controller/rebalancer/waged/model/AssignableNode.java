@@ -42,7 +42,7 @@ import static java.lang.Math.max;
  * Note that any usage updates to the AssignableNode are not thread safe.
  */
 public class AssignableNode {
-  private static final Logger _logger = LoggerFactory.getLogger(AssignableNode.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(AssignableNode.class.getName());
 
   // basic node information
   private final String _instanceName;
@@ -50,7 +50,7 @@ public class AssignableNode {
   private String _faultZone;
   private Map<String, List<String>> _disabledPartitionsMap;
   private Map<String, Integer> _maxCapacity;
-  private int _maxPartition;
+  private int _maxPartition; // maximum number of the partitions that can be assigned to the node.
 
   // proposed assignment tracking
   // <resource name, partition name>
@@ -59,8 +59,7 @@ public class AssignableNode {
   private Map<String, Set<String>> _currentTopStateAssignments;
   // <capacity key, capacity value>
   private Map<String, Integer> _currentCapacity;
-  // runtime usage tracking
-  private int _totalReplicaAssignmentCount;
+  // The maximum capacity utilization (0.0 - 1.0) across all the capacity categories.
   private float _highestCapacityUtilization;
 
   AssignableNode(ResourceControllerDataProvider clusterCache, String instanceName,
@@ -73,15 +72,14 @@ public class AssignableNode {
     _currentAssignments = new HashMap<>();
     _currentTopStateAssignments = new HashMap<>();
     _currentCapacity = new HashMap<>();
-    _totalReplicaAssignmentCount = 0;
     _highestCapacityUtilization = 0;
   }
 
   /**
-   * Update the node with a ClusterDataCache. This resets the current assignment and recalculate currentCapacity.
+   * Update the node with a ClusterDataCache. This resets the current assignment and recalculates currentCapacity.
    * NOTE: While this is required to be used in the constructor, this can also be used when the clusterCache needs to be
    * refreshed. This is under the assumption that the capacity mappings of InstanceConfig and ResourceConfig could
-   * subject to changes. If the assumption is no longer true, this function should become private.
+   * subject to change. If the assumption is no longer true, this function should become private.
    *
    * @param clusterCache - the current cluster cache to initial the AssignableNode.
    */
@@ -110,13 +108,13 @@ public class AssignableNode {
   void assign(AssignableReplica assignableReplica) {
     if (!addToAssignmentRecord(assignableReplica, _currentAssignments)) {
       throw new HelixException(String
-          .format("Resource %s already has a replica from partition %s on this node",
-              assignableReplica.getResourceName(), assignableReplica.getPartitionName()));
+          .format("Resource %s already has a replica from partition %s on node %s",
+              assignableReplica.getResourceName(), assignableReplica.getPartitionName(),
+              getInstanceName()));
     } else {
       if (assignableReplica.isReplicaTopState()) {
         addToAssignmentRecord(assignableReplica, _currentTopStateAssignments);
       }
-      _totalReplicaAssignmentCount += 1;
       assignableReplica.getCapacity().entrySet().stream()
           .forEach(entry -> updateCapacityAndUtilization(entry.getKey(), entry.getValue()));
     }
@@ -134,14 +132,15 @@ public class AssignableNode {
 
     // Check if the release is necessary
     if (!_currentAssignments.containsKey(resourceName)) {
-      _logger.warn("Resource " + resourceName + " is not on this node. Ignore the release call.");
+      LOG.warn("Resource {} is not on node {}. Ignore the release call.", resourceName,
+          getInstanceName());
       return;
     }
     Set<String> partitions = _currentAssignments.get(resourceName);
     if (!partitions.contains(partitionName)) {
-      _logger.warn(String
-          .format("Resource %s does not have a replica from partition %s on this node",
-              resourceName, partitionName));
+      LOG.warn(String
+          .format("Resource %s does not have a replica from partition %s on node %s",
+              resourceName, partitionName, getInstanceName()));
       return;
     }
 
@@ -149,7 +148,6 @@ public class AssignableNode {
     if (assignableReplica.isReplicaTopState()) {
       _currentTopStateAssignments.get(resourceName).remove(partitionName);
     }
-    _totalReplicaAssignmentCount -= 1;
     // Recalculate utilization because of release
     _highestCapacityUtilization = 0;
     assignableReplica.getCapacity().entrySet().stream()
@@ -173,7 +171,7 @@ public class AssignableNode {
   }
 
   public int getCurrentAssignmentCount() {
-    return _totalReplicaAssignmentCount;
+    return _currentAssignments.values().stream().mapToInt(Set::size).sum();
   }
 
   public Map<String, Integer> getCurrentCapacity() {
@@ -235,7 +233,7 @@ public class AssignableNode {
       Map<String, String> domainAsMap = instanceConfig.getDomainAsMap();
       if (domainAsMap == null) {
         throw new HelixException(String
-            .format("The domain configuration of instance %s is not configured", _instanceName));
+            .format("The domain configuration of node %s is not configured", _instanceName));
       } else {
         StringBuilder faultZoneStringBuilder = new StringBuilder();
         for (String key : topologyDef) {
@@ -245,7 +243,7 @@ public class AssignableNode {
               faultZoneStringBuilder.append('/');
             } else {
               throw new HelixException(String.format(
-                  "The domain configuration of instance %s is not complete. Type %s is not found.",
+                  "The domain configuration of node %s is not complete. Type %s is not found.",
                   _instanceName, key));
             }
             if (key.equals(faultZoneType)) {
@@ -263,7 +261,7 @@ public class AssignableNode {
   }
 
   /**
-   * This function should only be used to assign a set of partitions that doesn't exist before.
+   * This function should only be used to assign a set of new partitions that are not allocated on this node.
    * Using this function avoids the overhead of updating capacity repeatedly.
    */
   private void assignNewBatch(Collection<AssignableReplica> replicas) {
@@ -273,15 +271,14 @@ public class AssignableNode {
       if (replica.isReplicaTopState()) {
         addToAssignmentRecord(replica, _currentTopStateAssignments);
       }
-      // increment the capacity requirement according to partition's capacity configure.
+      // increment the capacity requirement according to partition's capacity configuration.
       for (Map.Entry<String, Integer> capacity : replica.getCapacity().entrySet()) {
         totalPartitionCapacity.compute(capacity.getKey(),
             (k, v) -> (v == null) ? capacity.getValue() : v + capacity.getValue());
       }
     }
-    _totalReplicaAssignmentCount += replicas.size();
 
-    // Update to the global state after all single replications' calculation is done.
+    // Update the global state after all single replications' calculation is done.
     for (String key : totalPartitionCapacity.keySet()) {
       updateCapacityAndUtilization(key, totalPartitionCapacity.get(key));
     }

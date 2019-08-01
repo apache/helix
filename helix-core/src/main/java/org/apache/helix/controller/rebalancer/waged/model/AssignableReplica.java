@@ -120,7 +120,9 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     try {
       capacityMap = resourceConfig.getPartitionCapacityMap();
     } catch (IOException ex) {
-      throw new IllegalArgumentException("Invalid partition capacity configuration.", ex);
+      throw new IllegalArgumentException(
+          "Invalid partition capacity configuration of resource: " + resourceConfig
+              .getResourceName(), ex);
     }
 
     Map<String, Integer> partitionCapacity = capacityMap.get(partitionName);
@@ -129,8 +131,8 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     }
     if (partitionCapacity == null) {
       throw new IllegalArgumentException(String.format(
-          "The capacity usage of the specified partition %s is not configured in the Resource Config. No default partition capacity is configured neither.",
-          partitionName));
+          "The capacity usage of the specified partition %s is not configured in the Resource Config %s. No default partition capacity is configured neither.",
+          partitionName, resourceConfig.getResourceName()));
     }
     return partitionCapacity;
   }

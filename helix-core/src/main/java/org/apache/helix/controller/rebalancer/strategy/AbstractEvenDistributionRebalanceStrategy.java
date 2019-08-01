@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.LogUtil;
@@ -82,7 +83,17 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
   @Override
   public ZNRecord computePartitionAssignment(final List<String> allNodes,
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
-      ResourceControllerDataProvider clusterData) throws HelixException {
+      ResourceControllerDataProvider clusterData) {
+    Topology allNodeTopology = new Topology(allNodes, allNodes, clusterData.getInstanceConfigMap(),
+        clusterData.getClusterConfig());
+    // only compute assignments for instances with available spaces
+    List<String> allNodesWithSpaces = allNodeTopology.getAllNodesWithAvailableSpaces();
+    return computeBestPartitionAssignment(allNodesWithSpaces, liveNodes, currentMapping,
+        clusterData);
+  }
+
+  private ZNRecord computeBestPartitionAssignment(List<String> allNodes, List<String> liveNodes,
+      Map<String, Map<String, String>> currentMapping, ResourceControllerDataProvider clusterData) {
     // Round 1: Calculate mapping using the base strategy.
     // Note to use all nodes for minimizing the influence of live node changes to mapping.
     ZNRecord origAssignment = getBaseRebalanceStrategy()
@@ -95,8 +106,8 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
     // Try to re-assign if the original map is not empty
     if (!origPartitionMap.isEmpty()) {
       Map<String, List<Node>> finalPartitionMap = null;
-      Topology allNodeTopo = new Topology(allNodes, allNodes, clusterData.getInstanceConfigMap(),
-          clusterData.getClusterConfig());
+      Topology allNodeTopo =
+              new Topology(allNodes, allNodes, clusterData.getInstanceConfigMap(), clusterData.getClusterConfig());
       // Transform current assignment to instance->partitions map, and get total partitions
       Map<Node, List<String>> nodeToPartitionMap =
           convertPartitionMap(origPartitionMap, allNodeTopo);

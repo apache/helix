@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.helix.controller.rebalancer.TestAutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
@@ -89,6 +90,8 @@ public class TestTopology {
 
     Topology topo = new Topology(allNodes, liveNodes, instanceConfigMap, clusterConfig);
 
+    // confirmed there'll be 10 instances with weight = 0
+    Assert.assertEquals(topo.getAllNodesWithAvailableSpaces().size(), 90);
     Assert.assertTrue(topo.getEndNodeType().equals("Instance"));
     Assert.assertTrue(topo.getFaultZoneType().equals("Sub-Rack"));
 

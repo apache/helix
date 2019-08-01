@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.model.ClusterConfig;
@@ -137,6 +138,17 @@ public class Topology {
       _faultZoneType = Types.INSTANCE.name();
       _root = createClusterTreeWithDefaultTopologyDef();
     }
+  }
+
+  /**
+   * Get instances with weight > 0
+   * @return list of instance names
+   */
+  public List<String> getAllNodesWithAvailableSpaces() {
+      List<Node> nodes = getAllLeafNodes(_root);
+      return nodes.stream().filter(node -> node.getWeight() > 0)
+              .map(Node::getName)
+              .collect(Collectors.toList());
   }
 
   public String getEndNodeType() {

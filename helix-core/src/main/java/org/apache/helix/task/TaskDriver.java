@@ -215,8 +215,6 @@ public class TaskDriver {
     if (!TaskUtil.setWorkflowConfig(_accessor, workflow, newWorkflowConfig)) {
       LOG.error("Failed to update workflow configuration for workflow " + workflow);
     }
-
-    RebalanceScheduler.invokeRebalance(_accessor, workflow);
   }
 
   /**
@@ -496,8 +494,6 @@ public class TaskDriver {
     // This is to make it back-compatible with old Helix task driver.
     addWorkflowResourceIfNecessary(queue);
 
-    // Schedule the job
-    RebalanceScheduler.invokeRebalance(_accessor, queue);
   }
 
   /**
@@ -794,7 +790,6 @@ public class TaskDriver {
     PropertyKey workflowConfigKey = TaskUtil.getWorkflowConfigKey(_accessor, workflow);
     _accessor.getBaseDataAccessor().update(workflowConfigKey.getPath(), updater,
         AccessOption.PERSISTENT);
-    RebalanceScheduler.invokeRebalance(_accessor, workflow);
   }
 
   public WorkflowConfig getWorkflowConfig(String workflow) {

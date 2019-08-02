@@ -33,19 +33,21 @@ import java.util.stream.Collectors;
 public class ClusterModel {
   private final ClusterContext _clusterContext;
   // Map to track all the assignable replications. <Resource Name, Set<Replicas>>
-  private final Map<String, Set<AssignableReplica>> _assignableReplicas;
-  // The index to find the replication information with a certain state. <Resource, <Replica Key (resource, partition, state), Replica>>
-  // Note that the identical replicas are dedupe in the index.
+  private final Map<String, Set<AssignableReplica>> _assignableReplicaMap;
+  // The index to find the replication information with a certain state. <Resource, <Key(resource_partition_state), Replica>>
+  // Note that the identical replicas are deduped in the index.
   private final Map<String, Map<String, AssignableReplica>> _assignableReplicaIndex;
   private final Map<String, AssignableNode> _assignableNodeMap;
 
   // Records about the previous assignment
+  // <ResourceName, IdealState contains the baseline assignment>
   private final Map<String, IdealState> _baselineAssignment;
+  // <ResourceName, IdealState contains the best possible assignment>
   private final Map<String, IdealState> _bestPossibleAssignment;
 
   /**
    * @param clusterContext         The initialized cluster context.
-   * @param assignableReplicas     The replications to be assigned.
+   * @param assignableReplicas     The replicas to be assigned.
    *                               Note that the replicas in this list shall not be included while initializing the context and assignable nodes.
    * @param assignableNodes        The active instances.
    * @param baselineAssignment     The recorded baseline assignment.
@@ -57,7 +59,7 @@ public class ClusterModel {
     _clusterContext = clusterContext;
 
     // Save all the to be assigned replication
-    _assignableReplicas = assignableReplicas.stream()
+    _assignableReplicaMap = assignableReplicas.stream()
         .collect(Collectors.groupingBy(AssignableReplica::getResourceName, Collectors.toSet()));
 
     // Index all the replicas to be assigned. Dedup the replica if two instances have the same resource/partition/state
@@ -81,8 +83,8 @@ public class ClusterModel {
     return _assignableNodeMap;
   }
 
-  public Map<String, Set<AssignableReplica>> getAssignableReplicas() {
-    return _assignableReplicas;
+  public Map<String, Set<AssignableReplica>> getAssignableReplicaMap() {
+    return _assignableReplicaMap;
   }
 
   public Map<String, IdealState> getBaseline() {
@@ -94,7 +96,8 @@ public class ClusterModel {
   }
 
   /**
-   * Propose the assignment to the cluster model.
+   * Assign the given replica to the specified instance and record the assignment in the cluster model.
+   * The cluster usage information will be updated accordingly.
    *
    * @param resourceName
    * @param partitionName
@@ -111,6 +114,7 @@ public class ClusterModel {
 
   /**
    * Revert the proposed assignment from the cluster model.
+   * The cluster usage information will be updated accordingly.
    *
    * @param resourceName
    * @param partitionName

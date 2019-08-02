@@ -21,24 +21,16 @@ package org.apache.helix.controller.rebalancer.waged.model;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
-import org.apache.helix.integration.task.TaskTestBase;
-import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.ResourceConfig;
-import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -52,10 +44,9 @@ public class TestAssignableNode extends AbstractTestClusterModel {
 
   @Test
   public void testNormalUsage() throws IOException {
+    // Test 1 - initialize based on the data cache and check with the expected result
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
-
-    // Test 1 - initialization
 
     Set<String> expectedAssignmentSet1 = new HashSet<>(_partitionNames.subList(0, 2));
     Set<String> expectedAssignmentSet2 = new HashSet<>(_partitionNames.subList(2, 4));
@@ -66,7 +57,6 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     expectedCapacityMap.put("item1", 4);
     expectedCapacityMap.put("item2", 8);
     expectedCapacityMap.put("item3", 30);
-
 
     AssignableNode assignableNode = new AssignableNode(testCache, _testInstanceId, assignmentSet);
     Assert.assertTrue(assignableNode.getCurrentAssignmentsMap().equals(expectedAssignment));
@@ -79,7 +69,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     Assert.assertTrue(assignableNode.getDisabledPartitionsMap().equals(_disabledPartitionsMap));
     Assert.assertTrue(assignableNode.getCurrentCapacity().equals(expectedCapacityMap));
 
-    // Test 2 - reduce assignment
+    // Test 2 - release assignment from the AssignableNode
     AssignableReplica removingReplica =
         new AssignableReplica(testCache.getResourceConfig(_resourceNames.get(1)),
             _partitionNames.get(2), "MASTER", 1);
@@ -99,7 +89,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     Assert.assertTrue(assignableNode.getDisabledPartitionsMap().equals(_disabledPartitionsMap));
     Assert.assertTrue(assignableNode.getCurrentCapacity().equals(expectedCapacityMap));
 
-    // Test 3 - add assignment
+    // Test 3 - add assignment to the AssignableNode
     AssignableReplica addingReplica =
         new AssignableReplica(testCache.getResourceConfig(_resourceNames.get(1)),
             _partitionNames.get(2), "SLAVE", 2);
@@ -124,7 +114,8 @@ public class TestAssignableNode extends AbstractTestClusterModel {
   public void testReleaseNoPartition() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
 
-    AssignableNode assignableNode = new AssignableNode(testCache, _testInstanceId, Collections.emptyList());
+    AssignableNode assignableNode =
+        new AssignableNode(testCache, _testInstanceId, Collections.emptyList());
     AssignableReplica removingReplica =
         new AssignableReplica(testCache.getResourceConfig(_resourceNames.get(1)),
             _partitionNames.get(2) + "non-exist", "MASTER", 1);
@@ -134,7 +125,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
   }
 
   @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Resource Resource1 already has a replica from partition Partition1 on node testInstanceId")
-  public void testAssignAlreadyExist() throws IOException {
+  public void testAssignDuplicateReplica() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
 
@@ -146,7 +137,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
   }
 
   @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "The domain configuration of node testInstanceId is not complete. Type DOES_NOT_EXIST is not found.")
-  public void testComputeFaultZoneNotFound() throws IOException {
+  public void testParseFaultZoneNotFound() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
 
     ClusterConfig testClusterConfig = new ClusterConfig("testClusterConfigId");
@@ -165,7 +156,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
   }
 
   @Test
-  public void testComputeFaultZone() throws IOException {
+  public void testParseFaultZone() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
 
     ClusterConfig testClusterConfig = new ClusterConfig("testClusterConfigId");
@@ -180,7 +171,8 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
     when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
-    AssignableNode assignableNode = new AssignableNode(testCache, _testInstanceId, Collections.emptyList());
+    AssignableNode assignableNode =
+        new AssignableNode(testCache, _testInstanceId, Collections.emptyList());
 
     Assert.assertEquals(assignableNode.getFaultZone(), "2/");
 

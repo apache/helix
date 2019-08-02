@@ -87,7 +87,7 @@ public class ClusterContext {
     return _estimatedMaxTopStateCount;
   }
 
-  public Set<String> getPartitionsForResourceAndFaultZone(String faultZoneId, String resourceName) {
+  public Set<String> getPartitionsForResourceAndFaultZone(String resourceName, String faultZoneId) {
     return _assignmentForFaultZoneMap.getOrDefault(faultZoneId, Collections.emptyMap())
         .getOrDefault(resourceName, Collections.emptySet());
   }

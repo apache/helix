@@ -45,41 +45,41 @@ public class TestClusterModel extends AbstractTestClusterModel {
 
   @Test
   public void testNormalUsage() throws IOException {
+    // Test 1 - initialize the cluster model based on the data cache.
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignableReplicas = generateReplicas(testCache);
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 
-    // Test 1 - initialization
     ClusterContext context = new ClusterContext(assignableReplicas, 2);
     ClusterModel clusterModel =
         new ClusterModel(context, assignableReplicas, assignableNodes, Collections.emptyMap(),
             Collections.emptyMap());
 
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
-        .allMatch(v -> v.values().isEmpty()));
+        .allMatch(resourceMap -> resourceMap.values().isEmpty()));
     Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
-        .anyMatch(n -> n.getCurrentAssignmentCount() != 0));
+        .anyMatch(node -> node.getCurrentAssignmentCount() != 0));
 
     // The initialization of the context, node and replication has been tested separately. So for
     // cluster model, focus on testing the assignment and release.
 
     // Assign
     AssignableReplica replica = assignableReplicas.iterator().next();
-    AssignableNode node = assignableNodes.iterator().next();
+    AssignableNode assignableNode = assignableNodes.iterator().next();
     clusterModel
         .assign(replica.getResourceName(), replica.getPartitionName(), replica.getReplicaState(),
-            node.getInstanceName());
+            assignableNode.getInstanceName());
 
     Assert.assertTrue(
-        clusterModel.getContext().getAssignmentForFaultZoneMap().get(node.getFaultZone())
+        clusterModel.getContext().getAssignmentForFaultZoneMap().get(assignableNode.getFaultZone())
             .get(replica.getResourceName()).contains(replica.getPartitionName()));
-    Assert.assertTrue(node.getCurrentAssignmentsMap().get(replica.getResourceName())
+    Assert.assertTrue(assignableNode.getCurrentAssignmentsMap().get(replica.getResourceName())
         .contains(replica.getPartitionName()));
 
-    // Assign a non-exist replication
+    // Assign a nonexist replication
     try {
       clusterModel.assign("NOT-EXIST", replica.getPartitionName(), replica.getReplicaState(),
-          node.getInstanceName());
+          assignableNode.getInstanceName());
       Assert.fail("Assigning a non existing resource partition shall fail.");
     } catch (HelixException ex) {
       // expected
@@ -98,11 +98,12 @@ public class TestClusterModel extends AbstractTestClusterModel {
     // Release
     clusterModel
         .release(replica.getResourceName(), replica.getPartitionName(), replica.getReplicaState(),
-            node.getInstanceName());
+            assignableNode.getInstanceName());
 
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
-        .allMatch(v -> v.values().stream().allMatch(s -> s.isEmpty())));
+        .allMatch(resourceMap -> resourceMap.values().stream()
+            .allMatch(partitions -> partitions.isEmpty())));
     Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
-        .anyMatch(n -> n.getCurrentAssignmentCount() != 0));
+        .anyMatch(node -> node.getCurrentAssignmentCount() != 0));
   }
 }

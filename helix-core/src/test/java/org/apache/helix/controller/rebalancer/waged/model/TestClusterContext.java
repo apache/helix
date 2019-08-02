@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.toSet;
-
 public class TestClusterContext extends AbstractTestClusterModel {
   @BeforeClass
   public void initialize() {
@@ -41,13 +39,13 @@ public class TestClusterContext extends AbstractTestClusterModel {
 
   @Test
   public void testNormalUsage() throws IOException {
+    // Test 1 - initialize the cluster context based on the data cache.
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
 
-    // Test 1 - initialization
     ClusterContext context = new ClusterContext(assignmentSet, 2);
 
-    // Note that we leaved some margin for the max estimation.
+    // Note that we left some margin for the max estimation.
     Assert.assertEquals(context.getEstimatedMaxPartitionCount(), 3);
     Assert.assertEquals(context.getEstimatedMaxTopStateCount(), 2);
     Assert.assertEquals(context.getAssignmentForFaultZoneMap(), Collections.emptyMap());
@@ -62,32 +60,31 @@ public class TestClusterContext extends AbstractTestClusterModel {
     Map<String, Map<String, Set<String>>> expectedFaultZoneMap = Collections
         .singletonMap(_testFaultZoneId, assignmentSet.stream().collect(Collectors
             .groupingBy(AssignableReplica::getResourceName,
-                Collectors.mapping(AssignableReplica::getPartitionName, toSet()))));
+                Collectors.mapping(AssignableReplica::getPartitionName, Collectors.toSet()))));
 
-    assignmentSet.stream().forEach(r -> context
-        .addPartitionToFaultZone(_testFaultZoneId, r.getResourceName(), r.getPartitionName()));
+    assignmentSet.stream().forEach(replica -> context
+        .addPartitionToFaultZone(_testFaultZoneId, replica.getResourceName(),
+            replica.getPartitionName()));
     Assert.assertEquals(context.getAssignmentForFaultZoneMap(), expectedFaultZoneMap);
 
     // release
-    Assert.assertTrue(expectedFaultZoneMap.get(_testFaultZoneId).get(_resourceNames.get(0))
-        .remove(_partitionNames.get(0)));
-    context.removePartitionFromFaultZone(_testFaultZoneId, _resourceNames.get(0),
-        _partitionNames.get(0));
+    expectedFaultZoneMap.get(_testFaultZoneId).get(_resourceNames.get(0))
+        .remove(_partitionNames.get(0));
+    Assert.assertTrue(context.removePartitionFromFaultZone(_testFaultZoneId, _resourceNames.get(0),
+        _partitionNames.get(0)));
 
     Assert.assertEquals(context.getAssignmentForFaultZoneMap(), expectedFaultZoneMap);
   }
 
   @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Resource Resource1 already has a replica from partition Partition1 in fault zone testZone")
-  public void testAssignAlreadyExist() throws IOException {
+  public void testDuplicateAssign() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
     ClusterContext context = new ClusterContext(assignmentSet, 2);
     context
-        .addPartitionToFaultZone(_testFaultZoneId, _resourceNames.get(0),
-            _partitionNames.get(0));
+        .addPartitionToFaultZone(_testFaultZoneId, _resourceNames.get(0), _partitionNames.get(0));
     // Insert again and trigger the error.
     context
-        .addPartitionToFaultZone(_testFaultZoneId, _resourceNames.get(0),
-            _partitionNames.get(0));
+        .addPartitionToFaultZone(_testFaultZoneId, _resourceNames.get(0), _partitionNames.get(0));
   }
 }

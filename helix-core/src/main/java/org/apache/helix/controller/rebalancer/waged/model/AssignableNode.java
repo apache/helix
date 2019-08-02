@@ -115,8 +115,8 @@ public class AssignableNode {
       if (assignableReplica.isReplicaTopState()) {
         addToAssignmentRecord(assignableReplica, _currentTopStateAssignments);
       }
-      assignableReplica.getCapacity().entrySet().stream()
-          .forEach(entry -> updateCapacityAndUtilization(entry.getKey(), entry.getValue()));
+      assignableReplica.getCapacity().entrySet().stream().forEach(
+          capacity -> updateCapacityAndUtilization(capacity.getKey(), capacity.getValue()));
     }
   }
 
@@ -139,8 +139,8 @@ public class AssignableNode {
     Set<String> partitions = _currentAssignments.get(resourceName);
     if (!partitions.contains(partitionName)) {
       LOG.warn(String
-          .format("Resource %s does not have a replica from partition %s on node %s",
-              resourceName, partitionName, getInstanceName()));
+          .format("Resource %s does not have a replica from partition %s on node %s", resourceName,
+              partitionName, getInstanceName()));
       return;
     }
 
@@ -210,7 +210,6 @@ public class AssignableNode {
    * Computes the fault zone id based on the domain and fault zone type when topology is enabled. For example, when
    * the domain is "zone=2, instance=testInstance" and the fault zone type is "zone", this function returns "2".
    * If cannot find the fault zone id, this function leaves the fault zone id as the instance name.
-   *
    * TODO merge this logic with Topology.java tree building logic.
    * For now, the WAGED rebalancer has a more strict topology def requirement.
    * Any missing field will cause an invalid topology config exception.
@@ -232,8 +231,8 @@ public class AssignableNode {
 
       Map<String, String> domainAsMap = instanceConfig.getDomainAsMap();
       if (domainAsMap == null) {
-        throw new HelixException(String
-            .format("The domain configuration of node %s is not configured", _instanceName));
+        throw new HelixException(
+            String.format("The domain configuration of node %s is not configured", _instanceName));
       } else {
         StringBuilder faultZoneStringBuilder = new StringBuilder();
         for (String key : topologyDef) {

@@ -76,6 +76,7 @@ public abstract class AbstractTestClusterModel {
   protected ResourceControllerDataProvider setupClusterDataCache() throws IOException {
     ResourceControllerDataProvider testCache = Mockito.mock(ResourceControllerDataProvider.class);
 
+    // 1. Set up the default instance information with capacity configuration.
     InstanceConfig testInstanceConfig = new InstanceConfig("testInstanceId");
     testInstanceConfig.setInstanceCapacityMap(_capacityDataMap);
     testInstanceConfig.addTag(_testInstanceTags.get(0));
@@ -86,18 +87,28 @@ public abstract class AbstractTestClusterModel {
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
     when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
+    // 2. Set up the basic cluster configuration.
     ClusterConfig testClusterConfig = new ClusterConfig("testClusterConfigId");
     testClusterConfig.setMaxPartitionsPerInstance(5);
     testClusterConfig.setDisabledInstances(Collections.emptyMap());
     testClusterConfig.setTopologyAwareEnabled(false);
     when(testCache.getClusterConfig()).thenReturn(testClusterConfig);
 
+    // 3. Mock the live instance node for the default instance.
     LiveInstance testLiveInstance = new LiveInstance(_testInstanceId);
     testLiveInstance.setSessionId("testSessionId");
     Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
     liveInstanceMap.put(_testInstanceId, testLiveInstance);
     when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
 
+    // 4. Mock two resources, each with 2 partitions on the default instance.
+    // The instance will have the following partitions assigned
+    // Resource 1:
+    //          partition 1 - MASTER
+    //          partition 2 - SLAVE
+    // Resource 2:
+    //          partition 3 - MASTER
+    //          partition 4 - SLAVE
     CurrentState testCurrentStateResource1 = Mockito.mock(CurrentState.class);
     Map<String, String> partitionStateMap1 = new HashMap<>();
     partitionStateMap1.put(_partitionNames.get(0), "MASTER");
@@ -107,7 +118,6 @@ public abstract class AbstractTestClusterModel {
     when(testCurrentStateResource1.getStateModelDefRef()).thenReturn("MasterSlave");
     when(testCurrentStateResource1.getState(_partitionNames.get(0))).thenReturn("MASTER");
     when(testCurrentStateResource1.getState(_partitionNames.get(1))).thenReturn("SLAVE");
-
     CurrentState testCurrentStateResource2 = Mockito.mock(CurrentState.class);
     Map<String, String> partitionStateMap2 = new HashMap<>();
     partitionStateMap2.put(_partitionNames.get(2), "MASTER");
@@ -117,12 +127,12 @@ public abstract class AbstractTestClusterModel {
     when(testCurrentStateResource2.getStateModelDefRef()).thenReturn("MasterSlave");
     when(testCurrentStateResource2.getState(_partitionNames.get(2))).thenReturn("MASTER");
     when(testCurrentStateResource2.getState(_partitionNames.get(3))).thenReturn("SLAVE");
-
     Map<String, CurrentState> currentStatemap = new HashMap<>();
     currentStatemap.put(_resourceNames.get(0), testCurrentStateResource1);
     currentStatemap.put(_resourceNames.get(1), testCurrentStateResource2);
     when(testCache.getCurrentState(_testInstanceId, "testSessionId")).thenReturn(currentStatemap);
 
+    // 5. Set up the resource config for the two resources with the partition weight.
     Map<String, Integer> capacityDataMapResource1 = new HashMap<>();
     capacityDataMapResource1.put("item1", 3);
     capacityDataMapResource1.put("item2", 6);
@@ -138,6 +148,7 @@ public abstract class AbstractTestClusterModel {
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMapResource2));
     when(testCache.getResourceConfig("Resource2")).thenReturn(testResourceConfigResource2);
 
+    // 6. Define mock state model
     for (BuiltInStateModelDefinitions bsmd : BuiltInStateModelDefinitions.values()) {
       when(testCache.getStateModelDef(bsmd.name())).thenReturn(bsmd.getStateModelDefinition());
     }
@@ -145,6 +156,9 @@ public abstract class AbstractTestClusterModel {
     return testCache;
   }
 
+  /**
+   * Generate the replica objects according to the provider information.
+   */
   protected Set<AssignableReplica> generateReplicas(ResourceControllerDataProvider dataProvider) {
     // Create assignable replica based on the current state.
     Map<String, CurrentState> currentStatemap =
@@ -152,6 +166,7 @@ public abstract class AbstractTestClusterModel {
     Set<AssignableReplica> assignmentSet = new HashSet<>();
     for (CurrentState cs : currentStatemap.values()) {
       ResourceConfig resourceConfig = dataProvider.getResourceConfig(cs.getResourceName());
+      // Construct one AssignableReplica for each partition in the current state.
       cs.getPartitionStateMap().entrySet().stream().forEach(entry -> assignmentSet.add(
           new AssignableReplica(resourceConfig, entry.getKey(), entry.getValue(),
               entry.getValue().equals("MASTER") ? 1 : 2)));

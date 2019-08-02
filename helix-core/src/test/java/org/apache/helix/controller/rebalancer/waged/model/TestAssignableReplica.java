@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
  */
 
 import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.model.StateModelDefinition;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -28,19 +29,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.helix.model.StateModelDefinition.TOP_STATE_PRIORITY;
-
 public class TestAssignableReplica {
   String resourceName = "Resource";
   String partitionNamePrefix = "partition";
   String masterState = "Master";
-  int masterPriority = TOP_STATE_PRIORITY;
+  int masterPriority = StateModelDefinition.TOP_STATE_PRIORITY;
   String slaveState = "Slave";
   int slavePriority = 2;
 
   @Test
   public void testConstructRepliaWithResourceConfig() throws IOException {
-    // Init assignable replication with a basic config object
+    // Init assignable replica with a basic config object
     Map<String, Integer> capacityDataMapResource1 = new HashMap<>();
     capacityDataMapResource1.put("item1", 3);
     capacityDataMapResource1.put("item2", 6);
@@ -61,7 +60,7 @@ public class TestAssignableReplica {
     Assert.assertEquals(replica.getResourceInstanceGroupTag(), null);
     Assert.assertEquals(replica.getResourceMaxPartitionsPerInstance(), Integer.MAX_VALUE);
 
-    // Modify the config and initial more replications.
+    // Modify the config and initialize more replicas.
     // 1. update capacity
     Map<String, Integer> capacityDataMapResource2 = new HashMap<>();
     capacityDataMapResource2.put("item1", 5);

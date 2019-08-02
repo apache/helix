@@ -36,10 +36,15 @@ public class TestClusterModel extends AbstractTestClusterModel {
     super.initialize();
   }
 
+  /**
+   * Generate AssignableNodes according to the instances included in the cluster data cache.
+   */
   Set<AssignableNode> generateNodes(ResourceControllerDataProvider testCache) {
     Set<AssignableNode> nodeSet = new HashSet<>();
-    testCache.getInstanceConfigMap().values().stream().forEach(config -> nodeSet
-        .add(new AssignableNode(testCache, config.getInstanceName(), Collections.emptyList())));
+    testCache.getInstanceConfigMap().values().stream().forEach(config -> nodeSet.add(
+        new AssignableNode(testCache.getClusterConfig(),
+            testCache.getInstanceConfigMap().get(_testInstanceId), config.getInstanceName(),
+            Collections.emptyList())));
     return nodeSet;
   }
 

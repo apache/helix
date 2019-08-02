@@ -20,7 +20,6 @@ package org.apache.helix.controller.rebalancer.waged.model;
  */
 
 import org.apache.helix.HelixException;
-import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
@@ -62,10 +61,10 @@ public class AssignableNode {
   // The maximum capacity utilization (0.0 - 1.0) across all the capacity categories.
   private float _highestCapacityUtilization;
 
-  AssignableNode(ResourceControllerDataProvider clusterCache, String instanceName,
+  AssignableNode(ClusterConfig clusterConfig, InstanceConfig instanceConfig, String instanceName,
       Collection<AssignableReplica> existingAssignment) {
     _instanceName = instanceName;
-    refresh(clusterCache, existingAssignment);
+    refresh(clusterConfig, instanceConfig, existingAssignment);
   }
 
   private void reset() {
@@ -81,14 +80,13 @@ public class AssignableNode {
    * refreshed. This is under the assumption that the capacity mappings of InstanceConfig and ResourceConfig could
    * subject to change. If the assumption is no longer true, this function should become private.
    *
-   * @param clusterCache - the current cluster cache to initial the AssignableNode.
+   * @param clusterConfig  - the Cluster Config of the cluster where the node is located
+   * @param instanceConfig - the Instance Config of the node
+   * @param existingAssignment - all the existing replicas that are current assigned to the node
    */
-  private void refresh(ResourceControllerDataProvider clusterCache,
+  private void refresh(ClusterConfig clusterConfig, InstanceConfig instanceConfig,
       Collection<AssignableReplica> existingAssignment) {
     reset();
-
-    InstanceConfig instanceConfig = clusterCache.getInstanceConfigMap().get(_instanceName);
-    ClusterConfig clusterConfig = clusterCache.getClusterConfig();
 
     _currentCapacity.putAll(instanceConfig.getInstanceCapacityMap());
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);

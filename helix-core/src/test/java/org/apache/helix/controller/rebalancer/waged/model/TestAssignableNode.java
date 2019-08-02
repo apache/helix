@@ -58,7 +58,8 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     expectedCapacityMap.put("item2", 8);
     expectedCapacityMap.put("item3", 30);
 
-    AssignableNode assignableNode = new AssignableNode(testCache, _testInstanceId, assignmentSet);
+    AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
+        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId, assignmentSet);
     Assert.assertTrue(assignableNode.getCurrentAssignmentsMap().equals(expectedAssignment));
     Assert.assertEquals(assignableNode.getCurrentAssignmentCount(), 4);
     Assert.assertEquals(assignableNode.getHighestCapacityUtilization(), 16.0 / 20.0, 0.005);
@@ -114,8 +115,9 @@ public class TestAssignableNode extends AbstractTestClusterModel {
   public void testReleaseNoPartition() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
 
-    AssignableNode assignableNode =
-        new AssignableNode(testCache, _testInstanceId, Collections.emptyList());
+    AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
+        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId,
+        Collections.emptyList());
     AssignableReplica removingReplica =
         new AssignableReplica(testCache.getResourceConfig(_resourceNames.get(1)),
             _partitionNames.get(2) + "non-exist", "MASTER", 1);
@@ -129,7 +131,8 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
 
-    AssignableNode assignableNode = new AssignableNode(testCache, _testInstanceId, assignmentSet);
+    AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
+        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId, assignmentSet);
     AssignableReplica duplicateReplica =
         new AssignableReplica(testCache.getResourceConfig(_resourceNames.get(0)),
             _partitionNames.get(0), "SLAVE", 2);
@@ -152,7 +155,9 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
     when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
-    new AssignableNode(testCache, _testInstanceId, Collections.emptyList());
+    new AssignableNode(testCache.getClusterConfig(),
+        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId,
+        Collections.emptyList());
   }
 
   @Test
@@ -171,8 +176,9 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
     when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
-    AssignableNode assignableNode =
-        new AssignableNode(testCache, _testInstanceId, Collections.emptyList());
+    AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
+        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId,
+        Collections.emptyList());
 
     Assert.assertEquals(assignableNode.getFaultZone(), "2/");
 
@@ -188,7 +194,9 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
     when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
-    assignableNode = new AssignableNode(testCache, _testInstanceId, Collections.emptyList());
+    assignableNode = new AssignableNode(testCache.getClusterConfig(),
+        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId,
+        Collections.emptyList());
 
     Assert.assertEquals(assignableNode.getFaultZone(), "2/testInstance/");
   }

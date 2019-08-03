@@ -271,7 +271,9 @@ public class AssignableNode {
       // increment the capacity requirement according to partition's capacity configuration.
       for (Map.Entry<String, Integer> capacity : replica.getCapacity().entrySet()) {
         totalPartitionCapacity.compute(capacity.getKey(),
-            (k, v) -> (v == null) ? capacity.getValue() : v + capacity.getValue());
+            (key, totalValue) -> (totalValue == null) ?
+                capacity.getValue() :
+                totalValue + capacity.getValue());
       }
     }
 
@@ -296,6 +298,8 @@ public class AssignableNode {
           (float) (_maxCapacity.get(capacityKey) - newCapacity) / _maxCapacity.get(capacityKey), 1);
       _highestCapacityUtilization = max(_highestCapacityUtilization, utilization);
     }
+    // else if the capacityKey does not exist in the capacity map, this method essentially becomes
+    // a NOP; in other words, this node will be treated as if it has unlimited capacity.
   }
 
   @Override

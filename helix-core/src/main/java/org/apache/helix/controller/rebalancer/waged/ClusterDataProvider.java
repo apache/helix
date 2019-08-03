@@ -48,6 +48,6 @@ public class ClusterDataProvider {
       Set<String> activeInstances, Map<ClusterDataDetector.ChangeType, Set<String>> clusterChanges,
       Map<String, IdealState> baselineAssignment, Map<String, IdealState> bestPossibleAssignment) {
     // TODO finish the implementation.
-    return new ClusterModel();
+    return null;
   }
 }

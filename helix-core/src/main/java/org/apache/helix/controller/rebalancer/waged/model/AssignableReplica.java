@@ -19,9 +19,121 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.model.StateModelDefinition;
+
+import java.io.IOException;
+import java.util.Map;
+
 /**
- * A placeholder before we have the implementation.
- *
  * This class represents a partition replication that needs to be allocated.
  */
-public class AssignableReplica { }
+public class AssignableReplica implements Comparable<AssignableReplica> {
+  private final String _partitionName;
+  private final String _resourceName;
+  private final String _resourceInstanceGroupTag;
+  private final int _resourceMaxPartitionsPerInstance;
+  private final Map<String, Integer> _capacityUsage;
+  // The priority of the replica's state
+  private final int _statePriority;
+  // The state of the replica
+  private final String _replicaState;
+
+  /**
+   * @param resourceConfig The resource config for the resource which contains the replication.
+   * @param partitionName  The replication's partition name.
+   * @param replicaState   The state of the replication.
+   * @param statePriority  The priority of the replication's state.
+   */
+  AssignableReplica(ResourceConfig resourceConfig, String partitionName, String replicaState,
+      int statePriority) {
+    _partitionName = partitionName;
+    _replicaState = replicaState;
+    _statePriority = statePriority;
+    _resourceName = resourceConfig.getResourceName();
+    _capacityUsage = fetchCapacityUsage(partitionName, resourceConfig);
+    _resourceInstanceGroupTag = resourceConfig.getInstanceGroupTag();
+    _resourceMaxPartitionsPerInstance = resourceConfig.getMaxPartitionsPerInstance();
+  }
+
+  public Map<String, Integer> getCapacity() {
+    return _capacityUsage;
+  }
+
+  public String getPartitionName() {
+    return _partitionName;
+  }
+
+  public String getReplicaState() {
+    return _replicaState;
+  }
+
+  public boolean isReplicaTopState() {
+    return _statePriority == StateModelDefinition.TOP_STATE_PRIORITY;
+  }
+
+  public int getStatePriority() {
+    return _statePriority;
+  }
+
+  public String getResourceName() {
+    return _resourceName;
+  }
+
+  public String getResourceInstanceGroupTag() {
+    return _resourceInstanceGroupTag;
+  }
+
+  public int getResourceMaxPartitionsPerInstance() {
+    return _resourceMaxPartitionsPerInstance;
+  }
+
+  @Override
+  public String toString() {
+    return generateReplicaKey(_resourceName, _partitionName, _replicaState);
+  }
+
+  @Override
+  public int compareTo(AssignableReplica replica) {
+    if (!_resourceName.equals(replica._resourceName)) {
+      return _resourceName.compareTo(replica._resourceName);
+    }
+    if (!_partitionName.equals(replica._partitionName)) {
+      return _partitionName.compareTo(replica._partitionName);
+    }
+    if (!_replicaState.equals(replica._replicaState)) {
+      return _replicaState.compareTo(replica._replicaState);
+    }
+    return 0;
+  }
+
+  public static String generateReplicaKey(String resourceName, String partitionName, String state) {
+    return String.format("%s-%s-%s", resourceName, partitionName, state);
+  }
+
+  /**
+   * Parse the resource config for the partition weight.
+   */
+  private Map<String, Integer> fetchCapacityUsage(String partitionName,
+      ResourceConfig resourceConfig) {
+    Map<String, Map<String, Integer>> capacityMap;
+    try {
+      capacityMap = resourceConfig.getPartitionCapacityMap();
+    } catch (IOException ex) {
+      throw new IllegalArgumentException(
+          "Invalid partition capacity configuration of resource: " + resourceConfig
+              .getResourceName(), ex);
+    }
+
+    Map<String, Integer> partitionCapacity = capacityMap.get(partitionName);
+    if (partitionCapacity == null) {
+      partitionCapacity = capacityMap.get(ResourceConfig.DEFAULT_PARTITION_KEY);
+    }
+    if (partitionCapacity == null) {
+      throw new IllegalArgumentException(String.format(
+          "The capacity usage of the specified partition %s is not configured in the Resource Config %s. No default partition capacity is configured neither.",
+          partitionName, resourceConfig.getResourceName()));
+    }
+    return partitionCapacity;
+  }
+}

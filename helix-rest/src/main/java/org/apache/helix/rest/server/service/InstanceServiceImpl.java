@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CurrentState;
@@ -222,10 +223,15 @@ public class InstanceServiceImpl implements InstanceService {
     // Only checks the instances are online with valid reports
     List<String> liveInstances =
         _dataAccessor.getChildNames(_dataAccessor.keyBuilder().liveInstances());
-    for (String instance : liveInstances) {
-      ZNRecord customizedHealth = _dataAccessor
-          .getProperty(_dataAccessor.keyBuilder().healthReport(instance, PARTITION_HEALTH_KEY))
-          .getRecord();
+    // Make a parallel batch call for getting all healthreports from ZK.
+    List<HelixProperty> healthReports = _dataAccessor.getProperty(liveInstances.stream()
+        .map(instance -> _dataAccessor.keyBuilder().healthReport(instance, PARTITION_HEALTH_KEY))
+        .collect(Collectors.toList()));
+    for (int i = 0; i < liveInstances.size(); i++) {
+      String instance = liveInstances.get(i);
+      // TODO: Check ZNRecord is null or not. Need logic to check whether the healthreports exist
+      // or not. If it does not exist, we should query the participant directly for the health report.
+      ZNRecord customizedHealth = healthReports.get(i).getRecord();
       for (String partitionName : customizedHealth.getMapFields().keySet()) {
         try {
           Map<String, String> healthMap = customizedHealth.getMapField(partitionName);

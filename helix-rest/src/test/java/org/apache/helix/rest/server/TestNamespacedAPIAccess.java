@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
@@ -55,6 +56,10 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
         Response.Status.CREATED.getStatusCode());
     get(String.format("/namespaces/%s/clusters/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME, testClusterName2), null,
         Response.Status.OK.getStatusCode(), false);
+    // Remove empty test clusters. Otherwise, it could fail ClusterAccessor tests
+    delete(String.format("/clusters/%s", testClusterName1), Response.Status.OK.getStatusCode());
+    delete(String.format("/clusters/%s", testClusterName2), Response.Status.OK.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
 
@@ -89,6 +94,9 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     get(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName), null,
         Response.Status.NOT_FOUND.getStatusCode(), false);
     get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(), false);
+    // Remove empty test clusters. Otherwise, it could fail ClusterAccessor tests
+    delete(String.format("/clusters/%s", testClusterName), Response.Status.OK.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testNamespacedCRUD")
@@ -137,6 +145,7 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
         HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
     Assert.assertTrue(Boolean.parseBoolean(
         namespace.get(HelixRestNamespace.HelixRestNamespaceProperty.IS_DEFAULT.name())));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
 }

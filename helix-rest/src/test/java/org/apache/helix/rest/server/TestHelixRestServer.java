@@ -22,6 +22,7 @@ package org.apache.helix.rest.server;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.apache.helix.TestHelper;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.testng.Assert;
@@ -30,6 +31,7 @@ import org.testng.annotations.Test;
 public class TestHelixRestServer extends AbstractTestClass {
   @Test
   public void testInvalidHelixRestServerInitialization() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Namespace manifests has invalid metadata store type should generate failure
     try {
       List<HelixRestNamespace> invalidManifest1 = new ArrayList<>();
@@ -79,6 +81,7 @@ public class TestHelixRestServer extends AbstractTestClass {
     } catch (IllegalStateException e) {
       // OK
     }
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
 }

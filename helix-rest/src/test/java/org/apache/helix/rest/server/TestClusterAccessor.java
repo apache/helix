@@ -96,6 +96,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
     validateAuditLog(auditLog, HTTPMethods.GET.name(), "clusters",
         Response.Status.OK.getStatusCode(), body);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetClusters")
@@ -118,6 +119,7 @@ public class TestClusterAccessor extends AbstractTestClass {
             + "\"allInstances\":[\"TestCluster_1localhost_12918\",\"TestCluster_1localhost_12919\",\"TestCluster_1localhost_12924\","
             + "\"TestCluster_1localhost_12925\",\"TestCluster_1localhost_12926\",\"TestCluster_1localhost_12927\",\"TestCluster_1localhost_12920\","
             + "\"TestCluster_1localhost_12921\",\"TestCluster_1localhost_12922\",\"TestCluster_1localhost_12923\"]}");
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetClusterTopology")
@@ -142,6 +144,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     oldConfig.getRecord().update(configDelta.getRecord());
     Assert.assertEquals(newConfig, oldConfig,
         "cluster config from response: " + newConfig + " vs cluster config actually: " + oldConfig);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testAddConfigFields")
@@ -180,6 +183,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     prevConfig.getRecord().update(config.getRecord());
     Assert.assertEquals(newConfig, prevConfig, "cluster config from response: " + newConfig
         + " vs cluster config actually: " + prevConfig);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testUpdateConfigFields")
@@ -219,6 +223,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     prevConfig.getRecord().subtract(config.getRecord());
     Assert.assertEquals(newConfig, prevConfig, "cluster config from response: " + newConfig
         + " vs cluster config actually: " + prevConfig);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testDeleteConfigFields")
@@ -244,6 +249,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     // verify the cluster has been deleted.
     Assert.assertFalse(_baseAccessor.exists("/" + cluster, 0));
     Assert.assertEquals(_auditLogger.getAuditLogs().size(), 3);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testCreateDeleteCluster")
@@ -268,6 +274,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     // verify the cluster is paused.
     Assert.assertFalse(_baseAccessor.exists(keyBuilder.pause().getPath(), 0));
     Assert.assertEquals(_auditLogger.getAuditLogs().size(), 2);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testEnableDisableCluster")
@@ -277,6 +284,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(response.getStatus(), Response.Status.NOT_FOUND.getStatusCode());
     String cluster = _clusters.iterator().next();
     getClusterConfigFromRest(cluster);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetClusterConfig")
@@ -319,6 +327,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     get("clusters/" + cluster + "/controller/maintenanceSignal", null,
         Response.Status.NOT_FOUND.getStatusCode(), false);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testEnableDisableMaintenanceMode")
@@ -352,6 +361,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // Check that the last entry contains the current leader name
     Assert.assertTrue(lastLeaderEntry.contains(leader));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetControllerLeadershipHistory")
@@ -379,6 +389,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // Check that the last entry contains the reason string
     Assert.assertTrue(lastMaintenanceEntry.contains(reason));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetMaintenanceHistory")
@@ -404,6 +415,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
     Assert.assertFalse(
         accessor.getBaseDataAccessor().exists(accessor.keyBuilder().maintenance().getPath(), 0));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testEnableDisableMaintenanceModeWithCustomFields")
@@ -473,6 +485,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     String oneResult3 = get(oneModelUri, null, Response.Status.OK.getStatusCode(), true);
     ZNRecord oneRecord3 = OBJECT_MAPPER.readValue(oneResult3, ZNRecord.class);
     Assert.assertEquals(oneRecord3, oneRecord);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetStateModelDef")
@@ -552,6 +565,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     }
     _gSetupTool.deleteCluster(ACTIVATE_NORM_CLUSTER);
     _gSetupTool.deleteCluster(ACTIVATE_SUPER_CLUSTER);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {

@@ -48,6 +48,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
         + "    \"instance4\" : [ \"Helix:EMPTY_RESOURCE_ASSIGNMENT\", \"Helix:INSTANCE_NOT_ALIVE\", \"Helix:INSTANCE_NOT_STABLE\" ],\n"
         + "    \"invalidInstance\" : [ \"Helix:INSTANCE_NOT_EXIST\" ]\n"
         + "  }\n" + "}\n");
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testInstancesStoppable_zoneBased")
@@ -83,6 +84,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     checkResult = response.readEntity(String.class);
     Assert.assertEquals(checkResult,
         "{\"stoppable\":false,\"failedChecks\":[\"Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED\"]}");
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testInstancesStoppable_disableOneInstance")
@@ -99,6 +101,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
     Assert.assertEquals(instances, _instancesMap.get(CLUSTER_NAME), "Instances from response: "
         + instances + " vs instances actually: " + _instancesMap.get(CLUSTER_NAME));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(enabled = false)
@@ -130,5 +133,6 @@ public class TestInstancesAccessor extends AbstractTestClass {
     clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

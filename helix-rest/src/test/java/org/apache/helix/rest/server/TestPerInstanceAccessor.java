@@ -64,6 +64,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     String stoppableCheckResult = response.readEntity(String.class);
     Assert.assertEquals(stoppableCheckResult,
         "{\"stoppable\":false,\"failedChecks\":[\"Helix:EMPTY_RESOURCE_ASSIGNMENT\",\"Helix:INSTANCE_NOT_ENABLED\",\"Helix:INSTANCE_NOT_STABLE\"]}");
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testIsInstanceStoppable")
@@ -90,6 +91,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
 
     Assert.assertEquals(newMessageCount, 1);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAllMessages")
@@ -127,6 +129,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
 
     Assert.assertEquals(newMessageCount, 0);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetMessagesByStateModelDef")
@@ -143,6 +146,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class));
     Assert.assertEquals(instances, _instancesMap.get(CLUSTER_NAME), "Instances from response: "
         + instances + " vs instances actually: " + _instancesMap.get(CLUSTER_NAME));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAllInstances")
@@ -159,6 +163,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     InstanceConfig instanceConfig = new InstanceConfig(toZNRecord(instancesCfg));
     Assert.assertEquals(instanceConfig,
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetInstanceById")
@@ -173,6 +178,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
 
     Assert.assertEquals(instanceConfig,
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME + "TEST"));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testAddInstance", expectedExceptions = HelixException.class)
@@ -181,6 +187,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     delete("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME + "TEST",
         Response.Status.OK.getStatusCode());
     _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME + "TEST");
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testDeleteInstance")
@@ -263,6 +270,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Assert.assertEquals(new HashSet<>(instanceConfig.getDisabledPartitionsMap()
             .get(CLUSTER_NAME + dbName.substring(0, dbName.length() - 1))),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + dbName + "0", CLUSTER_NAME + dbName + "3")));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -320,6 +328,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord().getListFields());
     Assert.assertEquals(record.getMapFields(),
         _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord().getMapFields());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -366,6 +375,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
       Assert.assertFalse(_configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getRecord()
           .getMapFields().containsKey(key));
     }
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   /**
@@ -388,5 +398,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     new JerseyUriRequestBuilder("clusters/{}/instances/{}/configs")
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode())
         .format(CLUSTER_NAME, instanceName).post(this, entity);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

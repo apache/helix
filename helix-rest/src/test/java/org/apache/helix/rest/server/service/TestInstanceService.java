@@ -135,12 +135,11 @@ public class TestInstanceService {
     when(_dataAccessor.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
     when(_dataAccessor.getChildNames(new PropertyKey.Builder(TEST_CLUSTER).liveInstances()))
         .thenReturn(Arrays.asList("host0", "host1"));
-    when(_dataAccessor.getProperty(
-        new PropertyKey.Builder(TEST_CLUSTER).healthReport("host0", "PARTITION_HEALTH")))
-        .thenReturn(new HealthStat(healthData.get(0)));
-    when(_dataAccessor.getProperty(
-        new PropertyKey.Builder(TEST_CLUSTER).healthReport("host1", "PARTITION_HEALTH")))
-        .thenReturn(new HealthStat(healthData.get(1)));
+    when(_dataAccessor.getProperty(Arrays
+        .asList(new PropertyKey.Builder(TEST_CLUSTER).healthReport("host0", "PARTITION_HEALTH"),
+            new PropertyKey.Builder(TEST_CLUSTER).healthReport("host1", "PARTITION_HEALTH"))))
+        .thenReturn(
+            Arrays.asList(new HealthStat(healthData.get(0)), new HealthStat(healthData.get(1))));
     PartitionHealth computeResult = service.generatePartitionHealthMapFromZK();
     PartitionHealth expectedResult = generateExpectedResult();
     Assert.assertEquals(computeResult, expectedResult);

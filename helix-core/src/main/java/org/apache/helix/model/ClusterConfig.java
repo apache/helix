@@ -109,7 +109,6 @@ public class ClusterConfig extends HelixProperty {
   // is not set and will be given a default value of 1
   private final static int DEFAULT_ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE = -1;
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
-  private final static int DEFAULT_VIEW_CLUSTER_REFRESH_PERIOD = 30;
 
   public final static String TASK_QUOTA_RATIO_NOT_SET = "-1";
 

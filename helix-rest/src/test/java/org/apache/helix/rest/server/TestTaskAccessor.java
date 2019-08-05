@@ -56,6 +56,7 @@ public class TestTaskAccessor extends AbstractTestClass {
     contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {
     });
     Assert.assertEquals(contentStore, map1);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAddTaskUserContent")
@@ -81,5 +82,6 @@ public class TestTaskAccessor extends AbstractTestClass {
 
     post(validURI, invalidCmd, validEntity, Response.Status.BAD_REQUEST.getStatusCode());
     post(validURI, validCmd, invalidEntity, Response.Status.BAD_REQUEST.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

@@ -69,6 +69,7 @@ public class TestJobAccessor extends AbstractTestClass {
     Assert.assertEquals(jobs,
         _workflowMap.get(CLUSTER_NAME).get(WORKFLOW_NAME).getWorkflowConfig().getJobDag()
             .getAllNodes());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetJobs")
@@ -85,6 +86,7 @@ public class TestJobAccessor extends AbstractTestClass {
         node.get(JobAccessor.JobProperties.JobConfig.name()).get("simpleFields").get("WorkflowID")
             .getTextValue();
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetJob")
@@ -97,11 +99,11 @@ public class TestJobAccessor extends AbstractTestClass {
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String workflowId = node.get("simpleFields").get("WorkflowID").getTextValue();
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetJobConfig")
   public void testGetJobContext() throws IOException {
-
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
     String body =
@@ -110,6 +112,7 @@ public class TestJobAccessor extends AbstractTestClass {
     JsonNode node = OBJECT_MAPPER.readTree(body);
     Assert.assertEquals(node.get("mapFields").get("0").get("STATE").getTextValue(),
         TaskPartitionState.COMPLETED.name());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetJobContext")
@@ -138,6 +141,7 @@ public class TestJobAccessor extends AbstractTestClass {
 
     WorkflowConfig workflowConfig = driver.getWorkflowConfig(TEST_QUEUE_NAME);
     Assert.assertTrue(workflowConfig.getJobDag().getAllNodes().contains(jobName));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testCreateJob")
@@ -170,6 +174,7 @@ public class TestJobAccessor extends AbstractTestClass {
     body = get(uri, null, Response.Status.OK.getStatusCode(), true);
     contentStore = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
     Assert.assertEquals(contentStore, map1);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testGetAddJobContent")
@@ -193,6 +198,7 @@ public class TestJobAccessor extends AbstractTestClass {
 
     post(validURI, invalidCmd, validEntity, Response.Status.BAD_REQUEST.getStatusCode());
     post(validURI, validCmd, invalidEntity, Response.Status.BAD_REQUEST.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testInvalidGetAndUpdateJobContentStore")
@@ -210,5 +216,6 @@ public class TestJobAccessor extends AbstractTestClass {
 
     WorkflowConfig workflowConfig = driver.getWorkflowConfig(TEST_QUEUE_NAME);
     Assert.assertTrue(!workflowConfig.getJobDag().getAllNodes().contains(jobName));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

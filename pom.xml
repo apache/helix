@@ -271,6 +271,16 @@ under the License.
       </otherArchives>
     </mailingList>
     <mailingList>
+      <name>PR Reviews</name>
+      <post>reviews@helix.apache.org</post>
+      <subscribe>reviews-subscribe@helix.apache.org</subscribe>
+      <unsubscribe>reviews-unsubscribe@helix.apache.org</unsubscribe>
+      <archive>http://mail-archives.apache.org/mod_mbox/helix-reviews/</archive>
+      <otherArchives>
+        <otherArchive>http://helix-reviews.markmail.org</otherArchive>
+      </otherArchives>
+    </mailingList>
+    <mailingList>
       <name>Commits</name>
       <post>commits@helix.apache.org</post>
       <subscribe>commits-subscribe@helix.apache.org</subscribe>

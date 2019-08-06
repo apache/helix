@@ -1,46 +1,45 @@
 package org.apache.helix.rest.common;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 /**
- * A read-only wrapper of {@link ZKHelixDataAccessor} with transient cache
- * The caches is of the value from get methods and short lived for the lifecycle of one rest request
- * TODO: add more cached read method based on needs
+ * This is a wrapper for {@link ZKHelixDataAccessor} that caches the result of the batch reads it performs.
+ * Note that the usage of this object is valid for one REST request.
  */
-public final class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
-  private final Map<PropertyKey, HelixProperty> _propertyCache = new HashMap<>();
-  private final Map<PropertyKey, List<String>> _batchNameCache = new HashMap<>();
+public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
+    private final Map<PropertyKey, HelixProperty> _propertyCache = new HashMap<>();
+    private final Map<PropertyKey, List<String>> _batchNameCache = new HashMap<>();
 
-  public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor) {
-    super(dataAccessor);
-  }
-
-  @Override
-  public <T extends HelixProperty> T getProperty(PropertyKey key) {
-    if (_propertyCache.containsKey(key)) {
-      return (T) _propertyCache.get(key);
-    }
-    T property = super.getProperty(key);
-    _propertyCache.put(key, property);
-    return property;
-  }
-
-  @Override
-  public List<String> getChildNames(PropertyKey key) {
-    if (_batchNameCache.containsKey(key)) {
-      return _batchNameCache.get(key);
+    public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor) {
+        super(dataAccessor);
     }
 
-    List<String> names = super.getChildNames(key);
-    _batchNameCache.put(key, names);
+    @Override
+    public <T extends HelixProperty> T getProperty(PropertyKey key) {
+        if (_propertyCache.containsKey(key)) {
+            return (T) _propertyCache.get(key);
+        }
+        T property = super.getProperty(key);
+        _propertyCache.put(key, property);
+        return property;
+    }
 
-    return names;
-  }
+    @Override
+    public List<String> getChildNames(PropertyKey key) {
+        if (_batchNameCache.containsKey(key)) {
+            return _batchNameCache.get(key);
+        }
+
+        List<String> names = super.getChildNames(key);
+        _batchNameCache.put(key, names);
+
+        return names;
+    }
 }

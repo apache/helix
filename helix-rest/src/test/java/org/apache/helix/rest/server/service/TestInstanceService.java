@@ -19,7 +19,13 @@ package org.apache.helix.rest.server.service;
  * under the License.
  */
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyMap;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -28,12 +34,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
+import org.apache.helix.rest.common.HelixDataAccessorWrapper;
 import org.apache.helix.rest.server.json.cluster.PartitionHealth;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.mockito.Mock;
@@ -45,12 +51,13 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+
 public class TestInstanceService {
   private static final String TEST_CLUSTER = "TestCluster";
   private static final String TEST_INSTANCE = "instance0.linkedin.com_1235";
 
   @Mock
-  private HelixDataAccessor _dataAccessor;
+  private HelixDataAccessorWrapper _dataAccessor;
   @Mock
   private ConfigAccessor _configAccessor;
   @Mock
@@ -109,12 +116,6 @@ public class TestInstanceService {
       protected Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
           List<HealthCheck> healthChecks) {
         return Collections.emptyMap();
-      }
-
-      @Override
-      protected StoppableCheck performPartitionLevelChecks(String clusterId, String instanceName, String baseUrl,
-          Map<String, String> customPayLoads) throws IOException {
-        return new StoppableCheck(false, Collections.emptyList(), StoppableCheck.Category.CUSTOM_PARTITION_CHECK);
       }
     };
 

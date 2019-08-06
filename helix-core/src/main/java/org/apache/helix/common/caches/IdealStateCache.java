@@ -85,8 +85,8 @@ public class IdealStateCache extends AbstractDataCache<IdealState> {
     reloadKeys.removeAll(cachedKeys);
 
     Map<PropertyKey, IdealState> updatedMap =
-        refreshProperties(accessor, new LinkedList<>(reloadKeys), new ArrayList<>(cachedKeys),
-            cachedIdealStateMap);
+        refreshProperties(accessor, reloadKeys, new ArrayList<>(cachedKeys),
+            cachedIdealStateMap, new HashSet<>());
     Map<String, IdealState> newIdealStateMap = Maps.newHashMap();
     for (IdealState idealState : updatedMap.values()) {
       newIdealStateMap.put(idealState.getResourceName(), idealState);

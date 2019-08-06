@@ -135,13 +135,14 @@ public class CurrentStateCache extends AbstractDataCache<CurrentState> {
     Set<PropertyKey> cachedKeys = new HashSet<>(_currentStateCache.keySet());
     cachedKeys.retainAll(currentStateKeys);
 
+    Set<PropertyKey> reloadedKeys = new HashSet<>();
     Map<PropertyKey, CurrentState> newStateCache = Collections.unmodifiableMap(
-        refreshProperties(accessor, new ArrayList<>(reloadKeys), new ArrayList<>(cachedKeys),
-            _currentStateCache));
+        refreshProperties(accessor, reloadKeys, new ArrayList<>(cachedKeys),
+            _currentStateCache, reloadedKeys));
 
     // if the cache was not initialized, the previous state should not be included in the snapshot
     if (_initialized) {
-      _snapshot = new CurrentStateSnapshot(newStateCache, _currentStateCache, reloadKeys);
+      _snapshot = new CurrentStateSnapshot(newStateCache, _currentStateCache, reloadedKeys);
     } else {
       _snapshot = new CurrentStateSnapshot(newStateCache);
       _initialized = true;

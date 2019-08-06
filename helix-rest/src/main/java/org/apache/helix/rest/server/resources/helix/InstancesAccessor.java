@@ -8,14 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
-
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -129,7 +127,7 @@ public class InstancesAccessor extends AbstractHelixResource {
         admin.enableInstance(clusterId, enableInstances, false);
         break;
       case stoppable:
-        return getParallelStoppableInstances(clusterId, node);
+        return batchGetStoppableInstances(clusterId, node);
       default:
         _logger.error("Unsupported command :" + command);
         return badRequest("Unsupported command :" + command);
@@ -145,8 +143,7 @@ public class InstancesAccessor extends AbstractHelixResource {
     return OK();
   }
 
-  private Response getParallelStoppableInstances(String clusterId, JsonNode node)
-      throws IOException {
+  private Response batchGetStoppableInstances(String clusterId, JsonNode node) throws IOException {
     try {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
@@ -184,19 +181,20 @@ public class InstancesAccessor extends AbstractHelixResource {
       case zone_based:
         List<String> zoneBasedInstance =
             getZoneBasedInstances(instances, orderOfZone, clusterTopology.toZoneMapping());
-        for (String instance : zoneBasedInstance) {
-          StoppableCheck stoppableCheckResult =
-              instanceService.getInstanceStoppableCheck(clusterId, instance, customizedInput);
-          if (!stoppableCheckResult.isStoppable()) {
+        Map<String, StoppableCheck> instancesStoppableChecks = instanceService.batchGetInstancesStoppableChecks(
+            clusterId, zoneBasedInstance, customizedInput);
+        for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
+          String instance = instanceStoppableCheck.getKey();
+          StoppableCheck stoppableCheck = instanceStoppableCheck.getValue();
+          if (!stoppableCheck.isStoppable()) {
             ArrayNode failedReasonsNode = failedStoppableInstances.putArray(instance);
-            for (String failedReason : stoppableCheckResult.getFailedChecks()) {
+            for (String failedReason : stoppableCheck.getFailedChecks()) {
               failedReasonsNode.add(JsonNodeFactory.instance.textNode(failedReason));
             }
           } else {
             stoppableInstances.add(instance);
           }
         }
-
         // Adding following logic to check whether instances exist or not. An instance exist could be
         // checking following scenario:
         // 1. Instance got dropped. (InstanceConfig is gone.)
@@ -224,8 +222,8 @@ public class InstancesAccessor extends AbstractHelixResource {
       throw new HelixHealthException(e);
     } catch (Exception e) {
       _logger.error(String.format(
-          "Failed to get parallel stoppable instances for cluster %s with a HelixException!",
-          clusterId), e);
+              "Failed to get parallel stoppable instances for cluster %s with a HelixException!",
+              clusterId), e);
       throw e;
     }
   }

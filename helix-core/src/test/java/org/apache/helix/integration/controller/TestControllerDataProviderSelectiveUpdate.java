@@ -59,8 +59,7 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), 0);
-    // cluster config always get reloaded
-    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 1);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 0);
 
     accessor.clearReadCounters();
     // refresh again should read nothing as ideal state is same
@@ -70,7 +69,7 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), 0);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 1);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 0);
 
     accessor.clearReadCounters();
     cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
@@ -79,7 +78,7 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), 0);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 1);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 0);
   }
 
   @Test(dependsOnMethods = {"testUpdateOnNotification"})
@@ -105,7 +104,7 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), 0);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 1);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 0);
 
     // add a new resource
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, "TestDB_1", _PARTITIONS, STATE_MODEL);
@@ -148,7 +147,7 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
 
     cache.notifyDataChange(HelixConstants.ChangeType.RESOURCE_CONFIG);
     cache.refresh(accessor);
-    // 1 Cluster Config change + 2 Resource Config Changes
-    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 3);
+    // 2 Resource Config Changes
+    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 2);
   }
 }

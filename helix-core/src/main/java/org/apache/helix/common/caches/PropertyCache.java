@@ -22,6 +22,7 @@ package org.apache.helix.common.caches;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -172,8 +173,8 @@ public class PropertyCache<T extends HelixProperty> extends AbstractDataCache<T>
   private void doRefreshWithSelectiveUpdate(final HelixDataAccessor accessor) {
     SelectivePropertyRefreshInputs<T> input =
         genSelectiveUpdateInput(accessor, _objCache, _keyFuncs);
-    Map<PropertyKey, T> updatedData = refreshProperties(accessor, input.getReloadKeys(),
-        input.getCachedKeys(), input.getCachedPropertyMap());
+    Map<PropertyKey, T> updatedData = refreshProperties(accessor, new HashSet<>(input.getReloadKeys()),
+        input.getCachedKeys(), input.getCachedPropertyMap(), new HashSet<>());
     _objCache = propertyKeyMapToStringMap(updatedData, _keyFuncs);
 
     // need to separate keys so we can potentially update cache map asynchronously while

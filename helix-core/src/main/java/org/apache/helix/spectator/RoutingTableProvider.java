@@ -558,10 +558,13 @@ public class RoutingTableProvider
 
   private void resetRoutingTableAndNotify(long startTime, RoutingTable newRoutingTable) {
     _routingTableRef.set(newRoutingTable);
-    logger.info("Refresh the RoutingTable for cluster {}, takes {} ms.",
-        (_helixManager != null ? _helixManager.getClusterName() : null),
+    String clusterName = _helixManager != null ? _helixManager.getClusterName() : null;
+    logger.info("Refreshed the RoutingTable for cluster {}, took {} ms.", clusterName,
         (System.currentTimeMillis() - startTime));
-    notifyRoutingTableChange();
+
+    // TODO: move the callback user code logic to separate thread upon routing table statePropagation latency
+    // integration test result. If the latency is more than 2 secs, we need to change this part.
+    notifyRoutingTableChange(clusterName);
 
     // Update timestamp for last refresh
     if (_isPeriodicRefreshEnabled) {
@@ -569,12 +572,16 @@ public class RoutingTableProvider
     }
   }
 
-  private void notifyRoutingTableChange() {
-    for (Map.Entry<RoutingTableChangeListener, ListenerContext> entry : _routingTableChangeListenerMap
-        .entrySet()) {
-      entry.getKey().onRoutingTableChange(new RoutingTableSnapshot(_routingTableRef.get()),
-          entry.getValue().getContext());
+  private void notifyRoutingTableChange(String clusterName) {
+    // This call back is called in the main event queue of RoutingTableProvider. We add log to record time spent
+    // here. Potentially, we should call this callback in a separate thread if this is a bottleneck.
+    long startTime = System.currentTimeMillis();
+    for (Map.Entry<RoutingTableChangeListener, ListenerContext> entry : _routingTableChangeListenerMap.entrySet()) {
+      entry.getKey()
+          .onRoutingTableChange(new RoutingTableSnapshot(_routingTableRef.get()), entry.getValue().getContext());
     }
+    logger.info("RoutingTableProvider user callback time for cluster {}, took {} ms.", clusterName,
+        (System.currentTimeMillis() - startTime));
   }
 
   private class RouterUpdater extends ClusterEventProcessor {

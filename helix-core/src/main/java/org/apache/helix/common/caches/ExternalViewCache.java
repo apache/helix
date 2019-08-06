@@ -95,8 +95,8 @@ public class ExternalViewCache extends AbstractDataCache<ExternalView> {
     reloadKeys.removeAll(cachedKeys);
 
     Map<PropertyKey, ExternalView> updatedMap =
-        refreshProperties(accessor, new LinkedList<>(reloadKeys), new ArrayList<>(cachedKeys),
-            cachedExternalViewMap);
+        refreshProperties(accessor, reloadKeys, new ArrayList<>(cachedKeys),
+            cachedExternalViewMap, new HashSet<>());
     Map<String, ExternalView> newExternalViewMap = Maps.newHashMap();
     for (ExternalView externalView : updatedMap.values()) {
       newExternalViewMap.put(externalView.getResourceName(), externalView);

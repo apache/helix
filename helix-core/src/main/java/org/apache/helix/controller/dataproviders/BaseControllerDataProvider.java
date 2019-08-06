@@ -220,6 +220,17 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _instanceMessagesCache = new InstanceMessagesCache(_clusterName);
   }
 
+  private void refreshClusterConfig(final HelixDataAccessor accessor,
+      Set<HelixConstants.ChangeType> refreshedType) {
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CLUSTER_CONFIG).getAndSet(false)) {
+      _clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
+      refreshedType.add(HelixConstants.ChangeType.CLUSTER_CONFIG);
+    } else {
+      LogUtil.logInfo(logger, getClusterEventId(), String.format(
+          "No ClusterConfig change for cluster %s, pipeline %s", _clusterName, getPipelineName()));
+    }
+  }
+
   private void refreshIdealState(final HelixDataAccessor accessor,
       Set<HelixConstants.ChangeType> refreshedType) {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.IDEAL_STATE).getAndSet(false)) {
@@ -307,7 +318,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     Set<HelixConstants.ChangeType> refreshedTypes = new HashSet<>();
 
     // Refresh raw data
-    _clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
+    refreshClusterConfig(accessor, refreshedTypes);
     refreshIdealState(accessor, refreshedTypes);
     refreshLiveInstances(accessor, refreshedTypes);
     refreshInstanceConfigs(accessor, refreshedTypes);

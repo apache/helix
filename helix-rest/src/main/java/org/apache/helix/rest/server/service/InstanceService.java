@@ -19,79 +19,95 @@ package org.apache.helix.rest.server.service;
  * under the License.
  */
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 
-import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public interface InstanceService {
-  enum HealthCheck {
-    /**
-     * Check if instance is alive
-     */
-    INSTANCE_NOT_ALIVE,
-    /**
-     * Check if instance is enabled both in instance config and cluster config
-     */
-    INSTANCE_NOT_ENABLED,
-    /**
-     * Check if instance is stable
-     * Stable means all the ideal state mapping matches external view (view of current state).
-     */
-    INSTANCE_NOT_STABLE,
-    /**
-     * Check if instance has 0 resource assigned
-     */
-    EMPTY_RESOURCE_ASSIGNMENT,
-    /**
-     * Check if instance has disabled partitions
-     */
-    HAS_DISABLED_PARTITION,
-    /**
-     * Check if instance has valid configuration (pre-requisite for all checks)
-     */
-    INVALID_CONFIG,
-    /**
-     * Check if instance has error partitions
-     */
-    HAS_ERROR_PARTITION,
-    /**
-     * Check if all resources hosted on the instance can still meet the min active replica
-     * constraint if this instance is shutdown
-     */
-    MIN_ACTIVE_REPLICA_CHECK_FAILED;
+    enum HealthCheck {
+        /**
+         * Check if instance is alive
+         */
+        INSTANCE_NOT_ALIVE,
+        /**
+         * Check if instance is enabled both in instance config and cluster config
+         */
+        INSTANCE_NOT_ENABLED,
+        /**
+         * Check if instance is stable
+         * Stable means all the ideal state mapping matches external view (view of current state).
+         */
+        INSTANCE_NOT_STABLE,
+        /**
+         * Check if instance has 0 resource assigned
+         */
+        EMPTY_RESOURCE_ASSIGNMENT,
+        /**
+         * Check if instance has disabled partitions
+         */
+        HAS_DISABLED_PARTITION,
+        /**
+         * Check if instance has valid configuration (pre-requisite for all checks)
+         */
+        INVALID_CONFIG,
+        /**
+         * Check if instance has error partitions
+         */
+        HAS_ERROR_PARTITION,
+        /**
+         * Check if all resources hosted on the instance can still meet the min active replica
+         * constraint if this instance is shutdown
+         */
+        MIN_ACTIVE_REPLICA_CHECK_FAILED;
+
+        /**
+         * Pre-defined list of checks to test if an instance can be stopped at runtime
+         */
+        public static List<HealthCheck> STOPPABLE_CHECK_LIST = Arrays.asList(HealthCheck.values());
+        /**
+         * Pre-defined list of checks to test if an instance is in healthy running state
+         */
+        public static List<HealthCheck> STARTED_AND_HEALTH_CHECK_LIST =
+                ImmutableList.of(HealthCheck.INSTANCE_NOT_ALIVE, HealthCheck.INSTANCE_NOT_ENABLED,
+                        HealthCheck.INSTANCE_NOT_STABLE, HealthCheck.EMPTY_RESOURCE_ASSIGNMENT);
+    }
 
     /**
-     * Pre-defined list of checks to test if an instance can be stopped at runtime
+     * Get the overall status of the instance
+     *
+     * @param clusterId    The cluster id
+     * @param instanceName The instance name
+     * @return An instance of {@link InstanceInfo} easily convertible to JSON
      */
-    public static List<HealthCheck> STOPPABLE_CHECK_LIST = Arrays.asList(HealthCheck.values());
+    InstanceInfo getInstanceInfo(String clusterId, String instanceName,
+                                 List<HealthCheck> healthChecks);
+
     /**
-     * Pre-defined list of checks to test if an instance is in healthy running state
+     * Get the current instance stoppable checks
+     *
+     * @param clusterId    The cluster id
+     * @param instanceName The instance name
+     * @param jsonContent  The json payloads from client side
+     * @return An instance of {@link StoppableCheck} easily convertible to JSON
+     * @throws IOException in case of network failure
      */
-    public static List<HealthCheck> STARTED_AND_HEALTH_CHECK_LIST =
-        ImmutableList.of(HealthCheck.INSTANCE_NOT_ALIVE, HealthCheck.INSTANCE_NOT_ENABLED,
-            HealthCheck.INSTANCE_NOT_STABLE, HealthCheck.EMPTY_RESOURCE_ASSIGNMENT);
-  }
+    StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
+                                             String jsonContent) throws IOException;
 
-  /**
-   * Get the overall status of the instance
-   * @param clusterId The cluster id
-   * @param instanceName The instance name
-   * @return An instance of {@link InstanceInfo} easily convertible to JSON
-   */
-  InstanceInfo getInstanceInfo(String clusterId, String instanceName,
-      List<HealthCheck> healthChecks);
-
-  /**
-   * Get the current instance stoppable checks
-   * @param clusterId The cluster id
-   * @param instanceName The instance name
-   * @return An instance of {@link StoppableCheck} easily convertible to JSON
-   */
-  StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
-      String jsonContent) throws IOException;
+    /**
+     * Batch get StoppableCheck results for a list of instances in one cluster
+     *
+     * @param clusterId   The cluster id
+     * @param instances   The list of instances
+     * @param jsonContent The json payloads from client side
+     * @return A map contains the instance as key and the StoppableCheck as the value
+     * @throws IOException in case of network failure
+     */
+    Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId, List<String> instances, String jsonContent)
+            throws IOException;
 }

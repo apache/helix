@@ -19,10 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.lang.management.ManagementFactory;
-import java.util.List;
-
-import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -39,6 +35,9 @@ import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.management.ManagementFactory;
+import java.util.List;
 
 /**
  * do distributed leader election
@@ -104,16 +103,21 @@ public class DistributedLeaderElection implements ControllerChangeListener {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
 
-    while (accessor.getProperty(keyBuilder.controllerLeader()) == null) {
+    // Try to acquire leader and init the manager in any case.
+    // Even when a leader node already exists, the election process shall still try to init the manager
+    // in case it is the current leader.
+    do {
+      // Due to the possible carried over ZK events from the previous ZK session, the following
+      // initialization might be triggered multiple times. So the operation must be idempotent.
       if (tryCreateController(manager)) {
-        LOG.info("{} with session {} acquired leadership for cluster: {}", manager.getInstanceName(),
-            manager.getSessionId(), manager.getClusterName());
+        LOG.info("{} with session {} acquired leadership for cluster: {}",
+            manager.getInstanceName(), manager.getSessionId(), manager.getClusterName());
         updateHistory(manager);
         manager.getHelixDataAccessor().getBaseDataAccessor().reset();
         controllerHelper.addListenersToController(_controller);
         controllerHelper.startControllerTimerTasks();
       }
-    }
+    } while (accessor.getProperty(keyBuilder.controllerLeader()) == null);
   }
 
   /**

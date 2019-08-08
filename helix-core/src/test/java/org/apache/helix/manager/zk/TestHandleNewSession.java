@@ -21,6 +21,7 @@ package org.apache.helix.manager.zk;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import org.apache.helix.HelixException;
@@ -32,6 +33,7 @@ import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.zookeeper.ZkClient;
+import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.LiveInstance;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -115,6 +117,8 @@ public class TestHandleNewSession extends ZkTestBase {
     final long originalCreationTime =
         accessor.getProperty(keyBuilder.controllerLeader()).getStat().getCreationTime();
 
+    int handlerCount = manager.getHandlers().size();
+
     // 1. lock the zk event processing to simulate long backlog queue.
     ((ZkClient) manager._zkclient).getEventLock().lockInterruptibly();
     // 2. add a controller leader node change event to the queue, that will not be processed.
@@ -161,6 +165,9 @@ public class TestHandleNewSession extends ZkTestBase {
     manager.proceedNewSessionHandling();
     // Since the new session handling will re-create the leader node, a new valid node shall be created.
     Assert.assertTrue(TestHelper.verify(() -> manager.isLeader(), 1000));
+    // All the callback handlers shall be recovered.
+    Assert.assertTrue(TestHelper.verify(() -> manager.getHandlers().size() == handlerCount, 3000));
+    Assert.assertTrue(manager.getHandlers().stream().allMatch(handler -> handler.isReady()));
 
     manager.disconnect();
     TestHelper.dropCluster(clusterName, _gZkClient);
@@ -182,6 +189,10 @@ public class TestHandleNewSession extends ZkTestBase {
 
     void proceedNewSessionHandling() {
       newSessionHandlingCount.release();
+    }
+
+    List<CallbackHandler> getHandlers() {
+      return _handlers;
     }
   }
 }

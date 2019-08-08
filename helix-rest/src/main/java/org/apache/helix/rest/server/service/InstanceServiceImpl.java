@@ -218,61 +218,9 @@ public class InstanceServiceImpl implements InstanceService {
     return new StoppableCheck(helixStoppableCheck, StoppableCheck.Category.HELIX_OWN_CHECK);
   }
 
-  private Map<String, String> getCustomPayLoads(String jsonContent) throws IOException {
-    Map<String, String> result = new HashMap<>();
-    JsonNode jsonNode = OBJECT_MAPPER.readTree(jsonContent);
-    // parsing the inputs as string key value pairs
-    jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asText()));
-    return result;
-  }
-
-  @VisibleForTesting
-  protected PartitionHealth generatePartitionHealthMapFromZK() {
-    PartitionHealth partitionHealth = new PartitionHealth();
-
-    // Only checks the instances are online with valid reports
-    List<String> liveInstances =
-        _dataAccessor.getChildNames(_dataAccessor.keyBuilder().liveInstances());
-    // Make a parallel batch call for getting all healthreports from ZK.
-    List<HelixProperty> healthReports = _dataAccessor.getProperty(liveInstances.stream()
-        .map(instance -> _dataAccessor.keyBuilder().healthReport(instance, PARTITION_HEALTH_KEY))
-        .collect(Collectors.toList()));
-    for (int i = 0; i < liveInstances.size(); i++) {
-      String instance = liveInstances.get(i);
-      // TODO: Check ZNRecord is null or not. Need logic to check whether the healthreports exist
-      // or not. If it does not exist, we should query the participant directly for the health
-      // report.
-      ZNRecord customizedHealth = healthReports.get(i).getRecord();
-      for (String partitionName : customizedHealth.getMapFields().keySet()) {
-        try {
-          Map<String, String> healthMap = customizedHealth.getMapField(partitionName);
-          if (healthMap == null
-              || Long.parseLong(healthMap.get(EXPIRY_KEY)) < System.currentTimeMillis()) {
-            // Clean all the existing checks. If we do not clean it, when we do the customized
-            // check,
-            // Helix may think these partitions are only partitions holding on the instance.
-            // But it could potentially have some partitions are unhealthy for expired ones.
-            // It could problem for shutting down instances.
-            partitionHealth.addInstanceThatNeedDirectCallWithPartition(instance, partitionName);
-            continue;
-          }
-
-          partitionHealth.addSinglePartitionHealthForInstance(instance, partitionName,
-              Boolean.valueOf(healthMap.get(IS_HEALTHY_KEY)));
-        } catch (Exception e) {
-          LOG.warn(
-              "Error in processing partition level health for instance {}, partition {}, directly querying API",
-              instance, partitionName, e);
-          partitionHealth.addInstanceThatNeedDirectCallWithPartition(instance, partitionName);
-        }
-      }
-    }
-
-    return partitionHealth;
-  }
-
   private StoppableCheck performCustomInstanceCheck(String clusterId, String instanceName,
       String baseUrl, Map<String, String> customPayLoads) throws IOException {
+    LOG.info("Perform instance level client side health checks for {}/{}", clusterId, instanceName);
     try {
       return new StoppableCheck(
           _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads),
@@ -286,6 +234,7 @@ public class InstanceServiceImpl implements InstanceService {
 
   private Map<String, StoppableCheck> performPartitionsCheck(List<String> instances,
       RESTConfig restConfig, Map<String, String> customPayLoads) {
+    //TODO: move the heavy partition health preparation in separate class
     PartitionHealth clusterPartitionsHealth = generatePartitionHealthMapFromZK();
     // update the health status for those expired partitions on instances
     Map<String, List<String>> expiredPartitionsByInstance =
@@ -330,6 +279,60 @@ public class InstanceServiceImpl implements InstanceService {
     }
 
     return instanceStoppableChecks;
+  }
+
+  private Map<String, String> getCustomPayLoads(String jsonContent) throws IOException {
+    Map<String, String> result = new HashMap<>();
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(jsonContent);
+    // parsing the inputs as string key value pairs
+    jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asText()));
+    return result;
+  }
+
+  // TODO: move the method to {@link HelixDataAccessorWrapper}
+  @VisibleForTesting
+  protected PartitionHealth generatePartitionHealthMapFromZK() {
+    PartitionHealth partitionHealth = new PartitionHealth();
+
+    // Only checks the instances are online with valid reports
+    List<String> liveInstances =
+        _dataAccessor.getChildNames(_dataAccessor.keyBuilder().liveInstances());
+    // Make a parallel batch call for getting all healthreports from ZK.
+    List<HelixProperty> healthReports = _dataAccessor.getProperty(liveInstances.stream()
+        .map(instance -> _dataAccessor.keyBuilder().healthReport(instance, PARTITION_HEALTH_KEY))
+        .collect(Collectors.toList()));
+    for (int i = 0; i < liveInstances.size(); i++) {
+      String instance = liveInstances.get(i);
+      // TODO: Check ZNRecord is null or not. Need logic to check whether the healthreports exist
+      // or not. If it does not exist, we should query the participant directly for the health
+      // report.
+      ZNRecord customizedHealth = healthReports.get(i).getRecord();
+      for (String partitionName : customizedHealth.getMapFields().keySet()) {
+        try {
+          Map<String, String> healthMap = customizedHealth.getMapField(partitionName);
+          if (healthMap == null
+              || Long.parseLong(healthMap.get(EXPIRY_KEY)) < System.currentTimeMillis()) {
+            // Clean all the existing checks. If we do not clean it, when we do the customized
+            // check,
+            // Helix may think these partitions are only partitions holding on the instance.
+            // But it could potentially have some partitions are unhealthy for expired ones.
+            // It could problem for shutting down instances.
+            partitionHealth.addInstanceThatNeedDirectCallWithPartition(instance, partitionName);
+            continue;
+          }
+
+          partitionHealth.addSinglePartitionHealthForInstance(instance, partitionName,
+              Boolean.valueOf(healthMap.get(IS_HEALTHY_KEY)));
+        } catch (Exception e) {
+          LOG.warn(
+              "Error in processing partition level health for instance {}, partition {}, directly querying API",
+              instance, partitionName, e);
+          partitionHealth.addInstanceThatNeedDirectCallWithPartition(instance, partitionName);
+        }
+      }
+    }
+
+    return partitionHealth;
   }
 
   @VisibleForTesting

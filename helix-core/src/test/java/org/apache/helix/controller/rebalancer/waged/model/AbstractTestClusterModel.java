@@ -73,16 +73,27 @@ public abstract class AbstractTestClusterModel {
     _testFaultZoneId = "testZone";
   }
 
+  InstanceConfig createMockInstanceConfig(String instanceId) {
+    InstanceConfig testInstanceConfig = new InstanceConfig(instanceId);
+    testInstanceConfig.setInstanceCapacityMap(_capacityDataMap);
+    testInstanceConfig.addTag(_testInstanceTags.get(0));
+    testInstanceConfig.setInstanceEnabled(true);
+    testInstanceConfig.setZoneId(_testFaultZoneId);
+    return testInstanceConfig;
+  }
+
+  LiveInstance createMockLiveInstance(String instanceId) {
+    LiveInstance testLiveInstance = new LiveInstance(instanceId);
+    testLiveInstance.setSessionId(instanceId + "SessionId");
+    return testLiveInstance;
+  }
+
   protected ResourceControllerDataProvider setupClusterDataCache() throws IOException {
     ResourceControllerDataProvider testCache = Mockito.mock(ResourceControllerDataProvider.class);
 
     // 1. Set up the default instance information with capacity configuration.
-    InstanceConfig testInstanceConfig = new InstanceConfig("testInstanceId");
-    testInstanceConfig.setInstanceCapacityMap(_capacityDataMap);
-    testInstanceConfig.addTag(_testInstanceTags.get(0));
+    InstanceConfig testInstanceConfig = createMockInstanceConfig(_testInstanceId);
     testInstanceConfig.setInstanceEnabledForPartition("TestResource", "TestPartition", false);
-    testInstanceConfig.setInstanceEnabled(true);
-    testInstanceConfig.setZoneId(_testFaultZoneId);
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
     when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
@@ -95,8 +106,7 @@ public abstract class AbstractTestClusterModel {
     when(testCache.getClusterConfig()).thenReturn(testClusterConfig);
 
     // 3. Mock the live instance node for the default instance.
-    LiveInstance testLiveInstance = new LiveInstance(_testInstanceId);
-    testLiveInstance.setSessionId("testSessionId");
+    LiveInstance testLiveInstance = createMockLiveInstance(_testInstanceId);
     Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
     liveInstanceMap.put(_testInstanceId, testLiveInstance);
     when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);

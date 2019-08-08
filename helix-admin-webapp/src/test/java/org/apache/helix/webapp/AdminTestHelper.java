@@ -22,13 +22,9 @@ package org.apache.helix.webapp;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.helix.ZNRecord;
-import org.apache.helix.webapp.HelixAdminWebApp;
-import org.apache.helix.webapp.resources.ClusterRepresentationUtil;
-import org.apache.helix.webapp.resources.JsonParameters;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.restlet.Client;
 import org.restlet.Request;

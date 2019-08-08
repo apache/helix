@@ -1,10 +1,8 @@
 package org.apache.helix.controller.rebalancer.util;
 
-import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.model.IdealState;
 
 import org.apache.helix.model.ResourceConfig;

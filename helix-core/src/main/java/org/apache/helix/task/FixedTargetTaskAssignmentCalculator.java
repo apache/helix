@@ -37,7 +37,6 @@ import org.apache.helix.model.ResourceAssignment;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.helix.task.assigner.AssignableInstance;
 import org.apache.helix.task.assigner.TaskAssignResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

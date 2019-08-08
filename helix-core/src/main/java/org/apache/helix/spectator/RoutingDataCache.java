@@ -20,7 +20,6 @@ package org.apache.helix.spectator;
  */
 
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;

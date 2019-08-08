@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -54,10 +53,8 @@ import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.AbstractResource.Command;
 import org.apache.helix.rest.server.resources.helix.ClusterAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.annotate.JsonTypeInfo;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;

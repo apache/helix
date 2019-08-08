@@ -28,7 +28,6 @@ import java.util.TreeSet;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
-import org.apache.helix.task.assigner.AssignableInstance;
 import org.apache.helix.task.assigner.TaskAssignResult;
 import org.apache.helix.task.assigner.TaskAssigner;
 import org.slf4j.Logger;

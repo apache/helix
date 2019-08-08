@@ -22,8 +22,6 @@ package org.apache.helix.webapp.resources;
 import java.util.Map;
 
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.webapp.resources.ClusterRepresentationUtil;
-import org.apache.helix.webapp.resources.JsonParameters;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

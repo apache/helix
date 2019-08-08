@@ -26,7 +26,6 @@ import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
 import javax.management.MBeanServerDelegate;
 import javax.management.MBeanServerNotification;
-import javax.management.MalformedObjectNameException;
 import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.relation.MBeanServerNotificationFilter;

@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 import org.apache.helix.tools.ClusterSetup;

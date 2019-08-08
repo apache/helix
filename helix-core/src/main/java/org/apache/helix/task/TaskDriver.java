@@ -645,6 +645,10 @@ public class TaskDriver {
    * @param forceDelete, CAUTION: if set true, workflow and all of its jobs' related zk nodes will
    *          be clean up immediately from zookeeper, no matter whether there are jobs
    *          are running or not.
+   *
+   *          Enabling this option can cause a ZooKeeper delete failure as Helix might
+   *          inadvertently try to write the deleted ZNodes back to ZooKeeper. Do not
+   *          use unless the cluster is in a paused state or inactive (no controller).
    */
   public void delete(String workflow, boolean forceDelete) {
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, workflow);

@@ -2,13 +2,11 @@ package org.apache.helix.util;
 
 import java.util.Arrays;
 import java.util.Collections;
-import org.apache.commons.math.stat.inference.TestUtils;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.model.IdealState;

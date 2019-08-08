@@ -19,7 +19,6 @@ package org.apache.helix.messaging.handling;
  * under the License.
  */
 
-import org.apache.helix.HelixRollbackException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;

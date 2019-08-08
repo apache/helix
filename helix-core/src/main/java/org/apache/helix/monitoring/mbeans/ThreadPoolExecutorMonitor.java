@@ -3,7 +3,6 @@ package org.apache.helix.monitoring.mbeans;
 import java.util.concurrent.ThreadPoolExecutor;
 import javax.management.JMException;
 import javax.management.ObjectName;
-import org.apache.helix.InstanceType;
 
 public class ThreadPoolExecutorMonitor implements ThreadPoolExecutorMonitorMBean {
   public static final String TYPE = "Type";

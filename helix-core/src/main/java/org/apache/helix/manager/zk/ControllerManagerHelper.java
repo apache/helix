@@ -27,7 +27,6 @@ import org.apache.helix.HelixTimerTask;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.messaging.DefaultMessagingService;
-import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

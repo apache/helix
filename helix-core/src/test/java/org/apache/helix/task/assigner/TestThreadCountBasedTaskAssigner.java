@@ -20,7 +20,6 @@ package org.apache.helix.task.assigner;
  */
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,7 +32,6 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.task.AssignableInstanceManager;
-import org.apache.helix.task.TaskAssignmentCalculator;
 import org.apache.helix.task.TaskConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;

@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.annotate.JsonProperty;

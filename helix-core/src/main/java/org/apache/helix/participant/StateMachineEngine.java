@@ -19,7 +19,6 @@ package org.apache.helix.participant;
  * under the License.
  */
 
-import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;

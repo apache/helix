@@ -63,7 +63,6 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.util.HelixUtil;
-import org.apache.helix.util.ZKClientPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

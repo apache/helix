@@ -20,7 +20,6 @@ package org.apache.helix.task;
  */
 
 
-import java.util.HashMap;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;

@@ -20,7 +20,6 @@ package org.apache.helix.controller.dataproviders;
  */
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.task.JobConfig;

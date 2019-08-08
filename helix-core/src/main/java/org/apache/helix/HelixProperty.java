@@ -31,7 +31,6 @@ import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 
 /**
  * A wrapper class for ZNRecord. Used as a base class for IdealState, CurrentState, etc.

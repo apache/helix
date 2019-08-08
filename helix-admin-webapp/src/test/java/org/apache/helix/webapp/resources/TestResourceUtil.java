@@ -22,8 +22,6 @@ package org.apache.helix.webapp.resources;
 
 
 import org.apache.helix.model.IdealState;
-import org.apache.helix.webapp.resources.ClusterRepresentationUtil;
-import org.apache.helix.webapp.resources.ResourceUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

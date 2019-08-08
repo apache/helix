@@ -112,7 +112,6 @@ public class DistributedLeaderElection implements ControllerChangeListener {
       if (tryCreateController(manager)) {
         LOG.info("{} with session {} acquired leadership for cluster: {}",
             manager.getInstanceName(), manager.getSessionId(), manager.getClusterName());
-        updateHistory(manager);
         manager.getHelixDataAccessor().getBaseDataAccessor().reset();
         controllerHelper.addListenersToController(_controller);
         controllerHelper.startControllerTimerTasks();
@@ -132,8 +131,8 @@ public class DistributedLeaderElection implements ControllerChangeListener {
     newLeader.setSessionId(manager.getSessionId());
     newLeader.setHelixVersion(manager.getVersion());
     try {
-      boolean success = accessor.createControllerLeader(newLeader);
-      if (success) {
+      if (accessor.createControllerLeader(newLeader)) {
+        updateHistory(manager);
         return true;
       } else {
         LOG.info(

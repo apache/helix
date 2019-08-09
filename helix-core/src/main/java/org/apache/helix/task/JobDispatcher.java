@@ -384,7 +384,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
    * @param tasksToDrop instance -> pId's, to gather all pIds that need to be dropped
    * @return instance -> partitionIds from previous assignment, if the instance is still live
    */
-  private static Map<String, SortedSet<Integer>> getPrevInstanceToTaskAssignments(
+  protected static Map<String, SortedSet<Integer>> getPrevInstanceToTaskAssignments(
       Iterable<String> liveInstances, ResourceAssignment prevAssignment,
       Set<Integer> allTaskPartitions, CurrentStateOutput currStateOutput, String jobName,
       Map<String, Set<Integer>> tasksToDrop) {
@@ -425,25 +425,29 @@ public class JobDispatcher extends AbstractTaskDispatcher {
         TaskPartitionState currState = TaskPartitionState.valueOf(instanceToCurrState.getValue());
         int pId = TaskUtil.getPartitionId(entry.getKey().getPartitionName());
 
-        // We must add all active task pIds back here because dropping transition could overwrite an
-        // active transition in paMap
-        // Add all task partitions in the following states:
-        // currState = INIT, requestedState = RUNNING (bootstrap)
-        // currState = RUNNING, requestedState = ANY (active)
-        // ** for tasks that are just in INIT state, we do not add them here because old
-        // Participants, upon connection reset, set tasks' currentStates to INIT. We cannot consider
-        // those tasks active **
-        if (result.containsKey(instance) && (currState == TaskPartitionState.INIT
-            && requestedState != null && requestedState.equals(TaskPartitionState.RUNNING.name())
-            || currState == TaskPartitionState.RUNNING)) {
-          // Check if this is a dropping transition
+        if (result.containsKey(instance)) {
+          // We must add all active task pIds back here because dropping transition could overwrite
+          // an active transition in paMap
+          // Add all task partitions in the following states:
+          // currState = INIT, requestedState = RUNNING (bootstrap)
+          // currState = RUNNING, requestedState = ANY (active)
+          // ** for tasks that are just in INIT state, we do not add them here because old
+          // Participants, upon connection reset, set tasks' currentStates to INIT. We cannot
+          // consider those tasks active **
+          if (currState == TaskPartitionState.INIT && requestedState != null
+              && requestedState.equals(TaskPartitionState.RUNNING.name())
+              || currState == TaskPartitionState.RUNNING) {
+            result.get(instance).add(pId);
+          }
+
+          // Check if this task needs to be dropped. If so, we need to add to tasksToDrop no matter
+          // what its current state is so that it will be dropped
           if (requestedState != null && requestedState.equals(TaskPartitionState.DROPPED.name())) {
             if (!tasksToDrop.containsKey(instance)) {
               tasksToDrop.put(instance, new HashSet<>());
             }
             tasksToDrop.get(instance).add(pId);
           }
-          result.get(instance).add(pId);
         }
       }
     }

@@ -21,7 +21,7 @@ package org.apache.helix.controller.rebalancer.waged;
 
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
-import org.apache.helix.model.IdealState;
+import org.apache.helix.model.ResourceAssignment;
 
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +46,8 @@ public class ClusterDataProvider {
    */
   protected static ClusterModel generateClusterModel(ResourceControllerDataProvider dataProvider,
       Set<String> activeInstances, Map<ClusterDataDetector.ChangeType, Set<String>> clusterChanges,
-      Map<String, IdealState> baselineAssignment, Map<String, IdealState> bestPossibleAssignment) {
+      Map<String, ResourceAssignment> baselineAssignment,
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
     // TODO finish the implementation.
     return null;
   }

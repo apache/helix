@@ -19,7 +19,7 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
-import org.apache.helix.model.IdealState;
+import org.apache.helix.model.ResourceAssignment;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,23 +28,23 @@ import java.util.Map;
  * A placeholder before we have the real assignment metadata store.
  */
 public class AssignmentMetadataStore {
-  private Map<String, IdealState> _persistGlobalBaseline = new HashMap<>();
-  private Map<String, IdealState> _persistBestPossibleAssignment = new HashMap<>();
+  private Map<String, ResourceAssignment> _persistGlobalBaseline = new HashMap<>();
+  private Map<String, ResourceAssignment> _persistBestPossibleAssignment = new HashMap<>();
 
-  public Map<String, IdealState> getBaseline() {
+  public Map<String, ResourceAssignment> getBaseline() {
     return _persistGlobalBaseline;
   }
 
-  public void persistBaseline(Map<String, IdealState> globalBaseline) {
+  public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     // TODO clean up invalid items
     _persistGlobalBaseline = globalBaseline;
   }
 
-  public Map<String, IdealState> getBestPossibleAssignment() {
+  public Map<String, ResourceAssignment> getBestPossibleAssignment() {
     return _persistBestPossibleAssignment;
   }
 
-  public void persistBestPossibleAssignment(Map<String, IdealState> bestPossibleAssignment) {
+  public void persistBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment) {
     // TODO clean up invalid items
     _persistBestPossibleAssignment.putAll(bestPossibleAssignment);
   }

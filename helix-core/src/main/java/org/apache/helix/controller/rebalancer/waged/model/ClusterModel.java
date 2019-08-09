@@ -21,6 +21,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.ResourceAssignment;
 
 import java.util.Collections;
 import java.util.Map;
@@ -40,10 +41,10 @@ public class ClusterModel {
   private final Map<String, AssignableNode> _assignableNodeMap;
 
   // Records about the previous assignment
-  // <ResourceName, IdealState contains the baseline assignment>
-  private final Map<String, IdealState> _baselineAssignment;
-  // <ResourceName, IdealState contains the best possible assignment>
-  private final Map<String, IdealState> _bestPossibleAssignment;
+  // <ResourceName, ResourceAssignment contains the baseline assignment>
+  private final Map<String, ResourceAssignment> _baselineAssignment;
+  // <ResourceName, ResourceAssignment contains the best possible assignment>
+  private final Map<String, ResourceAssignment> _bestPossibleAssignment;
 
   /**
    * @param clusterContext         The initialized cluster context.
@@ -54,8 +55,8 @@ public class ClusterModel {
    * @param bestPossibleAssignment The current best possible assignment.
    */
   ClusterModel(ClusterContext clusterContext, Set<AssignableReplica> assignableReplicas,
-      Set<AssignableNode> assignableNodes, Map<String, IdealState> baselineAssignment,
-      Map<String, IdealState> bestPossibleAssignment) {
+      Set<AssignableNode> assignableNodes, Map<String, ResourceAssignment> baselineAssignment,
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
     _clusterContext = clusterContext;
 
     // Save all the to be assigned replication
@@ -87,11 +88,11 @@ public class ClusterModel {
     return _assignableReplicaMap;
   }
 
-  public Map<String, IdealState> getBaseline() {
+  public Map<String, ResourceAssignment> getBaseline() {
     return _baselineAssignment;
   }
 
-  public Map<String, IdealState> getBestPossibleAssignment() {
+  public Map<String, ResourceAssignment> getBestPossibleAssignment() {
     return _bestPossibleAssignment;
   }
 

@@ -38,15 +38,15 @@ class StateTransitionThrottleController {
   private static Logger logger = LoggerFactory.getLogger(StateTransitionThrottleController.class);
 
   // pending allowed transition counts in the cluster level for recovery and load balance
-  private Map<StateTransitionThrottleConfig.RebalanceType, Long> _pendingTransitionAllowedInCluster;
+  Map<StateTransitionThrottleConfig.RebalanceType, Long> _pendingTransitionAllowedInCluster;
 
   // pending allowed transition counts for each instance and resource
-  private Map<String, Map<StateTransitionThrottleConfig.RebalanceType, Long>> _pendingTransitionAllowedPerInstance;
-  private Map<String, Map<StateTransitionThrottleConfig.RebalanceType, Long>> _pendingTransitionAllowedPerResource;
+  Map<String, Map<StateTransitionThrottleConfig.RebalanceType, Long>> _pendingTransitionAllowedPerInstance;
+  Map<String, Map<StateTransitionThrottleConfig.RebalanceType, Long>> _pendingTransitionAllowedPerResource;
 
   private boolean _throttleEnabled = false;
 
-  public StateTransitionThrottleController(Set<String> resources, ClusterConfig clusterConfig,
+  StateTransitionThrottleController(Set<String> resources, ClusterConfig clusterConfig,
       Set<String> liveInstances) {
     super();
     _pendingTransitionAllowedInCluster = new HashMap<>();
@@ -175,13 +175,7 @@ class StateTransitionThrottleController {
    * @param rebalanceType
    */
   protected void chargeCluster(StateTransitionThrottleConfig.RebalanceType rebalanceType) {
-    if (_pendingTransitionAllowedInCluster.containsKey(rebalanceType)) {
-      Long clusterThrottle = _pendingTransitionAllowedInCluster.get(rebalanceType);
-      chargeANYType(_pendingTransitionAllowedInCluster);
-      if (clusterThrottle > 0) {
-        _pendingTransitionAllowedInCluster.put(rebalanceType, clusterThrottle - 1);
-      }
-    }
+    charge(rebalanceType, _pendingTransitionAllowedInCluster);
   }
 
   /**
@@ -191,14 +185,7 @@ class StateTransitionThrottleController {
    */
   protected void chargeResource(StateTransitionThrottleConfig.RebalanceType rebalanceType,
       String resource) {
-    if (_pendingTransitionAllowedPerResource.containsKey(resource)
-        && _pendingTransitionAllowedPerResource.get(resource).containsKey(rebalanceType)) {
-      chargeANYType(_pendingTransitionAllowedPerResource.get(resource));
-      Long resourceThrottle = _pendingTransitionAllowedPerResource.get(resource).get(rebalanceType);
-      if (resourceThrottle > 0) {
-        _pendingTransitionAllowedPerResource.get(resource).put(rebalanceType, resourceThrottle - 1);
-      }
-    }
+    charge(rebalanceType, _pendingTransitionAllowedPerResource.getOrDefault(resource, new HashMap<>()));
   }
 
   /**
@@ -208,13 +195,21 @@ class StateTransitionThrottleController {
    */
   protected void chargeInstance(StateTransitionThrottleConfig.RebalanceType rebalanceType,
       String instance) {
-    if (_pendingTransitionAllowedPerInstance.containsKey(instance)
-        && _pendingTransitionAllowedPerInstance.get(instance).containsKey(rebalanceType)) {
-      chargeANYType(_pendingTransitionAllowedPerInstance.get(instance));
-      Long instanceThrottle = _pendingTransitionAllowedPerInstance.get(instance).get(rebalanceType);
-      if (instanceThrottle > 0) {
-        _pendingTransitionAllowedPerInstance.get(instance).put(rebalanceType, instanceThrottle - 1);
-      }
+    charge(rebalanceType, _pendingTransitionAllowedPerInstance.getOrDefault(instance, new HashMap<>()));
+  }
+
+  private void charge(StateTransitionThrottleConfig.RebalanceType rebalanceType,
+      Map<StateTransitionThrottleConfig.RebalanceType, Long> quota) {
+    if (StateTransitionThrottleConfig.RebalanceType.NONE.equals(rebalanceType)) {
+      logger.error("Wrong rebalance type NONE as parameter");
+      return;
+    }
+    // if ANY type is present, decrement one else do nothing
+    quota.computeIfPresent(StateTransitionThrottleConfig.RebalanceType.ANY,
+        (type, quotaNumber) -> Math.max(0, quotaNumber - 1));
+    if (!rebalanceType.equals(StateTransitionThrottleConfig.RebalanceType.ANY)) {
+      // if type is present, decrement one else do nothing
+      quota.computeIfPresent(rebalanceType, (type, quotaNumber) -> Math.max(0, quotaNumber - 1));
     }
   }
 
@@ -235,23 +230,5 @@ class StateTransitionThrottleController {
       }
     }
     return false;
-  }
-
-  /**
-   * "Charge" for a pending state regardless of the rebalance type by subtracting one pending state
-   * from number of total pending state from number of total pending states allowed (set by user
-   * application).
-   * @param pendingTransitionAllowed
-   */
-  private void chargeANYType(
-      Map<StateTransitionThrottleConfig.RebalanceType, Long> pendingTransitionAllowed) {
-    if (pendingTransitionAllowed.containsKey(StateTransitionThrottleConfig.RebalanceType.ANY)) {
-      Long anyTypeThrottle =
-          pendingTransitionAllowed.get(StateTransitionThrottleConfig.RebalanceType.ANY);
-      if (anyTypeThrottle > 0) {
-        pendingTransitionAllowed.put(StateTransitionThrottleConfig.RebalanceType.ANY,
-            anyTypeThrottle - 1);
-      }
-    }
   }
 }

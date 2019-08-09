@@ -26,7 +26,9 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -140,18 +142,23 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
 
     // 4. test with best possible assignment
     // Mock a best possible assignment based on the current states.
-    Map<String, IdealState> bestPossibleAssignment = new HashMap<>();
+    Map<String, ResourceAssignment> bestPossibleAssignment = new HashMap<>();
     for (String resource : _resourceNames) {
+      // <partition, <instance, state>>
+      Map<String, Map<String, String>> assignmentMap = new HashMap<>();
       CurrentState cs = testCache.getCurrentState(_testInstanceId, _sessionId).get(resource);
       if (cs != null) {
-        IdealState is = new IdealState(resource);
         for (Map.Entry<String, String> stateEntry : cs.getPartitionStateMap().entrySet()) {
-          is.setPartitionState(stateEntry.getKey(), _testInstanceId, stateEntry.getValue());
-          is.setPreferenceList(stateEntry.getKey(), Collections.emptyList());
+          assignmentMap.computeIfAbsent(stateEntry.getKey(), k -> new HashMap<>())
+              .put(_testInstanceId, stateEntry.getValue());
         }
-        bestPossibleAssignment.put(is.getResourceName(), is);
+        ResourceAssignment assignment = new ResourceAssignment(resource);
+        assignmentMap.keySet().stream().forEach(partition -> assignment
+            .addReplicaMap(new Partition(partition), assignmentMap.get(partition)));
+        bestPossibleAssignment.put(resource, assignment);
       }
     }
+
     // Generate a cluster model based on the best possible assignment
     clusterModel = ClusterModelProvider.generateClusterModel(testCache, _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),

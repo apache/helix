@@ -26,6 +26,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 
@@ -59,7 +60,8 @@ public class ClusterModelProvider {
   public static ClusterModel generateClusterModel(ResourceControllerDataProvider dataProvider,
       Map<String, Resource> resourceMap, Set<String> activeInstances,
       Map<ClusterDataDetector.ChangeType, Set<String>> clusterChanges,
-      Map<String, IdealState> baselineAssignment, Map<String, IdealState> bestPossibleAssignment) {
+      Map<String, ResourceAssignment> baselineAssignment,
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
     // Generate replica objects for all the resource partitions.
     // <resource, replica set>
     Map<String, Set<AssignableReplica>> replicaMap =
@@ -69,8 +71,8 @@ public class ClusterModelProvider {
     Map<String, Set<AssignableReplica>> allocatedReplicas =
         new HashMap<>(); // <instanceName, replica set>
     Set<AssignableReplica> toBeAssignedReplicas =
-        findToBeAssignedReplicas(replicaMap, clusterChanges, activeInstances, bestPossibleAssignment,
-            allocatedReplicas);
+        findToBeAssignedReplicas(replicaMap, clusterChanges, activeInstances,
+            bestPossibleAssignment, allocatedReplicas);
 
     // Construct all the assignable nodes and initialize with the allocated replicas.
     Set<AssignableNode> assignableNodes =
@@ -107,7 +109,7 @@ public class ClusterModelProvider {
   private static Set<AssignableReplica> findToBeAssignedReplicas(
       Map<String, Set<AssignableReplica>> replicaMap,
       Map<ClusterDataDetector.ChangeType, Set<String>> clusterChanges, Set<String> activeInstances,
-      Map<String, IdealState> bestPossibleAssignment,
+      Map<String, ResourceAssignment> bestPossibleAssignment,
       Map<String, Set<AssignableReplica>> allocatedReplicas) {
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
     if (clusterChanges.containsKey(ClusterDataDetector.ChangeType.ClusterConfigChange)
@@ -131,11 +133,11 @@ public class ClusterModelProvider {
           continue; // go to check next resource
         } else {
           // check for every best possible assignments to identify if the related replicas need to reassign.
-          IdealState is = bestPossibleAssignment.get(resourceName);
+          ResourceAssignment assignment = bestPossibleAssignment.get(resourceName);
           // <partition, <instance, state>>
-          Map<String, Map<String, String>> stateMap = is.getPartitionSet().stream().collect(
-              Collectors
-                  .toMap(partition -> partition, partition -> new HashMap<>(is.getInstanceStateMap(partition))));
+          Map<String, Map<String, String>> stateMap = assignment.getMappedPartitions().stream()
+              .collect(Collectors.toMap(partition -> partition.getPartitionName(),
+                  partition -> new HashMap<>(assignment.getReplicaMap(partition))));
           for (AssignableReplica replica : replicas) {
             // Find any ACTIVE instance allocation that has the same state with the replica
             Optional<Map.Entry<String, String>> instanceNameOptional =
@@ -235,8 +237,7 @@ public class ClusterModelProvider {
     assignableNodes.stream().forEach(node -> {
       for (Map.Entry<String, Set<String>> resourceMap : node.getCurrentAssignmentsMap()
           .entrySet()) {
-        faultZoneAssignmentMap
-            .computeIfAbsent(node.getFaultZone(), k -> new HashMap<>())
+        faultZoneAssignmentMap.computeIfAbsent(node.getFaultZone(), k -> new HashMap<>())
             .computeIfAbsent(resourceMap.getKey(), k -> new HashSet<>())
             .addAll(resourceMap.getValue());
       }

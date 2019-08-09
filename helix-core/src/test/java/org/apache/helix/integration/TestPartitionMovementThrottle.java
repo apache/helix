@@ -29,25 +29,35 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.TestHelper;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.WorkflowGenerator;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
 public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
+
   private ConfigAccessor _configAccessor;
   private Set<String> _dbs = new HashSet<>();
 
@@ -149,7 +159,8 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       // there are recovery or error partitions present, maxPendingTransition below is adjusted from
       // 2 to 5 because BOTH recovery balance and load balance could happen in the same pipeline
       // iteration
-      validateThrottle(DelayedTransition.getResourcePatitionTransitionTimes(), db, 5);
+      Assert.assertTrue(getMaxParallelTransitionCount(
+          DelayedTransition.getResourcePatitionTransitionTimes(), db) <= 5);
     }
   }
 
@@ -179,8 +190,9 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     Thread.sleep(2000);
 
     for (int i = 0; i < NODE_NR; i++) {
-      validateThrottle(DelayedTransition.getInstancePatitionTransitionTimes(),
-          _participants[i].getInstanceName(), 2);
+      Assert.assertTrue(
+          getMaxParallelTransitionCount(DelayedTransition.getInstancePatitionTransitionTimes(),
+              _participants[i].getInstanceName()) <= 2);
     }
   }
 
@@ -211,8 +223,60 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     Thread.sleep(2000L);
 
     for (int i = 0; i < NODE_NR; i++) {
-      validateThrottle(DelayedTransition.getInstancePatitionTransitionTimes(),
-          _participants[i].getInstanceName(), 1);
+      Assert.assertTrue(
+          getMaxParallelTransitionCount(DelayedTransition.getInstancePatitionTransitionTimes(),
+              _participants[i].getInstanceName()) <= 1);
+    }
+  }
+
+  @Test
+  public void testThrottleOnlyClusterLevelAnyType() {
+    // start some participants
+    for (int i = 0; i < NODE_NR - 3; i++) {
+      _participants[i].syncStart();
+    }
+    // Add resource: TestDB_ANY of 20 partitions
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_OnlyANY",
+        20, STATE_MODEL, RebalanceMode.FULL_AUTO.name());
+    // Act the rebalance process
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_OnlyANY",
+        _replica);
+
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // overwrite the cluster level throttle configuration
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    StateTransitionThrottleConfig anyTypeClusterThrottle =
+        new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.ANY,
+            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 1);
+    clusterConfig.setStateTransitionThrottleConfigs(ImmutableList.of(anyTypeClusterThrottle));
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    DelayedTransition.setDelay(20);
+    DelayedTransition.enableThrottleRecord();
+
+    List<MockParticipantManager> newNodes =
+        Arrays.asList(_participants).subList(NODE_NR - 3, NODE_NR);
+    newNodes.forEach(MockParticipantManager::syncStart);
+    newNodes.forEach(node -> {
+      try {
+        Assert.assertTrue(TestHelper.verify(() -> getMaxParallelTransitionCount(
+            DelayedTransition.getInstancePatitionTransitionTimes(), node.getInstanceName()) <= 1,
+            1000 * 2));
+      } catch (Exception e) {
+        e.printStackTrace();
+        assert false;
+      }
+    });
+
+    ClusterLiveNodesVerifier liveNodesVerifier =
+        new ClusterLiveNodesVerifier(_gZkClient, CLUSTER_NAME,
+            Lists.transform(Arrays.asList(_participants), MockParticipantManager::getInstanceName));
+    Assert.assertTrue(liveNodesVerifier.verifyByZkCallback(1000));
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    for (int i = 0; i < NODE_NR; i++) {
+      _participants[i].syncStop();
     }
   }
 
@@ -225,10 +289,18 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     _dbs.clear();
     Thread.sleep(50);
 
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
     for (int i = 0; i < _participants.length; i++) {
       _participants[i].syncStop();
       _participants[i] =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _participants[i].getInstanceName());
+    }
+    try {
+      Assert.assertTrue(TestHelper.verify(() -> dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances()).isEmpty(), 1000));
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.out.println("There're live instances not cleaned up yet");
+      assert false;
     }
     DelayedTransition.clearThrottleRecord();
   }
@@ -279,13 +351,16 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _dbs) {
-      validateThrottle(DelayedTransition.getResourcePatitionTransitionTimes(), db, 2);
+      int maxInParallel =
+          getMaxParallelTransitionCount(DelayedTransition.getResourcePatitionTransitionTimes(), db);
+      System.out.println("MaxInParallel: " + maxInParallel + " maxPendingTransition: " + 2);
+      Assert.assertTrue(maxInParallel <= 2, "Throttle condition does not meet for " + db);
     }
   }
 
-  private void validateThrottle(
+  private int getMaxParallelTransitionCount(
       Map<String, List<PartitionTransitionTime>> partitionTransitionTimesMap,
-      String throttledItemName, int maxPendingTransition) {
+      String throttledItemName) {
     List<PartitionTransitionTime> pTimeList = partitionTransitionTimesMap.get(throttledItemName);
 
     Map<Long, List<PartitionTransitionTime>> startMap = new HashMap<>();
@@ -294,7 +369,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
     if (pTimeList == null) {
       System.out.println("no throttle result for :" + throttledItemName);
-      return;
+      return -1;
     }
     pTimeList.sort((o1, o2) -> (int) (o1.start - o2.start));
 
@@ -330,10 +405,9 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       }
     }
 
-    System.out.println(
-        "MaxInParallel: " + maxInParallel + " maxPendingTransition: " + maxPendingTransition);
-    Assert.assertTrue(maxInParallel <= maxPendingTransition,
-        "Throttle condition does not meet for " + throttledItemName);
+    System.out
+        .println("Max number of ST in parallel: " + maxInParallel + " for " + throttledItemName);
+    return maxInParallel;
   }
 
   private int size(List<PartitionTransitionTime> timeList) {

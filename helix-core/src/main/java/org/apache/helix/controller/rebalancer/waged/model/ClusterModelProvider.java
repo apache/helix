@@ -69,7 +69,7 @@ public class ClusterModelProvider {
     Map<String, Set<AssignableReplica>> allocatedReplicas =
         new HashMap<>(); // <instanceName, replica set>
     Set<AssignableReplica> toBeAssignedReplicas =
-        findToBeAssignedReplica(replicaMap, clusterChanges, activeInstances, bestPossibleAssignment,
+        findToBeAssignedReplicas(replicaMap, clusterChanges, activeInstances, bestPossibleAssignment,
             allocatedReplicas);
 
     // Construct all the assignable nodes and initialize with the allocated replicas.
@@ -104,7 +104,7 @@ public class ClusterModelProvider {
    * @param allocatedReplicas      Return the allocated replicas grouped by the target instance name.
    * @return The replicas that need to be reassigned.
    */
-  private static Set<AssignableReplica> findToBeAssignedReplica(
+  private static Set<AssignableReplica> findToBeAssignedReplicas(
       Map<String, Set<AssignableReplica>> replicaMap,
       Map<ClusterDataDetector.ChangeType, Set<String>> clusterChanges, Set<String> activeInstances,
       Map<String, IdealState> bestPossibleAssignment,

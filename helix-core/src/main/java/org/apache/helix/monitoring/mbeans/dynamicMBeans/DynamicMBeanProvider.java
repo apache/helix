@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNameProvider {
   protected final Logger _logger = LoggerFactory.getLogger(getClass());
   protected static final long DEFAULT_RESET_INTERVAL_MS = 60 * 60 * 1000; // Reset time every hour
+  protected static final String RESET_INTERVAL_SYSTEM_PROPERTY_KEY = "reservoir.length.ms";
   private static String SENSOR_NAME_TAG = "SensorName";
   private static String DEFAULT_DESCRIPTION =
       "Information on the management interface of the MBean";

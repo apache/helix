@@ -31,6 +31,7 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+import org.apache.helix.util.HelixUtil;
 
 public class ZkClientPathMonitor extends DynamicMBeanProvider {
   public static final String MONITOR_PATH = "PATH";
@@ -128,21 +129,27 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     _readCounter = new SimpleDynamicMetric(PredefinedMetricDomains.ReadCounter.name(), 0l);
 
     _readLatencyGauge = new HistogramDynamicMetric(PredefinedMetricDomains.ReadLatencyGauge.name(),
-        new Histogram(
-            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new Histogram(new SlidingTimeWindowArrayReservoir(HelixUtil
+            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
+            TimeUnit.MILLISECONDS)));
     _writeLatencyGauge =
         new HistogramDynamicMetric(PredefinedMetricDomains.WriteLatencyGauge.name(), new Histogram(
-            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+            new SlidingTimeWindowArrayReservoir(HelixUtil
+                .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY,
+                    DEFAULT_RESET_INTERVAL_MS), TimeUnit.MILLISECONDS)));
     _readBytesGauge = new HistogramDynamicMetric(PredefinedMetricDomains.ReadBytesGauge.name(),
-        new Histogram(
-            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new Histogram(new SlidingTimeWindowArrayReservoir(HelixUtil
+            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
+            TimeUnit.MILLISECONDS)));
     _writeBytesGauge = new HistogramDynamicMetric(PredefinedMetricDomains.WriteBytesGauge.name(),
-        new Histogram(
-            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new Histogram(new SlidingTimeWindowArrayReservoir(HelixUtil
+            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
+            TimeUnit.MILLISECONDS)));
     _dataPropagationLatencyGauge =
         new HistogramDynamicMetric(PredefinedMetricDomains.DataPropagationLatencyGuage.name(),
-            new Histogram(new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS,
-                TimeUnit.MILLISECONDS)));
+            new Histogram(new SlidingTimeWindowArrayReservoir(HelixUtil
+                .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY,
+                    DEFAULT_RESET_INTERVAL_MS), TimeUnit.MILLISECONDS)));
   }
 
   public ZkClientPathMonitor register() throws JMException {

@@ -31,6 +31,7 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 import org.apache.helix.task.TaskState;
+import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,16 +86,21 @@ public class JobMonitor extends DynamicMBeanProvider {
 
     // Instantiate histogram dynamic metrics
     _jobLatencyGauge = new HistogramDynamicMetric("JobLatencyGauge", new Histogram(
-        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
-    _submissionToProcessDelayGauge =
-        new HistogramDynamicMetric("SubmissionToProcessDelayGauge", new Histogram(
-            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
-    _submissionToScheduleDelayGauge =
-        new HistogramDynamicMetric("SubmissionToScheduleDelayGauge", new Histogram(
-            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
-    _controllerInducedDelayGauge =
-        new HistogramDynamicMetric("ControllerInducedDelayGauge", new Histogram(
-            new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(HelixUtil
+            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
+            TimeUnit.MILLISECONDS)));
+    _submissionToProcessDelayGauge = new HistogramDynamicMetric("SubmissionToProcessDelayGauge",
+        new Histogram(new SlidingTimeWindowArrayReservoir(HelixUtil
+            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
+            TimeUnit.MILLISECONDS)));
+    _submissionToScheduleDelayGauge = new HistogramDynamicMetric("SubmissionToScheduleDelayGauge",
+        new Histogram(new SlidingTimeWindowArrayReservoir(HelixUtil
+            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
+            TimeUnit.MILLISECONDS)));
+    _controllerInducedDelayGauge = new HistogramDynamicMetric("ControllerInducedDelayGauge",
+        new Histogram(new SlidingTimeWindowArrayReservoir(HelixUtil
+            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
+            TimeUnit.MILLISECONDS)));
   }
 
   @Override

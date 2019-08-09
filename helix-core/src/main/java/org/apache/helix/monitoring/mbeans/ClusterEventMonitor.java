@@ -26,6 +26,7 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+import org.apache.helix.util.HelixUtil;
 
 import javax.management.JMException;
 import java.util.ArrayList;
@@ -57,7 +58,9 @@ public class ClusterEventMonitor extends DynamicMBeanProvider {
     _clusterStatusMonitor = clusterStatusMonitor;
 
     _duration = new HistogramDynamicMetric("DurationGauge", new Histogram(
-        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(HelixUtil
+            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
+            TimeUnit.MILLISECONDS)));
     _count = new SimpleDynamicMetric("EventCounter", 0l);
     _maxDuration = new SimpleDynamicMetric("MaxSingleDurationGauge", 0l);
     _totalDuration = new SimpleDynamicMetric("TotalDurationCounter", 0l);

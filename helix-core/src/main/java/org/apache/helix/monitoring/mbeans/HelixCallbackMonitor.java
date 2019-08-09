@@ -27,6 +27,7 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+import org.apache.helix.util.HelixUtil;
 
 import javax.management.JMException;
 import java.util.ArrayList;
@@ -64,7 +65,9 @@ public class HelixCallbackMonitor extends DynamicMBeanProvider {
             changeType.name());
 
     _latencyGauge = new HistogramDynamicMetric("LatencyGauge", new Histogram(
-        new SlidingTimeWindowArrayReservoir(DEFAULT_RESET_INTERVAL_MS, TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(HelixUtil
+            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
+            TimeUnit.MILLISECONDS)));
     _totalLatencyCounter = new SimpleDynamicMetric("LatencyCounter", 0l);
     _unbatchedCounter = new SimpleDynamicMetric("UnbatchedCounter", 0l);
     _counter = new SimpleDynamicMetric("Counter", 0l);

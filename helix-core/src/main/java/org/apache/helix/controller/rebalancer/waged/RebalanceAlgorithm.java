@@ -22,6 +22,7 @@ package org.apache.helix.controller.rebalancer.waged;
 import org.apache.helix.controller.rebalancer.waged.constraints.HardConstraint;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.ResourceAssignment;
 
 import java.util.Map;
 
@@ -40,6 +41,6 @@ public interface RebalanceAlgorithm {
    *                       If the map is null, no failure will be returned.
    * @return A map <ResourceName, FailureReason> of the rebalanced resource assignments that are saved in the IdeaStates.
    */
-  Map<String, IdealState> rebalance(ClusterModel clusterModel,
+  Map<String, ResourceAssignment> rebalance(ClusterModel clusterModel,
       Map<String, Map<HardConstraint.FailureReason, Integer>> failureReasons);
 }

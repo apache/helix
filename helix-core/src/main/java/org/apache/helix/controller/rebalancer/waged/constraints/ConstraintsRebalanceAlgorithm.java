@@ -21,7 +21,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

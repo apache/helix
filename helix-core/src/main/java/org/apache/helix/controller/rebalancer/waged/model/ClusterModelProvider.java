@@ -135,7 +135,7 @@ public class ClusterModelProvider {
           // <partition, <instance, state>>
           Map<String, Map<String, String>> stateMap = is.getPartitionSet().stream().collect(
               Collectors
-                  .toMap(partition -> partition, partition -> is.getInstanceStateMap(partition)));
+                  .toMap(partition -> partition, partition -> new HashMap<>(is.getInstanceStateMap(partition))));
           for (AssignableReplica replica : replicas) {
             // Find any ACTIVE instance allocation that has the same state with the replica
             Optional<Map.Entry<String, String>> instanceNameOptional =
@@ -145,7 +145,7 @@ public class ClusterModelProvider {
                         .contains(instanceStateMap.getKey())).findAny();
             // 3. if no such an instance in the bestPossible assignment, need to reassign the replica
             if (!instanceNameOptional.isPresent()) {
-              toBeAssignedReplicas.addAll(replicas);
+              toBeAssignedReplicas.add(replica);
               continue; // go to check the next replica
             } else {
               String instanceName = instanceNameOptional.get().getKey();

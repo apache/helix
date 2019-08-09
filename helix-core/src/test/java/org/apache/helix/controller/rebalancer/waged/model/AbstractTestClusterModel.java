@@ -41,6 +41,7 @@ import java.util.Set;
 import static org.mockito.Mockito.when;
 
 public abstract class AbstractTestClusterModel {
+  protected static String _sessionId = "testSessionId";
   protected String _testInstanceId;
   protected List<String> _resourceNames;
   protected List<String> _partitionNames;
@@ -84,7 +85,7 @@ public abstract class AbstractTestClusterModel {
 
   LiveInstance createMockLiveInstance(String instanceId) {
     LiveInstance testLiveInstance = new LiveInstance(instanceId);
-    testLiveInstance.setSessionId(instanceId + "SessionId");
+    testLiveInstance.setSessionId(_sessionId);
     return testLiveInstance;
   }
 
@@ -140,7 +141,7 @@ public abstract class AbstractTestClusterModel {
     Map<String, CurrentState> currentStatemap = new HashMap<>();
     currentStatemap.put(_resourceNames.get(0), testCurrentStateResource1);
     currentStatemap.put(_resourceNames.get(1), testCurrentStateResource2);
-    when(testCache.getCurrentState(_testInstanceId, "testSessionId")).thenReturn(currentStatemap);
+    when(testCache.getCurrentState(_testInstanceId, _sessionId)).thenReturn(currentStatemap);
 
     // 5. Set up the resource config for the two resources with the partition weight.
     Map<String, Integer> capacityDataMapResource1 = new HashMap<>();
@@ -172,7 +173,7 @@ public abstract class AbstractTestClusterModel {
   protected Set<AssignableReplica> generateReplicas(ResourceControllerDataProvider dataProvider) {
     // Create assignable replica based on the current state.
     Map<String, CurrentState> currentStatemap =
-        dataProvider.getCurrentState(_testInstanceId, "testSessionId");
+        dataProvider.getCurrentState(_testInstanceId, _sessionId);
     Set<AssignableReplica> assignmentSet = new HashSet<>();
     for (CurrentState cs : currentStatemap.values()) {
       ResourceConfig resourceConfig = dataProvider.getResourceConfig(cs.getResourceName());

@@ -18,7 +18,8 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -29,7 +30,7 @@ under the License.
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.9.1</version>
+  <version>0.9.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -332,7 +333,7 @@ under the License.
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/helix.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/helix.git</developerConnection>
     <url>https://git-wip-us.apache.org/repos/asf?p=helix.git;a=summary</url>
-    <tag>helix-0.9.1</tag>
+    <tag>HEAD</tag>
   </scm>
   <issueManagement>
     <system>jira</system>
@@ -359,7 +360,7 @@ under the License.
     <helix.scmPubCheckoutDirectory>${user.home}/helix-site/helix-site-content</helix.scmPubCheckoutDirectory>
     <scmSkipDeletedFiles>false</scmSkipDeletedFiles>
     <!-- fix issue with current apache parent pom -->
-    <arguments />
+    <arguments/>
 
     <!-- for svnpubsub site deployment -->
     <helix.release.preparationGoals>clean install</helix.release.preparationGoals>
@@ -370,14 +371,14 @@ under the License.
     <currentRelease>0.8.0</currentRelease>
 
     <!-- OSGi Properties -->
-    <osgi.import />
-    <osgi.dynamic.import />
-    <osgi.require.bundles />
-    <osgi.export />
-    <osgi.private />
-    <osgi.ignore />
-    <osgi.activator />
-    <osgi.export.service />
+    <osgi.import/>
+    <osgi.dynamic.import/>
+    <osgi.require.bundles/>
+    <osgi.export/>
+    <osgi.private/>
+    <osgi.ignore/>
+    <osgi.activator/>
+    <osgi.export.service/>
 
     <!--Skips test in default 'mvn clean install' build command-->
     <!-- <maven.test.skip.exec>true</maven.test.skip.exec> -->

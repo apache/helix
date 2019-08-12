@@ -54,7 +54,7 @@ public class ParticipantHealthReportTask extends HelixTimerTask {
   }
 
   @Override
-  public void start() {
+  public synchronized void start() {
     if (_timer == null) {
       LOG.info("Start HealthCheckInfoReportingTask");
       _timer = new Timer("ParticipantHealthReportTimerTask", true);
@@ -66,7 +66,7 @@ public class ParticipantHealthReportTask extends HelixTimerTask {
   }
 
   @Override
-  public void stop() {
+  public synchronized void stop() {
     if (_timer != null) {
       LOG.info("Stop ParticipantHealthReportTimerTask");
       _timer.cancel();

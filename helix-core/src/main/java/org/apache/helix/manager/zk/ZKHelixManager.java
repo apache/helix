@@ -167,7 +167,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
 
     @Override
-    public void start() {
+    public synchronized void start() {
       long initialDelay = 0;
       long period = 15 * 60 * 1000;
       long timeThresholdNoChangeForStatusUpdates = 15 * 60 * 1000; // 15 minutes
@@ -185,7 +185,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
       if (_timer != null) {
         LOG.info("Stop StatusDumpTask");
         _timer.cancel();

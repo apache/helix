@@ -52,7 +52,7 @@ public class AssignableNode {
   private int _maxPartition; // maximum number of the partitions that can be assigned to the node.
 
   // proposed assignment tracking
-  // <resource name, partition name>
+  // <resource name, partition name set>
   private Map<String, Set<String>> _currentAssignments;
   // <resource name, top state partition name>
   private Map<String, Set<String>> _currentTopStateAssignments;

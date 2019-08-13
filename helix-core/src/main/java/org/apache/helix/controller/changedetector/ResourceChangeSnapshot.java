@@ -31,7 +31,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceConfig;
 
 /**
- * ResourceChangeCache is a POJO that contains the following Helix metadata:
+ * ResourceChangeSnapshot is a POJO that contains the following Helix metadata:
  * 1. InstanceConfig
  * 2. IdealState
  * 3. ResourceConfig
@@ -40,7 +40,7 @@ import org.apache.helix.model.ResourceConfig;
  * It serves as a snapshot of the main controller cache to enable the difference (change)
  * calculation between two rounds of the pipeline run.
  */
-class ResourceChangeCache {
+class ResourceChangeSnapshot {
 
   private Set<HelixConstants.ChangeType> _changedTypes;
   private Map<String, InstanceConfig> _instanceConfigMap;
@@ -52,7 +52,7 @@ class ResourceChangeCache {
    * Constructor using controller cache (ResourceControllerDataProvider).
    * @param dataProvider
    */
-  ResourceChangeCache(ResourceControllerDataProvider dataProvider) {
+  ResourceChangeSnapshot(ResourceControllerDataProvider dataProvider) {
     // Consume all changed types from DataProvider. This is because it is possible that the
     // DataProvider has gone through multiple rounds of rebalancing prior to the ChangeDetector
     // consuming changed types.
@@ -69,7 +69,7 @@ class ResourceChangeCache {
    * Copy constructor for ResourceChangeCache.
    * @param cache
    */
-  ResourceChangeCache(ResourceChangeCache cache) {
+  ResourceChangeSnapshot(ResourceChangeSnapshot cache) {
     _changedTypes = new HashSet<>(cache._changedTypes);
     _instanceConfigMap = new HashMap<>(cache._instanceConfigMap);
     _idealStateMap = new HashMap<>(cache._idealStateMap);

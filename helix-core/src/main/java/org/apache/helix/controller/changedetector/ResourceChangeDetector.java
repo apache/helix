@@ -19,6 +19,7 @@ package org.apache.helix.controller.changedetector;
  * under the License.
  */
 
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,11 +38,8 @@ import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
  */
 public class ResourceChangeDetector implements ChangeDetector {
 
-  private ResourceChangeCache _oldCache; // cache snapshot for previous pipeline run
-  private ResourceChangeCache _newCache; // cache snapshot for this pipeline run
-
-  private Map<String, ? extends HelixProperty> _oldPropertyMap;
-  private Map<String, ? extends HelixProperty> _newPropertyMap;
+  private ResourceChangeSnapshot _oldSnapshot; // snapshot for previous pipeline run
+  private ResourceChangeSnapshot _newSnapshot; // snapshot for this pipeline run
 
   // The following caches the computation results
   private Map<HelixConstants.ChangeType, Collection<String>> _changedItems = new HashMap<>();
@@ -53,10 +51,11 @@ public class ResourceChangeDetector implements ChangeDetector {
    * properties.
    * @return
    */
-  private Collection<String> getChangedItems() {
+  private Collection<String> getChangedItems(Map<String, ? extends HelixProperty> oldPropertyMap,
+      Map<String, ? extends HelixProperty> newPropertyMap) {
     Collection<String> changedItems = new HashSet<>();
-    _oldPropertyMap.forEach((name, property) -> {
-      if (_newPropertyMap.containsKey(name) && !property.equals(_newPropertyMap.get(name))) {
+    oldPropertyMap.forEach((name, property) -> {
+      if (newPropertyMap.containsKey(name) && !property.equals(newPropertyMap.get(name))) {
         changedItems.add(name);
       }
     });
@@ -67,45 +66,43 @@ public class ResourceChangeDetector implements ChangeDetector {
    * Return a collection of names that are newly added.
    * @return
    */
-  private Collection<String> getAddedItems() {
-    Collection<String> addedItems = new HashSet<>(_newPropertyMap.keySet());
-    addedItems.removeAll(_oldPropertyMap.keySet());
-    return addedItems;
+  private Collection<String> getAddedItems(Map<String, ? extends HelixProperty> oldPropertyMap,
+      Map<String, ? extends HelixProperty> newPropertyMap) {
+    return Sets.difference(newPropertyMap.keySet(), oldPropertyMap.keySet());
   }
 
   /**
    * Return a collection of names that were removed.
    * @return
    */
-  private Collection<String> getRemovedItems() {
-    Collection<String> removedItems = new HashSet<>(_oldPropertyMap.keySet());
-    removedItems.removeAll(_newPropertyMap.keySet());
-    return removedItems;
+  private Collection<String> getRemovedItems(Map<String, ? extends HelixProperty> oldPropertyMap,
+      Map<String, ? extends HelixProperty> newPropertyMap) {
+    return Sets.difference(oldPropertyMap.keySet(), newPropertyMap.keySet());
+  }
+
+  private void clearCachedComputation() {
+    _changedItems.clear();
+    _addedItems.clear();
+    _removedItems.clear();
   }
 
   /**
-   * Based on the change type given, call the right getters for two property maps and save the
-   * references as oldPropertyMap and newPropertyMap.
+   * Based on the change type given and propertyMap type, call the right getters for propertyMap.
    * @param changeType
+   * @param snapshot
+   * @return
    */
-  private void determinePropertyMapByType(HelixConstants.ChangeType changeType) {
+  private Map<String, ? extends HelixProperty> determinePropertyMapByType(
+      HelixConstants.ChangeType changeType, ResourceChangeSnapshot snapshot) {
     switch (changeType) {
     case INSTANCE_CONFIG:
-      _oldPropertyMap = _oldCache.getInstanceConfigMap();
-      _newPropertyMap = _newCache.getInstanceConfigMap();
-      break;
+      return snapshot.getInstanceConfigMap();
     case IDEAL_STATE:
-      _oldPropertyMap = _oldCache.getIdealStateMap();
-      _newPropertyMap = _newCache.getIdealStateMap();
-      break;
+      return snapshot.getIdealStateMap();
     case RESOURCE_CONFIG:
-      _oldPropertyMap = _oldCache.getResourceConfigMap();
-      _newPropertyMap = _newCache.getResourceConfigMap();
-      break;
+      return snapshot.getResourceConfigMap();
     case LIVE_INSTANCE:
-      _oldPropertyMap = _oldCache.getLiveInstances();
-      _newPropertyMap = _newCache.getLiveInstances();
-      break;
+      return snapshot.getLiveInstances();
     default:
       throw new HelixException(String
           .format("ResourceChangeDetector does not support the given change type: %s", changeType));
@@ -113,52 +110,48 @@ public class ResourceChangeDetector implements ChangeDetector {
   }
 
   /**
-   * Makes the current newCache the oldCache and reads in the up-to-date cache for change
+   * Makes the current newSnapshot the oldSnapshot and reads in the up-to-date snapshot for change
    * computation. To be called in the controller pipeline.
    * @param dataProvider newly refreshed DataProvider (cache)
    */
-  public synchronized void updateCache(ResourceControllerDataProvider dataProvider) {
+  public synchronized void updateSnapshots(ResourceControllerDataProvider dataProvider) {
     // Do nothing if nothing has changed
     if (dataProvider.getRefreshedChangeTypes().isEmpty()) {
+      clearCachedComputation();
       return;
     }
 
     // If there are changes, update internal states
-    _oldCache = new ResourceChangeCache(_newCache);
-    _newCache = new ResourceChangeCache(dataProvider);
+    _oldSnapshot = new ResourceChangeSnapshot(_newSnapshot);
+    _newSnapshot = new ResourceChangeSnapshot(dataProvider);
 
     // Invalidate cached computation
-    _changedItems.clear();
-    _addedItems.clear();
-    _removedItems.clear();
+    clearCachedComputation();
   }
 
   @Override
   public Collection<HelixConstants.ChangeType> getChangeTypes() {
-    return Collections.unmodifiableSet(_newCache.getChangedTypes());
+    return Collections.unmodifiableSet(_newSnapshot.getChangedTypes());
   }
 
   @Override
   public Collection<String> getChangesByType(HelixConstants.ChangeType changeType) {
-    return _changedItems.computeIfAbsent(changeType, changedItems -> {
-      determinePropertyMapByType(changeType);
-      return getChangedItems();
-    });
+    return _changedItems.computeIfAbsent(changeType,
+        changedItems -> getChangedItems(determinePropertyMapByType(changeType, _oldSnapshot),
+            determinePropertyMapByType(changeType, _newSnapshot)));
   }
 
   @Override
   public Collection<String> getAdditionsByType(HelixConstants.ChangeType changeType) {
-    return _addedItems.computeIfAbsent(changeType, changedItems -> {
-      determinePropertyMapByType(changeType);
-      return getAddedItems();
-    });
+    return _addedItems.computeIfAbsent(changeType,
+        changedItems -> getAddedItems(determinePropertyMapByType(changeType, _oldSnapshot),
+            determinePropertyMapByType(changeType, _newSnapshot)));
   }
 
   @Override
   public Collection<String> getRemovalsByType(HelixConstants.ChangeType changeType) {
-    return _removedItems.computeIfAbsent(changeType, changedItems -> {
-      determinePropertyMapByType(changeType);
-      return getRemovedItems();
-    });
+    return _removedItems.computeIfAbsent(changeType,
+        changedItems -> getRemovedItems(determinePropertyMapByType(changeType, _oldSnapshot),
+            determinePropertyMapByType(changeType, _newSnapshot)));
   }
 }

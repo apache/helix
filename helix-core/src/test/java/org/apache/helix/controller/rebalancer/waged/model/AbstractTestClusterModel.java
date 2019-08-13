@@ -41,6 +41,7 @@ import java.util.Set;
 import static org.mockito.Mockito.when;
 
 public abstract class AbstractTestClusterModel {
+  protected static String _sessionId = "testSessionId";
   protected String _testInstanceId;
   protected List<String> _resourceNames;
   protected List<String> _partitionNames;
@@ -73,16 +74,27 @@ public abstract class AbstractTestClusterModel {
     _testFaultZoneId = "testZone";
   }
 
+  InstanceConfig createMockInstanceConfig(String instanceId) {
+    InstanceConfig testInstanceConfig = new InstanceConfig(instanceId);
+    testInstanceConfig.setInstanceCapacityMap(_capacityDataMap);
+    testInstanceConfig.addTag(_testInstanceTags.get(0));
+    testInstanceConfig.setInstanceEnabled(true);
+    testInstanceConfig.setZoneId(_testFaultZoneId);
+    return testInstanceConfig;
+  }
+
+  LiveInstance createMockLiveInstance(String instanceId) {
+    LiveInstance testLiveInstance = new LiveInstance(instanceId);
+    testLiveInstance.setSessionId(_sessionId);
+    return testLiveInstance;
+  }
+
   protected ResourceControllerDataProvider setupClusterDataCache() throws IOException {
     ResourceControllerDataProvider testCache = Mockito.mock(ResourceControllerDataProvider.class);
 
     // 1. Set up the default instance information with capacity configuration.
-    InstanceConfig testInstanceConfig = new InstanceConfig("testInstanceId");
-    testInstanceConfig.setInstanceCapacityMap(_capacityDataMap);
-    testInstanceConfig.addTag(_testInstanceTags.get(0));
+    InstanceConfig testInstanceConfig = createMockInstanceConfig(_testInstanceId);
     testInstanceConfig.setInstanceEnabledForPartition("TestResource", "TestPartition", false);
-    testInstanceConfig.setInstanceEnabled(true);
-    testInstanceConfig.setZoneId(_testFaultZoneId);
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
     when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
@@ -95,8 +107,7 @@ public abstract class AbstractTestClusterModel {
     when(testCache.getClusterConfig()).thenReturn(testClusterConfig);
 
     // 3. Mock the live instance node for the default instance.
-    LiveInstance testLiveInstance = new LiveInstance(_testInstanceId);
-    testLiveInstance.setSessionId("testSessionId");
+    LiveInstance testLiveInstance = createMockLiveInstance(_testInstanceId);
     Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
     liveInstanceMap.put(_testInstanceId, testLiveInstance);
     when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
@@ -130,7 +141,7 @@ public abstract class AbstractTestClusterModel {
     Map<String, CurrentState> currentStatemap = new HashMap<>();
     currentStatemap.put(_resourceNames.get(0), testCurrentStateResource1);
     currentStatemap.put(_resourceNames.get(1), testCurrentStateResource2);
-    when(testCache.getCurrentState(_testInstanceId, "testSessionId")).thenReturn(currentStatemap);
+    when(testCache.getCurrentState(_testInstanceId, _sessionId)).thenReturn(currentStatemap);
 
     // 5. Set up the resource config for the two resources with the partition weight.
     Map<String, Integer> capacityDataMapResource1 = new HashMap<>();
@@ -162,7 +173,7 @@ public abstract class AbstractTestClusterModel {
   protected Set<AssignableReplica> generateReplicas(ResourceControllerDataProvider dataProvider) {
     // Create assignable replica based on the current state.
     Map<String, CurrentState> currentStatemap =
-        dataProvider.getCurrentState(_testInstanceId, "testSessionId");
+        dataProvider.getCurrentState(_testInstanceId, _sessionId);
     Set<AssignableReplica> assignmentSet = new HashSet<>();
     for (CurrentState cs : currentStatemap.values()) {
       ResourceConfig resourceConfig = dataProvider.getResourceConfig(cs.getResourceName());

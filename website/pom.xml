@@ -21,7 +21,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix</groupId>
     <artifactId>helix</artifactId>
-    <version>0.9.1-SNAPSHOT</version>
+    <version>0.9.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <packaging>pom</packaging>
@@ -49,6 +49,7 @@ under the License.
     <module>0.8.3</module>
     <module>0.8.4</module>
     <module>0.9.0</module>
+    <module>0.9.1</module>
   </modules>
 
   <properties>

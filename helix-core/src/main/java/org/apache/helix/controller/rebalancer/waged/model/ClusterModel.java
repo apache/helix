@@ -20,7 +20,6 @@ package org.apache.helix.controller.rebalancer.waged.model;
  */
 
 import org.apache.helix.HelixException;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 
 import java.util.Collections;

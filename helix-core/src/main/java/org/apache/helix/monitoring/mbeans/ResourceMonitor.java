@@ -38,7 +38,6 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
-import org.apache.helix.util.HelixUtil;
 
 public class ResourceMonitor extends DynamicMBeanProvider {
 
@@ -141,20 +140,14 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
     _partitionTopStateHandoffDurationGauge =
         new HistogramDynamicMetric("PartitionTopStateHandoffDurationGauge", new Histogram(
-            new SlidingTimeWindowArrayReservoir(HelixUtil
-                .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY,
-                    DEFAULT_RESET_INTERVAL_MS), TimeUnit.MILLISECONDS)));
+            new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
 
     _partitionTopStateHandoffHelixLatencyGauge =
         new HistogramDynamicMetric("PartitionTopStateHandoffHelixLatencyGauge", new Histogram(
-            new SlidingTimeWindowArrayReservoir(HelixUtil
-                .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY,
-                    DEFAULT_RESET_INTERVAL_MS), TimeUnit.MILLISECONDS)));
+            new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
     _partitionTopStateNonGracefulHandoffDurationGauge =
         new HistogramDynamicMetric("PartitionTopStateNonGracefulHandoffGauge", new Histogram(
-            new SlidingTimeWindowArrayReservoir(HelixUtil
-                .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY,
-                    DEFAULT_RESET_INTERVAL_MS), TimeUnit.MILLISECONDS)));
+            new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
 
     _totalMessageReceived = new SimpleDynamicMetric("TotalMessageReceived", 0L);
     _maxSinglePartitionTopStateHandoffDuration =

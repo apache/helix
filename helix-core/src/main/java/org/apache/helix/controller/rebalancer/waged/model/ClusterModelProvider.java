@@ -207,7 +207,7 @@ public class ClusterModelProvider {
       StateModelDefinition def = dataProvider.getStateModelDef(defName);
       if (def == null) {
         throw new IllegalArgumentException(String
-            .format("Cannot fine state model definition %s for resource %s.",
+            .format("Cannot find state model definition %s for resource %s.",
                 is.getStateModelDefRef(), resourceName));
       }
 

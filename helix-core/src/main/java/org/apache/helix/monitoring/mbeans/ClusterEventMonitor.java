@@ -58,9 +58,7 @@ public class ClusterEventMonitor extends DynamicMBeanProvider {
     _clusterStatusMonitor = clusterStatusMonitor;
 
     _duration = new HistogramDynamicMetric("DurationGauge", new Histogram(
-        new SlidingTimeWindowArrayReservoir(HelixUtil
-            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
-            TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
     _count = new SimpleDynamicMetric("EventCounter", 0l);
     _maxDuration = new SimpleDynamicMetric("MaxSingleDurationGauge", 0l);
     _totalDuration = new SimpleDynamicMetric("TotalDurationCounter", 0l);

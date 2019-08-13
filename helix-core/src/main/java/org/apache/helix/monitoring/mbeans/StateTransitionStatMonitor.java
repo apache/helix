@@ -65,17 +65,13 @@ public class StateTransitionStatMonitor extends DynamicMBeanProvider {
     _totalSuccessTransitionCounter = new SimpleDynamicMetric<>("TotalSuccessTransitionCounter", 0L);
 
     _transitionLatencyGauge = new HistogramDynamicMetric("TransitionLatencyGauge", new Histogram(
-        new SlidingTimeWindowArrayReservoir(HelixUtil
-            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
-            TimeUnit.MILLISECONDS)));
+        new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
     _transitionExecutionLatencyGauge = new HistogramDynamicMetric("TransitionExecutionLatencyGauge",
-        new Histogram(new SlidingTimeWindowArrayReservoir(HelixUtil
-            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
-            TimeUnit.MILLISECONDS)));
+        new Histogram(
+            new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
     _transitionMessageLatency = new HistogramDynamicMetric("TransitionMessageLatencyGauge",
-        new Histogram(new SlidingTimeWindowArrayReservoir(HelixUtil
-            .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS),
-            TimeUnit.MILLISECONDS)));
+        new Histogram(
+            new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
   }
 
   @Override

@@ -42,6 +42,7 @@ import java.util.Map;
 
 import org.apache.helix.monitoring.SensorNameProvider;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
+import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -223,5 +224,14 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    */
   protected void incrementSimpleDynamicMetric(SimpleDynamicMetric<Long> metric, long value) {
     metric.updateValue(metric.getValue() + value);
+  }
+
+  /**
+   * Return the interval length for the underlying reservoir used by the MBean metric configured
+   * in the system env variables. If not found, use default value.
+   */
+  protected Long getResetIntervalInMs() {
+    return HelixUtil
+        .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS);
   }
 }

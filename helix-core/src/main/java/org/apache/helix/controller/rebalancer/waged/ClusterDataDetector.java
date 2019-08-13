@@ -35,11 +35,12 @@ public class ClusterDataDetector<T extends BaseControllerDataProvider> {
    * All the cluster change type that may trigger a WAGED rebalancer re-calculation.
    */
   public enum ChangeType {
+    BaselineAssignmentChange,
     InstanceConfigChange,
     ClusterConfigChange,
     ResourceConfigChange,
-    InstanceStateChange,
     ResourceIdealStatesChange,
+    InstanceStateChange,
     OtherChange
   }
 

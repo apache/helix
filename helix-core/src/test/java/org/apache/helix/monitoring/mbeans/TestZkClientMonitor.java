@@ -151,4 +151,13 @@ public class TestZkClientMonitor {
         .assertEquals((long) _beanServer.getAttribute(idealStateName, "DataPropagationLatencyGuage.Max"),
             0);
   }
+
+  @Test
+  public void testCustomizedResetInverval() {
+    // Use a customized reservoir length of 1 mins.
+    System.setProperty("reservoir.length.ms", "60000");
+    ZkClientMonitor monitor =
+        new ZkClientMonitor("TEST_TAG", "TEST_KEY", "TEST_INSTANCE", false, null);
+    Assert.assertEquals(monitor.getResetIntervalInMs().longValue(), 60000L);
+  }
 }

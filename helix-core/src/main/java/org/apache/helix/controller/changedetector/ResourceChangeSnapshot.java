@@ -49,6 +49,17 @@ class ResourceChangeSnapshot {
   private Map<String, LiveInstance> _liveInstances;
 
   /**
+   * Default constructor that constructs an empty snapshot.
+   */
+  ResourceChangeSnapshot() {
+    _changedTypes = new HashSet<>();
+    _instanceConfigMap = new HashMap<>();
+    _idealStateMap = new HashMap<>();
+    _resourceConfigMap = new HashMap<>();
+    _liveInstances = new HashMap<>();
+  }
+
+  /**
    * Constructor using controller cache (ResourceControllerDataProvider).
    * @param dataProvider
    */

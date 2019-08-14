@@ -55,7 +55,8 @@ public class ResourceChangeDetector implements ChangeDetector {
       Map<String, ? extends HelixProperty> newPropertyMap) {
     Collection<String> changedItems = new HashSet<>();
     oldPropertyMap.forEach((name, property) -> {
-      if (newPropertyMap.containsKey(name) && !property.equals(newPropertyMap.get(name))) {
+      if (newPropertyMap.containsKey(name)
+          && !property.getRecord().equals(newPropertyMap.get(name).getRecord())) {
         changedItems.add(name);
       }
     });
@@ -87,6 +88,14 @@ public class ResourceChangeDetector implements ChangeDetector {
   }
 
   /**
+   * Initializes old and new snapshots when ResourceChangeDetector gets its first update.
+   */
+  private void initializeSnapshots() {
+    _oldSnapshot = new ResourceChangeSnapshot();
+    _newSnapshot = new ResourceChangeSnapshot();
+  }
+
+  /**
    * Based on the change type given and propertyMap type, call the right getters for propertyMap.
    * @param changeType
    * @param snapshot
@@ -104,8 +113,9 @@ public class ResourceChangeDetector implements ChangeDetector {
     case LIVE_INSTANCE:
       return snapshot.getLiveInstances();
     default:
-      throw new HelixException(String
-          .format("ResourceChangeDetector does not support the given change type: %s", changeType));
+      throw new HelixException(String.format(
+          "ResourceChangeDetector cannot compute the names of changes for the given ChangeType: %s",
+          changeType));
     }
   }
 
@@ -115,15 +125,15 @@ public class ResourceChangeDetector implements ChangeDetector {
    * @param dataProvider newly refreshed DataProvider (cache)
    */
   public synchronized void updateSnapshots(ResourceControllerDataProvider dataProvider) {
-    // Do nothing if nothing has changed
-    if (dataProvider.getRefreshedChangeTypes().isEmpty()) {
-      clearCachedComputation();
-      return;
+    // If snapshots are null, initialize them
+    if (_oldSnapshot == null || _newSnapshot == null) {
+      initializeSnapshots();
     }
 
     // If there are changes, update internal states
     _oldSnapshot = new ResourceChangeSnapshot(_newSnapshot);
     _newSnapshot = new ResourceChangeSnapshot(dataProvider);
+    dataProvider.clearRefreshedChangeTypes();
 
     // Invalidate cached computation
     clearCachedComputation();

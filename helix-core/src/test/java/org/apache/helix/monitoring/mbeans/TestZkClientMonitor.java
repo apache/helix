@@ -153,7 +153,7 @@ public class TestZkClientMonitor {
   }
 
   @Test
-  public void testCustomizedResetInverval() {
+  public void testCustomizedResetInterval() {
     // Use a customized reservoir length of 1 mins.
     System.setProperty("reservoir.length.ms", "60000");
     ZkClientMonitor monitor =

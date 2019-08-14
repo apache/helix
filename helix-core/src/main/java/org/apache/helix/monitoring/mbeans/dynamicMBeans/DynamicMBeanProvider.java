@@ -230,7 +230,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * Return the interval length for the underlying reservoir used by the MBean metric configured
    * in the system env variables. If not found, use default value.
    */
-  protected Long getResetIntervalInMs() {
+  public Long getResetIntervalInMs() {
     return HelixUtil
         .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS);
   }

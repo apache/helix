@@ -20,6 +20,7 @@ package org.apache.helix.rest.server.json.cluster;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,10 @@ public class PartitionHealth {
       String partitionName) {
     _instanceToPartitionsMap
         .computeIfAbsent(instanceName, partitions -> new ArrayList<>()).add(partitionName);
+  }
+
+  public void addInstanceThatNeedDirectCall(String instanceName) {
+    _instanceToPartitionsMap.put(instanceName, Collections.EMPTY_LIST);
   }
 
   public void addSinglePartitionHealthForInstance(String instanceName, String partitionName,

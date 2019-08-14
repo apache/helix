@@ -243,6 +243,8 @@ public class InstanceServiceImpl implements InstanceService {
         new HashMap<>();
     for (Map.Entry<String, List<String>> entry : expiredPartitionsByInstance.entrySet()) {
       String instance = entry.getKey();
+      // If expiredPartitions list is empty, it means all the partition statues need to be refreshed
+      // by directly calling the instance API.
       List<String> expiredPartitions = entry.getValue();
       Callable<Map<String, Boolean>> refreshTask =
           () -> _customRestClient.getPartitionStoppableCheck(getBaseUrl(instance, restConfig),
@@ -303,10 +305,13 @@ public class InstanceServiceImpl implements InstanceService {
         .collect(Collectors.toList()));
     for (int i = 0; i < liveInstances.size(); i++) {
       String instance = liveInstances.get(i);
-      // TODO: Check ZNRecord is null or not. Need logic to check whether the healthreports exist
-      // or not. If it does not exist, we should query the participant directly for the health
-      // report.
       ZNRecord customizedHealth = healthReports.get(i).getRecord();
+
+      // No partition health ZNode found for that instance
+      // Direct call the instance to get partition health report.
+      if (customizedHealth == null) {
+        partitionHealth.addInstanceThatNeedDirectCall(instance);
+      }
       for (String partitionName : customizedHealth.getMapFields().keySet()) {
         try {
           Map<String, String> healthMap = customizedHealth.getMapField(partitionName);

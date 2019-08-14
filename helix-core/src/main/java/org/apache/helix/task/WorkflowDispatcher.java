@@ -165,7 +165,9 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     RuntimeJobDag runtimeJobDag = _clusterDataCache.getTaskDataCache().getRuntimeJobDag(workflow);
     if (runtimeJobDag != null) {
       for (String inflightJob : runtimeJobDag.getInflightJobList()) {
-        processJob(inflightJob, currentStateOutput, bestPossibleOutput, workflowCtx);
+        if (System.currentTimeMillis() >= workflowCtx.getJobStartTime(inflightJob)) {
+          processJob(inflightJob, currentStateOutput, bestPossibleOutput, workflowCtx);
+        }
       }
     } else {
       LOG.warn(String.format(
@@ -269,29 +271,16 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
           clusterDataCache, clusterDataCache.getAssignableInstanceManager())) {
         JobConfig jobConfig = jobConfigMap.get(job);
 
-        // Since the start time is calculated base on the time of completion of parent jobs for this
-        // job, the calculated start time should only be calculate once. Persist the calculated time
-        // in WorkflowContext znode.
-        long calculatedStartTime = workflowCtx.getJobStartTime(job);
-        if (calculatedStartTime < 0) {
-          // Calculate the start time if it is not already calculated
-          calculatedStartTime = System.currentTimeMillis();
-          // If the start time is not calculated before, do the math.
-          if (jobConfig.getExecutionDelay() >= 0) {
-            calculatedStartTime += jobConfig.getExecutionDelay();
-          }
-          calculatedStartTime = Math.max(calculatedStartTime, jobConfig.getExecutionStart());
-          workflowCtx.setJobStartTime(job, calculatedStartTime);
-        }
-
+        long calculatedStartTime = computeStartTimeForJob(workflowCtx, job, jobConfig);
         // Time is not ready. Set a trigger and update the start time.
-        if (System.currentTimeMillis() < calculatedStartTime) {
-          timeToSchedule = Math.min(timeToSchedule, calculatedStartTime);
-        } else {
+        // Check if the job is ready to be executed.
+        if (System.currentTimeMillis() >= workflowCtx.getJobStartTime(job)) {
           scheduleSingleJob(job, jobConfig);
           workflowCtx.setJobState(job, TaskState.NOT_STARTED);
           processJob(job, currentStateOutput, bestPossibleOutput, workflowCtx);
           scheduledJobs++;
+        } else {
+          timeToSchedule = Math.min(timeToSchedule, calculatedStartTime);
         }
       }
       nextJob = jobDag.getNextJob();
@@ -602,4 +591,24 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     }
     cache.removeContext(workflow);
   }
+
+  private long computeStartTimeForJob(WorkflowContext workflowCtx, String job,
+      JobConfig jobConfig) {
+    // Since the start time is calculated base on the time of completion of parent jobs for this
+    // job, the calculated start time should only be calculated once. Persist the calculated time
+    // in WorkflowContext znode.
+    long calculatedStartTime = workflowCtx.getJobStartTime(job);
+    if (calculatedStartTime < 0) {
+      // Calculate the start time if it is not already calculated
+      calculatedStartTime = System.currentTimeMillis();
+      // If the start time is not calculated before, do the math.
+      if (jobConfig.getExecutionDelay() >= 0) {
+        calculatedStartTime += jobConfig.getExecutionDelay();
+      }
+      calculatedStartTime = Math.max(calculatedStartTime, jobConfig.getExecutionStart());
+      workflowCtx.setJobStartTime(job, calculatedStartTime);
+    }
+    return calculatedStartTime;
+  }
+
 }

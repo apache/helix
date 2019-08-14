@@ -509,10 +509,12 @@ public class InstanceConfig extends HelixProperty {
   public boolean equals(Object obj) {
     if (obj instanceof InstanceConfig) {
       InstanceConfig that = (InstanceConfig) obj;
-
       if (this.getId().equals(that.getId())) {
-        return true;
+        if (that.getRecord() != null) {
+          return that.getRecord().equals(this.getRecord());
+        }
       }
+      return false;
     }
     return false;
   }

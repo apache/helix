@@ -333,11 +333,7 @@ public class ResourceConfig extends HelixProperty {
   public List<String> getPreferenceList(String partitionName) {
     List<String> instanceStateList = _record.getListField(partitionName);
 
-    if (instanceStateList != null) {
-      return instanceStateList;
-    }
-
-    return null;
+    return instanceStateList;
   }
 
   /**
@@ -437,10 +433,12 @@ public class ResourceConfig extends HelixProperty {
   public boolean equals(Object obj) {
     if (obj instanceof ResourceConfig) {
       ResourceConfig that = (ResourceConfig) obj;
-
       if (this.getId().equals(that.getId())) {
-        return true;
+        if (that.getRecord() != null) {
+          return that.getRecord().equals(this.getRecord());
+        }
       }
+      return false;
     }
     return false;
   }

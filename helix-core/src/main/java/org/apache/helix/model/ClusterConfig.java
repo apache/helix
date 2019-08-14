@@ -442,10 +442,12 @@ public class ClusterConfig extends HelixProperty {
   public boolean equals(Object obj) {
     if (obj instanceof ClusterConfig) {
       ClusterConfig that = (ClusterConfig) obj;
-
       if (this.getId().equals(that.getId())) {
-        return true;
+        if (that.getRecord() != null) {
+          return that.getRecord().equals(this.getRecord());
+        }
       }
+      return false;
     }
     return false;
   }

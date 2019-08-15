@@ -64,12 +64,7 @@ class ResourceChangeSnapshot {
    * @param dataProvider
    */
   ResourceChangeSnapshot(ResourceControllerDataProvider dataProvider) {
-    // Consume all changed types from DataProvider. This is because it is possible that the
-    // DataProvider has gone through multiple rounds of rebalancing prior to the ChangeDetector
-    // consuming changed types.
     _changedTypes = new HashSet<>(dataProvider.getRefreshedChangeTypes());
-    dataProvider.clearRefreshedChangeTypes();
-
     _instanceConfigMap = new HashMap<>(dataProvider.getInstanceConfigMap());
     _idealStateMap = new HashMap<>(dataProvider.getIdealStates());
     _resourceConfigMap = new HashMap<>(dataProvider.getResourceConfigMap());

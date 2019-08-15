@@ -28,19 +28,14 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
-import org.apache.helix.rest.server.json.cluster.PartitionHealth;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -136,72 +131,5 @@ public class TestInstanceService {
 
     Assert.assertFalse(actual.isStoppable());
     verify(_customRestClient, times(1)).getInstanceStoppableCheck(any(), any());
-  }
-
-  @Test
-  public void testGeneratePartitionHealthMapFromZK() {
-    List<ZNRecord> healthData = generateHealthData();
-
-    InstanceServiceImpl service =
-        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient);
-    when(_dataAccessor.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
-    when(_dataAccessor.getChildNames(new PropertyKey.Builder(TEST_CLUSTER).liveInstances()))
-        .thenReturn(Arrays.asList("host0", "host1"));
-    when(_dataAccessor.getProperty(Arrays.asList(
-        new PropertyKey.Builder(TEST_CLUSTER).healthReport("host0", "PARTITION_HEALTH"),
-        new PropertyKey.Builder(TEST_CLUSTER).healthReport("host1", "PARTITION_HEALTH"))))
-            .thenReturn(Arrays.asList(new HealthStat(healthData.get(0)),
-                new HealthStat(healthData.get(1))));
-    PartitionHealth computeResult = service.generatePartitionHealthMapFromZK();
-    PartitionHealth expectedResult = generateExpectedResult();
-    Assert.assertEquals(computeResult, expectedResult);
-  }
-
-  private List<ZNRecord> generateHealthData() {
-    // Set EXPIRY time 100000 that guarantees the test has enough time
-    // Host 0 contains unhealthy partition but it does not matter.
-    ZNRecord record1 = new ZNRecord("PARTITION_HEALTH");
-    record1.setMapField("TESTDB0_0", ImmutableMap.of("IS_HEALTHY", "true", "EXPIRE",
-        String.valueOf(System.currentTimeMillis() + 100000)));
-    record1.setMapField("TESTDB0_1", ImmutableMap.of("IS_HEALTHY", "true", "EXPIRE",
-        String.valueOf(System.currentTimeMillis() + 100000)));
-    record1.setMapField("TESTDB0_2", ImmutableMap.of("IS_HEALTHY", "true", "EXPIRE",
-        String.valueOf(System.currentTimeMillis() + 100000)));
-    record1.setMapField("TESTDB1_0", ImmutableMap.of("IS_HEALTHY", "false", "EXPIRE",
-        String.valueOf(System.currentTimeMillis() + 100000)));
-    record1.setMapField("TESTDB2_0", ImmutableMap.of("IS_HEALTHY", "true", "EXPIRE",
-        String.valueOf(System.currentTimeMillis() + 100000)));
-
-    // Host 1 has expired data, which requires immediate API querying.
-    ZNRecord record2 = new ZNRecord("PARTITION_HEALTH");
-    record2.setMapField("TESTDB0_0", ImmutableMap.of("IS_HEALTHY", "true", "EXPIRE",
-        String.valueOf(System.currentTimeMillis() + 100000)));
-    record2.setMapField("TESTDB0_1", ImmutableMap.of("IS_HEALTHY", "true", "EXPIRE",
-        String.valueOf(System.currentTimeMillis() + 100000)));
-    record2.setMapField("TESTDB0_2", ImmutableMap.of("IS_HEALTHY", "true", "EXPIRE", "123456"));
-    record2.setMapField("TESTDB1_0", ImmutableMap.of("IS_HEALTHY", "false", "EXPIRE",
-        String.valueOf(System.currentTimeMillis() + 100000)));
-    record2.setMapField("TESTDB2_0", ImmutableMap.of("IS_HEALTHY", "true", "EXPIRE",
-        String.valueOf(System.currentTimeMillis() + 100000)));
-
-    return Arrays.asList(record1, record2);
-  }
-
-  private PartitionHealth generateExpectedResult() {
-    PartitionHealth partitionHealth = new PartitionHealth();
-
-    partitionHealth.addSinglePartitionHealthForInstance("host0", "TESTDB0_0", true);
-    partitionHealth.addSinglePartitionHealthForInstance("host0", "TESTDB0_1", true);
-    partitionHealth.addSinglePartitionHealthForInstance("host0", "TESTDB0_2", true);
-    partitionHealth.addSinglePartitionHealthForInstance("host0", "TESTDB1_0", false);
-    partitionHealth.addSinglePartitionHealthForInstance("host0", "TESTDB2_0", true);
-
-    partitionHealth.addSinglePartitionHealthForInstance("host1", "TESTDB0_0", true);
-    partitionHealth.addSinglePartitionHealthForInstance("host1", "TESTDB0_1", true);
-    partitionHealth.addSinglePartitionHealthForInstance("host1", "TESTDB1_0", false);
-    partitionHealth.addSinglePartitionHealthForInstance("host1", "TESTDB2_0", true);
-    partitionHealth.addInstanceThatNeedDirectCallWithPartition("host1", "TESTDB0_2");
-
-    return partitionHealth;
   }
 }

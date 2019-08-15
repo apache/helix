@@ -39,4 +39,21 @@ public class RESTConfig extends HelixProperty {
   public String get(SimpleFields property) {
     return _record.getSimpleField(property.name());
   }
+
+  /**
+   * Get the base restful endpoint of the instance
+   *
+   * @param instance The instance
+   * @return The base restful endpoint
+   */
+  public String getBaseUrl(String instance) {
+    String baseUrl = get(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL);
+    // pre-assumption of the url, must be format of "http://*/path", the wildcard is replaceable by
+    // the instance vip
+    assert baseUrl.contains("*");
+    // pre-assumption of the instance name, must be format of <instanceVip>_<port>
+    assert instance.contains("_");
+    String instanceVip = instance.substring(0, instance.indexOf('_'));
+    return baseUrl.replace("*", instanceVip);
+  }
 }

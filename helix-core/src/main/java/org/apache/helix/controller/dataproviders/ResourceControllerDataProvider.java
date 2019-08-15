@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
@@ -63,6 +64,9 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // records for top state handoff
   private Map<String, Map<String, MissingTopStateRecord>> _missingTopStateMap;
   private Map<String, Map<String, String>> _lastTopStateLocationMap;
+
+  // Maintain a set of all ChangeTypes for change detection
+  private Set<HelixConstants.ChangeType> _refreshedChangeTypes;
 
   public ResourceControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER);
@@ -106,19 +110,21 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     _idealMappingCache = new HashMap<>();
     _missingTopStateMap = new HashMap<>();
     _lastTopStateLocationMap = new HashMap<>();
+    _refreshedChangeTypes = ConcurrentHashMap.newKeySet();
   }
 
   public synchronized void refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
 
     // Refresh base
-    Set<HelixConstants.ChangeType> propertyRefreshed = super.doRefresh(accessor);
+    Set<HelixConstants.ChangeType> changedTypes = super.doRefresh(accessor);
+    _refreshedChangeTypes.addAll(changedTypes);
 
     // Invalidate cached information if any of the important data has been refreshed
-    if (propertyRefreshed.contains(HelixConstants.ChangeType.IDEAL_STATE)
-        || propertyRefreshed.contains(HelixConstants.ChangeType.LIVE_INSTANCE)
-        || propertyRefreshed.contains(HelixConstants.ChangeType.INSTANCE_CONFIG)
-        || propertyRefreshed.contains(HelixConstants.ChangeType.RESOURCE_CONFIG)) {
+    if (changedTypes.contains(HelixConstants.ChangeType.IDEAL_STATE)
+        || changedTypes.contains(HelixConstants.ChangeType.LIVE_INSTANCE)
+        || changedTypes.contains(HelixConstants.ChangeType.INSTANCE_CONFIG)
+        || changedTypes.contains(HelixConstants.ChangeType.RESOURCE_CONFIG)) {
       clearCachedResourceAssignments();
     }
 
@@ -259,6 +265,23 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    */
   public void setCachedIdealMapping(String resource, ZNRecord mapping) {
     _idealMappingCache.put(resource, mapping);
+  }
+
+  /**
+   * Return the set of all PropertyTypes that changed prior to this round of rebalance. The caller
+   * should clear this set by calling {@link #clearRefreshedChangeTypes()}.
+   * @return
+   */
+  public Set<HelixConstants.ChangeType> getRefreshedChangeTypes() {
+    return _refreshedChangeTypes;
+  }
+
+  /**
+   * Clears the set of all PropertyTypes that changed. The caller will have consumed all change
+   * types by calling {@link #getRefreshedChangeTypes()}.
+   */
+  public void clearRefreshedChangeTypes() {
+    _refreshedChangeTypes.clear();
   }
 
   public void clearCachedResourceAssignments() {

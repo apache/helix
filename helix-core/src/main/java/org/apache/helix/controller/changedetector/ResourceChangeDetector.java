@@ -46,6 +46,10 @@ public class ResourceChangeDetector implements ChangeDetector {
   private Map<HelixConstants.ChangeType, Collection<String>> _addedItems = new HashMap<>();
   private Map<HelixConstants.ChangeType, Collection<String>> _removedItems = new HashMap<>();
 
+  public ResourceChangeDetector() {
+    _newSnapshot = new ResourceChangeSnapshot();
+  }
+
   /**
    * Compare the underlying HelixProperty objects and produce a collection of names of changed
    * properties.
@@ -88,14 +92,6 @@ public class ResourceChangeDetector implements ChangeDetector {
   }
 
   /**
-   * Initializes old and new snapshots when ResourceChangeDetector gets its first update.
-   */
-  private void initializeSnapshots() {
-    _oldSnapshot = new ResourceChangeSnapshot();
-    _newSnapshot = new ResourceChangeSnapshot();
-  }
-
-  /**
    * Based on the change type given and propertyMap type, call the right getters for propertyMap.
    * @param changeType
    * @param snapshot
@@ -125,11 +121,6 @@ public class ResourceChangeDetector implements ChangeDetector {
    * @param dataProvider newly refreshed DataProvider (cache)
    */
   public synchronized void updateSnapshots(ResourceControllerDataProvider dataProvider) {
-    // If snapshots are null, initialize them
-    if (_oldSnapshot == null || _newSnapshot == null) {
-      initializeSnapshots();
-    }
-
     // If there are changes, update internal states
     _oldSnapshot = new ResourceChangeSnapshot(_newSnapshot);
     _newSnapshot = new ResourceChangeSnapshot(dataProvider);

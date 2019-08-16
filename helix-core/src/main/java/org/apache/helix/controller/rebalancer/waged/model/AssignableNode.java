@@ -88,15 +88,15 @@ public class AssignableNode {
       Collection<AssignableReplica> existingAssignment) {
     reset();
 
-    Map<String, Integer> instanceCapaity = instanceConfig.getInstanceCapacityMap();
-    if (instanceCapaity.isEmpty()) {
-      instanceCapaity = clusterConfig.getDefaultInstanceCapacityMap();
+    Map<String, Integer> instanceCapacity = instanceConfig.getInstanceCapacityMap();
+    if (instanceCapacity.isEmpty()) {
+      instanceCapacity = clusterConfig.getDefaultInstanceCapacityMap();
     }
-    _currentCapacity.putAll(instanceCapaity);
+    _currentCapacity.putAll(instanceCapacity);
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);
     _instanceTags = new HashSet<>(instanceConfig.getTags());
     _disabledPartitionsMap = instanceConfig.getDisabledPartitionsMap();
-    _maxCapacity = instanceCapaity;
+    _maxCapacity = instanceCapacity;
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
 
     assignNewBatch(existingAssignment);

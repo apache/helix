@@ -29,6 +29,7 @@ import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -705,7 +706,6 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Get the default instance capacity information from the map fields.
-   *
    * @return data map if it exists, or empty map
    */
   public Map<String, Integer> getDefaultInstanceCapacityMap() {
@@ -721,7 +721,6 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Set the default instance capacity information with an Integer mapping
-   *
    * @param capacityDataMap - map of instance capacity data
    * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
    */

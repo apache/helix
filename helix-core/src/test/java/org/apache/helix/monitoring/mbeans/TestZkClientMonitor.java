@@ -153,11 +153,29 @@ public class TestZkClientMonitor {
   }
 
   @Test
-  public void testCustomizedResetInterval() {
-    // Use a customized reservoir length of 1 mins.
-    System.setProperty("reservoir.length.ms", "60000");
-    ZkClientMonitor monitor =
-        new ZkClientMonitor("TEST_TAG", "TEST_KEY", "TEST_INSTANCE", false, null);
-    Assert.assertEquals(monitor.getResetIntervalInMs().longValue(), 60000L);
+  public void testCustomizedResetInterval() throws JMException, InterruptedException {
+    // Use a customized reservoir length of 1 ms.
+    System.setProperty("reservoir.length.ms", "1");
+    final String TEST_TAG = "test_tag_3";
+    final String TEST_KEY = "test_key_3";
+    final String TEST_INSTANCE = "test_instance_3";
+
+    ZkClientMonitor monitor = new ZkClientMonitor(TEST_TAG, TEST_KEY, TEST_INSTANCE, false, null);
+    monitor.register();
+
+    ObjectName rootName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY, TEST_INSTANCE,
+        ZkClientPathMonitor.PredefinedPath.Root.name());
+    monitor
+        .recordDataPropagationLatency("TEST/INSTANCES/node_1/CURRENTSTATES/session_1/Resource", 5);
+    Assert
+        .assertEquals((long) _beanServer.getAttribute(rootName, "DataPropagationLatencyGuage.Max"),
+            5);
+    // The reservoir length is 10 ms, so the prev max of 5 is not valid anymore.
+    Thread.sleep(10);
+    monitor
+        .recordDataPropagationLatency("TEST/INSTANCES/node_1/CURRENTSTATES/session_1/Resource", 4);
+    Assert
+        .assertEquals((long) _beanServer.getAttribute(rootName, "DataPropagationLatencyGuage.Max"),
+            4);
   }
 }

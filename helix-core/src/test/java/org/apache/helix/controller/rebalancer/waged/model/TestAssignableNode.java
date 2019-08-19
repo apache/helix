@@ -200,4 +200,17 @@ public class TestAssignableNode extends AbstractTestClusterModel {
 
     Assert.assertEquals(assignableNode.getFaultZone(), "2/testInstance/");
   }
+
+  @Test
+  public void testDefaultInstanceCapacity() {
+    ClusterConfig testClusterConfig = new ClusterConfig("testClusterConfigId");
+    testClusterConfig.setDefaultInstanceCapacityMap(_capacityDataMap);
+
+    InstanceConfig testInstanceConfig = new InstanceConfig("testInstanceConfigId");
+
+    AssignableNode assignableNode =
+        new AssignableNode(testClusterConfig, testInstanceConfig, _testInstanceId,
+            Collections.emptyList());
+    Assert.assertEquals(assignableNode.getMaxCapacity(), _capacityDataMap);
+  }
 }

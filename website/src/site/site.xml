@@ -63,7 +63,8 @@
     </menu>
 
     <menu name="Documentation">
-      <item name="0.9.0 (stable)" href="./0.9.0-docs/index.html"/>
+      <item name="0.9.1 (stable)" href="./0.9.1-docs/index.html"/>
+      <item name="0.9.0" href="./0.9.0-docs/index.html"/>
       <item name="0.8.4" href="./0.8.4-docs/index.html"/>
       <item name="0.8.3 (alpha)" href="./0.8.3-docs/index.html"/>
       <item name="0.8.2" href="./0.8.2-docs/index.html"/>
@@ -83,18 +84,18 @@
       <item name="trunk" href="./trunk-docs/index.html"/>
     </menu>
 
-    <menu name="Helix 0.9.0">
-      <item name="Documentation" href="./0.9.0-docs/index.html"/>
-      <item name="Quick Start" href="./0.9.0-docs/Quickstart.html"/>
-      <item name="Tutorial" href="./0.9.0-docs/Tutorial.html"/>
-      <item name="Download" href="./0.9.0-docs/download.html"/>
+    <menu name="Helix 0.9.1">
+      <item name="Documentation" href="./0.9.1-docs/index.html"/>
+      <item name="Quick Start" href="./0.9.1-docs/Quickstart.html"/>
+      <item name="Tutorial" href="./0.9.1-docs/Tutorial.html"/>
+      <item name="Download" href="./0.9.1-docs/download.html"/>
     </menu>
 
-    <menu name="Helix 0.8.4">
-      <item name="Documentation" href="./0.8.4-docs/index.html"/>
-      <item name="Quick Start" href="./0.8.4-docs/Quickstart.html"/>
-      <item name="Tutorial" href="./0.8.4-docs/Tutorial.html"/>
-      <item name="Download" href="./0.8.4-docs/download.html"/>
+    <menu name="Helix 0.7.1 (beta)">
+      <item name="Documentation" href="./0.7.1-docs/index.html"/>
+      <item name="Quick Start" href="./0.7.1-docs/Quickstart.html"/>
+      <item name="Tutorial" href="./0.7.1-docs/Tutorial.html"/>
+      <item name="Download" href="./0.7.1-docs/download.html"/>
     </menu>
 
     <menu name="Get Involved">
@@ -152,7 +153,7 @@
       <slogan>A cluster management framework for partitioned and replicated distributed resources</slogan>
       <bottomNav>
         <column>Learn</column>
-        <column>Documentation|Helix 0.9.0|Helix 0.8.4</column>
+        <column>Documentation|Helix 0.9.1|Helix 0.7.1 (beta)</column>
         <column>Get Involved</column>
         <column>ASF</column>
       </bottomNav>

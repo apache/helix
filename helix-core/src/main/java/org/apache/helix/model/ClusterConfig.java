@@ -29,10 +29,12 @@ import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Cluster configurations
@@ -86,6 +88,8 @@ public class ClusterConfig extends HelixProperty {
 
     // The required instance capacity keys for resource partition assignment calculation.
     INSTANCE_CAPACITY_KEYS,
+    // The default instance capacity if no capacity is configured in the Instance Config node.
+    DEFAULT_INSTANCE_CAPACITY_MAP,
     // The preference of the rebalance result.
     // EVENNESS - Evenness of the resource utilization, partition, and top state distribution.
     // LESS_MOVEMENT - the tendency of keeping the current assignment instead of moving the partition for optimal assignment.
@@ -698,6 +702,53 @@ public class ClusterConfig extends HelixProperty {
       return Collections.emptyList();
     }
     return capacityKeys;
+  }
+
+  /**
+   * Get the default instance capacity information from the map fields.
+   * @return data map if it exists, or empty map
+   */
+  public Map<String, Integer> getDefaultInstanceCapacityMap() {
+    Map<String, String> capacityData =
+        _record.getMapField(ClusterConfigProperty.DEFAULT_INSTANCE_CAPACITY_MAP.name());
+
+    if (capacityData != null) {
+      return capacityData.entrySet().stream().collect(
+          Collectors.toMap(entry -> entry.getKey(), entry -> Integer.parseInt(entry.getValue())));
+    }
+    return Collections.emptyMap();
+  }
+
+  /**
+   * Set the default instance capacity information with an Integer mapping.
+   * @param capacityDataMap - map of instance capacity data
+   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
+   *
+   * This information is required by the global rebalancer.
+   * @see <a href="Rebalance Algorithm">
+   *   https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer#rebalance-algorithm-adapter
+   *   </a>
+   * If the instance capacity is not configured in neither Instance Config nor Cluster Config, the
+   * cluster topology is considered invalid. So the rebalancer may stop working.
+   */
+  public void setDefaultInstanceCapacityMap(Map<String, Integer> capacityDataMap)
+      throws IllegalArgumentException {
+    if (capacityDataMap == null || capacityDataMap.size() == 0) {
+      throw new IllegalArgumentException("Default Instance Capacity Data is empty");
+    }
+
+    Map<String, String> capacityData = new HashMap<>();
+
+    capacityDataMap.entrySet().stream().forEach(entry -> {
+      if (entry.getValue() < 0) {
+        throw new IllegalArgumentException(String
+            .format("Default Instance Capacity Data contains a negative value: %s = %d",
+                entry.getKey(), entry.getValue()));
+      }
+      capacityData.put(entry.getKey(), Integer.toString(entry.getValue()));
+    });
+
+    _record.setMapField(ClusterConfigProperty.DEFAULT_INSTANCE_CAPACITY_MAP.name(), capacityData);
   }
 
   /**

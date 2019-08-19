@@ -20,6 +20,8 @@ package org.apache.helix.model;
  */
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import org.apache.helix.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -126,5 +128,57 @@ public class TestClusterConfig {
 
     ClusterConfig testConfig = new ClusterConfig("testId");
     testConfig.setGlobalRebalancePreference(preference);
+  }
+
+  @Test
+  public void testGetInstanceCapacityMap() {
+    Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1, "item2", 2, "item3", 3);
+
+    Map<String, String> capacityDataMapString =
+        ImmutableMap.of("item1", "1", "item2", "2", "item3", "3");
+
+    ZNRecord rec = new ZNRecord("testId");
+    rec.setMapField(ClusterConfig.ClusterConfigProperty.DEFAULT_INSTANCE_CAPACITY_MAP.name(),
+        capacityDataMapString);
+    ClusterConfig testConfig = new ClusterConfig(rec);
+
+    Assert.assertTrue(testConfig.getDefaultInstanceCapacityMap().equals(capacityDataMap));
+  }
+
+  @Test
+  public void testGetInstanceCapacityMapEmpty() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+
+    Assert.assertTrue(testConfig.getDefaultInstanceCapacityMap().equals(Collections.emptyMap()));
+  }
+
+  @Test
+  public void testSetInstanceCapacityMap() {
+    Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1, "item2", 2, "item3", 3);
+
+    Map<String, String> capacityDataMapString =
+        ImmutableMap.of("item1", "1", "item2", "2", "item3", "3");
+
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    testConfig.setDefaultInstanceCapacityMap(capacityDataMap);
+
+    Assert.assertEquals(testConfig.getRecord().getMapField(ClusterConfig.ClusterConfigProperty.
+        DEFAULT_INSTANCE_CAPACITY_MAP.name()), capacityDataMapString);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default Instance Capacity Data is empty")
+  public void testSetInstanceCapacityMapEmpty() {
+    Map<String, Integer> capacityDataMap = new HashMap<>();
+
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    testConfig.setDefaultInstanceCapacityMap(capacityDataMap);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default Instance Capacity Data contains a negative value: item3 = -3")
+  public void testSetInstanceCapacityMapInvalid() {
+    Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1, "item2", 2, "item3", -3);
+
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    testConfig.setDefaultInstanceCapacityMap(capacityDataMap);
   }
 }

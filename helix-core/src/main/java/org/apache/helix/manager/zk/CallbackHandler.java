@@ -114,7 +114,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   static {
     SubscribeChangeEventProcessor = new DedupEventProcessor<CallbackHandler, SubscribeChangeEvent>(
-        "Singleton", "CallbackHanlder-AsycSubscribe") {
+        "Singleton", "CallbackHandler-AsycSubscribe") {
       @Override
       protected void handleEvent(SubscribeChangeEvent event) {
         logger.info("Resubscribe change listener to path: " + event.path + ", for listener: "

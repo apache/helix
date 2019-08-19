@@ -507,8 +507,7 @@ public class InstanceConfig extends HelixProperty {
   }
 
   /**
-   * Get the instance capacity information from the map fields
-   *
+   * Get the instance capacity information from the map fields.
    * @return data map if it exists, or empty map
    */
   public Map<String, Integer> getInstanceCapacityMap() {
@@ -523,9 +522,17 @@ public class InstanceConfig extends HelixProperty {
   }
 
   /**
-   * Set the instance capacity information with an Integer mapping
+   * Set the instance capacity information with an Integer mapping.
    * @param capacityDataMap - map of instance capacity data
    * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
+   *
+   * This information is required by the global rebalancer.
+   * @see <a href="Rebalance Algorithm">
+   *   https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer#rebalance-algorithm-adapter
+   *   </a>
+   * If the instance capacity is not configured in neither Instance Config nor Cluster Config, the
+   * cluster topology is considered invalid. So the rebalancer may stop working.
+   * Note that when a rebalancer requires this capacity information, it will ignore INSTANCE_WEIGHT.
    */
   public void setInstanceCapacityMap(Map<String, Integer> capacityDataMap)
       throws IllegalArgumentException {

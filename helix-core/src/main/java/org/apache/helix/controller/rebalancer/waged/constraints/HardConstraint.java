@@ -27,8 +27,10 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * Evaluate a partition allocation proposal and return YES or NO based on the cluster context.
  * Any proposal fails one or more hard constraints will be rejected.
  */
-public interface HardConstraint {
-  enum FailureReason {
+abstract class HardConstraint {
+  private final Type _type;
+
+  enum Type {
     FAULT_ZONES_CONTAIN_SAME_PARTITION,
     NODES_DEACTIVATED,
     NODES_NO_TAG,
@@ -37,14 +39,23 @@ public interface HardConstraint {
     NODES_CONTAIN_SAME_PARTITION,
   }
 
-  /**
-   * @return True if the proposed assignment is valid.
-   */
-  boolean isAssignmentValid(AssignableNode node, AssignableReplica rep,
-      ClusterContext clusterContext);
+  HardConstraint(Type failureReason) {
+    _type = failureReason;
+  }
+
+  // child class could extend and customize the message
+  String getFailureReason() {
+    return _type.toString();
+  }
 
   /**
-   * @return Detail of the reason that the proposed assignment was rejected.
+   * Check if the replica could be assigned to the node
+   * @return True if the proposed assignment is valid; False otherwise
    */
-  FailureReason getFailureReason();
+  abstract boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext);
+
+  Type getType() {
+    return _type;
+  }
 }

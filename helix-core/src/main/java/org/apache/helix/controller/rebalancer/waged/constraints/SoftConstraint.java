@@ -27,23 +27,31 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * Evaluate a partition allocation proposal and return a score within the normalized range.
  * A higher score means the proposal is more preferred.
  */
-public interface SoftConstraint {
-  float MIN_SCORE = -1000.0f;
-  float MAX_SCORE = 1000.0f;
+abstract class SoftConstraint {
+  private final Type _type;
+
+  enum Type {
+    LEAST_USED_NODE,
+    LEAST_PARTITION_COUNT,
+    LEAST_MOVEMENTS
+  }
+
+  SoftConstraint(Type type) {
+    _type = type;
+  }
 
   /**
-   * The scoring function returns a score between MINIMAL_SCORE and MAXIMUM_SCORE, which is then weighted by the
+   * The scoring function returns a score between MINIMAL_SCORE and MAXIMUM_SCORE, which is then
+   * weighted by the
    * individual normalized constraint weights.
-   * Each individual constraint will define the meaning of MINIMAL_SCORE to MAXIMUM_SCORE differently.
+   * Each individual constraint will define the meaning of MINIMAL_SCORE to MAXIMUM_SCORE
+   * differently.
+   * @return float value representing the score
    */
-  float assignmentScore(AssignableNode node, AssignableReplica rep, ClusterContext clusterContext);
+  abstract float getAssignmentScore(AssignableNode node, AssignableReplica rep,
+      ClusterContext clusterContext);
 
-  /**
-   * Set the importance factor of the soft constraint.
-   * The more important it is, the more contribution it will make to the final evaluation.
-   * @param importance
-   */
-  void setConstraintImportance(float importance);
-
-  float getConstraintImportance();
+  Type getType() {
+    return _type;
+  }
 }

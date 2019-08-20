@@ -19,12 +19,13 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.net.ssl.SSLContext;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
@@ -48,13 +49,13 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
+
 public class HelixRestServer {
   private static Logger LOG = LoggerFactory.getLogger(HelixRestServer.class);
   // TODO: consider moving the following static context to ServerContext or any other place
   public static SSLContext REST_SERVER_SSL_CONTEXT;
 
-  private int _port;
-  private String _urlPrefix;
   private Server _server;
   private List<HelixRestNamespace> _helixNamespaces;
   private ServletContextHandler _servletContextHandler;
@@ -64,14 +65,14 @@ public class HelixRestServer {
   private Map<String, ResourceConfig> _resourceConfigMap;
 
   public HelixRestServer(String zkAddr, int port, String urlPrefix) {
-    this(zkAddr, port, urlPrefix, Collections.<AuditLogger>emptyList());
+    this(zkAddr, port, urlPrefix, Collections.emptyList());
   }
 
   public HelixRestServer(String zkAddr, int port, String urlPrefix, List<AuditLogger> auditLoggers) {
     // Create default namespace using zkAddr
-    ArrayList<HelixRestNamespace> namespaces = new ArrayList<>();
-    namespaces.add(new HelixRestNamespace(HelixRestNamespace.DEFAULT_NAMESPACE_NAME,
-        HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, zkAddr, true));
+    List<HelixRestNamespace> namespaces =
+        ImmutableList.of(new HelixRestNamespace(HelixRestNamespace.DEFAULT_NAMESPACE_NAME,
+            HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, zkAddr, true));
     init(namespaces, port, urlPrefix, auditLoggers);
   }
 
@@ -86,59 +87,54 @@ public class HelixRestServer {
       throw new IllegalArgumentException(
           "No namespace specified! Please provide ZOOKEEPER address or namespace manifest.");
     }
-    _port = port;
-    _urlPrefix = urlPrefix;
-    _server = new Server(_port);
+    _server = new Server(port);
     _auditLoggers = auditLoggers;
     _resourceConfigMap = new HashMap<>();
-    _servletContextHandler = new ServletContextHandler(_server, _urlPrefix);
+    _servletContextHandler = new ServletContextHandler(_server, urlPrefix);
     _helixNamespaces = namespaces;
 
     // Initialize all namespaces
     try {
       for (HelixRestNamespace namespace : _helixNamespaces) {
-        LOG.info("Initializing namespace " + namespace.getName());
-        prepareServlet(namespace, ServletType.COMMON_SERVLET);
         if (namespace.isDefault()) {
           LOG.info("Creating default servlet for default namespace");
-          prepareServlet(namespace, ServletType.DEFAULT_SERVLET);
+          addServlet(namespace, ServletType.DEFAULT_SERVLET);
+        } else {
+          LOG.info("Creating servlet for namespace " + namespace.getName());
+          addServlet(namespace, ServletType.COMMON_SERVLET);
         }
       }
     } catch (Exception e) {
-      LOG.error("Failed to initialize helix rest server. Tearing down.");
+      LOG.error("Failed to initialize helix rest server. Tearing down.", e);
       cleanupResourceConfigs();
       throw e;
     }
 
-    // Start special servlet for serving namespaces
-    Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-      @Override public void run() {
-        shutdown();
-      }
-    }));
+    // register shut down hook (triggered when the service is shut down)
+    Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
   }
 
-  private void prepareServlet(HelixRestNamespace namespace, ServletType type) {
-    String resourceConfigMapKey = getResourceConfigMapKey(type, namespace);
+  private void addServlet(HelixRestNamespace namespace, ServletType servletType) {
+    String resourceConfigMapKey = String.format("%s_%s", servletType.name(), namespace.getName());
     if (_resourceConfigMap.containsKey(resourceConfigMapKey)) {
       throw new IllegalArgumentException(
           String.format("Duplicated namespace name \"%s\"", namespace.getName()));
     }
 
     // Prepare resource config
-    ResourceConfig config = getResourceConfig(namespace, type);
+    ResourceConfig config = getResourceConfig(namespace, servletType);
     _resourceConfigMap.put(resourceConfigMapKey, config);
 
-    // Initialize servlet
-    initServlet(config, String.format(type.getServletPathSpecTemplate(), namespace.getName()));
-  }
-
-  private String getResourceConfigMapKey(ServletType type, HelixRestNamespace namespace) {
-    return String.format("%s_%s", type.name(), namespace.getName());
+    // register servlet listener on path, e.g, http://localhost:8080/admin/v2/namespaces/default/*
+    String path = servletType.getServletPath(namespace);
+    LOG.info("Initializing Servlet on path: " + path);
+    System.out.println("Initializing Servlet on path: " + path);
+    _servletContextHandler.addServlet(new ServletHolder(new ServletContainer(config)), path);
   }
 
   private ResourceConfig getResourceConfig(HelixRestNamespace namespace, ServletType type) {
     ResourceConfig cfg = new ResourceConfig();
+    cfg.setApplicationName(namespace.getName());
     cfg.packages(type.getServletPackageArray());
 
     // Enable the default statistical monitoring MBean for Jersey server
@@ -154,11 +150,6 @@ public class HelixRestServer {
     cfg.register(new CORSFilter());
     cfg.register(new AuditLogFilter(_auditLoggers));
     return cfg;
-  }
-
-  private void initServlet(ResourceConfig cfg, String servletPathSpec) {
-    ServletHolder servlet = new ServletHolder(new ServletContainer(cfg));
-    _servletContextHandler.addServlet(servlet, servletPathSpec);
   }
 
   public void start() throws HelixException, InterruptedException {

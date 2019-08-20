@@ -26,17 +26,17 @@ public enum ServletType {
   /**
    * Servlet serving default API endpoints (/admin/v2/clusters/...)
    */
-  DEFAULT_SERVLET(HelixRestNamespace.DEFAULT_NAMESPACE_PATH_SPEC,
-      new String[] { AbstractHelixResource.class.getPackage().getName(),
-          NamespacesAccessor.class.getPackage().getName()
-      }),
+  DEFAULT_SERVLET(HelixRestNamespace.DEFAULT_NAMESPACE_PATH_SPEC, new String[] {
+      AbstractHelixResource.class.getPackage().getName(),
+      NamespacesAccessor.class.getPackage().getName()
+  }),
 
   /**
    * Servlet serving namespaced API endpoints (/admin/v2/namespaces/{namespaceName})
    */
-  COMMON_SERVLET("/namespaces/%s/*",
-      new String[] { AbstractHelixResource.class.getPackage().getName(),
-      });
+  COMMON_SERVLET("/namespaces/%s/*", new String[] {
+      AbstractHelixResource.class.getPackage().getName(),
+  });
 
   private final String _servletPathSpecTemplate;
   private final String[] _servletPackageArray;
@@ -48,6 +48,10 @@ public enum ServletType {
 
   public String getServletPathSpecTemplate() {
     return _servletPathSpecTemplate;
+  }
+
+  public String getServletPath(HelixRestNamespace namespace) {
+    return String.format(_servletPathSpecTemplate, namespace.getName());
   }
 
   public String[] getServletPackageArray() {

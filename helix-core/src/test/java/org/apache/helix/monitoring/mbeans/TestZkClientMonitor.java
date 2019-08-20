@@ -154,7 +154,7 @@ public class TestZkClientMonitor {
 
   @Test
   public void testCustomizedResetInterval() throws JMException, InterruptedException {
-    // Use a customized reservoir length of 1 ms.
+    // Use a customized reservoir sliding length of 1 ms.
     System.setProperty("reservoir.length.ms", "1");
     final String TEST_TAG = "test_tag_3";
     final String TEST_KEY = "test_key_3";

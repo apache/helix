@@ -19,7 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,6 +36,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.util.GZipCompressionUtil;
+import org.codehaus.jackson.map.ObjectMapper;
 
 public class ZkBucketDataAccessor implements BucketDataAccessor {
 

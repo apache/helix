@@ -19,8 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -28,14 +26,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
-import org.apache.helix.util.GZipCompressionUtil;
-import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -111,16 +106,6 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
       property.getRecord().setMapField(randomStrKey, mapField);
     }
-
-    JsonFactory factory = new MessagePackFactory();
-    ObjectMapper mapper = new ObjectMapper(factory);
-    byte[] bytes = mapper.writeValueAsBytes(property.getRecord());
-
-    ZkSerializer serializer = new ZNRecordJacksonSerializer();
-    byte[] serialized = serializer.serialize(property.getRecord());
-    System.out.println("Serialized size:" + serialized.length);
-    System.out
-        .println("Serialized & compressed size:" + GZipCompressionUtil.compress(serialized).length);
 
     // Perform large write
     long before = System.currentTimeMillis();

@@ -28,16 +28,25 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * A higher score means the proposal is more preferred.
  */
 abstract class SoftConstraint {
-  private final Type _type;
+  private float _maxScore = 1000f;
+  private float _minScore = -1000f;
 
-  enum Type {
-    LEAST_USED_NODE,
-    LEAST_PARTITION_COUNT,
-    LEAST_MOVEMENTS
+  interface ScalerFunction {
+    /**
+     * Scale the origin score to a normalized range (0, 1).
+     * The purpose is to compare scores between different soft constraints.
+     * @param originScore The origin score
+     * @return The normalized value between (0, 1)
+     */
+    float scale(float originScore);
   }
 
-  SoftConstraint(Type type) {
-    _type = type;
+  SoftConstraint() {
+  }
+
+  SoftConstraint(float maxScore, float minScore) {
+    _maxScore = maxScore;
+    _minScore = minScore;
   }
 
   /**
@@ -48,10 +57,15 @@ abstract class SoftConstraint {
    * differently.
    * @return float value representing the score
    */
-  abstract float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+  abstract float getAssignmentOriginScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
-  Type getType() {
-    return _type;
+  /**
+   * The default scaler function that squashes any score within (min_score, max_score) to (0, 1)
+   *
+   * @return The default MinMaxScaler instance
+   */
+  ScalerFunction getScalerFunction() {
+    return (score) -> (score - _minScore) / (_maxScore - _minScore);
   }
 }

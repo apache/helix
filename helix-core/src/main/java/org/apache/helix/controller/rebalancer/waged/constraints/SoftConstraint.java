@@ -48,7 +48,7 @@ abstract class SoftConstraint {
    * differently.
    * @return float value representing the score
    */
-  abstract float getAssignmentScore(AssignableNode node, AssignableReplica rep,
+  abstract float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
   Type getType() {

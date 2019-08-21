@@ -128,7 +128,6 @@ public class HelixRestServer {
     // register servlet listener on path, e.g, http://localhost:8080/admin/v2/namespaces/default/*
     String path = servletType.getServletPath(namespace);
     LOG.info("Initializing Servlet on path: " + path);
-    System.out.println("Initializing Servlet on path: " + path);
     _servletContextHandler.addServlet(new ServletHolder(new ServletContainer(config)), path);
   }
 

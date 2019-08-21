@@ -40,6 +40,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.monitoring.SensorNameProvider;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.util.HelixUtil;
@@ -231,7 +232,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * in the system env variables. If not found, use default value.
    */
   protected Long getResetIntervalInMs() {
-    return HelixUtil
-        .getSystemPropertyAsLong(RESET_INTERVAL_SYSTEM_PROPERTY_KEY, DEFAULT_RESET_INTERVAL_MS);
+    return HelixUtil.getSystemPropertyAsLong(SystemPropertyKeys.HELIX_MONITOR_TIME_WINDOW_LENGTH_MS,
+        DEFAULT_RESET_INTERVAL_MS);
   }
 }

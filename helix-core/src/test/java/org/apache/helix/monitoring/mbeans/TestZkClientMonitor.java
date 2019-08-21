@@ -155,7 +155,7 @@ public class TestZkClientMonitor {
   @Test
   public void testCustomizedResetInterval() throws JMException, InterruptedException {
     // Use a customized reservoir sliding length of 1 ms.
-    System.setProperty("reservoir.length.ms", "1");
+    System.setProperty("helix.monitor.slidingTimeWindow.ms", "1");
     final String TEST_TAG = "test_tag_x";
     final String TEST_KEY = "test_key_x";
     final String TEST_INSTANCE = "test_instance_x";

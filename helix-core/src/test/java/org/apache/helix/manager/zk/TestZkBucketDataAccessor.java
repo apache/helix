@@ -76,14 +76,14 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
    */
   @Test(dependsOnMethods = "testCompressedBucketWrite")
   public void testCompressedBucketRead() {
-    HelixProperty readRecord = _bucketDataAccessor.compressedBucketRead(PATH);
+    HelixProperty readRecord = _bucketDataAccessor.compressedBucketRead(PATH, HelixProperty.class);
     Assert.assertEquals(readRecord.getRecord().getSimpleField(NAME_KEY), NAME_KEY);
     Assert.assertEquals(readRecord.getRecord().getListField(NAME_KEY), LIST_FIELD);
     Assert.assertEquals(readRecord.getRecord().getMapField(NAME_KEY), MAP_FIELD);
   }
 
   /**
-   * Write a HelixProperty with 1 million entries using BucketDataAccessor and read it back.
+   * Write a HelixProperty with large number of entries using BucketDataAccessor and read it back.
    */
   @Test(dependsOnMethods = "testCompressedBucketRead")
   public void testLargeWriteAndRead() throws IOException {
@@ -115,7 +115,8 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
     // Read it back
     before = System.currentTimeMillis();
-    HelixProperty readRecord = _bucketDataAccessor.compressedBucketRead("/" + name);
+    HelixProperty readRecord =
+        _bucketDataAccessor.compressedBucketRead("/" + name, HelixProperty.class);
     after = System.currentTimeMillis();
     System.out.println("Read took " + (after - before) + " ms");
 

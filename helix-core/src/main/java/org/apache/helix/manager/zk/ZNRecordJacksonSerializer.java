@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ZNRecordMsgPackSerializer serializes ZNRecord objects into a byte array using MessagePack's
+ * ZNRecordJacksonSerializer serializes ZNRecord objects into a byte array using MessagePack's
  * serializer. Note that this serializer doesn't check for the size of the resulting binary.
  */
 public class ZNRecordJacksonSerializer implements ZkSerializer {

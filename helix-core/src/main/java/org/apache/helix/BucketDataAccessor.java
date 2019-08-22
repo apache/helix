@@ -24,8 +24,8 @@ public interface BucketDataAccessor {
 
   /**
    * Write a (large) HelixProperty in buckets, compressed.
-   * @param path
-   * @param value
+   * @param path path to which the metadata will be written to
+   * @param value HelixProperty to write
    * @param <T>
    * @return
    * @throws IOException
@@ -35,8 +35,11 @@ public interface BucketDataAccessor {
   /**
    * Read a (large) HelixProperty that was written in buckets, compressed.
    * @param path
+   * @param helixPropertySubType the subtype of HelixProperty the data was written in
+   * @param <T>
    * @return
    */
-  HelixProperty compressedBucketRead(String path);
+  <T extends HelixProperty> HelixProperty compressedBucketRead(String path,
+      Class<T> helixPropertySubType);
 
 }

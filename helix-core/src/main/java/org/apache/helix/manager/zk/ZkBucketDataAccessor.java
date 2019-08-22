@@ -39,23 +39,38 @@ import org.apache.helix.util.GZipCompressionUtil;
 import org.codehaus.jackson.map.ObjectMapper;
 
 public class ZkBucketDataAccessor implements BucketDataAccessor {
-
-  private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  // TODO: Optimize serialization with Jackson
+  // TODO: Or use a better binary serialization protocol
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
   private static final String DATA_SIZE_KEY = "DATA_SIZE";
 
   // 100 KB for default bucket size
   private static final int DEFAULT_BUCKET_SIZE = 100 * 1024;
-  private int _bucketSize = DEFAULT_BUCKET_SIZE;
+  private final int _bucketSize;
   private ZkSerializer _zkSerializer;
   private BaseDataAccessor _zkBaseDataAccessor;
 
-  public ZkBucketDataAccessor(String zkAddr) {
+  /**
+   * Constructor that allows a custom bucket size.
+   * @param zkAddr
+   * @param bucketSize
+   */
+  public ZkBucketDataAccessor(String zkAddr, int bucketSize) {
     HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     zkClient.setZkSerializer(new DummySerializer());
     _zkSerializer = new ZNRecordJacksonSerializer();
     _zkBaseDataAccessor = new ZkBaseDataAccessor(zkClient);
+    _bucketSize = bucketSize;
+  }
+
+  /**
+   * Constructor that uses a default bucket size.
+   * @param zkAddr
+   */
+  public ZkBucketDataAccessor(String zkAddr) {
+    this(zkAddr, DEFAULT_BUCKET_SIZE);
   }
 
   @Override
@@ -110,7 +125,12 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
   }
 
   @Override
-  public HelixProperty compressedBucketRead(String path) {
+  public <T extends HelixProperty> HelixProperty compressedBucketRead(String path,
+      Class<T> helixPropertySubType) {
+    return helixPropertySubType.cast(compressedBucketRead(path));
+  }
+
+  private HelixProperty compressedBucketRead(String path) {
     // Retrieve the metadata
     Map metadataMap;
     byte[] metadata = (byte[]) _zkBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);

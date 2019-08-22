@@ -37,8 +37,8 @@ class SoftConstraintWeightModel {
 
   /**
    * Get the sum of normalized scores, given calculated scores map of soft constraints
-   * @param originScoresMap The origin scores of soft constraints
-   * @return The sum of double type
+   * @param originScoresMap The origin scores by soft constraints
+   * @return The sum of soft constraints scores
    */
   float getSumOfScores(Map<SoftConstraint, Float> originScoresMap) {
     float sum = 0;

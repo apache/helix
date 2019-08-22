@@ -28,25 +28,6 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * Any proposal fails one or more hard constraints will be rejected.
  */
 abstract class HardConstraint {
-  private final Type _type;
-
-  enum Type {
-    FAULT_ZONES_CONTAIN_SAME_PARTITION,
-    NODES_DEACTIVATED,
-    NODES_NO_TAG,
-    NODES_EXCEED_MAX_PARTITION,
-    NODES_INSUFFICIENT_RESOURCE,
-    NODES_CONTAIN_SAME_PARTITION,
-  }
-
-  HardConstraint(Type failureReason) {
-    _type = failureReason;
-  }
-
-  // child class could extend and customize the message
-  String getFailureReason() {
-    return _type.toString();
-  }
 
   /**
    * Check if the replica could be assigned to the node
@@ -55,7 +36,12 @@ abstract class HardConstraint {
   abstract boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
-  Type getType() {
-    return _type;
+  /**
+   * Return class name by default as description if it's explanatory enough, child class could override
+   * the method and add more detailed descriptions
+   * @return The detailed description of hard constraint
+   */
+  String getDescription() {
+    return getClass().getName();
   }
 }

@@ -41,9 +41,17 @@ abstract class SoftConstraint {
     float scale(float originScore);
   }
 
+  /**
+   * Default constructor, uses default min/max scores
+   */
   SoftConstraint() {
   }
 
+  /**
+   * Child class customize the min/max score on its own
+   * @param maxScore The max score
+   * @param minScore The min score
+   */
   SoftConstraint(float maxScore, float minScore) {
     _maxScore = maxScore;
     _minScore = minScore;
@@ -61,9 +69,9 @@ abstract class SoftConstraint {
       ClusterContext clusterContext);
 
   /**
-   * The default scaler function that squashes any score within (min_score, max_score) to (0, 1)
-   *
-   * @return The default MinMaxScaler instance
+   * The default scaler function that squashes any score within (min_score, max_score) to (0, 1);
+   * Child class could override the method and customize the method on its own
+   * @return The MinMaxScaler instance by default
    */
   ScalerFunction getScalerFunction() {
     return (score) -> (score - _minScore) / (_maxScore - _minScore);

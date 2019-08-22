@@ -20,16 +20,23 @@ package org.apache.helix;
 
 import java.io.IOException;
 
-
 public interface BucketDataAccessor {
 
-  <T extends HelixProperty> boolean bucketWrite(String path, T value);
-
-  HelixProperty bucketRead(String path);
-
+  /**
+   * Write a (large) HelixProperty in buckets, compressed.
+   * @param path
+   * @param value
+   * @param <T>
+   * @return
+   * @throws IOException
+   */
   <T extends HelixProperty> boolean compressedBucketWrite(String path, T value) throws IOException;
 
+  /**
+   * Read a (large) HelixProperty that was written in buckets, compressed.
+   * @param path
+   * @return
+   */
   HelixProperty compressedBucketRead(String path);
 
-  void setBucketSize(int size);
 }

@@ -59,16 +59,6 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
   }
 
   @Override
-  public <T extends HelixProperty> boolean bucketWrite(String path, T value) {
-    throw new UnsupportedOperationException("bucketWrite not supported!");
-  }
-
-  @Override
-  public HelixProperty bucketRead(String path) {
-    throw new UnsupportedOperationException("bucketRead not supported!");
-  }
-
-  @Override
   public <T extends HelixProperty> boolean compressedBucketWrite(String path, T value)
       throws IOException {
     // Take the ZNrecord and serialize it (get byte[])
@@ -169,10 +159,5 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     // Deserialize the record to retrieve the original
     ZNRecord originalRecord = (ZNRecord) _zkSerializer.deserialize(serializedRecord);
     return new HelixProperty(originalRecord);
-  }
-
-  @Override
-  public void setBucketSize(int size) {
-    throw new UnsupportedOperationException("setBucketSize not supported!");
   }
 }

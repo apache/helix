@@ -41,7 +41,7 @@ import static java.lang.Math.max;
  * This class represents a possible allocation of the replication.
  * Note that any usage updates to the AssignableNode are not thread safe.
  */
-public class AssignableNode {
+public class AssignableNode implements Comparable<AssignableNode> {
   private static final Logger LOG = LoggerFactory.getLogger(AssignableNode.class.getName());
 
   // basic node information
@@ -362,5 +362,10 @@ public class AssignableNode {
   @Override
   public int hashCode() {
     return _instanceName.hashCode();
+  }
+
+  @Override
+  public int compareTo(AssignableNode o) {
+    return _instanceName.compareTo(o.getInstanceName());
   }
 }

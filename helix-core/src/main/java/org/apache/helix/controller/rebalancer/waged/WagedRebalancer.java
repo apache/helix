@@ -20,7 +20,6 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.controller.changedetector.ChangeDetector;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
@@ -49,13 +48,13 @@ public class WagedRebalancer implements GlobalRebalancer<ResourceControllerDataP
 
   // The cluster change detector is a stateful object,
   // make it static to avoid unnecessary cleanup and reconstruct.
-  private static final ThreadLocal<ChangeDetector> _changeDetector = new ThreadLocal<>();
+  private static final ThreadLocal<ResourceChangeDetector> _changeDetector = new ThreadLocal<>();
 
   private final AssignmentMetadataStore _assignmentMetadataStore;
   private final RebalanceAlgorithm _rebalanceAlgorithm;
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
 
-  private ChangeDetector getChangeDetector() {
+  private ResourceChangeDetector getChangeDetector() {
     if (_changeDetector.get() == null) {
       _changeDetector.set(new ResourceChangeDetector());
     }

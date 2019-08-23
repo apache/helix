@@ -19,8 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import static java.lang.Math.max;
-
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -29,27 +27,26 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * Evaluate the proposed assignment according to the instance's partition count.
  */
 class LeastPartitionCountConstraint extends SoftConstraint {
-  static LeastPartitionCountConstraint INSTANCE  = new LeastPartitionCountConstraint();
+  static LeastPartitionCountConstraint INSTANCE = new LeastPartitionCountConstraint();
 
   private LeastPartitionCountConstraint() {
   }
 
   /**
    * Returns a score depending on the number of assignments on this node. The score is scaled evenly
-   * between the
-   * MIN_SCORE and the MAX_SCORE.
-   * When the node is idle, return with the MAX_SCORE.
-   * When the node usage reaches the estimated max partition, return with (MAX_SCORE + MIN_SCORE) /
+   * between the minScore and maxScore.
+   * When the node is idle, return with the maxScore.
+   * When the node usage reaches the estimated max partition, return with (minScore + maxScore ) /
    * 2.
-   * When the node usage reaches 2 * estimated_max or more, return with the MIN_SCORE.
+   * When the node usage reaches 2 * estimated_max or more, return with the minScore.
    * If the estimated max partition count is not set, it defaults to Integer.MAX_VALUE in
    * clusterContext.
    */
   @Override
   float getAssignmentOriginScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    int doubleMaxPartitionCount = 2 * clusterContext.getEstimatedMaxPartitionCount();
+    float doubleMaxPartitionCount = 2.0f * clusterContext.getEstimatedMaxPartitionCount();
     int curPartitionCount = node.getCurrentAssignmentCount();
-    return max(((float) doubleMaxPartitionCount - curPartitionCount) / doubleMaxPartitionCount, 0);
+    return Math.max((doubleMaxPartitionCount - curPartitionCount) / doubleMaxPartitionCount, 0);
   }
 }

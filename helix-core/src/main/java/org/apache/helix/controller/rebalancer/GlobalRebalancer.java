@@ -19,7 +19,6 @@ package org.apache.helix.controller.rebalancer;
  * under the License.
  */
 
-import org.apache.helix.HelixManager;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
@@ -27,6 +26,10 @@ import org.apache.helix.model.Resource;
 
 import java.util.Map;
 
+/**
+ * Interface of the global rebalancer which is designed to compute and optimize multiple
+ * resources' IdealStates simultaneously.
+ */
 public interface GlobalRebalancer<T extends BaseControllerDataProvider> {
   enum RebalanceFailureType {
     INVALID_CLUSTER_STATUS,
@@ -49,19 +52,29 @@ public interface GlobalRebalancer<T extends BaseControllerDataProvider> {
       _reason = reason;
     }
 
-    public RebalanceFailureType get_type() {
+    public RebalanceFailureType getType() {
       return _type;
     }
 
-    public String get_reason() {
+    public String getReason() {
       return _reason;
     }
   }
 
-  void init(HelixManager manager);
+  /**
+   * Compute the new IdealStates for all the resources input. The IdealStates include both the new
+   * partition assignment (in the listFiles) and the new replica state mapping (in the mapFields).
+   *
+   * @param clusterData        The Cluster status data provider.
+   * @param resourceMap        A map containing all the rebalancing resources.
+   * @param currentStateOutput The present Current State of the cluster.
+   * @return A map containing the computed new IdealStates.
+   */
+  Map<String, IdealState> computeNewIdealStates(T clusterData, Map<String, Resource> resourceMap,
+      final CurrentStateOutput currentStateOutput);
 
-  Map<String, IdealState> computeNewIdealState(final CurrentStateOutput currentStateOutput,
-      T clusterData, Map<String, Resource> resourceMap);
-
+  /**
+   * @return Details of the rebalance failure. Null if the computing is done successfully.
+   */
   RebalanceFailureReason getFailureReason();
 }

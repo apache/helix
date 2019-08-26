@@ -27,23 +27,53 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * Evaluate a partition allocation proposal and return a score within the normalized range.
  * A higher score means the proposal is more preferred.
  */
-public interface SoftConstraint {
-  float MIN_SCORE = -1000.0f;
-  float MAX_SCORE = 1000.0f;
+abstract class SoftConstraint {
+  private float _maxScore = 1000f;
+  private float _minScore = -1000f;
+
+  interface ScalerFunction {
+    /**
+     * Scale the origin score to a normalized range (0, 1).
+     * The purpose is to compare scores between different soft constraints.
+     * @param originScore The origin score
+     * @return The normalized value between (0, 1)
+     */
+    float scale(float originScore);
+  }
 
   /**
-   * The scoring function returns a score between MINIMAL_SCORE and MAXIMUM_SCORE, which is then weighted by the
+   * Default constructor, uses default min/max scores
+   */
+  SoftConstraint() {
+  }
+
+  /**
+   * Child class customize the min/max score on its own
+   * @param maxScore The max score
+   * @param minScore The min score
+   */
+  SoftConstraint(float maxScore, float minScore) {
+    _maxScore = maxScore;
+    _minScore = minScore;
+  }
+
+  /**
+   * The scoring function returns a score between MINIMAL_SCORE and MAXIMUM_SCORE, which is then
+   * weighted by the
    * individual normalized constraint weights.
-   * Each individual constraint will define the meaning of MINIMAL_SCORE to MAXIMUM_SCORE differently.
+   * Each individual constraint will define the meaning of MINIMAL_SCORE to MAXIMUM_SCORE
+   * differently.
+   * @return float value representing the score
    */
-  float assignmentScore(AssignableNode node, AssignableReplica rep, ClusterContext clusterContext);
+  abstract float getAssignmentOriginScore(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext);
 
   /**
-   * Set the importance factor of the soft constraint.
-   * The more important it is, the more contribution it will make to the final evaluation.
-   * @param importance
+   * The default scaler function that squashes any score within (min_score, max_score) to (0, 1);
+   * Child class could override the method and customize the method on its own
+   * @return The MinMaxScaler instance by default
    */
-  void setConstraintImportance(float importance);
-
-  float getConstraintImportance();
+  ScalerFunction getScalerFunction() {
+    return (score) -> (score - _minScore) / (_maxScore - _minScore);
+  }
 }

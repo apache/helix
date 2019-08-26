@@ -59,7 +59,7 @@ public class TestTaskNumAttempts extends TaskTestBase {
         WorkflowGenerator.generateSingleJobWorkflowBuilder(workflowName, jobBuilder).build();
     _driver.start(flow);
 
-    // Wait until the job completes.
+    // Wait until the job is running
     _driver.pollForWorkflowState(workflowName, TaskState.IN_PROGRESS);
 
     JobContext jobContext =

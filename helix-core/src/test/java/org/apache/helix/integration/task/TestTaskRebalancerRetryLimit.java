@@ -58,10 +58,7 @@ public class TestTaskRebalancerRetryLimit extends TaskTestBase {
       TaskPartitionState state = ctx.getPartitionState(i);
       if (state != null) {
         Assert.assertEquals(state, TaskPartitionState.TASK_ERROR);
-        // The following retry count seems to be a race condition specific to tests
-        // TODO: fix so that the second condition could be removed ( == 3 )
-        Assert
-            .assertTrue(ctx.getPartitionNumAttempts(i) == 2 || ctx.getPartitionNumAttempts(i) == 3);
+        Assert.assertEquals(ctx.getPartitionNumAttempts(i), 2);
       }
     }
   }

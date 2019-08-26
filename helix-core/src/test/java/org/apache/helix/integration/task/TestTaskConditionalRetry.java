@@ -93,9 +93,7 @@ public class TestTaskConditionalRetry extends TaskTestBase {
         Assert.assertEquals(retriedCount, 1);
       } else if (taskId.equals("task_" + failedTask) || taskId.equals("task_" + exceptionTask)) {
         Assert.assertEquals(state, TaskPartitionState.TASK_ERROR);
-        // The following retry count seems to be a race condition specific to tests
-        // TODO: fix so that the second condition could be removed
-        Assert.assertTrue(retriedCount == taskRetryCount || retriedCount == taskRetryCount + 1);
+        Assert.assertEquals(taskRetryCount, retriedCount);
       } else {
         Assert.assertEquals(state, TaskPartitionState.COMPLETED);
         Assert.assertEquals(retriedCount, 1);

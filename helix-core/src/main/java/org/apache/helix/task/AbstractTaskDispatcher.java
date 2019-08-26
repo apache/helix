@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.common.caches.TaskDataCache;
@@ -122,7 +121,9 @@ public abstract class AbstractTaskDispatcher {
         if (currState == TaskPartitionState.ERROR || currState == TaskPartitionState.TASK_ERROR
             || currState == TaskPartitionState.TIMED_OUT
             || currState == TaskPartitionState.TASK_ABORTED) {
-          markPartitionError(jobCtx, pId, currState, true);
+          // Do not increment the task attempt count here - it will be incremented at scheduling
+          // time
+          markPartitionError(jobCtx, pId, currState);
         }
 
         // Check for pending state transitions on this (partition, instance). If there is a pending
@@ -431,22 +432,16 @@ public abstract class AbstractTaskDispatcher {
   protected static void markPartitionCompleted(JobContext ctx, int pId) {
     ctx.setPartitionState(pId, TaskPartitionState.COMPLETED);
     ctx.setPartitionFinishTime(pId, System.currentTimeMillis());
-    ctx.incrementNumAttempts(pId);
   }
 
-  protected static void markPartitionError(JobContext ctx, int pId, TaskPartitionState state,
-      boolean incrementAttempts) {
+  protected static void markPartitionError(JobContext ctx, int pId, TaskPartitionState state) {
     ctx.setPartitionState(pId, state);
     ctx.setPartitionFinishTime(pId, System.currentTimeMillis());
-    if (incrementAttempts) {
-      ctx.incrementNumAttempts(pId);
-    }
   }
 
-  protected static void markAllPartitionsError(JobContext ctx, TaskPartitionState state,
-      boolean incrementAttempts) {
+  protected static void markAllPartitionsError(JobContext ctx) {
     for (int pId : ctx.getPartitionSet()) {
-      markPartitionError(ctx, pId, state, incrementAttempts);
+      markPartitionError(ctx, pId, TaskPartitionState.ERROR);
     }
   }
 
@@ -622,6 +617,7 @@ public abstract class AbstractTaskDispatcher {
         List<Integer> nextPartitions = getNextPartitions(tgtPartitionAssignments.get(instance),
             excludeSet, throttledSet, numToAssign);
         for (Integer pId : nextPartitions) {
+          // The following is the actual scheduling of the tasks
           String pName = pName(jobResource, pId);
           paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.RUNNING.name()));
           excludeSet.add(pId);
@@ -635,6 +631,8 @@ public abstract class AbstractTaskDispatcher {
             reportSubmissionToScheduleDelay(cache, _clusterStatusMonitor, workflowConfig, jobCfg,
                 currentTimestamp);
           }
+          // Increment the task attempt count at schedule time
+          jobCtx.incrementNumAttempts(pId);
           if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
                 TaskPartitionState.RUNNING, instance));

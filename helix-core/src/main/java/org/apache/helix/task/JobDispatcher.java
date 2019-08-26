@@ -228,7 +228,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       LOG.info(failureMsg);
       jobCtx.setInfo(failureMsg);
       failJob(jobResource, workflowCtx, jobCtx, workflowConfig, cache.getJobConfigMap(), cache);
-      markAllPartitionsError(jobCtx, TaskPartitionState.ERROR, false);
+      markAllPartitionsError(jobCtx);
       return new ResourceAssignment(jobResource);
     }
 

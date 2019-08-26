@@ -122,7 +122,9 @@ public abstract class AbstractTaskDispatcher {
         if (currState == TaskPartitionState.ERROR || currState == TaskPartitionState.TASK_ERROR
             || currState == TaskPartitionState.TIMED_OUT
             || currState == TaskPartitionState.TASK_ABORTED) {
-          markPartitionError(jobCtx, pId, currState, true);
+          // Do not increment the task attempt count - it will be done at scheduling time.
+          // (incrementAttempts should always be false)
+          markPartitionError(jobCtx, pId, currState, false);
         }
 
         // Check for pending state transitions on this (partition, instance). If there is a pending
@@ -431,7 +433,6 @@ public abstract class AbstractTaskDispatcher {
   protected static void markPartitionCompleted(JobContext ctx, int pId) {
     ctx.setPartitionState(pId, TaskPartitionState.COMPLETED);
     ctx.setPartitionFinishTime(pId, System.currentTimeMillis());
-    ctx.incrementNumAttempts(pId);
   }
 
   protected static void markPartitionError(JobContext ctx, int pId, TaskPartitionState state,
@@ -622,6 +623,7 @@ public abstract class AbstractTaskDispatcher {
         List<Integer> nextPartitions = getNextPartitions(tgtPartitionAssignments.get(instance),
             excludeSet, throttledSet, numToAssign);
         for (Integer pId : nextPartitions) {
+          // The following is the actual scheduling of the tasks
           String pName = pName(jobResource, pId);
           paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.RUNNING.name()));
           excludeSet.add(pId);
@@ -635,6 +637,8 @@ public abstract class AbstractTaskDispatcher {
             reportSubmissionToScheduleDelay(cache, _clusterStatusMonitor, workflowConfig, jobCfg,
                 currentTimestamp);
           }
+          // Increment the task attempt count at schedule time
+          jobCtx.incrementNumAttempts(pId);
           if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
                 TaskPartitionState.RUNNING, instance));

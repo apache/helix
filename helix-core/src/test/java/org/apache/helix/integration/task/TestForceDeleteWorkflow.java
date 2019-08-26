@@ -20,9 +20,7 @@ package org.apache.helix.integration.task;
  */
 
 import com.google.common.collect.ImmutableMap;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.task.TaskUtil;
@@ -31,7 +29,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
@@ -46,8 +43,6 @@ import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -56,125 +51,54 @@ import org.testng.annotations.Test;
 /*
 This test checks the functionality of the ForceDelete in various conditions.
  */
-public class TestForceDeleteWorkflow extends ZkTestBase {
-  protected int _numNodes = 5;
-  protected int _startPort = 12918;
-  protected int _numPartitions = 20;
-  protected int _numReplicas = 3;
-  protected int _numDbs = 1;
-
-  protected ClusterControllerManager _controller;
+public class TestForceDeleteWorkflow extends TaskTestBase {
+  // Three types of execution times have been considered in this test.
+  private static final String SHORT_EXECUTION_TIME = "1000";
+  private static final String MEDIUM_EXECUTION_TIME = "10000";
+  private static final String LONG_EXECUTION_TIME = "100000";
+  // Long delay to simulate the tasks that do not stop.
+  private static final String STOP_DELAY = "1000000";
+  private HelixAdmin _admin;
   protected HelixManager _manager;
   protected TaskDriver _driver;
-
-  protected List<String> _testDbs = new ArrayList<>();
-
-  protected final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
-  protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
-  protected MockParticipantManager[] _participants;
-
-  protected ZkHelixClusterVerifier _clusterVerifier;
-  private HelixAdmin _admin;
+  protected MockParticipantManager[] _participantsNew;
 
   @BeforeClass
   public void beforeClass() throws Exception {
     super.beforeClass();
-    _participants = new MockParticipantManager[_numNodes];
-    _gSetupTool.addCluster(CLUSTER_NAME, true);
 
-    setupParticipants(_gSetupTool);
-    setupDBs();
-
+    // Stop participants that have been started in super class
     for (int i = 0; i < _numNodes; i++) {
-      startParticipant(ZK_ADDR, i);
+      super.stopParticipant(i);
+    }
+
+    // Start new participants that have new TaskStateModel (DelayedStopTask) information
+    _participantsNew = new MockParticipantManager[_numNodes];
+    for (int i = 0; i < _numNodes; i++) {
+      String storageNodeName = PARTICIPANT_PREFIX + "_NEW_" + (_startPort + i);
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+    }
+    // Start participants that have DelayedStopTask Transition Model
+    for (int i = 0; i < _numNodes; i++) {
+      Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
+      taskFactoryReg.put(DelayedStopTask.TASK_COMMAND, DelayedStopTask::new);
+      String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
+      _participantsNew[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+
+      // Register a Task state model factory.
+      StateMachineEngine stateMachine = _participantsNew[i].getStateMachineEngine();
+      stateMachine.registerStateModelFactory("Task",
+          new TaskStateModelFactory(_participantsNew[i], taskFactoryReg));
+      _participantsNew[i].syncStart();
     }
 
     _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
         InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
+
     _driver = new TaskDriver(_manager);
 
-    _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
-
-    // start controller
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
-    _controller.syncStart();
-
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
     _admin = _gSetupTool.getClusterManagementTool();
-  }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    if (_controller != null && _controller.isConnected()) {
-      _controller.syncStop();
-    }
-    if (_manager != null && _manager.isConnected()) {
-      _manager.disconnect();
-    }
-    for (int i = 0; i < _numNodes; i++) {
-      stopParticipant(i);
-    }
-    deleteCluster(CLUSTER_NAME);
-  }
-
-  protected void setupDBs() {
-    setupDBs(_gSetupTool);
-  }
-
-  protected void setupDBs(ClusterSetup clusterSetup) {
-    // Set up target db
-    boolean partitionVary = true;
-    if (_numDbs > 1) {
-      for (int i = 0; i < _numDbs; i++) {
-        int varyNum = partitionVary ? 10 * i : 0;
-        String db = WorkflowGenerator.DEFAULT_TGT_DB + i;
-        clusterSetup.addResourceToCluster(CLUSTER_NAME, db, _numPartitions + varyNum,
-            MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.toString());
-        clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, db, _numReplicas);
-        _testDbs.add(db);
-      }
-    } else {
-      clusterSetup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
-          _numPartitions, MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name());
-      clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
-          _numReplicas);
-    }
-  }
-
-  protected void setupParticipants(ClusterSetup setupTool) {
-    _participants = new MockParticipantManager[_numNodes];
-    for (int i = 0; i < _numNodes; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
-      setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
-    }
-  }
-
-  protected void startParticipant(String zkAddr, int i) {
-    Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
-    taskFactoryReg.put(DelayedStopTask.TASK_COMMAND, DelayedStopTask::new);
-    String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
-    _participants[i] = new MockParticipantManager(zkAddr, CLUSTER_NAME, instanceName);
-
-    // Register a Task state model factory.
-    StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
-    stateMachine.registerStateModelFactory("Task",
-        new TaskStateModelFactory(_participants[i], taskFactoryReg));
-    _participants[i].syncStart();
-  }
-
-  protected void stopParticipant(int i) {
-    if (_participants.length <= i) {
-      throw new HelixException(
-          String.format("Can't stop participant %s, only %s participants" + "were set up.", i,
-              _participants.length));
-    }
-    if (_participants[i] != null && _participants[i].isConnected()) {
-      _participants[i].syncStop();
-    }
   }
 
   @Test
@@ -182,7 +106,7 @@ public class TestForceDeleteWorkflow extends ZkTestBase {
     // Create a simple workflow and wait for its completion. Then delete the IdealState,
     // WorkflowContext and WorkflowConfig.
     String workflowName = TestHelper.getTestMethodName();
-    Workflow.Builder builder = createCustomWorkflow(workflowName, "1000", "0");
+    Workflow.Builder builder = createCustomWorkflow(workflowName, SHORT_EXECUTION_TIME, "0");
     _driver.start(builder.build());
 
     // Wait until workflow is created and completed.
@@ -224,7 +148,7 @@ public class TestForceDeleteWorkflow extends ZkTestBase {
     // Create a simple workflow and wait until it reaches the Running state. Then delete the
     // IdealState, WorkflowContext and WorkflowConfig.
     String workflowName = TestHelper.getTestMethodName();
-    Workflow.Builder builder = createCustomWorkflow(workflowName, "100000", "0");
+    Workflow.Builder builder = createCustomWorkflow(workflowName, LONG_EXECUTION_TIME, "0");
     _driver.start(builder.build());
 
     // Wait until workflow is created and goes to running stage.
@@ -239,6 +163,17 @@ public class TestForceDeleteWorkflow extends ZkTestBase {
     Assert.assertNotNull(_driver.getWorkflowConfig(workflowName));
     Assert.assertNotNull(_driver.getWorkflowContext(workflowName));
     Assert.assertNotNull(_admin.getResourceIdealState(CLUSTER_NAME, workflowName));
+
+    // Check if the Job is running
+    boolean isJobRunning = TestHelper.verify(() -> {
+      WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
+      TaskState job0 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB0"));
+      TaskState job1 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB1"));
+      TaskState job2 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB2"));
+      return (wCtx1 != null && (job0 == TaskState.IN_PROGRESS || job1 == TaskState.IN_PROGRESS
+          || job2 == TaskState.IN_PROGRESS));
+    }, 60 * 1000);
+    Assert.assertTrue(isJobRunning);
 
     // Stop the Controller
     _controller.syncStop();
@@ -259,14 +194,14 @@ public class TestForceDeleteWorkflow extends ZkTestBase {
     String controllerName = CONTROLLER_PREFIX + "_2";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
-
   }
 
   @Test(dependsOnMethods = "testDeleteRunningWorkflowForcefully")
   public void testDeleteStoppedWorkflowForcefully() throws Exception {
-    // Create a simple workflow. Stop the workflow and wait for completion. Delete the workflow forcefully afterwards
+    // Create a simple workflow. Stop the workflow and wait for completion. Delete the workflow
+    // forcefully afterwards
     String workflowName = TestHelper.getTestMethodName();
-    Workflow.Builder builder = createCustomWorkflow(workflowName, "10000", "0");
+    Workflow.Builder builder = createCustomWorkflow(workflowName, MEDIUM_EXECUTION_TIME, "0");
     _driver.start(builder.build());
 
     // Wait until workflow is created.
@@ -309,13 +244,16 @@ public class TestForceDeleteWorkflow extends ZkTestBase {
     String controllerName = CONTROLLER_PREFIX + "_3";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
-
   }
 
   @Test(dependsOnMethods = "testDeleteStoppedWorkflowForcefully")
   public void testDeleteStoppingStuckWorkflowForcefully() throws Exception {
+    // In this test, Stuck workflow indicates a workflow that is in Stopping state (user requested
+    // to stop the workflow) but its tasks are stuck (or taking a long time to stop) in RUNNING
+    // state.
     String workflowName = TestHelper.getTestMethodName();
-    Workflow.Builder builder = createCustomWorkflow(workflowName, "10000", "1000000");
+    Workflow.Builder builder =
+        createCustomWorkflow(workflowName, MEDIUM_EXECUTION_TIME, STOP_DELAY);
     _driver.start(builder.build());
 
     // Wait until workflow is created.
@@ -330,14 +268,14 @@ public class TestForceDeleteWorkflow extends ZkTestBase {
 
     boolean isWorkflowStopped = TestHelper.verify(() -> {
       WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
-      return ((wCtx1.getWorkflowState() == TaskState.STOPPED
-          || wCtx1.getWorkflowState() == TaskState.STOPPING));
+      return wCtx1.getWorkflowState() == TaskState.STOPPING;
     }, 60 * 1000);
     Assert.assertTrue(isWorkflowStopped);
 
     boolean isJobStopped = TestHelper.verify(() -> {
       WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
-      return wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName + "_JOB0"))==TaskState.STOPPED;
+      return wCtx1
+          .getJobState(TaskUtil.getNamespacedJobName(workflowName + "_JOB0")) == TaskState.STOPPED;
     }, 60 * 1000);
     Assert.assertFalse(isJobStopped);
 
@@ -361,11 +299,6 @@ public class TestForceDeleteWorkflow extends ZkTestBase {
       return (wfcfg == null && wfctx == null && is == null);
     }, 60 * 1000);
     Assert.assertTrue(isWorkflowDeleted);
-
-    // Start the Controller.
-    String controllerName = CONTROLLER_PREFIX + "_2";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
-    _controller.syncStart();
   }
 
   private Workflow.Builder createCustomWorkflow(String workflowName, String executionTime,
@@ -429,5 +362,4 @@ public class TestForceDeleteWorkflow extends ZkTestBase {
       super.cancel();
     }
   }
-
 }

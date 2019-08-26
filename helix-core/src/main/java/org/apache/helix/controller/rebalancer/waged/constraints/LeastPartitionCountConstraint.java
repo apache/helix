@@ -45,8 +45,9 @@ class LeastPartitionCountConstraint extends SoftConstraint {
   @Override
   float getAssignmentOriginScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    float doubleMaxPartitionCount = 2.0f * clusterContext.getEstimatedMaxPartitionCount();
-    int curPartitionCount = node.getCurrentAssignmentCount();
-    return Math.max((doubleMaxPartitionCount - curPartitionCount) / doubleMaxPartitionCount, 0);
+      throw new UnsupportedOperationException("The POC implementation has a bug, will fix it as TODO");
+//    float doubleMaxPartitionCount = 2.0f * clusterContext.getEstimatedMaxPartitionCount();
+//    int curPartitionCount = node.getCurrentAssignmentCount();
+//    return Math.max((doubleMaxPartitionCount - curPartitionCount) / doubleMaxPartitionCount, 0);
   }
 }

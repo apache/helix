@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.task.TaskUtil;
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -42,9 +41,7 @@ import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -61,7 +58,6 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   private HelixAdmin _admin;
   protected HelixManager _manager;
   protected TaskDriver _driver;
-  protected MockParticipantManager[] _participantsNew;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -73,23 +69,18 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     }
 
     // Start new participants that have new TaskStateModel (DelayedStopTask) information
-    _participantsNew = new MockParticipantManager[_numNodes];
-    for (int i = 0; i < _numNodes; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_NEW_" + (_startPort + i);
-      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
-    }
-    // Start participants that have DelayedStopTask Transition Model
+    _participants = new MockParticipantManager[_numNodes];
     for (int i = 0; i < _numNodes; i++) {
       Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
       taskFactoryReg.put(DelayedStopTask.TASK_COMMAND, DelayedStopTask::new);
       String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
-      _participantsNew[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
 
       // Register a Task state model factory.
-      StateMachineEngine stateMachine = _participantsNew[i].getStateMachineEngine();
+      StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
       stateMachine.registerStateModelFactory("Task",
-          new TaskStateModelFactory(_participantsNew[i], taskFactoryReg));
-      _participantsNew[i].syncStart();
+          new TaskStateModelFactory(_participants[i], taskFactoryReg));
+      _participants[i].syncStart();
     }
 
     _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
@@ -138,7 +129,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     Assert.assertTrue(isWorkflowDeleted);
 
     // Start the Controller
-    String controllerName = CONTROLLER_PREFIX + "_1";
+    String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
   }
@@ -191,7 +182,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     Assert.assertTrue(isWorkflowDeleted);
 
     // Start the Controller
-    String controllerName = CONTROLLER_PREFIX + "_2";
+    String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
   }
@@ -241,7 +232,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     Assert.assertTrue(isWorkflowDeleted);
 
     // Start the Controller
-    String controllerName = CONTROLLER_PREFIX + "_3";
+    String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
   }
@@ -304,7 +295,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   private Workflow.Builder createCustomWorkflow(String workflowName, String executionTime,
       String stopDelay) {
     Workflow.Builder builder = new Workflow.Builder(workflowName);
-    //Workflow Schematic:
+    // Workflow Schematic:
     //               JOB0
     //                /\
     //               /  \

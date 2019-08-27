@@ -24,8 +24,10 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 public class ReplicaAntiAffinityConstraint extends HardConstraint {
-    @Override
-    boolean isAssignmentValid(AssignableNode node, AssignableReplica replica, ClusterContext clusterContext) {
-        return !node.getCurrentAssignmentsByResource(replica.getResourceName()).contains(replica.getPartitionName());
-    }
+  @Override
+  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext) {
+    return !node.getCurrentAssignmentsByResource(replica.getResourceName())
+        .contains(replica.getPartitionName());
+  }
 }

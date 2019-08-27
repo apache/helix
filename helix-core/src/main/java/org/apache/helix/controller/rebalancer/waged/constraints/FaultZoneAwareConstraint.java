@@ -27,8 +27,10 @@ public class FaultZoneAwareConstraint extends HardConstraint {
 
     @Override
     boolean isAssignmentValid(AssignableNode node, AssignableReplica replica, ClusterContext clusterContext) {
-        return node.getFaultZone() == null || !clusterContext
-                .getPartitionsForResourceAndFaultZone(node.getFaultZone(), replica.getResourceName())
+        if (!node.hasFaultZone()) {
+            return true;
+        }
+        return !clusterContext.getPartitionsForResourceAndFaultZone(replica.getResourceName(), node.getFaultZone())
                 .contains(replica.getPartitionName());
     }
 

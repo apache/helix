@@ -19,20 +19,21 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
+import java.util.List;
+
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
-public class NodeValidTagConstraint extends HardConstraint {
-  @Override
-  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
-      ClusterContext clusterContext) {
-    return replica.getResourceInstanceGroupTag() == null
-        || node.getInstanceTags().contains(replica.getResourceInstanceGroupTag());
-  }
+public class ReplicaActivateConstraint extends HardConstraint {
+    @Override
+    boolean isAssignmentValid(AssignableNode node, AssignableReplica replica, ClusterContext clusterContext) {
+        List<String> disabledPartitions = node.getDisabledPartitionsMap().get(replica.getResourceName());
+        return disabledPartitions == null || !disabledPartitions.contains(replica.getPartitionName());
+    }
 
-  @Override
-  String getDescription() {
-      return "Node has no or invalid tag";
-  }
+    @Override
+    String getDescription() {
+        return "Cannot assign the inactive replica";
+    }
 }

@@ -35,6 +35,6 @@ public class NodeMaxPartitionLimitConstraint extends HardConstraint {
 
   @Override
   String getDescription() {
-    return "Cannot exceed max partitions on node";
+    return "Cannot exceed maximum number of partitions on node";
   }
 }

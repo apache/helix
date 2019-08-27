@@ -51,6 +51,9 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private Map<String, List<String>> _disabledPartitionsMap;
   private Map<String, Integer> _maxCapacity;
   private int _maxPartition; // maximum number of the partitions that can be assigned to the node.
+  //TODO: fill the information runtime status in constructor
+  private boolean _isEnabled;
+  private boolean _isAlive;
 
   // A map of <resource name, <partition name, replica>> that tracks the replicas assigned to the node.
   private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap;
@@ -75,6 +78,14 @@ public class AssignableNode implements Comparable<AssignableNode> {
     _currentAssignedReplicaMap = new HashMap<>();
     _currentCapacityMap = new HashMap<>();
     _highestCapacityUtilization = 0;
+  }
+
+  public boolean isEnabled() {
+    return _isEnabled;
+  }
+
+  public boolean isAlive() {
+    return _isAlive;
   }
 
   /**

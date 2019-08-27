@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
@@ -39,8 +40,11 @@ import org.apache.helix.controller.rebalancer.strategy.crushMapping.ConsistentHa
 import org.apache.helix.controller.rebalancer.topology.InstanceNode;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
+import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.sun.istack.internal.Nullable;
 
 /**
  * Abstract class of Forced Even Assignment Patched Algorithm.
@@ -84,12 +88,19 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
   public ZNRecord computePartitionAssignment(final List<String> allNodes,
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
       ResourceControllerDataProvider clusterData) {
-    Topology allNodeTopology = new Topology(allNodes, allNodes, clusterData.getInstanceConfigMap(),
-        clusterData.getClusterConfig());
     // only compute assignments for instances with available spaces
-    List<String> allNodesWithSpaces = allNodeTopology.getAllNodesWithAvailableSpaces();
-    return computeBestPartitionAssignment(allNodesWithSpaces, liveNodes, currentMapping,
+    return computeBestPartitionAssignment(
+        getNonEmptyWeightNodes(allNodes, clusterData.getInstanceConfigMap()),
+        getNonEmptyWeightNodes(liveNodes, clusterData.getInstanceConfigMap()), currentMapping,
         clusterData);
+  }
+
+  private List<String> getNonEmptyWeightNodes(List<String> nodes,
+      @Nullable Map<String, InstanceConfig> instanceConfigMap) {
+    if (instanceConfigMap == null) {
+      return nodes;
+    }
+    return nodes.stream().filter(node -> instanceConfigMap.get(node).getWeight() != 0).collect(Collectors.toList());
   }
 
   private ZNRecord computeBestPartitionAssignment(List<String> allNodes, List<String> liveNodes,

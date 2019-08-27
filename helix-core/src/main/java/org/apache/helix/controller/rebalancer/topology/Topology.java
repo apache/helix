@@ -140,17 +140,6 @@ public class Topology {
     }
   }
 
-  /**
-   * Get instances with weight > 0
-   * @return list of instance names
-   */
-  public List<String> getAllNodesWithAvailableSpaces() {
-      List<Node> nodes = getAllLeafNodes(_root);
-      return nodes.stream().filter(node -> node.getWeight() > 0)
-              .map(Node::getName)
-              .collect(Collectors.toList());
-  }
-
   public String getEndNodeType() {
     return _endNodeType;
   }

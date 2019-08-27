@@ -90,8 +90,6 @@ public class TestTopology {
 
     Topology topo = new Topology(allNodes, liveNodes, instanceConfigMap, clusterConfig);
 
-    // confirmed there'll be 10 instances with weight = 0
-    Assert.assertEquals(topo.getAllNodesWithAvailableSpaces().size(), 90);
     Assert.assertTrue(topo.getEndNodeType().equals("Instance"));
     Assert.assertTrue(topo.getFaultZoneType().equals("Sub-Rack"));
 

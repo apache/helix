@@ -21,13 +21,13 @@ package org.apache.helix.controller.stages;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
 import org.apache.helix.controller.rebalancer.CustomRebalancer;
-import org.apache.helix.controller.rebalancer.GlobalRebalancer;
 import org.apache.helix.controller.rebalancer.MaintenanceRebalancer;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
@@ -116,18 +116,22 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     boolean isValid = validateOfflineInstancesLimit(cache,
         (HelixManager) event.getAttribute(AttributeName.helixmanager.name()));
 
-    // 1. Rebalance with the global rebalancer
-    // The rebalancer will calculate the new ideal assignment for all the compatible resources.
-    Map<String, IdealState> globalRebalanceResult = new HashMap<>();
-    GlobalRebalancer globalRebalancer = new WagedRebalancer(helixManager);
+    // 1. Rebalance with the WAGED rebalancer
+    // The rebalancer only calculates the new ideal assignment for all the resources that are
+    // configured to use the WAGED rebalancer.
+    // For the other resources, the legacy rebalancers will be triggered in the next step.
+    Map<String, IdealState> newIdealStates = new HashMap<>();
+    WagedRebalancer wagedRebalancer = new WagedRebalancer(helixManager);
     try {
-      globalRebalanceResult
-          .putAll(globalRebalancer.computeNewIdealStates(cache, resourceMap, currentStateOutput));
-    } catch (HelixException ex) {
-      // TODO propagate the global rebalancer failure information to updateRebalanceStatus as well.
-      LogUtil.logError(logger, _eventId, String.format(
-          "Failed to calculate the new Ideal States using the global rebalancer %s. Failure information %s",
-          globalRebalancer.getClass().getSimpleName(), globalRebalancer.getFailureReason()));
+      newIdealStates
+          .putAll(wagedRebalancer.computeNewIdealStates(cache, resourceMap, currentStateOutput));
+    } catch (HelixRebalanceException ex) {
+      // Note that unlike the legacy rebalancer, the WAGED rebalance won't return partial result.
+      // Since it calculates for all the eligible resources globally, a partial result is invalid.
+      // TODO propagate the rebalancer failure information to updateRebalanceStatus for monitoring.
+      LogUtil.logError(logger, _eventId, String
+          .format("Failed to calculate the new Ideal States using the rebalancer %s due to %s",
+              wagedRebalancer.getClass().getSimpleName(), ex.getFailureType()), ex);
     }
 
     final List<String> failureResources = new ArrayList<>();
@@ -135,17 +139,18 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     while (itr.hasNext()) {
       Resource resource = itr.next();
       boolean result = false;
-      IdealState is = globalRebalanceResult.get(resource.getResourceName());
-      // 2. Check if the global rebalancer has been calculated for this resource or not.
+      IdealState is = newIdealStates.get(resource.getResourceName());
       if (is != null) {
+        // 2. Check if the WAGED rebalancer has calculated for this resource or not.
         result = checkBestPossibleStateCalculation(is);
         if (result) {
-          // The global rebalancer calculates a valid result, record in the output
+          // The WAGED rebalancer calculates a valid result, record in the output
           updateBestPossibleStateOutput(output, resource, is);
         }
       } else {
-        // 3. The global rebalancer fails to calculate the assignment, fallback to use the single
+        // 3. The WAGED rebalancer skips to calculate the assignment, fallback to use a legacy
         // resource rebalancer.
+        // If this calculation fails, the resource will be reported in
         try {
           result =
               computeSingleResourceBestPossibleState(event, cache, currentStateOutput, resource,

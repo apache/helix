@@ -20,10 +20,10 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
-import org.apache.helix.controller.rebalancer.GlobalRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintsRebalanceAlgorithm;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -43,15 +43,18 @@ import java.util.Map;
  * Design Document
  * </a>
  */
-public class WagedRebalancer implements GlobalRebalancer<ResourceControllerDataProvider> {
+public class WagedRebalancer {
   private static final Logger LOG = LoggerFactory.getLogger(WagedRebalancer.class);
 
-  // The cluster change detector is a stateful object,
-  // make it static to avoid unnecessary cleanup and reconstruct.
-  private static final ThreadLocal<ResourceChangeDetector> _changeDetector = new ThreadLocal<>();
-
+  // --------- The following fields are placeholders and need replacement. -----------//
+  // TODO Shall we make the metadata store a static threadlocal object as well to avoid reinitialization?
   private final AssignmentMetadataStore _assignmentMetadataStore;
   private final RebalanceAlgorithm _rebalanceAlgorithm;
+  // ------------------------------------------------------------------------------------//
+
+  // The cluster change detector is a stateful object. Make it static to avoid unnecessary
+  // reinitialization.
+  private static final ThreadLocal<ResourceChangeDetector> _changeDetector = new ThreadLocal<>();
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
 
   private ResourceChangeDetector getChangeDetector() {
@@ -62,24 +65,30 @@ public class WagedRebalancer implements GlobalRebalancer<ResourceControllerDataP
   }
 
   public WagedRebalancer(HelixManager helixManager) {
-    // Use the mapping calculator in DelayedAutoRebalancer for calculating the final assignment output.
-    // TODO abstract and separate the mapping calculator logic from the DelayedAutoRebalancer
-    _mappingCalculator = new DelayedAutoRebalancer();
     // TODO init the metadata store according to their requirement when integrate, or change to final static method if possible.
     _assignmentMetadataStore = new AssignmentMetadataStore();
     // TODO init the algorithm according to the requirement when integrate.
     _rebalanceAlgorithm = new ConstraintsRebalanceAlgorithm();
+
+    // Use the mapping calculator in DelayedAutoRebalancer for calculating the final assignment
+    // output.
+    // This calculator will translate the best possible assignment into an applicable state mapping
+    // based on the current states.
+    // TODO abstract and separate the mapping calculator logic from the DelayedAutoRebalancer
+    _mappingCalculator = new DelayedAutoRebalancer();
   }
 
-  @Override
+  /**
+   * Compute the new IdealStates for all the resources input. The IdealStates include both the new
+   * partition assignment (in the listFiles) and the new replica state mapping (in the mapFields).
+   * @param clusterData        The Cluster status data provider.
+   * @param resourceMap        A map containing all the rebalancing resources.
+   * @param currentStateOutput The present Current State of the cluster.
+   * @return A map containing the computed new IdealStates.
+   */
   public Map<String, IdealState> computeNewIdealStates(ResourceControllerDataProvider clusterData,
-      Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput) {
+      Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput)
+      throws HelixRebalanceException {
     return new HashMap<>();
-  }
-
-  @Override
-  public RebalanceFailureReason getFailureReason() {
-    // TODO record and return the right failure information
-    return new RebalanceFailureReason(RebalanceFailureType.UNKNOWN_FAILURE);
   }
 }

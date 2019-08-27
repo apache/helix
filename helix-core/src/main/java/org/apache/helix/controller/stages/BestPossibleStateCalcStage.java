@@ -148,9 +148,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           updateBestPossibleStateOutput(output, resource, is);
         }
       } else {
-        // 3. The WAGED rebalancer skips to calculate the assignment, fallback to use a legacy
-        // resource rebalancer.
-        // If this calculation fails, the resource will be reported in
+        // 3. The WAGED rebalancer skips calculating the resource assignment, fallback to use a
+        // legacy resource rebalancer if applicable.
+        // If this calculation fails, the resource will be reported in the failureResources list.
         try {
           result =
               computeSingleResourceBestPossibleState(event, cache, currentStateOutput, resource,

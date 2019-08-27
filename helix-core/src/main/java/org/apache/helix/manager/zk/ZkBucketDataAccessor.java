@@ -23,9 +23,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -50,6 +49,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
   private final int _bucketSize;
   private ZkSerializer _zkSerializer;
   private BaseDataAccessor _zkBaseDataAccessor;
+  private BaseDataAccessor<ZNRecord> _znRecordBaseDataAccessor;
 
   /**
    * Constructor that allows a custom bucket size.
@@ -57,11 +57,35 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
    * @param bucketSize
    */
   public ZkBucketDataAccessor(String zkAddr, int bucketSize) {
+    // There are two HelixZkClients:
+    // 1. _zkBaseDataAccessor for writes of binary data
+    // 2. _znRecordBaseDataAccessor for writes of ZNRecord (metadata)
     HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
-    zkClient.setZkSerializer(new DummySerializer());
-    _zkSerializer = new ZNRecordJacksonSerializer();
+    zkClient.setZkSerializer(new ZkSerializer() {
+      @Override
+      public byte[] serialize(Object data) throws ZkMarshallingError {
+        if (data instanceof byte[]) {
+          return (byte[]) data;
+        }
+        throw new HelixException("ZkBucketDataAccesor only supports a byte array as an argument!");
+      }
+
+      @Override
+      public Object deserialize(byte[] data) throws ZkMarshallingError {
+        return data;
+      }
+    });
     _zkBaseDataAccessor = new ZkBaseDataAccessor(zkClient);
+
+    // TODO: Consider making this also binary
+    // TODO: Consider an async write for the metadata as well
+    HelixZkClient znRecordClient = DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
+    _znRecordBaseDataAccessor = new ZkBaseDataAccessor<>(znRecordClient);
+    znRecordClient.setZkSerializer(new ZNRecordSerializer());
+
+    _zkSerializer = new ZNRecordJacksonSerializer();
     _bucketSize = bucketSize;
   }
 
@@ -89,11 +113,12 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     List<Object> buckets = new ArrayList<>();
 
     // Add the metadata ZNode first
-    paths.add(path);
-    Map<String, Integer> metadata = new HashMap<>();
-    metadata.put(BUCKET_SIZE_KEY, _bucketSize);
-    metadata.put(DATA_SIZE_KEY, compressedRecord.length);
-    buckets.add(OBJECT_MAPPER.writeValueAsBytes(metadata));
+    ZNRecord metadataRecord = new ZNRecord(extractIdFromPath(path));
+    metadataRecord.setIntField(BUCKET_SIZE_KEY, _bucketSize);
+    metadataRecord.setLongField(DATA_SIZE_KEY, compressedRecord.length);
+    if (!_znRecordBaseDataAccessor.set(path, metadataRecord, AccessOption.PERSISTENT)) {
+      throw new HelixException(String.format("Failed to write the metadata at path: %s!", path));
+    }
 
     int ptr = 0;
     int counter = 0;
@@ -111,8 +136,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     }
 
     // Do an async set to ZK
-    boolean[] success;
-    success = _zkBaseDataAccessor.setChildren(paths, buckets, AccessOption.PERSISTENT);
+    boolean[] success = _zkBaseDataAccessor.setChildren(paths, buckets, AccessOption.PERSISTENT);
 
     // Return false if any of the writes failed
     // TODO: Improve the failure handling
@@ -132,15 +156,21 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
 
   private HelixProperty compressedBucketRead(String path) {
     // Retrieve the metadata
-    Map metadataMap;
-    byte[] metadata = (byte[]) _zkBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
-    try {
-      metadataMap = OBJECT_MAPPER.readValue(metadata, Map.class);
-    } catch (IOException e) {
-      throw new HelixException(String.format("Failed to read the metadata for path: %s!", path), e);
+    ZNRecord metadataRecord = _znRecordBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
+    if (metadataRecord == null) {
+      throw new HelixException(
+          String.format("Metadata ZNRecord does not exist for path: %s", path));
     }
-    int bucketSize = (int) metadataMap.get(BUCKET_SIZE_KEY);
-    int dataSize = (int) metadataMap.get(DATA_SIZE_KEY);
+    int bucketSize = metadataRecord.getIntField(BUCKET_SIZE_KEY, -1);
+    int dataSize = metadataRecord.getIntField(DATA_SIZE_KEY, -1);
+    if (bucketSize == -1) {
+      throw new HelixException(
+          String.format("Metadata ZNRecord does not have %s! Path: %s", BUCKET_SIZE_KEY, path));
+    }
+    if (dataSize == -1) {
+      throw new HelixException(
+          String.format("Metadata ZNRecord does not have %s! Path: %s", DATA_SIZE_KEY, path));
+    }
 
     // Compute N - number of buckets
     int numBuckets = (dataSize + _bucketSize - 1) / _bucketSize;
@@ -179,5 +209,15 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     // Deserialize the record to retrieve the original
     ZNRecord originalRecord = (ZNRecord) _zkSerializer.deserialize(serializedRecord);
     return new HelixProperty(originalRecord);
+  }
+
+  /**
+   * Returns the last string element in a split String array by /.
+   * @param path
+   * @return
+   */
+  private String extractIdFromPath(String path) {
+    String[] splitPath = path.split("/");
+    return splitPath[splitPath.length - 1];
   }
 }

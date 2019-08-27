@@ -19,9 +19,10 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,25 +38,17 @@ import org.testng.annotations.Test;
 
 public class TestZkBucketDataAccessor extends ZkTestBase {
 
-  private String PATH = "/" + TestHelper.getTestClassName();
-  private String NAME_KEY = TestHelper.getTestClassName();
-  private List<String> LIST_FIELD;
-  private Map<String, String> MAP_FIELD;
+  private static final String PATH = "/" + TestHelper.getTestClassName();
+  private static final String NAME_KEY = TestHelper.getTestClassName();
+  // Populate list and map fields for content comparison
+  private static final List<String> LIST_FIELD = ImmutableList.of("1", "2");
+  private static final Map<String, String> MAP_FIELD = ImmutableMap.of("1", "2");
 
   private BucketDataAccessor _bucketDataAccessor;
 
   @BeforeClass
   public void beforeClass() {
     _bucketDataAccessor = new ZkBucketDataAccessor(ZK_ADDR);
-
-    // Populate LIST_FIELD for R/W comparison
-    LIST_FIELD = new ArrayList<>();
-    LIST_FIELD.add("1");
-    LIST_FIELD.add("2");
-
-    // Populate MAP_FIELD for R/W comparison
-    MAP_FIELD = new HashMap<>();
-    MAP_FIELD.put("1", "2");
   }
 
   /**

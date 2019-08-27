@@ -21,7 +21,9 @@ package org.apache.helix.manager.zk;
 
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;

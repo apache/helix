@@ -44,8 +44,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.istack.internal.Nullable;
-
 /**
  * Abstract class of Forced Even Assignment Patched Algorithm.
  * This class contains common logic that re-calculate assignment based on a result calculated by the base algorithm.
@@ -95,8 +93,7 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
         clusterData);
   }
 
-  private List<String> getNonEmptyWeightNodes(List<String> nodes,
-      @Nullable Map<String, InstanceConfig> instanceConfigMap) {
+  private List<String> getNonEmptyWeightNodes(List<String> nodes, Map<String, InstanceConfig> instanceConfigMap) {
     if (instanceConfigMap == null) {
       return nodes;
     }

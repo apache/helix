@@ -25,25 +25,26 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
-public class NodeCapacityConstraint extends HardConstraint {
+class NodeCapacityConstraint extends HardConstraint {
 
-    @Override
-    boolean isAssignmentValid(AssignableNode node, AssignableReplica replica, ClusterContext clusterContext) {
-        Map<String, Integer> nodeCurrentCapacity = node.getCurrentCapacity();
-        Map<String, Integer> repCurrentCapacity = replica.getCapacity();
+  @Override
+  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext) {
+    Map<String, Integer> nodeCurrentCapacity = node.getCurrentCapacity();
+    Map<String, Integer> repCurrentCapacity = replica.getCapacity();
 
-        for (String key : repCurrentCapacity.keySet()) {
-            if (nodeCurrentCapacity.containsKey(key)) {
-                if (nodeCurrentCapacity.get(key) < repCurrentCapacity.get(key)) {
-                    return false;
-                }
-            }
+    for (String key : repCurrentCapacity.keySet()) {
+      if (nodeCurrentCapacity.containsKey(key)) {
+        if (nodeCurrentCapacity.get(key) < repCurrentCapacity.get(key)) {
+          return false;
         }
-        return true;
+      }
     }
+    return true;
+  }
 
-    @Override
-    String getDescription() {
-        return "Node has insufficient capacity";
-    }
+  @Override
+  String getDescription() {
+    return "Node has insufficient capacity";
+  }
 }

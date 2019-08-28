@@ -23,11 +23,11 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
-public class ValidInstanceGroupTagConstraint extends HardConstraint {
+public class ValidGroupTagConstraint extends HardConstraint {
   @Override
   boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    if (replica.hasResourceInstanceGroupTag()) {
+    if (!replica.hasResourceInstanceGroupTag()) {
       return true;
     }
 
@@ -36,6 +36,6 @@ public class ValidInstanceGroupTagConstraint extends HardConstraint {
 
   @Override
   String getDescription() {
-      return "Checks whether the tags on the node and replica match or that the node doesn't have any tags.";
+    return "Checks whether the tags on the node and replica match or that the node doesn't have any tags.";
   }
 }

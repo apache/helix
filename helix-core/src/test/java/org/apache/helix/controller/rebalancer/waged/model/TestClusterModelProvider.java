@@ -177,7 +177,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     // 5. test with best possible assignment but cluster topology is changed
     clusterModel = ClusterModelProvider.generateClusterModel(testCache, _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
-        _instances, Collections.singletonMap(HelixConstants.ChangeType.CONFIG,
+        _instances, Collections.singletonMap(HelixConstants.ChangeType.CLUSTER_CONFIG,
             Collections.emptySet()), Collections.emptyMap(), bestPossibleAssignment);
     // There should be no existing assignment since the topology change invalidates all existing assignment
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()

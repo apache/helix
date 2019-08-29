@@ -19,8 +19,8 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import org.apache.helix.HelixConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.waged.ClusterDataDetector;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
@@ -177,7 +177,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     // 5. test with best possible assignment but cluster topology is changed
     clusterModel = ClusterModelProvider.generateClusterModel(testCache, _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
-        _instances, Collections.singletonMap(HelixConstants.ChangeType.CONFIG,
+        _instances, Collections.singletonMap(ClusterDataDetector.ChangeType.ClusterConfigChange,
             Collections.emptySet()), Collections.emptyMap(), bestPossibleAssignment);
     // There should be no existing assignment since the topology change invalidates all existing assignment
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
@@ -194,7 +194,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     String changedResourceName = _resourceNames.get(0);
     clusterModel = ClusterModelProvider.generateClusterModel(testCache, _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
-        _instances, Collections.singletonMap(HelixConstants.ChangeType.RESOURCE_CONFIG,
+        _instances, Collections.singletonMap(ClusterDataDetector.ChangeType.ResourceConfigChange,
             Collections.singleton(changedResourceName)), Collections.emptyMap(),
         bestPossibleAssignment);
     // There should be no existing assignment for all the resource except for resource2.

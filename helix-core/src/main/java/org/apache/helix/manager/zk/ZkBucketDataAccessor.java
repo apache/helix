@@ -35,18 +35,18 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.util.GZipCompressionUtil;
-import org.codehaus.jackson.map.ObjectMapper;
 
 public class ZkBucketDataAccessor implements BucketDataAccessor {
-  // TODO: Optimize serialization with Jackson
-  // TODO: Or use a better binary serialization protocol
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final int DEFAULT_NUM_VERSIONS = 2;
   private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
   private static final String DATA_SIZE_KEY = "DATA_SIZE";
+  private static final String WRITE_LOCK_KEY = "WRITE_LOCK";
+  private static final String LAST_SUCCESS_KEY = "LAST_SUCCESS";
 
   // 100 KB for default bucket size
   private static final int DEFAULT_BUCKET_SIZE = 100 * 1024;
   private final int _bucketSize;
+  private final int _numVersions;
   private ZkSerializer _zkSerializer;
   private BaseDataAccessor _zkBaseDataAccessor;
   private BaseDataAccessor<ZNRecord> _znRecordBaseDataAccessor;
@@ -55,8 +55,9 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
    * Constructor that allows a custom bucket size.
    * @param zkAddr
    * @param bucketSize
+   * @param numVersions number of versions to store in ZK
    */
-  public ZkBucketDataAccessor(String zkAddr, int bucketSize) {
+  public ZkBucketDataAccessor(String zkAddr, int bucketSize, int numVersions) {
     // There are two HelixZkClients:
     // 1. _zkBaseDataAccessor for writes of binary data
     // 2. _znRecordBaseDataAccessor for writes of ZNRecord (metadata)
@@ -78,6 +79,8 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     });
     _zkBaseDataAccessor = new ZkBaseDataAccessor(zkClient);
 
+    // TODO: Optimize serialization with Jackson
+    // TODO: Or use a better binary serialization protocol
     // TODO: Consider making this also binary
     // TODO: Consider an async write for the metadata as well
     HelixZkClient znRecordClient = DedicatedZkClientFactory.getInstance()
@@ -87,6 +90,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
 
     _zkSerializer = new ZNRecordJacksonSerializer();
     _bucketSize = bucketSize;
+    _numVersions = numVersions;
   }
 
   /**
@@ -94,12 +98,22 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
    * @param zkAddr
    */
   public ZkBucketDataAccessor(String zkAddr) {
-    this(zkAddr, DEFAULT_BUCKET_SIZE);
+    this(zkAddr, DEFAULT_BUCKET_SIZE, DEFAULT_NUM_VERSIONS);
   }
 
   @Override
   public <T extends HelixProperty> boolean compressedBucketWrite(String path, T value)
       throws IOException {
+    lock(path);
+
+    // Read or initialize metadata and compute the last success version index
+    ZNRecord metadataRecord = _znRecordBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
+    if (metadataRecord == null) {
+      metadataRecord = new ZNRecord(extractIdFromPath(path));
+    }
+    int lastSuccessIndex = (metadataRecord.getIntField(LAST_SUCCESS_KEY, -1) + 1) % _numVersions;
+    String dataPath = path + "/" + lastSuccessIndex;
+
     // Take the ZNrecord and serialize it (get byte[])
     byte[] serializedRecord = _zkSerializer.serialize(value.getRecord());
 
@@ -112,18 +126,10 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     List<String> paths = new ArrayList<>();
     List<Object> buckets = new ArrayList<>();
 
-    // Add the metadata ZNode first
-    ZNRecord metadataRecord = new ZNRecord(extractIdFromPath(path));
-    metadataRecord.setIntField(BUCKET_SIZE_KEY, _bucketSize);
-    metadataRecord.setLongField(DATA_SIZE_KEY, compressedRecord.length);
-    if (!_znRecordBaseDataAccessor.set(path, metadataRecord, AccessOption.PERSISTENT)) {
-      throw new HelixException(String.format("Failed to write the metadata at path: %s!", path));
-    }
-
     int ptr = 0;
     int counter = 0;
     while (counter < numBuckets) {
-      paths.add(path + "/" + counter);
+      paths.add(dataPath + "/" + counter);
       if (counter == numBuckets - 1) {
         // Special treatment for the last bucket
         buckets.add(
@@ -142,9 +148,23 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     // TODO: Improve the failure handling
     for (boolean s : success) {
       if (!s) {
+        // release the lock
+        _zkBaseDataAccessor.remove(path + "/" + WRITE_LOCK_KEY, AccessOption.EPHEMERAL);
         return false;
       }
     }
+
+    // Data write completed, so update the metadata with last success index
+    // Note that the metadata ZNodes is written using sync write
+    metadataRecord.setIntField(BUCKET_SIZE_KEY, _bucketSize);
+    metadataRecord.setLongField(DATA_SIZE_KEY, compressedRecord.length);
+    metadataRecord.setIntField(LAST_SUCCESS_KEY, lastSuccessIndex);
+    if (!_znRecordBaseDataAccessor.set(path, metadataRecord, AccessOption.PERSISTENT)) {
+      throw new HelixException(String.format("Failed to write the metadata at path: %s!", path));
+    }
+
+    unlock(path);
+    // Critical section for write ends here
     return true;
   }
 
@@ -155,14 +175,22 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
   }
 
   private HelixProperty compressedBucketRead(String path) {
+    tryLock(path);
+
     // Retrieve the metadata
     ZNRecord metadataRecord = _znRecordBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
     if (metadataRecord == null) {
       throw new HelixException(
           String.format("Metadata ZNRecord does not exist for path: %s", path));
     }
+
     int bucketSize = metadataRecord.getIntField(BUCKET_SIZE_KEY, -1);
     int dataSize = metadataRecord.getIntField(DATA_SIZE_KEY, -1);
+    int lastSuccessIndex = metadataRecord.getIntField(LAST_SUCCESS_KEY, -1);
+    if (lastSuccessIndex == -1) {
+      throw new HelixException(
+          String.format("Metadata ZNRecord does not have %s! Path: %s", LAST_SUCCESS_KEY, path));
+    }
     if (bucketSize == -1) {
       throw new HelixException(
           String.format("Metadata ZNRecord does not have %s! Path: %s", BUCKET_SIZE_KEY, path));
@@ -174,12 +202,12 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
 
     // Compute N - number of buckets
     int numBuckets = (dataSize + _bucketSize - 1) / _bucketSize;
-
     byte[] compressedRecord = new byte[dataSize];
+    String dataPath = path + "/" + lastSuccessIndex;
 
     List<String> paths = new ArrayList<>();
     for (int i = 0; i < numBuckets; i++) {
-      paths.add(path + "/" + i);
+      paths.add(dataPath + "/" + i);
     }
 
     // Async get
@@ -219,5 +247,31 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
   private String extractIdFromPath(String path) {
     String[] splitPath = path.split("/");
     return splitPath[splitPath.length - 1];
+  }
+
+  private void tryLock(String path) {
+    // Check if another write is taking place
+    if (_zkBaseDataAccessor.exists(path + "/" + WRITE_LOCK_KEY, AccessOption.EPHEMERAL)) {
+      throw new HelixException(
+          String.format("There is already a write in progress for path: %s", path));
+    }
+  }
+
+  private void lock(String path) {
+    tryLock(path);
+
+    // Enter the critical section
+    if (!_zkBaseDataAccessor.set(path + "/" + WRITE_LOCK_KEY, new byte[0],
+        AccessOption.EPHEMERAL)) {
+      throw new HelixException(String.format("Could not set an ephemeral node for path: %s", path));
+    }
+  }
+
+  private void unlock(String path) {
+    // Write succeeded, so release the lock
+    if (!_zkBaseDataAccessor.remove(path + "/" + WRITE_LOCK_KEY, AccessOption.EPHEMERAL)) {
+      throw new HelixException(String.format("Could not remove ephemeral node for path: %s", path));
+    }
+    // Critical section for write ends here
   }
 }

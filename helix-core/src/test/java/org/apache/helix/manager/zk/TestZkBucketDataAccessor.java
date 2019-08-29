@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import org.apache.helix.AccessOption;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.TestHelper;
@@ -40,6 +41,8 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
   private static final String PATH = "/" + TestHelper.getTestClassName();
   private static final String NAME_KEY = TestHelper.getTestClassName();
+  private static final String LAST_SUCCESS_KEY = "LAST_SUCCESS";
+
   // Populate list and map fields for content comparison
   private static final List<String> LIST_FIELD = ImmutableList.of("1", "2");
   private static final Map<String, String> MAP_FIELD = ImmutableMap.of("1", "2");
@@ -76,9 +79,38 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   }
 
   /**
-   * Write a HelixProperty with large number of entries using BucketDataAccessor and read it back.
+   * Do 10 writes and check that there are 5 versions of the data.
    */
   @Test(dependsOnMethods = "testCompressedBucketRead")
+  public void testManyWritesWithVersionCounts() throws IOException {
+    int bucketSize = 50 * 1024;
+    int numVersions = 5;
+    int expectedLastSuccessfulIndex = 4;
+    String path = PATH + "2";
+    ZNRecord record = new ZNRecord(NAME_KEY);
+    record.setSimpleField(NAME_KEY, NAME_KEY);
+    record.setListField(NAME_KEY, LIST_FIELD);
+    record.setMapField(NAME_KEY, MAP_FIELD);
+
+    BucketDataAccessor bucketDataAccessor =
+        new ZkBucketDataAccessor(ZK_ADDR, bucketSize, numVersions);
+    for (int i = 0; i < 10; i++) {
+      bucketDataAccessor.compressedBucketWrite(path, new HelixProperty(record));
+    }
+
+    // Check that there are numVersions number of children under path
+    List<String> children = _baseAccessor.getChildNames(path, AccessOption.PERSISTENT);
+    Assert.assertEquals(children.size(), numVersions);
+
+    // Check that last successful index is 4 (since we did 10 writes)
+    ZNRecord metadata = _baseAccessor.get(path, null, AccessOption.PERSISTENT);
+    Assert.assertEquals(metadata.getIntField(LAST_SUCCESS_KEY, -1), expectedLastSuccessfulIndex);
+  }
+
+  /**
+   * Write a HelixProperty with large number of entries using BucketDataAccessor and read it back.
+   */
+  @Test(dependsOnMethods = "testManyWritesWithVersionCounts")
   public void testLargeWriteAndRead() throws IOException {
     String name = "largeResourceAssignment";
     HelixProperty property = new HelixProperty(name);

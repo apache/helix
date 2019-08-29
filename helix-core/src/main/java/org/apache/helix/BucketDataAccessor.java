@@ -33,7 +33,8 @@ public interface BucketDataAccessor {
   <T extends HelixProperty> boolean compressedBucketWrite(String path, T value) throws IOException;
 
   /**
-   * Read a (large) HelixProperty that was written in buckets, compressed.
+   * Read a (large) HelixProperty that was written in buckets, compressed. If the write lock has
+   * been taken, it waits a default period of 60 seconds until the lock has been released.
    * @param path
    * @param helixPropertySubType the subtype of HelixProperty the data was written in
    * @param <T>
@@ -41,5 +42,4 @@ public interface BucketDataAccessor {
    */
   <T extends HelixProperty> HelixProperty compressedBucketRead(String path,
       Class<T> helixPropertySubType);
-
 }

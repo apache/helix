@@ -20,15 +20,17 @@ package org.apache.helix.controller.changedetector;
  */
 
 import com.google.common.collect.Sets;
+import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixProperty;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import org.apache.helix.HelixConstants;
-import org.apache.helix.HelixException;
-import org.apache.helix.HelixProperty;
-import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 
 /**
  * ResourceChangeDetector implements ChangeDetector. It caches resource-related metadata from
@@ -37,6 +39,7 @@ import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
  * WARNING: the methods of this class are not thread-safe.
  */
 public class ResourceChangeDetector implements ChangeDetector {
+  private static final Logger LOG = LoggerFactory.getLogger(ResourceChangeDetector.class.getName());
 
   private ResourceChangeSnapshot _oldSnapshot; // snapshot for previous pipeline run
   private ResourceChangeSnapshot _newSnapshot; // snapshot for this pipeline run
@@ -108,10 +111,13 @@ public class ResourceChangeDetector implements ChangeDetector {
       return snapshot.getResourceConfigMap();
     case LIVE_INSTANCE:
       return snapshot.getLiveInstances();
+    case CONFIG:
+      return Collections.emptyMap();
     default:
-      throw new HelixException(String.format(
-          "ResourceChangeDetector cannot compute the names of changes for the given ChangeType: %s",
-          changeType));
+      LOG.warn(
+          "ResourceChangeDetector cannot compute the names of changes for the given ChangeType: {}",
+          changeType);
+      return Collections.emptyMap();
     }
   }
 

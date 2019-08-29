@@ -19,9 +19,9 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.waged.ClusterDataDetector;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -59,7 +59,7 @@ public class ClusterModelProvider {
    */
   public static ClusterModel generateClusterModel(ResourceControllerDataProvider dataProvider,
       Map<String, Resource> resourceMap, Set<String> activeInstances,
-      Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
+      Map<ClusterDataDetector.ChangeType, Set<String>> clusterChanges,
       Map<String, ResourceAssignment> baselineAssignment,
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     // Generate replica objects for all the resource partitions.
@@ -108,13 +108,14 @@ public class ClusterModelProvider {
    */
   private static Set<AssignableReplica> findToBeAssignedReplicas(
       Map<String, Set<AssignableReplica>> replicaMap,
-      Map<HelixConstants.ChangeType, Set<String>> clusterChanges, Set<String> activeInstances,
+      Map<ClusterDataDetector.ChangeType, Set<String>> clusterChanges, Set<String> activeInstances,
       Map<String, ResourceAssignment> bestPossibleAssignment,
       Map<String, Set<AssignableReplica>> allocatedReplicas) {
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
-    if (clusterChanges.containsKey(HelixConstants.ChangeType.CONFIG)
-        || clusterChanges.containsKey(HelixConstants.ChangeType.INSTANCE_CONFIG)) {
-      // If the cluster topology has been modified, need to reassign all replicas
+    if (clusterChanges.containsKey(ClusterDataDetector.ChangeType.ClusterConfigChange)
+        || clusterChanges.containsKey(ClusterDataDetector.ChangeType.InstanceConfigChange)
+        || clusterChanges.containsKey(ClusterDataDetector.ChangeType.BaselineAssignmentChange)) {
+      // If the cluster topology or baseline assignment has been modified, need to reassign all replicas
       toBeAssignedReplicas
           .addAll(replicaMap.values().stream().flatMap(Set::stream).collect(Collectors.toSet()));
     } else {
@@ -123,13 +124,11 @@ public class ClusterModelProvider {
         Set<AssignableReplica> replicas = replicaMap.get(resourceName);
         // 1. if the resource config/idealstate is changed, need to reassign.
         // 2. if the resource does appear in the best possible assignment, need to reassign.
-        if (clusterChanges
-            .getOrDefault(HelixConstants.ChangeType.RESOURCE_CONFIG, Collections.emptySet())
-            .contains(resourceName)
-            || clusterChanges
-            .getOrDefault(HelixConstants.ChangeType.IDEAL_STATE, Collections.emptySet())
-            .contains(resourceName)
-            || !bestPossibleAssignment.containsKey(resourceName)) {
+        if (clusterChanges.getOrDefault(ClusterDataDetector.ChangeType.ResourceConfigChange,
+            Collections.emptySet()).contains(resourceName) || clusterChanges
+            .getOrDefault(ClusterDataDetector.ChangeType.ResourceIdealStatesChange,
+                Collections.emptySet()).contains(resourceName) || !bestPossibleAssignment
+            .containsKey(resourceName)) {
           toBeAssignedReplicas.addAll(replicas);
           continue; // go to check next resource
         } else {

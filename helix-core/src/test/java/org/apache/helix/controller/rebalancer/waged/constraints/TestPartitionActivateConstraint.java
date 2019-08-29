@@ -33,18 +33,16 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class TestNodeActivateConstraint {
+public class TestPartitionActivateConstraint {
   private static final String TEST_PARTITION = "TestPartition";
   private static final String TEST_RESOURCE = "TestResource";
   private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
   private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
   private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
-  private final HardConstraint _constraint = new NodeActivateConstraint();
+  private final HardConstraint _constraint = new PartitionActivateConstraint();
 
   @Test
   public void testConstraintValid() {
-    when(_testNode.isEnabled()).thenReturn(true);
-    when(_testNode.isLive()).thenReturn(true);
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
     when(_testNode.getDisabledPartitionsMap())
@@ -56,22 +54,7 @@ public class TestNodeActivateConstraint {
   }
 
   @Test
-  public void testConstraintInValidWhenNodeInactive() {
-    when(_testNode.isEnabled()).thenReturn(false);
-    when(_testNode.isLive()).thenReturn(true);
-    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
-    when(_testNode.isEnabled()).thenReturn(false);
-    when(_testNode.isLive()).thenReturn(false);
-    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
-    when(_testNode.isEnabled()).thenReturn(true);
-    when(_testNode.isLive()).thenReturn(false);
-    Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
-  }
-
-  @Test
   public void testConstraintInvalidWhenReplicaIsDisabled() {
-    when(_testNode.isEnabled()).thenReturn(true);
-    when(_testNode.isLive()).thenReturn(true);
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITION);
     when(_testNode.getDisabledPartitionsMap())

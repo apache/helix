@@ -28,13 +28,13 @@ class NodeMaxPartitionLimitConstraint extends HardConstraint {
   @Override
   boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    return node.getCurrentAssignmentCount() < node.getMaxPartition()
-        && node.getCurrentAssignmentsByResource(replica.getResourceName()).size() < replica
+    return node.getCurrentAssignmentCount() <= node.getMaxPartition()
+        && node.getCurrentAssignmentsByResource(replica.getResourceName()).size() <= replica
             .getResourceMaxPartitionsPerInstance();
   }
 
   @Override
   String getDescription() {
-    return "Cannot exceed maximum number of partitions on node";
+    return "Cannot exceed the maximum number of partitions limitation on node";
   }
 }

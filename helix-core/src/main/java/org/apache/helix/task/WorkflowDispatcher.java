@@ -108,21 +108,9 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       // future cleanup work
     }
 
-    // Step 3: handle workflow that should STOP
-    // For workflows that already reached final states, STOP should not take into effect
-    if (!finalStates.contains(workflowCtx.getWorkflowState())
-        && TargetState.STOP.equals(targetState)) {
-      LOG.info("Workflow " + workflow + "is marked as stopped.");
-      if (isWorkflowStopped(workflowCtx, workflowCfg)) {
-        workflowCtx.setWorkflowState(TaskState.STOPPED);
-        _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
-      }
-      return;
-    }
-
     long currentTime = System.currentTimeMillis();
 
-    // Step 4: Check and process finished workflow context (confusing,
+    // Step 3: Check and process finished workflow context (confusing,
     // but its inside isWorkflowFinished())
     // Check if workflow has been finished and mark it if it is. Also update cluster status
     // monitor if provided
@@ -135,7 +123,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
     }
 
-    // Step 5: Handle finished workflows
+    // Step 4: Handle finished workflows
     if (workflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
       LOG.info("Workflow " + workflow + " is finished.");
       long expiryTime = workflowCfg.getExpiry();
@@ -175,6 +163,17 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
           workflow));
     }
 
+    // Step 5: handle workflow that should STOP
+    // For workflows that have already reached final states, STOP should not take into effect.
+    if (!finalStates.contains(workflowCtx.getWorkflowState())
+        && TargetState.STOP.equals(targetState)) {
+      LOG.info("Workflow " + workflow + " is marked as stopped. Workflow state is " + workflowCtx.getWorkflowState());
+      if (isWorkflowStopped(workflowCtx, workflowCfg)) {
+        workflowCtx.setWorkflowState(TaskState.STOPPED);
+        _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
+      }
+      return;
+    }
     _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
   }
 

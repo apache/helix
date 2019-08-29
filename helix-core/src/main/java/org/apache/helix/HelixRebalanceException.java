@@ -22,7 +22,7 @@ package org.apache.helix;
 /**
  * Exception thrown by Helix due to rebalance failures.
  */
-public class HelixRebalanceException extends HelixException {
+public class HelixRebalanceException extends Exception {
   enum RebalanceFailureType {
     INVALID_CLUSTER_STATUS,
     INVALID_REBALANCER_STATUS,

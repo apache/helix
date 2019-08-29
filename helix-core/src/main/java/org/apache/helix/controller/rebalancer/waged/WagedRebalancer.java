@@ -54,14 +54,15 @@ public class WagedRebalancer {
 
   // The cluster change detector is a stateful object. Make it static to avoid unnecessary
   // reinitialization.
-  private static final ThreadLocal<ResourceChangeDetector> _changeDetector = new ThreadLocal<>();
+  private static final ThreadLocal<ResourceChangeDetector> CHANGE_DETECTOR_THREAD_LOCAL =
+      new ThreadLocal<>();
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
 
   private ResourceChangeDetector getChangeDetector() {
-    if (_changeDetector.get() == null) {
-      _changeDetector.set(new ResourceChangeDetector());
+    if (CHANGE_DETECTOR_THREAD_LOCAL.get() == null) {
+      CHANGE_DETECTOR_THREAD_LOCAL.set(new ResourceChangeDetector());
     }
-    return _changeDetector.get();
+    return CHANGE_DETECTOR_THREAD_LOCAL.get();
   }
 
   public WagedRebalancer(HelixManager helixManager) {

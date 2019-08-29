@@ -112,7 +112,7 @@ public class ClusterModelProvider {
       Map<String, ResourceAssignment> bestPossibleAssignment,
       Map<String, Set<AssignableReplica>> allocatedReplicas) {
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
-    if (clusterChanges.containsKey(HelixConstants.ChangeType.CONFIG)
+    if (clusterChanges.containsKey(HelixConstants.ChangeType.CLUSTER_CONFIG)
         || clusterChanges.containsKey(HelixConstants.ChangeType.INSTANCE_CONFIG)) {
       // If the cluster topology has been modified, need to reassign all replicas
       toBeAssignedReplicas

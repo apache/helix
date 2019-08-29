@@ -236,7 +236,7 @@ public class ClusterModelProvider {
       Set<AssignableNode> assignableNodes) {
     Map<String, Map<String, Set<String>>> faultZoneAssignmentMap = new HashMap<>();
     assignableNodes.stream().forEach(node -> {
-      for (Map.Entry<String, Set<String>> resourceMap : node.getCurrentAssignmentsMap()
+      for (Map.Entry<String, Set<String>> resourceMap : node.getAssignedPartitionsMap()
           .entrySet()) {
         faultZoneAssignmentMap.computeIfAbsent(node.getFaultZone(), k -> new HashMap<>())
             .computeIfAbsent(resourceMap.getKey(), k -> new HashSet<>())

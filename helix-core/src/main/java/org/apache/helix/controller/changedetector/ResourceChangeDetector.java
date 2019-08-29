@@ -111,11 +111,14 @@ public class ResourceChangeDetector implements ChangeDetector {
       return snapshot.getResourceConfigMap();
     case LIVE_INSTANCE:
       return snapshot.getLiveInstances();
-    case CONFIG:
+    case CLUSTER_CONFIG:
+      // In the case of ClusterConfig, we return an empty map
+      // This is to allow the caller to iterate on the change types without throwing an exception or
+      // leaving a warn log for ClusterConfig changes
       return Collections.emptyMap();
     default:
       LOG.warn(
-          "ResourceChangeDetector cannot compute the names of changes for the given ChangeType: {}",
+          "ResourceChangeDetector cannot determine propertyMap for the given ChangeType: {}. Returning an empty map.",
           changeType);
       return Collections.emptyMap();
     }

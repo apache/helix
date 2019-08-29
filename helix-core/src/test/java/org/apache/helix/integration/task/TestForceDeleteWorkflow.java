@@ -22,6 +22,7 @@ package org.apache.helix.integration.task;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.HelixManager;
@@ -49,6 +50,7 @@ import org.testng.annotations.Test;
 This test checks the functionality of the ForceDelete in various conditions.
  */
 public class TestForceDeleteWorkflow extends TaskTestBase {
+  private static final long LONG_TIMEOUT = 200000L;
   // Three types of execution times have been considered in this test.
   private static final String SHORT_EXECUTION_TIME = "1000";
   private static final String MEDIUM_EXECUTION_TIME = "10000";
@@ -59,6 +61,11 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   protected HelixManager _manager;
   protected TaskDriver _driver;
 
+  // The counters have been used to check whether tasks are stuck and remain in progress after the
+  // workflow has been stopped.
+  private static final AtomicInteger CANCEL_COUNT = new AtomicInteger(0);
+  private static final AtomicInteger STOP_COUNT = new AtomicInteger(0);
+
   @BeforeClass
   public void beforeClass() throws Exception {
     super.beforeClass();
@@ -66,6 +73,11 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     // Stop participants that have been started in super class
     for (int i = 0; i < _numNodes; i++) {
       super.stopParticipant(i);
+    }
+
+    // Check that participants are actually stopped
+    for (int i = 0; i < _numNodes; i++) {
+      Assert.assertFalse(_participants[i].isConnected());
     }
 
     // Start new participants that have new TaskStateModel (DelayedStopTask) information
@@ -95,17 +107,13 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   @Test
   public void testDeleteCompletedWorkflowForcefully() throws Exception {
     // Create a simple workflow and wait for its completion. Then delete the IdealState,
-    // WorkflowContext and WorkflowConfig.
+    // WorkflowContext and WorkflowConfig using ForceDelete.
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder builder = createCustomWorkflow(workflowName, SHORT_EXECUTION_TIME, "0");
     _driver.start(builder.build());
 
     // Wait until workflow is created and completed.
-    boolean isWorkflowCompleted = TestHelper.verify(() -> {
-      WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
-      return (wCtx1 != null && wCtx1.getWorkflowState() == TaskState.COMPLETED);
-    }, 60 * 1000);
-    Assert.assertTrue(isWorkflowCompleted);
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this
     // workflow
@@ -127,44 +135,34 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
       return (wfcfg == null && wfctx == null && is == null);
     }, 60 * 1000);
     Assert.assertTrue(isWorkflowDeleted);
-
-    // Start the Controller
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
-    _controller.syncStart();
   }
 
   @Test(dependsOnMethods = "testDeleteCompletedWorkflowForcefully")
   public void testDeleteRunningWorkflowForcefully() throws Exception {
     // Create a simple workflow and wait until it reaches the Running state. Then delete the
-    // IdealState, WorkflowContext and WorkflowConfig.
+    // IdealState, WorkflowContext and WorkflowConfig using ForceDelete.
+
+    // Start the Controller
+    String controllerName = CONTROLLER_PREFIX + "_0";
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller.syncStart();
+
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder builder = createCustomWorkflow(workflowName, LONG_EXECUTION_TIME, "0");
     _driver.start(builder.build());
 
-    // Wait until workflow is created and goes to running stage.
-    boolean isWorkflowRunning = TestHelper.verify(() -> {
-      WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
-      return (wCtx1 != null && wCtx1.getWorkflowState() == TaskState.IN_PROGRESS);
-    }, 60 * 1000);
-    Assert.assertTrue(isWorkflowRunning);
+    // Wait until workflow is created and running.
+    _driver.pollForWorkflowState(workflowName, TaskState.IN_PROGRESS);
+
+    // Check the status of JOB0 to make sure it is running.
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, "JOB0"),
+        TaskState.IN_PROGRESS);
 
     // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this
     // workflow
     Assert.assertNotNull(_driver.getWorkflowConfig(workflowName));
     Assert.assertNotNull(_driver.getWorkflowContext(workflowName));
     Assert.assertNotNull(_admin.getResourceIdealState(CLUSTER_NAME, workflowName));
-
-    // Check if the Job is running
-    boolean isJobRunning = TestHelper.verify(() -> {
-      WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
-      TaskState job0 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB0"));
-      TaskState job1 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB1"));
-      TaskState job2 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB2"));
-      return (wCtx1 != null && (job0 == TaskState.IN_PROGRESS || job1 == TaskState.IN_PROGRESS
-          || job2 == TaskState.IN_PROGRESS));
-    }, 60 * 1000);
-    Assert.assertTrue(isJobRunning);
 
     // Stop the Controller
     _controller.syncStop();
@@ -180,33 +178,39 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
       return (wfcfg == null && wfctx == null && is == null);
     }, 60 * 1000);
     Assert.assertTrue(isWorkflowDeleted);
-
-    // Start the Controller
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
-    _controller.syncStart();
   }
 
   @Test(dependsOnMethods = "testDeleteRunningWorkflowForcefully")
   public void testDeleteStoppedWorkflowForcefully() throws Exception {
-    // Create a simple workflow. Stop the workflow and wait for completion. Delete the workflow
-    // forcefully afterwards
+    // Create a simple workflow. Stop the workflow and wait until it's fully stopped. Then delete
+    // the IdealState, WorkflowContext and WorkflowConfig using ForceDelete.
+
+    // Start the Controller
+    String controllerName = CONTROLLER_PREFIX + "_0";
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller.syncStart();
+
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder builder = createCustomWorkflow(workflowName, MEDIUM_EXECUTION_TIME, "0");
     _driver.start(builder.build());
 
-    // Wait until workflow is created.
-    boolean isWorkflowCreated = TestHelper.verify(() -> {
-      WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
-      return (wCtx1 != null);
-    }, 60 * 1000);
-    Assert.assertTrue(isWorkflowCreated);
+    // Wait until workflow is created and running.
+    _driver.pollForWorkflowState(workflowName, TaskState.IN_PROGRESS);
 
     _driver.stop(workflowName);
+
     // Wait until workflow is stopped.
+    _driver.pollForWorkflowState(workflowName, TaskState.STOPPED);
+
+    // Wait until workflow is stopped. Also, jobs should be either stopped or not created (null).
     boolean isWorkflowStopped = TestHelper.verify(() -> {
       WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
-      return (wCtx1.getWorkflowState() == TaskState.STOPPED);
+      TaskState job0 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB0"));
+      TaskState job1 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB1"));
+      TaskState job2 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB2"));
+      return ((job0 == null || job0 == TaskState.STOPPED)
+          && (job1 == null || job1 == TaskState.STOPPED)
+          && (job2 == null || job2 == TaskState.STOPPED));
     }, 60 * 1000);
     Assert.assertTrue(isWorkflowStopped);
 
@@ -230,48 +234,50 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
       return (wfcfg == null && wfctx == null && is == null);
     }, 60 * 1000);
     Assert.assertTrue(isWorkflowDeleted);
+  }
+
+  @Test(dependsOnMethods = "testDeleteStoppedWorkflowForcefully")
+  public void testDeleteStoppingStuckWorkflowForcefully() throws Exception {
+    // In this test, Stuck workflow indicates a workflow that is in STOPPING state (user requested
+    // to stop the workflow), its JOBs are also in STOPPING state but the tasks are stuck (or taking
+    // a long time to stop) in RUNNING state.
+
+    // Reset the cancel and stop counts
+    CANCEL_COUNT.set(0);
+    STOP_COUNT.set(0);
 
     // Start the Controller
     String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
-  }
 
-  @Test(dependsOnMethods = "testDeleteStoppedWorkflowForcefully")
-  public void testDeleteStoppingStuckWorkflowForcefully() throws Exception {
-    // In this test, Stuck workflow indicates a workflow that is in Stopping state (user requested
-    // to stop the workflow) but its tasks are stuck (or taking a long time to stop) in RUNNING
-    // state.
     String workflowName = TestHelper.getTestMethodName();
-    Workflow.Builder builder =
-        createCustomWorkflow(workflowName, MEDIUM_EXECUTION_TIME, STOP_DELAY);
+    Workflow.Builder builder = createCustomWorkflow(workflowName, LONG_EXECUTION_TIME, STOP_DELAY);
     _driver.start(builder.build());
 
-    // Wait until workflow is created.
-    boolean isWorkflowCreated = TestHelper.verify(() -> {
-      WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
-      return (wCtx1 != null);
-    }, 60 * 1000);
-    Assert.assertTrue(isWorkflowCreated);
+    // Wait until workflow is created and running.
+    _driver.pollForWorkflowState(workflowName, TaskState.IN_PROGRESS);
 
     _driver.stop(workflowName);
     // Wait until workflow is stopped.
 
-    boolean isWorkflowStopped = TestHelper.verify(() -> {
-      WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
-      return wCtx1.getWorkflowState() == TaskState.STOPPING;
-    }, 60 * 1000);
-    Assert.assertTrue(isWorkflowStopped);
+    // Wait until workflow is created and running.
+    _driver.pollForWorkflowState(workflowName, TaskState.STOPPING);
 
-    boolean isJobStopped = TestHelper.verify(() -> {
-      WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
-      return wCtx1
-          .getJobState(TaskUtil.getNamespacedJobName(workflowName + "_JOB0")) == TaskState.STOPPED;
-    }, 60 * 1000);
-    Assert.assertFalse(isJobStopped);
+    // Check the status of JOB0 to make sure it is running.
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, "JOB0"),
+        TaskState.STOPPING);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this
-    // workflow.
+    // Since ConcurrentTasksPerInstance is set to be 1, the total number of CANCEL_COUNT is expected
+    // to be equal to number of nodes
+    boolean haveAllCancelsCalled = TestHelper.verify(() -> {
+      return CANCEL_COUNT.get() == _numNodes;
+    }, 60 * 1000);
+    Assert.assertTrue(haveAllCancelsCalled);
+
+    Thread.sleep(1000);
+    Assert.assertEquals(STOP_COUNT.get(), 0);
+
     Assert.assertNotNull(_driver.getWorkflowConfig(workflowName));
     Assert.assertNotNull(_driver.getWorkflowContext(workflowName));
     Assert.assertNotNull(_admin.getResourceIdealState(CLUSTER_NAME, workflowName));
@@ -302,19 +308,19 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     //             JOB1 JOB2
 
     JobConfig.Builder jobBuilder0 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setMaxAttemptsPerTask(1).setWorkflow(workflowName)
-        .setJobCommandConfigMap(ImmutableMap.of(DelayedStopTask.JOB_DELAY, executionTime))
-        .setJobCommandConfigMap(ImmutableMap.of(DelayedStopTask.JOB_DELAY_CANCEL, stopDelay));
+        .setTimeoutPerTask(LONG_TIMEOUT).setMaxAttemptsPerTask(1).setWorkflow(workflowName)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, executionTime,
+            DelayedStopTask.JOB_DELAY_CANCEL, stopDelay));
 
     JobConfig.Builder jobBuilder1 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setMaxAttemptsPerTask(1).setWorkflow(workflowName)
-        .setJobCommandConfigMap(ImmutableMap.of(DelayedStopTask.JOB_DELAY, executionTime))
-        .setJobCommandConfigMap(ImmutableMap.of(DelayedStopTask.JOB_DELAY_CANCEL, stopDelay));
+        .setTimeoutPerTask(LONG_TIMEOUT).setMaxAttemptsPerTask(1).setWorkflow(workflowName)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, executionTime,
+            DelayedStopTask.JOB_DELAY_CANCEL, stopDelay));
 
     JobConfig.Builder jobBuilder2 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setMaxAttemptsPerTask(1).setWorkflow(workflowName)
-        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, executionTime))
-        .setJobCommandConfigMap(ImmutableMap.of(DelayedStopTask.JOB_DELAY_CANCEL, stopDelay));
+        .setTimeoutPerTask(LONG_TIMEOUT).setMaxAttemptsPerTask(1).setWorkflow(workflowName)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, executionTime,
+            DelayedStopTask.JOB_DELAY_CANCEL, stopDelay));
 
     builder.addParentChildDependency("JOB0", "JOB1");
     builder.addParentChildDependency("JOB0", "JOB2");
@@ -330,7 +336,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
    * A mock task that extents MockTask class and delays cancellation of the tasks.
    */
   private class DelayedStopTask extends MockTask {
-    public static final String JOB_DELAY_CANCEL = "Delay";
+    private static final String JOB_DELAY_CANCEL = "DelayCancel";
     private long _delayCancel;
 
     DelayedStopTask(TaskCallbackContext context) {
@@ -345,12 +351,18 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
 
     @Override
     public void cancel() {
+      // Increment the cancel count so we know cancel() has been called
+      CANCEL_COUNT.incrementAndGet();
+
       try {
         Thread.sleep(_delayCancel);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
       super.cancel();
+
+      // Increment the stop count so we know cancel() has finished and returned
+      STOP_COUNT.incrementAndGet();
     }
   }
 }

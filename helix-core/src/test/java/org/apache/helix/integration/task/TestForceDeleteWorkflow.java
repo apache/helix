@@ -47,7 +47,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
-This test checks the functionality of the ForceDelete in various conditions.
+ * This test checks the functionality of the ForceDelete in various conditions.
  */
 public class TestForceDeleteWorkflow extends TaskTestBase {
   private static final long LONG_TIMEOUT = 200000L;
@@ -62,6 +62,10 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   protected TaskDriver _driver;
 
   // These AtomicIntegers are used to check tasks are stuck in Task.cancel().
+  // CANCEL shows that the task cancellation process has been started. (Incremented at the beginning
+  // of Task.cancel())
+  // STOP shows that the task cancellation process has been finished. (Incremented at the end of
+  // Task.cancel())
   private static final AtomicInteger CANCEL_COUNT = new AtomicInteger(0);
   private static final AtomicInteger STOP_COUNT = new AtomicInteger(0);
 

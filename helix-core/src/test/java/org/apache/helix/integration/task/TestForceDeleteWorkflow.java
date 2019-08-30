@@ -46,7 +46,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-/*
+/**
 This test checks the functionality of the ForceDelete in various conditions.
  */
 public class TestForceDeleteWorkflow extends TaskTestBase {
@@ -55,7 +55,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   private static final String SHORT_EXECUTION_TIME = "1000";
   private static final String MEDIUM_EXECUTION_TIME = "10000";
   private static final String LONG_EXECUTION_TIME = "100000";
-  // Long delay to simulate the tasks that do not stop.
+  // Long delay to simulate the tasks that are stuck in Task.cancel().
   private static final String STOP_DELAY = "1000000";
   private HelixAdmin _admin;
   protected HelixManager _manager;

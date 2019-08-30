@@ -61,7 +61,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   protected HelixManager _manager;
   protected TaskDriver _driver;
 
-  // These AtomicIntegers are used to check tasks are stuck in Task.cancel().
+  // These AtomicIntegers are used to verify that the tasks are indeed stuck in Task.cancel().
   // CANCEL shows that the task cancellation process has been started. (Incremented at the beginning
   // of Task.cancel())
   // STOP shows that the task cancellation process has been finished. (Incremented at the end of

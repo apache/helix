@@ -61,8 +61,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   protected HelixManager _manager;
   protected TaskDriver _driver;
 
-  // The counters have been used to check whether tasks are stuck and remain in progress after the
-  // workflow has been stopped.
+  // These AtomicIntegers are used to check tasks are stuck in Task.cancel().
   private static final AtomicInteger CANCEL_COUNT = new AtomicInteger(0);
   private static final AtomicInteger STOP_COUNT = new AtomicInteger(0);
 
@@ -203,7 +202,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     _driver.pollForWorkflowState(workflowName, TaskState.STOPPED);
 
     // Wait until workflow is stopped. Also, jobs should be either stopped or not created (null).
-    boolean isWorkflowStopped = TestHelper.verify(() -> {
+    boolean areJobsStopped = TestHelper.verify(() -> {
       WorkflowContext wCtx1 = _driver.getWorkflowContext(workflowName);
       TaskState job0 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB0"));
       TaskState job1 = wCtx1.getJobState(TaskUtil.getNamespacedJobName(workflowName, "JOB1"));
@@ -212,7 +211,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
           && (job1 == null || job1 == TaskState.STOPPED)
           && (job2 == null || job2 == TaskState.STOPPED));
     }, 60 * 1000);
-    Assert.assertTrue(isWorkflowStopped);
+    Assert.assertTrue(areJobsStopped);
 
     // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this
     // workflow.
@@ -259,12 +258,11 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     _driver.pollForWorkflowState(workflowName, TaskState.IN_PROGRESS);
 
     _driver.stop(workflowName);
-    // Wait until workflow is stopped.
 
-    // Wait until workflow is created and running.
+    // Wait until workflow is is in Stopping state.
     _driver.pollForWorkflowState(workflowName, TaskState.STOPPING);
 
-    // Check the status of JOB0 to make sure it is running.
+    // Check the status of JOB0 to make sure it is stopping.
     _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, "JOB0"),
         TaskState.STOPPING);
 
@@ -275,7 +273,8 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     }, 60 * 1000);
     Assert.assertTrue(haveAllCancelsCalled);
 
-    Thread.sleep(1000);
+    // Check that STOP_COUNT is 0. This checks that no tasks' Task.cancel() have returned, verifying
+    // that they are indeed stuck.
     Assert.assertEquals(STOP_COUNT.get(), 0);
 
     Assert.assertNotNull(_driver.getWorkflowConfig(workflowName));

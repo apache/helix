@@ -112,7 +112,7 @@ public abstract class AbstractTaskDispatcher {
       for (int pId : pSet) {
         final String pName = pName(jobResource, pId);
         TaskPartitionState currState = updateJobContextAndGetTaskCurrentState(currStateOutput,
-            jobResource, pId, pName, instance, jobCtx);
+            jobResource, pId, pName, instance, jobCtx, jobTgtState);
 
         // This avoids a race condition in the case that although currentState is in the following
         // error condition, the pending message (INIT->RUNNNING) might still be present.
@@ -358,12 +358,25 @@ public abstract class AbstractTaskDispatcher {
 
   private TaskPartitionState updateJobContextAndGetTaskCurrentState(
       CurrentStateOutput currentStateOutput, String jobResource, Integer pId, String pName,
-      String instance, JobContext jobCtx) {
+      String instance, JobContext jobCtx, TargetState jobTgtState) {
     String currentStateString =
         currentStateOutput.getCurrentState(jobResource, new Partition(pName), instance);
     if (currentStateString == null) {
       // Task state is either DROPPED or INIT
       TaskPartitionState stateFromContext = jobCtx.getPartitionState(pId);
+      // If jobTgtState is START: Since currentstate is null, this function will return INIT to
+      // start the task or it will return the stateFromContext (the current context) and there is no
+      // need to update the context.
+      // If jobTgtState is DELETE: JobDispatcher handles this case and this part of the code will
+      // not be triggered.
+      // If jobTgtState is STOP:
+      // If context is equal to INIT or RUNNING: Here context is set to be STOPPED.
+      // Other states don't need special handling and context can remain unchanged.
+      if (jobTgtState == TargetState.STOP && (stateFromContext == TaskPartitionState.RUNNING
+          || stateFromContext == TaskPartitionState.INIT)) {
+        jobCtx.setPartitionState(pId, TaskPartitionState.STOPPED);
+        return TaskPartitionState.STOPPED;
+      }
       return stateFromContext == null ? TaskPartitionState.INIT : stateFromContext;
     }
     TaskPartitionState currentState = TaskPartitionState.valueOf(currentStateString);

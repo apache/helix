@@ -209,6 +209,10 @@ public class AssignableNode {
   }
 
   /**
+   * Return the most concerning capacity utilization number for evenly partition assignment.
+   * The method dynamically returns the highest utilization number among all the capacity categories.
+   * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}. Then this call shall
+   * return 0.9.
    * @return The highest utilization number of the node among all the capacity category.
    */
   public float getHighestCapacityUtilization() {

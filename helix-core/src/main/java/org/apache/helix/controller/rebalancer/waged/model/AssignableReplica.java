@@ -107,6 +107,18 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     return 0;
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null) {
+      return false;
+    }
+    if (obj instanceof AssignableReplica) {
+      return compareTo((AssignableReplica) obj) == 0;
+    } else {
+      return false;
+    }
+  }
+
   public static String generateReplicaKey(String resourceName, String partitionName, String state) {
     return String.format("%s-%s-%s", resourceName, partitionName, state);
   }

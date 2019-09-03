@@ -63,7 +63,7 @@ public class TestClusterModel extends AbstractTestClusterModel {
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .allMatch(resourceMap -> resourceMap.values().isEmpty()));
     Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
-        .anyMatch(node -> node.getCurrentAssignmentCount() != 0));
+        .anyMatch(node -> node.getAssignedReplicaCount() != 0));
 
     // The initialization of the context, node and replication has been tested separately. So for
     // cluster model, focus on testing the assignment and release.
@@ -78,7 +78,7 @@ public class TestClusterModel extends AbstractTestClusterModel {
     Assert.assertTrue(
         clusterModel.getContext().getAssignmentForFaultZoneMap().get(assignableNode.getFaultZone())
             .get(replica.getResourceName()).contains(replica.getPartitionName()));
-    Assert.assertTrue(assignableNode.getCurrentAssignmentsMap().get(replica.getResourceName())
+    Assert.assertTrue(assignableNode.getAssignedPartitionsMap().get(replica.getResourceName())
         .contains(replica.getPartitionName()));
 
     // Assign a nonexist replication
@@ -109,6 +109,6 @@ public class TestClusterModel extends AbstractTestClusterModel {
         .allMatch(resourceMap -> resourceMap.values().stream()
             .allMatch(partitions -> partitions.isEmpty())));
     Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
-        .anyMatch(node -> node.getCurrentAssignmentCount() != 0));
+        .anyMatch(node -> node.getAssignedReplicaCount() != 0));
   }
 }

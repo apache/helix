@@ -106,7 +106,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     Assert.assertFalse(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .anyMatch(resourceMap -> !resourceMap.isEmpty()));
     Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
-        .anyMatch(node -> node.getCurrentAssignmentCount() != 0));
+        .anyMatch(node -> node.getAssignedReplicaCount() != 0));
     // Have all 3 instances
     Assert.assertEquals(
         clusterModel.getAssignableNodes().values().stream().map(AssignableNode::getInstanceName)
@@ -168,7 +168,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
         .allMatch(resourceMap -> resourceMap.values().stream()
             .allMatch(partitionSet -> partitionSet.size() == 2)));
     Assert.assertEquals(
-        clusterModel.getAssignableNodes().get(_testInstanceId).getCurrentAssignmentCount(), 4);
+        clusterModel.getAssignableNodes().get(_testInstanceId).getAssignedReplicaCount(), 4);
     // Since each resource has 2 replicas assigned, the assignable replica count should be 10.
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().size(), 2);
     Assert.assertTrue(clusterModel.getAssignableReplicaMap().values().stream()
@@ -183,7 +183,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .allMatch(resourceMap -> resourceMap.isEmpty()));
     Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
-        .anyMatch(node -> node.getCurrentAssignmentCount() != 0));
+        .anyMatch(node -> node.getAssignedReplicaCount() != 0));
     // Shall have 2 resources and 12 replicas
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().size(), 2);
     Assert.assertTrue(clusterModel.getAssignableReplicaMap().values().stream()
@@ -211,7 +211,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     // Only the first instance will have 2 assignment from resource2.
     for (String instance : _instances) {
       Assert
-          .assertEquals(clusterModel.getAssignableNodes().get(instance).getCurrentAssignmentCount(),
+          .assertEquals(clusterModel.getAssignableNodes().get(instance).getAssignedReplicaCount(),
               instance.equals(_testInstanceId) ? 2 : 0);
     }
     // Shall have 2 resources and 12 replicas
@@ -233,7 +233,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     Assert.assertFalse(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .anyMatch(resourceMap -> !resourceMap.isEmpty()));
     Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
-        .anyMatch(node -> node.getCurrentAssignmentCount() != 0));
+        .anyMatch(node -> node.getAssignedReplicaCount() != 0));
     // Have only 2 instances
     Assert.assertEquals(
         clusterModel.getAssignableNodes().values().stream().map(AssignableNode::getInstanceName)

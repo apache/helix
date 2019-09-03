@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,6 +49,8 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
 
+    Set<String> expectedTopStateAssignmentSet1 = new HashSet<>(_partitionNames.subList(0, 1));
+    Set<String> expectedTopStateAssignmentSet2 = new HashSet<>(_partitionNames.subList(2, 3));
     Set<String> expectedAssignmentSet1 = new HashSet<>(_partitionNames.subList(0, 2));
     Set<String> expectedAssignmentSet2 = new HashSet<>(_partitionNames.subList(2, 4));
     Map<String, Set<String>> expectedAssignment = new HashMap<>();
@@ -60,15 +63,28 @@ public class TestAssignableNode extends AbstractTestClusterModel {
 
     AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
         testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId, assignmentSet);
-    Assert.assertTrue(assignableNode.getCurrentAssignmentsMap().equals(expectedAssignment));
-    Assert.assertEquals(assignableNode.getCurrentAssignmentCount(), 4);
+    Assert.assertEquals(assignableNode.getAssignedPartitionsMap(), expectedAssignment);
+    Assert.assertEquals(assignableNode.getAssignedReplicaCount(), 4);
     Assert.assertEquals(assignableNode.getHighestCapacityUtilization(), 16.0 / 20.0, 0.005);
-    Assert.assertTrue(assignableNode.getMaxCapacity().equals(_capacityDataMap));
+    Assert.assertEquals(assignableNode.getMaxCapacity(), _capacityDataMap);
     Assert.assertEquals(assignableNode.getMaxPartition(), 5);
     Assert.assertEquals(assignableNode.getInstanceTags(), _testInstanceTags);
     Assert.assertEquals(assignableNode.getFaultZone(), _testFaultZoneId);
-    Assert.assertTrue(assignableNode.getDisabledPartitionsMap().equals(_disabledPartitionsMap));
-    Assert.assertTrue(assignableNode.getCurrentCapacity().equals(expectedCapacityMap));
+    Assert.assertEquals(assignableNode.getDisabledPartitionsMap(), _disabledPartitionsMap);
+    Assert.assertEquals(assignableNode.getCurrentCapacity(), expectedCapacityMap);
+    Assert.assertEquals(assignableNode.getAssignedReplicas(), assignmentSet);
+    Assert.assertEquals(assignableNode.getAssignedPartitionsByResource(_resourceNames.get(0)),
+        expectedAssignmentSet1);
+    Assert.assertEquals(assignableNode.getAssignedPartitionsByResource(_resourceNames.get(1)),
+        expectedAssignmentSet2);
+    Assert
+        .assertEquals(assignableNode.getAssignedTopStatePartitionsByResource(_resourceNames.get(0)),
+            expectedTopStateAssignmentSet1);
+    Assert
+        .assertEquals(assignableNode.getAssignedTopStatePartitionsByResource(_resourceNames.get(1)),
+            expectedTopStateAssignmentSet2);
+    Assert.assertEquals(assignableNode.getAssignedTopStatePartitionsCount(),
+        expectedTopStateAssignmentSet1.size() + expectedTopStateAssignmentSet2.size());
 
     // Test 2 - release assignment from the AssignableNode
     AssignableReplica removingReplica =
@@ -77,18 +93,39 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     expectedAssignment.get(_resourceNames.get(1)).remove(_partitionNames.get(2));
     expectedCapacityMap.put("item1", 9);
     expectedCapacityMap.put("item2", 18);
+    Iterator<AssignableReplica> iter = assignmentSet.iterator();
+    while (iter.hasNext()) {
+      AssignableReplica replica = iter.next();
+      if (replica.equals(removingReplica)) {
+        iter.remove();
+      }
+    }
+    expectedTopStateAssignmentSet2.remove(_partitionNames.get(2));
 
     assignableNode.release(removingReplica);
 
-    Assert.assertTrue(assignableNode.getCurrentAssignmentsMap().equals(expectedAssignment));
-    Assert.assertEquals(assignableNode.getCurrentAssignmentCount(), 3);
+    Assert.assertEquals(assignableNode.getAssignedPartitionsMap(), expectedAssignment);
+    Assert.assertEquals(assignableNode.getAssignedReplicaCount(), 3);
     Assert.assertEquals(assignableNode.getHighestCapacityUtilization(), 11.0 / 20.0, 0.005);
-    Assert.assertTrue(assignableNode.getMaxCapacity().equals(_capacityDataMap));
+    Assert.assertEquals(assignableNode.getMaxCapacity(), _capacityDataMap);
     Assert.assertEquals(assignableNode.getMaxPartition(), 5);
     Assert.assertEquals(assignableNode.getInstanceTags(), _testInstanceTags);
     Assert.assertEquals(assignableNode.getFaultZone(), _testFaultZoneId);
-    Assert.assertTrue(assignableNode.getDisabledPartitionsMap().equals(_disabledPartitionsMap));
-    Assert.assertTrue(assignableNode.getCurrentCapacity().equals(expectedCapacityMap));
+    Assert.assertEquals(assignableNode.getDisabledPartitionsMap(), _disabledPartitionsMap);
+    Assert.assertEquals(assignableNode.getCurrentCapacity(), expectedCapacityMap);
+    Assert.assertEquals(assignableNode.getAssignedReplicas(), assignmentSet);
+    Assert.assertEquals(assignableNode.getAssignedPartitionsByResource(_resourceNames.get(0)),
+        expectedAssignmentSet1);
+    Assert.assertEquals(assignableNode.getAssignedPartitionsByResource(_resourceNames.get(1)),
+        expectedAssignmentSet2);
+    Assert
+        .assertEquals(assignableNode.getAssignedTopStatePartitionsByResource(_resourceNames.get(0)),
+            expectedTopStateAssignmentSet1);
+    Assert
+        .assertEquals(assignableNode.getAssignedTopStatePartitionsByResource(_resourceNames.get(1)),
+            expectedTopStateAssignmentSet2);
+    Assert.assertEquals(assignableNode.getAssignedTopStatePartitionsCount(),
+        expectedTopStateAssignmentSet1.size() + expectedTopStateAssignmentSet2.size());
 
     // Test 3 - add assignment to the AssignableNode
     AssignableReplica addingReplica =
@@ -97,18 +134,32 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     expectedAssignment.get(_resourceNames.get(1)).add(_partitionNames.get(2));
     expectedCapacityMap.put("item1", 4);
     expectedCapacityMap.put("item2", 8);
+    assignmentSet.add(addingReplica);
 
     assignableNode.assign(addingReplica);
 
-    Assert.assertTrue(assignableNode.getCurrentAssignmentsMap().equals(expectedAssignment));
-    Assert.assertEquals(assignableNode.getCurrentAssignmentCount(), 4);
+    Assert.assertEquals(assignableNode.getAssignedPartitionsMap(), expectedAssignment);
+    Assert.assertEquals(assignableNode.getAssignedReplicaCount(), 4);
     Assert.assertEquals(assignableNode.getHighestCapacityUtilization(), 16.0 / 20.0, 0.005);
-    Assert.assertTrue(assignableNode.getMaxCapacity().equals(_capacityDataMap));
+    Assert.assertEquals(assignableNode.getMaxCapacity(), _capacityDataMap);
     Assert.assertEquals(assignableNode.getMaxPartition(), 5);
     Assert.assertEquals(assignableNode.getInstanceTags(), _testInstanceTags);
     Assert.assertEquals(assignableNode.getFaultZone(), _testFaultZoneId);
-    Assert.assertTrue(assignableNode.getDisabledPartitionsMap().equals(_disabledPartitionsMap));
-    Assert.assertTrue(assignableNode.getCurrentCapacity().equals(expectedCapacityMap));
+    Assert.assertEquals(assignableNode.getDisabledPartitionsMap(), _disabledPartitionsMap);
+    Assert.assertEquals(assignableNode.getCurrentCapacity(), expectedCapacityMap);
+    Assert.assertEquals(assignableNode.getAssignedReplicas(), assignmentSet);
+    Assert.assertEquals(assignableNode.getAssignedPartitionsByResource(_resourceNames.get(0)),
+        expectedAssignmentSet1);
+    Assert.assertEquals(assignableNode.getAssignedPartitionsByResource(_resourceNames.get(1)),
+        expectedAssignmentSet2);
+    Assert
+        .assertEquals(assignableNode.getAssignedTopStatePartitionsByResource(_resourceNames.get(0)),
+            expectedTopStateAssignmentSet1);
+    Assert
+        .assertEquals(assignableNode.getAssignedTopStatePartitionsByResource(_resourceNames.get(1)),
+            expectedTopStateAssignmentSet2);
+    Assert.assertEquals(assignableNode.getAssignedTopStatePartitionsCount(),
+        expectedTopStateAssignmentSet1.size() + expectedTopStateAssignmentSet2.size());
   }
 
   @Test
@@ -126,7 +177,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     assignableNode.release(removingReplica);
   }
 
-  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Resource Resource1 already has a replica from partition Partition1 on node testInstanceId")
+  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Resource Resource1 already has a replica with state SLAVE from partition Partition1 on node testInstanceId")
   public void testAssignDuplicateReplica() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);

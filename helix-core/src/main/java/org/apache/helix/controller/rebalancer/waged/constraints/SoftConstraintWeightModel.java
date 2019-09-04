@@ -36,7 +36,7 @@ class SoftConstraintWeightModel {
 
   static {
     MODEL = ImmutableMap.<SoftConstraint, Float> builder()
-        .put(LeastPartitionCountConstraint.INSTANCE, 1.0f).build();
+        .put(InstancePartitionsCountConstraint.INSTANCE, 1.0f).build();
   }
 
   /**

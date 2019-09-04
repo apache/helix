@@ -19,6 +19,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import java.util.function.Function;
 import org.apache.helix.HelixException;
 
 import java.util.Collections;

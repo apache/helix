@@ -58,11 +58,19 @@ abstract class SoftConstraint {
     _minScore = minScore;
   }
 
+  float getMaxScore() {
+    return _maxScore;
+  }
+
+  float getMinScore() {
+    return _minScore;
+  }
+
   /**
    * Evaluate and give a score for an potential assignment partition -> instance
    * @return The score of the assignment in float value
    */
-  abstract float evaluateAssignmentScore(AssignableNode node, AssignableReplica replica,
+  abstract float evaluateAssignment(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
   /**

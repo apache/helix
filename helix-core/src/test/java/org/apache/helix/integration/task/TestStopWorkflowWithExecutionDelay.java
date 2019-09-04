@@ -33,7 +33,7 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableMap;
 
 /**
- * Test To check if the Execution Delay is respected.
+ * This test checks whether workflow stop works properly with execution delay set.
  */
 public class TestStopWorkflowWithExecutionDelay extends TaskTestBase {
 
@@ -44,13 +44,13 @@ public class TestStopWorkflowWithExecutionDelay extends TaskTestBase {
 
   @Test
   public void testStopWorkflowWithExecutionDelay() throws Exception {
-    // Execution Delay is set to be 20 milliseconds.
+    // Execution Delay is set to be 20 milliseconds. Any delay that causes the job to go to the
+    // inflightjob queue is sufficient for this test.
     final long executionDelay = 20L;
     // Timeout per task has been set to be a large number.
     final long timeout = 60000L;
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder builder = new Workflow.Builder(workflowName);
-
     // Workflow DAG Schematic:
     //          JOB0
     //           /\

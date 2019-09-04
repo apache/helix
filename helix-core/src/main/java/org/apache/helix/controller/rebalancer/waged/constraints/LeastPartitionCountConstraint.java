@@ -27,9 +27,7 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * Evaluate the proposed assignment according to the instance's partition count.
  */
 class LeastPartitionCountConstraint extends SoftConstraint {
-  static LeastPartitionCountConstraint INSTANCE = new LeastPartitionCountConstraint();
-
-  private LeastPartitionCountConstraint() {
+  public LeastPartitionCountConstraint() {
   }
 
   /**
@@ -43,7 +41,7 @@ class LeastPartitionCountConstraint extends SoftConstraint {
    * clusterContext.
    */
   @Override
-  float getAssignmentOriginScore(AssignableNode node, AssignableReplica replica,
+  float evaluateAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
       throw new UnsupportedOperationException("The POC implementation has a bug, will fix it as TODO");
 //    float doubleMaxPartitionCount = 2.0f * clusterContext.getEstimatedMaxPartitionCount();

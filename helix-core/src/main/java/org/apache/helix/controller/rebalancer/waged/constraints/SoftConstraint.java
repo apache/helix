@@ -23,9 +23,10 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
+
 /**
- * Evaluate a partition allocation proposal and return a score within the normalized range.
- * A higher score means the proposal is more preferred.
+ * The "soft" constraint evaluates the potential assignment by giving it score
+ * A higher score means the better the assignment
  */
 abstract class SoftConstraint {
   private float _maxScore = 1000f;
@@ -58,14 +59,10 @@ abstract class SoftConstraint {
   }
 
   /**
-   * The scoring function returns a score between MINIMAL_SCORE and MAXIMUM_SCORE, which is then
-   * weighted by the
-   * individual normalized constraint weights.
-   * Each individual constraint will define the meaning of MINIMAL_SCORE to MAXIMUM_SCORE
-   * differently.
-   * @return float value representing the score
+   * Evaluate and give a score for an potential assignment partition -> instance
+   * @return The score of the assignment in float value
    */
-  abstract float getAssignmentOriginScore(AssignableNode node, AssignableReplica replica,
+  abstract float evaluateAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
   /**

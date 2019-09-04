@@ -262,49 +262,66 @@ public class TaskDriver {
    * @param queue queue name
    * @param job job name: namespaced job name
    * @param forceDelete CAUTION: if set true, all job's related zk nodes will
-   *          be clean up from zookeeper even if its workflow information can not be found.
+   *          be removed from zookeeper even if its JobQueue information can not be found.
    */
   public void deleteNamespacedJob(final String queue, final String job, boolean forceDelete) {
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowConfig(_accessor, queue);
+    WorkflowConfig jobQueueConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
+    boolean isRecurringWorkflow;
 
-    if (workflowCfg == null) {
-      if (forceDelete) {
-        // remove all job znodes if its original workflow config was already gone.
-        LOG.info("Forcefully removing job: " + job + " from queue: " + queue);
-        boolean success = TaskUtil.removeJob(_accessor, _propertyStore, job);
-        if (!success) {
-          LOG.info("Failed to delete job: " + job + " from queue: " + queue);
-          throw new HelixException("Failed to delete job: " + job + " from queue: " + queue);
+    // Force deletion of a job
+    if (forceDelete) {
+      // remove all job-related ZNodes
+      LOG.info("Forcefully removing job: {} from queue: {}", job, queue);
+      if (!TaskUtil.removeJob(_accessor, _propertyStore, job)) {
+        LOG.info("Failed to delete job: {} from queue: {}", job, queue);
+        throw new HelixException("Failed to delete job: " + job + " from queue: " + queue);
+      }
+      // In case this was a recurrent workflow, remove it from last scheduled queue as well
+      if (jobQueueConfig != null) {
+        isRecurringWorkflow = jobQueueConfig.getScheduleConfig() != null
+            && jobQueueConfig.getScheduleConfig().isRecurring();
+        if (isRecurringWorkflow) {
+          deleteJobFromLastScheduledQueue(queue, TaskUtil.getDenamespacedJobName(queue, job));
         }
-      } else {
-        throw new IllegalArgumentException("Queue " + queue + " does not yet exist!");
       }
       return;
     }
 
-    if (!workflowCfg.isJobQueue()) {
-      throw new IllegalArgumentException(queue + " is not a queue!");
+    // Regular, non-force, deletion of a job
+    if (jobQueueConfig == null) {
+      throw new IllegalArgumentException(
+          String.format("JobQueue %s's config is not found!", queue));
     }
-
-    boolean isRecurringWorkflow =
-        (workflowCfg.getScheduleConfig() != null && workflowCfg.getScheduleConfig().isRecurring());
-
+    if (!jobQueueConfig.isJobQueue()) {
+      throw new IllegalArgumentException(String.format("%s is not a queue!", queue));
+    }
+    isRecurringWorkflow = jobQueueConfig.getScheduleConfig() != null
+        && jobQueueConfig.getScheduleConfig().isRecurring();
     String denamespacedJob = TaskUtil.getDenamespacedJobName(queue, job);
     if (isRecurringWorkflow) {
-      // delete job from the last scheduled queue if there exists one.
-      WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queue);
-      String lastScheduledQueue = null;
-      if (wCtx != null) {
-        lastScheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-      }
-      if (lastScheduledQueue != null) {
-        WorkflowConfig lastWorkflowCfg = TaskUtil.getWorkflowConfig(_accessor, lastScheduledQueue);
-        if (lastWorkflowCfg != null) {
-          deleteJobFromQueue(lastScheduledQueue, denamespacedJob);
-        }
-      }
+      deleteJobFromLastScheduledQueue(queue, denamespacedJob);
     }
     deleteJobFromQueue(queue, denamespacedJob);
+  }
+
+  /**
+   * Delete the given job from the last-scheduled queue for recurrent workflows.
+   * @param queue
+   * @param denamespacedJob
+   */
+  private void deleteJobFromLastScheduledQueue(String queue, String denamespacedJob) {
+    // delete job from the last scheduled queue if there exists one.
+    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queue);
+    String lastScheduledQueue = null;
+    if (wCtx != null) {
+      lastScheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+    }
+    if (lastScheduledQueue != null) {
+      WorkflowConfig lastWorkflowCfg = TaskUtil.getWorkflowConfig(_accessor, lastScheduledQueue);
+      if (lastWorkflowCfg != null) {
+        deleteJobFromQueue(lastScheduledQueue, denamespacedJob);
+      }
+    }
   }
 
   /**

@@ -36,6 +36,6 @@ public class ValidGroupTagConstraint extends HardConstraint {
 
   @Override
   String getDescription() {
-    return "Checks whether the tags on the node and replica match or that the node doesn't have any tags.";
+    return "Instance doesn't have the tag of the replica";
   }
 }

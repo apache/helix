@@ -36,7 +36,7 @@ public class TestReplicaAntiAffinityConstraint {
   private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
   private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
   private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
-  private final HardConstraint _constraint = new ReplicaAntiAffinityConstraint();
+  private final HardConstraint _constraint = new SameReplicaOnInstanceConstraint();
 
   @Test
   public void testConstraintValid() {

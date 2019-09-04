@@ -59,7 +59,7 @@ public class TestHelixRestServer extends AbstractTestClass {
     try {
       List<HelixRestNamespace> invalidManifest3 = new ArrayList<>();
       invalidManifest3.add(
-          new HelixRestNamespace("DuplicatedName", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR, true));
+          new HelixRestNamespace("DuplicatedName", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR, false));
       invalidManifest3.add(
           new HelixRestNamespace("DuplicatedName", HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, ZK_ADDR,
               false));

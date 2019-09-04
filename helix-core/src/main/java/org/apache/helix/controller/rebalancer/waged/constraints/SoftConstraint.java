@@ -23,10 +23,10 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
-
 /**
  * The "soft" constraint evaluates the potential assignment by giving it score
- * A higher score means the better the assignment
+ * Higher the score, the better the assignment; Intuitively, the assignment is encouraged.
+ * Lower score the score, the worse the assignment; Intuitively, the assignment is penalized.
  */
 abstract class SoftConstraint {
   private float _maxScore = 1000f;

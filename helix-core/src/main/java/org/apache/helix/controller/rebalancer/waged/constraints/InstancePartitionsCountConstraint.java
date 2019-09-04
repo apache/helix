@@ -28,7 +28,12 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * Evaluate by instance's current partition count and estimated max partition count
  */
 class InstancePartitionsCountConstraint extends SoftConstraint {
-  public InstancePartitionsCountConstraint() {
+
+  InstancePartitionsCountConstraint() {
+  }
+
+  InstancePartitionsCountConstraint(float maxScore, float minScore) {
+    super(maxScore, minScore);
   }
 
   @Override
@@ -39,16 +44,12 @@ class InstancePartitionsCountConstraint extends SoftConstraint {
     if (currentPartitionCount == 0) {
       return getMaxScore();
     }
-    //When the node usage reaches the estimated max partition, return (minScore + maxScore ) / 2
+    //When the node usage reaches the estimated max partition, return minimal score
     if (currentPartitionCount >= estimatedMaxPartitionCount) {
-      return (getMinScore() + getMaxScore()) / 2;
-    }
-    // When the node usage reaches 2 * estimated_max or more, return with the minScore.
-    if (currentPartitionCount >= 2 * estimatedMaxPartitionCount) {
       return getMinScore();
     }
 
     // Return the usage percentage by estimation
-    return Math.max(0, (estimatedMaxPartitionCount - currentPartitionCount) / (float) estimatedMaxPartitionCount);
+    return (estimatedMaxPartitionCount - currentPartitionCount) / (float) estimatedMaxPartitionCount;
   }
 }

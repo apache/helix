@@ -19,9 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import java.util.function.Function;
-import org.apache.helix.HelixException;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.helix.HelixException;
 
 /**
  * This class tracks the rebalance-related global cluster status.
@@ -48,8 +47,7 @@ public class ClusterContext {
 
   /**
    * Construct the cluster context based on the current instance status.
-   *
-   * @param replicaSet    All the partition replicas that are managed by the rebalancer
+   * @param replicaSet All the partition replicas that are managed by the rebalancer
    * @param instanceCount The count of all the active instances that can be used to host partitions.
    */
   ClusterContext(Set<AssignableReplica> replicaSet, int instanceCount) {
@@ -96,8 +94,8 @@ public class ClusterContext {
   void addPartitionToFaultZone(String faultZoneId, String resourceName, String partition) {
     if (!_assignmentForFaultZoneMap.computeIfAbsent(faultZoneId, k -> new HashMap<>())
         .computeIfAbsent(resourceName, k -> new HashSet<>()).add(partition)) {
-      throw new HelixException(String
-          .format("Resource %s already has a replica from partition %s in fault zone %s",
+      throw new HelixException(
+          String.format("Resource %s already has a replica from partition %s in fault zone %s",
               resourceName, partition, faultZoneId));
     }
   }

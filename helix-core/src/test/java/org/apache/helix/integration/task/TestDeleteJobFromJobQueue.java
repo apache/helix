@@ -41,8 +41,8 @@ public class TestDeleteJobFromJobQueue extends TaskTestBase {
   public void testForceDeleteJobFromJobQueue() throws InterruptedException {
     String jobQueueName = TestHelper.getTestMethodName();
 
-    // Create two jobs: job1 will complete fast, and job2 will be stuck in progress. The idea is to
-    // force-delete a stuck job (job2).
+    // Create two jobs: job1 will complete fast, and job2 will be stuck in progress (taking a long
+    // time to finish). The idea is to force-delete a stuck job (job2).
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
         .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10"));
@@ -62,6 +62,13 @@ public class TestDeleteJobFromJobQueue extends TaskTestBase {
     } catch (IllegalStateException e) {
       // Expect IllegalStateException because job2 is still in progress
     }
+
+    // Check that the job ZNodes have not been deleted by regular deleteJob call
+    Assert.assertNotNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
+    Assert
+        .assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
+    Assert.assertNotNull(_manager.getClusterManagmentTool().getResourceIdealState(CLUSTER_NAME,
+        TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
 
     // The following force delete for the job should go through without getting an exception
     _driver.deleteJob(jobQueueName, "job2", true);

@@ -122,8 +122,8 @@ public class WagedRebalancer {
     // Find the compatible resources: 1. FULL_AUTO 2. Configured to use the WAGED rebalancer
     resourceMap = resourceMap.entrySet().stream().filter(resourceEntry -> {
       IdealState is = clusterData.getIdealState(resourceEntry.getKey());
-      return is != null && is.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO) && is
-          .getRebalancerClassName().equals(this.getClass().getName());
+      return is != null && is.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)
+          && getClass().getName().equals(is.getRebalancerClassName());
     }).collect(Collectors
         .toMap(resourceEntry -> resourceEntry.getKey(), resourceEntry -> resourceEntry.getValue()));
 

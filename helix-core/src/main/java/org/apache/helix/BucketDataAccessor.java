@@ -23,22 +23,19 @@ import java.io.IOException;
 public interface BucketDataAccessor {
 
   /**
-   * Write a (large) HelixProperty in buckets, compressed.
+   * Write a HelixProperty in buckets, compressed.
    * @param path path to which the metadata will be written to
    * @param value HelixProperty to write
    * @param <T>
-   * @return
    * @throws IOException
    */
   <T extends HelixProperty> boolean compressedBucketWrite(String path, T value) throws IOException;
 
   /**
-   * Read a (large) HelixProperty that was written in buckets, compressed. If the write lock has
-   * been taken, it waits a default period of 60 seconds until the lock has been released.
+   * Read a HelixProperty that was written in buckets, compressed.
    * @param path
    * @param helixPropertySubType the subtype of HelixProperty the data was written in
    * @param <T>
-   * @return
    */
   <T extends HelixProperty> HelixProperty compressedBucketRead(String path,
       Class<T> helixPropertySubType);

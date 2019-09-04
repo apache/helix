@@ -42,6 +42,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   private static final String PATH = "/" + TestHelper.getTestClassName();
   private static final String NAME_KEY = TestHelper.getTestClassName();
   private static final String LAST_SUCCESS_KEY = "LAST_SUCCESS";
+  private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
 
   // Populate list and map fields for content comparison
   private static final List<String> LIST_FIELD = ImmutableList.of("1", "2");
@@ -147,5 +148,32 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
     // Check against the original HelixProperty
     Assert.assertEquals(readRecord, property);
+  }
+
+  /**
+   * Tests that each write cleans up previous bucketed data. This method writes some small amount of
+   * data and checks that the data buckets from the large write performed in the previous test
+   * method have been cleaned up.
+   * @throws IOException
+   */
+  @Test(dependsOnMethods = "testLargeWriteAndRead")
+  public void testCleanupBeforeWrite() throws IOException {
+    // Create a HelixProperty of a very small size with the same name as the large HelixProperty
+    // created from the previous method
+    String name = "largeResourceAssignment";
+    HelixProperty property = new HelixProperty(name);
+    property.getRecord().setIntField("Hi", 10);
+
+    // Get the bucket count from the write performed in the previous method
+    ZNRecord metadata = _baseAccessor.get("/" + name, null, AccessOption.PERSISTENT);
+    int origBucketSize = metadata.getIntField(BUCKET_SIZE_KEY, -1);
+
+    // Perform a write twice to overwrite both versions
+    _bucketDataAccessor.compressedBucketWrite("/" + name, property);
+    _bucketDataAccessor.compressedBucketWrite("/" + name, property);
+
+    // Check that the children count for version 0 (version for the large write) is 1
+    Assert.assertEquals(
+        _baseAccessor.getChildNames("/" + name + "/0", AccessOption.PERSISTENT).size(), 1);
   }
 }

@@ -34,9 +34,14 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.util.GZipCompressionUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZkBucketDataAccessor implements BucketDataAccessor {
+  private static Logger LOG = LoggerFactory.getLogger(ZkBucketDataAccessor.class);
+
   private static final int DEFAULT_NUM_VERSIONS = 2;
   private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
   private static final String DATA_SIZE_KEY = "DATA_SIZE";
@@ -44,7 +49,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
   private static final String LAST_SUCCESS_KEY = "LAST_SUCCESS";
 
   // 100 KB for default bucket size
-  private static final int DEFAULT_BUCKET_SIZE = 100 * 1024;
+  private static final int DEFAULT_BUCKET_SIZE = 50 * 1024;
   private final int _bucketSize;
   private final int _numVersions;
   private ZkSerializer _zkSerializer;
@@ -83,7 +88,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     // TODO: Or use a better binary serialization protocol
     // TODO: Consider making this also binary
     // TODO: Consider an async write for the metadata as well
-    HelixZkClient znRecordClient = DedicatedZkClientFactory.getInstance()
+    HelixZkClient znRecordClient = SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     _znRecordBaseDataAccessor = new ZkBaseDataAccessor<>(znRecordClient);
     znRecordClient.setZkSerializer(new ZNRecordSerializer());
@@ -139,6 +144,11 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
       }
       ptr += _bucketSize;
       counter++;
+    }
+
+    // Do a cleanup of previous data
+    if (!_zkBaseDataAccessor.remove(dataPath, AccessOption.PERSISTENT)) {
+      LOG.warn("Failed to clean up previous bucketed data in data path: {}", dataPath);
     }
 
     // Do an async set to ZK
@@ -249,12 +259,9 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     return splitPath[splitPath.length - 1];
   }
 
-  private void tryLock(String path) {
+  private boolean tryLock(String path) {
     // Check if another write is taking place
-    if (_zkBaseDataAccessor.exists(path + "/" + WRITE_LOCK_KEY, AccessOption.EPHEMERAL)) {
-      throw new HelixException(
-          String.format("There is already a write in progress for path: %s", path));
-    }
+    return !_zkBaseDataAccessor.exists(path + "/" + WRITE_LOCK_KEY, AccessOption.EPHEMERAL);
   }
 
   private void lock(String path) {

@@ -34,15 +34,12 @@ import org.slf4j.LoggerFactory;
  * serializer. Note that this serializer doesn't check for the size of the resulting binary.
  */
 public class ZNRecordJacksonSerializer implements ZkSerializer {
-  private static Logger LOG = LoggerFactory.getLogger(ZNRecordJacksonSerializer.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Override
   public byte[] serialize(Object record) throws ZkMarshallingError {
     if (!(record instanceof ZNRecord)) {
       // null is NOT an instance of any class
-      LOG.error(
-          "Input object must be of type ZNRecord but it is " + record + ". Will not write to zk");
       throw new HelixException("Input object is not of type ZNRecord (was " + record + ")");
     }
     ZNRecord znRecord = (ZNRecord) record;

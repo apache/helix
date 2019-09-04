@@ -116,9 +116,6 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       if (isWorkflowStopped(workflowCtx, workflowCfg)) {
         workflowCtx.setWorkflowState(TaskState.STOPPED);
         _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
-      } else {
-        // NEED?
-        // TODO: need to update job states!!!
       }
       return;
     }

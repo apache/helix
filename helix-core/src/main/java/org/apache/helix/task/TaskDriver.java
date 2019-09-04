@@ -262,32 +262,32 @@ public class TaskDriver {
    * @param queue queue name
    * @param job job name: namespaced job name
    * @param forceDelete CAUTION: if set true, all job's related zk nodes will
-   *          be clean up from zookeeper even if its workflow information can not be found.
+   *          be removed from zookeeper even if its JobQueue information can not be found.
    */
   public void deleteNamespacedJob(final String queue, final String job, boolean forceDelete) {
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowConfig(_accessor, queue);
+    WorkflowConfig jobQueueConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
 
-    if (workflowCfg == null) {
-      if (forceDelete) {
-        // remove all job znodes if its original workflow config was already gone.
-        LOG.info("Forcefully removing job: " + job + " from queue: " + queue);
-        boolean success = TaskUtil.removeJob(_accessor, _propertyStore, job);
-        if (!success) {
-          LOG.info("Failed to delete job: " + job + " from queue: " + queue);
-          throw new HelixException("Failed to delete job: " + job + " from queue: " + queue);
-        }
-      } else {
-        throw new IllegalArgumentException("Queue " + queue + " does not yet exist!");
+    if (forceDelete) {
+      // remove all job znodes if its original workflow config was already gone.
+      LOG.info("Forcefully removing job: {} from queue: {}", job, queue);
+      if (!TaskUtil.removeJob(_accessor, _propertyStore, job)) {
+        LOG.info("Failed to delete job: {} from queue: {}", job, queue);
+        throw new HelixException("Failed to delete job: " + job + " from queue: " + queue);
       }
       return;
     }
 
-    if (!workflowCfg.isJobQueue()) {
-      throw new IllegalArgumentException(queue + " is not a queue!");
+    if (jobQueueConfig == null) {
+      throw new IllegalArgumentException(
+          String.format("JobQueue %s's config is not found!", queue));
     }
 
-    boolean isRecurringWorkflow =
-        (workflowCfg.getScheduleConfig() != null && workflowCfg.getScheduleConfig().isRecurring());
+    if (!jobQueueConfig.isJobQueue()) {
+      throw new IllegalArgumentException(String.format("%s is not a queue!", queue));
+    }
+
+    boolean isRecurringWorkflow = (jobQueueConfig.getScheduleConfig() != null
+        && jobQueueConfig.getScheduleConfig().isRecurring());
 
     String denamespacedJob = TaskUtil.getDenamespacedJobName(queue, job);
     if (isRecurringWorkflow) {

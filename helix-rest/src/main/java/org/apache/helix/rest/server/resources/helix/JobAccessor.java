@@ -133,7 +133,7 @@ public class JobAccessor extends AbstractHelixResource {
   public Response deleteJob(@PathParam("clusterId") String clusterId,
       @PathParam("workflowName") String workflowName, @PathParam("jobName") String jobName,
       @QueryParam("force") @DefaultValue("false") String forceDelete) {
-    boolean force = Boolean.valueOf(forceDelete);
+    boolean force = Boolean.parseBoolean(forceDelete);
     TaskDriver driver = getTaskDriver(clusterId);
 
     try {

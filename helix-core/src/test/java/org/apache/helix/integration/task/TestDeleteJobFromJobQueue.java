@@ -59,6 +59,7 @@ public class TestDeleteJobFromJobQueue extends TaskTestBase {
 
     try {
       _driver.deleteJob(jobQueueName, "job2");
+      Assert.fail("Regular, non-force deleteJob should fail since the workflow is in progress!");
     } catch (IllegalStateException e) {
       // Expect IllegalStateException because job2 is still in progress
     }

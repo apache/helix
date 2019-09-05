@@ -46,16 +46,13 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     String testClusterName = "testDefaultNamespaceDisabled";
 
     // "/namespaces/default" is disabled.
-    get(String.format("/namespaces/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME), null,
-        Response.Status.NOT_FOUND.getStatusCode(), false);
+    get(String.format("/namespaces/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME), null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
     // Create a cluster.
-    put(String.format("/clusters/%s", testClusterName), null,
-        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+    put(String.format("/clusters/%s", testClusterName), null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
 
-    get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(),
-        false);
+    get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(), false);
 
     // Remove empty test cluster. Otherwise, it could fail ClusterAccessor tests
     delete(String.format("/clusters/%s", testClusterName), Response.Status.OK.getStatusCode());
@@ -67,19 +64,15 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
 
     // Create a cluster in test namespace and verify it only appears in test namespace
     put(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName), null,
-        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.CREATED.getStatusCode());
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.CREATED.getStatusCode());
     get(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName), null,
         Response.Status.OK.getStatusCode(), false);
-    get(String.format("/clusters/%s", testClusterName), null,
-        Response.Status.NOT_FOUND.getStatusCode(), false);
+    get(String.format("/clusters/%s", testClusterName), null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
     // Create a cluster with same name in a different namespace
     put(String.format("/clusters/%s", testClusterName), null,
-        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.CREATED.getStatusCode());
-    get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(),
-        false);
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.CREATED.getStatusCode());
+    get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(), false);
 
     // Modify cluster in default namespace
     post(String.format("/clusters/%s", testClusterName), ImmutableMap.of("command", "disable"),
@@ -95,8 +88,7 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
         Response.Status.OK.getStatusCode());
     get(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName), null,
         Response.Status.NOT_FOUND.getStatusCode(), false);
-    get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(),
-        false);
+    get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(), false);
     // Remove empty test clusters. Otherwise, it could fail ClusterAccessor tests
     delete(String.format("/clusters/%s", testClusterName), Response.Status.OK.getStatusCode());
   }
@@ -107,14 +99,12 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     get("/", null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
     // Get invalid namespace should return not found
-    get("/namespaces/invalid-namespace", null,
-        Response.Status.NOT_FOUND.getStatusCode(), false);
+    get("/namespaces/invalid-namespace", null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
     // list namespace should return a list of all namespaces
-    String body = get("/namespaces", null,
-        Response.Status.OK.getStatusCode(), true);
-    List<Map<String, String>> namespaceMaps = _mapper.readValue(body,
-        _mapper.getTypeFactory().constructCollectionType(List.class, Map.class));
+    String body = get("/namespaces", null, Response.Status.OK.getStatusCode(), true);
+    List<Map<String, String>> namespaceMaps = _mapper
+        .readValue(body, _mapper.getTypeFactory().constructCollectionType(List.class, Map.class));
     Assert.assertEquals(namespaceMaps.size(), 2);
 
     Set<String> expectedNamespaceNames = new HashSet<>();

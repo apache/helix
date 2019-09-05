@@ -27,8 +27,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BucketDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -43,6 +48,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   private static final String NAME_KEY = TestHelper.getTestClassName();
   private static final String LAST_SUCCESS_KEY = "LAST_SUCCESS";
   private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
+  private static final String WRITE_LOCK_KEY = "WRITE_LOCK";
 
   // Populate list and map fields for content comparison
   private static final List<String> LIST_FIELD = ImmutableList.of("1", "2");
@@ -114,24 +120,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   @Test(dependsOnMethods = "testManyWritesWithVersionCounts")
   public void testLargeWriteAndRead() throws IOException {
     String name = "largeResourceAssignment";
-    HelixProperty property = new HelixProperty(name);
-
-    int numEntries = 100000;
-    for (int i = 0; i < numEntries; i++) {
-      // Create a random string every time
-      byte[] arrayKey = new byte[20];
-      byte[] arrayVal = new byte[20];
-      new Random().nextBytes(arrayKey);
-      new Random().nextBytes(arrayVal);
-      String randomStrKey = new String(arrayKey, StandardCharsets.UTF_8);
-      String randomStrVal = new String(arrayVal, StandardCharsets.UTF_8);
-
-      // Dummy mapField
-      Map<String, String> mapField = new HashMap<>();
-      mapField.put(randomStrKey, randomStrVal);
-
-      property.getRecord().setMapField(randomStrKey, mapField);
-    }
+    HelixProperty property = createLargeHelixProperty(name, 100000);
 
     // Perform large write
     long before = System.currentTimeMillis();
@@ -175,5 +164,57 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     // Check that the children count for version 0 (version for the large write) is 1
     Assert.assertEquals(
         _baseAccessor.getChildNames("/" + name + "/0", AccessOption.PERSISTENT).size(), 1);
+  }
+
+  /**
+   * Test that no concurrent reads and writes are allowed by triggering multiple operations after
+   * creating an artificial lock.
+   * @throws IOException
+   */
+  @Test(dependsOnMethods = "testCleanupBeforeWrite")
+  public void testFailureToAcquireLock() throws Exception {
+    String name = "acquireLock";
+    // Use a large HelixProperty to simulate a write that keeps the lock for some time
+    HelixProperty property = createLargeHelixProperty(name, 100);
+
+    // Artificially create the ephemeral ZNode
+    _baseAccessor.create("/" + name + "/" + WRITE_LOCK_KEY, new ZNRecord(name),
+        AccessOption.EPHEMERAL);
+
+    // Test write
+    try {
+      _bucketDataAccessor.compressedBucketWrite("/" + name, property);
+      Assert.fail("Should fail due to an already-existing lock ZNode!");
+    } catch (HelixException e) {
+      // Expect an exception
+    }
+
+    // Test read
+    try {
+      _bucketDataAccessor.compressedBucketRead("/" + name, HelixProperty.class);
+      Assert.fail("Should fail due to an already-existing lock ZNode!");
+    } catch (HelixException e) {
+      // Expect an exception
+    }
+  }
+
+  private HelixProperty createLargeHelixProperty(String name, int numEntries) {
+    HelixProperty property = new HelixProperty(name);
+    for (int i = 0; i < numEntries; i++) {
+      // Create a random string every time
+      byte[] arrayKey = new byte[20];
+      byte[] arrayVal = new byte[20];
+      new Random().nextBytes(arrayKey);
+      new Random().nextBytes(arrayVal);
+      String randomStrKey = new String(arrayKey, StandardCharsets.UTF_8);
+      String randomStrVal = new String(arrayVal, StandardCharsets.UTF_8);
+
+      // Dummy mapField
+      Map<String, String> mapField = new HashMap<>();
+      mapField.put(randomStrKey, randomStrVal);
+
+      property.getRecord().setMapField(randomStrKey, mapField);
+    }
+    return property;
   }
 }

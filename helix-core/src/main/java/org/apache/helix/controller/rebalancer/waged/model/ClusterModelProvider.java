@@ -19,6 +19,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import org.apache.commons.math.stat.clustering.Cluster;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -196,9 +197,10 @@ public class ClusterModelProvider {
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
       int instanceCount) {
     Map<String, Set<AssignableReplica>> totalReplicaMap = new HashMap<>();
+    ClusterConfig clusterConfig = dataProvider.getClusterConfig();
 
     for (String resourceName : resourceMap.keySet()) {
-      ResourceConfig config = dataProvider.getResourceConfig(resourceName);
+      ResourceConfig resourceConfig = dataProvider.getResourceConfig(resourceName);
       IdealState is = dataProvider.getIdealState(resourceName);
       if (is == null) {
         throw new HelixException(
@@ -220,7 +222,7 @@ public class ClusterModelProvider {
           String state = entry.getKey();
           for (int i = 0; i < entry.getValue(); i++) {
             totalReplicaMap.computeIfAbsent(resourceName, key -> new HashSet<>()).add(
-                new AssignableReplica(config, partition, state,
+                new AssignableReplica(clusterConfig, resourceConfig, partition, state,
                     def.getStatePriorityMap().get(state)));
           }
         }

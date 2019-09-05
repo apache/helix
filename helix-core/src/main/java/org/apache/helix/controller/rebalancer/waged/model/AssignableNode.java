@@ -91,10 +91,21 @@ public class AssignableNode {
       Collection<AssignableReplica> existingAssignment) {
     reset();
 
+    List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
+
     Map<String, Integer> instanceCapacity = instanceConfig.getInstanceCapacityMap();
     if (instanceCapacity.isEmpty()) {
       instanceCapacity = clusterConfig.getDefaultInstanceCapacityMap();
     }
+    // Remove all the non-required capacity items from the map.
+    instanceCapacity.keySet().retainAll(requiredCapacityKeys);
+    // All the required keys must exist in the instance config.
+    if (!instanceCapacity.keySet().containsAll(requiredCapacityKeys)) {
+      throw new HelixException(String.format(
+          "The required capacity keys %s is not fully configured in the instance %s capacity map %s.",
+          requiredCapacityKeys.toString(), _instanceName, instanceCapacity.toString()));
+    }
+
     _currentCapacityMap.putAll(instanceCapacity);
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);
     _instanceTags = new HashSet<>(instanceConfig.getTags());

@@ -104,6 +104,7 @@ public abstract class AbstractTestClusterModel {
     testClusterConfig.setMaxPartitionsPerInstance(5);
     testClusterConfig.setDisabledInstances(Collections.emptyMap());
     testClusterConfig.setTopologyAwareEnabled(false);
+    testClusterConfig.setInstanceCapacityKeys(new ArrayList<>(_capacityDataMap.keySet()));
     when(testCache.getClusterConfig()).thenReturn(testClusterConfig);
 
     // 3. Mock the live instance node for the default instance.
@@ -179,8 +180,8 @@ public abstract class AbstractTestClusterModel {
       ResourceConfig resourceConfig = dataProvider.getResourceConfig(cs.getResourceName());
       // Construct one AssignableReplica for each partition in the current state.
       cs.getPartitionStateMap().entrySet().stream().forEach(entry -> assignmentSet.add(
-          new AssignableReplica(resourceConfig, entry.getKey(), entry.getValue(),
-              entry.getValue().equals("MASTER") ? 1 : 2)));
+          new AssignableReplica(dataProvider.getClusterConfig(), resourceConfig, entry.getKey(),
+              entry.getValue(), entry.getValue().equals("MASTER") ? 1 : 2)));
     }
     return assignmentSet;
   }

@@ -19,14 +19,17 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class TestAssignableReplica {
@@ -38,7 +41,7 @@ public class TestAssignableReplica {
   int slavePriority = 2;
 
   @Test
-  public void testConstructRepliaWithResourceConfig() throws IOException {
+  public void testConstructReplicaWithResourceConfig() throws IOException {
     // Init assignable replica with a basic config object
     Map<String, Integer> capacityDataMapResource1 = new HashMap<>();
     capacityDataMapResource1.put("item1", 3);
@@ -46,11 +49,13 @@ public class TestAssignableReplica {
     ResourceConfig testResourceConfigResource = new ResourceConfig(resourceName);
     testResourceConfigResource.setPartitionCapacityMap(
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMapResource1));
+    ClusterConfig testClusterConfig = new ClusterConfig("testCluster");
+    testClusterConfig.setInstanceCapacityKeys(new ArrayList<>(capacityDataMapResource1.keySet()));
 
     String partitionName = partitionNamePrefix + 1;
     AssignableReplica replica =
-        new AssignableReplica(testResourceConfigResource, partitionName, masterState,
-            masterPriority);
+        new AssignableReplica(testClusterConfig, testResourceConfigResource, partitionName,
+            masterState, masterPriority);
     Assert.assertEquals(replica.getResourceName(), resourceName);
     Assert.assertEquals(replica.getPartitionName(), partitionName);
     Assert.assertEquals(replica.getReplicaState(), masterState);
@@ -79,14 +84,14 @@ public class TestAssignableReplica {
         .setIntField(ResourceConfig.ResourceConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name(),
             maxPartition);
 
-    replica = new AssignableReplica(testResourceConfigResource, partitionName, masterState,
-        masterPriority);
+    replica = new AssignableReplica(testClusterConfig, testResourceConfigResource, partitionName,
+        masterState, masterPriority);
     Assert.assertEquals(replica.getCapacity(), capacityDataMapResource1);
     Assert.assertEquals(replica.getResourceInstanceGroupTag(), group);
     Assert.assertEquals(replica.getResourceMaxPartitionsPerInstance(), maxPartition);
 
-    replica = new AssignableReplica(testResourceConfigResource, partitionName2, slaveState,
-        slavePriority);
+    replica = new AssignableReplica(testClusterConfig, testResourceConfigResource, partitionName2,
+        slaveState, slavePriority);
     Assert.assertEquals(replica.getResourceName(), resourceName);
     Assert.assertEquals(replica.getPartitionName(), partitionName2);
     Assert.assertEquals(replica.getReplicaState(), slaveState);
@@ -95,5 +100,30 @@ public class TestAssignableReplica {
     Assert.assertEquals(replica.getCapacity(), capacityDataMapResource2);
     Assert.assertEquals(replica.getResourceInstanceGroupTag(), group);
     Assert.assertEquals(replica.getResourceMaxPartitionsPerInstance(), maxPartition);
+  }
+
+  @Test
+  public void testIncompletePartitionWeightConfig() throws IOException {
+    // Init assignable replica with a basic config object
+    Map<String, Integer> capacityDataMapResource = new HashMap<>();
+    capacityDataMapResource.put("item1", 3);
+    capacityDataMapResource.put("item2", 6);
+    ResourceConfig testResourceConfigResource = new ResourceConfig(resourceName);
+    testResourceConfigResource.setPartitionCapacityMap(
+        Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMapResource));
+    ClusterConfig testClusterConfig = new ClusterConfig("testCluster");
+    List<String> requiredCapacityKeys = new ArrayList<>(capacityDataMapResource.keySet());
+    // Remove one required key, so it becomes a unnecessary item.
+    String unnecessaryCapacityKey = requiredCapacityKeys.remove(0);
+    // Add one new required key, so it does not exist in the resource config.
+    String newCapacityKey = "newCapacityKey";
+    requiredCapacityKeys.add(newCapacityKey);
+    testClusterConfig.setInstanceCapacityKeys(requiredCapacityKeys);
+
+    AssignableReplica replica = new AssignableReplica(testClusterConfig, testResourceConfigResource,
+        partitionNamePrefix + 1, masterState, masterPriority);
+    Assert.assertTrue(replica.getCapacity().keySet().containsAll(requiredCapacityKeys));
+    Assert.assertEquals(replica.getCapacity().get(newCapacityKey).intValue(),0);
+    Assert.assertFalse(replica.getCapacity().containsKey(unnecessaryCapacityKey));
   }
 }

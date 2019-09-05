@@ -19,10 +19,12 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -40,18 +42,19 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
   private final String _replicaState;
 
   /**
+   * @param clusterConfig  The cluster config.
    * @param resourceConfig The resource config for the resource which contains the replication.
    * @param partitionName  The replication's partition name.
    * @param replicaState   The state of the replication.
    * @param statePriority  The priority of the replication's state.
    */
-  AssignableReplica(ResourceConfig resourceConfig, String partitionName, String replicaState,
+  AssignableReplica(ClusterConfig clusterConfig, ResourceConfig resourceConfig, String partitionName, String replicaState,
       int statePriority) {
     _partitionName = partitionName;
     _replicaState = replicaState;
     _statePriority = statePriority;
     _resourceName = resourceConfig.getResourceName();
-    _capacityUsage = fetchCapacityUsage(partitionName, resourceConfig);
+    _capacityUsage = fetchCapacityUsage(partitionName, resourceConfig, clusterConfig);
     _resourceInstanceGroupTag = resourceConfig.getInstanceGroupTag();
     _resourceMaxPartitionsPerInstance = resourceConfig.getMaxPartitionsPerInstance();
   }
@@ -127,7 +130,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
    * Parse the resource config for the partition weight.
    */
   private Map<String, Integer> fetchCapacityUsage(String partitionName,
-      ResourceConfig resourceConfig) {
+      ResourceConfig resourceConfig, ClusterConfig clusterConfig) {
     Map<String, Map<String, Integer>> capacityMap;
     try {
       capacityMap = resourceConfig.getPartitionCapacityMap();
@@ -146,6 +149,16 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
           "The capacity usage of the specified partition %s is not configured in the Resource Config %s. No default partition capacity is configured neither.",
           partitionName, resourceConfig.getResourceName()));
     }
+
+    List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
+    // Remove the non-required capacity items.
+    partitionCapacity.keySet().retainAll(requiredCapacityKeys);
+    // If any required capacity key is not configured in the resource config, fill the partition
+    // capacity map with 0 usage.
+    for (String capacityKey : requiredCapacityKeys) {
+      partitionCapacity.putIfAbsent(capacityKey, 0);
+    }
+
     return partitionCapacity;
   }
 }

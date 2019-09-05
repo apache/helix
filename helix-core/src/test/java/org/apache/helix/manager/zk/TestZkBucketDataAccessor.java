@@ -27,10 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixException;
@@ -83,6 +79,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     Assert.assertEquals(readRecord.getRecord().getSimpleField(NAME_KEY), NAME_KEY);
     Assert.assertEquals(readRecord.getRecord().getListField(NAME_KEY), LIST_FIELD);
     Assert.assertEquals(readRecord.getRecord().getMapField(NAME_KEY), MAP_FIELD);
+    _bucketDataAccessor.compressedBucketDelete(PATH);
   }
 
   /**
@@ -112,6 +109,9 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     // Check that last successful index is 4 (since we did 10 writes)
     ZNRecord metadata = _baseAccessor.get(path, null, AccessOption.PERSISTENT);
     Assert.assertEquals(metadata.getIntField(LAST_SUCCESS_KEY, -1), expectedLastSuccessfulIndex);
+
+    // Clean up
+    bucketDataAccessor.compressedBucketDelete(path);
   }
 
   /**
@@ -164,6 +164,9 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     // Check that the children count for version 0 (version for the large write) is 1
     Assert.assertEquals(
         _baseAccessor.getChildNames("/" + name + "/0", AccessOption.PERSISTENT).size(), 1);
+
+    // Clean up
+    _bucketDataAccessor.compressedBucketDelete("/" + name);
   }
 
   /**
@@ -196,6 +199,9 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     } catch (HelixException e) {
       // Expect an exception
     }
+
+    // Clean up
+    _bucketDataAccessor.compressedBucketDelete("/" + name);
   }
 
   private HelixProperty createLargeHelixProperty(String name, int numEntries) {

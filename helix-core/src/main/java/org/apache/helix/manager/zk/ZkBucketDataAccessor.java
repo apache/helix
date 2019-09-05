@@ -187,6 +187,13 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     return helixPropertySubType.cast(compressedBucketRead(path));
   }
 
+  @Override
+  public void compressedBucketDelete(String path) {
+    if (!_zkBaseDataAccessor.remove(path, AccessOption.PERSISTENT)) {
+      throw new HelixException(String.format("Failed to delete the bucket data! Path: %s", path));
+    }
+  }
+
   private HelixProperty compressedBucketRead(String path) {
     // TODO: Incorporate parallelism into reads instead of locking the whole thing against other
     // reads and writes

@@ -39,4 +39,10 @@ public interface BucketDataAccessor {
    */
   <T extends HelixProperty> HelixProperty compressedBucketRead(String path,
       Class<T> helixPropertySubType);
+
+  /**
+   * Delete the HelixProperty in the given path.
+   * @param path
+   */
+  void compressedBucketDelete(String path);
 }

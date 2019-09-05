@@ -70,8 +70,17 @@ abstract class SoftConstraint {
    * Evaluate and give a score for an potential assignment partition -> instance
    * @return The score of the assignment in float value
    */
-  abstract float evaluateAssignment(AssignableNode node, AssignableReplica replica,
+  abstract float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
+
+  /**
+   * Evaluate and give a score for an potential assignment partition -> instance
+   * @return The score is normalized to be within MinScore and MaxScore
+   */
+  float getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext) {
+    return getScalerFunction().scale(getAssignmentScore(node, replica, clusterContext));
+  }
 
   /**
    * The default scaler function that squashes any score within (min_score, max_score) to (0, 1);

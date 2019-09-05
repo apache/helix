@@ -48,9 +48,8 @@ class SoftConstraintWeightModel {
     float sum = 0;
     for (Map.Entry<SoftConstraint, Float> softConstraintScoreEntry : originScoresMap.entrySet()) {
       SoftConstraint softConstraint = softConstraintScoreEntry.getKey();
-      float score = softConstraint.getScalerFunction().scale(softConstraintScoreEntry.getValue());
       float weight = MODEL.get(softConstraint);
-      sum += score * weight;
+      sum += softConstraintScoreEntry.getValue() * weight;
     }
 
     return sum;

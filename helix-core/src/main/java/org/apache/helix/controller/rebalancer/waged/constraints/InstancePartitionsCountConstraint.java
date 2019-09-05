@@ -25,7 +25,7 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 
 /**
- * Evaluate by instance's current partition count and estimated max partition count
+ * Evaluate by instance's current partition count versus estimated max partition count
  */
 class InstancePartitionsCountConstraint extends SoftConstraint {
 
@@ -37,7 +37,7 @@ class InstancePartitionsCountConstraint extends SoftConstraint {
   }
 
   @Override
-  float evaluateAssignment(AssignableNode node, AssignableReplica replica, ClusterContext clusterContext) {
+  float getAssignmentScore(AssignableNode node, AssignableReplica replica, ClusterContext clusterContext) {
     int estimatedMaxPartitionCount = clusterContext.getEstimatedMaxPartitionCount();
     int currentPartitionCount = node.getAssignedReplicaCount();
     // When the node is idle, return with the maxScore.

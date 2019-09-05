@@ -1,0 +1,58 @@
+{
+  "id": "testCluster",
+  "zone": [
+    {
+      "id": "zone0",
+      "instances": [
+        {
+          "id": "instance0",
+          "capacity": {
+            "weight": 1000
+          },
+          "partitions": [
+            {
+              "id": "partition0",
+              "capacity": {
+                "weight": 100
+              },
+              "state": "Master",
+              "resource": "TestDB"
+            },
+            {
+              "id": "partition1",
+              "capacity": {
+                "weight": 300
+              },
+              "state": "Slave",
+              "resource": "TestDB"
+            }
+          ]
+        },
+        {
+          "id": "instance1",
+          "capacity": {
+            "weight": 1000
+          },
+          "partitions": [
+            {
+              "id": "partition0",
+              "capacity": {
+                "weight": 100
+              },
+              "state": "Slave",
+              "resource": "TestDB"
+            },
+            {
+              "id": "partition1",
+              "capacity": {
+                "weight": 300
+              },
+              "state": "Master",
+              "resource": "TestDB"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

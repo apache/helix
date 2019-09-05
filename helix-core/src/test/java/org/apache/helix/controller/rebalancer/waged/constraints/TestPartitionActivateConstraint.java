@@ -39,7 +39,7 @@ public class TestPartitionActivateConstraint {
   private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
   private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
   private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
-  private final HardConstraint _constraint = new PartitionActivateConstraint();
+  private final HardConstraint _constraint = new ReplicaActivateConstraint();
 
   @Test
   public void testConstraintValid() {

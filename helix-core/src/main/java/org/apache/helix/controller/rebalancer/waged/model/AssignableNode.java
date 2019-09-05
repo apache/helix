@@ -196,7 +196,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   /**
    * @return The total count of assigned replicas.
    */
-  public long getAssignedReplicaCount() {
+  public int getAssignedReplicaCount() {
     return _currentAssignedReplicaMap.values().stream().mapToInt(Map::size).sum();
   }
 

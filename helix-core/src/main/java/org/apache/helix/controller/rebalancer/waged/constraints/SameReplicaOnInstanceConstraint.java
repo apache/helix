@@ -28,7 +28,7 @@ class SameReplicaOnInstanceConstraint extends HardConstraint {
   @Override
   boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    return !node.getCurrentAssignmentsByResource(replica.getResourceName())
+    return !node.getAssignedPartitionsByResource(replica.getResourceName())
         .contains(replica.getPartitionName());
   }
 

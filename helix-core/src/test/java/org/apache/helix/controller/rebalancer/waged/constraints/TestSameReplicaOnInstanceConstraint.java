@@ -30,7 +30,7 @@ import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableSet;
 
-public class TestReplicaAntiAffinityConstraint {
+public class TestSameReplicaOnInstanceConstraint {
   private static final String TEST_RESOURCE = "TestResource";
   private static final String TEST_PARTITIOIN = TEST_RESOURCE + "0";
   private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
@@ -40,7 +40,7 @@ public class TestReplicaAntiAffinityConstraint {
 
   @Test
   public void testConstraintValid() {
-    when(_testNode.getCurrentAssignmentsByResource(TEST_RESOURCE))
+    when(_testNode.getAssignedPartitionsByResource(TEST_RESOURCE))
         .thenReturn(ImmutableSet.of("dummy"));
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITIOIN);
@@ -50,7 +50,7 @@ public class TestReplicaAntiAffinityConstraint {
 
   @Test
   public void testConstraintInValid() {
-    when(_testNode.getCurrentAssignmentsByResource(TEST_RESOURCE))
+    when(_testNode.getAssignedPartitionsByResource(TEST_RESOURCE))
         .thenReturn(ImmutableSet.of(TEST_PARTITIOIN));
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testReplica.getPartitionName()).thenReturn(TEST_PARTITIOIN);

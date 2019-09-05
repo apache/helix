@@ -19,13 +19,13 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.ResourceConfig;
-import org.apache.helix.model.StateModelDefinition;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.model.StateModelDefinition;
 
 /**
  * This class represents a partition replication that needs to be allocated.
@@ -48,8 +48,8 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
    * @param replicaState   The state of the replication.
    * @param statePriority  The priority of the replication's state.
    */
-  AssignableReplica(ClusterConfig clusterConfig, ResourceConfig resourceConfig, String partitionName, String replicaState,
-      int statePriority) {
+  AssignableReplica(ClusterConfig clusterConfig, ResourceConfig resourceConfig,
+      String partitionName, String replicaState, int statePriority) {
     _partitionName = partitionName;
     _replicaState = replicaState;
     _statePriority = statePriority;

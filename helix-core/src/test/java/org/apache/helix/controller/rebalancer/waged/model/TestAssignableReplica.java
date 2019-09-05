@@ -19,18 +19,18 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.ResourceConfig;
-import org.apache.helix.model.StateModelDefinition;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.model.StateModelDefinition;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 public class TestAssignableReplica {
   String resourceName = "Resource";
@@ -123,7 +123,7 @@ public class TestAssignableReplica {
     AssignableReplica replica = new AssignableReplica(testClusterConfig, testResourceConfigResource,
         partitionNamePrefix + 1, masterState, masterPriority);
     Assert.assertTrue(replica.getCapacity().keySet().containsAll(requiredCapacityKeys));
-    Assert.assertEquals(replica.getCapacity().get(newCapacityKey).intValue(),0);
+    Assert.assertEquals(replica.getCapacity().get(newCapacityKey).intValue(), 0);
     Assert.assertFalse(replica.getCapacity().containsKey(unnecessaryCapacityKey));
   }
 }

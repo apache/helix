@@ -29,20 +29,17 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestInstancePartitionsCountConstraint {
-  private static final float MAX_SCORE = 1f;
-  private static final float MIN_SCORE = -1f;
   private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
   private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
   private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
 
-  private final SoftConstraint _constraint =
-      new InstancePartitionsCountConstraint(MAX_SCORE, MIN_SCORE);
+  private final SoftConstraint _constraint = new InstancePartitionsCountConstraint();
 
   @Test
   public void testWhenInstanceIsIdle() {
     when(_testNode.getAssignedReplicaCount()).thenReturn(0);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, MAX_SCORE);
+    Assert.assertEquals(score, _constraint.getMaxScore());
   }
 
   @Test
@@ -50,7 +47,7 @@ public class TestInstancePartitionsCountConstraint {
     when(_testNode.getAssignedReplicaCount()).thenReturn(10);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, MIN_SCORE);
+    Assert.assertEquals(score, _constraint.getMinScore());
   }
 
   @Test

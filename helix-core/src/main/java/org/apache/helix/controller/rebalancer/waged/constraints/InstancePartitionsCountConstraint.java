@@ -23,33 +23,26 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
-
 /**
  * Evaluate by instance's current partition count versus estimated max partition count
+ * Intuitively, Encourage the assignment if the node's occupancy rate is below average;
+ * Discourage the assignment if the node's occupancy rate is above average
  */
 class InstancePartitionsCountConstraint extends SoftConstraint {
+  private static final float MIN_SCORE = 0;
+  private static final float MAX_SCORE = 1;
 
   InstancePartitionsCountConstraint() {
-  }
-
-  InstancePartitionsCountConstraint(float maxScore, float minScore) {
-    super(maxScore, minScore);
+    super(MAX_SCORE, MIN_SCORE);
   }
 
   @Override
-  float getAssignmentScore(AssignableNode node, AssignableReplica replica, ClusterContext clusterContext) {
+  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext) {
     int estimatedMaxPartitionCount = clusterContext.getEstimatedMaxPartitionCount();
     int currentPartitionCount = node.getAssignedReplicaCount();
-    // When the node is idle, return with the maxScore.
-    if (currentPartitionCount == 0) {
-      return getMaxScore();
-    }
-    //When the node usage reaches the estimated max partition, return minimal score
-    if (currentPartitionCount >= estimatedMaxPartitionCount) {
-      return getMinScore();
-    }
 
-    // Return the usage percentage by estimation
-    return (estimatedMaxPartitionCount - currentPartitionCount) / (float) estimatedMaxPartitionCount;
+    return (estimatedMaxPartitionCount - currentPartitionCount)
+        / (float) estimatedMaxPartitionCount;
   }
 }

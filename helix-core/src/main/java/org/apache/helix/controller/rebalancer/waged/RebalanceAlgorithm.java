@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.waged.constraints;
+package org.apache.helix.controller.rebalancer.waged;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -9,7 +9,7 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,26 +19,25 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
+import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
-import org.apache.helix.model.ResourceAssignment;
-
-import java.util.Map;
+import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
 
 /**
- * A generic rebalance algorithm interface for the WAGED rebalancer.
+ * A generic interface to generate the optimal assignment given the runtime cluster environment.
  *
- * @see <a href="Rebalance Algorithm">https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer#rebalance-algorithm-adapter</a>
+ * <pre>
+ * @see <a href="https://github.com/apache/helix/wiki/
+ * Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer
+ * #rebalance-algorithm-adapter">Rebalance Algorithm</a>
+ * </pre>
  */
 public interface RebalanceAlgorithm {
 
   /**
    * Rebalance the Helix resource partitions based on the input cluster model.
-   *
-   * @param clusterModel
-   * @param failureReasons Return the failures <ResourceName, <FailureReason, Count>> that happen during the rebalance calculation.
-   *                       If the map is null, no failure will be returned.
-   * @return A map of <ResourceName, ResourceAssignment>.
+   * @param clusterModel The run time cluster model that contains all necessary information
+   * @return An instance of {@link OptimalAssignment}
    */
-  Map<String, ResourceAssignment> rebalance(ClusterModel clusterModel,
-      Map<String, Map<HardConstraint, Integer>> failureReasons);
+  OptimalAssignment calculate(ClusterModel clusterModel) throws HelixRebalanceException;
 }

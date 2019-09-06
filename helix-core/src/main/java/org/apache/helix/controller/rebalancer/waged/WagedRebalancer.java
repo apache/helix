@@ -19,22 +19,21 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
-import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintsRebalanceAlgorithm;
-import org.apache.helix.controller.rebalancer.waged.constraints.RebalanceAlgorithm;
+import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintBasedAlgorithmFactory;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * A placeholder before we have the implementation.
@@ -69,8 +68,8 @@ public class WagedRebalancer {
   public WagedRebalancer(HelixManager helixManager) {
     // TODO init the metadata store according to their requirement when integrate, or change to final static method if possible.
     _assignmentMetadataStore = new AssignmentMetadataStore();
-    // TODO init the algorithm according to the requirement when integrate.
-    _rebalanceAlgorithm = new ConstraintsRebalanceAlgorithm();
+    // TODO parse the cluster setting
+    _rebalanceAlgorithm = ConstraintBasedAlgorithmFactory.getInstance();
 
     // Use the mapping calculator in DelayedAutoRebalancer for calculating the final assignment
     // output.

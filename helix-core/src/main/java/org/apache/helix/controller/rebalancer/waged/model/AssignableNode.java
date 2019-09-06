@@ -91,21 +91,7 @@ public class AssignableNode {
       Collection<AssignableReplica> existingAssignment) {
     reset();
 
-    List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
-
-    Map<String, Integer> instanceCapacity = instanceConfig.getInstanceCapacityMap();
-    if (instanceCapacity.isEmpty()) {
-      instanceCapacity = clusterConfig.getDefaultInstanceCapacityMap();
-    }
-    // Remove all the non-required capacity items from the map.
-    instanceCapacity.keySet().retainAll(requiredCapacityKeys);
-    // All the required keys must exist in the instance config.
-    if (!instanceCapacity.keySet().containsAll(requiredCapacityKeys)) {
-      throw new HelixException(String.format(
-          "The required capacity keys %s is not fully configured in the instance %s capacity map %s.",
-          requiredCapacityKeys.toString(), _instanceName, instanceCapacity.toString()));
-    }
-
+    Map<String, Integer> instanceCapacity = fetchInstanceCapacity(clusterConfig, instanceConfig);
     _currentCapacityMap.putAll(instanceCapacity);
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);
     _instanceTags = new HashSet<>(instanceConfig.getTags());
@@ -369,6 +355,29 @@ public class AssignableNode {
     }
     // else if the capacityKey does not exist in the capacity map, this method essentially becomes
     // a NOP; in other words, this node will be treated as if it has unlimited capacity.
+  }
+
+  /**
+   * Get and validate the instance capacity from instance config.
+   *
+   * @throws HelixException if any required capacity key is not configured in the instance config.
+   */
+  private Map<String, Integer> fetchInstanceCapacity(ClusterConfig clusterConfig,
+      InstanceConfig instanceConfig) {
+    List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
+    Map<String, Integer> instanceCapacity = instanceConfig.getInstanceCapacityMap();
+    if (instanceCapacity.isEmpty()) {
+      instanceCapacity = clusterConfig.getDefaultInstanceCapacityMap();
+    }
+    // Remove all the non-required capacity items from the map.
+    instanceCapacity.keySet().retainAll(requiredCapacityKeys);
+    // All the required keys must exist in the instance config.
+    if (!instanceCapacity.keySet().containsAll(requiredCapacityKeys)) {
+      throw new HelixException(String.format(
+          "The required capacity keys %s are not fully configured in the instance %s capacity map %s.",
+          requiredCapacityKeys.toString(), _instanceName, instanceCapacity.toString()));
+    }
+    return instanceCapacity;
   }
 
   @Override

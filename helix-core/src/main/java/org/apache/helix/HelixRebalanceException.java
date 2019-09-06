@@ -23,21 +23,26 @@ package org.apache.helix;
  * Exception thrown by Helix due to rebalance failures.
  */
 public class HelixRebalanceException extends Exception {
-  enum RebalanceFailureType {
+  public enum Type {
     INVALID_CLUSTER_STATUS,
     INVALID_REBALANCER_STATUS,
     FAILED_TO_CALCULATE,
     UNKNOWN_FAILURE
   }
 
-  private final RebalanceFailureType _type;
+  private final Type _type;
 
-  public HelixRebalanceException(String message, RebalanceFailureType type, Throwable cause) {
+  public HelixRebalanceException(String message, Type type, Throwable cause) {
     super(String.format("%s. Failure Type: %s", message, type.name()), cause);
     _type = type;
   }
 
-  public RebalanceFailureType getFailureType() {
+  public HelixRebalanceException(String message, Type type) {
+    super(String.format("%s. Failure Type: %s", message, type.name()));
+    _type = type;
+  }
+
+  public Type getFailureType() {
     return _type;
   }
 }

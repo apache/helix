@@ -39,7 +39,7 @@ import org.apache.helix.util.GZipCompressionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZkBucketDataAccessor implements BucketDataAccessor {
+public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private static Logger LOG = LoggerFactory.getLogger(ZkBucketDataAccessor.class);
 
   private static final int DEFAULT_NUM_VERSIONS = 2;
@@ -196,6 +196,9 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     }
   }
 
+  /**
+   *
+   */
   @Override
   public void disconnect() {
     if (!_zkClient.isClosed()) {
@@ -317,5 +320,10 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     // TODO: Consider two possible improvements
     // TODO: 1. Use ephemeral owner id for the same connection to reclaim the lock
     // TODO: 2. Use "lease" - lock with a timeout
+  }
+
+  @Override
+  public void close() throws Exception {
+    disconnect();
   }
 }

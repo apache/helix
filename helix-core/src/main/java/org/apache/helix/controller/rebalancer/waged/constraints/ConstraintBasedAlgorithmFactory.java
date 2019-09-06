@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
+import org.apache.helix.model.ClusterConfig;
 
 public class ConstraintBasedAlgorithmFactory {
 

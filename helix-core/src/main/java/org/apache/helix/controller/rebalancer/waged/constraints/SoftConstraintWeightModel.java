@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 /**
  * The class retrieves the offline model that defines the relative importance of soft constraints.
  */
-public class SoftConstraintWeightModel {
+class SoftConstraintWeightModel {
   private static Map<? extends SoftConstraint, Float> MODEL;
 
   // TODO either define the weights in property files or zookeeper node or static human input

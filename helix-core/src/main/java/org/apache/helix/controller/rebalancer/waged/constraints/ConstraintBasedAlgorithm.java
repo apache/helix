@@ -50,13 +50,13 @@ import com.google.common.collect.Maps;
  * The goal is to accumulate the most points(rewards) from "soft constraints" while avoiding any
  * "hard constraints"
  */
-public class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
+class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private static final Logger LOG = LoggerFactory.getLogger(ConstraintBasedAlgorithm.class);
   private final List<HardConstraint> _hardConstraints;
   private final List<SoftConstraint> _softConstraints;
   private final SoftConstraintWeightModel _softConstraintsWeightModel;
 
-  public ConstraintBasedAlgorithm(List<HardConstraint> hardConstraints,
+  ConstraintBasedAlgorithm(List<HardConstraint> hardConstraints,
       List<SoftConstraint> softConstraints, SoftConstraintWeightModel softConstraintWeightModel) {
     _hardConstraints = hardConstraints;
     _softConstraints = softConstraints;
@@ -80,7 +80,6 @@ public class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           String errorMessage = String.format(
               "Unable to find any available candidate node for partition %s; Fail reasons: %s",
               replica.getPartitionName(), optimalAssignment.getFailures());
-          LOG.error(errorMessage);
           throw new HelixRebalanceException(errorMessage,
               HelixRebalanceException.Type.FAILED_TO_CALCULATE);
         }

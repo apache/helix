@@ -35,6 +35,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -55,6 +56,11 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   @BeforeClass
   public void beforeClass() {
     _bucketDataAccessor = new ZkBucketDataAccessor(ZK_ADDR);
+  }
+
+  @AfterClass
+  public void afterClass() {
+    _bucketDataAccessor.disconnect();
   }
 
   /**
@@ -112,6 +118,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
     // Clean up
     bucketDataAccessor.compressedBucketDelete(path);
+    bucketDataAccessor.disconnect();
   }
 
   /**

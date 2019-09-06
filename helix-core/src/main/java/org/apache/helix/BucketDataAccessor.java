@@ -45,4 +45,9 @@ public interface BucketDataAccessor {
    * @param path
    */
   void compressedBucketDelete(String path);
+
+  /**
+   * Close the connection to the metadata store.
+   */
+  void disconnect();
 }

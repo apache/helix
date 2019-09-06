@@ -53,6 +53,8 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
   private final int _bucketSize;
   private final int _numVersions;
   private ZkSerializer _zkSerializer;
+  private HelixZkClient _zkClient;
+  private HelixZkClient _znRecordClient;
   private BaseDataAccessor _zkBaseDataAccessor;
   private BaseDataAccessor<ZNRecord> _znRecordBaseDataAccessor;
 
@@ -66,9 +68,9 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     // There are two HelixZkClients:
     // 1. _zkBaseDataAccessor for writes of binary data
     // 2. _znRecordBaseDataAccessor for writes of ZNRecord (metadata)
-    HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
+    _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
-    zkClient.setZkSerializer(new ZkSerializer() {
+    _zkClient.setZkSerializer(new ZkSerializer() {
       @Override
       public byte[] serialize(Object data) throws ZkMarshallingError {
         if (data instanceof byte[]) {
@@ -82,16 +84,16 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
         return data;
       }
     });
-    _zkBaseDataAccessor = new ZkBaseDataAccessor(zkClient);
+    _zkBaseDataAccessor = new ZkBaseDataAccessor(_zkClient);
 
     // TODO: Optimize serialization with Jackson
     // TODO: Or use a better binary serialization protocol
     // TODO: Consider making this also binary
     // TODO: Consider an async write for the metadata as well
-    HelixZkClient znRecordClient = SharedZkClientFactory.getInstance()
+    _znRecordClient = SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
-    _znRecordBaseDataAccessor = new ZkBaseDataAccessor<>(znRecordClient);
-    znRecordClient.setZkSerializer(new ZNRecordSerializer());
+    _znRecordBaseDataAccessor = new ZkBaseDataAccessor<>(_znRecordClient);
+    _znRecordClient.setZkSerializer(new ZNRecordSerializer());
 
     _zkSerializer = new ZNRecordJacksonSerializer();
     _bucketSize = bucketSize;
@@ -191,6 +193,16 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
   public void compressedBucketDelete(String path) {
     if (!_zkBaseDataAccessor.remove(path, AccessOption.PERSISTENT)) {
       throw new HelixException(String.format("Failed to delete the bucket data! Path: %s", path));
+    }
+  }
+
+  @Override
+  public void disconnect() {
+    if (!_zkClient.isClosed()) {
+      _zkClient.close();
+    }
+    if (!_znRecordClient.isClosed()) {
+      _znRecordClient.close();
     }
   }
 
@@ -301,5 +313,9 @@ public class ZkBucketDataAccessor implements BucketDataAccessor {
     if (!_zkBaseDataAccessor.remove(path + "/" + WRITE_LOCK_KEY, AccessOption.EPHEMERAL)) {
       throw new HelixException(String.format("Could not remove ephemeral node for path: %s", path));
     }
+    // TODO: In case of remove failure, we risk a lock never getting released.
+    // TODO: Consider two possible improvements
+    // TODO: 1. Use ephemeral owner id for the same connection to reclaim the lock
+    // TODO: 2. Use "lease" - lock with a timeout
   }
 }

@@ -19,15 +19,12 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.io.IOException;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * ZNRecordJacksonSerializer serializes ZNRecord objects into a byte array using MessagePack's
@@ -46,7 +43,7 @@ public class ZNRecordJacksonSerializer implements ZkSerializer {
 
     try {
       return OBJECT_MAPPER.writeValueAsBytes(znRecord);
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw new HelixException(
           String.format("Exception during serialization. ZNRecord id: %s", znRecord.getId()), e);
     }
@@ -62,7 +59,7 @@ public class ZNRecordJacksonSerializer implements ZkSerializer {
     ZNRecord record;
     try {
       record = OBJECT_MAPPER.readValue(bytes, ZNRecord.class);
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw new HelixException("Exception during deserialization!", e);
     }
     return record;

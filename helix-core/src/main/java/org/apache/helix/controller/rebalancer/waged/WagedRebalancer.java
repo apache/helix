@@ -69,7 +69,7 @@ public class WagedRebalancer {
     // TODO init the metadata store according to their requirement when integrate, or change to final static method if possible.
     _assignmentMetadataStore = new AssignmentMetadataStore();
     // TODO parse the cluster setting
-    _rebalanceAlgorithm = ConstraintBasedAlgorithmFactory.getInstance(0, 0);
+    _rebalanceAlgorithm = ConstraintBasedAlgorithmFactory.getInstance();
 
     // Use the mapping calculator in DelayedAutoRebalancer for calculating the final assignment
     // output.

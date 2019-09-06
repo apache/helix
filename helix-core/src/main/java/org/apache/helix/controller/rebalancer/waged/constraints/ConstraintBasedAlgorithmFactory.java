@@ -29,7 +29,7 @@ public class ConstraintBasedAlgorithmFactory {
 
   // TODO: the parameter comes from cluster config, will tune how these 2 integers will change the
   // soft constraint weight model
-  public static RebalanceAlgorithm getInstance(int evennessPreference, int movementsPreference) {
+  public static RebalanceAlgorithm getInstance() {
     // TODO initialize constraints, depending on constraints implementations PRs
     List<HardConstraint> hardConstraints = new ArrayList<>();
     List<SoftConstraint> softConstraints = new ArrayList<>();

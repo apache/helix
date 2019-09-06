@@ -196,9 +196,6 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     }
   }
 
-  /**
-   *
-   */
   @Override
   public void disconnect() {
     if (!_zkClient.isClosed()) {

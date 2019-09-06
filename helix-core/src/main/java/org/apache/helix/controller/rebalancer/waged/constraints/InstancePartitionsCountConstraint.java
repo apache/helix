@@ -42,7 +42,10 @@ class InstancePartitionsCountConstraint extends SoftConstraint {
     int estimatedMaxPartitionCount = clusterContext.getEstimatedMaxPartitionCount();
     int currentPartitionCount = node.getAssignedReplicaCount();
 
-    return (estimatedMaxPartitionCount - currentPartitionCount)
-        / (float) estimatedMaxPartitionCount;
+    if (currentPartitionCount == 0) {
+      return estimatedMaxPartitionCount;
+    }
+
+    return estimatedMaxPartitionCount / (float) currentPartitionCount;
   }
 }

@@ -19,6 +19,16 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
@@ -26,14 +36,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 import static org.mockito.Mockito.when;
 
@@ -87,9 +89,8 @@ public class TestAssignableNode extends AbstractTestClusterModel {
         expectedTopStateAssignmentSet1.size() + expectedTopStateAssignmentSet2.size());
 
     // Test 2 - release assignment from the AssignableNode
-    AssignableReplica removingReplica =
-        new AssignableReplica(testCache.getResourceConfig(_resourceNames.get(1)),
-            _partitionNames.get(2), "MASTER", 1);
+    AssignableReplica removingReplica = new AssignableReplica(testCache.getClusterConfig(),
+        testCache.getResourceConfig(_resourceNames.get(1)), _partitionNames.get(2), "MASTER", 1);
     expectedAssignment.get(_resourceNames.get(1)).remove(_partitionNames.get(2));
     expectedCapacityMap.put("item1", 9);
     expectedCapacityMap.put("item2", 18);
@@ -128,9 +129,8 @@ public class TestAssignableNode extends AbstractTestClusterModel {
         expectedTopStateAssignmentSet1.size() + expectedTopStateAssignmentSet2.size());
 
     // Test 3 - add assignment to the AssignableNode
-    AssignableReplica addingReplica =
-        new AssignableReplica(testCache.getResourceConfig(_resourceNames.get(1)),
-            _partitionNames.get(2), "SLAVE", 2);
+    AssignableReplica addingReplica = new AssignableReplica(testCache.getClusterConfig(),
+        testCache.getResourceConfig(_resourceNames.get(1)), _partitionNames.get(2), "SLAVE", 2);
     expectedAssignment.get(_resourceNames.get(1)).add(_partitionNames.get(2));
     expectedCapacityMap.put("item1", 4);
     expectedCapacityMap.put("item2", 8);
@@ -169,9 +169,9 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
         testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId,
         Collections.emptyList());
-    AssignableReplica removingReplica =
-        new AssignableReplica(testCache.getResourceConfig(_resourceNames.get(1)),
-            _partitionNames.get(2) + "non-exist", "MASTER", 1);
+    AssignableReplica removingReplica = new AssignableReplica(testCache.getClusterConfig(),
+        testCache.getResourceConfig(_resourceNames.get(1)), _partitionNames.get(2) + "non-exist",
+        "MASTER", 1);
 
     // Release shall pass.
     assignableNode.release(removingReplica);
@@ -184,9 +184,8 @@ public class TestAssignableNode extends AbstractTestClusterModel {
 
     AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
         testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId, assignmentSet);
-    AssignableReplica duplicateReplica =
-        new AssignableReplica(testCache.getResourceConfig(_resourceNames.get(0)),
-            _partitionNames.get(0), "SLAVE", 2);
+    AssignableReplica duplicateReplica = new AssignableReplica(testCache.getClusterConfig(),
+        testCache.getResourceConfig(_resourceNames.get(0)), _partitionNames.get(0), "SLAVE", 2);
     assignableNode.assign(duplicateReplica);
   }
 
@@ -263,5 +262,19 @@ public class TestAssignableNode extends AbstractTestClusterModel {
         new AssignableNode(testClusterConfig, testInstanceConfig, _testInstanceId,
             Collections.emptyList());
     Assert.assertEquals(assignableNode.getMaxCapacity(), _capacityDataMap);
+  }
+
+  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "The required capacity keys \\[item2, item1, item3, AdditionalCapacityKey\\] are not fully configured in the instance testInstanceId capacity map \\{item2=40, item1=20, item3=30\\}.")
+  public void testIncompleteInstanceCapacity() {
+    ClusterConfig testClusterConfig = new ClusterConfig("testClusterConfigId");
+    List<String> requiredCapacityKeys = new ArrayList<>(_capacityDataMap.keySet());
+    requiredCapacityKeys.add("AdditionalCapacityKey");
+    testClusterConfig.setInstanceCapacityKeys(requiredCapacityKeys);
+
+    InstanceConfig testInstanceConfig = new InstanceConfig("testInstanceConfigId");
+    testInstanceConfig.setInstanceCapacityMap(_capacityDataMap);
+
+    new AssignableNode(testClusterConfig, testInstanceConfig, _testInstanceId,
+        Collections.emptyList());
   }
 }

@@ -19,12 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import org.apache.helix.HelixException;
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.InstanceConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.helix.HelixException;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.InstanceConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.lang.Math.max;
 
@@ -91,10 +91,7 @@ public class AssignableNode {
       Collection<AssignableReplica> existingAssignment) {
     reset();
 
-    Map<String, Integer> instanceCapacity = instanceConfig.getInstanceCapacityMap();
-    if (instanceCapacity.isEmpty()) {
-      instanceCapacity = clusterConfig.getDefaultInstanceCapacityMap();
-    }
+    Map<String, Integer> instanceCapacity = fetchInstanceCapacity(clusterConfig, instanceConfig);
     _currentCapacityMap.putAll(instanceCapacity);
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);
     _instanceTags = new HashSet<>(instanceConfig.getTags());
@@ -213,6 +210,7 @@ public class AssignableNode {
    * The method dynamically returns the highest utilization number among all the capacity categories.
    * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}. Then this call shall
    * return 0.9.
+   *
    * @return The highest utilization number of the node among all the capacity category.
    */
   public float getHighestCapacityUtilization() {
@@ -357,6 +355,29 @@ public class AssignableNode {
     }
     // else if the capacityKey does not exist in the capacity map, this method essentially becomes
     // a NOP; in other words, this node will be treated as if it has unlimited capacity.
+  }
+
+  /**
+   * Get and validate the instance capacity from instance config.
+   *
+   * @throws HelixException if any required capacity key is not configured in the instance config.
+   */
+  private Map<String, Integer> fetchInstanceCapacity(ClusterConfig clusterConfig,
+      InstanceConfig instanceConfig) {
+    List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
+    Map<String, Integer> instanceCapacity = instanceConfig.getInstanceCapacityMap();
+    if (instanceCapacity.isEmpty()) {
+      instanceCapacity = clusterConfig.getDefaultInstanceCapacityMap();
+    }
+    // Remove all the non-required capacity items from the map.
+    instanceCapacity.keySet().retainAll(requiredCapacityKeys);
+    // All the required keys must exist in the instance config.
+    if (!instanceCapacity.keySet().containsAll(requiredCapacityKeys)) {
+      throw new HelixException(String.format(
+          "The required capacity keys %s are not fully configured in the instance %s capacity map %s.",
+          requiredCapacityKeys.toString(), _instanceName, instanceCapacity.toString()));
+    }
+    return instanceCapacity;
   }
 
   @Override

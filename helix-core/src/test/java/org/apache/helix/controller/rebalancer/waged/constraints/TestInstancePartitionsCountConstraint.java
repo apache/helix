@@ -33,7 +33,7 @@ public class TestInstancePartitionsCountConstraint {
   private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
   private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
 
-  private final SoftConstraint _constraint = new InstancePartitionsCountConstraint();
+  private final SoftConstraint _constraint = new InstancePartitionsCountConstraint(100);
 
   @Test
   public void testWhenInstanceIsIdle() {

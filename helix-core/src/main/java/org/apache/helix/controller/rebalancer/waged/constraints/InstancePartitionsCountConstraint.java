@@ -25,15 +25,14 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
  * Evaluate by instance's current partition count versus estimated max partition count
- * Intuitively, Encourage the assignment if the node's occupancy rate is below average;
- * Discourage the assignment if the node's occupancy rate is above average
+ * Intuitively, Encourage the assignment if the instance's occupancy rate is below average;
+ * Discourage the assignment if the instance's occupancy rate is above average
  */
 class InstancePartitionsCountConstraint extends SoftConstraint {
   private static final float MIN_SCORE = 0;
-  private static final float MAX_SCORE = 1;
 
-  InstancePartitionsCountConstraint() {
-    super(MAX_SCORE, MIN_SCORE);
+  InstancePartitionsCountConstraint(int maxPossiblePartitionsNumber) {
+    super(maxPossiblePartitionsNumber, MIN_SCORE);
   }
 
   @Override
@@ -43,9 +42,14 @@ class InstancePartitionsCountConstraint extends SoftConstraint {
     int currentPartitionCount = node.getAssignedReplicaCount();
 
     if (currentPartitionCount == 0) {
-      return estimatedMaxPartitionCount;
+      return getMaxScore();
     }
 
     return estimatedMaxPartitionCount / (float) currentPartitionCount;
+  }
+
+  @Override
+  ScalerFunction getScalerFunction() {
+    return score -> score / getMaxScore();
   }
 }

@@ -19,6 +19,15 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
@@ -28,15 +37,6 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceConfig;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeClass;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static org.mockito.Mockito.when;
 
@@ -104,6 +104,7 @@ public abstract class AbstractTestClusterModel {
     testClusterConfig.setMaxPartitionsPerInstance(5);
     testClusterConfig.setDisabledInstances(Collections.emptyMap());
     testClusterConfig.setTopologyAwareEnabled(false);
+    testClusterConfig.setInstanceCapacityKeys(new ArrayList<>(_capacityDataMap.keySet()));
     when(testCache.getClusterConfig()).thenReturn(testClusterConfig);
 
     // 3. Mock the live instance node for the default instance.
@@ -179,8 +180,8 @@ public abstract class AbstractTestClusterModel {
       ResourceConfig resourceConfig = dataProvider.getResourceConfig(cs.getResourceName());
       // Construct one AssignableReplica for each partition in the current state.
       cs.getPartitionStateMap().entrySet().stream().forEach(entry -> assignmentSet.add(
-          new AssignableReplica(resourceConfig, entry.getKey(), entry.getValue(),
-              entry.getValue().equals("MASTER") ? 1 : 2)));
+          new AssignableReplica(dataProvider.getClusterConfig(), resourceConfig, entry.getKey(),
+              entry.getValue(), entry.getValue().equals("MASTER") ? 1 : 2)));
     }
     return assignmentSet;
   }

@@ -19,6 +19,14 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -29,14 +37,6 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * This util class generates Cluster Model object based on the controller's data cache.
@@ -112,8 +112,8 @@ public class ClusterModelProvider {
       Map<String, ResourceAssignment> bestPossibleAssignment,
       Map<String, Set<AssignableReplica>> allocatedReplicas) {
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
-    if (clusterChanges.containsKey(HelixConstants.ChangeType.CLUSTER_CONFIG)
-        || clusterChanges.containsKey(HelixConstants.ChangeType.INSTANCE_CONFIG)) {
+    if (clusterChanges.containsKey(HelixConstants.ChangeType.CLUSTER_CONFIG) || clusterChanges
+        .containsKey(HelixConstants.ChangeType.INSTANCE_CONFIG)) {
       // If the cluster topology has been modified, need to reassign all replicas
       toBeAssignedReplicas
           .addAll(replicaMap.values().stream().flatMap(Set::stream).collect(Collectors.toSet()));
@@ -125,11 +125,9 @@ public class ClusterModelProvider {
         // 2. if the resource does appear in the best possible assignment, need to reassign.
         if (clusterChanges
             .getOrDefault(HelixConstants.ChangeType.RESOURCE_CONFIG, Collections.emptySet())
-            .contains(resourceName)
-            || clusterChanges
+            .contains(resourceName) || clusterChanges
             .getOrDefault(HelixConstants.ChangeType.IDEAL_STATE, Collections.emptySet())
-            .contains(resourceName)
-            || !bestPossibleAssignment.containsKey(resourceName)) {
+            .contains(resourceName) || !bestPossibleAssignment.containsKey(resourceName)) {
           toBeAssignedReplicas.addAll(replicas);
           continue; // go to check next resource
         } else {
@@ -196,9 +194,10 @@ public class ClusterModelProvider {
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
       int instanceCount) {
     Map<String, Set<AssignableReplica>> totalReplicaMap = new HashMap<>();
+    ClusterConfig clusterConfig = dataProvider.getClusterConfig();
 
     for (String resourceName : resourceMap.keySet()) {
-      ResourceConfig config = dataProvider.getResourceConfig(resourceName);
+      ResourceConfig resourceConfig = dataProvider.getResourceConfig(resourceName);
       IdealState is = dataProvider.getIdealState(resourceName);
       if (is == null) {
         throw new HelixException(
@@ -220,7 +219,7 @@ public class ClusterModelProvider {
           String state = entry.getKey();
           for (int i = 0; i < entry.getValue(); i++) {
             totalReplicaMap.computeIfAbsent(resourceName, key -> new HashSet<>()).add(
-                new AssignableReplica(config, partition, state,
+                new AssignableReplica(clusterConfig, resourceConfig, partition, state,
                     def.getStatePriorityMap().get(state)));
           }
         }

@@ -27,8 +27,8 @@ import org.apache.helix.ZNRecord;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**
- * ZNRecordJacksonSerializer serializes ZNRecord objects into a byte array using MessagePack's
- * serializer. Note that this serializer doesn't check for the size of the resulting binary.
+ * ZNRecordJacksonSerializer serializes ZNRecord objects into a byte array using Jackson. Note that
+ * this serializer doesn't check for the size of the resulting binary.
  */
 public class ZNRecordJacksonSerializer implements ZkSerializer {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();

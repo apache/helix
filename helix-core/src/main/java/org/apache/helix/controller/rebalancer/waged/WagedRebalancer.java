@@ -51,10 +51,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Weight-Aware Globally-Even Distribute Rebalancer.
- *
- * @see <a href="https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer">
- * Design Document
- * </a>
+ * @see <a
+ *      href="https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer">
+ *      Design Document
+ *      </a>
  */
 public class WagedRebalancer {
   private static final Logger LOG = LoggerFactory.getLogger(WagedRebalancer.class);
@@ -62,8 +62,8 @@ public class WagedRebalancer {
   // When any of the following change happens, the rebalancer needs to do a global rebalance which
   // contains 1. baseline recalculate, 2. partial rebalance that is based on the new baseline.
   private static final Set<HelixConstants.ChangeType> GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES =
-      Collections.unmodifiableSet(new HashSet<>(Arrays
-          .asList(HelixConstants.ChangeType.RESOURCE_CONFIG,
+      Collections
+          .unmodifiableSet(new HashSet<>(Arrays.asList(HelixConstants.ChangeType.RESOURCE_CONFIG,
               HelixConstants.ChangeType.CLUSTER_CONFIG,
               HelixConstants.ChangeType.INSTANCE_CONFIG)));
   // The cluster change detector is a stateful object.
@@ -73,7 +73,8 @@ public class WagedRebalancer {
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
 
   // --------- The following fields are placeholders and need replacement. -----------//
-  // TODO Shall we make the metadata store a static threadlocal object as well to avoid reinitialization?
+  // TODO Shall we make the metadata store a static threadlocal object as well to avoid
+  // reinitialization?
   private final AssignmentMetadataStore _assignmentMetadataStore;
   private final RebalanceAlgorithm _rebalanceAlgorithm;
   // ------------------------------------------------------------------------------------//
@@ -81,8 +82,8 @@ public class WagedRebalancer {
   public WagedRebalancer(HelixManager helixManager) {
     this(
         // TODO init the metadata store according to their requirement when integrate,
-        //  or change to final static method if possible.
-        new AssignmentMetadataStore(),
+        // or change to final static method if possible.
+        new AssignmentMetadataStore(helixManager),
         // TODO parse the cluster setting
         ConstraintBasedAlgorithmFactory.getInstance(),
         // Use DelayedAutoRebalancer as the mapping calculator for the final assignment output.
@@ -103,14 +104,14 @@ public class WagedRebalancer {
   protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm) {
     this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer());
+
   }
 
   /**
    * Compute the new IdealStates for all the input resources. The IdealStates include both new
    * partition assignment (in the listFiles) and the new replica state mapping (in the mapFields).
-   *
-   * @param clusterData        The Cluster status data provider.
-   * @param resourceMap        A map containing all the rebalancing resources.
+   * @param clusterData The Cluster status data provider.
+   * @param resourceMap A map containing all the rebalancing resources.
    * @param currentStateOutput The present Current States of the resources.
    * @return A map of the new IdealStates with the resource name as key.
    */
@@ -124,8 +125,8 @@ public class WagedRebalancer {
       IdealState is = clusterData.getIdealState(resourceEntry.getKey());
       return is != null && is.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)
           && getClass().getName().equals(is.getRebalancerClassName());
-    }).collect(Collectors
-        .toMap(resourceEntry -> resourceEntry.getKey(), resourceEntry -> resourceEntry.getValue()));
+    }).collect(Collectors.toMap(resourceEntry -> resourceEntry.getKey(),
+        resourceEntry -> resourceEntry.getValue()));
 
     if (resourceMap.isEmpty()) {
       LOG.warn("There is no valid resource to be rebalanced by {}",
@@ -140,13 +141,13 @@ public class WagedRebalancer {
     Map<String, IdealState> newIdealStates = computeBestPossibleStates(clusterData, resourceMap);
 
     // Construct the new best possible states according to the current state and target assignment.
-    // Note that the new ideal state might be an intermediate state between the current state and the target assignment.
+    // Note that the new ideal state might be an intermediate state between the current state and
+    // the target assignment.
     for (IdealState is : newIdealStates.values()) {
       String resourceName = is.getResourceName();
       // Adjust the states according to the current state.
-      ResourceAssignment finalAssignment = _mappingCalculator
-          .computeBestPossiblePartitionState(clusterData, is, resourceMap.get(resourceName),
-              currentStateOutput);
+      ResourceAssignment finalAssignment = _mappingCalculator.computeBestPossiblePartitionState(
+          clusterData, is, resourceMap.get(resourceName), currentStateOutput);
 
       // Clean up the state mapping fields. Use the final assignment that is calculated by the
       // mapping calculator to replace them.
@@ -195,10 +196,10 @@ public class WagedRebalancer {
       IdealState newIdeaState;
       try {
         IdealState currentIdealState = clusterData.getIdealState(resourceName);
-        Map<String, Integer> statePriorityMap =
-            clusterData.getStateModelDef(currentIdealState.getStateModelDefRef())
-                .getStatePriorityMap();
-        // Create a new IdealState instance contains the new calculated assignment in the preference list.
+        Map<String, Integer> statePriorityMap = clusterData
+            .getStateModelDef(currentIdealState.getStateModelDefRef()).getStatePriorityMap();
+        // Create a new IdealState instance contains the new calculated assignment in the preference
+        // list.
         newIdeaState = generateIdealStateWithAssignment(resourceName, currentIdealState,
             newAssignment.get(resourceName), statePriorityMap);
       } catch (Exception ex) {
@@ -227,9 +228,8 @@ public class WagedRebalancer {
       throw new HelixRebalanceException("Failed to get the current baseline assignment.",
           HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
     }
-    Map<String, ResourceAssignment> baseline =
-        calculateAssignment(clusterData, clusterChanges, resourceMap, clusterData.getAllInstances(),
-            Collections.emptyMap(), currentBaseline);
+    Map<String, ResourceAssignment> baseline = calculateAssignment(clusterData, clusterChanges,
+        resourceMap, clusterData.getAllInstances(), Collections.emptyMap(), currentBaseline);
     try {
       _assignmentMetadataStore.persistBaseline(baseline);
     } catch (Exception ex) {
@@ -254,9 +254,8 @@ public class WagedRebalancer {
       throw new HelixRebalanceException("Failed to get the persisted assignment records.",
           HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
     }
-    Map<String, ResourceAssignment> newAssignment =
-        calculateAssignment(clusterData, clusterChanges, resourceMap, activeInstances, baseline,
-            prevBestPossibleAssignment);
+    Map<String, ResourceAssignment> newAssignment = calculateAssignment(clusterData, clusterChanges,
+        resourceMap, activeInstances, baseline, prevBestPossibleAssignment);
     try {
       // TODO Test to confirm if persisting the final assignment (with final partition states)
       // would be a better option.
@@ -271,13 +270,13 @@ public class WagedRebalancer {
 
   /**
    * Generate the cluster model based on the input and calculate the optimal assignment.
-   *
-   * @param clusterData                the cluster data cache.
-   * @param clusterChanges             the detected cluster changes.
-   * @param resourceMap                the rebalancing resources.
-   * @param activeNodes                the alive and enabled nodes.
-   * @param baseline                   the baseline assignment for the algorithm as a reference.
-   * @param prevBestPossibleAssignment the previous best possible assignment for the algorithm as a reference.
+   * @param clusterData the cluster data cache.
+   * @param clusterChanges the detected cluster changes.
+   * @param resourceMap the rebalancing resources.
+   * @param activeNodes the alive and enabled nodes.
+   * @param baseline the baseline assignment for the algorithm as a reference.
+   * @param prevBestPossibleAssignment the previous best possible assignment for the algorithm as a
+   *          reference.
    * @return the new optimal assignment for the resources.
    */
   private Map<String, ResourceAssignment> calculateAssignment(
@@ -289,9 +288,8 @@ public class WagedRebalancer {
     LOG.info("Start calculating for an assignment");
     ClusterModel clusterModel;
     try {
-      clusterModel = ClusterModelProvider
-          .generateClusterModel(clusterData, resourceMap, activeNodes, clusterChanges, baseline,
-              prevBestPossibleAssignment);
+      clusterModel = ClusterModelProvider.generateClusterModel(clusterData, resourceMap,
+          activeNodes, clusterChanges, baseline, prevBestPossibleAssignment);
     } catch (Exception ex) {
       throw new HelixRebalanceException("Failed to generate cluster model.",
           HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);

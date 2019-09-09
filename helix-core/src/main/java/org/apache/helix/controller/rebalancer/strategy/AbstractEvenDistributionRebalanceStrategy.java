@@ -94,8 +94,8 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
     }
     // only compute assignments for instances with non-zero weight
     return computeBestPartitionAssignment(
-        getNonZeroWeightNodes(allNodes, clusterData.getInstanceConfigMap()),
-        getNonZeroWeightNodes(liveNodes, clusterData.getInstanceConfigMap()), currentMapping,
+        getNonZeroWeightNodes(allNodes, instanceConfigMap),
+        getNonZeroWeightNodes(liveNodes, instanceConfigMap), currentMapping,
         clusterData);
   }
 

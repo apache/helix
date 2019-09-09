@@ -23,7 +23,7 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
-class SameReplicaOnInstanceConstraint extends HardConstraint {
+class SamePartitionOnInstanceConstraint extends HardConstraint {
 
   @Override
   boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,

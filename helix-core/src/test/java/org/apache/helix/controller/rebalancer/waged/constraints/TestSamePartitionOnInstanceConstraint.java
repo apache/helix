@@ -30,13 +30,13 @@ import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableSet;
 
-public class TestSameReplicaOnInstanceConstraint {
+public class TestSamePartitionOnInstanceConstraint {
   private static final String TEST_RESOURCE = "TestResource";
   private static final String TEST_PARTITIOIN = TEST_RESOURCE + "0";
   private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
   private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
   private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
-  private final HardConstraint _constraint = new SameReplicaOnInstanceConstraint();
+  private final HardConstraint _constraint = new SamePartitionOnInstanceConstraint();
 
   @Test
   public void testConstraintValid() {

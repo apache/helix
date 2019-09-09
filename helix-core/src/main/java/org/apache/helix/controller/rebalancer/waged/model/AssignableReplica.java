@@ -87,6 +87,10 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     return _resourceInstanceGroupTag;
   }
 
+  public boolean hasResourceInstanceGroupTag() {
+    return _resourceInstanceGroupTag != null && !_resourceInstanceGroupTag.isEmpty();
+  }
+
   public int getResourceMaxPartitionsPerInstance() {
     return _resourceMaxPartitionsPerInstance;
   }

@@ -80,9 +80,6 @@ public class AssignmentMetadataStore {
   }
 
   public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
-    // Update the in-memory reference
-    _globalBaseline = globalBaseline;
-
     // TODO: Make the write async?
     // Persist to ZK
     HelixProperty combinedAssignments = combineAssignments(BASELINE_KEY, globalBaseline);
@@ -92,13 +89,13 @@ public class AssignmentMetadataStore {
       // TODO: Improve failure handling
       throw new HelixException("Failed to persist baseline!", e);
     }
+
+    // Update the in-memory reference
+    _globalBaseline = globalBaseline;
   }
 
   public void persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
-    // Update the in-memory reference
-    _bestPossibleAssignment = bestPossibleAssignment;
-
     // TODO: Make the write async?
     // Persist to ZK asynchronously
     HelixProperty combinedAssignments =
@@ -109,6 +106,9 @@ public class AssignmentMetadataStore {
       // TODO: Improve failure handling
       throw new HelixException("Failed to persist baseline!", e);
     }
+
+    // Update the in-memory reference
+    _bestPossibleAssignment = bestPossibleAssignment;
   }
 
   /**

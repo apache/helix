@@ -270,13 +270,13 @@ public class WagedRebalancer {
 
   /**
    * Generate the cluster model based on the input and calculate the optimal assignment.
-   * @param clusterData the cluster data cache.
-   * @param clusterChanges the detected cluster changes.
-   * @param resourceMap the rebalancing resources.
-   * @param activeNodes the alive and enabled nodes.
-   * @param baseline the baseline assignment for the algorithm as a reference.
+   * @param clusterData                the cluster data cache.
+   * @param clusterChanges             the detected cluster changes.
+   * @param resourceMap                the rebalancing resources.
+   * @param activeNodes                the alive and enabled nodes.
+   * @param baseline                   the baseline assignment for the algorithm as a reference.
    * @param prevBestPossibleAssignment the previous best possible assignment for the algorithm as a
-   *          reference.
+   *                                   reference.
    * @return the new optimal assignment for the resources.
    */
   private Map<String, ResourceAssignment> calculateAssignment(

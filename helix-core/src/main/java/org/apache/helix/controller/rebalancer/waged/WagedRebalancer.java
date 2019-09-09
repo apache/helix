@@ -36,6 +36,7 @@ import org.apache.helix.controller.changedetector.ResourceChangeDetector;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
+import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintBasedAlgorithmFactory;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
@@ -46,6 +47,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,6 +149,11 @@ public class WagedRebalancer {
     // Calculate the target assignment based on the current cluster status.
     Map<String, IdealState> newIdealStates =
         computeBestPossibleStates(clusterData, resourceMap, currentStateOutput);
+    // Apply user-defined preference list after the calculation.
+    // Note the user-defined list will be applied as an overwritten to the final result, instead of
+    // part of the rebalance algorithm.
+    newIdealStates.entrySet().stream().forEach(idealStateEntry -> applyUserDefinePreferenceList(
+        clusterData.getResourceConfig(idealStateEntry.getKey()), idealStateEntry.getValue()));
 
     // Construct the new best possible states according to the current state and target assignment.
     // Note that the new ideal state might be an intermediate state between the current state and
@@ -198,6 +205,7 @@ public class WagedRebalancer {
 
     Map<String, ResourceAssignment> newAssignment =
         partialRebalance(clusterData, clusterChanges, resourceMap, currentStateOutput);
+    Map<String, Map<String, Integer>> resourceStatePriorityMap = new HashMap<>();
 
     // Convert the assignments into IdealState for the following state mapping calculation.
     Map<String, IdealState> finalIdealState = new HashMap<>();
@@ -207,6 +215,8 @@ public class WagedRebalancer {
         IdealState currentIdealState = clusterData.getIdealState(resourceName);
         Map<String, Integer> statePriorityMap = clusterData
             .getStateModelDef(currentIdealState.getStateModelDefRef()).getStatePriorityMap();
+        // Cache the priority map for delayed rebalance calculation which happens later.
+        resourceStatePriorityMap.put(resourceName, statePriorityMap);
         // Create a new IdealState instance contains the new calculated assignment in the preference
         // list.
         newIdeaState = generateIdealStateWithAssignment(resourceName, currentIdealState,
@@ -218,6 +228,15 @@ public class WagedRebalancer {
       }
       finalIdealState.put(resourceName, newIdeaState);
     }
+
+    // Additional calculating required for the delayed rebalancing
+    ClusterConfig clusterConfig = clusterData.getClusterConfig();
+    if (DelayedRebalanceUtil.isDelayRebalanceEnabled(clusterConfig)) {
+      delayedRebalance(finalIdealState, clusterData, clusterData.getEnabledLiveInstances(),
+          resourceMap, clusterChanges, resourceStatePriorityMap);
+      // TODO when delayed rebalance is applied, should schedule next rebalance using the RebalanceScheduler.
+    }
+
     return finalIdealState;
   }
 
@@ -457,5 +476,64 @@ public class WagedRebalancer {
       }
     }
     return currentStateAssignment;
+  }
+
+  /**
+   * Update the ideal states in the input according to delayed rebalanace logic.
+   *
+   * @param idealStateMap            the ideal states that are calculated based on the current cluster status.
+   * @param clusterData              the cluster data cache.
+   * @param activeInstances          the active (alive and enabled) nodes.
+   * @param resourceMap              the rebalanaced resource map.
+   * @param clusterChanges           the detected cluster changes that triggeres the rebalance.
+   * @param resourceStatePriorityMap the state priority map for each resource.
+   */
+  private void delayedRebalance(Map<String, IdealState> idealStateMap,
+      ResourceControllerDataProvider clusterData, Set<String> activeInstances,
+      Map<String, Resource> resourceMap, Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
+      Map<String, Map<String, Integer>> resourceStatePriorityMap) throws HelixRebalanceException {
+    ClusterConfig clusterConfig = clusterData.getClusterConfig();
+    long delay = clusterConfig.getRebalanceDelayTime();
+    Set<String> delayedActiveNodes = DelayedRebalanceUtil
+        .getActiveInstances(clusterData.getAllInstances(), activeInstances,
+            clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
+            clusterData.getInstanceConfigMap(), delay, clusterConfig);
+
+    if (!delayedActiveNodes.equals(activeInstances)) {
+      // Calculate new assignment based on delayed active node set.
+      // This additional assignment will be used to adjust the finalIdealState according to the delayed active nodes.
+      // Note that the calculation used the baseline as the input only. This is for minimizing unnecessary partition movement.
+      Map<String, ResourceAssignment> activeAssignment =
+          calculateAssignment(clusterData, clusterChanges, resourceMap, delayedActiveNodes,
+              Collections.emptyMap(), _assignmentMetadataStore.getBaseline());
+      for (String resourceName : idealStateMap.keySet()) {
+        IdealState is = idealStateMap.get(resourceName);
+        if (activeAssignment.containsKey(resourceName)) {
+          IdealState currentIdealState = clusterData.getIdealState(resourceName);
+          IdealState newActiveIdealState =
+              generateIdealStateWithAssignment(resourceName, currentIdealState,
+                  activeAssignment.get(resourceName), resourceStatePriorityMap.get(resourceName));
+          Map<String, List<String>> finalPreferenceList = DelayedRebalanceUtil
+              .getFinalDelayedMapping(is.getPreferenceLists(),
+                  newActiveIdealState.getPreferenceLists(), activeInstances, DelayedRebalanceUtil
+                      .getMinActiveReplica(currentIdealState,
+                          currentIdealState.getReplicaCount(delayedActiveNodes.size())));
+          is.setPreferenceLists(finalPreferenceList);
+        }
+      }
+    }
+  }
+
+  private void applyUserDefinePreferenceList(ResourceConfig resourceConfig, IdealState idealState) {
+    if (resourceConfig != null) {
+      Map<String, List<String>> userDefinedPreferenceList = resourceConfig.getPreferenceLists();
+      if (!userDefinedPreferenceList.isEmpty()) {
+        LOG.info("Using user defined preference list for partitions: " + userDefinedPreferenceList
+            .keySet());
+        for (String partition : userDefinedPreferenceList.keySet()) {
+          idealState.setPreferenceList(partition, userDefinedPreferenceList.get(partition));
+        }
+      }
+    }
   }
 }

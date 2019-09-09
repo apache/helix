@@ -86,17 +86,20 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
   public ZNRecord computePartitionAssignment(final List<String> allNodes,
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
       ResourceControllerDataProvider clusterData) {
-    // only compute assignments for instances with available spaces
+    // valida the instance configs
+    Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
+    if (instanceConfigMap == null || !instanceConfigMap.keySet().containsAll(allNodes)) {
+      throw new HelixException(String.format("Config for instances %s is not found!",
+              allNodes.removeAll(instanceConfigMap.keySet())));
+    }
+    // only compute assignments for instances with non-zero weight
     return computeBestPartitionAssignment(
-        getNonEmptyWeightNodes(allNodes, clusterData.getInstanceConfigMap()),
-        getNonEmptyWeightNodes(liveNodes, clusterData.getInstanceConfigMap()), currentMapping,
+        getNonZeroWeightNodes(allNodes, clusterData.getInstanceConfigMap()),
+        getNonZeroWeightNodes(liveNodes, clusterData.getInstanceConfigMap()), currentMapping,
         clusterData);
   }
 
-  private List<String> getNonEmptyWeightNodes(List<String> nodes, Map<String, InstanceConfig> instanceConfigMap) {
-    if (instanceConfigMap == null) {
-      return nodes;
-    }
+  private List<String> getNonZeroWeightNodes(List<String> nodes, Map<String, InstanceConfig> instanceConfigMap) {
     return nodes.stream().filter(node -> instanceConfigMap.get(node).getWeight() != 0).collect(Collectors.toList());
   }
 

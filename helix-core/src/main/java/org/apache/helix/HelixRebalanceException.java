@@ -33,12 +33,12 @@ public class HelixRebalanceException extends Exception {
   private final Type _type;
 
   public HelixRebalanceException(String message, Type type, Throwable cause) {
-    super(String.format("%s. Failure Type: %s", message, type.name()), cause);
+    super(String.format("%s Failure Type: %s", message, type.name()), cause);
     _type = type;
   }
 
   public HelixRebalanceException(String message, Type type) {
-    super(String.format("%s. Failure Type: %s", message, type.name()));
+    super(String.format("%s Failure Type: %s", message, type.name()));
     _type = type;
   }
 

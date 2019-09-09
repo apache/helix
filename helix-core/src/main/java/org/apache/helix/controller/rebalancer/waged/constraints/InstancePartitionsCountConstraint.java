@@ -32,8 +32,12 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 class InstancePartitionsCountConstraint extends SoftConstraint {
   private static final float MIN_SCORE = 0;
 
-  InstancePartitionsCountConstraint(int maxPossiblePartitionsNumber) {
-    super(maxPossiblePartitionsNumber, MIN_SCORE);
+  /**
+   * The constraint requires a parameter
+   * @param maxPartitionsCount
+   */
+  InstancePartitionsCountConstraint(int maxPartitionsCount) {
+    super(maxPartitionsCount, MIN_SCORE);
   }
 
   @Override

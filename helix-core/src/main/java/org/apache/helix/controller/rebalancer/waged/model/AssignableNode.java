@@ -19,6 +19,8 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import static java.lang.Math.max;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,8 +37,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.lang.Math.max;
-
 /**
  * This class represents a possible allocation of the replication.
  * Note that any usage updates to the AssignableNode are not thread safe.
@@ -52,7 +52,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private Map<String, Integer> _maxCapacity;
   private int _maxPartition; // maximum number of the partitions that can be assigned to the node.
 
-  // A map of <resource name, <partition name, replica>> that tracks the replicas assigned to the node.
+  // A map of <resource name, <partition name, replica>> that tracks the replicas assigned to the
+  // node.
   private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap;
   // A map of <capacity key, capacity value> that tracks the current available node capacity
   private Map<String, Integer> _currentCapacityMap;
@@ -78,13 +79,15 @@ public class AssignableNode implements Comparable<AssignableNode> {
   }
 
   /**
-   * Update the node with a ClusterDataCache. This resets the current assignment and recalculates currentCapacity.
-   * NOTE: While this is required to be used in the constructor, this can also be used when the clusterCache needs to be
-   * refreshed. This is under the assumption that the capacity mappings of InstanceConfig and ResourceConfig could
+   * Update the node with a ClusterDataCache. This resets the current assignment and recalculates
+   * currentCapacity.
+   * NOTE: While this is required to be used in the constructor, this can also be used when the
+   * clusterCache needs to be
+   * refreshed. This is under the assumption that the capacity mappings of InstanceConfig and
+   * ResourceConfig could
    * subject to change. If the assumption is no longer true, this function should become private.
-   *
-   * @param clusterConfig      - the Cluster Config of the cluster where the node is located
-   * @param instanceConfig     - the Instance Config of the node
+   * @param clusterConfig - the Cluster Config of the cluster where the node is located
+   * @param instanceConfig - the Instance Config of the node
    * @param existingAssignment - all the existing replicas that are current assigned to the node
    */
   private void refresh(ClusterConfig clusterConfig, InstanceConfig instanceConfig,
@@ -104,7 +107,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   /**
    * Assign a replica to the node.
-   *
    * @param assignableReplica - the replica to be assigned
    */
   void assign(AssignableReplica assignableReplica) {
@@ -116,7 +118,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
   /**
    * Release a replica from the node.
    * If the replication is not on this node, the assignable node is not updated.
-   *
    * @param replica - the replica to be released
    */
   void release(AssignableReplica replica) throws IllegalArgumentException {
@@ -131,8 +132,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
 
     Map<String, AssignableReplica> partitionMap = _currentAssignedReplicaMap.get(resourceName);
-    if (!partitionMap.containsKey(partitionName) || !partitionMap.get(partitionName)
-        .equals(replica)) {
+    if (!partitionMap.containsKey(partitionName)
+        || !partitionMap.get(partitionName).equals(replica)) {
       LOG.warn("Replica {} is not assigned to node {}. Ignore the release call.",
           replica.toString(), getInstanceName());
       return;
@@ -174,7 +175,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   /**
    * @param resource Resource name
-   * @return A set of the current assigned replicas' partition names with the top state in the specified resource.
+   * @return A set of the current assigned replicas' partition names with the top state in the
+   *         specified resource.
    */
   public Set<String> getAssignedTopStatePartitionsByResource(String resource) {
     return _currentAssignedReplicaMap.getOrDefault(resource, Collections.emptyMap()).entrySet()
@@ -194,7 +196,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   /**
    * @return The total count of assigned replicas.
    */
-  public long getAssignedReplicaCount() {
+  public int getAssignedReplicaCount() {
     return _currentAssignedReplicaMap.values().stream().mapToInt(Map::size).sum();
   }
 
@@ -207,7 +209,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   /**
    * Return the most concerning capacity utilization number for evenly partition assignment.
-   * The method dynamically returns the highest utilization number among all the capacity categories.
+   * The method dynamically returns the highest utilization number among all the capacity
+   * categories.
    * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}. Then this call shall
    * return 0.9.
    *
@@ -229,15 +232,21 @@ public class AssignableNode implements Comparable<AssignableNode> {
     return _faultZone;
   }
 
+  public boolean hasFaultZone() {
+    return _faultZone != null;
+  }
+
   /**
-   * @return A map of <resource name, set of partition names> contains all the partitions that are disabled on the node.
+   * @return A map of <resource name, set of partition names> contains all the partitions that are
+   *         disabled on the node.
    */
   public Map<String, List<String>> getDisabledPartitionsMap() {
     return _disabledPartitionsMap;
   }
 
   /**
-   * @return A map of <capacity category, capacity number> that describes the max capacity of the node.
+   * @return A map of <capacity category, capacity number> that describes the max capacity of the
+   *         node.
    */
   public Map<String, Integer> getMaxCapacity() {
     return _maxCapacity;
@@ -251,8 +260,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
   }
 
   /**
-   * Computes the fault zone id based on the domain and fault zone type when topology is enabled. For example, when
-   * the domain is "zone=2, instance=testInstance" and the fault zone type is "zone", this function returns "2".
+   * Computes the fault zone id based on the domain and fault zone type when topology is enabled.
+   * For example, when
+   * the domain is "zone=2, instance=testInstance" and the fault zone type is "zone", this function
+   * returns "2".
    * If cannot find the fault zone id, this function leaves the fault zone id as the instance name.
    * TODO merge this logic with Topology.java tree building logic.
    * For now, the WAGED rebalancer has a more strict topology def requirement.
@@ -267,8 +278,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
       }
 
       String[] topologyDef = topologyStr.trim().split("/");
-      if (topologyDef.length == 0 || Arrays.stream(topologyDef)
-          .noneMatch(type -> type.equals(faultZoneType))) {
+      if (topologyDef.length == 0
+          || Arrays.stream(topologyDef).noneMatch(type -> type.equals(faultZoneType))) {
         throw new HelixException(
             "The configured topology definition is empty or does not contain the fault zone type.");
       }
@@ -304,7 +315,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
   }
 
   /**
-   * This function should only be used to assign a set of new partitions that are not allocated on this node.
+   * This function should only be used to assign a set of new partitions that are not allocated on
+   * this node.
    * Using this function avoids the overhead of updating capacity repeatedly.
    */
   private void assignNewBatch(Collection<AssignableReplica> replicas) {
@@ -314,9 +326,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
       // increment the capacity requirement according to partition's capacity configuration.
       for (Map.Entry<String, Integer> capacity : replica.getCapacity().entrySet()) {
         totalPartitionCapacity.compute(capacity.getKey(),
-            (key, totalValue) -> (totalValue == null) ?
-                capacity.getValue() :
-                totalValue + capacity.getValue());
+            (key, totalValue) -> (totalValue == null) ? capacity.getValue()
+                : totalValue + capacity.getValue());
       }
     }
 
@@ -332,12 +343,12 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private void addToAssignmentRecord(AssignableReplica replica) {
     String resourceName = replica.getResourceName();
     String partitionName = replica.getPartitionName();
-    if (_currentAssignedReplicaMap.containsKey(resourceName) && _currentAssignedReplicaMap
-        .get(resourceName).containsKey(partitionName)) {
-      throw new HelixException(String
-          .format("Resource %s already has a replica with state %s from partition %s on node %s",
-              replica.getResourceName(), replica.getReplicaState(), replica.getPartitionName(),
-              getInstanceName()));
+    if (_currentAssignedReplicaMap.containsKey(resourceName)
+        && _currentAssignedReplicaMap.get(resourceName).containsKey(partitionName)) {
+      throw new HelixException(String.format(
+          "Resource %s already has a replica with state %s from partition %s on node %s",
+          replica.getResourceName(), replica.getReplicaState(), replica.getPartitionName(),
+          getInstanceName()));
     } else {
       _currentAssignedReplicaMap.computeIfAbsent(resourceName, key -> new HashMap<>())
           .put(partitionName, replica);

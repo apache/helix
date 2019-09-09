@@ -39,8 +39,8 @@ import java.util.Map;
  */
 public class AssignmentMetadataStore {
   private static final String ASSIGNMENT_METADATA_KEY = "ASSIGNMENT_METADATA";
-  private static final String BASELINE_KEY = "BASELINE";
-  private static final String BEST_POSSIBLE_KEY = "BEST_POSSIBLE";
+  private static final String BASELINE_TEMPLATE = "/%s/%s/BASELINE";
+  private static final String BEST_POSSIBLE_TEMPLATE = "/%s/%s/BEST_POSSIBLE";
   private static final ZkSerializer SERIALIZER = new ZNRecordJacksonSerializer();
 
   private BucketDataAccessor _dataAccessor;
@@ -52,9 +52,9 @@ public class AssignmentMetadataStore {
   public AssignmentMetadataStore(HelixManager helixManager) {
     _dataAccessor = new ZkBucketDataAccessor(helixManager.getMetadataStoreConnectionString());
     _baselinePath =
-        "/" + helixManager.getClusterName() + "/" + ASSIGNMENT_METADATA_KEY + "/" + BASELINE_KEY;
-    _bestPossiblePath = "/" + helixManager.getClusterName() + "/" + ASSIGNMENT_METADATA_KEY + "/"
-        + BEST_POSSIBLE_KEY;
+        String.format(BASELINE_TEMPLATE, helixManager.getClusterName(), ASSIGNMENT_METADATA_KEY);
+    _bestPossiblePath = String.format(BEST_POSSIBLE_TEMPLATE, helixManager.getClusterName(),
+        ASSIGNMENT_METADATA_KEY);
   }
 
   public Map<String, ResourceAssignment> getBaseline() {

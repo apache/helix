@@ -38,23 +38,23 @@ public class TestInstancePartitionsCountConstraint {
   @Test
   public void testWhenInstanceIsIdle() {
     when(_testNode.getAssignedReplicaCount()).thenReturn(0);
-    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, _constraint.getMaxScore());
+    float score = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 1.0f);
   }
 
   @Test
   public void testWhenInstanceIsFull() {
     when(_testNode.getAssignedReplicaCount()).thenReturn(10);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
-    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, _constraint.getMinScore());
+    float score = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0.01f);
   }
 
   @Test
   public void testWhenInstanceHalfOccupied() {
     when(_testNode.getAssignedReplicaCount()).thenReturn(10);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(20);
-    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.5f);
+    float score = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0.02f);
   }
 }

@@ -27,17 +27,19 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * Evaluate by instance's current partition count versus estimated max partition count
  * Intuitively, Encourage the assignment if the instance's occupancy rate is below average;
  * Discourage the assignment if the instance's occupancy rate is above average
- * The normalized score will be within (0, 1)
+ *
+ * The final normalized score will be within [0, 1]
  */
 class InstancePartitionsCountConstraint extends SoftConstraint {
   private static final float MIN_SCORE = 0;
 
   /**
-   * The constraint requires a parameter
-   * @param maxPartitionsCount
+   * The constraint requires the total number of partitions as the parameter
+   * It's because theoretically total number of partitions assigned to only one instance defines the upper bound
+   * @param totalPartitionsNumber The number of partitions in the entire cluster
    */
-  InstancePartitionsCountConstraint(int maxPartitionsCount) {
-    super(maxPartitionsCount, MIN_SCORE);
+  InstancePartitionsCountConstraint(int totalPartitionsNumber) {
+    super(totalPartitionsNumber, MIN_SCORE);
   }
 
   @Override

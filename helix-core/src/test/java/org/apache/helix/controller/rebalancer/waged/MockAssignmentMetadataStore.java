@@ -19,6 +19,7 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
+import org.apache.helix.HelixManager;
 import org.apache.helix.model.ResourceAssignment;
 
 import java.util.HashMap;
@@ -32,6 +33,11 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
   private Map<String, ResourceAssignment> _persistGlobalBaseline = new HashMap<>();
   private Map<String, ResourceAssignment> _persistBestPossibleAssignment = new HashMap<>();
 
+  public MockAssignmentMetadataStore() {
+    // In-memory mock component, so pass null for HelixManager since it's not needed
+    super(null);
+  }
+
   public Map<String, ResourceAssignment> getBaseline() {
     return _persistGlobalBaseline;
   }
@@ -44,7 +50,8 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
     return _persistBestPossibleAssignment;
   }
 
-  public void persistBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment) {
+  public void persistBestPossibleAssignment(
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
     _persistBestPossibleAssignment = bestPossibleAssignment;
   }
 

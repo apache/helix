@@ -41,6 +41,8 @@ public class AssignmentMetadataStore {
   private static final String ASSIGNMENT_METADATA_KEY = "ASSIGNMENT_METADATA";
   private static final String BASELINE_TEMPLATE = "/%s/%s/BASELINE";
   private static final String BEST_POSSIBLE_TEMPLATE = "/%s/%s/BEST_POSSIBLE";
+  private static final String BASELINE_KEY = "BASELINE";
+  private static final String BEST_POSSIBLE_KEY = "BEST_POSSIBLE";
   private static final ZkSerializer SERIALIZER = new ZNRecordJacksonSerializer();
 
   private BucketDataAccessor _dataAccessor;

@@ -91,8 +91,11 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
    */
   @Test
   public void testReadEmptyBaseline() {
-    Map<String, ResourceAssignment> baseline = _store.getBaseline();
-    Assert.assertNotNull(baseline);
-    Assert.assertTrue(baseline.isEmpty());
+    try {
+      Map<String, ResourceAssignment> baseline = _store.getBaseline();
+      Assert.fail("Should fail because there shouldn't be any data.");
+    } catch (Exception e) {
+      // OK
+    }
   }
 }

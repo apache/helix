@@ -51,7 +51,7 @@ public class AssignmentMetadataStore {
   private Map<String, ResourceAssignment> _globalBaseline;
   private Map<String, ResourceAssignment> _bestPossibleAssignment;
 
-  public AssignmentMetadataStore(HelixManager helixManager) {
+  AssignmentMetadataStore(HelixManager helixManager) {
     _dataAccessor = new ZkBucketDataAccessor(helixManager.getMetadataStoreConnectionString());
     _baselinePath =
         String.format(BASELINE_TEMPLATE, helixManager.getClusterName(), ASSIGNMENT_METADATA_KEY);
@@ -62,14 +62,9 @@ public class AssignmentMetadataStore {
   public Map<String, ResourceAssignment> getBaseline() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
     if (_globalBaseline == null) {
-      try {
-        HelixProperty baseline =
-            _dataAccessor.compressedBucketRead(_baselinePath, HelixProperty.class);
-        _globalBaseline = splitAssignments(baseline);
-      } catch (HelixException e) {
-        // Metadata does not exist, so return an empty map
-        _globalBaseline = new HashMap<>();
-      }
+      HelixProperty baseline =
+          _dataAccessor.compressedBucketRead(_baselinePath, HelixProperty.class);
+      _globalBaseline = splitAssignments(baseline);
     }
     return _globalBaseline;
   }
@@ -77,14 +72,9 @@ public class AssignmentMetadataStore {
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
     if (_bestPossibleAssignment == null) {
-      try {
-        HelixProperty baseline =
-            _dataAccessor.compressedBucketRead(_bestPossiblePath, HelixProperty.class);
-        _bestPossibleAssignment = splitAssignments(baseline);
-      } catch (HelixException e) {
-        // Metadata does not exist, so return an empty map
-        _bestPossibleAssignment = new HashMap<>();
-      }
+      HelixProperty baseline =
+          _dataAccessor.compressedBucketRead(_bestPossiblePath, HelixProperty.class);
+      _bestPossibleAssignment = splitAssignments(baseline);
     }
     return _bestPossibleAssignment;
   }
@@ -107,7 +97,7 @@ public class AssignmentMetadataStore {
   public void persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     // Update the in-memory reference
-    _bestPossibleAssignment.putAll(bestPossibleAssignment);
+    _bestPossibleAssignment = bestPossibleAssignment;
 
     // TODO: Make the write async?
     // Persist to ZK asynchronously

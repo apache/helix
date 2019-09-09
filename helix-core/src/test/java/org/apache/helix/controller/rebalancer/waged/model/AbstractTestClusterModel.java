@@ -74,7 +74,7 @@ public abstract class AbstractTestClusterModel {
     _testFaultZoneId = "testZone";
   }
 
-  InstanceConfig createMockInstanceConfig(String instanceId) {
+  protected InstanceConfig createMockInstanceConfig(String instanceId) {
     InstanceConfig testInstanceConfig = new InstanceConfig(instanceId);
     testInstanceConfig.setInstanceCapacityMap(_capacityDataMap);
     testInstanceConfig.addTag(_testInstanceTags.get(0));
@@ -83,7 +83,7 @@ public abstract class AbstractTestClusterModel {
     return testInstanceConfig;
   }
 
-  LiveInstance createMockLiveInstance(String instanceId) {
+  protected LiveInstance createMockLiveInstance(String instanceId) {
     LiveInstance testLiveInstance = new LiveInstance(instanceId);
     testLiveInstance.setSessionId(_sessionId);
     return testLiveInstance;

@@ -76,7 +76,7 @@ abstract class SoftConstraint {
 
   /**
    * Evaluate and give a score for an potential assignment partition -> instance
-   * It's the only exposed method to the external
+   * It's the only exposed method to the caller
    * @return The score is normalized to be within MinScore and MaxScore
    */
   float getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,

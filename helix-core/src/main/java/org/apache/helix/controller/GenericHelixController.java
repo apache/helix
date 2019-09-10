@@ -357,6 +357,30 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
   }
 
+  /**
+   * schedule an instant rebalance pipeline.
+   */
+  public void scheduleInstantRebalance() {
+    if (_helixManager == null) {
+      logger.warn("Failed to schedule a future pipeline run for cluster " + _clusterName
+          + " helix manager is null!");
+      return;
+    }
+    if (_onDemandRebalanceTimer == null) {
+      _onDemandRebalanceTimer = new Timer(true);
+    }
+
+    RebalanceTask newTask = new RebalanceTask(_helixManager, ClusterEventType.OnDemandRebalance);
+
+    _onDemandRebalanceTimer.schedule(newTask, 0);
+    logger.info("Scheduled instant pipeline run for cluster " + _helixManager.getClusterName());
+
+    RebalanceTask preTask = _nextRebalanceTask.getAndSet(newTask);
+    if (preTask != null) {
+      preTask.cancel();
+    }
+  }
+
   private static PipelineRegistry createDefaultRegistry(String pipelineName) {
     logger.info("createDefaultRegistry");
     synchronized (GenericHelixController.class) {
@@ -456,6 +480,8 @@ public class GenericHelixController implements IdealStateChangeListener,
           .register(ClusterEventType.MessageChange, dataRefresh, dataPreprocess, rebalancePipeline);
       registry.register(ClusterEventType.Resume, dataRefresh, dataPreprocess, rebalancePipeline);
       registry.register(ClusterEventType.PeriodicalRebalance, dataRefresh, dataPreprocess,
+          rebalancePipeline);
+      registry.register(ClusterEventType.OnDemandRebalance, dataRefresh, dataPreprocess,
           rebalancePipeline);
       return registry;
     }

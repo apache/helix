@@ -6,6 +6,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.model.IdealState;
 
 import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,15 +125,17 @@ public class RebalanceScheduler {
 
     @Override
     public void run() {
-      invokeRebalance(_manager.getHelixDataAccessor(), _resource);
+      RebalanceUtil.scheduleInstantPipeline(_manager.getClusterName());
     }
   }
 
   /**
    * Trigger the controller to perform rebalance for a given resource.
+   * This function is deprecated. Please use RebalanceUtil.scheduleInstantPipeline method instead.
    * @param accessor Helix data accessor
    * @param resource the name of the resource changed to triggering the execution
    */
+  @Deprecated
   public static void invokeRebalance(HelixDataAccessor accessor, String resource) {
     LOG.info("invoke rebalance for " + resource);
     PropertyKey key = accessor.keyBuilder().idealStates(resource);
@@ -150,9 +153,11 @@ public class RebalanceScheduler {
 
   /**
    * Trigger the controller to perform rebalance for a given resource.
+   * This function is deprecated. Please use RebalanceUtil.scheduleInstantPipeline method instead.
    * @param accessor Helix data accessor
    * @param resource the name of the resource changed to triggering the execution
    */
+  @Deprecated
   public static void invokeRebalanceForResourceConfig(HelixDataAccessor accessor, String resource) {
     LOG.info("invoke rebalance for " + resource);
     PropertyKey key = accessor.keyBuilder().resourceConfig(resource);

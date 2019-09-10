@@ -33,11 +33,11 @@ public enum AttributeName {
   helixmanager,
   clusterStatusMonitor,
   changeContext,
+  ChangeType,
   instanceName,
   eventData,
   AsyncFIFOWorkerPool,
   PipelineType,
   LastRebalanceFinishTimeStamp,
-  ControllerDataProvider,
-  CHANGE_TYPE
+  ControllerDataProvider
 }

@@ -39,27 +39,8 @@ public class BasicClusterDataCache {
 
   private static final String INSTANCE_CONFIG = "InstanceConfig";
   private static final String LIVE_INSTANCE = "LiveInstance";
-  private static final ControlContextProvider DUMMY_CONTROL_CONTEXT_PROVIDER =
-      new ControlContextProvider() {
-        @Override
-        public String getClusterName() {
-          return AbstractDataCache.UNKNOWN_CLUSTER;
-        }
 
-        @Override
-        public String getClusterEventId() {
-          return AbstractDataCache.UNKNOWN_EVENT_ID;
-        }
-
-        @Override
-        public void setClusterEventId(String eventId) {
-        }
-
-        @Override
-        public String getPipelineName() {
-          return AbstractDataCache.UNKNOWN_PIPELINE;
-        }
-      };
+  private final ControlContextProvider DEFAULT_CONTEXT_PROVIDER;
 
   protected PropertyCache<LiveInstance> _liveInstancePropertyCache;
   protected PropertyCache<InstanceConfig> _instanceConfigPropertyCache;
@@ -73,8 +54,9 @@ public class BasicClusterDataCache {
     _propertyDataChangedMap = new ConcurrentHashMap<>();
     _externalViewCache = new ExternalViewCache(clusterName);
     _clusterName = clusterName;
+    DEFAULT_CONTEXT_PROVIDER = AbstractDataCache.createDefaultControlContextProvider(clusterName);
 
-    _liveInstancePropertyCache = new PropertyCache<>(DUMMY_CONTROL_CONTEXT_PROVIDER, LIVE_INSTANCE,
+    _liveInstancePropertyCache = new PropertyCache<>(DEFAULT_CONTEXT_PROVIDER, LIVE_INSTANCE,
         new PropertyCache.PropertyCacheKeyFuncs<LiveInstance>() {
           @Override
           public PropertyKey getRootKey(HelixDataAccessor accessor) {
@@ -92,7 +74,7 @@ public class BasicClusterDataCache {
           }
         }, true);
 
-    _instanceConfigPropertyCache = new PropertyCache<>(DUMMY_CONTROL_CONTEXT_PROVIDER,
+    _instanceConfigPropertyCache = new PropertyCache<>(DEFAULT_CONTEXT_PROVIDER,
         INSTANCE_CONFIG, new PropertyCache.PropertyCacheKeyFuncs<InstanceConfig>() {
           @Override
           public PropertyKey getRootKey(HelixDataAccessor accessor) {

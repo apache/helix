@@ -19,8 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import static java.lang.Math.max;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
@@ -41,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * This class represents a possible allocation of the replication.
  * Note that any usage updates to the AssignableNode are not thread safe.
  */
-public class AssignableNode implements Comparable<AssignableNode> {
+public class AssignableNode implements Comparable<AssignableNode>, OnDemandProperty {
   private static final Logger LOG = LoggerFactory.getLogger(AssignableNode.class.getName());
 
   // basic node information
@@ -57,8 +56,21 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap;
   // A map of <capacity key, capacity value> that tracks the current available node capacity
   private Map<String, Integer> _currentCapacityMap;
-  // The maximum capacity utilization (0.0 - 1.0) across all the capacity categories.
-  private float _highestCapacityUtilization;
+  // A map of caching on demand values
+  private Map<String, Object> _computeProperties = new HashMap<>();
+
+  /**
+   * {@inheritDoc}
+   */
+  public <T> T getOrCompute(String key, Supplier<T> computeFunction, Class<T> classType) {
+    if (_computeProperties.containsKey(key) && _computeProperties.get(key) != null) {
+      return classType.cast(_computeProperties.get(key));
+    }
+
+    T value = computeFunction.get();
+    _computeProperties.put(key, value);
+    return value;
+  }
 
   /**
    * @param clusterConfig
@@ -75,7 +87,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private void reset() {
     _currentAssignedReplicaMap = new HashMap<>();
     _currentCapacityMap = new HashMap<>();
-    _highestCapacityUtilization = 0;
+  }
+
+  public void resetComputeProperties(Map<String, Object> computeProperties) {
+    _computeProperties = computeProperties;
   }
 
   /**
@@ -140,8 +155,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
 
     AssignableReplica removedReplica = partitionMap.remove(partitionName);
-    // Recalculate utilization because of release
-    _highestCapacityUtilization = 0;
     removedReplica.getCapacity().entrySet().stream()
         .forEach(entry -> updateCapacityAndUtilization(entry.getKey(), -1 * entry.getValue()));
   }
@@ -205,19 +218,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
    */
   public Map<String, Integer> getCurrentCapacity() {
     return _currentCapacityMap;
-  }
-
-  /**
-   * Return the most concerning capacity utilization number for evenly partition assignment.
-   * The method dynamically returns the highest utilization number among all the capacity
-   * categories.
-   * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}. Then this call shall
-   * return 0.9.
-   *
-   * @return The highest utilization number of the node among all the capacity category.
-   */
-  public float getHighestCapacityUtilization() {
-    return _highestCapacityUtilization;
   }
 
   public String getInstanceName() {
@@ -359,10 +359,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
     if (_currentCapacityMap.containsKey(capacityKey)) {
       int newCapacity = _currentCapacityMap.get(capacityKey) - valueToSubtract;
       _currentCapacityMap.put(capacityKey, newCapacity);
-      // For the purpose of constraint calculation, the max utilization cannot be larger than 100%.
-      float utilization = Math.min(
-          (float) (_maxCapacity.get(capacityKey) - newCapacity) / _maxCapacity.get(capacityKey), 1);
-      _highestCapacityUtilization = max(_highestCapacityUtilization, utilization);
     }
     // else if the capacityKey does not exist in the capacity map, this method essentially becomes
     // a NOP; in other words, this node will be treated as if it has unlimited capacity.
@@ -370,7 +366,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   /**
    * Get and validate the instance capacity from instance config.
-   *
    * @throws HelixException if any required capacity key is not configured in the instance config.
    */
   private Map<String, Integer> fetchInstanceCapacity(ClusterConfig clusterConfig,

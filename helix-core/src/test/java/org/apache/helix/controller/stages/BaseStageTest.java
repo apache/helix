@@ -55,6 +55,7 @@ import org.testng.annotations.BeforeMethod;
 public class BaseStageTest {
   public final static String HOSTNAME_PREFIX = "localhost_";
   public final static String SESSION_PREFIX = "session_";
+  private final static int MIN_ACTIVE_REPLICA_NOT_SET = -1;
 
   protected String _clusterName;
   protected HelixManager manager;
@@ -142,19 +143,19 @@ public class BaseStageTest {
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
       int replicas, RebalanceMode rebalanceMode) {
     return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode,
-        BuiltInStateModelDefinitions.MasterSlave.name(), null, null, -1);
+        BuiltInStateModelDefinitions.MasterSlave.name(), null, null, MIN_ACTIVE_REPLICA_NOT_SET);
   }
 
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
       int replicas, RebalanceMode rebalanceMode, String stateModelName) {
     return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode, stateModelName,
-        null, null, -1);
+        null, null, MIN_ACTIVE_REPLICA_NOT_SET);
   }
 
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
       int replicas, RebalanceMode rebalanceMode, String stateModelName, String rebalanceClassName) {
     return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode, stateModelName,
-        rebalanceClassName, null, -1);
+        rebalanceClassName, null, MIN_ACTIVE_REPLICA_NOT_SET);
   }
 
   protected List<String> setupLiveInstances(int numLiveInstances) {

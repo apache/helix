@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
  * The class retrieves the offline model that defines the relative importance of soft constraints.
  */
 class SoftConstraintWeightModel {
-  private static Map<? extends SoftConstraint, Float> MODEL;
+  private static Map<Class, Float> MODEL;
 
   // TODO either define the weights in property files or zookeeper node or static human input
   SoftConstraintWeightModel() {
@@ -35,8 +35,9 @@ class SoftConstraintWeightModel {
   }
 
   static {
-    MODEL = ImmutableMap.<SoftConstraint, Float> builder()
-        .put(LeastPartitionCountConstraint.INSTANCE, 1.0f).build();
+    //TODO update the weight
+    MODEL = ImmutableMap.<Class, Float> builder().put(InstancePartitionsCountConstraint.class, 1.0f)
+        .build();
   }
 
   /**
@@ -48,9 +49,8 @@ class SoftConstraintWeightModel {
     float sum = 0;
     for (Map.Entry<SoftConstraint, Float> softConstraintScoreEntry : originScoresMap.entrySet()) {
       SoftConstraint softConstraint = softConstraintScoreEntry.getKey();
-      float score = softConstraint.getScalerFunction().scale(softConstraintScoreEntry.getValue());
-      float weight = MODEL.get(softConstraint);
-      sum += score * weight;
+      float weight = MODEL.get(softConstraint.getClass());
+      sum += softConstraintScoreEntry.getValue() * weight;
     }
 
     return sum;

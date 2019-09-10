@@ -46,7 +46,7 @@ class InstancePartitionsCountConstraint extends SoftConstraint {
   }
 
   @Override
-  ScalerFunction getScalerFunction() {
+  ScalerFunction getNormalizeFunction() {
     return score -> score * (getMaxScore() - getMinScore()) + getMinScore();
   }
 }

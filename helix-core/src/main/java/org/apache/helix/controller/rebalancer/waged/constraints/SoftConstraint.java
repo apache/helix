@@ -81,7 +81,7 @@ abstract class SoftConstraint {
    */
   float getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    return getScalerFunction().scale(getAssignmentScore(node, replica, clusterContext));
+    return getNormalizeFunction().scale(getAssignmentScore(node, replica, clusterContext));
   }
 
   /**
@@ -89,7 +89,7 @@ abstract class SoftConstraint {
    * Child class could override the method and customize the method on its own
    * @return The MinMaxScaler instance by default
    */
-  ScalerFunction getScalerFunction() {
-    return (score) -> (score - _minScore) / (_maxScore - _minScore);
+  ScalerFunction getNormalizeFunction() {
+    return (score) -> (score - getMinScore()) / (getMaxScore() - getMinScore());
   }
 }

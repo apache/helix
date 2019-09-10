@@ -21,6 +21,8 @@ package org.apache.helix.controller.rebalancer.waged;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixException;
@@ -30,9 +32,6 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordJacksonSerializer;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.ResourceAssignment;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * A placeholder before we have the real assignment metadata store.
@@ -51,12 +50,15 @@ public class AssignmentMetadataStore {
   private Map<String, ResourceAssignment> _globalBaseline;
   private Map<String, ResourceAssignment> _bestPossibleAssignment;
 
+  AssignmentMetadataStore(BucketDataAccessor bucketDataAccessor, String clusterName) {
+    _dataAccessor = bucketDataAccessor;
+    _baselinePath = String.format(BASELINE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
+    _bestPossiblePath = String.format(BEST_POSSIBLE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
+  }
+
   AssignmentMetadataStore(HelixManager helixManager) {
-    _dataAccessor = new ZkBucketDataAccessor(helixManager.getMetadataStoreConnectionString());
-    _baselinePath =
-        String.format(BASELINE_TEMPLATE, helixManager.getClusterName(), ASSIGNMENT_METADATA_KEY);
-    _bestPossiblePath = String.format(BEST_POSSIBLE_TEMPLATE, helixManager.getClusterName(),
-        ASSIGNMENT_METADATA_KEY);
+    this(new ZkBucketDataAccessor(helixManager.getMetadataStoreConnectionString()),
+        helixManager.getClusterName());
   }
 
   public Map<String, ResourceAssignment> getBaseline() {

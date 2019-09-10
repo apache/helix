@@ -104,7 +104,7 @@ public class BaseStageTest {
 
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
       int replicas, RebalanceMode rebalanceMode, String stateModelName, String rebalanceClassName,
-      String rebalanceStrategyName) {
+      String rebalanceStrategyName, int minActiveReplica) {
     List<IdealState> idealStates = new ArrayList<IdealState>();
     for (String resourceName : resources) {
       ZNRecord record = new ZNRecord(resourceName);
@@ -128,6 +128,10 @@ public class BaseStageTest {
       idealStates.add(idealState);
       idealState.setReplicas(String.valueOf(replicas));
 
+      if (minActiveReplica > 0) {
+        idealState.setMinActiveReplicas(minActiveReplica);
+      }
+
       Builder keyBuilder = accessor.keyBuilder();
 
       accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
@@ -138,19 +142,19 @@ public class BaseStageTest {
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
       int replicas, RebalanceMode rebalanceMode) {
     return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode,
-        BuiltInStateModelDefinitions.MasterSlave.name(), null, null);
+        BuiltInStateModelDefinitions.MasterSlave.name(), null, null, -1);
   }
 
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
       int replicas, RebalanceMode rebalanceMode, String stateModelName) {
-    return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode,
-        stateModelName, null, null);
+    return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode, stateModelName,
+        null, null, -1);
   }
 
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
       int replicas, RebalanceMode rebalanceMode, String stateModelName, String rebalanceClassName) {
-    return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode,
-      stateModelName, rebalanceClassName, null);
+    return setupIdealState(nodes, resources, partitions, replicas, rebalanceMode, stateModelName,
+        rebalanceClassName, null, -1);
   }
 
   protected List<String> setupLiveInstances(int numLiveInstances) {

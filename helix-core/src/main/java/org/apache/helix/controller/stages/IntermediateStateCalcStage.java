@@ -733,7 +733,12 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       preferenceList = Collections.emptyList();
     }
 
-    int replica = idealState.getReplicaCount(preferenceList.size());
+    // If there is a minimum active replica number specified in IS, we should respect it.
+    // TODO: We should implement the per replica level throttling with generated message
+    // Issue: https://github.com/apache/helix/issues/343
+    int replica = idealState.getMinActiveReplicas() == -1
+        ? idealState.getReplicaCount(preferenceList.size())
+        : idealState.getMinActiveReplicas();
     Set<String> activeList = new HashSet<>(preferenceList);
     activeList.retainAll(cache.getEnabledLiveInstances());
 

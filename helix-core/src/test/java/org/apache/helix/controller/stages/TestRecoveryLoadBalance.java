@@ -22,6 +22,7 @@ package org.apache.helix.controller.stages;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,6 +32,8 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
@@ -43,6 +46,8 @@ import org.testng.annotations.Test;
 public class TestRecoveryLoadBalance extends BaseStageTest {
 
   private final String INPUT = "inputs";
+  private final String MIN_ACTIVE_REPLICAS = "minActiveReplicas";
+  private final String LOAD_BALANCE_THROTTLE = "loadBalanceThrottle";
   private final String CURRENT_STATE = "currentStates";
   private final String BEST_POSSIBLE_STATE = "bestPossibleStates";
   private final String EXPECTED_STATE = "expectedStates";
@@ -54,12 +59,12 @@ public class TestRecoveryLoadBalance extends BaseStageTest {
   @Test(dataProvider = "recoveryLoadBalanceInput")
   public void testRecoveryAndLoadBalance(String stateModelDef,
       int errorOrRecoveryPartitionThresholdForLoadBalance,
-      Map<String, Map<String, Map<String, String>>> stateMapping) {
+      Map<String, Map<String, Map<String, String>>> stateMapping, int minActiveReplicas, int loadBalanceThrottle) {
     System.out.println("START TestRecoveryLoadBalance at " + new Date(System.currentTimeMillis()));
 
     String resourcePrefix = "resource";
     int nResource = 1;
-    int nPartition = 2;
+    int nPartition = stateMapping.size();
     int nReplica = 3;
 
     Set<String> resourceSet = new HashSet<>();
@@ -68,10 +73,16 @@ public class TestRecoveryLoadBalance extends BaseStageTest {
     }
 
     preSetup(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE, resourceSet, nReplica,
-        nReplica, stateModelDef);
+        nReplica, stateModelDef, minActiveReplicas);
 
     _clusterConfig.setErrorOrRecoveryPartitionThresholdForLoadBalance(
         errorOrRecoveryPartitionThresholdForLoadBalance);
+    if (loadBalanceThrottle >= 0) {
+      _clusterConfig.setStateTransitionThrottleConfigs(Arrays.asList(
+          new StateTransitionThrottleConfig(
+              StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
+              StateTransitionThrottleConfig.ThrottleScope.RESOURCE, loadBalanceThrottle)));
+    }
     setClusterConfig(_clusterConfig);
 
     event.addAttribute(AttributeName.RESOURCES.name(), getResourceMap(
@@ -173,10 +184,18 @@ public class TestRecoveryLoadBalance extends BaseStageTest {
       for (Map<String, Object> inputMap : inputList) {
         String stateModelName = (String) inputMap.get(STATE_MODEL);
         int threshold = (int) inputMap.get(ERROR_OR_RECOVERY_PARTITION_THRESHOLD);
+        int minActiveReplicas = -1;
+        if (inputMap.get(MIN_ACTIVE_REPLICAS) != null) {
+          minActiveReplicas = Integer.parseInt(inputMap.get(MIN_ACTIVE_REPLICAS).toString());
+        }
+        int loadBalanceThrottle = -1;
+        if (inputMap.get(LOAD_BALANCE_THROTTLE) != null) {
+          loadBalanceThrottle = Integer.parseInt(inputMap.get(LOAD_BALANCE_THROTTLE).toString());
+        }
         Map<String, Map<String, Map<String, String>>> stateMapping =
             (Map<String, Map<String, Map<String, String>>>) inputMap.get(INPUT);
         ret.add(new Object[] {
-            stateModelName, threshold, stateMapping
+            stateModelName, threshold, stateMapping, minActiveReplicas, loadBalanceThrottle
         });
       }
     } catch (IOException e) {
@@ -186,9 +205,12 @@ public class TestRecoveryLoadBalance extends BaseStageTest {
   }
 
   private void preSetup(StateTransitionThrottleConfig.RebalanceType rebalanceType,
-      Set<String> resourceSet, int numOfLiveInstances, int numOfReplicas, String stateModelName) {
+      Set<String> resourceSet, int numOfLiveInstances, int numOfReplicas, String stateModelName,
+      int minActiveReplica) {
     setupIdealState(numOfLiveInstances, resourceSet.toArray(new String[resourceSet.size()]),
-        numOfLiveInstances, numOfReplicas, IdealState.RebalanceMode.FULL_AUTO, stateModelName);
+        numOfLiveInstances, numOfReplicas, IdealState.RebalanceMode.FULL_AUTO, stateModelName,
+        DelayedAutoRebalancer.class.getName(), CrushEdRebalanceStrategy.class.getName(),
+        minActiveReplica);
     setupStateModel();
     setupLiveInstances(numOfLiveInstances);
 

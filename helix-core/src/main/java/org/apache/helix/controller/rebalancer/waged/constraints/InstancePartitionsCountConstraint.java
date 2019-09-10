@@ -44,9 +44,4 @@ class InstancePartitionsCountConstraint extends SoftConstraint {
     return Math.max((doubleEstimatedMaxPartitionCount - currentPartitionCount)
         / doubleEstimatedMaxPartitionCount, 0);
   }
-
-  @Override
-  ScalerFunction getNormalizeFunction() {
-    return score -> score * (getMaxScore() - getMinScore()) + getMinScore();
-  }
 }

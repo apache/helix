@@ -25,9 +25,9 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestSoftConstraintScaler {
+public class TestSoftConstraintNormalizeFunction {
   @Test
-  public void testDefaultScaler() {
+  public void testDefaultNormalizeFunction() {
     int maxScore = 100;
     int minScore = 0;
     SoftConstraint softConstraint = new SoftConstraint(maxScore, minScore) {

@@ -32,7 +32,7 @@ abstract class SoftConstraint {
   private float _maxScore = 1000f;
   private float _minScore = -1000f;
 
-  interface ScalerFunction {
+  interface NormalizeFunction {
     /**
      * Scale the origin score to a normalized range (0, 1).
      * The purpose is to compare scores between different soft constraints.
@@ -89,7 +89,7 @@ abstract class SoftConstraint {
    * Child class could override the method and customize the method on its own
    * @return The MinMaxScaler instance by default
    */
-  ScalerFunction getNormalizeFunction() {
+  NormalizeFunction getNormalizeFunction() {
     return (score) -> (score - getMinScore()) / (getMaxScore() - getMinScore());
   }
 }

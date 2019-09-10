@@ -21,11 +21,7 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.HashMap;
 
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
@@ -53,20 +49,8 @@ public class TestLeastUsedInstanceConstraint {
   public void testEvaluateAssignmentNormalCase() {
     when(_testNode.getCurrentCapacity()).thenReturn(ImmutableMap.of("key1", 100, "key2", 200));
     when(_testNode.getMaxCapacity()).thenReturn(ImmutableMap.of("key1", 500, "key2", 400));
-    _testNode.resetComputeProperties(new HashMap<>());
+    when(_testNode.getHighestCapacityUtilization()).thenReturn(0.8f);
     float score = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.1f);
-  }
-
-  @Test
-  public void testEvaluateAssignmentOnDemandCompute() {
-    when(_testNode.getCurrentCapacity()).thenReturn(ImmutableMap.of("key1", 100, "key2", 200));
-    when(_testNode.getMaxCapacity()).thenReturn(ImmutableMap.of("key1", 500, "key2", 400));
-    _testNode.resetComputeProperties(new HashMap<>());
-    // run the assignment twice and we expect the expensive calculation only takes place once
-    _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    verify(_testNode, times(1)).getCurrentCapacity();
-    verify(_testNode, times(1)).getMaxCapacity();
   }
 }

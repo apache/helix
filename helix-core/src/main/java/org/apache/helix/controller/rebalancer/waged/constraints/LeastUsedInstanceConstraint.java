@@ -19,9 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import java.util.Map;
-import java.util.function.Supplier;
-
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -30,7 +27,6 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * The constraint evaluates the max usage ratio of capacity on the instance
  */
 class LeastUsedInstanceConstraint extends SoftConstraint {
-  private static final String COMPUTE_KEY = "MaxCapacityUsage";
   private static final float MIN_SCORE = 0;
   private static final float MAX_SCORE = 1;
 
@@ -41,21 +37,7 @@ class LeastUsedInstanceConstraint extends SoftConstraint {
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    Supplier<Float> supplier = () -> {
-      Map<String, Integer> currentCapacity = node.getCurrentCapacity();
-      Map<String, Integer> maxCapacity = node.getMaxCapacity();
-      float maxUsageRatio = -1;
-      for (String capacityKey : maxCapacity.keySet()) {
-        // 1. Don't have to check if key exist in the other map
-        // 2. Don't need to check if the max capacity is greater than current capacity
-        // These rules will be respected in AssignableNode class initialization & updates
-        maxUsageRatio = Math.max((maxCapacity.get(capacityKey) - currentCapacity.get(capacityKey))
-            / (float) maxCapacity.get(capacityKey), maxUsageRatio);
-      }
-      return maxUsageRatio;
-    };
-
-    float maxCapacityUsage = node.getOrCompute(COMPUTE_KEY, supplier, Float.class);
+    float maxCapacityUsage = node.getHighestCapacityUtilization();
     return (1.0f - maxCapacityUsage) / 2;
   }
 

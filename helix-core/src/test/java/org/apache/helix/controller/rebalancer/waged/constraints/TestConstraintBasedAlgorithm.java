@@ -44,7 +44,7 @@ public class TestConstraintBasedAlgorithm {
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
     SoftConstraintWeightModel mockSoftConstraintWeightModel = mock(SoftConstraintWeightModel.class);
     when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(false);
-    when(mockSoftConstraint.getAssignmentOriginScore(any(), any(), any())).thenReturn(1.0f);
+    when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0f);
 
     _algorithm = new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
         ImmutableList.of(mockSoftConstraint), mockSoftConstraintWeightModel);
@@ -62,7 +62,7 @@ public class TestConstraintBasedAlgorithm {
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
     SoftConstraintWeightModel mockSoftConstraintWeightModel = mock(SoftConstraintWeightModel.class);
     when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(true);
-    when(mockSoftConstraint.getAssignmentOriginScore(any(), any(), any())).thenReturn(1.0f);
+    when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0f);
     when(mockSoftConstraintWeightModel.getSumOfScores(any())).thenReturn(1.0f);
     _algorithm = new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
         ImmutableList.of(mockSoftConstraint), mockSoftConstraintWeightModel);

@@ -215,4 +215,9 @@ public class PropertyCache<T extends HelixProperty> extends AbstractDataCache<T>
   public void deletePropertyByName(String name) {
     _objMap.remove(name);
   }
+
+  public void clear() {
+    _objMap.clear();
+    _objCache.clear();
+  }
 }

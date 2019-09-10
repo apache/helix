@@ -595,6 +595,15 @@ public class RoutingTableProvider
     @Override
     protected void handleEvent(ClusterEvent event) {
       NotificationContext changeContext = event.getAttribute(AttributeName.changeContext.name());
+      HelixConstants.ChangeType changeType = event.getAttribute(AttributeName.CHANGE_TYPE.name());
+
+      if (changeContext == null || changeContext.getType() != NotificationContext.Type.CALLBACK
+          || changeContext.getType() == NotificationContext.Type.PERIODIC_REFRESH) {
+        _dataCache.requireFullRefresh();
+      } else {
+        _dataCache.notifyDataChange(changeType, changeContext.getPathChanged());
+      }
+
       // session has expired clean up the routing table
       if (changeContext.getType() == NotificationContext.Type.FINALIZE) {
         reset();
@@ -683,16 +692,11 @@ public class RoutingTableProvider
     public void queueEvent(NotificationContext context, ClusterEventType eventType,
         HelixConstants.ChangeType changeType) {
       ClusterEvent event = new ClusterEvent(_clusterName, eventType);
-      if (context == null || context.getType() != NotificationContext.Type.CALLBACK
-          || context.getType() == NotificationContext.Type.PERIODIC_REFRESH) {
-        _dataCache.requireFullRefresh();
-      } else {
-        _dataCache.notifyDataChange(changeType, context.getPathChanged());
-      }
 
       // Null check for manager in the following line is done in handleEvent()
       event.addAttribute(AttributeName.helixmanager.name(), context.getManager());
       event.addAttribute(AttributeName.changeContext.name(), context);
+      event.addAttribute(AttributeName.CHANGE_TYPE.name(), changeType);
       queueEvent(event);
 
       _monitor.increaseCallbackCounters(_eventQueue.size());

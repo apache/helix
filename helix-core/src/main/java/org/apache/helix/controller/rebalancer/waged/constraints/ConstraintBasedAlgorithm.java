@@ -117,7 +117,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     Function<AssignableNode, Float> calculatePoints =
         (candidateNode) -> _softConstraintsWeightModel.getSumOfScores(_softConstraints.stream()
             .collect(Collectors.toMap(Function.identity(), softConstraint -> softConstraint
-                .getAssignmentOriginScore(candidateNode, replica, clusterContext))));
+                .getAssignmentNormalizedScore(candidateNode, replica, clusterContext))));
 
     return candidateNodes.stream().max(Comparator.comparing(calculatePoints));
   }

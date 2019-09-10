@@ -27,36 +27,26 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * Evaluate by instance's current partition count versus estimated max partition count
  * Intuitively, Encourage the assignment if the instance's occupancy rate is below average;
  * Discourage the assignment if the instance's occupancy rate is above average
- *
- * The final normalized score will be within [0, 1]
  */
 class InstancePartitionsCountConstraint extends SoftConstraint {
-  private static final float MIN_SCORE = 0;
+  private static final float MAX_SCORE = 1f;
+  private static final float MIN_SCORE = 0f;
 
-  /**
-   * The constraint requires the total number of partitions as the parameter
-   * It's because theoretically total number of partitions assigned to only one instance defines the upper bound
-   * @param totalPartitionsNumber The number of partitions in the entire cluster
-   */
-  InstancePartitionsCountConstraint(int totalPartitionsNumber) {
-    super(totalPartitionsNumber, MIN_SCORE);
+  InstancePartitionsCountConstraint() {
+    super(MAX_SCORE, MIN_SCORE);
   }
 
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    int estimatedMaxPartitionCount = clusterContext.getEstimatedMaxPartitionCount();
-    int currentPartitionCount = node.getAssignedReplicaCount();
-
-    if (currentPartitionCount == 0) {
-      return getMaxScore();
-    }
-
-    return estimatedMaxPartitionCount / (float) currentPartitionCount;
+    float doubleEstimatedMaxPartitionCount = 2 * clusterContext.getEstimatedMaxPartitionCount();
+    float currentPartitionCount = node.getAssignedReplicaCount();
+    return Math.max((doubleEstimatedMaxPartitionCount - currentPartitionCount)
+        / doubleEstimatedMaxPartitionCount, 0);
   }
 
   @Override
   ScalerFunction getScalerFunction() {
-    return score -> score / getMaxScore();
+    return score -> score * (getMaxScore() - getMinScore()) + getMinScore();
   }
 }

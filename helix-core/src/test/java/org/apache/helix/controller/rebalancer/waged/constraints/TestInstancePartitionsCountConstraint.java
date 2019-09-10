@@ -33,7 +33,7 @@ public class TestInstancePartitionsCountConstraint {
   private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
   private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
 
-  private final SoftConstraint _constraint = new InstancePartitionsCountConstraint(100);
+  private final SoftConstraint _constraint = new InstancePartitionsCountConstraint();
 
   @Test
   public void testWhenInstanceIsIdle() {
@@ -47,7 +47,7 @@ public class TestInstancePartitionsCountConstraint {
     when(_testNode.getAssignedReplicaCount()).thenReturn(10);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
     float score = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.01f);
+    Assert.assertEquals(score, 0.5f);
   }
 
   @Test
@@ -55,6 +55,6 @@ public class TestInstancePartitionsCountConstraint {
     when(_testNode.getAssignedReplicaCount()).thenReturn(10);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(20);
     float score = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.02f);
+    Assert.assertEquals(score, 0.75f);
   }
 }

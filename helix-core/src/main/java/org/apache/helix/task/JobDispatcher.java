@@ -240,6 +240,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     Map<String, SortedSet<Integer>> prevInstanceToTaskAssignments =
         getPrevInstanceToTaskAssignments(liveInstances, prevTaskToInstanceStateAssignment,
             allPartitions, currStateOutput, jobResource, tasksToDrop);
+
+    updateInstanceToTaskAssignmentsFromContext(jobCtx, prevInstanceToTaskAssignments);
+
     long currentTime = System.currentTimeMillis();
 
     if (LOG.isDebugEnabled()) {
@@ -393,7 +396,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       result.put(instance, new TreeSet<>());
     }
 
-    // First, add all task partitions from JobContext
+    // First, add all task partitions from prevAssignment
     // TODO: Remove this portion to get rid of prevAssignment from Task Framework
     for (Partition partition : prevAssignment.getMappedPartitions()) {
       int pId = TaskUtil.getPartitionId(partition.getPartitionName());
@@ -452,6 +455,31 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       }
     }
     return result;
+  }
+
+  /**
+   * If partition is missing from prevInstanceToTaskAssignments (e.g. previous assignment is
+   * deleted) it is added from context. Otherwise, the context won't be updated.
+   * @param jobCtx Job Context
+   * @param prevInstanceToTaskAssignments instance -> partitionIds from previous assignment
+   */
+  protected void updateInstanceToTaskAssignmentsFromContext(JobContext jobCtx,
+      Map<String, SortedSet<Integer>> prevInstanceToTaskAssignments) {
+    for (Integer partition : jobCtx.getPartitionSet()) {
+      // We must add all active task pIds back here
+      // The states other than Running and Init do not need to be added.
+      // Logic in this function is similar to getPrevInstanceToTaskAssignments method
+      if (jobCtx.getPartitionState(partition) == TaskPartitionState.RUNNING
+          || jobCtx.getPartitionState(partition) == TaskPartitionState.INIT) {
+        String instance = jobCtx.getAssignedParticipant(partition);
+        if (instance != null) {
+          if (prevInstanceToTaskAssignments.containsKey(instance)
+              && !prevInstanceToTaskAssignments.get(instance).contains(partition)) {
+            prevInstanceToTaskAssignments.get(instance).add(partition);
+          }
+        }
+      }
+    }
   }
 
   /**

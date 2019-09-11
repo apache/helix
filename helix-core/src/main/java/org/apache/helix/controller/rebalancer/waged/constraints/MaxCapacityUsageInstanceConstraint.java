@@ -24,13 +24,15 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
- * The constraint evaluates the max usage ratio of capacity on the instance
+ * The constraint evaluates the score by checking the max used capacity key out of all the capacity keys.
+ * The higher the max usage, the lower the score
+ * It is a greedy approach since it evaluates on the most used capacity key only.
  */
-class LeastUsedInstanceConstraint extends SoftConstraint {
+class MaxCapacityUsageInstanceConstraint extends SoftConstraint {
   private static final float MIN_SCORE = 0;
   private static final float MAX_SCORE = 1;
 
-  LeastUsedInstanceConstraint() {
+  MaxCapacityUsageInstanceConstraint() {
     super(MAX_SCORE, MIN_SCORE);
   }
 

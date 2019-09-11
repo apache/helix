@@ -30,13 +30,11 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.google.common.collect.ImmutableMap;
-
-public class TestLeastUsedInstanceConstraint {
+public class TestMaxCapacityUsageInstanceConstraint {
   private AssignableReplica _testReplica;
   private AssignableNode _testNode;
   private ClusterContext _clusterContext;
-  private final SoftConstraint _constraint = new LeastUsedInstanceConstraint();
+  private final SoftConstraint _constraint = new MaxCapacityUsageInstanceConstraint();
 
   @BeforeMethod
   public void setUp() {
@@ -46,11 +44,10 @@ public class TestLeastUsedInstanceConstraint {
   }
 
   @Test
-  public void testEvaluateAssignmentNormalCase() {
-    when(_testNode.getCurrentCapacity()).thenReturn(ImmutableMap.of("key1", 100, "key2", 200));
-    when(_testNode.getMaxCapacity()).thenReturn(ImmutableMap.of("key1", 500, "key2", 400));
+  public void testGetNormalizedScore() {
     when(_testNode.getHighestCapacityUtilization()).thenReturn(0.8f);
-    float score = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    float score =
+        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.1f);
   }
 }

@@ -41,7 +41,6 @@ public class BasicClusterDataCache implements ControlContextProvider {
   private static final String LIVE_INSTANCE = "LiveInstance";
 
   private String _clusterEventId;
-  private String _pipelineName;
 
   protected PropertyCache<LiveInstance> _liveInstancePropertyCache;
   protected PropertyCache<InstanceConfig> _instanceConfigPropertyCache;
@@ -55,7 +54,6 @@ public class BasicClusterDataCache implements ControlContextProvider {
     _propertyDataChangedMap = new ConcurrentHashMap<>();
     _externalViewCache = new ExternalViewCache(clusterName);
     _clusterName = clusterName;
-    _pipelineName = AbstractDataCache.UNKNOWN_PIPELINE;
     _clusterEventId = AbstractDataCache.UNKNOWN_EVENT_ID;
 
     _liveInstancePropertyCache = new PropertyCache<>(this, LIVE_INSTANCE,
@@ -246,7 +244,7 @@ public class BasicClusterDataCache implements ControlContextProvider {
 
   @Override
   public String getPipelineName() {
-    return _pipelineName;
+    return AbstractDataCache.UNKNOWN_PIPELINE;
   }
 }
 

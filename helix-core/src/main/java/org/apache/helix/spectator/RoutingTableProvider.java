@@ -597,6 +597,9 @@ public class RoutingTableProvider
       NotificationContext changeContext = event.getAttribute(AttributeName.changeContext.name());
       HelixConstants.ChangeType changeType = changeContext.getChangeType();
 
+      // Set cluster event id for later processing methods and it also helps debug.
+      _dataCache.setClusterEventId(event.getEventId());
+
       if (changeContext == null || changeContext.getType() != NotificationContext.Type.CALLBACK) {
         _dataCache.requireFullRefresh();
       } else {

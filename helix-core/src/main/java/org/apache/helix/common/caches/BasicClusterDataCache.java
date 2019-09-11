@@ -34,13 +34,14 @@ import org.slf4j.LoggerFactory;
 /**
  * Cache the basic cluster data, including LiveInstances, InstanceConfigs and ExternalViews.
  */
-public class BasicClusterDataCache {
+public class BasicClusterDataCache implements ControlContextProvider {
   private static Logger LOG = LoggerFactory.getLogger(BasicClusterDataCache.class.getName());
 
   private static final String INSTANCE_CONFIG = "InstanceConfig";
   private static final String LIVE_INSTANCE = "LiveInstance";
 
-  private final ControlContextProvider DEFAULT_CONTEXT_PROVIDER;
+  private String _clusterEventId;
+  private String _pipelineName;
 
   protected PropertyCache<LiveInstance> _liveInstancePropertyCache;
   protected PropertyCache<InstanceConfig> _instanceConfigPropertyCache;
@@ -54,9 +55,10 @@ public class BasicClusterDataCache {
     _propertyDataChangedMap = new ConcurrentHashMap<>();
     _externalViewCache = new ExternalViewCache(clusterName);
     _clusterName = clusterName;
-    DEFAULT_CONTEXT_PROVIDER = AbstractDataCache.createDefaultControlContextProvider(clusterName);
+    _pipelineName = AbstractDataCache.UNKNOWN_PIPELINE;
+    _clusterEventId = AbstractDataCache.UNKNOWN_EVENT_ID;
 
-    _liveInstancePropertyCache = new PropertyCache<>(DEFAULT_CONTEXT_PROVIDER, LIVE_INSTANCE,
+    _liveInstancePropertyCache = new PropertyCache<>(this, LIVE_INSTANCE,
         new PropertyCache.PropertyCacheKeyFuncs<LiveInstance>() {
           @Override
           public PropertyKey getRootKey(HelixDataAccessor accessor) {
@@ -74,8 +76,8 @@ public class BasicClusterDataCache {
           }
         }, true);
 
-    _instanceConfigPropertyCache = new PropertyCache<>(DEFAULT_CONTEXT_PROVIDER,
-        INSTANCE_CONFIG, new PropertyCache.PropertyCacheKeyFuncs<InstanceConfig>() {
+    _instanceConfigPropertyCache = new PropertyCache<>(this, INSTANCE_CONFIG,
+        new PropertyCache.PropertyCacheKeyFuncs<InstanceConfig>() {
           @Override
           public PropertyKey getRootKey(HelixDataAccessor accessor) {
             return accessor.keyBuilder().instanceConfigs();
@@ -192,10 +194,8 @@ public class BasicClusterDataCache {
   public synchronized void clearCache(HelixConstants.ChangeType changeType) {
     switch (changeType) {
     case LIVE_INSTANCE:
-      _liveInstancePropertyCache.clear();
-      break;
     case INSTANCE_CONFIG:
-      _instanceConfigPropertyCache.clear();
+      LOG.warn("clearCache is deprecated for changeType: " + changeType);
       break;
     case EXTERNAL_VIEW:
       _externalViewCache.clear();
@@ -227,6 +227,26 @@ public class BasicClusterDataCache {
         .append("\n");
 
     return sb.toString();
+  }
+
+  @Override
+  public String getClusterName() {
+    return _clusterName;
+  }
+
+  @Override
+  public String getClusterEventId() {
+    return _clusterEventId;
+  }
+
+  @Override
+  public void setClusterEventId(String clusterEventId) {
+    _clusterEventId = clusterEventId;
+  }
+
+  @Override
+  public String getPipelineName() {
+    return _pipelineName;
   }
 }
 

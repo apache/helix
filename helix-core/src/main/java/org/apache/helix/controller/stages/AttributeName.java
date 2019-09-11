@@ -33,7 +33,6 @@ public enum AttributeName {
   helixmanager,
   clusterStatusMonitor,
   changeContext,
-  ChangeType,
   instanceName,
   eventData,
   AsyncFIFOWorkerPool,

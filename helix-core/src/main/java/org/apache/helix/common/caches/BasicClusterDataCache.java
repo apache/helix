@@ -122,7 +122,7 @@ public class BasicClusterDataCache implements ControlContextProvider {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.INSTANCE_CONFIG,
           Boolean.valueOf(false));
-      _liveInstancePropertyCache.refresh(accessor);
+      _instanceConfigPropertyCache.refresh(accessor);
       LOG.info("Reload InstanceConfig: " + _instanceConfigPropertyCache.getPropertyMap().keySet()
           + ". Takes " + (System.currentTimeMillis() - start) + " ms");
     }

@@ -25,7 +25,8 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
  * Evaluate the proposed assignment according to the top state replication count on the instacne.
- * The more total top state partitions assigned to the instance, the lower the score, vice versa.
+ * The higher number the number of top state partitions assigned to the instance, the lower the
+ * score, vice versa.
  */
 public class ResourceTopStateAntiAffinityConstraint extends SoftConstraint {
   @Override

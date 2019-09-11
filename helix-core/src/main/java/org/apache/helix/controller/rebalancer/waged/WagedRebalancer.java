@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
@@ -64,27 +65,34 @@ public class WagedRebalancer {
   // When any of the following change happens, the rebalancer needs to do a global rebalance which
   // contains 1. baseline recalculate, 2. partial rebalance that is based on the new baseline.
   private static final Set<HelixConstants.ChangeType> GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES =
-      ImmutableSet.of(HelixConstants.ChangeType.RESOURCE_CONFIG,
-          HelixConstants.ChangeType.CLUSTER_CONFIG, HelixConstants.ChangeType.INSTANCE_CONFIG);
+      ImmutableSet.of(
+          HelixConstants.ChangeType.RESOURCE_CONFIG,
+          HelixConstants.ChangeType.CLUSTER_CONFIG,
+          HelixConstants.ChangeType.INSTANCE_CONFIG);
   // The cluster change detector is a stateful object.
   // Make it static to avoid unnecessary reinitialization.
   private static final ThreadLocal<ResourceChangeDetector> CHANGE_DETECTOR_THREAD_LOCAL =
       new ThreadLocal<>();
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
-
-  // --------- The following fields are placeholders and need replacement. -----------//
-  // TODO Shall we make the metadata store a static threadlocal object as well to avoid
-  // reinitialization?
   private final AssignmentMetadataStore _assignmentMetadataStore;
   private final RebalanceAlgorithm _rebalanceAlgorithm;
-  // ------------------------------------------------------------------------------------//
+
+  private static AssignmentMetadataStore constructAssignmentStore(HelixManager helixManager) {
+    AssignmentMetadataStore assignmentMetadataStore = null;
+    if (helixManager != null) {
+      String metadataStoreAddrs = helixManager.getMetadataStoreConnectionString();
+      String clusterName = helixManager.getClusterName();
+      if (metadataStoreAddrs != null && clusterName != null) {
+        assignmentMetadataStore = new AssignmentMetadataStore(metadataStoreAddrs, clusterName);
+      }
+    }
+    return assignmentMetadataStore;
+  }
 
   public WagedRebalancer(HelixManager helixManager,
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
-    this(
-        // TODO init the metadata store according to their requirement when integrate,
-        // or change to final static method if possible.
-        new AssignmentMetadataStore(helixManager), ConstraintBasedAlgorithmFactory.getInstance(preferences),
+    this(constructAssignmentStore(helixManager),
+        ConstraintBasedAlgorithmFactory.getInstance(preferences),
         // Use DelayedAutoRebalancer as the mapping calculator for the final assignment output.
         // Mapping calculator will translate the best possible assignment into the applicable state
         // mapping based on the current states.
@@ -94,6 +102,10 @@ public class WagedRebalancer {
 
   private WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator) {
+    if (assignmentMetadataStore == null) {
+      LOG.warn("Assignment Metadata Store is not configured properly."
+          + " The rebalancer will not access the assignment store during the rebalance.");
+    }
     _assignmentMetadataStore = assignmentMetadataStore;
     _rebalanceAlgorithm = algorithm;
     _mappingCalculator = mappingCalculator;
@@ -103,7 +115,13 @@ public class WagedRebalancer {
   protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm) {
     this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer());
+  }
 
+  // Release all the resources.
+  public void close() {
+    if (_assignmentMetadataStore != null) {
+      _assignmentMetadataStore.close();
+    }
   }
 
   /**
@@ -117,27 +135,18 @@ public class WagedRebalancer {
   public Map<String, IdealState> computeNewIdealStates(ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput)
       throws HelixRebalanceException {
-    LOG.info("Start computing new ideal states for resources: {}", resourceMap.keySet().toString());
-
-    // Find the compatible resources: 1. FULL_AUTO 2. Configured to use the WAGED rebalancer
-    resourceMap = resourceMap.entrySet().stream().filter(resourceEntry -> {
-      IdealState is = clusterData.getIdealState(resourceEntry.getKey());
-      return is != null && is.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)
-          && getClass().getName().equals(is.getRebalancerClassName());
-    }).collect(Collectors.toMap(resourceEntry -> resourceEntry.getKey(),
-        resourceEntry -> resourceEntry.getValue()));
-
     if (resourceMap.isEmpty()) {
-      LOG.warn("There is no valid resource to be rebalanced by {}",
+      LOG.warn("There is no resource to be rebalanced by {}",
           this.getClass().getSimpleName());
       return Collections.emptyMap();
-    } else {
-      LOG.info("Valid resources that will be rebalanced by {}: {}", this.getClass().getSimpleName(),
-          resourceMap.keySet().toString());
     }
 
+    LOG.info("Start computing new ideal states for resources: {}", resourceMap.keySet().toString());
+    validateInput(clusterData, resourceMap);
+
     // Calculate the target assignment based on the current cluster status.
-    Map<String, IdealState> newIdealStates = computeBestPossibleStates(clusterData, resourceMap);
+    Map<String, IdealState> newIdealStates =
+        computeBestPossibleStates(clusterData, resourceMap, currentStateOutput);
 
     // Construct the new best possible states according to the current state and target assignment.
     // Note that the new ideal state might be an intermediate state between the current state and
@@ -166,28 +175,29 @@ public class WagedRebalancer {
 
   // Coordinate baseline recalculation and partial rebalance according to the cluster changes.
   private Map<String, IdealState> computeBestPossibleStates(
-      ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap)
-      throws HelixRebalanceException {
+      ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
+      final CurrentStateOutput currentStateOutput) throws HelixRebalanceException {
     getChangeDetector().updateSnapshots(clusterData);
-    // Get all the modified and new items' information
+    // Get all the changed items' information
     Map<HelixConstants.ChangeType, Set<String>> clusterChanges =
         getChangeDetector().getChangeTypes().stream()
             .collect(Collectors.toMap(changeType -> changeType, changeType -> {
               Set<String> itemKeys = new HashSet<>();
               itemKeys.addAll(getChangeDetector().getAdditionsByType(changeType));
               itemKeys.addAll(getChangeDetector().getChangesByType(changeType));
+              itemKeys.addAll(getChangeDetector().getRemovalsByType(changeType));
               return itemKeys;
             }));
 
     if (clusterChanges.keySet().stream()
         .anyMatch(changeType -> GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES.contains(changeType))) {
-      refreshBaseline(clusterData, clusterChanges, resourceMap);
+      refreshBaseline(clusterData, clusterChanges, resourceMap, currentStateOutput);
       // Inject a cluster config change for large scale partial rebalance once the baseline changed.
       clusterChanges.putIfAbsent(HelixConstants.ChangeType.CLUSTER_CONFIG, Collections.emptySet());
     }
 
     Map<String, ResourceAssignment> newAssignment =
-        partialRebalance(clusterData, clusterChanges, resourceMap);
+        partialRebalance(clusterData, clusterChanges, resourceMap, currentStateOutput);
 
     // Convert the assignments into IdealState for the following state mapping calculation.
     Map<String, IdealState> finalIdealState = new HashMap<>();
@@ -213,56 +223,60 @@ public class WagedRebalancer {
 
   // TODO make the Baseline calculation async if complicated algorithm is used for the Baseline
   private void refreshBaseline(ResourceControllerDataProvider clusterData,
-      Map<HelixConstants.ChangeType, Set<String>> clusterChanges, Map<String, Resource> resourceMap)
-      throws HelixRebalanceException {
+      Map<HelixConstants.ChangeType, Set<String>> clusterChanges, Map<String, Resource> resourceMap,
+      final CurrentStateOutput currentStateOutput) throws HelixRebalanceException {
+    LOG.info("Start calculating the new baseline.");
+    Map<String, ResourceAssignment> currentBaseline =
+        getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet());
     // For baseline calculation
     // 1. Ignore node status (disable/offline).
     // 2. Use the baseline as the previous best possible assignment since there is no "baseline" for
     // the baseline.
-    LOG.info("Start calculating the new baseline.");
-    Map<String, ResourceAssignment> currentBaseline;
-    try {
-      currentBaseline = _assignmentMetadataStore.getBaseline();
-    } catch (Exception ex) {
-      throw new HelixRebalanceException("Failed to get the current baseline assignment.",
-          HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
+    Map<String, ResourceAssignment> newBaseline =
+        calculateAssignment(clusterData, clusterChanges, resourceMap, clusterData.getAllInstances(),
+            Collections.emptyMap(), currentBaseline);
+
+    if (_assignmentMetadataStore != null) {
+      try {
+        _assignmentMetadataStore.persistBaseline(newBaseline);
+      } catch (Exception ex) {
+        throw new HelixRebalanceException("Failed to persist the new baseline assignment.",
+            HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
+      }
+    } else {
+      LOG.debug("Assignment Metadata Store is empty. Skip persist the baseline assignment.");
     }
-    Map<String, ResourceAssignment> baseline = calculateAssignment(clusterData, clusterChanges,
-        resourceMap, clusterData.getAllInstances(), Collections.emptyMap(), currentBaseline);
-    try {
-      _assignmentMetadataStore.persistBaseline(baseline);
-    } catch (Exception ex) {
-      throw new HelixRebalanceException("Failed to persist the new baseline assignment.",
-          HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
-    }
+
     LOG.info("Finish calculating the new baseline.");
   }
 
   private Map<String, ResourceAssignment> partialRebalance(
       ResourceControllerDataProvider clusterData,
-      Map<HelixConstants.ChangeType, Set<String>> clusterChanges, Map<String, Resource> resourceMap)
-      throws HelixRebalanceException {
+      Map<HelixConstants.ChangeType, Set<String>> clusterChanges, Map<String, Resource> resourceMap,
+      final CurrentStateOutput currentStateOutput) throws HelixRebalanceException {
     LOG.info("Start calculating the new best possible assignment.");
-    Set<String> activeInstances = clusterData.getEnabledLiveInstances();
-    Map<String, ResourceAssignment> baseline;
-    Map<String, ResourceAssignment> prevBestPossibleAssignment;
-    try {
-      baseline = _assignmentMetadataStore.getBaseline();
-      prevBestPossibleAssignment = _assignmentMetadataStore.getBestPossibleAssignment();
-    } catch (Exception ex) {
-      throw new HelixRebalanceException("Failed to get the persisted assignment records.",
-          HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
+    Map<String, ResourceAssignment> currentBaseline =
+        getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet());
+    Map<String, ResourceAssignment> currentBestPossibleAssignment =
+        getBestPossibleAssignment(_assignmentMetadataStore, currentStateOutput,
+            resourceMap.keySet());
+    Map<String, ResourceAssignment> newAssignment =
+        calculateAssignment(clusterData, clusterChanges, resourceMap,
+            clusterData.getEnabledLiveInstances(), currentBaseline, currentBestPossibleAssignment);
+
+    if (_assignmentMetadataStore != null) {
+      try {
+        // TODO Test to confirm if persisting the final assignment (with final partition states)
+        // would be a better option.
+        _assignmentMetadataStore.persistBestPossibleAssignment(newAssignment);
+      } catch (Exception ex) {
+        throw new HelixRebalanceException("Failed to persist the new best possible assignment.",
+            HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
+      }
+    } else {
+      LOG.debug("Assignment Metadata Store is empty. Skip persist the baseline assignment.");
     }
-    Map<String, ResourceAssignment> newAssignment = calculateAssignment(clusterData, clusterChanges,
-        resourceMap, activeInstances, baseline, prevBestPossibleAssignment);
-    try {
-      // TODO Test to confirm if persisting the final assignment (with final partition states)
-      // would be a better option.
-      _assignmentMetadataStore.persistBestPossibleAssignment(newAssignment);
-    } catch (Exception ex) {
-      throw new HelixRebalanceException("Failed to persist the new best possible assignment.",
-          HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
-    }
+
     LOG.info("Finish calculating the new best possible assignment.");
     return newAssignment;
   }
@@ -347,5 +361,101 @@ public class WagedRebalancer {
       preferenceList.put(partition.getPartitionName(), nodes);
     }
     return preferenceList;
+  }
+
+  private void validateInput(ResourceControllerDataProvider clusterData,
+      Map<String, Resource> resourceMap) throws HelixRebalanceException {
+    Set<String> nonCompatibleResources = resourceMap.entrySet().stream().filter(resourceEntry -> {
+      IdealState is = clusterData.getIdealState(resourceEntry.getKey());
+      return is == null || !is.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)
+          || !getClass().getName().equals(is.getRebalancerClassName());
+    }).map(Map.Entry::getKey).collect(Collectors.toSet());
+    if (!nonCompatibleResources.isEmpty()) {
+      throw new HelixRebalanceException(String.format(
+          "Input contains invalid resource(s) that cannot be rebalanced by the WAGED rebalancer. %s",
+          nonCompatibleResources.toString()), HelixRebalanceException.Type.INVALID_INPUT);
+    }
+  }
+
+  /**
+   * @param assignmentMetadataStore
+   * @param currentStateOutput
+   * @param resources
+   * @return The current baseline assignment. If record does not exist in the
+   * assignmentMetadataStore, return the current state assignment.
+   * @throws HelixRebalanceException
+   */
+  private Map<String, ResourceAssignment> getBaselineAssignment(
+      AssignmentMetadataStore assignmentMetadataStore, CurrentStateOutput currentStateOutput,
+      Set<String> resources) throws HelixRebalanceException {
+    Map<String, ResourceAssignment> currentBaseline = Collections.emptyMap();
+    if (assignmentMetadataStore != null) {
+      try {
+        currentBaseline = assignmentMetadataStore.getBaseline();
+      } catch (HelixException ex) {
+        // Report error. and use empty mapping instead.
+        LOG.error("Failed to get the current baseline assignment.", ex);
+      } catch (Exception ex) {
+        throw new HelixRebalanceException(
+            "Failed to get the current baseline assignment because of unexpected error.",
+            HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
+      }
+    }
+    if (currentBaseline.isEmpty()) {
+      LOG.warn(
+          "The current baseline assignment record is empty. Use the current states instead.");
+      currentBaseline = getCurrentStateAssingment(currentStateOutput, resources);
+    }
+    return currentBaseline;
+  }
+
+  /**
+   * @param assignmentMetadataStore
+   * @param currentStateOutput
+   * @param resources
+   * @return The current best possible assignment. If record does not exist in the
+   * assignmentMetadataStore, return the current state assignment.
+   * @throws HelixRebalanceException
+   */
+  private Map<String, ResourceAssignment> getBestPossibleAssignment(
+      AssignmentMetadataStore assignmentMetadataStore, CurrentStateOutput currentStateOutput,
+      Set<String> resources) throws HelixRebalanceException {
+    Map<String, ResourceAssignment> currentBestAssignment = Collections.emptyMap();
+    if (assignmentMetadataStore != null) {
+      try {
+        currentBestAssignment = assignmentMetadataStore.getBestPossibleAssignment();
+      } catch (HelixException ex) {
+        // Report error. and use empty mapping instead.
+        LOG.error("Failed to get the current best possible assignment.", ex);
+      } catch (Exception ex) {
+        throw new HelixRebalanceException(
+            "Failed to get the current best possible assignment because of unexpected error.",
+            HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
+      }
+    }
+    if (currentBestAssignment.isEmpty()) {
+      LOG.warn(
+          "The current best possible assignment record is empty. Use the current states instead.");
+      currentBestAssignment = getCurrentStateAssingment(currentStateOutput, resources);
+    }
+    return currentBestAssignment;
+  }
+
+  private Map<String, ResourceAssignment> getCurrentStateAssingment(
+      CurrentStateOutput currentStateOutput, Set<String> resourceSet) {
+    Map<String, ResourceAssignment> currentStateAssignment = new HashMap<>();
+    for (String resourceName : resourceSet) {
+      Map<Partition, Map<String, String>> currentStateMap =
+          currentStateOutput.getCurrentStateMap(resourceName);
+      if (!currentStateMap.isEmpty()) {
+        ResourceAssignment newResourceAssignment = new ResourceAssignment(resourceName);
+        currentStateMap.entrySet().stream().forEach(currentStateEntry -> {
+          newResourceAssignment
+              .addReplicaMap(currentStateEntry.getKey(), currentStateEntry.getValue());
+        });
+        currentStateAssignment.put(resourceName, newResourceAssignment);
+      }
+    }
+    return currentStateAssignment;
   }
 }

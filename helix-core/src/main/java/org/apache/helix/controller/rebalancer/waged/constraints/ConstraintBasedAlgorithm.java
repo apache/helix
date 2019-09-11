@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
@@ -36,10 +37,9 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
+import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Maps;
 
 /**
  * The algorithm is based on a given set of constraints
@@ -64,29 +64,26 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   @Override
   public OptimalAssignment calculate(ClusterModel clusterModel) throws HelixRebalanceException {
     OptimalAssignment optimalAssignment = new OptimalAssignment();
-    Map<String, Set<AssignableReplica>> replicasByResource = clusterModel.getAssignableReplicaMap();
     List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodes().values());
-
-    // TODO: different orders of resource/replica could lead to different greedy assignments, will
-    // revisit and improve the performance
-    for (String resource : replicasByResource.keySet()) {
-      for (AssignableReplica replica : replicasByResource.get(resource)) {
-        Optional<AssignableNode> maybeBestNode =
-            getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), optimalAssignment);
-        // stop immediately if any replica cannot find best assignable node
-        if (optimalAssignment.hasAnyFailure()) {
-          String errorMessage = String.format(
-              "Unable to find any available candidate node for partition %s; Fail reasons: %s",
-              replica.getPartitionName(), optimalAssignment.getFailures());
-          throw new HelixRebalanceException(errorMessage,
-              HelixRebalanceException.Type.FAILED_TO_CALCULATE);
-        }
-        maybeBestNode.ifPresent(node -> clusterModel.assign(replica.getResourceName(),
-            replica.getPartitionName(), replica.getReplicaState(), node.getInstanceName()));
+    // Sort the replicas so the input is stable for the greedy algorithm.
+    // For the other algorithm implementation, this sorting could be unnecessary.
+    for (AssignableReplica replica : getOrderedAssignableReplica(clusterModel)) {
+      Optional<AssignableNode> maybeBestNode =
+          getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), optimalAssignment);
+      // stop immediately if any replica cannot find best assignable node
+      if (optimalAssignment.hasAnyFailure()) {
+        String errorMessage = String.format(
+            "Unable to find any available candidate node for partition %s; Fail reasons: %s",
+            replica.getPartitionName(), optimalAssignment.getFailures());
+        throw new HelixRebalanceException(errorMessage,
+            HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       }
+      maybeBestNode.ifPresent(node -> clusterModel
+          .assign(replica.getResourceName(), replica.getPartitionName(), replica.getReplicaState(),
+              node.getInstanceName()));
     }
-
-    return optimalAssignment.convertFrom(clusterModel);
+    optimalAssignment.updateAssignments(clusterModel);
+    return optimalAssignment;
   }
 
   private Optional<AssignableNode> getNodeWithHighestPoints(AssignableReplica replica,
@@ -132,5 +129,55 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private List<String> convertFailureReasons(List<HardConstraint> hardConstraints) {
     return hardConstraints.stream().map(HardConstraint::getDescription)
         .collect(Collectors.toList());
+  }
+
+  // TODO investigate better ways to sort replicas. One option is sorting based on the creation time.
+  private List<AssignableReplica> getOrderedAssignableReplica(ClusterModel clusterModel) {
+    Map<String, Set<AssignableReplica>> replicasByResource = clusterModel.getAssignableReplicaMap();
+    List<AssignableReplica> orderedAssignableReplicas =
+        replicasByResource.values().stream().flatMap(replicas -> replicas.stream())
+            .collect(Collectors.toList());
+
+    Map<String, ResourceAssignment> bestPossibleAssignment =
+        clusterModel.getContext().getBestPossibleAssignment();
+    Map<String, ResourceAssignment> baselineAssignment =
+        clusterModel.getContext().getBaselineAssignment();
+
+    // 1. Sort according if the assignment exists in the best possible and/or baseline assignment
+    // 2. Sort according to the state priority. Note that prioritizing the top state is required.
+    // Or the greedy algorithm will unnecessarily shuffle the states between replicas.
+    // 3. Sort according to the resource/partition name.
+    orderedAssignableReplicas.sort((replica1, replica2) -> {
+      String resourceName1 = replica1.getResourceName();
+      String resourceName2 = replica2.getResourceName();
+      if (bestPossibleAssignment.containsKey(resourceName1) == bestPossibleAssignment
+          .containsKey(resourceName2)) {
+        if (baselineAssignment.containsKey(resourceName1) == baselineAssignment
+            .containsKey(resourceName2)) {
+          // If both assignment states have/not have the resource assignment the same,
+          // compare for additional dimensions.
+          int statePriority1 = replica1.getStatePriority();
+          int statePriority2 = replica2.getStatePriority();
+          if (statePriority1 == statePriority2) {
+            // If state prioritizes are the same, compare the names.
+            if (resourceName1.equals(resourceName2)) {
+              return replica1.getPartitionName().compareTo(replica2.getPartitionName());
+            } else {
+              return resourceName1.compareTo(resourceName2);
+            }
+          } else {
+            // Note we shall prioritize the replica with a higher state priority
+            return statePriority2 - statePriority1;
+          }
+        } else {
+          // If the baseline assignment contains the assignment, prioritize the replica.
+          return baselineAssignment.containsKey(resourceName1) ? -1 : 1;
+        }
+      } else {
+        // If the best possible assignment contains the assignment, prioritize the replica.
+        return bestPossibleAssignment.containsKey(resourceName1) ? -1 : 1;
+      }
+    });
+    return orderedAssignableReplicas;
   }
 }

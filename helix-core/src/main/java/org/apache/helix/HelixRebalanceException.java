@@ -27,6 +27,7 @@ public class HelixRebalanceException extends Exception {
     INVALID_CLUSTER_STATUS,
     INVALID_REBALANCER_STATUS,
     FAILED_TO_CALCULATE,
+    INVALID_INPUT,
     UNKNOWN_FAILURE
   }
 

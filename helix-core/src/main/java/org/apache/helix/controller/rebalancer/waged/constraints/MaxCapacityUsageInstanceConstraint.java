@@ -24,9 +24,11 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
- * The constraint evaluates the score by checking the max used capacity key out of all the capacity keys.
- * The higher the max usage, the lower the score
- * It is a greedy approach since it evaluates on the most used capacity key only.
+ * The constraint evaluates the score by checking the max used capacity key out of all the capacity
+ * keys.
+ * The higher the maximum usage value for the capacity key, the lower the score will be, implying
+ * that it is that much less desirable to assign anything on the given node.
+ * It is a greedy approach since it evaluates only on the most used capacity key.
  */
 class MaxCapacityUsageInstanceConstraint extends SoftConstraint {
   private static final float MIN_SCORE = 0;

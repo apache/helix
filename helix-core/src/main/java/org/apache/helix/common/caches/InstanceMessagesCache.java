@@ -96,8 +96,11 @@ public class InstanceMessagesCache {
     long purgeSum = 0;
     for (String instanceName : liveInstanceMap.keySet()) {
       // get the cache
-      Map<String, Message> cachedMap =
-          _messageCache.computeIfAbsent(instanceName, k -> Maps.newHashMap());
+      Map<String, Message> cachedMap = _messageCache.get(instanceName);
+      if (cachedMap == null) {
+        cachedMap = Maps.newHashMap();
+        _messageCache.put(instanceName, cachedMap);
+      }
       msgMap.put(instanceName, cachedMap);
 
       // get the current names

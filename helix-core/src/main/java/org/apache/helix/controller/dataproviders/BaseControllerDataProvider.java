@@ -331,8 +331,22 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     updateOfflineInstanceHistory(accessor);
 
     // Refresh derived data
-    _instanceMessagesCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
-    _currentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
+    if (_instanceMessagesCache.refresh(accessor, _liveInstanceCache.getPropertyMap())) {
+      LogUtil.logInfo(logger, getClusterEventId(), String.format(
+          "Reloaded messages for cluster %s, %s pipeline.", _clusterName, getPipelineName()));
+      refreshedTypes.add(HelixConstants.ChangeType.MESSAGE);
+    } else {
+      LogUtil.logInfo(logger, getClusterEventId(), String.format(
+          "No message change for %s cluster, %s pipeline", _clusterName, getPipelineName()));
+    }
+    if (_currentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap())) {
+      LogUtil.logInfo(logger, getClusterEventId(), String.format(
+          "Reloaded CurrentStates for cluster %s, %s pipeline.", _clusterName, getPipelineName()));
+      refreshedTypes.add(HelixConstants.ChangeType.CURRENT_STATE);
+    } else {
+      LogUtil.logInfo(logger, getClusterEventId(), String.format(
+          "No CurrentState change for %s cluster, %s pipeline", _clusterName, getPipelineName()));
+    }
 
     // current state must be refreshed before refreshing relay messages
     // because we need to use current state to validate all relay messages.

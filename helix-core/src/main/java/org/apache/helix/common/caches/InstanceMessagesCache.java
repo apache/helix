@@ -88,6 +88,7 @@ public class InstanceMessagesCache {
   public boolean refresh(HelixDataAccessor accessor, Map<String, LiveInstance> liveInstanceMap) {
     LOG.info("START: InstanceMessagesCache.refresh()");
     long startTime = System.currentTimeMillis();
+    boolean existsChange = false;
 
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Map<String, Map<String, Message>> msgMap = new HashMap<>();
@@ -95,11 +96,8 @@ public class InstanceMessagesCache {
     long purgeSum = 0;
     for (String instanceName : liveInstanceMap.keySet()) {
       // get the cache
-      Map<String, Message> cachedMap = _messageCache.get(instanceName);
-      if (cachedMap == null) {
-        cachedMap = Maps.newHashMap();
-        _messageCache.put(instanceName, cachedMap);
-      }
+      Map<String, Message> cachedMap =
+          _messageCache.computeIfAbsent(instanceName, k -> Maps.newHashMap());
       msgMap.put(instanceName, cachedMap);
 
       // get the current names
@@ -113,6 +111,10 @@ public class InstanceMessagesCache {
         String messageName = cachedNamesIter.next();
         if (!messageNames.contains(messageName)) {
           cachedNamesIter.remove();
+          // a removal exists
+          if (!existsChange) {
+            existsChange = true;
+          }
         }
       }
       long purgeEnd = System.currentTimeMillis();
@@ -122,6 +124,10 @@ public class InstanceMessagesCache {
       for (String messageName : messageNames) {
         if (!cachedMap.containsKey(messageName)) {
           newMessageKeys.add(keyBuilder.message(instanceName, messageName));
+          // a new message exists
+          if (!existsChange) {
+            existsChange = true;
+          }
         }
       }
     }
@@ -147,7 +153,7 @@ public class InstanceMessagesCache {
     LOG.info(
         "END: InstanceMessagesCache.refresh(), {} of Messages read from ZooKeeper. took {} ms. ",
         newMessageKeys.size(), (System.currentTimeMillis() - startTime));
-    return true;
+    return existsChange;
   }
 
   /**

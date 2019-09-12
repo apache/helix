@@ -78,20 +78,12 @@ public class CurrentStateCache extends AbstractDataCache<CurrentState> {
       String[] params = key.getParams();
       if (currentState != null && params.length >= 4) {
         String instanceName = params[1];
-        String sessionId = params[2];
-        String stateName = params[3];
         Map<String, Map<String, CurrentState>> instanceCurStateMap =
             allCurStateMap.get(instanceName);
         if (instanceCurStateMap == null) {
           instanceCurStateMap = Maps.newHashMap();
           allCurStateMap.put(instanceName, instanceCurStateMap);
         }
-        Map<String, CurrentState> sessionCurStateMap = instanceCurStateMap.get(sessionId);
-        if (sessionCurStateMap == null) {
-          sessionCurStateMap = Maps.newHashMap();
-          instanceCurStateMap.put(sessionId, sessionCurStateMap);
-        }
-        sessionCurStateMap.put(stateName, currentState);
       }
     }
 
@@ -108,7 +100,7 @@ public class CurrentStateCache extends AbstractDataCache<CurrentState> {
       LogUtil.logDebug(LOG, genEventInfo(),
           String.format("Current State refreshed : %s", _currentStateMap.toString()));
     }
-    return true;
+    return getExistsChange();
   }
 
   // reload current states that has been changed from zk to local cache.

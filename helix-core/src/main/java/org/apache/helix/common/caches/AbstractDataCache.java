@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
@@ -41,9 +42,11 @@ public abstract class AbstractDataCache<T extends HelixProperty> {
   public static final String UNKNOWN_PIPELINE = "UNKNOWN_PIPELINE";
 
   protected ControlContextProvider _controlContextProvider;
+  private AtomicBoolean _existsChange;
 
   public AbstractDataCache(ControlContextProvider controlContextProvider) {
     _controlContextProvider = controlContextProvider;
+    _existsChange = new AtomicBoolean();
   }
 
   /**
@@ -83,6 +86,8 @@ public abstract class AbstractDataCache<T extends HelixProperty> {
 
     reloadedKeys.clear();
     reloadedKeys.addAll(reloadKeys);
+    // There exists a change if reloadedKeys is not empty
+    _existsChange.set(!reloadedKeys.isEmpty());
 
     List<T> reloadedProperty = accessor.getProperty(reloadKeys, true);
     Iterator<PropertyKey> csKeyIter = reloadKeys.iterator();
@@ -111,6 +116,14 @@ public abstract class AbstractDataCache<T extends HelixProperty> {
   public AbstractDataSnapshot getSnapshot() {
     throw new HelixException(String.format("DataCache %s does not support generating snapshot.",
         getClass().getSimpleName()));
+  }
+
+  /**
+   * Returns whether there has been any changes in the last refreshProperties() call.
+   * @return
+   */
+  public boolean getExistsChange() {
+    return _existsChange.get();
   }
 
   // for backward compatibility, used in scenarios where we only initialize child

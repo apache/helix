@@ -118,7 +118,9 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     if (propertyRefreshed.contains(HelixConstants.ChangeType.IDEAL_STATE)
         || propertyRefreshed.contains(HelixConstants.ChangeType.LIVE_INSTANCE)
         || propertyRefreshed.contains(HelixConstants.ChangeType.INSTANCE_CONFIG)
-        || propertyRefreshed.contains(HelixConstants.ChangeType.RESOURCE_CONFIG)) {
+        || propertyRefreshed.contains(HelixConstants.ChangeType.RESOURCE_CONFIG)
+        || propertyRefreshed.contains(HelixConstants.ChangeType.CURRENT_STATE)
+        || propertyRefreshed.contains(HelixConstants.ChangeType.MESSAGE)) {
       clearCachedResourceAssignments();
     }
 

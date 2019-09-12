@@ -56,15 +56,18 @@ public class CustomRebalancer extends AbstractRebalancer<ResourceControllerDataP
   public ResourceAssignment computeBestPossiblePartitionState(ResourceControllerDataProvider cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
     // Looking for cached BestPossible mapping for this resource, if it is already there, do not recompute it again.
-    // The cached mapping will be cleared in ResourceControllerDataProvider if there is anything changed in cluster state that can
+    // The cached mapping will be cleared in ResourceControllerDataProvider if there is anything
+    // changed in cluster state that can
     // cause the potential changes in BestPossible state.
     ResourceAssignment partitionMapping =
         cache.getCachedResourceAssignment(resource.getResourceName());
     if (partitionMapping != null) {
+      LOG.info("Reuse cached BestPossibleMapping for {}. Skipping BestPossible computation...",
+          resource.getResourceName());
       return partitionMapping;
     }
 
-    LOG.info("Computing BestPossibleMapping for " + resource.getResourceName());
+    LOG.info("Computing BestPossibleMapping for {}...", resource.getResourceName());
 
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);

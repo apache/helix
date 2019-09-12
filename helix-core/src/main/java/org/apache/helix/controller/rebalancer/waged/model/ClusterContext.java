@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
+import org.apache.helix.model.ResourceAssignment;
 
 /**
  * This class tracks the rebalance-related global cluster status.
@@ -44,13 +45,18 @@ public class ClusterContext {
 
   // map{zoneName : map{resourceName : set(partitionNames)}}
   private Map<String, Map<String, Set<String>>> _assignmentForFaultZoneMap = new HashMap<>();
+  // Records about the previous assignment
+  // <ResourceName, ResourceAssignment contains the baseline assignment>
+  private final Map<String, ResourceAssignment> _baselineAssignment;
+  // <ResourceName, ResourceAssignment contains the best possible assignment>
+  private final Map<String, ResourceAssignment> _bestPossibleAssignment;
 
   /**
    * Construct the cluster context based on the current instance status.
    * @param replicaSet All the partition replicas that are managed by the rebalancer
    * @param instanceCount The count of all the active instances that can be used to host partitions.
    */
-  ClusterContext(Set<AssignableReplica> replicaSet, int instanceCount) {
+  ClusterContext(Set<AssignableReplica> replicaSet, int instanceCount, Map<String, ResourceAssignment> baselineAssignment, Map<String, ResourceAssignment> bestPossibleAssignment) {
     int totalReplicas = 0;
     int totalTopStateReplicas = 0;
 
@@ -68,6 +74,8 @@ public class ClusterContext {
 
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
+    _baselineAssignment = baselineAssignment;
+    _bestPossibleAssignment = bestPossibleAssignment;
   }
 
   public Map<String, Map<String, Set<String>>> getAssignmentForFaultZoneMap() {

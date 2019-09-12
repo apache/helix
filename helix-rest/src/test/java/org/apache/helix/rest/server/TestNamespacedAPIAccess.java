@@ -62,7 +62,7 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
   public void testNamespacedCRUD() throws IOException {
     String testClusterName = "testClusterForNamespacedCRUD";
 
-    // Create a cluster in test namespace and verify it only appears in test namespace
+    // Create cluster in test namespace and verify it's only appears in test namespace
     put(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName), null,
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.CREATED.getStatusCode());
     get(String.format("/namespaces/%s/clusters/%s", TEST_NAMESPACE, testClusterName), null,

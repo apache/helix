@@ -24,7 +24,7 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
- * Evaluate the proposed assignment according to the top state replication count on the instacne.
+ * Evaluate the proposed assignment according to the top state replication count on the instance.
  * The higher number the number of top state partitions assigned to the instance, the lower the
  * score, vice versa.
  */

@@ -193,7 +193,7 @@ public class BasicClusterDataCache implements ControlContextProvider {
     switch (changeType) {
     case LIVE_INSTANCE:
     case INSTANCE_CONFIG:
-      LOG.warn("clearCache is deprecated for changeType: " + changeType);
+      LOG.warn("clearCache is deprecated for changeType: {}.", changeType);
       break;
     case EXTERNAL_VIEW:
       _externalViewCache.clear();

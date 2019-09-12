@@ -187,10 +187,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
   /**
    * @return The total count of assigned top state partitions.
    */
-  public long getAssignedTopStatePartitionsCount() {
-    return _currentAssignedReplicaMap.values().stream()
+  public int getAssignedTopStatePartitionsCount() {
+    return (int) _currentAssignedReplicaMap.values().stream()
         .flatMap(replicaMap -> replicaMap.values().stream())
-        .filter(replica -> replica.isReplicaTopState()).count();
+        .filter(AssignableReplica::isReplicaTopState).count();
   }
 
   /**

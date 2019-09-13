@@ -24,12 +24,18 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
- * Evaluate the proposed assignment according to the other partitions assignment within the scope of
- * the same resource.
- * If the resource of the partition overall has a light load on the instance, the score is higher compared to
- * case when the resource is heavily loaded on the instance
+ * This constraint exists to make partitions belonging to the same resource be assigned as far from
+ * each other as possible. This is because it is undesirable to have many partitions belonging to
+ * the same resource be assigned to the same node to minimize the impact of node failure scenarios.
+ * The score is higher the fewer the partitions are on the node belonging to the same resource.
  */
-public class ResourcePartitionAntiAffinityConstraint extends SoftConstraint {
+class ResourcePartitionAntiAffinityConstraint extends SoftConstraint {
+  private static final float MAX_SCORE = 1f;
+  private static final float MIN_SCORE = 0f;
+
+  ResourcePartitionAntiAffinityConstraint() {
+    super(MAX_SCORE, MIN_SCORE);
+  }
 
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
@@ -38,6 +44,8 @@ public class ResourcePartitionAntiAffinityConstraint extends SoftConstraint {
     int curPartitionCountForResource = node.getAssignedPartitionsByResource(resource).size();
     int doubleMaxPartitionCountForResource =
         2 * clusterContext.getEstimatedMaxPartitionByResource(resource);
+    // The score measures the twice the max allowed count versus current counts
+    // The returned value is a measurement of remaining quota ratio, in the case of exceeding allowed counts, return 0
     return Math.max(((float) doubleMaxPartitionCountForResource - curPartitionCountForResource)
         / doubleMaxPartitionCountForResource, 0);
   }

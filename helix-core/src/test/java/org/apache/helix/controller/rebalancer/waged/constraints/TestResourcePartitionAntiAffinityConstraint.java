@@ -21,6 +21,8 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -29,8 +31,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableSet;
-
-import java.util.Collections;
 
 public class TestResourcePartitionAntiAffinityConstraint {
   private static final String TEST_PARTITION = "TestPartition";
@@ -48,7 +48,9 @@ public class TestResourcePartitionAntiAffinityConstraint {
     when(_clusterContext.getEstimatedMaxPartitionByResource(TEST_RESOURCE)).thenReturn(10);
 
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.85f);
+    Assert.assertEquals(normalizedScore, 0.85f);
   }
 
   @Test
@@ -58,6 +60,8 @@ public class TestResourcePartitionAntiAffinityConstraint {
     when(_clusterContext.getEstimatedMaxPartitionByResource(TEST_RESOURCE)).thenReturn(10);
 
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 1f);
+    Assert.assertEquals(normalizedScore, 1f);
   }
 }

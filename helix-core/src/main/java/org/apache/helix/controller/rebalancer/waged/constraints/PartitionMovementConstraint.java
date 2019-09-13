@@ -24,7 +24,8 @@ import java.util.Map;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
-import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.ResourceAssignment;
 
 /**
  * Evaluate the proposed assignment according to the potential partition movements cost.
@@ -35,7 +36,7 @@ import org.apache.helix.model.IdealState;
  * Any change to these two assignments will increase the partition movements cost, so that the
  * evaluated score will become lower.
  */
-public class PartitionMovementConstraint extends SoftConstraint {
+class PartitionMovementConstraint extends SoftConstraint {
   // This factor indicates the default score that is evaluated if only partition allocation matches
   // (states are different).
   private static final float ALLOCATION_MATCH_FACTOR = 0.5f;
@@ -43,12 +44,14 @@ public class PartitionMovementConstraint extends SoftConstraint {
   private static final float BASELINE_MATCH_FACTOR = 0.25f;
 
   @Override
-  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica, ClusterContext clusterContext) {
+  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext) {
     float scale = 0;
 
     Map<String, String> bestPossibleStateMap =
-            getStateMap(replica, clusterContext.getBestPossibleAssignment());
-    Map<String, String> baselineStateMap = getStateMap(replica, clusterContext.getBaseline());
+        getStateMap(replica, clusterContext.getBestPossibleAssignment());
+    Map<String, String> baselineStateMap =
+        getStateMap(replica, clusterContext.getBaselineAssignment());
 
     // Prioritize the matching of the previous Best Possible assignment.
     if (bestPossibleStateMap != null) {
@@ -57,7 +60,7 @@ public class PartitionMovementConstraint extends SoftConstraint {
     if (baselineStateMap != null) {
       // If the baseline is also provided, adjust the final score accordingly.
       scale = scale * (1 - BASELINE_MATCH_FACTOR)
-              + calculateAssignmentScale(node, replica, baselineStateMap) * BASELINE_MATCH_FACTOR;
+          + calculateAssignmentScale(node, replica, baselineStateMap) * BASELINE_MATCH_FACTOR;
     }
 
     return scale;
@@ -69,24 +72,23 @@ public class PartitionMovementConstraint extends SoftConstraint {
   }
 
   private Map<String, String> getStateMap(AssignableReplica replica,
-                                          Map<String, IdealState> assignment) {
+      Map<String, ResourceAssignment> assignment) {
     String resourceName = replica.getResourceName();
     String partitionName = replica.getPartitionName();
     if (assignment == null || !assignment.containsKey(resourceName)) {
       return null;
     }
-    return assignment.get(resourceName).getInstanceStateMap(partitionName);
+    return assignment.get(resourceName).getReplicaMap(new Partition(partitionName));
   }
 
   private float calculateAssignmentScale(AssignableNode node, AssignableReplica rep,
-                                         Map<String, String> stateMap) {
+      Map<String, String> stateMap) {
     String instanceName = node.getInstanceName();
     if (!stateMap.containsKey(instanceName)) {
       return 0;
     } else {
-      return (stateMap.get(instanceName).equals(rep.getReplicaState()) ?
-              1 :
-              ALLOCATION_MATCH_FACTOR);
+      return (stateMap.get(instanceName).equals(rep.getReplicaState()) ? 1
+          : ALLOCATION_MATCH_FACTOR);
     }
   }
 }

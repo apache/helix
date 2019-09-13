@@ -19,16 +19,16 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 public class TestClusterModel extends AbstractTestClusterModel {
   @BeforeClass
@@ -55,10 +55,9 @@ public class TestClusterModel extends AbstractTestClusterModel {
     Set<AssignableReplica> assignableReplicas = generateReplicas(testCache);
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 
-    ClusterContext context = new ClusterContext(assignableReplicas, 2);
+    ClusterContext context = new ClusterContext(assignableReplicas, 2, Collections.emptyMap(), Collections.emptyMap());
     ClusterModel clusterModel =
-        new ClusterModel(context, assignableReplicas, assignableNodes, Collections.emptyMap(),
-            Collections.emptyMap());
+        new ClusterModel(context, assignableReplicas, assignableNodes);
 
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .allMatch(resourceMap -> resourceMap.values().isEmpty()));

@@ -19,17 +19,18 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class TestClusterContext extends AbstractTestClusterModel {
   @BeforeClass
@@ -43,7 +44,7 @@ public class TestClusterContext extends AbstractTestClusterModel {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
 
-    ClusterContext context = new ClusterContext(assignmentSet, 2);
+    ClusterContext context = new ClusterContext(assignmentSet, 2, new HashMap<>(), new HashMap<>());
 
     // Note that we left some margin for the max estimation.
     Assert.assertEquals(context.getEstimatedMaxPartitionCount(), 3);
@@ -80,7 +81,7 @@ public class TestClusterContext extends AbstractTestClusterModel {
   public void testDuplicateAssign() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
-    ClusterContext context = new ClusterContext(assignmentSet, 2);
+    ClusterContext context = new ClusterContext(assignmentSet, 2, new HashMap<>(), new HashMap<>());
     context
         .addPartitionToFaultZone(_testFaultZoneId, _resourceNames.get(0), _partitionNames.get(0));
     // Insert again and trigger the error.

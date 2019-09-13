@@ -78,6 +78,14 @@ public class ClusterContext {
     _bestPossibleAssignment = bestPossibleAssignment;
   }
 
+  public Map<String, ResourceAssignment> getBaselineAssignment() {
+    return _baselineAssignment;
+  }
+
+  public Map<String, ResourceAssignment> getBestPossibleAssignment() {
+    return _bestPossibleAssignment;
+  }
+
   public Map<String, Map<String, Set<String>>> getAssignmentForFaultZoneMap() {
     return _assignmentForFaultZoneMap;
   }

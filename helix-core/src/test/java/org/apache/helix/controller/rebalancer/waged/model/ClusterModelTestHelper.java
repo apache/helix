@@ -34,17 +34,17 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
     Set<AssignableReplica> assignableReplicas = generateReplicas(testCache);
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 
-    ClusterContext context = new ClusterContext(assignableReplicas, 2);
-    return new ClusterModel(context, assignableReplicas, assignableNodes, Collections.emptyMap(),
-        Collections.emptyMap());
+    ClusterContext context =
+        new ClusterContext(assignableReplicas, 2, Collections.emptyMap(), Collections.emptyMap());
+    return new ClusterModel(context, assignableReplicas, assignableNodes);
   }
 
   private Set<AssignableNode> generateNodes(ResourceControllerDataProvider testCache) {
     Set<AssignableNode> nodeSet = new HashSet<>();
     testCache.getInstanceConfigMap().values().stream()
-            .forEach(config -> nodeSet.add(new AssignableNode(testCache.getClusterConfig(),
-                    testCache.getInstanceConfigMap().get(_testInstanceId), config.getInstanceName(),
-                    Collections.emptyList())));
+        .forEach(config -> nodeSet.add(new AssignableNode(testCache.getClusterConfig(),
+            testCache.getInstanceConfigMap().get(_testInstanceId), config.getInstanceName(),
+            Collections.emptyList())));
     return nodeSet;
   }
 }

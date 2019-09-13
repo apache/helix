@@ -47,7 +47,10 @@ public class TestMaxCapacityUsageInstanceConstraint {
   public void testGetNormalizedScore() {
     when(_testNode.getHighestCapacityUtilization()).thenReturn(0.8f);
     float score =
+            _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0.6f);
+    float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.1f);
+    Assert.assertEquals(normalizedScore, 0.6f);
   }
 }

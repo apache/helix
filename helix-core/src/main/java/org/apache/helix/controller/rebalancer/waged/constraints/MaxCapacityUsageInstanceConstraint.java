@@ -42,12 +42,6 @@ class MaxCapacityUsageInstanceConstraint extends SoftConstraint {
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     float maxCapacityUsage = node.getHighestCapacityUtilization();
-    return (1.0f - maxCapacityUsage) / 2;
-  }
-
-  @Override
-  NormalizeFunction getNormalizeFunction() {
-    // round to 2 decimals float number
-    return score -> super.getNormalizeFunction().scale((float) Math.round(score * 100) / 100);
+    return 1.0f - maxCapacityUsage / 2.0f;
   }
 }

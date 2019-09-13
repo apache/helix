@@ -28,12 +28,19 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * The higher number the number of top state partitions assigned to the instance, the lower the
  * score, vice versa.
  */
-public class ResourceTopStateAntiAffinityConstraint extends SoftConstraint {
+class ResourceTopStateAntiAffinityConstraint extends SoftConstraint {
+  private static final float MAX_SCORE = 1f;
+  private static final float MIN_SCORE = 0f;
+
+  ResourceTopStateAntiAffinityConstraint() {
+    super(MAX_SCORE, MIN_SCORE);
+  }
+
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     if (!replica.isReplicaTopState()) {
-      return (getMaxScore() + getMinScore()) / 2;
+      return (getMaxScore() + getMinScore()) / 2.0f;
     }
 
     int curTopPartitionCountForResource = node.getAssignedTopStatePartitionsCount();

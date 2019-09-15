@@ -9,7 +9,7 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,25 +24,24 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
- * Evaluate by instance's current partition count versus estimated max partition count
- * Intuitively, Encourage the assignment if the instance's occupancy rate is below average;
- * Discourage the assignment if the instance's occupancy rate is above average
- * The normalized score will be within [0, 1]
+ * The constraint evaluates the score by checking the max used capacity key out of all the capacity
+ * keys.
+ * The higher the maximum usage value for the capacity key, the lower the score will be, implying
+ * that it is that much less desirable to assign anything on the given node.
+ * It is a greedy approach since it evaluates only on the most used capacity key.
  */
-class InstancePartitionsCountConstraint extends SoftConstraint {
-  private static final float MAX_SCORE = 1f;
-  private static final float MIN_SCORE = 0f;
+class MaxCapacityUsageInstanceConstraint extends SoftConstraint {
+  private static final float MIN_SCORE = 0;
+  private static final float MAX_SCORE = 1;
 
-  InstancePartitionsCountConstraint() {
+  MaxCapacityUsageInstanceConstraint() {
     super(MAX_SCORE, MIN_SCORE);
   }
 
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    float doubleEstimatedMaxPartitionCount = 2 * clusterContext.getEstimatedMaxPartitionCount();
-    float currentPartitionCount = node.getAssignedReplicaCount();
-    return Math.max((doubleEstimatedMaxPartitionCount - currentPartitionCount)
-        / doubleEstimatedMaxPartitionCount, 0);
+    float maxCapacityUsage = node.getHighestCapacityUtilization();
+    return 1.0f - maxCapacityUsage / 2.0f;
   }
 }

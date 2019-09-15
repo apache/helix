@@ -24,7 +24,8 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
- * The "soft" constraint evaluates the optimality of an assignment by giving it a score of a scale of [minScore, maxScore]
+ * The "soft" constraint evaluates the optimality of an assignment by giving it a score of a scale
+ * of [minScore, maxScore]
  * The higher the score, the better the assignment; Intuitively, the assignment is encouraged.
  * The lower score the score, the worse the assignment; Intuitively, the assignment is penalized.
  */

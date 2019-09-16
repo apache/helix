@@ -38,6 +38,15 @@ import static org.mockito.Mockito.*;
 
 public class TestCustomRebalancer {
 
+  /**
+   * This test was written because there is an edge case where an instance becomes disabled while a
+   * partition is bootstrapping by way of pending
+   * messages.
+   * The newly bootstrapped partitions never get further state transitions because the instance
+   * won't ever get added to instanceStateMap (this issue has been fixed). In other words, if there
+   * are mapping changes while a partition is bootstrapping, the final state should go into the best
+   * possible mapping for clusters to converge correctly.
+   */
   @Test
   public void testDisabledBootstrappingPartitions() {
     String resourceName = "Test";

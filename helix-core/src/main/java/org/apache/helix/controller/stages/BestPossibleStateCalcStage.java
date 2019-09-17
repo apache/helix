@@ -121,7 +121,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // configured to use the WAGED rebalancer.
     // For the other resources, the legacy rebalancers will be triggered in the next step.
     Map<String, IdealState> newIdealStates = new HashMap<>();
-    WagedRebalancer wagedRebalancer = new WagedRebalancer(helixManager);
+    WagedRebalancer wagedRebalancer = new WagedRebalancer(helixManager, cache.getClusterConfig());
     try {
       newIdealStates
           .putAll(wagedRebalancer.computeNewIdealStates(cache, resourceMap, currentStateOutput));

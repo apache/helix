@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
+import org.apache.helix.model.ClusterConfig;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,21 +33,26 @@ import com.google.common.collect.ImmutableMap;
  */
 public class ConstraintBasedAlgorithmFactory {
 
-  // TODO: the parameter comes from cluster config, will tune how these 2 integers will change the
-  // soft constraint weight model
-  public static RebalanceAlgorithm getInstance() {
+  public static RebalanceAlgorithm getInstance(ClusterConfig clusterConfig) {
     List<HardConstraint> hardConstraints =
         ImmutableList.of(new FaultZoneAwareConstraint(), new NodeCapacityConstraint(),
             new ReplicaActivateConstraint(), new NodeMaxPartitionLimitConstraint(),
             new ValidGroupTagConstraint(), new SamePartitionOnInstanceConstraint());
 
+    int evennessPreference = clusterConfig.getGlobalRebalancePreference()
+        .get(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS);
+    int movementPreference = clusterConfig.getGlobalRebalancePreference()
+        .get(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT);
+    float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
+    float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
+
     Map<SoftConstraint, Float> softConstraints = ImmutableMap.<SoftConstraint, Float> builder()
         // TODO: merge with PartitionMovementConstraint
-        // .put(new PartitionMovementConstraint(), 0.15f)
-        .put(new InstancePartitionsCountConstraint(), 0.5f)
-        .put(new ResourcePartitionAntiAffinityConstraint(), 0.1f)
-        .put(new ResourceTopStateAntiAffinityConstraint(), 0.1f)
-        .put(new MaxCapacityUsageInstanceConstraint(), 0.25f).build();
+        // .put(new PartitionMovementConstraint(), movementRatio)
+        .put(new InstancePartitionsCountConstraint(), 0.5f * evennessRatio)
+        .put(new ResourcePartitionAntiAffinityConstraint(), 0.1f * evennessRatio)
+        .put(new ResourceTopStateAntiAffinityConstraint(), 0.1f * evennessRatio)
+        .put(new MaxCapacityUsageInstanceConstraint(), 0.25f * evennessRatio).build();
 
     return new ConstraintBasedAlgorithm(hardConstraints, softConstraints);
   }

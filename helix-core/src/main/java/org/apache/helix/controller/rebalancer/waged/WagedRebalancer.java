@@ -20,7 +20,6 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
@@ -42,12 +40,16 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
 import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Weight-Aware Globally-Even Distribute Rebalancer.
@@ -62,10 +64,8 @@ public class WagedRebalancer {
   // When any of the following change happens, the rebalancer needs to do a global rebalance which
   // contains 1. baseline recalculate, 2. partial rebalance that is based on the new baseline.
   private static final Set<HelixConstants.ChangeType> GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES =
-      Collections
-          .unmodifiableSet(new HashSet<>(Arrays.asList(HelixConstants.ChangeType.RESOURCE_CONFIG,
-              HelixConstants.ChangeType.CLUSTER_CONFIG,
-              HelixConstants.ChangeType.INSTANCE_CONFIG)));
+      ImmutableSet.of(HelixConstants.ChangeType.RESOURCE_CONFIG,
+          HelixConstants.ChangeType.CLUSTER_CONFIG, HelixConstants.ChangeType.INSTANCE_CONFIG);
   // The cluster change detector is a stateful object.
   // Make it static to avoid unnecessary reinitialization.
   private static final ThreadLocal<ResourceChangeDetector> CHANGE_DETECTOR_THREAD_LOCAL =
@@ -79,13 +79,12 @@ public class WagedRebalancer {
   private final RebalanceAlgorithm _rebalanceAlgorithm;
   // ------------------------------------------------------------------------------------//
 
-  public WagedRebalancer(HelixManager helixManager) {
+  public WagedRebalancer(HelixManager helixManager, ClusterConfig clusterConfig) {
     this(
         // TODO init the metadata store according to their requirement when integrate,
         // or change to final static method if possible.
         new AssignmentMetadataStore(helixManager),
-        // TODO parse the cluster setting
-        ConstraintBasedAlgorithmFactory.getInstance(),
+        ConstraintBasedAlgorithmFactory.getInstance(clusterConfig),
         // Use DelayedAutoRebalancer as the mapping calculator for the final assignment output.
         // Mapping calculator will translate the best possible assignment into the applicable state
         // mapping based on the current states.

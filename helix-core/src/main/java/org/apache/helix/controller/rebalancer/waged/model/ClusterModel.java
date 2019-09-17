@@ -19,13 +19,12 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import org.apache.helix.HelixException;
-import org.apache.helix.model.ResourceAssignment;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.helix.HelixException;
 
 /**
  * This class wraps the required input for the rebalance algorithm.
@@ -39,23 +38,14 @@ public class ClusterModel {
   private final Map<String, Map<String, AssignableReplica>> _assignableReplicaIndex;
   private final Map<String, AssignableNode> _assignableNodeMap;
 
-  // Records about the previous assignment
-  // <ResourceName, ResourceAssignment contains the baseline assignment>
-  private final Map<String, ResourceAssignment> _baselineAssignment;
-  // <ResourceName, ResourceAssignment contains the best possible assignment>
-  private final Map<String, ResourceAssignment> _bestPossibleAssignment;
-
   /**
    * @param clusterContext         The initialized cluster context.
    * @param assignableReplicas     The replicas to be assigned.
    *                               Note that the replicas in this list shall not be included while initializing the context and assignable nodes.
    * @param assignableNodes        The active instances.
-   * @param baselineAssignment     The recorded baseline assignment.
-   * @param bestPossibleAssignment The current best possible assignment.
    */
   ClusterModel(ClusterContext clusterContext, Set<AssignableReplica> assignableReplicas,
-      Set<AssignableNode> assignableNodes, Map<String, ResourceAssignment> baselineAssignment,
-      Map<String, ResourceAssignment> bestPossibleAssignment) {
+      Set<AssignableNode> assignableNodes) {
     _clusterContext = clusterContext;
 
     // Save all the to be assigned replication
@@ -70,9 +60,6 @@ public class ClusterModel {
 
     _assignableNodeMap = assignableNodes.stream()
         .collect(Collectors.toMap(AssignableNode::getInstanceName, node -> node));
-
-    _baselineAssignment = baselineAssignment;
-    _bestPossibleAssignment = bestPossibleAssignment;
   }
 
   public ClusterContext getContext() {
@@ -85,14 +72,6 @@ public class ClusterModel {
 
   public Map<String, Set<AssignableReplica>> getAssignableReplicaMap() {
     return _assignableReplicaMap;
-  }
-
-  public Map<String, ResourceAssignment> getBaseline() {
-    return _baselineAssignment;
-  }
-
-  public Map<String, ResourceAssignment> getBestPossibleAssignment() {
-    return _bestPossibleAssignment;
   }
 
   /**

@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
+import org.apache.helix.model.ResourceAssignment;
+
 
 /**
  * This class tracks the rebalance-related global cluster status.
@@ -44,30 +46,47 @@ public class ClusterContext {
 
   // map{zoneName : map{resourceName : set(partitionNames)}}
   private Map<String, Map<String, Set<String>>> _assignmentForFaultZoneMap = new HashMap<>();
+  // Records about the previous assignment
+  // <ResourceName, ResourceAssignment contains the baseline assignment>
+  private final Map<String, ResourceAssignment> _baselineAssignment;
+  // <ResourceName, ResourceAssignment contains the best possible assignment>
+  private final Map<String, ResourceAssignment> _bestPossibleAssignment;
 
   /**
    * Construct the cluster context based on the current instance status.
    * @param replicaSet All the partition replicas that are managed by the rebalancer
    * @param instanceCount The count of all the active instances that can be used to host partitions.
    */
-  ClusterContext(Set<AssignableReplica> replicaSet, int instanceCount) {
+  ClusterContext(Set<AssignableReplica> replicaSet, int instanceCount,
+      Map<String, ResourceAssignment> baselineAssignment, Map<String, ResourceAssignment> bestPossibleAssignment) {
     int totalReplicas = 0;
     int totalTopStateReplicas = 0;
 
     for (Map.Entry<String, List<AssignableReplica>> entry : replicaSet.stream()
-        .collect(Collectors.groupingBy(AssignableReplica::getResourceName)).entrySet()) {
+        .collect(Collectors.groupingBy(AssignableReplica::getResourceName))
+        .entrySet()) {
       int replicas = entry.getValue().size();
       totalReplicas += replicas;
 
       int replicaCnt = Math.max(1, estimateAvgReplicaCount(replicas, instanceCount));
       _estimatedMaxPartitionByResource.put(entry.getKey(), replicaCnt);
 
-      totalTopStateReplicas +=
-          entry.getValue().stream().filter(AssignableReplica::isReplicaTopState).count();
+      totalTopStateReplicas += entry.getValue().stream().filter(AssignableReplica::isReplicaTopState).count();
     }
 
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
+    _baselineAssignment = baselineAssignment;
+    _bestPossibleAssignment = bestPossibleAssignment;
+  }
+
+  public Map<String, ResourceAssignment> getBaselineAssignment() {
+    return _baselineAssignment == null || _baselineAssignment.isEmpty() ? Collections.emptyMap() : _baselineAssignment;
+  }
+
+  public Map<String, ResourceAssignment> getBestPossibleAssignment() {
+    return _bestPossibleAssignment == null || _bestPossibleAssignment.isEmpty() ? Collections.emptyMap()
+        : _bestPossibleAssignment;
   }
 
   public Map<String, Map<String, Set<String>>> getAssignmentForFaultZoneMap() {
@@ -93,25 +112,25 @@ public class ClusterContext {
 
   void addPartitionToFaultZone(String faultZoneId, String resourceName, String partition) {
     if (!_assignmentForFaultZoneMap.computeIfAbsent(faultZoneId, k -> new HashMap<>())
-        .computeIfAbsent(resourceName, k -> new HashSet<>()).add(partition)) {
+        .computeIfAbsent(resourceName, k -> new HashSet<>())
+        .add(partition)) {
       throw new HelixException(
-          String.format("Resource %s already has a replica from partition %s in fault zone %s",
-              resourceName, partition, faultZoneId));
+          String.format("Resource %s already has a replica from partition %s in fault zone %s", resourceName, partition,
+              faultZoneId));
     }
   }
 
   boolean removePartitionFromFaultZone(String faultZoneId, String resourceName, String partition) {
     return _assignmentForFaultZoneMap.getOrDefault(faultZoneId, Collections.emptyMap())
-        .getOrDefault(resourceName, Collections.emptySet()).remove(partition);
+        .getOrDefault(resourceName, Collections.emptySet())
+        .remove(partition);
   }
 
-  void setAssignmentForFaultZoneMap(
-      Map<String, Map<String, Set<String>>> assignmentForFaultZoneMap) {
+  void setAssignmentForFaultZoneMap(Map<String, Map<String, Set<String>>> assignmentForFaultZoneMap) {
     _assignmentForFaultZoneMap = assignmentForFaultZoneMap;
   }
 
   private int estimateAvgReplicaCount(int replicaCount, int instanceCount) {
-    return (int) Math
-        .ceil((float) replicaCount / instanceCount * ERROR_MARGIN_FOR_ESTIMATED_MAX_COUNT);
+    return (int) Math.ceil((float) replicaCount / instanceCount * ERROR_MARGIN_FOR_ESTIMATED_MAX_COUNT);
   }
 }

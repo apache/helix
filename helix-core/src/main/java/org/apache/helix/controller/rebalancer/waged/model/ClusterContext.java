@@ -77,7 +77,7 @@ public class ClusterContext {
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
     _baselineAssignment = baselineAssignment.isEmpty() ? Collections.emptyMap() : baselineAssignment;
-    _bestPossibleAssignment = bestPossibleAssignment.isEmpty() ? Collections.emptyMap() : baselineAssignment;
+    _bestPossibleAssignment = bestPossibleAssignment.isEmpty() ? Collections.emptyMap() : bestPossibleAssignment;
   }
 
   public Map<String, ResourceAssignment> getBaselineAssignment() {

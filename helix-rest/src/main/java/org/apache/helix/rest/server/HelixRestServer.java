@@ -94,14 +94,17 @@ public class HelixRestServer {
     _servletContextHandler = new ServletContextHandler(_server, _urlPrefix);
     _helixNamespaces = namespaces;
 
-    // Initialize all namespaces
+    // Initialize all namespaces.
+    // If there is not a default namespace (namespace.isDefault() is false),
+    // endpoint "/namespaces" will be disabled.
     try {
       for (HelixRestNamespace namespace : _helixNamespaces) {
-        LOG.info("Initializing namespace " + namespace.getName());
-        prepareServlet(namespace, ServletType.COMMON_SERVLET);
         if (namespace.isDefault()) {
           LOG.info("Creating default servlet for default namespace");
           prepareServlet(namespace, ServletType.DEFAULT_SERVLET);
+        } else {
+          LOG.info("Creating common servlet for namespace {}", namespace.getName());
+          prepareServlet(namespace, ServletType.COMMON_SERVLET);
         }
       }
     } catch (Exception e) {

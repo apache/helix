@@ -42,28 +42,23 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
   ObjectMapper _mapper = new ObjectMapper();
 
   @Test
-  public void testDefaultNamespaceCompatibility() {
-    String testClusterName1 = "testClusterForDefaultNamespaceCompatibility1";
-    String testClusterName2 = "testClusterForDefaultNamespaceCompatibility2";
+  public void testDefaultNamespaceDisabled() {
+    String testClusterName = "testDefaultNamespaceDisabled";
 
-    // Create from namespaced API and ensure we can access it from old apis, and vice-versa
-    // Assume other api end points will behave the same way
-    put(String.format("/namespaces/%s/clusters/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME, testClusterName1), null,
-        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.CREATED.getStatusCode());
-    get(String.format("/clusters/%s", testClusterName1), null, Response.Status.OK.getStatusCode(), false);
+    // "/namespaces/default" is disabled.
+    get(String.format("/namespaces/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME), null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
-    put(String.format("/clusters/%s", testClusterName2), null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+    // Create a cluster.
+    put(String.format("/clusters/%s", testClusterName), null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
-    get(String.format("/namespaces/%s/clusters/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME, testClusterName2), null,
-        Response.Status.OK.getStatusCode(), false);
-    // Remove empty test clusters. Otherwise, it could fail ClusterAccessor tests
-    delete(String.format("/clusters/%s", testClusterName1), Response.Status.OK.getStatusCode());
-    delete(String.format("/clusters/%s", testClusterName2), Response.Status.OK.getStatusCode());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
+
+    get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(), false);
+
+    // Remove empty test cluster. Otherwise, it could fail ClusterAccessor tests
+    delete(String.format("/clusters/%s", testClusterName), Response.Status.OK.getStatusCode());
   }
 
-
-  @Test(dependsOnMethods = "testDefaultNamespaceCompatibility")
+  @Test(dependsOnMethods = "testDefaultNamespaceDisabled")
   public void testNamespacedCRUD() throws IOException {
     String testClusterName = "testClusterForNamespacedCRUD";
 
@@ -74,9 +69,9 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
         Response.Status.OK.getStatusCode(), false);
     get(String.format("/clusters/%s", testClusterName), null, Response.Status.NOT_FOUND.getStatusCode(), false);
 
-    // Create cluster with same name in different namespacces
-    put(String.format("/clusters/%s", testClusterName), null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.CREATED.getStatusCode());
+    // Create a cluster with same name in a different namespace
+    put(String.format("/clusters/%s", testClusterName), null,
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.CREATED.getStatusCode());
     get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(), false);
 
     // Modify cluster in default namespace
@@ -96,7 +91,6 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     get(String.format("/clusters/%s", testClusterName), null, Response.Status.OK.getStatusCode(), false);
     // Remove empty test clusters. Otherwise, it could fail ClusterAccessor tests
     delete(String.format("/clusters/%s", testClusterName), Response.Status.OK.getStatusCode());
-    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testNamespacedCRUD")
@@ -136,16 +130,8 @@ public class TestNamespacedAPIAccess extends AbstractTestClass {
     }
     Assert.assertTrue(expectedNamespaceNames.isEmpty());
 
-    // Accessing root of namespaced API endpoint shall return information of that namespace
-    body = get(String.format("/namespaces/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME), null,
-        Response.Status.OK.getStatusCode(), true);
-    Map<String, String> namespace = _mapper.readValue(body,
-        _mapper.getTypeFactory().constructMapType(Map.class, String.class, String.class));
-    Assert.assertEquals(namespace.get(HelixRestNamespace.HelixRestNamespaceProperty.NAME.name()),
-        HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
-    Assert.assertTrue(Boolean.parseBoolean(
-        namespace.get(HelixRestNamespace.HelixRestNamespaceProperty.IS_DEFAULT.name())));
-    System.out.println("End test :" + TestHelper.getTestMethodName());
+    // "/namespaces/default" is disabled.
+    get(String.format("/namespaces/%s", HelixRestNamespace.DEFAULT_NAMESPACE_NAME), null,
+        Response.Status.NOT_FOUND.getStatusCode(), false);
   }
-
 }

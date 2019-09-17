@@ -62,10 +62,15 @@ public class ClusterModelProvider {
       Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
       Map<String, ResourceAssignment> baselineAssignment,
       Map<String, ResourceAssignment> bestPossibleAssignment) {
+    // Construct all the assignable nodes and initialize with the allocated replicas.
+    Set<AssignableNode> assignableNodes =
+        parseAllNodes(dataProvider.getClusterConfig(), dataProvider.getInstanceConfigMap(),
+            activeInstances);
+
     // Generate replica objects for all the resource partitions.
     // <resource, replica set>
     Map<String, Set<AssignableReplica>> replicaMap =
-        parseAllReplicas(dataProvider, resourceMap, activeInstances.size());
+        parseAllReplicas(dataProvider, resourceMap, assignableNodes);
 
     // Check if the replicas need to be reassigned.
     Map<String, Set<AssignableReplica>> allocatedReplicas =
@@ -74,10 +79,9 @@ public class ClusterModelProvider {
         findToBeAssignedReplicas(replicaMap, clusterChanges, activeInstances,
             bestPossibleAssignment, allocatedReplicas);
 
-    // Construct all the assignable nodes and initialize with the allocated replicas.
-    Set<AssignableNode> assignableNodes =
-        parseAllNodes(dataProvider.getClusterConfig(), dataProvider.getInstanceConfigMap(),
-            activeInstances, allocatedReplicas);
+    // Update the allocated replicas to the assignable nodes.
+    assignableNodes.stream().forEach(node -> node.assignNewBatch(
+        allocatedReplicas.getOrDefault(node.getInstanceName(), Collections.emptySet())));
 
     // Construct and initialize cluster context.
     ClusterContext context = new ClusterContext(
@@ -171,15 +175,13 @@ public class ClusterModelProvider {
    * @param clusterConfig     The cluster configuration.
    * @param instanceConfigMap A map of all the instance configuration.
    * @param activeInstances   All the instances that are online and enabled.
-   * @param allocatedReplicas A map of all the assigned replicas, which will not be reassigned during the rebalance.
    * @return A map of assignable node set, <InstanceName, node set>.
    */
   private static Set<AssignableNode> parseAllNodes(ClusterConfig clusterConfig,
-      Map<String, InstanceConfig> instanceConfigMap, Set<String> activeInstances,
-      Map<String, Set<AssignableReplica>> allocatedReplicas) {
+      Map<String, InstanceConfig> instanceConfigMap, Set<String> activeInstances) {
     return activeInstances.stream().map(
         instanceName -> new AssignableNode(clusterConfig, instanceConfigMap.get(instanceName),
-            instanceName, allocatedReplicas.getOrDefault(instanceName, Collections.emptySet())))
+            instanceName))
         .collect(Collectors.toSet());
   }
 
@@ -188,11 +190,12 @@ public class ClusterModelProvider {
    *
    * @param dataProvider The cluster status cache that contains the current cluster status.
    * @param resourceMap  All the valid resources that are managed by the rebalancer.
+   * @param assignableNodes All the active assignable nodes.
    * @return A map of assignable replica set, <ResourceName, replica set>.
    */
   private static Map<String, Set<AssignableReplica>> parseAllReplicas(
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
-      int instanceCount) {
+      Set<AssignableNode> assignableNodes) {
     Map<String, Set<AssignableReplica>> totalReplicaMap = new HashMap<>();
     ClusterConfig clusterConfig = dataProvider.getClusterConfig();
 
@@ -211,8 +214,11 @@ public class ClusterModelProvider {
                 is.getStateModelDefRef(), resourceName));
       }
 
+      int activeFaultZoneCount =
+          assignableNodes.stream().map(node -> node.getFaultZone()).collect(Collectors.toSet())
+              .size();
       Map<String, Integer> stateCountMap =
-          def.getStateCountMap(instanceCount, is.getReplicaCount(instanceCount));
+          def.getStateCountMap(activeFaultZoneCount, is.getReplicaCount(assignableNodes.size()));
 
       for (String partition : is.getPartitionSet()) {
         for (Map.Entry<String, Integer> entry : stateCountMap.entrySet()) {

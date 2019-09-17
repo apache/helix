@@ -19,6 +19,8 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
@@ -27,17 +29,19 @@ import com.google.common.collect.ImmutableMap;
  * The class retrieves the offline model that defines the relative importance of soft constraints.
  */
 class SoftConstraintWeightModel {
-  private static Map<Class, Float> MODEL;
+  private final Map<SoftConstraint, Float> _model;
 
-  // TODO either define the weights in property files or zookeeper node or static human input
   SoftConstraintWeightModel() {
-
+    // TODO: add additional soft constraints and adjust the weight
+    _model = ImmutableMap.<SoftConstraint, Float> builder()
+        .put(new InstancePartitionsCountConstraint(), 1.0f)
+        .put(new ResourcePartitionAntiAffinityConstraint(), 1.0f)
+        .put(new ResourceTopStateAntiAffinityConstraint(), 1.0f)
+        .put(new MaxCapacityUsageInstanceConstraint(), 1.0f).build();
   }
 
-  static {
-    // TODO update the weight
-    MODEL = ImmutableMap.<Class, Float> builder().put(InstancePartitionsCountConstraint.class, 1.0f)
-        .build();
+  List<SoftConstraint> getSoftConstraints() {
+    return new ArrayList<>(_model.keySet());
   }
 
   /**
@@ -49,7 +53,7 @@ class SoftConstraintWeightModel {
     float sum = 0;
     for (Map.Entry<SoftConstraint, Float> softConstraintScoreEntry : originScoresMap.entrySet()) {
       SoftConstraint softConstraint = softConstraintScoreEntry.getKey();
-      float weight = MODEL.get(softConstraint.getClass());
+      float weight = _model.get(softConstraint);
       sum += softConstraintScoreEntry.getValue() * weight;
     }
 

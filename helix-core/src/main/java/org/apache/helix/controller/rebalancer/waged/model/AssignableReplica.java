@@ -47,11 +47,11 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
   private final String _replicaState;
 
   /**
-   * @param clusterConfig  The cluster config.
+   * @param clusterConfig The cluster config.
    * @param resourceConfig The resource config for the resource which contains the replication.
-   * @param partitionName  The replication's partition name.
-   * @param replicaState   The state of the replication.
-   * @param statePriority  The priority of the replication's state.
+   * @param partitionName The replication's partition name.
+   * @param replicaState The state of the replication.
+   * @param statePriority The priority of the replication's state.
    */
   AssignableReplica(ClusterConfig clusterConfig, ResourceConfig resourceConfig,
       String partitionName, String replicaState, int statePriority) {
@@ -62,6 +62,16 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     _capacityUsage = fetchCapacityUsage(partitionName, resourceConfig, clusterConfig);
     _resourceInstanceGroupTag = resourceConfig.getInstanceGroupTag();
     _resourceMaxPartitionsPerInstance = resourceConfig.getMaxPartitionsPerInstance();
+  }
+
+  private AssignableReplica(Builder builder) {
+    _partitionName = builder._partitionName;
+    _resourceName = builder._resourceName;
+    _resourceInstanceGroupTag = builder._resourceInstanceGroupTag;
+    _resourceMaxPartitionsPerInstance = builder._resourceMaxPartitionsPerInstance;
+    _capacityUsage = builder._capacityUsage;
+    _statePriority = builder._statePriority;
+    _replicaState = builder._replicaState;
   }
 
   public Map<String, Integer> getCapacity() {
@@ -102,7 +112,15 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
 
   @Override
   public String toString() {
-    return generateReplicaKey(_resourceName, _partitionName, _replicaState);
+    return "AssignableReplica{" +
+            "_partitionName='" + _partitionName + '\'' +
+            ", _resourceName='" + _resourceName + '\'' +
+            ", _resourceInstanceGroupTag='" + _resourceInstanceGroupTag + '\'' +
+            ", _resourceMaxPartitionsPerInstance=" + _resourceMaxPartitionsPerInstance +
+            ", _capacityUsage=" + _capacityUsage +
+            ", _statePriority=" + _statePriority +
+            ", _replicaState='" + _replicaState + '\'' +
+            '}';
   }
 
   @Override
@@ -144,9 +162,8 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     try {
       capacityMap = resourceConfig.getPartitionCapacityMap();
     } catch (IOException ex) {
-      throw new IllegalArgumentException(
-          "Invalid partition capacity configuration of resource: " + resourceConfig
-              .getResourceName(), ex);
+      throw new IllegalArgumentException("Invalid partition capacity configuration of resource: "
+          + resourceConfig.getResourceName(), ex);
     }
 
     Map<String, Integer> partitionCapacity = capacityMap.get(partitionName);
@@ -170,5 +187,50 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     }
 
     return partitionCapacity;
+  }
+
+  //TODO: migrate existing constructor to use constructor only
+  public static final class Builder {
+    private String _partitionName;
+    private String _resourceName;
+    private String _resourceInstanceGroupTag;
+    private int _resourceMaxPartitionsPerInstance;
+    private Map<String, Integer> _capacityUsage;
+    private int _statePriority;
+    private String _replicaState;
+
+    public Builder(String partitionName, String resourceName) {
+      _resourceName = resourceName;
+      _partitionName = partitionName;
+    }
+
+    public Builder resourceInstanceGroupTag(String resourceInstanceGroupTag) {
+      this._resourceInstanceGroupTag = resourceInstanceGroupTag;
+      return this;
+    }
+
+    public Builder resourceMaxPartitionsPerInstance(int resourceMaxPartitionsPerInstance) {
+      this._resourceMaxPartitionsPerInstance = resourceMaxPartitionsPerInstance;
+      return this;
+    }
+
+    public Builder capacityUsage(Map<String, Integer> capacityUsage) {
+      this._capacityUsage = capacityUsage;
+      return this;
+    }
+
+    public Builder statePriority(int statePriority) {
+      this._statePriority = statePriority;
+      return this;
+    }
+
+    public Builder replicaState(String replicaState) {
+      this._replicaState = replicaState;
+      return this;
+    }
+
+    public AssignableReplica build() {
+      return new AssignableReplica(this);
+    }
   }
 }

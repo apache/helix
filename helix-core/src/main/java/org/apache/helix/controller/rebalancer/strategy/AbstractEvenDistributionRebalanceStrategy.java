@@ -86,7 +86,7 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
   public ZNRecord computePartitionAssignment(final List<String> allNodes,
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
       ResourceControllerDataProvider clusterData) {
-    // valida the instance configs
+    // validate the instance configs
     Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
     if (instanceConfigMap == null || !instanceConfigMap.keySet().containsAll(allNodes)) {
       throw new HelixException(String.format("Config for instances %s is not found!",

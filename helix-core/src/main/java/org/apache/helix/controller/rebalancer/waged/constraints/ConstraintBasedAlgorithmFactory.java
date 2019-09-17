@@ -48,11 +48,11 @@ public class ConstraintBasedAlgorithmFactory {
     float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
 
     Map<SoftConstraint, Float> softConstraints = ImmutableMap.<SoftConstraint, Float> builder()
-        .put(new PartitionMovementConstraint(), movementRatio * 0.5f)
-        .put(new InstancePartitionsCountConstraint(), 0.5f * evennessRatio)
+        .put(new PartitionMovementConstraint(), movementRatio)
+        .put(new InstancePartitionsCountConstraint(), 0.3f * evennessRatio)
         .put(new ResourcePartitionAntiAffinityConstraint(), 0.1f * evennessRatio)
         .put(new ResourceTopStateAntiAffinityConstraint(), 0.1f * evennessRatio)
-        .put(new MaxCapacityUsageInstanceConstraint(), 0.25f * evennessRatio).build();
+        .put(new MaxCapacityUsageInstanceConstraint(), 0.5f * evennessRatio).build();
 
     return new ConstraintBasedAlgorithm(hardConstraints, softConstraints);
   }

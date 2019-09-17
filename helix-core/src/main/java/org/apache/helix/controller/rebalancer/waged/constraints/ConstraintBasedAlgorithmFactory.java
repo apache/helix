@@ -19,23 +19,41 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.model.ClusterConfig;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
+/**
+ * The factory class to create an instance of {@link ConstraintBasedAlgorithm}
+ */
 public class ConstraintBasedAlgorithmFactory {
 
-  // TODO: the parameter comes from cluster config, will tune how these 2 integers will change the
-  // soft constraint weight model
-  public static RebalanceAlgorithm getInstance() {
-    // TODO initialize constraints, depending on constraints implementations PRs
-    List<HardConstraint> hardConstraints = new ArrayList<>();
-    List<SoftConstraint> softConstraints = new ArrayList<>();
-    SoftConstraintWeightModel softConstraintWeightModel = new SoftConstraintWeightModel();
+  public static RebalanceAlgorithm getInstance(
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
+    List<HardConstraint> hardConstraints =
+        ImmutableList.of(new FaultZoneAwareConstraint(), new NodeCapacityConstraint(),
+            new ReplicaActivateConstraint(), new NodeMaxPartitionLimitConstraint(),
+            new ValidGroupTagConstraint(), new SamePartitionOnInstanceConstraint());
 
-    return new ConstraintBasedAlgorithm(hardConstraints, softConstraints,
-        softConstraintWeightModel);
+    int evennessPreference =
+        preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 1);
+    int movementPreference =
+        preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1);
+    float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
+    float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
+
+    Map<SoftConstraint, Float> softConstraints = ImmutableMap.<SoftConstraint, Float> builder()
+        .put(new PartitionMovementConstraint(), movementRatio)
+        .put(new InstancePartitionsCountConstraint(), 0.3f * evennessRatio)
+        .put(new ResourcePartitionAntiAffinityConstraint(), 0.1f * evennessRatio)
+        .put(new ResourceTopStateAntiAffinityConstraint(), 0.1f * evennessRatio)
+        .put(new MaxCapacityUsageInstanceConstraint(), 0.5f * evennessRatio).build();
+
+    return new ConstraintBasedAlgorithm(hardConstraints, softConstraints);
   }
 }

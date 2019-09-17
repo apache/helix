@@ -79,12 +79,12 @@ public class WagedRebalancer {
   private final RebalanceAlgorithm _rebalanceAlgorithm;
   // ------------------------------------------------------------------------------------//
 
-  public WagedRebalancer(HelixManager helixManager, ClusterConfig clusterConfig) {
+  public WagedRebalancer(HelixManager helixManager,
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
     this(
         // TODO init the metadata store according to their requirement when integrate,
         // or change to final static method if possible.
-        new AssignmentMetadataStore(helixManager),
-        ConstraintBasedAlgorithmFactory.getInstance(clusterConfig),
+        new AssignmentMetadataStore(helixManager), ConstraintBasedAlgorithmFactory.getInstance(preferences),
         // Use DelayedAutoRebalancer as the mapping calculator for the final assignment output.
         // Mapping calculator will translate the best possible assignment into the applicable state
         // mapping based on the current states.

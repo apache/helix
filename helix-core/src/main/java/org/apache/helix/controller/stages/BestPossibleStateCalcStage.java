@@ -40,6 +40,7 @@ import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
@@ -121,7 +122,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // configured to use the WAGED rebalancer.
     // For the other resources, the legacy rebalancers will be triggered in the next step.
     Map<String, IdealState> newIdealStates = new HashMap<>();
-    WagedRebalancer wagedRebalancer = new WagedRebalancer(helixManager);
+    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences = cache.getClusterConfig()
+        .getGlobalRebalancePreference();
+    WagedRebalancer wagedRebalancer = new WagedRebalancer(helixManager, preferences);
     try {
       newIdealStates
           .putAll(wagedRebalancer.computeNewIdealStates(cache, resourceMap, currentStateOutput));

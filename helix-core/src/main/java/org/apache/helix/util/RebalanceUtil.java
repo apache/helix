@@ -147,7 +147,9 @@ public class RebalanceUtil {
     if (controller != null) {
       controller.scheduleInstantRebalance();
     } else {
-      LOG.warn("Failed to issue a pipeline run for cluster {}.", clusterName);
+      LOG.warn(
+          "Failed to issue a pipeline run for cluster {}. GenericHelixController has been constructed without any cluster name.",
+          clusterName);
     }
   }
 }

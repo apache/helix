@@ -130,8 +130,8 @@ public class RebalanceScheduler {
   }
 
   /**
-   * Trigger the controller to perform rebalance for a given resource.
    * This function is deprecated. Please use RebalanceUtil.scheduleInstantPipeline method instead.
+   * Trigger the controller to perform rebalance for a given resource.
    * @param accessor Helix data accessor
    * @param resource the name of the resource changed to triggering the execution
    */
@@ -152,8 +152,8 @@ public class RebalanceScheduler {
   }
 
   /**
-   * Trigger the controller to perform rebalance for a given resource.
    * This function is deprecated. Please use RebalanceUtil.scheduleInstantPipeline method instead.
+   * Trigger the controller to perform rebalance for a given resource.
    * @param accessor Helix data accessor
    * @param resource the name of the resource changed to triggering the execution
    */

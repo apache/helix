@@ -331,10 +331,6 @@ public class GenericHelixController implements IdealStateChangeListener,
     long delay = rebalanceTime - current;
 
     if (rebalanceTime > current) {
-      if (_onDemandRebalanceTimer == null) {
-        _onDemandRebalanceTimer = new Timer(true);
-      }
-
       RebalanceTask preTask = _nextRebalanceTask.get();
       if (preTask != null && preTask.getNextRebalanceTime() > current
           && preTask.getNextRebalanceTime() < rebalanceTime) {
@@ -362,18 +358,14 @@ public class GenericHelixController implements IdealStateChangeListener,
    */
   public void scheduleInstantRebalance() {
     if (_helixManager == null) {
-      logger.warn("Failed to schedule a future pipeline run for cluster " + _clusterName
-          + " helix manager is null!");
+      logger.warn("Failed to schedule a future pipeline run for cluster {}. Helix manager is null!",
+          _clusterName);
       return;
     }
-    if (_onDemandRebalanceTimer == null) {
-      _onDemandRebalanceTimer = new Timer(true);
-    }
-
     RebalanceTask newTask = new RebalanceTask(_helixManager, ClusterEventType.OnDemandRebalance);
 
     _onDemandRebalanceTimer.schedule(newTask, 0);
-    logger.info("Scheduled instant pipeline run for cluster " + _helixManager.getClusterName());
+    logger.info("Scheduled instant pipeline run for cluster {}." , _helixManager.getClusterName());
 
     RebalanceTask preTask = _nextRebalanceTask.getAndSet(newTask);
     if (preTask != null) {
@@ -513,6 +505,8 @@ public class GenericHelixController implements IdealStateChangeListener,
         });
     _asyncFIFOWorkerPool = new HashMap<>();
     initializeAsyncFIFOWorkers();
+
+    _onDemandRebalanceTimer = new Timer(true);
 
     // initialize pipelines at the end so we have everything else prepared
     if (_enabledPipelineTypes.contains(Pipeline.Type.DEFAULT)) {

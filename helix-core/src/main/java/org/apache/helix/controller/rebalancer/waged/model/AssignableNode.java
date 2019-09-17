@@ -51,12 +51,14 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private int _maxPartition; // maximum number of the partitions that can be assigned to the node.
 
   // A map of <resource name, <partition name, replica>> that tracks the replicas assigned to the
-  // node.
-  private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap;
-  // A map of <capacity key, capacity value> that tracks the current available node capacity
-  private Map<String, Integer> _currentCapacityMap;
-  // The maximum capacity utilization (0.0 - 1.0) across all the capacity categories.
-  private float _highestCapacityUtilization;
+  // node. Set to empty map initially
+  private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap = new HashMap<>();
+  // A map of <capacity key, capacity value> that tracks the current available node capacity. Set
+  // empty map initially
+  private Map<String, Integer> _currentCapacityMap = new HashMap<>();
+  // The maximum capacity utilization (0.0 - 1.0) across all the capacity categories. Initial value
+  // = 0
+  private float _highestCapacityUtilization = 0;
 
   /**
    * @param clusterConfig
@@ -66,6 +68,15 @@ public class AssignableNode implements Comparable<AssignableNode> {
   AssignableNode(ClusterConfig clusterConfig, InstanceConfig instanceConfig, String instanceName) {
     _instanceName = instanceName;
     refresh(clusterConfig, instanceConfig);
+  }
+
+  private AssignableNode(Builder builder) {
+    _instanceName = builder._instanceName;
+    _instanceTags = builder._instanceTags;
+    _faultZone = builder._faultZone;
+    _disabledPartitionsMap = builder._disabledPartitionsMap;
+    _maxCapacity = builder._maxCapacity;
+    _maxPartition = builder._maxPartition;
   }
 
   private void reset() {
@@ -228,7 +239,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * categories.
    * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}. Then this call shall
    * return 0.9.
-   *
    * @return The highest utilization number of the node among all the capacity category.
    */
   public float getHighestCapacityUtilization() {
@@ -294,14 +304,15 @@ public class AssignableNode implements Comparable<AssignableNode> {
     if (topologyStr == null || faultZoneType == null) {
       LOG.debug("Topology configuration is not complete. Topology define: {}, Fault Zone Type: {}",
           topologyStr, faultZoneType);
-      // Use the instance name, or the deprecated ZoneId field (if exists) as the default fault zone.
+      // Use the instance name, or the deprecated ZoneId field (if exists) as the default fault
+      // zone.
       String zoneId = instanceConfig.getZoneId();
       return zoneId == null ? instanceConfig.getInstanceName() : zoneId;
     } else {
       // Get the fault zone information from the complete topology definition.
       String[] topologyDef = topologyStr.trim().split("/");
-      if (topologyDef.length == 0 ||
-          Arrays.stream(topologyDef).noneMatch(type -> type.equals(faultZoneType))) {
+      if (topologyDef.length == 0
+          || Arrays.stream(topologyDef).noneMatch(type -> type.equals(faultZoneType))) {
         throw new HelixException(
             "The configured topology definition is empty or does not contain the fault zone type.");
       }
@@ -365,7 +376,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   /**
    * Get and validate the instance capacity from instance config.
-   *
    * @throws HelixException if any required capacity key is not configured in the instance config.
    */
   private Map<String, Integer> fetchInstanceCapacity(ClusterConfig clusterConfig,
@@ -398,6 +408,56 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   @Override
   public String toString() {
-    return _instanceName;
+    return "AssignableNode{" + "_instanceName='" + _instanceName + '\'' + ", _instanceTags="
+        + _instanceTags + ", _faultZone='" + _faultZone + '\'' + ", _disabledPartitionsMap="
+        + _disabledPartitionsMap + ", _maxCapacity=" + _maxCapacity + ", _maxPartition="
+        + _maxPartition + ", _currentAssignedReplicaMap=" + _currentAssignedReplicaMap
+        + ", _currentCapacityMap=" + _currentCapacityMap + ", _highestCapacityUtilization="
+        + _highestCapacityUtilization + '}';
+  }
+
+  // TODO: migrate the existing constructor to use builder only
+  public static final class Builder {
+    private final String _instanceName;
+    private String _faultZone;
+    // by default empty
+    private Map<String, List<String>> _disabledPartitionsMap = new HashMap<>();
+    // by default empty
+    private Set<String> _instanceTags = new HashSet<>();
+    private Map<String, Integer> _maxCapacity;
+    private int _maxPartition;
+
+    public Builder(String instanceName) {
+      _instanceName = instanceName;
+    }
+
+    public Builder instanceTags(Set<String> instanceTags) {
+      this._instanceTags = instanceTags;
+      return this;
+    }
+
+    public Builder faultZone(String faultZone) {
+      this._faultZone = faultZone;
+      return this;
+    }
+
+    public Builder disabledPartitionsMap(Map<String, List<String>> disabledPartitionsMap) {
+      this._disabledPartitionsMap = disabledPartitionsMap;
+      return this;
+    }
+
+    public Builder maxCapacity(Map<String, Integer> maxCapacity) {
+      this._maxCapacity = maxCapacity;
+      return this;
+    }
+
+    public Builder maxPartition(int maxPartition) {
+      this._maxPartition = maxPartition;
+      return this;
+    }
+
+    public AssignableNode build() {
+      return new AssignableNode(this);
+    }
   }
 }

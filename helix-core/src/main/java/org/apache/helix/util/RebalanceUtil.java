@@ -143,12 +143,14 @@ public class RebalanceUtil {
   }
 
   public static void scheduleInstantPipeline(String clusterName) {
+    if (clusterName == null) {
+      LOG.error("Failed to issue a pipeline run. ClusterName is null.");
+    }
     GenericHelixController controller = GenericHelixController.getController(clusterName);
     if (controller != null) {
       controller.scheduleInstantRebalance();
     } else {
-      LOG.warn(
-          "Failed to issue a pipeline run for cluster {}. GenericHelixController has been constructed without any cluster name.",
+      LOG.error("Failed to issue a pipeline. Controller for cluster {} does not exist.",
           clusterName);
     }
   }

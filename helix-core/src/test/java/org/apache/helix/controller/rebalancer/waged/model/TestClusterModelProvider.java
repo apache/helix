@@ -19,6 +19,14 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -33,14 +41,6 @@ import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
@@ -111,7 +111,18 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     Assert.assertEquals(
         clusterModel.getAssignableNodes().values().stream().map(AssignableNode::getInstanceName)
             .collect(Collectors.toSet()), _instances);
-    // Shall have 2 resources and 12 replicas
+    // Shall have 2 resources and 4 replicas, since all nodes are in the same fault zone.
+    Assert.assertEquals(clusterModel.getAssignableReplicaMap().size(), 2);
+    Assert.assertTrue(clusterModel.getAssignableReplicaMap().values().stream()
+        .allMatch(replicaSet -> replicaSet.size() == 4));
+
+    // Adjust instance fault zone, so they have different fault zones.
+    testCache.getInstanceConfigMap().values().stream()
+        .forEach(config -> config.setZoneId(config.getInstanceName()));
+    clusterModel = ClusterModelProvider.generateClusterModel(testCache, _resourceNames.stream()
+            .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
+        _instances, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+    // Shall have 2 resources and 12 replicas after fault zone adjusted.
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().size(), 2);
     Assert.assertTrue(clusterModel.getAssignableReplicaMap().values().stream()
         .allMatch(replicaSet -> replicaSet.size() == 12));
@@ -197,10 +208,10 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
         _instances, Collections.singletonMap(HelixConstants.ChangeType.RESOURCE_CONFIG,
             Collections.singleton(changedResourceName)), Collections.emptyMap(),
         bestPossibleAssignment);
-    // There should be no existing assignment for all the resource except for resource2.
+    // There should be no existing assignment for all the resource except for resource2
     Assert.assertEquals(clusterModel.getContext().getAssignmentForFaultZoneMap().size(), 1);
     Map<String, Set<String>> resourceAssignmentMap =
-        clusterModel.getContext().getAssignmentForFaultZoneMap().get(_testFaultZoneId);
+        clusterModel.getContext().getAssignmentForFaultZoneMap().get(_testInstanceId);
     // Should be only resource2 in the map
     Assert.assertEquals(resourceAssignmentMap.size(), 1);
     for (String resource : _resourceNames) {

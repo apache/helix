@@ -64,12 +64,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * @param clusterConfig
    * @param instanceConfig
    * @param instanceName
-   * @param existingAssignment A collection of replicas that have been pre-allocated to the node.
    */
-  AssignableNode(ClusterConfig clusterConfig, InstanceConfig instanceConfig, String instanceName,
-      Collection<AssignableReplica> existingAssignment) {
+  AssignableNode(ClusterConfig clusterConfig, InstanceConfig instanceConfig, String instanceName) {
     _instanceName = instanceName;
-    refresh(clusterConfig, instanceConfig, existingAssignment);
+    refresh(clusterConfig, instanceConfig);
   }
 
   private void reset() {
@@ -88,10 +86,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * subject to change. If the assumption is no longer true, this function should become private.
    * @param clusterConfig - the Cluster Config of the cluster where the node is located
    * @param instanceConfig - the Instance Config of the node
-   * @param existingAssignment - all the existing replicas that are current assigned to the node
    */
-  private void refresh(ClusterConfig clusterConfig, InstanceConfig instanceConfig,
-      Collection<AssignableReplica> existingAssignment) {
+  private void refresh(ClusterConfig clusterConfig, InstanceConfig instanceConfig) {
     reset();
 
     Map<String, Integer> instanceCapacity = fetchInstanceCapacity(clusterConfig, instanceConfig);
@@ -101,8 +97,29 @@ public class AssignableNode implements Comparable<AssignableNode> {
     _disabledPartitionsMap = instanceConfig.getDisabledPartitionsMap();
     _maxCapacity = instanceCapacity;
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
+  }
 
-    assignNewBatch(existingAssignment);
+  /**
+   * This function should only be used to assign a set of new partitions that are not allocated on
+   * this node.
+   * Using this function avoids the overhead of updating capacity repeatedly.
+   */
+  void assignNewBatch(Collection<AssignableReplica> replicas) {
+    Map<String, Integer> totalPartitionCapacity = new HashMap<>();
+    for (AssignableReplica replica : replicas) {
+      addToAssignmentRecord(replica);
+      // increment the capacity requirement according to partition's capacity configuration.
+      for (Map.Entry<String, Integer> capacity : replica.getCapacity().entrySet()) {
+        totalPartitionCapacity.compute(capacity.getKey(),
+            (key, totalValue) -> (totalValue == null) ? capacity.getValue()
+                : totalValue + capacity.getValue());
+      }
+    }
+
+    // Update the global state after all single replications' calculation is done.
+    for (String key : totalPartitionCapacity.keySet()) {
+      updateCapacityAndUtilization(key, totalPartitionCapacity.get(key));
+    }
   }
 
   /**
@@ -311,29 +328,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
       // For backward compatibility
       String zoneId = instanceConfig.getZoneId();
       return zoneId == null ? instanceConfig.getInstanceName() : zoneId;
-    }
-  }
-
-  /**
-   * This function should only be used to assign a set of new partitions that are not allocated on
-   * this node.
-   * Using this function avoids the overhead of updating capacity repeatedly.
-   */
-  private void assignNewBatch(Collection<AssignableReplica> replicas) {
-    Map<String, Integer> totalPartitionCapacity = new HashMap<>();
-    for (AssignableReplica replica : replicas) {
-      addToAssignmentRecord(replica);
-      // increment the capacity requirement according to partition's capacity configuration.
-      for (Map.Entry<String, Integer> capacity : replica.getCapacity().entrySet()) {
-        totalPartitionCapacity.compute(capacity.getKey(),
-            (key, totalValue) -> (totalValue == null) ? capacity.getValue()
-                : totalValue + capacity.getValue());
-      }
-    }
-
-    // Update the global state after all single replications' calculation is done.
-    for (String key : totalPartitionCapacity.keySet()) {
-      updateCapacityAndUtilization(key, totalPartitionCapacity.get(key));
     }
   }
 

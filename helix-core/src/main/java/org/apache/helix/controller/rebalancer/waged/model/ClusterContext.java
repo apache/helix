@@ -76,16 +76,17 @@ public class ClusterContext {
 
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
-    _baselineAssignment = baselineAssignment.isEmpty() ? Collections.emptyMap() : baselineAssignment;
-    _bestPossibleAssignment = bestPossibleAssignment.isEmpty() ? Collections.emptyMap() : bestPossibleAssignment;
+    _baselineAssignment = baselineAssignment;
+    _bestPossibleAssignment = bestPossibleAssignment;
   }
 
   public Map<String, ResourceAssignment> getBaselineAssignment() {
-    return _baselineAssignment;
+    return _baselineAssignment == null || _baselineAssignment.isEmpty() ? Collections.emptyMap() : _baselineAssignment;
   }
 
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
-    return _bestPossibleAssignment;
+    return _bestPossibleAssignment == null || _bestPossibleAssignment.isEmpty() ? Collections.emptyMap()
+        : _bestPossibleAssignment;
   }
 
   public Map<String, Map<String, Set<String>>> getAssignmentForFaultZoneMap() {

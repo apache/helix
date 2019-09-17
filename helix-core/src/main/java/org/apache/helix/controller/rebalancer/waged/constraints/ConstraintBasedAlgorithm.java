@@ -166,8 +166,9 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
               return resourceName1.compareTo(resourceName2);
             }
           } else {
-            // Note we shall prioritize the replica with a higher state priority
-            return statePriority2 - statePriority1;
+            // Note we shall prioritize the replica with a higher state priority,
+            // the smaller priority number means higher priority.
+            return statePriority1 - statePriority2;
           }
         } else {
           // If the baseline assignment contains the assignment, prioritize the replica.

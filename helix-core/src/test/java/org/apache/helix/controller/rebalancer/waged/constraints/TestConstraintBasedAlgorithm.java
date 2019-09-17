@@ -34,6 +34,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class TestConstraintBasedAlgorithm {
   private ConstraintBasedAlgorithm _algorithm;
@@ -42,12 +43,11 @@ public class TestConstraintBasedAlgorithm {
   public void beforeMethod() {
     HardConstraint mockHardConstraint = mock(HardConstraint.class);
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
-    SoftConstraintWeightModel mockSoftConstraintWeightModel = mock(SoftConstraintWeightModel.class);
     when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(false);
     when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0f);
 
     _algorithm = new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
-        ImmutableList.of(mockSoftConstraint), mockSoftConstraintWeightModel);
+        ImmutableMap.of(mockSoftConstraint, 1f));
   }
 
   @Test(expectedExceptions = HelixRebalanceException.class)
@@ -60,12 +60,10 @@ public class TestConstraintBasedAlgorithm {
   public void testCalculateWithValidAssignment() throws IOException, HelixRebalanceException {
     HardConstraint mockHardConstraint = mock(HardConstraint.class);
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
-    SoftConstraintWeightModel mockSoftConstraintWeightModel = mock(SoftConstraintWeightModel.class);
     when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(true);
     when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0f);
-    when(mockSoftConstraintWeightModel.getSumOfScores(any())).thenReturn(1.0f);
     _algorithm = new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
-        ImmutableList.of(mockSoftConstraint), mockSoftConstraintWeightModel);
+        ImmutableMap.of(mockSoftConstraint, 1f));
     ClusterModel clusterModel = new ClusterModelTestHelper().getDefaultClusterModel();
     OptimalAssignment optimalAssignment = _algorithm.calculate(clusterModel);
 

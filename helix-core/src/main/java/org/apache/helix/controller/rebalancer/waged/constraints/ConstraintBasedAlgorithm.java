@@ -53,14 +53,12 @@ import com.google.common.collect.Maps;
 class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private static final Logger LOG = LoggerFactory.getLogger(ConstraintBasedAlgorithm.class);
   private final List<HardConstraint> _hardConstraints;
-  private final List<SoftConstraint> _softConstraints;
-  private final SoftConstraintWeightModel _softConstraintsWeightModel;
+  private final Map<SoftConstraint, Float> _softConstraints;
 
   ConstraintBasedAlgorithm(List<HardConstraint> hardConstraints,
-      List<SoftConstraint> softConstraints, SoftConstraintWeightModel softConstraintWeightModel) {
+      Map<SoftConstraint, Float> softConstraints) {
     _hardConstraints = hardConstraints;
     _softConstraints = softConstraints;
-    _softConstraintsWeightModel = softConstraintWeightModel;
   }
 
   @Override
@@ -115,11 +113,20 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     }
 
     Function<AssignableNode, Float> calculatePoints =
-        (candidateNode) -> _softConstraintsWeightModel.getSumOfScores(_softConstraints.stream()
-            .collect(Collectors.toMap(Function.identity(), softConstraint -> softConstraint
-                .getAssignmentNormalizedScore(candidateNode, replica, clusterContext))));
+        (candidateNode) -> getAssignmentNormalizedScore(candidateNode, replica, clusterContext);
 
     return candidateNodes.stream().max(Comparator.comparing(calculatePoints));
+  }
+
+  private float getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext) {
+    float sum = 0;
+    for (Map.Entry<SoftConstraint, Float> softConstraintEntry : _softConstraints.entrySet()) {
+      SoftConstraint softConstraint = softConstraintEntry.getKey();
+      float weight = softConstraintEntry.getValue();
+      sum += weight * softConstraint.getAssignmentNormalizedScore(node, replica, clusterContext);
+    }
+    return sum;
   }
 
   private List<String> convertFailureReasons(List<HardConstraint> hardConstraints) {

@@ -274,8 +274,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         updateBestPossibleStateOutput(output, resource, is);
       } else {
         failureResources.add(resource.getResourceName());
-        LogUtil.logWarn(logger, _eventId,
-            "Failed to calculate best possible states for " + resource.getResourceName());
+        LogUtil.logWarn(logger, _eventId, String
+            .format("Failed to calculate best possible states for %s.",
+                resource.getResourceName()));
       }
     }
     return wagedRebalancedResourceMap;

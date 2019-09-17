@@ -24,30 +24,29 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
- * Evaluate the proposed assignment according to the top state replication count on the instance.
- * The higher number the number of top state partitions assigned to the instance, the lower the
- * score, vice versa.
+ * This constraint exists to make partitions belonging to the same resource be assigned as far from
+ * each other as possible. This is because it is undesirable to have many partitions belonging to
+ * the same resource be assigned to the same node to minimize the impact of node failure scenarios.
+ * The score is higher the fewer the partitions are on the node belonging to the same resource.
  */
-class ResourceTopStateAntiAffinityConstraint extends SoftConstraint {
+class ResourcePartitionAntiAffinityConstraint extends SoftConstraint {
   private static final float MAX_SCORE = 1f;
   private static final float MIN_SCORE = 0f;
 
-  ResourceTopStateAntiAffinityConstraint() {
+  ResourcePartitionAntiAffinityConstraint() {
     super(MAX_SCORE, MIN_SCORE);
   }
 
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    if (!replica.isReplicaTopState()) {
-      return (getMaxScore() + getMinScore()) / 2.0f;
-    }
-
-    int curTopPartitionCountForResource = node.getAssignedTopStatePartitionsCount();
-    int doubleMaxTopStateCount = 2 * clusterContext.getEstimatedMaxTopStateCount();
-
-    return Math.max(
-        ((float) doubleMaxTopStateCount - curTopPartitionCountForResource) / doubleMaxTopStateCount,
-        0);
+    String resource = replica.getResourceName();
+    int curPartitionCountForResource = node.getAssignedPartitionsByResource(resource).size();
+    int doubleMaxPartitionCountForResource =
+        2 * clusterContext.getEstimatedMaxPartitionByResource(resource);
+    // The score measures the twice the max allowed count versus current counts
+    // The returned value is a measurement of remaining quota ratio, in the case of exceeding allowed counts, return 0
+    return Math.max(((float) doubleMaxPartitionCountForResource - curPartitionCountForResource)
+        / doubleMaxPartitionCountForResource, 0);
   }
 }

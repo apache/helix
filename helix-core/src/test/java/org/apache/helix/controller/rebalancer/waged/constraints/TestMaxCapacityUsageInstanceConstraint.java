@@ -19,45 +19,38 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
-import org.mockito.Mockito;
 import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestInstancePartitionsCountConstraint {
-  private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
-  private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
-  private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
+public class TestMaxCapacityUsageInstanceConstraint {
+  private AssignableReplica _testReplica;
+  private AssignableNode _testNode;
+  private ClusterContext _clusterContext;
+  private final SoftConstraint _constraint = new MaxCapacityUsageInstanceConstraint();
 
-  private final SoftConstraint _constraint = new InstancePartitionsCountConstraint();
-
-  @Test
-  public void testWhenInstanceIsIdle() {
-    when(_testNode.getAssignedReplicaCount()).thenReturn(0);
-    float score =
-        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 1.0f);
+  @BeforeMethod
+  public void setUp() {
+    _testNode = mock(AssignableNode.class, CALLS_REAL_METHODS);
+    _testReplica = mock(AssignableReplica.class);
+    _clusterContext = mock(ClusterContext.class);
   }
 
   @Test
-  public void testWhenInstanceIsFull() {
-    when(_testNode.getAssignedReplicaCount()).thenReturn(10);
-    when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
+  public void testGetNormalizedScore() {
+    when(_testNode.getHighestCapacityUtilization()).thenReturn(0.8f);
     float score =
+            _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0.6f);
+    float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.5f);
-  }
-
-  @Test
-  public void testWhenInstanceHalfOccupied() {
-    when(_testNode.getAssignedReplicaCount()).thenReturn(10);
-    when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(20);
-    float score =
-        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.75f);
+    Assert.assertEquals(normalizedScore, 0.6f);
   }
 }

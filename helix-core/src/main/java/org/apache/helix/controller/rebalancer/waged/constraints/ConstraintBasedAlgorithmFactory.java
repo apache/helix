@@ -20,10 +20,12 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  */
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * The factory class to create an instance of {@link ConstraintBasedAlgorithm}
@@ -38,9 +40,14 @@ public class ConstraintBasedAlgorithmFactory {
             new ReplicaActivateConstraint(), new NodeMaxPartitionLimitConstraint(),
             new ValidGroupTagConstraint(), new SamePartitionOnInstanceConstraint());
 
-    SoftConstraintWeightModel softConstraintWeightModel = new SoftConstraintWeightModel();
+    Map<SoftConstraint, Float> softConstraints = ImmutableMap.<SoftConstraint, Float> builder()
+        // TODO: merge with PartitionMovementConstraint
+        // .put(new PartitionMovementConstraint(), 0.15f)
+        .put(new InstancePartitionsCountConstraint(), 0.5f)
+        .put(new ResourcePartitionAntiAffinityConstraint(), 0.1f)
+        .put(new ResourceTopStateAntiAffinityConstraint(), 0.1f)
+        .put(new MaxCapacityUsageInstanceConstraint(), 0.25f).build();
 
-    return new ConstraintBasedAlgorithm(hardConstraints,
-        softConstraintWeightModel.getSoftConstraints(), softConstraintWeightModel);
+    return new ConstraintBasedAlgorithm(hardConstraints, softConstraints);
   }
 }

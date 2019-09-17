@@ -41,8 +41,6 @@ public abstract class TrieNode<K> {
     return children;
   }
 
-
-
   // public <T extends TrieNode> T get(String[] paths, Class<T> targetClass) {
   // if (paths.length == 0) {
   // return (T) this;

@@ -40,6 +40,7 @@ import org.apache.helix.model.ResourceAssignment;
 class PartitionMovementConstraint extends SoftConstraint {
   private static final float MAX_SCORE = 1f;
   private static final float MIN_SCORE = 0f;
+  //TODO: these factors will be tuned based on user's preference
   // This factor indicates the default score that is evaluated if only partition allocation matches
   // (states are different).
   private static final float ALLOCATION_MATCH_FACTOR = 0.5f;

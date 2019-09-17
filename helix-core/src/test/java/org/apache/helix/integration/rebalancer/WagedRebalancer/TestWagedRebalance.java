@@ -64,7 +64,8 @@ public class TestWagedRebalance extends ZkTestBase {
   private Set<String> _allDBs = new HashSet<>();
   private int _replica = 3;
 
-  private static String[] _testModels = { BuiltInStateModelDefinitions.OnlineOffline.name(),
+  private static String[] _testModels = {
+      BuiltInStateModelDefinitions.OnlineOffline.name(),
       BuiltInStateModelDefinitions.MasterSlave.name(),
       BuiltInStateModelDefinitions.LeaderStandby.name()
   };

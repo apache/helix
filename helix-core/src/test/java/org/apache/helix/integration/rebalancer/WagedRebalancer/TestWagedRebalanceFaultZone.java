@@ -27,11 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.TestHelper;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -160,12 +161,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
       _allDBs.add(db);
     }
     Thread.sleep(300);
-    // Since the WAGED rebalancer does not do partial rebalance, the initial assignment won't show.
-    Assert.assertFalse(TestHelper.verify(() -> _allDBs.stream().allMatch(db -> {
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      return ev != null && !ev.getPartitionSet().isEmpty();
-    }), 2000));
+    validate(2);
 
     // restart the participants within the zone
     for (int i = 0; i < _participants.size(); i++) {
@@ -181,26 +177,6 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
     Thread.sleep(300);
     // Verify if the partitions get assigned
     validate(_replica);
-
-    // TODO: Revisit the logic that the rebalancer handles fault zone.
-    // TODO: For now, if node is less than replica count, the rebalancer will adjust automatically.
-    // TODO: However, if the fault zone is less than replica count, calculation will fail.
-/*    for (int i = 0; i < _participants.size(); i++) {
-      MockParticipantManager p = _participants.get(i);
-      if (_nodeToZoneMap.get(p.getInstanceName()).equals(zone)) {
-        p.syncStop();
-      }
-    }
-
-    Thread.sleep(300);
-
-    for (String db : _allDBs) {
-      IdealState is =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateZoneAndTagIsolation(is, ev, 2);
-    }*/
   }
 
   @Test(dependsOnMethods = { "testLackEnoughLiveRacks" })
@@ -227,12 +203,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
       _allDBs.add(db);
     }
     Thread.sleep(300);
-    // Since the WAGED rebalancer does not do partial rebalance, the initial assignment won't show.
-    Assert.assertFalse(TestHelper.verify(() -> _allDBs.stream().allMatch(db -> {
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      return ev != null && !ev.getPartitionSet().isEmpty();
-    }), 2000));
+    validate(2);
 
     // Create new participants within the zone
     int nodeCount = _participants.size();
@@ -251,26 +222,6 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
     Thread.sleep(300);
     // Verify if the partitions get assigned
     validate(_replica);
-
-    // TODO: Revisit the logic that the rebalancer handles fault zone.
-    // TODO: For now, if node is less than replica count, the rebalancer will adjust automatically.
-    // TODO: However, if the fault zone is less than replica count, calculation will fail.
-/*    for (int i = 0; i < _participants.size(); i++) {
-      MockParticipantManager p = _participants.get(i);
-      if (_nodeToZoneMap.get(p.getInstanceName()).equals(zone)) {
-        p.syncStop();
-      }
-    }
-
-    Thread.sleep(300);
-
-    for (String db : _allDBs) {
-      IdealState is =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateZoneAndTagIsolation(is, ev, 2);
-    }*/
   }
 
   @Test(dependsOnMethods = { "testZoneIsolation", "testZoneIsolationWithInstanceTag" })
@@ -291,12 +242,22 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
     Set<MockParticipantManager> newNodes = new HashSet<>();
     Map<String, Integer> newNodeReplicaCount = new HashMap<>();
 
+    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+
     try {
+      // Configure the preference so as to allow movements.
+      ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
+      preference.put(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 10);
+      preference.put(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 0);
+      clusterConfig.setGlobalRebalancePreference(preference);
+      configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
       int nodeCount = 2;
       for (int j = 0; j < nodeCount; j++) {
         String newNodeName = "new-zone-node-" + j + "_" + START_PORT;
         // Add all new node to the new zone
-        addInstanceConfig(newNodeName, -1, ZONES + 1, TAGS);
+        addInstanceConfig(newNodeName, j, ZONES + 1, TAGS);
         MockParticipantManager newNode =
             new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, newNodeName);
         newNode.syncStart();
@@ -325,6 +286,14 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
       }
       Assert.assertTrue(newNodeReplicaCount.values().stream().allMatch(count -> count > 0));
     } finally {
+      // Revert the preference
+      ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
+      preference.put(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 1);
+      preference.put(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1);
+      clusterConfig.setGlobalRebalancePreference(preference);
+      configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+      // Stop the new nodes
       for (MockParticipantManager p : newNodes) {
         if (p != null && p.isConnected()) {
           p.syncStop();

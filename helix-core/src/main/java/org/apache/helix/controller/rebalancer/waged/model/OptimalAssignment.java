@@ -19,38 +19,64 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.HelixException;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 
 /**
  * The data model represents the optimal assignment of N replicas assigned to M instances;
  * It's mostly used as the return parameter of an assignment calculation algorithm; If the algorithm
- * failed to find optimal assignment given the endeavor, the user could check the failure reasons
+ * failed to find optimal assignment given the endeavor, the user could check the failure reasons.
+ * Note that this class is not thread safe.
  */
 public class OptimalAssignment {
   private Map<AssignableNode, List<AssignableReplica>> _optimalAssignment = new HashMap<>();
   private Map<AssignableReplica, Map<AssignableNode, List<String>>> _failedAssignments =
       new HashMap<>();
 
-  public OptimalAssignment() {
-
-  }
-
+  /**
+   * Update the OptimalAssignment instance with the existing assignment recorded in the input cluster model.
+   *
+   * @param clusterModel
+   */
   public void updateAssignments(ClusterModel clusterModel) {
-
+    _optimalAssignment.clear();
+    clusterModel.getAssignableNodes().values().stream()
+        .forEach(node -> _optimalAssignment.put(node, new ArrayList<>(node.getAssignedReplicas())));
   }
 
-  // TODO: determine the output of final assignment format
+  /**
+   * @return The optimal assignment in the form of a <Resource Name, ResourceAssignment> map.
+   */
   public Map<String, ResourceAssignment> getOptimalResourceAssignment() {
-    throw new UnsupportedOperationException("Not implemented yet");
-  }
-
-  // TODO: the convert method is not the best choice so far, will revisit the data model
-  public OptimalAssignment convertFrom(ClusterModel clusterModel) {
-    return this;
+    if (hasAnyFailure()) {
+      throw new HelixException(
+          "Cannot get the optimal resource assignment since a calculation failure is recorded. "
+              + getFailures());
+    }
+    Map<String, ResourceAssignment> assignmentMap = new HashMap<>();
+    for (AssignableNode node : _optimalAssignment.keySet()) {
+      for (AssignableReplica replica : _optimalAssignment.get(node)) {
+        String resourceName = replica.getResourceName();
+        Partition partition = new Partition(replica.getPartitionName());
+        ResourceAssignment resourceAssignment = assignmentMap
+            .computeIfAbsent(resourceName, key -> new ResourceAssignment(resourceName));
+        Map<String, String> partitionStateMap = resourceAssignment.getReplicaMap(partition);
+        if (partitionStateMap.isEmpty()) {
+          // ResourceAssignment returns immutable empty map while no such assignment recorded yet.
+          // So if the returned map is empty, create a new map.
+          partitionStateMap = new HashMap<>();
+        }
+        partitionStateMap.put(node.getInstanceName(), replica.getReplicaState());
+        resourceAssignment.addReplicaMap(partition, partitionStateMap);
+      }
+    }
+    return assignmentMap;
   }
 
   public void recordAssignmentFailure(AssignableReplica replica,

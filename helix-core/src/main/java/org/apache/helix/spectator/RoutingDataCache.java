@@ -79,6 +79,7 @@ class RoutingDataCache extends BasicClusterDataCache {
     if (_sourceDataType.equals(PropertyType.CURRENTSTATES) && _propertyDataChangedMap
         .get(HelixConstants.ChangeType.CURRENT_STATE)) {
       long start = System.currentTimeMillis();
+      _propertyDataChangedMap.put(HelixConstants.ChangeType.CURRENT_STATE, false);
       Map<String, LiveInstance> liveInstanceMap = getLiveInstances();
       _currentStateCache.refresh(accessor, liveInstanceMap);
       LOG.info("Reload CurrentStates. Takes " + (System.currentTimeMillis() - start) + " ms");

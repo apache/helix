@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import java.util.Map;
+
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -28,6 +29,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ResourceAssignment;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -79,7 +81,15 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     _manager.connect();
 
     // create AssignmentMetadataStore
-    _store = new AssignmentMetadataStore(_manager);
+    _store = new AssignmentMetadataStore(_manager.getMetadataStoreConnectionString(),
+        _manager.getClusterName());
+  }
+
+  @AfterClass
+  public void afterClass() {
+    if (_store != null) {
+      _store.close();
+    }
   }
 
   /**
@@ -91,11 +101,7 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
    */
   @Test
   public void testReadEmptyBaseline() {
-    try {
-      Map<String, ResourceAssignment> baseline = _store.getBaseline();
-      Assert.fail("Should fail because there shouldn't be any data.");
-    } catch (Exception e) {
-      // OK
-    }
+    Map<String, ResourceAssignment> baseline = _store.getBaseline();
+    Assert.assertTrue(baseline.isEmpty());
   }
 }

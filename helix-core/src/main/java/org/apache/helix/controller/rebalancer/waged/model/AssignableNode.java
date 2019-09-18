@@ -19,8 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import static java.lang.Math.max;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -287,16 +285,23 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * Any missing field will cause an invalid topology config exception.
    */
   private String computeFaultZone(ClusterConfig clusterConfig, InstanceConfig instanceConfig) {
-    if (clusterConfig.isTopologyAwareEnabled()) {
-      String topologyStr = clusterConfig.getTopology();
-      String faultZoneType = clusterConfig.getFaultZoneType();
-      if (topologyStr == null || faultZoneType == null) {
-        throw new HelixException("Fault zone or cluster topology information is not configured.");
-      }
-
+    if (!clusterConfig.isTopologyAwareEnabled()) {
+      // Instance name is the default fault zone if topology awareness is false.
+      return instanceConfig.getInstanceName();
+    }
+    String topologyStr = clusterConfig.getTopology();
+    String faultZoneType = clusterConfig.getFaultZoneType();
+    if (topologyStr == null || faultZoneType == null) {
+      LOG.debug("Topology configuration is not complete. Topology define: {}, Fault Zone Type: {}",
+          topologyStr, faultZoneType);
+      // Use the instance name, or the deprecated ZoneId field (if exists) as the default fault zone.
+      String zoneId = instanceConfig.getZoneId();
+      return zoneId == null ? instanceConfig.getInstanceName() : zoneId;
+    } else {
+      // Get the fault zone information from the complete topology definition.
       String[] topologyDef = topologyStr.trim().split("/");
-      if (topologyDef.length == 0
-          || Arrays.stream(topologyDef).noneMatch(type -> type.equals(faultZoneType))) {
+      if (topologyDef.length == 0 ||
+          Arrays.stream(topologyDef).noneMatch(type -> type.equals(faultZoneType))) {
         throw new HelixException(
             "The configured topology definition is empty or does not contain the fault zone type.");
       }
@@ -324,10 +329,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
         }
         return faultZoneStringBuilder.toString();
       }
-    } else {
-      // For backward compatibility
-      String zoneId = instanceConfig.getZoneId();
-      return zoneId == null ? instanceConfig.getInstanceName() : zoneId;
     }
   }
 
@@ -356,7 +357,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
       // For the purpose of constraint calculation, the max utilization cannot be larger than 100%.
       float utilization = Math.min(
           (float) (_maxCapacity.get(capacityKey) - newCapacity) / _maxCapacity.get(capacityKey), 1);
-      _highestCapacityUtilization = max(_highestCapacityUtilization, utilization);
+      _highestCapacityUtilization = Math.max(_highestCapacityUtilization, utilization);
     }
     // else if the capacityKey does not exist in the capacity map, this method essentially becomes
     // a NOP; in other words, this node will be treated as if it has unlimited capacity.
@@ -393,5 +394,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
   @Override
   public int compareTo(AssignableNode o) {
     return _instanceName.compareTo(o.getInstanceName());
+  }
+
+  @Override
+  public String toString() {
+    return _instanceName;
   }
 }

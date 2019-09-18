@@ -28,9 +28,12 @@ class NodeMaxPartitionLimitConstraint extends HardConstraint {
   @Override
   boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    return node.getAssignedReplicaCount() < node.getMaxPartition()
-        && node.getAssignedPartitionsByResource(replica.getResourceName()).size() < replica
-            .getResourceMaxPartitionsPerInstance();
+    boolean exceedMaxPartitionLimit =
+        node.getMaxPartition() < 0 || node.getAssignedReplicaCount() < node.getMaxPartition();
+    boolean exceedResourceMaxPartitionLimit = replica.getResourceMaxPartitionsPerInstance() < 0
+        || node.getAssignedPartitionsByResource(replica.getResourceName()).size() < replica
+        .getResourceMaxPartitionsPerInstance();
+    return exceedMaxPartitionLimit && exceedResourceMaxPartitionLimit;
   }
 
   @Override

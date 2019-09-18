@@ -23,10 +23,13 @@ package org.apache.helix;
  * Exception thrown by Helix due to rebalance failures.
  */
 public class HelixRebalanceException extends Exception {
+  // TODO: Adding static description or other necessary fields into the enum instances for
+  // TODO: supporting the rebalance monitor to understand the exception.
   public enum Type {
     INVALID_CLUSTER_STATUS,
     INVALID_REBALANCER_STATUS,
     FAILED_TO_CALCULATE,
+    INVALID_INPUT,
     UNKNOWN_FAILURE
   }
 

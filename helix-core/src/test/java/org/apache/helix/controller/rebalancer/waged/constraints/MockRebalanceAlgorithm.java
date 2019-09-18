@@ -72,7 +72,7 @@ public class MockRebalanceAlgorithm implements RebalanceAlgorithm {
 
     _resultHistory = result;
 
-    // TODO remove this mockito when OptimalAssignment.getOptimalResourceAssignment is ready.
+    // Mock the return value for supporting test.
     OptimalAssignment optimalAssignment = Mockito.mock(OptimalAssignment.class);
     when(optimalAssignment.getOptimalResourceAssignment()).thenReturn(result);
     return optimalAssignment;

@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.model.ResourceAssignment;
+import org.mockito.Mockito;
 
 /**
  * A mock up metadata store for unit test.
@@ -32,8 +33,8 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
   private Map<String, ResourceAssignment> _persistGlobalBaseline = new HashMap<>();
   private Map<String, ResourceAssignment> _persistBestPossibleAssignment = new HashMap<>();
 
-  MockAssignmentMetadataStore(BucketDataAccessor bucketDataAccessor, String clusterName) {
-    super(bucketDataAccessor, clusterName);
+  MockAssignmentMetadataStore() {
+    super(Mockito.mock(BucketDataAccessor.class), "");
   }
 
   public Map<String, ResourceAssignment> getBaseline() {
@@ -51,6 +52,10 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
   public void persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     _persistBestPossibleAssignment = bestPossibleAssignment;
+  }
+
+  public void close() {
+    // do nothing
   }
 
   public void clearMetadataStore() {

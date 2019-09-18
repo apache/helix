@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.LogUtil;
@@ -38,6 +40,7 @@ import org.apache.helix.controller.rebalancer.strategy.crushMapping.ConsistentHa
 import org.apache.helix.controller.rebalancer.topology.InstanceNode;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
+import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +85,24 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
   @Override
   public ZNRecord computePartitionAssignment(final List<String> allNodes,
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
-      ResourceControllerDataProvider clusterData) throws HelixException {
+      ResourceControllerDataProvider clusterData) {
+    // validate the instance configs
+    Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
+    if (instanceConfigMap == null || !instanceConfigMap.keySet().containsAll(allNodes)) {
+      throw new HelixException(String.format("Config for instances %s is not found!",
+              allNodes.removeAll(instanceConfigMap.keySet())));
+    }
+    // only compute assignments for instances with non-zero weight
+    return computeBestPartitionAssignment(getNonZeroWeightNodes(allNodes, instanceConfigMap),
+        liveNodes, currentMapping, clusterData);
+  }
+
+  private List<String> getNonZeroWeightNodes(List<String> nodes, Map<String, InstanceConfig> instanceConfigMap) {
+    return nodes.stream().filter(node -> instanceConfigMap.get(node).getWeight() != 0).collect(Collectors.toList());
+  }
+
+  private ZNRecord computeBestPartitionAssignment(List<String> allNodes, List<String> liveNodes,
+      Map<String, Map<String, String>> currentMapping, ResourceControllerDataProvider clusterData) {
     // Round 1: Calculate mapping using the base strategy.
     // Note to use all nodes for minimizing the influence of live node changes to mapping.
     ZNRecord origAssignment = getBaseRebalanceStrategy()
@@ -95,8 +115,8 @@ public abstract class AbstractEvenDistributionRebalanceStrategy
     // Try to re-assign if the original map is not empty
     if (!origPartitionMap.isEmpty()) {
       Map<String, List<Node>> finalPartitionMap = null;
-      Topology allNodeTopo = new Topology(allNodes, allNodes, clusterData.getInstanceConfigMap(),
-          clusterData.getClusterConfig());
+      Topology allNodeTopo =
+              new Topology(allNodes, allNodes, clusterData.getInstanceConfigMap(), clusterData.getClusterConfig());
       // Transform current assignment to instance->partitions map, and get total partitions
       Map<Node, List<String>> nodeToPartitionMap =
           convertPartitionMap(origPartitionMap, allNodeTopo);

@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.LogUtil;
@@ -269,7 +270,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         LogUtil.logError(logger, _eventId, e.getMessage());
       } catch (Exception e) {
         LogUtil.logError(logger, _eventId,
-            "Error computing assignment for resource " + resourceName + ". Skipping.");
+            "Error computing assignment for resource " + resourceName + ". Skipping." , e);
       }
     }
     // Exception or rebalancer is not found

@@ -36,31 +36,29 @@ import com.google.common.collect.Maps;
 
 /**
  * The builder class for generating an instance of {@link ClusterModel}
+ *
  * Example of usage:
- * new ClusterModelBuilder("TestCluster")
- * .setZoneCount(5)
- * .setInstanceCountPerZone(10)
- * .setResourceCount(5)
- * .setPartitionCountPerResource(100)
- * .setInstanceCapacity(ImmutableMap.of("size", 100))
- * .setStateModels({"Master", "Slave"})
- * .setPartitionMaxUsage(ImmutableMap.of("size", 20))
- * .setPartitionUsageSampleMethod(value -> (int) (new Random().nextGaussian() *
- * Math.sqrt(maxUsage)))
- * .build()
+ *  new ClusterModelBuilder("TestCluster")
+ *        .setZoneCount(5)
+ *        .setInstanceCountPerZone(10)
+ *        .setResourceCount(5)
+ *        .setPartitionCountPerResource(100)
+ *        .setInstanceCapacity(ImmutableMap.of("size", 100))
+ *        .setStateModels({"Master", "Slave"})
+ *        .setPartitionMaxUsage(ImmutableMap.of("size", 20))
+ *        .setPartitionUsageSampleMethod(value -> (int) (new Random().nextGaussian() * Math.sqrt(maxUsage)))
+ *        .build()
+ *
  * **WARNING**
- * The builder class is intended for test only; It has made some assumptions merely to simplify the
- * creation process:
- * 1. The zone, instance, resource, partition names cannot be customized; It's because name
- * differences's impact on rebalance algorithm result is minor.
- * 2. It doesn't support fine grained flexible settings yet;
- * - The instance capacity is equal; Assuming it's a homogeneous instances environment
- * - The instances number of each zone is equal
- * - The partitions number of each resource is equal
- * - The sampling method of all partitions usage is equal
- * - The max allowed partitions hosted per instance is equal
- * - All resources' partitions share the same state models (e.g {"Master", "Slave", "Slave"}, 1
- * master and 2 slaves)
+ * The builder class is intended for test only; It has made some assumptions merely to simplify the creation process:
+ *  1. The zone, instance, resource, partition names cannot be customized; It's because name differences's impact on rebalance algorithm result is minor.
+ *  2. It doesn't support fine grained flexible settings yet;
+ *   - The instance capacity is equal; Assuming it's a homogeneous instances environment
+ *   - The instances number of each zone is equal
+ *   - The partitions number of each resource is equal
+ *   - The sampling method of all partitions usage is equal
+ *   - The max allowed partitions hosted per instance is equal
+ *   - All resources' partitions share the same state models (e.g {"Master", "Slave", "Slave"}, 1 master and 2 slaves)
  */
 public class ClusterModelBuilder {
   private static final String ZONE_PREFIX = "ZONE_";
@@ -148,8 +146,7 @@ public class ClusterModelBuilder {
   }
 
   /**
-   * keep the rest methods public static for some cases when we don't need the full cluster model
-   * data
+   * keep the rest methods public static for some cases when we don't need the full cluster model data
    */
 
   public static List<String> createFaultZones(String zonePrefix, int zoneCount) {
@@ -228,8 +225,7 @@ public class ClusterModelBuilder {
     return new ClusterModel(clusterContext, new HashSet<>(replicas), new HashSet<>(instances));
   }
 
-  // TODO: sometimes we'd like to reproduce the rebalance result and need the support of dumping the cluster
-  // model into external format (csv, json, etc)
+  //TODO: sometimes we'd like to reproduce the result and need the support of dumping the cluster model into external format (csv, json, etc)
   public void dump(String fileName) {
 
   }

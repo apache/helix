@@ -20,13 +20,15 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.google.common.annotations.VisibleForTesting;
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordJacksonSerializer;
@@ -50,23 +52,27 @@ public class AssignmentMetadataStore {
   private Map<String, ResourceAssignment> _globalBaseline;
   private Map<String, ResourceAssignment> _bestPossibleAssignment;
 
+  AssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
+    this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
+  }
+
   AssignmentMetadataStore(BucketDataAccessor bucketDataAccessor, String clusterName) {
     _dataAccessor = bucketDataAccessor;
     _baselinePath = String.format(BASELINE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
     _bestPossiblePath = String.format(BEST_POSSIBLE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
   }
 
-  AssignmentMetadataStore(HelixManager helixManager) {
-    this(new ZkBucketDataAccessor(helixManager.getMetadataStoreConnectionString()),
-        helixManager.getClusterName());
-  }
-
   public Map<String, ResourceAssignment> getBaseline() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
     if (_globalBaseline == null) {
-      HelixProperty baseline =
-          _dataAccessor.compressedBucketRead(_baselinePath, HelixProperty.class);
-      _globalBaseline = splitAssignments(baseline);
+      try {
+        HelixProperty baseline =
+            _dataAccessor.compressedBucketRead(_baselinePath, HelixProperty.class);
+        _globalBaseline = splitAssignments(baseline);
+      } catch (ZkNoNodeException ex) {
+        // Metadata does not exist, so return an empty map
+        _globalBaseline = Collections.emptyMap();
+      }
     }
     return _globalBaseline;
   }
@@ -74,9 +80,14 @@ public class AssignmentMetadataStore {
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
     if (_bestPossibleAssignment == null) {
-      HelixProperty baseline =
-          _dataAccessor.compressedBucketRead(_bestPossiblePath, HelixProperty.class);
-      _bestPossibleAssignment = splitAssignments(baseline);
+      try {
+        HelixProperty baseline =
+            _dataAccessor.compressedBucketRead(_bestPossiblePath, HelixProperty.class);
+        _bestPossibleAssignment = splitAssignments(baseline);
+      } catch (ZkNoNodeException ex) {
+        // Metadata does not exist, so return an empty map
+        _bestPossibleAssignment = Collections.emptyMap();
+      }
     }
     return _bestPossibleAssignment;
   }
@@ -113,6 +124,16 @@ public class AssignmentMetadataStore {
     _bestPossibleAssignment = bestPossibleAssignment;
   }
 
+  protected void finalize() {
+    // To ensure all resources are released.
+    close();
+  }
+
+  // Close to release all the resources.
+  public void close() {
+    _dataAccessor.disconnect();
+  }
+
   /**
    * Produces one HelixProperty that contains all assignment data.
    * @param name
@@ -123,8 +144,9 @@ public class AssignmentMetadataStore {
       Map<String, ResourceAssignment> assignmentMap) {
     HelixProperty property = new HelixProperty(name);
     // Add each resource's assignment as a simple field in one ZNRecord
+    // Node that don't use Arrays.toString() for the record converting. The deserialize will fail.
     assignmentMap.forEach((resource, assignment) -> property.getRecord().setSimpleField(resource,
-        Arrays.toString(SERIALIZER.serialize(assignment.getRecord()))));
+        new String(SERIALIZER.serialize(assignment.getRecord()))));
     return property;
   }
 
@@ -138,8 +160,8 @@ public class AssignmentMetadataStore {
     // Convert each resource's assignment String into a ResourceAssignment object and put it in a
     // map
     property.getRecord().getSimpleFields()
-        .forEach((resource, assignment) -> assignmentMap.put(resource,
-            new ResourceAssignment((ZNRecord) SERIALIZER.deserialize(assignment.getBytes()))));
+        .forEach((resource, assignmentStr) -> assignmentMap.put(resource,
+            new ResourceAssignment((ZNRecord) SERIALIZER.deserialize(assignmentStr.getBytes()))));
     return assignmentMap;
   }
 }

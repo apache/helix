@@ -19,6 +19,8 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import static java.lang.Math.max;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +37,8 @@ import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
+
 /**
  * This class represents a possible allocation of the replication.
  * Note that any usage updates to the AssignableNode are not thread safe.
@@ -47,7 +51,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private Set<String> _instanceTags;
   private String _faultZone;
   private Map<String, List<String>> _disabledPartitionsMap;
-  private Map<String, Integer> _maxCapacity;
+  // make sure the max allowed capacity is immutable
+  private ImmutableMap<String, Integer> _maxCapacity;
   private int _maxPartition; // maximum number of the partitions that can be assigned to the node.
 
   // A map of <resource name, <partition name, replica>> that tracks the replicas assigned to the
@@ -75,14 +80,9 @@ public class AssignableNode implements Comparable<AssignableNode> {
     _instanceTags = builder._instanceTags;
     _faultZone = builder._faultZone;
     _disabledPartitionsMap = builder._disabledPartitionsMap;
-    _maxCapacity = builder._maxCapacity;
+    _maxCapacity = ImmutableMap.copyOf(builder._maxCapacity);
     _maxPartition = builder._maxPartition;
-  }
-
-  private void reset() {
-    _currentAssignedReplicaMap = new HashMap<>();
-    _currentCapacityMap = new HashMap<>();
-    _highestCapacityUtilization = 0;
+    _currentCapacityMap = new HashMap<>(_maxCapacity);
   }
 
   /**
@@ -97,14 +97,12 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * @param instanceConfig - the Instance Config of the node
    */
   private void refresh(ClusterConfig clusterConfig, InstanceConfig instanceConfig) {
-    reset();
-
     Map<String, Integer> instanceCapacity = fetchInstanceCapacity(clusterConfig, instanceConfig);
-    _currentCapacityMap.putAll(instanceCapacity);
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);
     _instanceTags = new HashSet<>(instanceConfig.getTags());
     _disabledPartitionsMap = instanceConfig.getDisabledPartitionsMap();
-    _maxCapacity = instanceCapacity;
+    _maxCapacity = ImmutableMap.copyOf(instanceCapacity);
+    _currentCapacityMap = new HashMap<>(_maxCapacity);
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
   }
 
@@ -231,6 +229,18 @@ public class AssignableNode implements Comparable<AssignableNode> {
    */
   public Map<String, Integer> getCurrentCapacity() {
     return _currentCapacityMap;
+  }
+
+  /**
+   * @return The current capacity usage on the instance
+   */
+  public Map<String, Integer> getCapacityUsage() {
+    Map<String, Integer> result = new HashMap<>();
+    for (String key : _maxCapacity.keySet()) {
+      result.put(key, _maxCapacity.get(key) - _currentCapacityMap.get(key));
+    }
+
+    return result;
   }
 
   /**
@@ -361,17 +371,16 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
   }
 
-  private void updateCapacityAndUtilization(String capacityKey, int valueToSubtract) {
-    if (_currentCapacityMap.containsKey(capacityKey)) {
-      int newCapacity = _currentCapacityMap.get(capacityKey) - valueToSubtract;
-      _currentCapacityMap.put(capacityKey, newCapacity);
-      // For the purpose of constraint calculation, the max utilization cannot be larger than 100%.
-      float utilization = Math.min(
-          (float) (_maxCapacity.get(capacityKey) - newCapacity) / _maxCapacity.get(capacityKey), 1);
-      _highestCapacityUtilization = Math.max(_highestCapacityUtilization, utilization);
-    }
-    // else if the capacityKey does not exist in the capacity map, this method essentially becomes
-    // a NOP; in other words, this node will be treated as if it has unlimited capacity.
+  private void updateCapacityAndUtilization(String capacityKey, int usage) {
+    int newCapacity = _currentCapacityMap.get(capacityKey) - usage;
+    _currentCapacityMap.put(capacityKey, newCapacity);
+    /*
+     * The pre-computation steps is for the performance of soft constraint,
+     * the max utilization cannot be larger than 100%.
+     */
+    float utilization = Math.min(
+        (float) (_maxCapacity.get(capacityKey) - newCapacity) / _maxCapacity.get(capacityKey), 1);
+    _highestCapacityUtilization = max(_highestCapacityUtilization, utilization);
   }
 
   /**
@@ -417,7 +426,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   }
 
   // TODO: migrate the existing constructor to use builder only
-  public static final class Builder {
+  static final class Builder {
     private final String _instanceName;
     private String _faultZone;
     // by default empty
@@ -427,36 +436,36 @@ public class AssignableNode implements Comparable<AssignableNode> {
     private Map<String, Integer> _maxCapacity;
     private int _maxPartition;
 
-    public Builder(String instanceName) {
+    Builder(String instanceName) {
       _instanceName = instanceName;
     }
 
-    public Builder instanceTags(Set<String> instanceTags) {
+    Builder instanceTags(Set<String> instanceTags) {
       this._instanceTags = instanceTags;
       return this;
     }
 
-    public Builder faultZone(String faultZone) {
+    Builder faultZone(String faultZone) {
       this._faultZone = faultZone;
       return this;
     }
 
-    public Builder disabledPartitionsMap(Map<String, List<String>> disabledPartitionsMap) {
+    Builder disabledPartitionsMap(Map<String, List<String>> disabledPartitionsMap) {
       this._disabledPartitionsMap = disabledPartitionsMap;
       return this;
     }
 
-    public Builder maxCapacity(Map<String, Integer> maxCapacity) {
+    Builder maxCapacity(Map<String, Integer> maxCapacity) {
       this._maxCapacity = maxCapacity;
       return this;
     }
 
-    public Builder maxPartition(int maxPartition) {
+    Builder maxPartition(int maxPartition) {
       this._maxPartition = maxPartition;
       return this;
     }
 
-    public AssignableNode build() {
+    AssignableNode build() {
       return new AssignableNode(this);
     }
   }

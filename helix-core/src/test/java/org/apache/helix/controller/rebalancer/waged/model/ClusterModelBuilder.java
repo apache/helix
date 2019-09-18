@@ -34,6 +34,7 @@ import org.apache.helix.model.ResourceAssignment;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
+
 /**
  * The builder class for generating an instance of {@link ClusterModel}
  *
@@ -67,20 +68,21 @@ public class ClusterModelBuilder {
   private static final String PARTITION_PREFIX = "PARTITION_";
 
   private final String testClusterName;
-  // these are default values and can be configured by set methods
+  // these are default values and can be overridden by set methods
   private int zoneCount = 4;
-  private int resourceCount = 10;
   private int instanceCountPerZone = 10;
   private int maxPartitionsPerInstance = Integer.MAX_VALUE;
+  private int resourceMaxPartitionsPerInstance = Integer.MAX_VALUE;
+  // 10 resources * 10 partitions per resource = 100 total resources by default
+  private int resourceCount = 10;
   private int partitionCountPerResource = 10;
-  private String[] stateModels = {
-      "Master", "Slave", "Slave"
-  };
-  private Map<String, Integer> instanceCapacity = ImmutableMap.of("size", 1000);
-  private Map<String, Integer> partitionMaxUsage = ImmutableMap.of("size", 500);
-  // by default the usage distribution of weight is Gaussian distribution between [0, maxUsage]
+  private String[] stateModels = {"Master", "Slave", "Slave"};
+  private Map<String, Integer> instanceCapacity = ImmutableMap.of("size", 1000, "rcu", 200);
+  // by default, on average, one instance can at least host 20 partitions
+  private Map<String, Integer> partitionMaxUsage = ImmutableMap.of("size", 50, "rcu", 10);
+  // by default the partition usage distribution is a uniform distribution between [0, maxUsage]
   private Function<Integer, Integer> partitionUsageSampleMethod =
-      (maxUsage) -> (int) (new Random().nextGaussian() * Math.sqrt(maxUsage));
+      (maxUsage) -> (int) Math.round(new Random().nextDouble() * maxUsage);
 
   private Map<String, ResourceAssignment> baselineAssignment = Collections.emptyMap();
   private Map<String, ResourceAssignment> bestPossibleAssignment = Collections.emptyMap();
@@ -129,20 +131,24 @@ public class ClusterModelBuilder {
     return this;
   }
 
-  public ClusterModelBuilder setBaselineAssignment(
-      Map<String, ResourceAssignment> baselineAssignment) {
+  public ClusterModelBuilder setBaselineAssignment(Map<String, ResourceAssignment> baselineAssignment) {
     this.baselineAssignment = baselineAssignment;
     return this;
   }
 
-  public ClusterModelBuilder setBestPossibleAssignment(
-      Map<String, ResourceAssignment> bestPossibleAssignment) {
+  public ClusterModelBuilder setBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment) {
     this.bestPossibleAssignment = bestPossibleAssignment;
     return this;
   }
 
-  public void setPartitionUsageSampleMethod(Function<Integer, Integer> partitionUsageSampleMethod) {
+  public ClusterModelBuilder setPartitionUsageSampleMethod(Function<Integer, Integer> partitionUsageSampleMethod) {
     this.partitionUsageSampleMethod = partitionUsageSampleMethod;
+    return this;
+  }
+
+  public ClusterModelBuilder setResourceMaxPartitionsPerInstance(int resourceMaxPartitionsPerInstance) {
+    this.resourceMaxPartitionsPerInstance = resourceMaxPartitionsPerInstance;
+    return this;
   }
 
   /**
@@ -166,23 +172,25 @@ public class ClusterModelBuilder {
   }
 
   // instance: id, cluster, faultZone, instance, capacity
-  public static List<AssignableNode> createInstances(String instanceNamePrefix, int instanceCount,
-      String zone, Map<String, Integer> capacity, int maxPartitionsPerInstance) {
+  public static List<AssignableNode> createInstances(String instanceNamePrefix, int instanceCount, String zone,
+      Map<String, Integer> capacity, int maxPartitionsPerInstance) {
     List<AssignableNode> instances = new ArrayList<>();
-    instanceNamePrefix = zone + instanceNamePrefix;
+    instanceNamePrefix = zone + "_" + instanceNamePrefix;
     for (int i = 0; i < instanceCount; i++) {
-      AssignableNode instance = new AssignableNode.Builder(instanceNamePrefix + "_" + i)
-          .faultZone(zone).maxCapacity(capacity).maxPartition(maxPartitionsPerInstance).build();
+      AssignableNode instance = new AssignableNode.Builder(instanceNamePrefix + i).faultZone(zone)
+          .maxCapacity(capacity)
+          .maxPartition(maxPartitionsPerInstance)
+          .build();
       instances.add(instance);
     }
     return instances;
   }
 
-  public static List<AssignableReplica> createReplicas(String partitionNamePrefix,
-      int partitionCount, String resourceName, Map<String, Integer> maxCapacityUsage,
+  public static List<AssignableReplica> createReplicas(String partitionNamePrefix, int partitionCount,
+      String resourceName, Map<String, Integer> maxCapacityUsage, int resourceMaxPartitionsPerInstance,
       List<String> stateModels, Function<Integer, Integer> sampleFunction) {
     List<AssignableReplica> replicas = new ArrayList<>();
-    partitionNamePrefix = resourceName + partitionNamePrefix;
+    partitionNamePrefix = resourceName + "_" + partitionNamePrefix;
     Collections.sort(stateModels);
     for (int i = 0; i < partitionCount; i++) {
       String state = "";
@@ -195,8 +203,12 @@ public class ClusterModelBuilder {
           usage = Maps.transformValues(maxCapacityUsage, sampleFunction::apply);
         }
         AssignableReplica replica =
-            new AssignableReplica.Builder(partitionNamePrefix + "_" + i, resourceName)
-                .capacityUsage(usage).replicaState(state).statePriority(statePriority).build();
+            new AssignableReplica.Builder(partitionNamePrefix + "_" + i, resourceName).resourceMaxPartitionsPerInstance(
+                resourceMaxPartitionsPerInstance)
+                .capacityUsage(usage)
+                .replicaState(state)
+                .statePriority(statePriority)
+                .build();
         replicas.add(replica);
       }
     }
@@ -205,24 +217,26 @@ public class ClusterModelBuilder {
   }
 
   /**
-   * The build method will return the generated cluster model
+   * The build method will construct and return an instance of {@link ClusterModel}
+   * **WARNING**
+   * All the replicas in the ClusterModel are un-assigned! 
    */
   public ClusterModel build() {
     List<String> zones = createFaultZones(ZONE_PREFIX, zoneCount);
     List<AssignableNode> instances = new ArrayList<>();
     for (String zone : zones) {
-      instances.addAll(createInstances(INSTANCE_PREFIX, instanceCountPerZone, zone,
-          instanceCapacity, maxPartitionsPerInstance));
+      instances.addAll(
+          createInstances(INSTANCE_PREFIX, instanceCountPerZone, zone, instanceCapacity, maxPartitionsPerInstance));
     }
     List<String> resources = createResources(RESOURCE_PREFIX, resourceCount);
-    List<AssignableReplica> replicas = new ArrayList<>();
+    List<AssignableReplica> allReplicas = new ArrayList<>();
     for (String resource : resources) {
-      replicas.addAll(createReplicas(PARTITION_PREFIX, partitionCountPerResource, resource,
-          partitionMaxUsage, Arrays.asList(stateModels), partitionUsageSampleMethod));
+      allReplicas.addAll(createReplicas(PARTITION_PREFIX, partitionCountPerResource, resource, partitionMaxUsage,
+          resourceMaxPartitionsPerInstance, Arrays.asList(stateModels), partitionUsageSampleMethod));
     }
-    ClusterContext clusterContext = new ClusterContext(new HashSet<>(replicas), instances.size(),
-        baselineAssignment, bestPossibleAssignment);
-    return new ClusterModel(clusterContext, new HashSet<>(replicas), new HashSet<>(instances));
+    ClusterContext clusterContext =
+        new ClusterContext(new HashSet<>(allReplicas), instances.size(), baselineAssignment, bestPossibleAssignment);
+    return new ClusterModel(clusterContext, new HashSet<>(allReplicas), new HashSet<>(instances));
   }
 
   //TODO: sometimes we'd like to reproduce the result and need the support of dumping the cluster model into external format (csv, json, etc)

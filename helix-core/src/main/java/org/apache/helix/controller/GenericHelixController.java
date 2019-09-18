@@ -318,8 +318,10 @@ public class GenericHelixController implements IdealStateChangeListener,
   }
 
   /**
+   * This function is deprecated. Please use RebalanceUtil.scheduleInstantPipeline method instead.
    * schedule a future rebalance pipeline run, delayed at given time.
    */
+  @Deprecated
   public void scheduleRebalance(long rebalanceTime) {
     if (_helixManager == null) {
       logger.warn(
@@ -354,17 +356,29 @@ public class GenericHelixController implements IdealStateChangeListener,
   }
 
   /**
-   * schedule an instant rebalance pipeline.
+   * schedule an on demand rebalance pipeline.
    */
-  public void scheduleInstantRebalance() {
+  public void scheduleOnDemandRebalance(long delay) {
     if (_helixManager == null) {
       logger.warn("Failed to schedule a future pipeline run for cluster {}. Helix manager is null!",
           _clusterName);
       return;
     }
-    RebalanceTask newTask = new RebalanceTask(_helixManager, ClusterEventType.OnDemandRebalance);
+    long current = System.currentTimeMillis();
+    long rebalanceTime = current + delay;
+    if (delay > 0) {
+      RebalanceTask preTask = _nextRebalanceTask.get();
+      if (preTask != null && preTask.getNextRebalanceTime() > current
+          && preTask.getNextRebalanceTime() < rebalanceTime) {
+        // already have a earlier rebalance scheduled, no need to schedule again.
+        return;
+      }
+    }
 
-    _onDemandRebalanceTimer.schedule(newTask, 0);
+    RebalanceTask newTask =
+        new RebalanceTask(_helixManager, ClusterEventType.OnDemandRebalance, rebalanceTime);
+
+    _onDemandRebalanceTimer.schedule(newTask, delay);
     logger.info("Scheduled instant pipeline run for cluster {}." , _helixManager.getClusterName());
 
     RebalanceTask preTask = _nextRebalanceTask.getAndSet(newTask);

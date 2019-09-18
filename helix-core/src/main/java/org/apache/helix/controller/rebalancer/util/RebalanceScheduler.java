@@ -125,7 +125,7 @@ public class RebalanceScheduler {
 
     @Override
     public void run() {
-      RebalanceUtil.scheduleInstantPipeline(_manager.getClusterName());
+      RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(), 0);
     }
   }
 

@@ -29,7 +29,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
@@ -40,6 +39,8 @@ import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
 import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
 
 /**
  * The algorithm is based on a given set of constraints
@@ -65,6 +66,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   public OptimalAssignment calculate(ClusterModel clusterModel) throws HelixRebalanceException {
     OptimalAssignment optimalAssignment = new OptimalAssignment();
     List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodes().values());
+
     // Sort the replicas so the input is stable for the greedy algorithm.
     // For the other algorithm implementation, this sorting could be unnecessary.
     for (AssignableReplica replica : getOrderedAssignableReplica(clusterModel)) {
@@ -73,8 +75,8 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       // stop immediately if any replica cannot find best assignable node
       if (optimalAssignment.hasAnyFailure()) {
         String errorMessage = String.format(
-            "Unable to find any available candidate node for partition %s; Fail reasons: %s",
-            replica.getPartitionName(), optimalAssignment.getFailures());
+                "Unable to find any available candidate node for partition %s\n. Reason: %s",
+                replica.getPartitionName(), optimalAssignment.getErrorMessage());
         throw new HelixRebalanceException(errorMessage,
             HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       }

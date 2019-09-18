@@ -40,20 +40,20 @@ public class ClusterModel {
 
   /**
    * @param clusterContext         The initialized cluster context.
-   * @param assignableReplicas     The replicas to be assigned.
+   * @param unAssignedReplicas     The replicas to be assigned.
    *                               Note that the replicas in this list shall not be included while initializing the context and assignable nodes.
    * @param assignableNodes        The active instances.
    */
-  ClusterModel(ClusterContext clusterContext, Set<AssignableReplica> assignableReplicas,
+  ClusterModel(ClusterContext clusterContext, Set<AssignableReplica> unAssignedReplicas,
       Set<AssignableNode> assignableNodes) {
     _clusterContext = clusterContext;
 
     // Save all the to be assigned replication
-    _assignableReplicaMap = assignableReplicas.stream()
+    _assignableReplicaMap = unAssignedReplicas.stream()
         .collect(Collectors.groupingBy(AssignableReplica::getResourceName, Collectors.toSet()));
 
     // Index all the replicas to be assigned. Dedup the replica if two instances have the same resource/partition/state
-    _assignableReplicaIndex = assignableReplicas.stream().collect(Collectors
+    _assignableReplicaIndex = unAssignedReplicas.stream().collect(Collectors
         .groupingBy(AssignableReplica::getResourceName, Collectors
             .toMap(AssignableReplica::toString, replica -> replica,
                 (oldValue, newValue) -> oldValue)));

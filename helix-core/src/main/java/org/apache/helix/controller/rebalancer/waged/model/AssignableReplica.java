@@ -112,15 +112,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
 
   @Override
   public String toString() {
-    return "AssignableReplica{" +
-            "_partitionName='" + _partitionName + '\'' +
-            ", _resourceName='" + _resourceName + '\'' +
-            ", _resourceInstanceGroupTag='" + _resourceInstanceGroupTag + '\'' +
-            ", _resourceMaxPartitionsPerInstance=" + _resourceMaxPartitionsPerInstance +
-            ", _capacityUsage=" + _capacityUsage +
-            ", _statePriority=" + _statePriority +
-            ", _replicaState='" + _replicaState + '\'' +
-            '}';
+    return generateReplicaKey(_resourceName, _partitionName, _replicaState);
   }
 
   @Override
@@ -150,7 +142,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
   }
 
   public static String generateReplicaKey(String resourceName, String partitionName, String state) {
-    return String.format("%s-%s-%s", resourceName, partitionName, state);
+    return String.format("%s:%s:%s", resourceName, partitionName, state);
   }
 
   /**
@@ -190,7 +182,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
   }
 
   //TODO: migrate existing constructor to use constructor only
-  public static final class Builder {
+  static final class Builder {
     private String _partitionName;
     private String _resourceName;
     private String _resourceInstanceGroupTag;
@@ -199,37 +191,37 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     private int _statePriority;
     private String _replicaState;
 
-    public Builder(String partitionName, String resourceName) {
+    Builder(String partitionName, String resourceName) {
       _resourceName = resourceName;
       _partitionName = partitionName;
     }
 
-    public Builder resourceInstanceGroupTag(String resourceInstanceGroupTag) {
+    Builder resourceInstanceGroupTag(String resourceInstanceGroupTag) {
       this._resourceInstanceGroupTag = resourceInstanceGroupTag;
       return this;
     }
 
-    public Builder resourceMaxPartitionsPerInstance(int resourceMaxPartitionsPerInstance) {
+    Builder resourceMaxPartitionsPerInstance(int resourceMaxPartitionsPerInstance) {
       this._resourceMaxPartitionsPerInstance = resourceMaxPartitionsPerInstance;
       return this;
     }
 
-    public Builder capacityUsage(Map<String, Integer> capacityUsage) {
+    Builder capacityUsage(Map<String, Integer> capacityUsage) {
       this._capacityUsage = capacityUsage;
       return this;
     }
 
-    public Builder statePriority(int statePriority) {
+    Builder statePriority(int statePriority) {
       this._statePriority = statePriority;
       return this;
     }
 
-    public Builder replicaState(String replicaState) {
+    Builder replicaState(String replicaState) {
       this._replicaState = replicaState;
       return this;
     }
 
-    public AssignableReplica build() {
+     AssignableReplica build() {
       return new AssignableReplica(this);
     }
   }

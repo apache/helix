@@ -54,6 +54,7 @@ import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -347,6 +348,19 @@ public class ZkTestBase {
   protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,
       String stateModel, int numPartition, int replica, int minActiveReplica, long delay,
       String rebalanceStrategy) {
+    return createResource(clusterName, db, stateModel, numPartition, replica, minActiveReplica,
+        delay, DelayedAutoRebalancer.class.getName(), rebalanceStrategy);
+  }
+
+  protected IdealState createResourceWithWagedRebalance(String clusterName, String db,
+      String stateModel, int numPartition, int replica, int minActiveReplica, long delay) {
+    return createResource(clusterName, db, stateModel, numPartition, replica, minActiveReplica,
+        delay, WagedRebalancer.class.getName(), null);
+  }
+
+  private IdealState createResource(String clusterName, String db, String stateModel,
+      int numPartition, int replica, int minActiveReplica, long delay, String rebalancerClassName,
+      String rebalanceStrategy) {
     IdealState idealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
     if (idealState == null) {
@@ -362,7 +376,7 @@ public class ZkTestBase {
     if (delay > 0) {
       idealState.setRebalanceDelay(delay);
     }
-    idealState.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
+    idealState.setRebalancerClassName(rebalancerClassName);
     _gSetupTool.getClusterManagementTool().setResourceIdealState(clusterName, db, idealState);
     _gSetupTool.rebalanceStorageCluster(clusterName, db, replica);
     idealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);

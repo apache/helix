@@ -20,17 +20,22 @@ package org.apache.helix.controller.rebalancer.waged.model;
  */
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class represents a partition replication that needs to be allocated.
  */
 public class AssignableReplica implements Comparable<AssignableReplica> {
+  private static final Logger LOG = LoggerFactory.getLogger(AssignableReplica.class);
+
   private final String _partitionName;
   private final String _resourceName;
   private final String _resourceInstanceGroupTag;
@@ -149,9 +154,10 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
       partitionCapacity = capacityMap.get(ResourceConfig.DEFAULT_PARTITION_KEY);
     }
     if (partitionCapacity == null) {
-      throw new IllegalArgumentException(String.format(
-          "The capacity usage of the specified partition %s is not configured in the Resource Config %s. No default partition capacity is configured neither.",
-          partitionName, resourceConfig.getResourceName()));
+      LOG.warn("The capacity usage of the specified partition {} is not configured in the Resource"
+          + " Config {}. No default partition capacity is configured either. Will proceed with"
+          + " empty capacity configuration.", partitionName, resourceConfig.getResourceName());
+      partitionCapacity = new HashMap<>();
     }
 
     List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -215,7 +216,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
         ZNRecord metadataRecord =
             _znRecordBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
         if (metadataRecord == null) {
-          throw new HelixException(
+          throw new ZkNoNodeException(
               String.format("Metadata ZNRecord does not exist for path: %s", path));
         }
 

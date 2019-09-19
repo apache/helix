@@ -54,6 +54,8 @@ public class TestOptimalAssignment extends ClusterModelTestHelper {
     model.assign(_resourceNames.get(0), _partitionNames.get(0), "MASTER", _testInstanceId);
     assignment.updateAssignments(model);
     optimalAssignmentMap = assignment.getOptimalResourceAssignment();
+    Assert.assertEquals(assignment.getTotalPartitionMovements(Collections.emptyMap()), 2);
+    Assert.assertEquals(assignment.getTotalPartitionMovements(optimalAssignmentMap), 0);
     Assert.assertEquals(optimalAssignmentMap.get(_resourceNames.get(0)).getMappedPartitions(),
         Arrays
             .asList(new Partition(_partitionNames.get(0)), new Partition(_partitionNames.get(1))));

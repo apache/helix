@@ -222,6 +222,12 @@ public class AssignableNode implements Comparable<AssignableNode> {
     return _currentCapacityMap;
   }
 
+
+  //TODO: will implement by merging other changes
+  public Map<String, Integer> getCapacityUsage() {
+    return Collections.emptyMap();
+  }
+
   /**
    * Return the most concerning capacity utilization number for evenly partition assignment.
    * The method dynamically returns the highest utilization number among all the capacity

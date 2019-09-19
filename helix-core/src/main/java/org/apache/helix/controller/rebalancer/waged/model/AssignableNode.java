@@ -88,12 +88,14 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   /**
    * This function should only be used to assign a set of new partitions that are not allocated on
-   * this node.
+   * this node. It's because the any exception could occur at the middle of batch assignment and the
+   * previous finished assignment cannot be reverted
    * Using this function avoids the overhead of updating capacity repeatedly.
    */
-  void assign(Collection<AssignableReplica> replicas) {
+  void assignInitBatch(Collection<AssignableReplica> replicas) {
     Map<String, Integer> totalPartitionCapacity = new HashMap<>();
     for (AssignableReplica replica : replicas) {
+      // TODO: the exception could occur in the middle of for loop and the previous added records cannot be reverted
       addToAssignmentRecord(replica);
       // increment the capacity requirement according to partition's capacity configuration.
       for (Map.Entry<String, Integer> capacity : replica.getCapacity().entrySet()) {
@@ -111,10 +113,12 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   /**
    * Assign a replica to the node.
-   * @param replica - the replica to be assigned
+   * @param assignableReplica - the replica to be assigned
    */
-  void assign(AssignableReplica replica) {
-    assign(ImmutableList.of(replica));
+  void assign(AssignableReplica assignableReplica) {
+    addToAssignmentRecord(assignableReplica);
+    assignableReplica.getCapacity().entrySet().stream()
+            .forEach(capacity -> updateCapacityAndUtilization(capacity.getKey(), capacity.getValue()));
   }
 
   /**

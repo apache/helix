@@ -19,6 +19,8 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import static com.google.common.math.DoubleMath.mean;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +31,8 @@ import org.apache.helix.HelixException;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 
-import static com.google.common.math.DoubleMath.mean;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
 
 /**
  * The data model represents the optimal assignment of N replicas assigned to M instances;
@@ -54,11 +57,15 @@ public class OptimalAssignment {
   }
 
   /**
-   *
-   *
-   * @return
+   * The coefficient of variation (CV) is a statistical measure of the dispersion of data points in
+   * a data series around the mean.
+   * The coefficient of variation represents the ratio of the standard deviation to the mean, and it
+   * is a useful statistic for comparing the degree of variation from one data series to another,
+   * even if the means are drastically different from one another.
+   * It's used as a tool to evaluate the "evenness" of an partitions to instances assignment
+   * @return a multi-dimension CV keyed by capacity key
    */
-  public Map<String, Double> getCoefficientOfVariation() {
+  public Map<String, Double> getCoefficientOfVariationAsEvenness() {
     List<AssignableNode> instances = new ArrayList<>(_optimalAssignment.keySet());
     Map<String, List<Integer>> usages = new HashMap<>();
     for (AssignableNode instance : instances) {
@@ -70,6 +77,38 @@ public class OptimalAssignment {
 
     return usages.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> getCoefficientOfVariation(e.getValue())));
+  }
+
+  /**
+   * Compare this round of calculated assignment compared to the last assignment and get the
+   * partition movements count
+   * @param baseAssignment The base assignment (could be best possible/baseline assignment)
+   * @return a simple cumulative count of total movements where differences of movements in terms of
+   *         location, size, etc is ignored
+   */
+  public int getTotalPartitionMovements(Map<String, ResourceAssignment> baseAssignment) {
+    Map<String, ResourceAssignment> optimalAssignment = getOptimalResourceAssignment();
+    int movements = 0;
+    for (String resource : optimalAssignment.keySet()) {
+      final ResourceAssignment resourceAssignment = optimalAssignment.get(resource);
+      if (!baseAssignment.containsKey(resource)) {
+        // It means the resource is a newly added resource
+        movements += resourceAssignment.getMappedPartitions().stream()
+            .map(resourceAssignment::getReplicaMap).map(Map::size).count();
+      } else {
+        ResourceAssignment lastResourceAssignment = baseAssignment.get(resource);
+        for (Partition partition : resourceAssignment.getMappedPartitions()) {
+          Map<String, String> thisInstanceToStates = new HashMap<>(resourceAssignment.getReplicaMap(partition));
+          Map<String, String> lastInstanceToStates = new HashMap<>(lastResourceAssignment.getReplicaMap(partition));
+          MapDifference<String, String> diff = Maps.difference(thisInstanceToStates, lastInstanceToStates);
+          //common keys(instances) but have different values (states)
+          movements += diff.entriesDiffering().size();
+          // Moved to different instances
+          movements += diff.entriesOnlyOnLeft().size();
+        }
+      }
+    }
+    return movements;
   }
 
   /**

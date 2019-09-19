@@ -21,7 +21,6 @@ package org.apache.helix.controller.rebalancer.waged.model;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -74,7 +73,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     Assert.assertEquals(assignableNode.getInstanceTags(), _testInstanceTags);
     Assert.assertEquals(assignableNode.getFaultZone(), _testFaultZoneId);
     Assert.assertEquals(assignableNode.getDisabledPartitionsMap(), _disabledPartitionsMap);
-    Assert.assertEquals(assignableNode.getCurrentCapacity(), expectedCapacityMap);
+    Assert.assertEquals(assignableNode.getRemainingCapacity(), expectedCapacityMap);
     Assert.assertEquals(assignableNode.getAssignedReplicas(), assignmentSet);
     Assert.assertEquals(assignableNode.getAssignedPartitionsByResource(_resourceNames.get(0)),
         expectedAssignmentSet1);
@@ -114,7 +113,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     Assert.assertEquals(assignableNode.getInstanceTags(), _testInstanceTags);
     Assert.assertEquals(assignableNode.getFaultZone(), _testFaultZoneId);
     Assert.assertEquals(assignableNode.getDisabledPartitionsMap(), _disabledPartitionsMap);
-    Assert.assertEquals(assignableNode.getCurrentCapacity(), expectedCapacityMap);
+    Assert.assertEquals(assignableNode.getRemainingCapacity(), expectedCapacityMap);
     Assert.assertEquals(assignableNode.getAssignedReplicas(), assignmentSet);
     Assert.assertEquals(assignableNode.getAssignedPartitionsByResource(_resourceNames.get(0)),
         expectedAssignmentSet1);
@@ -147,7 +146,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     Assert.assertEquals(assignableNode.getInstanceTags(), _testInstanceTags);
     Assert.assertEquals(assignableNode.getFaultZone(), _testFaultZoneId);
     Assert.assertEquals(assignableNode.getDisabledPartitionsMap(), _disabledPartitionsMap);
-    Assert.assertEquals(assignableNode.getCurrentCapacity(), expectedCapacityMap);
+    Assert.assertEquals(assignableNode.getRemainingCapacity(), expectedCapacityMap);
     Assert.assertEquals(assignableNode.getAssignedReplicas(), assignmentSet);
     Assert.assertEquals(assignableNode.getAssignedPartitionsByResource(_resourceNames.get(0)),
         expectedAssignmentSet1);

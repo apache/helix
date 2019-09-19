@@ -23,13 +23,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixException;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
@@ -37,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * This class represents a possible allocation of the replication.
@@ -57,11 +56,11 @@ public class AssignableNode implements Comparable<AssignableNode> {
   // Mutable (Dynamic) Instance Properties
   // A map of <resource name, <partition name, replica>> that tracks the replicas assigned to the
   // node.
-  private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap = new HashMap<>();
+  private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap;
   // A map of <capacity key, capacity value> that tracks the current available node capacity
   private Map<String, Integer> _remainingCapacity;
   // The maximum capacity utilization (0.0 - 1.0) across all the capacity categories.
-  private float _highestCapacityUtilization = 0;
+  private float _highestCapacityUtilization;
 
   /**
    * Update the node with a ClusterDataCache. This resets the current assignment and recalculates
@@ -78,10 +77,12 @@ public class AssignableNode implements Comparable<AssignableNode> {
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);
     _instanceTags = ImmutableSet.copyOf(instanceConfig.getTags());
     _disabledPartitionsMap = ImmutableMap.copyOf(instanceConfig.getDisabledPartitionsMap());
-    _maxAllowedCapacity = ImmutableMap.copyOf(instanceCapacity);
     // make a copy of max capacity
-    _remainingCapacity = new HashMap<>(_maxAllowedCapacity);
+    _maxAllowedCapacity = ImmutableMap.copyOf(instanceCapacity);
+    _remainingCapacity = new HashMap<>(instanceCapacity);
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
+    _currentAssignedReplicaMap = new HashMap<>();
+    _highestCapacityUtilization = 0;
   }
 
   /**
@@ -205,7 +206,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   /**
    * @return The current available capacity.
    */
-  public Map<String, Integer> getCurrentCapacity() {
+  public Map<String, Integer> getRemainingCapacity() {
     return _remainingCapacity;
   }
 

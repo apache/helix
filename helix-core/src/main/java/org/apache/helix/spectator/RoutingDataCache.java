@@ -69,8 +69,7 @@ class RoutingDataCache extends BasicClusterDataCache {
     if (_sourceDataType.equals(PropertyType.TARGETEXTERNALVIEW) && _propertyDataChangedMap
         .get(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW)) {
       long start = System.currentTimeMillis();
-      _propertyDataChangedMap
-          .put(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW, Boolean.valueOf(false));
+      _propertyDataChangedMap.put(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW, false);
       _targetExternalViewCache.refresh(accessor);
       LOG.info("Reload " + _targetExternalViewCache.getExternalViewMap().keySet().size()
           + " TargetExternalViews. Takes " + (System.currentTimeMillis() - start) + " ms");

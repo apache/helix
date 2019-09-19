@@ -162,15 +162,16 @@ public class ZkCopy {
     PathUtils.validatePath(srcRootPath);
     PathUtils.validatePath(dstRootPath);
 
-    if (srcRootPath.equals(dstRootPath)) {
-      logger.info("srcPath == dstPath. Skip copying");
-      return;
-    }
+    if (srcClient.getServers().equals(dstClient.getServers())) {
+      if (srcRootPath.equals(dstRootPath)){
+        logger.info("srcPath == dstPath. Skip copying");
+        return;
+      }
 
-    if (srcRootPath.startsWith(dstRootPath) || dstRootPath.startsWith(srcRootPath)) {
-      throw new IllegalArgumentException(
-          "srcPath/dstPath can't be prefix of dstPath/srcPath, was srcPath: " + srcRootPath
-              + ", dstPath: " + dstRootPath);
+      if (srcRootPath.startsWith(dstRootPath) || dstRootPath.startsWith(srcRootPath)) {
+        throw new IllegalArgumentException(
+            "srcPath/dstPath can't be prefix of dstPath/srcPath, was srcPath: " + srcRootPath + ", dstPath: " + dstRootPath);
+      }
     }
 
     // Recursive copy using BFS

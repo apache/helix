@@ -39,7 +39,7 @@ import com.google.common.collect.Maps;
  * The builder class for generating an instance of {@link ClusterModel}
  *
  * Example of usage:
- *  new ClusterModelBuilder("TestCluster")
+ *  new MockClusterModelBuilder("TestCluster")
  *        .setZoneCount(5)
  *        .setInstanceCountPerZone(10)
  *        .setResourceCount(5)
@@ -61,7 +61,7 @@ import com.google.common.collect.Maps;
  *   - The max allowed partitions hosted per instance is equal
  *   - All resources' partitions share the same state models (e.g {"Master", "Slave", "Slave"}, 1 master and 2 slaves)
  */
-public class ClusterModelBuilder {
+public class MockClusterModelBuilder {
   private static final String ZONE_PREFIX = "ZONE_";
   private static final String INSTANCE_PREFIX = "INSTANCE_";
   private static final String RESOURCE_PREFIX = "RESOURCE_";
@@ -87,66 +87,66 @@ public class ClusterModelBuilder {
   private Map<String, ResourceAssignment> baselineAssignment = Collections.emptyMap();
   private Map<String, ResourceAssignment> bestPossibleAssignment = Collections.emptyMap();
 
-  public ClusterModelBuilder(String testClusterName) {
+  public MockClusterModelBuilder(String testClusterName) {
     this.testClusterName = testClusterName;
   }
 
-  public ClusterModelBuilder setZoneCount(int zoneCount) {
+  public MockClusterModelBuilder setZoneCount(int zoneCount) {
     this.zoneCount = zoneCount;
     return this;
   }
 
-  public ClusterModelBuilder setInstanceCountPerZone(int instanceCountPerZone) {
+  public MockClusterModelBuilder setInstanceCountPerZone(int instanceCountPerZone) {
     this.instanceCountPerZone = instanceCountPerZone;
     return this;
   }
 
-  public ClusterModelBuilder setStateModels(String[] stateModels) {
+  public MockClusterModelBuilder setStateModels(String[] stateModels) {
     this.stateModels = stateModels;
     return this;
   }
 
-  public ClusterModelBuilder setPartitionCountPerResource(int partitionCountPerResource) {
+  public MockClusterModelBuilder setPartitionCountPerResource(int partitionCountPerResource) {
     this.partitionCountPerResource = partitionCountPerResource;
     return this;
   }
 
-  public ClusterModelBuilder setResourceCount(int resourceCount) {
+  public MockClusterModelBuilder setResourceCount(int resourceCount) {
     this.resourceCount = resourceCount;
     return this;
   }
 
-  public ClusterModelBuilder setInstanceCapacity(Map<String, Integer> instanceCapacity) {
+  public MockClusterModelBuilder setInstanceCapacity(Map<String, Integer> instanceCapacity) {
     this.instanceCapacity = instanceCapacity;
     return this;
   }
 
-  public ClusterModelBuilder setPartitionMaxUsage(Map<String, Integer> partitionMaxUsage) {
+  public MockClusterModelBuilder setPartitionMaxUsage(Map<String, Integer> partitionMaxUsage) {
     this.partitionMaxUsage = partitionMaxUsage;
     return this;
   }
 
-  public ClusterModelBuilder setMaxPartitionsPerInstance(int maxPartitionsPerInstance) {
+  public MockClusterModelBuilder setMaxPartitionsPerInstance(int maxPartitionsPerInstance) {
     this.maxPartitionsPerInstance = maxPartitionsPerInstance;
     return this;
   }
 
-  public ClusterModelBuilder setBaselineAssignment(Map<String, ResourceAssignment> baselineAssignment) {
+  public MockClusterModelBuilder setBaselineAssignment(Map<String, ResourceAssignment> baselineAssignment) {
     this.baselineAssignment = baselineAssignment;
     return this;
   }
 
-  public ClusterModelBuilder setBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment) {
+  public MockClusterModelBuilder setBestPossibleAssignment(Map<String, ResourceAssignment> bestPossibleAssignment) {
     this.bestPossibleAssignment = bestPossibleAssignment;
     return this;
   }
 
-  public ClusterModelBuilder setPartitionUsageSampleMethod(Function<Integer, Integer> partitionUsageSampleMethod) {
+  public MockClusterModelBuilder setPartitionUsageSampleMethod(Function<Integer, Integer> partitionUsageSampleMethod) {
     this.partitionUsageSampleMethod = partitionUsageSampleMethod;
     return this;
   }
 
-  public ClusterModelBuilder setResourceMaxPartitionsPerInstance(int resourceMaxPartitionsPerInstance) {
+  public MockClusterModelBuilder setResourceMaxPartitionsPerInstance(int resourceMaxPartitionsPerInstance) {
     this.resourceMaxPartitionsPerInstance = resourceMaxPartitionsPerInstance;
     return this;
   }
@@ -219,9 +219,9 @@ public class ClusterModelBuilder {
   /**
    * The build method will construct and return an instance of {@link ClusterModel}
    * **WARNING**
-   * All the replicas in the ClusterModel are un-assigned! 
+   * All the replicas in the ClusterModel are un-assigned!
    */
-  public ClusterModel build() {
+  public MockClusterModel build() {
     List<String> zones = createFaultZones(ZONE_PREFIX, zoneCount);
     List<AssignableNode> instances = new ArrayList<>();
     for (String zone : zones) {
@@ -236,7 +236,7 @@ public class ClusterModelBuilder {
     }
     ClusterContext clusterContext =
         new ClusterContext(new HashSet<>(allReplicas), instances.size(), baselineAssignment, bestPossibleAssignment);
-    return new ClusterModel(clusterContext, new HashSet<>(allReplicas), new HashSet<>(instances));
+    return new MockClusterModel(clusterContext, new HashSet<>(allReplicas), new HashSet<>(instances));
   }
 
   //TODO: sometimes we'd like to reproduce the result and need the support of dumping the cluster model into external format (csv, json, etc)

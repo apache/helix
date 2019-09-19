@@ -32,10 +32,11 @@ import org.apache.helix.HelixException;
 public class ClusterModel {
   private final ClusterContext _clusterContext;
   // Map to track all the assignable replications. <Resource Name, Set<Replicas>>
-  private final Map<String, Set<AssignableReplica>> _assignableReplicaMap;
+  private final Map<String, Set<AssignableReplica>> _unAssignableReplicaMap;
   // The index to find the replication information with a certain state. <Resource, <Key(resource_partition_state), Replica>>
   // Note that the identical replicas are deduped in the index.
   private final Map<String, Map<String, AssignableReplica>> _assignableReplicaIndex;
+  // All available nodes to assign replicas
   private final Map<String, AssignableNode> _assignableNodeMap;
 
   /**
@@ -49,7 +50,7 @@ public class ClusterModel {
     _clusterContext = clusterContext;
 
     // Save all the to be assigned replication
-    _assignableReplicaMap = unAssignedReplicas.stream()
+    _unAssignableReplicaMap = unAssignedReplicas.stream()
         .collect(Collectors.groupingBy(AssignableReplica::getResourceName, Collectors.toSet()));
 
     // Index all the replicas to be assigned. Dedup the replica if two instances have the same resource/partition/state
@@ -71,7 +72,7 @@ public class ClusterModel {
   }
 
   public Map<String, Set<AssignableReplica>> getAssignableReplicaMap() {
-    return _assignableReplicaMap;
+    return _unAssignableReplicaMap;
   }
 
   /**

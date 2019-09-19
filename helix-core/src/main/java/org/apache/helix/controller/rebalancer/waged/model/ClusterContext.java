@@ -44,6 +44,7 @@ public class ClusterContext {
   // This estimation helps to ensure per-resource partition count evenness
   private final Map<String, Integer> _estimatedMaxPartitionByResource = new HashMap<>();
 
+  private Set<AssignableReplica> _allReplicas;
   // map{zoneName : map{resourceName : set(partitionNames)}}
   private Map<String, Map<String, Set<String>>> _assignmentForFaultZoneMap = new HashMap<>();
   // Records about the previous assignment
@@ -54,15 +55,16 @@ public class ClusterContext {
 
   /**
    * Construct the cluster context based on the current instance status.
-   * @param replicaSet All the partition replicas that are managed by the rebalancer
+   * @param allReplicas All the partition replicas that are managed by the rebalancer
    * @param instanceCount The count of all the active instances that can be used to host partitions.
    */
-  ClusterContext(Set<AssignableReplica> replicaSet, int instanceCount,
+  ClusterContext(Set<AssignableReplica> allReplicas, int instanceCount,
       Map<String, ResourceAssignment> baselineAssignment, Map<String, ResourceAssignment> bestPossibleAssignment) {
     int totalReplicas = 0;
     int totalTopStateReplicas = 0;
+    _allReplicas = allReplicas;
 
-    for (Map.Entry<String, List<AssignableReplica>> entry : replicaSet.stream()
+    for (Map.Entry<String, List<AssignableReplica>> entry : allReplicas.stream()
         .collect(Collectors.groupingBy(AssignableReplica::getResourceName))
         .entrySet()) {
       int replicas = entry.getValue().size();
@@ -99,6 +101,10 @@ public class ClusterContext {
 
   public int getEstimatedMaxPartitionByResource(String resourceName) {
     return _estimatedMaxPartitionByResource.get(resourceName);
+  }
+
+  public Set<AssignableReplica> getAllReplicas() {
+    return _allReplicas;
   }
 
   public int getEstimatedMaxTopStateCount() {

@@ -29,11 +29,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixException;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * This class represents a possible allocation of the replication.
@@ -42,37 +45,23 @@ import org.slf4j.LoggerFactory;
 public class AssignableNode implements Comparable<AssignableNode> {
   private static final Logger LOG = LoggerFactory.getLogger(AssignableNode.class.getName());
 
-  // basic node information
+  // Immutable Instance Properties
   private final String _instanceName;
-  private Set<String> _instanceTags;
-  private String _faultZone;
-  private Map<String, List<String>> _disabledPartitionsMap;
-  private Map<String, Integer> _maxCapacity;
-  private int _maxPartition; // maximum number of the partitions that can be assigned to the node.
+  private final String _faultZone;
+  // maximum number of the partitions that can be assigned to the instance.
+  private final int _maxPartition;
+  private final ImmutableSet<String> _instanceTags;
+  private final ImmutableMap<String, List<String>> _disabledPartitionsMap;
+  private final ImmutableMap<String, Integer> _maxAllowedCapacity;
 
+  // Mutable (Dynamic) Instance Properties
   // A map of <resource name, <partition name, replica>> that tracks the replicas assigned to the
   // node.
-  private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap;
+  private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap = new HashMap<>();
   // A map of <capacity key, capacity value> that tracks the current available node capacity
-  private Map<String, Integer> _currentCapacityMap;
+  private Map<String, Integer> _remainingCapacity;
   // The maximum capacity utilization (0.0 - 1.0) across all the capacity categories.
-  private float _highestCapacityUtilization;
-
-  /**
-   * @param clusterConfig
-   * @param instanceConfig
-   * @param instanceName
-   */
-  AssignableNode(ClusterConfig clusterConfig, InstanceConfig instanceConfig, String instanceName) {
-    _instanceName = instanceName;
-    refresh(clusterConfig, instanceConfig);
-  }
-
-  private void reset() {
-    _currentAssignedReplicaMap = new HashMap<>();
-    _currentCapacityMap = new HashMap<>();
-    _highestCapacityUtilization = 0;
-  }
+  private float _highestCapacityUtilization = 0;
 
   /**
    * Update the node with a ClusterDataCache. This resets the current assignment and recalculates
@@ -82,18 +71,16 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * refreshed. This is under the assumption that the capacity mappings of InstanceConfig and
    * ResourceConfig could
    * subject to change. If the assumption is no longer true, this function should become private.
-   * @param clusterConfig - the Cluster Config of the cluster where the node is located
-   * @param instanceConfig - the Instance Config of the node
    */
-  private void refresh(ClusterConfig clusterConfig, InstanceConfig instanceConfig) {
-    reset();
-
+  AssignableNode(ClusterConfig clusterConfig, InstanceConfig instanceConfig, String instanceName) {
+    _instanceName = instanceName;
     Map<String, Integer> instanceCapacity = fetchInstanceCapacity(clusterConfig, instanceConfig);
-    _currentCapacityMap.putAll(instanceCapacity);
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);
-    _instanceTags = new HashSet<>(instanceConfig.getTags());
-    _disabledPartitionsMap = instanceConfig.getDisabledPartitionsMap();
-    _maxCapacity = instanceCapacity;
+    _instanceTags = ImmutableSet.copyOf(instanceConfig.getTags());
+    _disabledPartitionsMap = ImmutableMap.copyOf(instanceConfig.getDisabledPartitionsMap());
+    _maxAllowedCapacity = ImmutableMap.copyOf(instanceCapacity);
+    // make a copy of max capacity
+    _remainingCapacity = new HashMap<>(_maxAllowedCapacity);
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
   }
 
@@ -219,7 +206,24 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * @return The current available capacity.
    */
   public Map<String, Integer> getCurrentCapacity() {
-    return _currentCapacityMap;
+    return _remainingCapacity;
+  }
+
+  /**
+   * @return A map of <capacity category, capacity number> that describes the max capacity of the
+   *         node.
+   */
+  public Map<String, Integer> getMaxCapacity() {
+    return _maxAllowedCapacity;
+  }
+
+  public Map<String, Integer> getCapacityUsage() {
+    Map<String, Integer> result = new HashMap<>();
+    for (String key : _maxAllowedCapacity.keySet()) {
+      result.put(key, _maxAllowedCapacity.get(key) - _remainingCapacity.get(key));
+    }
+
+    return result;
   }
 
   /**
@@ -228,7 +232,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * categories.
    * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}. Then this call shall
    * return 0.9.
-   *
    * @return The highest utilization number of the node among all the capacity category.
    */
   public float getHighestCapacityUtilization() {
@@ -260,14 +263,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
   }
 
   /**
-   * @return A map of <capacity category, capacity number> that describes the max capacity of the
-   *         node.
-   */
-  public Map<String, Integer> getMaxCapacity() {
-    return _maxCapacity;
-  }
-
-  /**
    * @return The max partition count that are allowed to be allocated on the node.
    */
   public int getMaxPartition() {
@@ -294,14 +289,15 @@ public class AssignableNode implements Comparable<AssignableNode> {
     if (topologyStr == null || faultZoneType == null) {
       LOG.debug("Topology configuration is not complete. Topology define: {}, Fault Zone Type: {}",
           topologyStr, faultZoneType);
-      // Use the instance name, or the deprecated ZoneId field (if exists) as the default fault zone.
+      // Use the instance name, or the deprecated ZoneId field (if exists) as the default fault
+      // zone.
       String zoneId = instanceConfig.getZoneId();
       return zoneId == null ? instanceConfig.getInstanceName() : zoneId;
     } else {
       // Get the fault zone information from the complete topology definition.
       String[] topologyDef = topologyStr.trim().split("/");
-      if (topologyDef.length == 0 ||
-          Arrays.stream(topologyDef).noneMatch(type -> type.equals(faultZoneType))) {
+      if (topologyDef.length == 0
+          || Arrays.stream(topologyDef).noneMatch(type -> type.equals(faultZoneType))) {
         throw new HelixException(
             "The configured topology definition is empty or does not contain the fault zone type.");
       }
@@ -351,21 +347,16 @@ public class AssignableNode implements Comparable<AssignableNode> {
   }
 
   private void updateCapacityAndUtilization(String capacityKey, int valueToSubtract) {
-    if (_currentCapacityMap.containsKey(capacityKey)) {
-      int newCapacity = _currentCapacityMap.get(capacityKey) - valueToSubtract;
-      _currentCapacityMap.put(capacityKey, newCapacity);
-      // For the purpose of constraint calculation, the max utilization cannot be larger than 100%.
-      float utilization = Math.min(
-          (float) (_maxCapacity.get(capacityKey) - newCapacity) / _maxCapacity.get(capacityKey), 1);
-      _highestCapacityUtilization = Math.max(_highestCapacityUtilization, utilization);
-    }
-    // else if the capacityKey does not exist in the capacity map, this method essentially becomes
-    // a NOP; in other words, this node will be treated as if it has unlimited capacity.
+    int newCapacity = _remainingCapacity.get(capacityKey) - valueToSubtract;
+    _remainingCapacity.put(capacityKey, newCapacity);
+    // For the purpose of constraint calculation, the max utilization cannot be larger than 100%.
+    float utilization = Math.min((float) (_maxAllowedCapacity.get(capacityKey) - newCapacity)
+        / _maxAllowedCapacity.get(capacityKey), 1);
+    _highestCapacityUtilization = Math.max(_highestCapacityUtilization, utilization);
   }
 
   /**
    * Get and validate the instance capacity from instance config.
-   *
    * @throws HelixException if any required capacity key is not configured in the instance config.
    */
   private Map<String, Integer> fetchInstanceCapacity(ClusterConfig clusterConfig,

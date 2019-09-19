@@ -34,6 +34,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -82,7 +83,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
     _remainingCapacity = new HashMap<>(instanceCapacity);
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
     _currentAssignedReplicaMap = new HashMap<>();
-    _highestCapacityUtilization = 0;
+    _highestCapacityUtilization = 0f;
   }
 
   /**
@@ -90,7 +91,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * this node.
    * Using this function avoids the overhead of updating capacity repeatedly.
    */
-  void assignNewBatch(Collection<AssignableReplica> replicas) {
+  void assign(Collection<AssignableReplica> replicas) {
     Map<String, Integer> totalPartitionCapacity = new HashMap<>();
     for (AssignableReplica replica : replicas) {
       addToAssignmentRecord(replica);
@@ -103,19 +104,17 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
 
     // Update the global state after all single replications' calculation is done.
-    for (String key : totalPartitionCapacity.keySet()) {
-      updateCapacityAndUtilization(key, totalPartitionCapacity.get(key));
+    for (String capacityKey : totalPartitionCapacity.keySet()) {
+      updateCapacityAndUtilization(capacityKey, totalPartitionCapacity.get(capacityKey));
     }
   }
 
   /**
    * Assign a replica to the node.
-   * @param assignableReplica - the replica to be assigned
+   * @param replica - the replica to be assigned
    */
-  void assign(AssignableReplica assignableReplica) {
-    addToAssignmentRecord(assignableReplica);
-    assignableReplica.getCapacity().entrySet().stream()
-        .forEach(capacity -> updateCapacityAndUtilization(capacity.getKey(), capacity.getValue()));
+  void assign(AssignableReplica replica) {
+    assign(ImmutableList.of(replica));
   }
 
   /**
@@ -216,15 +215,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
    */
   public Map<String, Integer> getMaxCapacity() {
     return _maxAllowedCapacity;
-  }
-
-  public Map<String, Integer> getCapacityUsage() {
-    Map<String, Integer> result = new HashMap<>();
-    for (String key : _maxAllowedCapacity.keySet()) {
-      result.put(key, _maxAllowedCapacity.get(key) - _remainingCapacity.get(key));
-    }
-
-    return result;
   }
 
   /**
@@ -347,8 +337,13 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
   }
 
-  private void updateCapacityAndUtilization(String capacityKey, int valueToSubtract) {
-    int newCapacity = _remainingCapacity.get(capacityKey) - valueToSubtract;
+  private void updateCapacityAndUtilization(String capacityKey, int usage) {
+    if (!_remainingCapacity.containsKey(capacityKey)) {
+      //if the capacityKey belongs to replicas does not exist in the instance's capacity,
+      // it will be treated as if it has unlimited capacity of that capacityKey
+      return;
+    }
+    int newCapacity = _remainingCapacity.get(capacityKey) - usage;
     _remainingCapacity.put(capacityKey, newCapacity);
     // For the purpose of constraint calculation, the max utilization cannot be larger than 100%.
     float utilization = Math.min((float) (_maxAllowedCapacity.get(capacityKey) - newCapacity)

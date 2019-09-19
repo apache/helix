@@ -80,7 +80,7 @@ public class ClusterModelProvider {
             bestPossibleAssignment, allocatedReplicas);
 
     // Update the allocated replicas to the assignable nodes.
-    assignableNodes.stream().forEach(node -> node.assignNewBatch(
+    assignableNodes.stream().forEach(node -> node.assign(
         allocatedReplicas.getOrDefault(node.getInstanceName(), Collections.emptySet())));
 
     // Construct and initialize cluster context.

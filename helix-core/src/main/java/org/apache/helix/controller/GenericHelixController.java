@@ -356,19 +356,20 @@ public class GenericHelixController implements IdealStateChangeListener,
   }
 
   /**
-   * schedule an on demand rebalance pipeline.
+   * Schedule an on demand rebalance pipeline.
+   * @param delay
    */
   public void scheduleOnDemandRebalance(long delay) {
     if (_helixManager == null) {
-      logger.warn("Failed to schedule a future pipeline run for cluster {}. Helix manager is null!",
+      logger.error("Failed to schedule a future pipeline run for cluster {}. Helix manager is null!",
           _clusterName);
       return;
     }
-    long current = System.currentTimeMillis();
-    long rebalanceTime = current + delay;
+    long currentTime = System.currentTimeMillis();
+    long rebalanceTime = currentTime + delay;
     if (delay > 0) {
       RebalanceTask preTask = _nextRebalanceTask.get();
-      if (preTask != null && preTask.getNextRebalanceTime() > current
+      if (preTask != null && preTask.getNextRebalanceTime() > currentTime
           && preTask.getNextRebalanceTime() < rebalanceTime) {
         // already have a earlier rebalance scheduled, no need to schedule again.
         return;

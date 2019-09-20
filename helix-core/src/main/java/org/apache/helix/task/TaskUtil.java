@@ -1025,7 +1025,7 @@ public class TaskUtil {
           List<String> resourceConfigs =
               accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
           if (resourceConfigs.size() > 0) {
-            RebalanceUtil.scheduleOnDemandPipeline(manager.getClusterName(), 0);
+            RebalanceUtil.scheduleOnDemandPipeline(manager.getClusterName(), 0L);
           } else {
             LOG.warn(
                 "No resource config to trigger rebalance for clean up contexts for" + expiredJobs);

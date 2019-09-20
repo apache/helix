@@ -455,9 +455,9 @@ public class InstanceMessagesCache {
 
   // Schedule a future rebalance pipeline run.
   private void scheduleFuturePipeline(long rebalanceTime) {
-      long current = System.currentTimeMillis();
-      long delay = rebalanceTime - current;
-      RebalanceUtil.scheduleOnDemandPipeline(_clusterName, delay);
+    long current = System.currentTimeMillis();
+    long delay = rebalanceTime - current;
+    RebalanceUtil.scheduleOnDemandPipeline(_clusterName, delay);
   }
 
   /**

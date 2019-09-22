@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
@@ -49,6 +50,7 @@ import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -60,8 +62,9 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
 
   private final String CLASS_NAME = getShortClassName();
   private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
-  private ClusterControllerManager _controller;
+  protected final String _db = "Test-DB";
 
+  private ClusterControllerManager _controller;
   private List<MockParticipantManager> _participants = new ArrayList<>();
   private int _replica = 3;
   private ZkHelixClusterVerifier _clusterVerifier;
@@ -90,8 +93,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    _clusterVerifier = getClusterVerifier();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
@@ -112,19 +114,28 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     };
   }
 
-  @Test(dataProvider = "stateModels")
-  public void testUserDefinedPreferenceListsInFullAuto(
-      String stateModel, boolean delayEnabled, String rebalanceStrateyName) throws Exception {
-    String db = "Test-DB-" + stateModel;
+  protected ZkHelixClusterVerifier getClusterVerifier() {
+    return new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+  }
+
+  protected void createResource(String stateModel, int numPartition, int replica,
+      boolean delayEnabled, String rebalanceStrategy) {
     if (delayEnabled) {
-      createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
-          _replica - 1, 200, rebalanceStrateyName);
+      createResourceWithDelayedRebalance(CLUSTER_NAME, _db, stateModel, numPartition, replica,
+          replica - 1, 200, rebalanceStrategy);
     } else {
-      createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
-          _replica, 0, rebalanceStrateyName);
+      createResourceWithDelayedRebalance(CLUSTER_NAME, _db, stateModel, numPartition, replica,
+          replica, 0, rebalanceStrategy);
     }
+  }
+
+  @Test(dataProvider = "stateModels")
+  public void testUserDefinedPreferenceListsInFullAuto(String stateModel, boolean delayEnabled,
+      String rebalanceStrateyName) throws Exception {
+    createResource(stateModel, _PARTITIONS, _replica, delayEnabled,
+        rebalanceStrateyName);
     IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, _db);
     Map<String, List<String>> userDefinedPreferenceLists = idealState.getPreferenceLists();
     List<String> userDefinedPartitions = new ArrayList<>();
     for (String partition : userDefinedPreferenceLists.keySet()) {
@@ -138,35 +149,31 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     }
 
     ResourceConfig resourceConfig =
-        new ResourceConfig.Builder(db).setPreferenceLists(userDefinedPreferenceLists).build();
-    _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
+        new ResourceConfig.Builder(_db).setPreferenceLists(userDefinedPreferenceLists).build();
+    _configAccessor.setResourceConfig(CLUSTER_NAME, _db, resourceConfig);
 
-    //TODO: Trigger rebalancer, remove this once Helix controller is listening on resource config changes.
-    RebalanceScheduler.invokeRebalance(_dataAccessor, db);
     Assert.assertTrue(_clusterVerifier.verify(1000));
-    verifyUserDefinedPreferenceLists(db, userDefinedPreferenceLists, userDefinedPartitions);
+    verifyUserDefinedPreferenceLists(_db, userDefinedPreferenceLists, userDefinedPartitions);
 
     while (userDefinedPartitions.size() > 0) {
-      IdealState originIS = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      IdealState originIS = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, _db);
       Set<String> nonUserDefinedPartitions = new HashSet<>(originIS.getPartitionSet());
       nonUserDefinedPartitions.removeAll(userDefinedPartitions);
 
-      removePartitionFromUserDefinedList(db, userDefinedPartitions);
+      removePartitionFromUserDefinedList(_db, userDefinedPartitions);
       Assert.assertTrue(_clusterVerifier.verify(1000));
-      verifyUserDefinedPreferenceLists(db, userDefinedPreferenceLists, userDefinedPartitions);
-      verifyNonUserDefinedAssignment(db, originIS, nonUserDefinedPartitions);
+      verifyUserDefinedPreferenceLists(_db, userDefinedPreferenceLists, userDefinedPartitions);
+      verifyNonUserDefinedAssignment(_db, originIS, nonUserDefinedPartitions);
     }
   }
 
   @Test
   public void testUserDefinedPreferenceListsInFullAutoWithErrors() throws Exception {
-    String db = "Test-DB-1";
-    createResourceWithDelayedRebalance(CLUSTER_NAME, db,
-        BuiltInStateModelDefinitions.MasterSlave.name(), 5, _replica, _replica, 0,
-        CrushRebalanceStrategy.class.getName());
+    createResource(BuiltInStateModelDefinitions.MasterSlave.name(), 5, _replica,
+        false, CrushRebalanceStrategy.class.getName());
 
     IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, _db);
     Map<String, List<String>> userDefinedPreferenceLists = idealState.getPreferenceLists();
 
     List<String> newNodes = new ArrayList<>();
@@ -189,16 +196,13 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     }
 
     ResourceConfig resourceConfig =
-        new ResourceConfig.Builder(db).setPreferenceLists(userDefinedPreferenceLists).build();
-    _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
-
-    //TODO: Trigger rebalancer, remove this once Helix controller is listening on resource config changes.
-    RebalanceScheduler.invokeRebalance(_dataAccessor, db);
+        new ResourceConfig.Builder(_db).setPreferenceLists(userDefinedPreferenceLists).build();
+    _configAccessor.setResourceConfig(CLUSTER_NAME, _db, resourceConfig);
 
     Thread.sleep(1000);
     ExternalView ev =
-        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-    IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, _db);
+    IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, _db);
     validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
   }
 
@@ -244,6 +248,11 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
 
     //TODO: Touch IS, remove this once Helix controller is listening on resource config changes.
     RebalanceScheduler.invokeRebalance(_dataAccessor, db);
+  }
+
+  @AfterMethod
+  public void afterMethod() {
+    _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, _db);
   }
 
   @AfterClass

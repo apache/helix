@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
@@ -34,7 +33,6 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
@@ -54,11 +52,11 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   protected ClusterControllerManager _controller;
 
-  List<MockParticipantManager> _participants = new ArrayList<>();
-  int _replica = 3;
-  int _minActiveReplica = _replica - 1;
-  ZkHelixClusterVerifier _clusterVerifier;
-  List<String> _testDBs = new ArrayList<String>();
+  protected List<MockParticipantManager> _participants = new ArrayList<>();
+  protected int _replica = 3;
+  protected int _minActiveReplica = _replica - 1;
+  protected ZkHelixClusterVerifier _clusterVerifier;
+  protected List<String> _testDBs = new ArrayList<>();
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -82,8 +80,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    _clusterVerifier = getClusterVerifier();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
   }
@@ -143,7 +140,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     long delay = 4000;
-    Map<String, ExternalView> externalViewsBefore = createTestDBs(delay);
+    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, delay);
+    Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
 
     Thread.sleep(delay + 200);
@@ -159,7 +157,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
   @Test (dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
   public void testDisableDelayRebalanceInResource() throws Exception {
-    Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
+    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
+    Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
 
     // disable delay rebalance for one db, partition should be moved immediately
@@ -192,8 +191,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
   @Test (dependsOnMethods = {"testDisableDelayRebalanceInResource"})
   public void testDisableDelayRebalanceInCluster() throws Exception {
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
-
-    Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
+    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
+    Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
 
     // disable delay rebalance for the entire cluster.
@@ -214,7 +213,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
   @Test (dependsOnMethods = {"testDisableDelayRebalanceInCluster"})
   public void testDisableDelayRebalanceInInstance() throws Exception {
-    Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
+    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
+    Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
 
     String disabledInstanceName = _participants.get(0).getInstanceName();
@@ -251,6 +251,10 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
         _participants.get(i).syncStart();
       }
     }
+  }
+
+  protected ZkHelixClusterVerifier getClusterVerifier() {
+    return new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
   }
 
   // create test DBs, wait it converged and return externalviews

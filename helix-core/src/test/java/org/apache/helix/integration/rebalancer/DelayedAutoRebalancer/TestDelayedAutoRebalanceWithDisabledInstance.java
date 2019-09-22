@@ -178,7 +178,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     long delay = 10000;
-    Map<String, ExternalView> externalViewsBefore = createTestDBs(delay);
+    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, delay);
+    Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
 
     // disable one node, no partition should be moved.
     enableInstance(_participants.get(0).getInstanceName(), false);
@@ -253,8 +254,8 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
   @Override
   public void testDisableDelayRebalanceInCluster() throws Exception {
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
-
-    Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
+    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
+    Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
 
     // disable one node, no partition should be moved.
     enableInstance(_participants.get(0).getInstanceName(), false);

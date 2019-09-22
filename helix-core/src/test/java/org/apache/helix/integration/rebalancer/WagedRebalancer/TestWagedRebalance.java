@@ -109,8 +109,7 @@ public class TestWagedRebalance extends ZkTestBase {
     int i = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + i++;
-      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica, _replica,
-          -1);
+      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica, _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
@@ -123,7 +122,7 @@ public class TestWagedRebalance extends ZkTestBase {
     for (String stateModel : _testModels) {
       String moreDB = "More-Test-DB-" + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, moreDB, stateModel, PARTITIONS, _replica,
-          _replica, -1);
+          _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, moreDB, _replica);
       _allDBs.add(moreDB);
 
@@ -151,7 +150,7 @@ public class TestWagedRebalance extends ZkTestBase {
     for (String tag : tags) {
       String db = "Test-DB-" + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db,
-          BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica, -1);
+          BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
       IdealState is =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       is.setInstanceGroupTag(tag);
@@ -167,7 +166,7 @@ public class TestWagedRebalance extends ZkTestBase {
   public void testChangeIdealState() throws InterruptedException {
     String dbName = "Test-DB";
     createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
-        BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica, -1);
+        BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
     _allDBs.add(dbName);
     Thread.sleep(300);
@@ -201,7 +200,7 @@ public class TestWagedRebalance extends ZkTestBase {
   public void testDisableInstance() throws InterruptedException {
     String dbName = "Test-DB";
     createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
-        BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica, -1);
+        BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
     _allDBs.add(dbName);
     Thread.sleep(300);
@@ -256,8 +255,8 @@ public class TestWagedRebalance extends ZkTestBase {
     int j = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + j++;
-      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica, _replica,
-          -1);
+      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
+          _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
@@ -295,8 +294,8 @@ public class TestWagedRebalance extends ZkTestBase {
     int j = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + j++;
-      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica, _replica,
-          -1);
+      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
+          _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
@@ -334,7 +333,7 @@ public class TestWagedRebalance extends ZkTestBase {
             IdealState.RebalanceMode.FULL_AUTO + "", CrushEdRebalanceStrategy.class.getName());
       } else {
         createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
-            _replica, -1);
+            _replica);
       }
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
@@ -357,7 +356,7 @@ public class TestWagedRebalance extends ZkTestBase {
       for (String stateModel : _testModels) {
         String db = "Test-DB-" + i++;
         createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
-            _replica, -1);
+            _replica);
         if (i == 1) {
           // The limited resource has additional limitation, so even the other resources can be assigned
           // later, this resource will still be blocked by the max partition limitation.

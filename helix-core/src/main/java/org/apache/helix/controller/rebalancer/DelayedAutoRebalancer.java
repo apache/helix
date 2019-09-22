@@ -52,7 +52,6 @@ import java.util.Set;
  */
 public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(DelayedAutoRebalancer.class);
-  private static RebalanceScheduler _rebalanceScheduler = new RebalanceScheduler();
 
   @Override
   public IdealState computeNewIdealState(String resourceName,
@@ -121,9 +120,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
 
       Set<String> offlineOrDisabledInstances = new HashSet<>(activeNodes);
       offlineOrDisabledInstances.removeAll(liveEnabledNodes);
-      setRebalanceScheduler(currentIdealState, offlineOrDisabledInstances,
+      DelayedRebalanceUtil.setRebalanceScheduler(currentIdealState, offlineOrDisabledInstances,
           clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
-          clusterData.getInstanceConfigMap(), delay, clusterConfig);
+          clusterData.getInstanceConfigMap(), delay, clusterConfig, _manager);
     }
 
     if (allNodes.isEmpty() || activeNodes.isEmpty()) {
@@ -204,48 +203,6 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     newIdealState.getRecord().setListFields(newMapping.getListFields());
 
     return newIdealState;
-  }
-
-  /* Set a rebalance scheduler for the closest future rebalance time. */
-  private void setRebalanceScheduler(IdealState idealState, Set<String> offlineOrDisabledInstances,
-      Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
-      Map<String, InstanceConfig> instanceConfigMap,  long delay,
-      ClusterConfig clusterConfig) {
-    String resourceName = idealState.getResourceName();
-    if (!DelayedRebalanceUtil.isDelayRebalanceEnabled(idealState, clusterConfig)) {
-      _rebalanceScheduler.removeScheduledRebalance(resourceName);
-      return;
-    }
-
-    long currentTime = System.currentTimeMillis();
-    long nextRebalanceTime = Long.MAX_VALUE;
-    // calculate the closest future rebalance time
-    for (String ins : offlineOrDisabledInstances) {
-      long inactiveTime = DelayedRebalanceUtil
-          .getInactiveTime(ins, liveNodes, instanceOfflineTimeMap.get(ins), delay,
-              instanceConfigMap.get(ins), clusterConfig);
-      if (inactiveTime != -1 && inactiveTime > currentTime && inactiveTime < nextRebalanceTime) {
-        nextRebalanceTime = inactiveTime;
-      }
-    }
-
-    if (nextRebalanceTime == Long.MAX_VALUE) {
-      long startTime = _rebalanceScheduler.removeScheduledRebalance(resourceName);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug(String
-            .format("Remove exist rebalance timer for resource %s at %d\n", resourceName, startTime));
-      }
-    } else {
-      long currentScheduledTime = _rebalanceScheduler.getRebalanceTime(resourceName);
-      if (currentScheduledTime < 0 || currentScheduledTime > nextRebalanceTime) {
-        _rebalanceScheduler.scheduleRebalance(_manager, resourceName, nextRebalanceTime);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(String
-              .format("Set next rebalance time for resource %s at time %d\n", resourceName,
-                  nextRebalanceTime));
-        }
-      }
-    }
   }
 
   private ZNRecord getFinalDelayedMapping(IdealState idealState, ZNRecord newIdealMapping,

@@ -19,10 +19,6 @@ package org.apache.helix.controller.rebalancer.util;
  * under the License.
  */
 
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,10 +26,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixManager;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * The util to support delayed rebalance logic.
  */
 public class DelayedRebalanceUtil {
+  private static final Logger LOG = LoggerFactory.getLogger(DelayedRebalanceUtil.class);
+
+  private static RebalanceScheduler _rebalanceScheduler = new RebalanceScheduler();
+
   /**
    * @return the rebalance delay based on the ClusterConfig configurations.
    * Resource level configuration will be ignored.
@@ -55,9 +62,9 @@ public class DelayedRebalanceUtil {
    */
   public static Set<String> getActiveInstances(Set<String> allNodes, Set<String> liveEnabledNodes,
       Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
-      Map<String, InstanceConfig> instanceConfigMap, long delay, ClusterConfig clusterConfig) {
+      Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
     return getActiveInstances(allNodes, null, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
-        instanceConfigMap, delay, clusterConfig);
+        instanceConfigMap, clusterConfig.getRebalanceDelayTime(), clusterConfig);
   }
 
   /**
@@ -173,17 +180,13 @@ public class DelayedRebalanceUtil {
       List<String> activeList = newActivePreferenceList.get(partition);
 
       List<String> liveList = new ArrayList<>();
-      int activeReplica = 0;
       for (String ins : activeList) {
         if (liveEnabledInstances.contains(ins)) {
-          activeReplica++;
           liveList.add(ins);
         }
       }
 
-      if (activeReplica >= minActiveReplica) {
-        finalPreferenceList.put(partition, activeList);
-      } else {
+      if (liveList.size() < minActiveReplica) {
         List<String> candidates = new ArrayList<>(idealList);
         candidates.removeAll(activeList);
         for (String liveIns : candidates) {
@@ -192,8 +195,8 @@ public class DelayedRebalanceUtil {
             break;
           }
         }
-        finalPreferenceList.put(partition, liveList);
       }
+      finalPreferenceList.put(partition, liveList);
     }
     return finalPreferenceList;
   }
@@ -211,5 +214,49 @@ public class DelayedRebalanceUtil {
       minActiveReplicas = replicaCount;
     }
     return minActiveReplicas;
+  }
+
+  /**
+   * Set a rebalance scheduler for the closest future rebalance time.
+   */
+  public static void setRebalanceScheduler(IdealState idealState,
+      Set<String> offlineOrDisabledInstances, Map<String, Long> instanceOfflineTimeMap,
+      Set<String> liveNodes, Map<String, InstanceConfig> instanceConfigMap, long delay,
+      ClusterConfig clusterConfig, HelixManager manager) {
+    String resourceName = idealState.getResourceName();
+    if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
+      _rebalanceScheduler.removeScheduledRebalance(resourceName);
+      return;
+    }
+
+    long currentTime = System.currentTimeMillis();
+    long nextRebalanceTime = Long.MAX_VALUE;
+    // calculate the closest future rebalance time
+    for (String ins : offlineOrDisabledInstances) {
+      long inactiveTime = getInactiveTime(ins, liveNodes, instanceOfflineTimeMap.get(ins), delay,
+              instanceConfigMap.get(ins), clusterConfig);
+      if (inactiveTime != -1 && inactiveTime > currentTime && inactiveTime < nextRebalanceTime) {
+        nextRebalanceTime = inactiveTime;
+      }
+    }
+
+    if (nextRebalanceTime == Long.MAX_VALUE) {
+      long startTime = _rebalanceScheduler.removeScheduledRebalance(resourceName);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(String
+            .format("Remove exist rebalance timer for resource %s at %d\n", resourceName,
+                startTime));
+      }
+    } else {
+      long currentScheduledTime = _rebalanceScheduler.getRebalanceTime(resourceName);
+      if (currentScheduledTime < 0 || currentScheduledTime > nextRebalanceTime) {
+        _rebalanceScheduler.scheduleRebalance(manager, resourceName, nextRebalanceTime);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(String
+              .format("Set next rebalance time for resource %s at time %d\n", resourceName,
+                  nextRebalanceTime));
+        }
+      }
+    }
   }
 }

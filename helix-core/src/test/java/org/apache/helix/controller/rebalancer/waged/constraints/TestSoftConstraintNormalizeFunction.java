@@ -40,6 +40,7 @@ public class TestSoftConstraintNormalizeFunction {
 
     for (int i = minScore; i <= maxScore; i++) {
       float normalized = softConstraint.getNormalizeFunction().scale(i);
+      System.out.println(String.format("input: %s, output: %s", i, normalized));
       Assert.assertTrue(normalized <= 1 && normalized >= 0,
           String.format("input: %s, output: %s", i, normalized));
     }

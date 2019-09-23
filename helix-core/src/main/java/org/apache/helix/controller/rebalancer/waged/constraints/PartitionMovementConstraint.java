@@ -38,18 +38,12 @@ import org.apache.helix.model.ResourceAssignment;
  * evaluated score will become lower.
  */
 class PartitionMovementConstraint extends SoftConstraint {
-  private static final float MAX_SCORE = 1f;
-  private static final float MIN_SCORE = 0f;
   //TODO: these factors will be tuned based on user's preference
   // This factor indicates the default score that is evaluated if only partition allocation matches
   // (states are different).
   private static final float ALLOCATION_MATCH_FACTOR = 0.5f;
   // This factor indicates the contribution of the Baseline assignment matching to the final score.
   private static final float BASELINE_MATCH_FACTOR = 0.25f;
-
-  PartitionMovementConstraint() {
-    super(MAX_SCORE, MIN_SCORE);
-  }
 
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
@@ -66,11 +60,6 @@ class PartitionMovementConstraint extends SoftConstraint {
         + calculateAssignmentScale(node, replica, baselineStateMap) * BASELINE_MATCH_FACTOR;
 
     return scale;
-  }
-
-  @Override
-  NormalizeFunction getNormalizeFunction() {
-    return score -> score * (getMaxScore() - getMinScore()) + getMinScore();
   }
 
   private Map<String, String> getStateMap(AssignableReplica replica,

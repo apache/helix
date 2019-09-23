@@ -25,46 +25,23 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
  * The "soft" constraint evaluates the optimality of an assignment by giving it a score of a scale
- * of [minScore, maxScore]
+ * of (0, 1]
  * The higher the score, the better the assignment; Intuitively, the assignment is encouraged.
  * The lower score the score, the worse the assignment; Intuitively, the assignment is penalized.
  */
 abstract class SoftConstraint {
-  private float _maxScore = 1000f;
-  private float _minScore = -1000f;
 
   interface NormalizeFunction {
     /**
-     * Scale the origin score to a normalized range (0, 1).
+     * Scale the origin score to a normalized range (0, 1]
      * The purpose is to compare scores between different soft constraints.
      * @param originScore The origin score
-     * @return The normalized value between (0, 1)
+     * @return The normalized value between (0, 1]
      */
     float scale(float originScore);
   }
 
-  /**
-   * Default constructor, uses default min/max scores
-   */
   SoftConstraint() {
-  }
-
-  /**
-   * Child class customize the min/max score on its own
-   * @param maxScore The max score
-   * @param minScore The min score
-   */
-  SoftConstraint(float maxScore, float minScore) {
-    _maxScore = maxScore;
-    _minScore = minScore;
-  }
-
-  float getMaxScore() {
-    return _maxScore;
-  }
-
-  float getMinScore() {
-    return _minScore;
   }
 
   /**
@@ -86,11 +63,10 @@ abstract class SoftConstraint {
   }
 
   /**
-   * The default scaler function that squashes any score within (min_score, max_score) to (0, 1);
+   * The default normalize function f(x) = tanh(1/x) that squashes any score >= 0 to (0, 1]
    * Child class could override the method and customize the method on its own
-   * @return The MinMaxScaler instance by default
    */
   NormalizeFunction getNormalizeFunction() {
-    return (score) -> (score - getMinScore()) / (getMaxScore() - getMinScore());
+    return score -> (score == 0f? 1f: (float) Math.tanh(1 / score));
   }
 }

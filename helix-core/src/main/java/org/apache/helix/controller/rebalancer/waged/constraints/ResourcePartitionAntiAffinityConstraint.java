@@ -30,23 +30,11 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * The score is higher the fewer the partitions are on the node belonging to the same resource.
  */
 class ResourcePartitionAntiAffinityConstraint extends SoftConstraint {
-  private static final float MAX_SCORE = 1f;
-  private static final float MIN_SCORE = 0f;
-
-  ResourcePartitionAntiAffinityConstraint() {
-    super(MAX_SCORE, MIN_SCORE);
-  }
 
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     String resource = replica.getResourceName();
-    int curPartitionCountForResource = node.getAssignedPartitionsByResource(resource).size();
-    int doubleMaxPartitionCountForResource =
-        2 * clusterContext.getEstimatedMaxPartitionByResource(resource);
-    // The score measures the twice the max allowed count versus current counts
-    // The returned value is a measurement of remaining quota ratio, in the case of exceeding allowed counts, return 0
-    return Math.max(((float) doubleMaxPartitionCountForResource - curPartitionCountForResource)
-        / doubleMaxPartitionCountForResource, 0);
+    return node.getAssignedPartitionsByResource(resource).size();
   }
 }

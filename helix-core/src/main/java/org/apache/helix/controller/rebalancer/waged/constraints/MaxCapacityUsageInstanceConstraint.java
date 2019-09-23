@@ -31,17 +31,10 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * It is a greedy approach since it evaluates only on the most used capacity key.
  */
 class MaxCapacityUsageInstanceConstraint extends SoftConstraint {
-  private static final float MIN_SCORE = 0;
-  private static final float MAX_SCORE = 1;
-
-  MaxCapacityUsageInstanceConstraint() {
-    super(MAX_SCORE, MIN_SCORE);
-  }
 
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    float maxCapacityUsage = node.getHighestCapacityUtilization();
-    return 1.0f - maxCapacityUsage / 2.0f;
+    return node.getHighestCapacityUtilization();
   }
 }

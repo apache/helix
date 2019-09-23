@@ -143,8 +143,8 @@ public final class HelixUtil {
   /**
    * This method provides the ideal state mapping with corresponding rebalance strategy
    * @param clusterConfig         The cluster config
-   * @param instanceConfigs       List of instance configs
-   * @param liveInstances         List of live instance names
+   * @param instanceConfigs       List of all existing instance configs including disabled/down instances
+   * @param liveInstances         List of live and enabled instance names
    * @param idealState            The ideal state of current resource. If input is null, will be
    *                              treated as newly created resource.
    * @param partitions            The list of partition names

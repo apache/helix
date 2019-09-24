@@ -34,7 +34,7 @@ import com.google.common.collect.ImmutableMap;
 public class ConstraintBasedAlgorithmFactory {
 
   public static RebalanceAlgorithm getInstance(
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences, Float... weights) {
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences, float... weights) {
     List<HardConstraint> hardConstraints =
         ImmutableList.of(new FaultZoneAwareConstraint(), new NodeCapacityConstraint(),
             new ReplicaActivateConstraint(), new NodeMaxPartitionLimitConstraint(),
@@ -47,8 +47,8 @@ public class ConstraintBasedAlgorithmFactory {
     float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
     float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
 
-    Float[] defaults = {1f, 0.3f, 0.1f, 0.1f, 0.5f};
-    Float[] w = weights.length == 0? defaults : weights;
+    float[] defaults = {1f, 0.3f, 0.1f, 0.1f, 0.5f};
+    float[] w = weights.length == 0? defaults : weights;
     Map<SoftConstraint, Float> softConstraints = ImmutableMap.<SoftConstraint, Float> builder()
         .put(new PartitionMovementConstraint(), w[0] * movementRatio)
         .put(new InstancePartitionsCountConstraint(), w[1] * evennessRatio)

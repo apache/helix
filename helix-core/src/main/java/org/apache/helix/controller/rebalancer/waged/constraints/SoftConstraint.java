@@ -46,7 +46,7 @@ abstract class SoftConstraint {
   SoftConstraint() {
   }
 
-  public SoftConstraint(float alpha) {
+  SoftConstraint(float alpha) {
     this.alpha = alpha;
   }
 

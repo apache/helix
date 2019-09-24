@@ -27,7 +27,6 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 
-
 /**
  * Evaluate the proposed assignment according to the potential partition movements cost.
  * The cost is evaluated based on the difference between the old assignment and the new assignment.
@@ -42,23 +41,32 @@ class PartitionMovementConstraint extends SoftConstraint {
   // This factor indicates the default score that is evaluated if only partition allocation matches
   // (states are different).
   // This factor indicates the contribution of the Baseline assignment matching to the final score.
-  private static final float BASELINE_MATCH_FACTOR = 0.25f;
+  private float _baseLineMatchFactor = 0.25f;
+
+  PartitionMovementConstraint(float baselineMatchFactor) {
+    _baseLineMatchFactor = baselineMatchFactor;
+  }
+
+  PartitionMovementConstraint() {
+  }
 
   @Override
-  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica, ClusterContext clusterContext) {
-    boolean isBestPossibleMatch = isMatch(node, replica, clusterContext.getBestPossibleAssignment());
-    boolean isBaselineMatch = isMatch(node, replica, clusterContext.getBestPossibleAssignment());
+  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext) {
+    boolean isBestPossibleMatch =
+        isMatch(node, replica, clusterContext.getBestPossibleAssignment());
+    boolean isBaselineMatch = isMatch(node, replica, clusterContext.getBaselineAssignment());
 
     /*
      * The final follows the table look-up rule
      * factor = base line match factor
      * 1 - factor = best possible match factor
-     *      | True     | False |
-     * True | 1        | factor|
-     * False| 1-factor | 0     |
+     * | True | False |
+     * True | 1 | factor|
+     * False| 1-factor | 0 |
      */
-    return (isBaselineMatch ? 1 : 0) * BASELINE_MATCH_FACTOR + (isBestPossibleMatch ? 1 : 0) * (1
-        - BASELINE_MATCH_FACTOR);
+    return (isBaselineMatch ? 1 : 0) * _baseLineMatchFactor
+        + (isBestPossibleMatch ? 1 : 0) * (1 - _baseLineMatchFactor);
   }
 
   @Override
@@ -77,7 +85,7 @@ class PartitionMovementConstraint extends SoftConstraint {
         assignmentMap.get(resourceName).getReplicaMap(new Partition(partitionName));
 
     String instanceName = node.getInstanceName();
-    return instanceToStateMap.containsKey(instanceName) && instanceToStateMap.get(instanceName)
-        .equals(replica.getReplicaState());
+    return instanceToStateMap.containsKey(instanceName)
+        && instanceToStateMap.get(instanceName).equals(replica.getReplicaState());
   }
 }

@@ -45,23 +45,21 @@ public class TestResourcePartitionAntiAffinityConstraint {
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testNode.getAssignedPartitionsByResource(TEST_RESOURCE)).thenReturn(
         ImmutableSet.of(TEST_PARTITION + "1", TEST_PARTITION + "2", TEST_PARTITION + "3"));
-    when(_clusterContext.getEstimatedMaxPartitionByResource(TEST_RESOURCE)).thenReturn(10);
 
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.85f);
-    Assert.assertEquals(normalizedScore, 0.85f);
+    Assert.assertEquals(score, 3f);
+    Assert.assertEquals(normalizedScore, 0.32151276f);
   }
 
   @Test
   public void testGetAssignmentScoreMaxScore() {
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testNode.getAssignedPartitionsByResource(TEST_RESOURCE)).thenReturn(Collections.emptySet());
-    when(_clusterContext.getEstimatedMaxPartitionByResource(TEST_RESOURCE)).thenReturn(10);
 
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 1f);
+    Assert.assertEquals(score,0f);
     Assert.assertEquals(normalizedScore, 1f);
   }
 }

@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -65,7 +64,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   @Override
   public OptimalAssignment calculate(ClusterModel clusterModel) throws HelixRebalanceException {
     OptimalAssignment optimalAssignment = new OptimalAssignment();
-    List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodesAsSet());
+    List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodes());
     // Sort the replicas so the input is stable for the greedy algorithm.
     // For the other algorithm implementation, this sorting could be unnecessary.
     for (AssignableReplica replica : getOrderedAssignableReplica(clusterModel)) {

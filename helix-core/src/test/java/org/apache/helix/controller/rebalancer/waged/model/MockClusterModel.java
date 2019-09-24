@@ -23,7 +23,6 @@ import static com.google.common.math.DoubleMath.mean;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -43,22 +42,27 @@ public class MockClusterModel extends ClusterModel {
     super(clusterContext, unAssignedReplicas, assignableNodes);
   }
 
-  public List<AssignableReplica> onInstanceAddition(AssignableNode assignableNode) {
+  public void onInstanceAddition(AssignableNode newNode) {
     // release everything
-    Set<AssignableNode> availableNodes = new HashSet<>(getAssignableNodesAsSet());
-    availableNodes.forEach(node -> release(node, node.getAssignedReplicas()));
+    Set<AssignableNode> currentNodes = getAssignableNodes();
+    currentNodes.forEach(AssignableNode::releaseAll);
     // add the new node
-    getAssignableNodesAsSet().add(assignableNode);
-    // now all the replicas need to be re-assigned
-    return new ArrayList<>(getContext().getAllReplicas());
+    currentNodes.add(newNode);
+
+    reset(getContext().getAllReplicas(), currentNodes, getContext());
   }
 
   // 1st test case - generate some data sets
-  public List<AssignableReplica> onInstanceCrash(AssignableNode node) {
-    Set<AssignableReplica> assignedReplicas = new HashSet<>(node.getAssignedReplicas());
-    this.release(node, assignedReplicas);
+  public void onInstanceCrash(AssignableNode node) {
+    Set<AssignableNode> currentNodes = getAssignableNodes();
+    if (!currentNodes.contains(node)) {
+      return;
+    }
+    Set<AssignableReplica> unAssignedReplicas = new HashSet<>(node.getAssignedReplicas());
+    node.releaseAll();
+    currentNodes.remove(node);
 
-    return new ArrayList<>(assignedReplicas);
+    reset(unAssignedReplicas, currentNodes, getContext());
   }
 
   public void onNewReplicasAddition(List<AssignableReplica> replicas) {

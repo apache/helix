@@ -76,6 +76,13 @@ public class AssignableNode implements Comparable<AssignableNode> {
     refresh(clusterConfig, instanceConfig);
   }
 
+  void releaseAll() {
+    _currentAssignedReplicaMap = new HashMap<>();
+    _currentCapacityMap = new HashMap<>(_maxCapacity);
+    _currentAssignedReplicas = new HashSet<>();
+    _highestCapacityUtilization = 0;
+  }
+
   private AssignableNode(Builder builder) {
     _instanceName = builder._instanceName;
     _instanceTags = builder._instanceTags;

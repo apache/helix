@@ -12,7 +12,6 @@ import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintBasedAlgorithmFactory;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
-import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.MockClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.MockClusterModelBuilder;
 import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
@@ -31,40 +30,29 @@ public class RebalanceAlgorithmAnalysis {
         .getInstance(ImmutableMap.of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 2,
             ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 8));
 
-    AssignableNode crashNode = null;
-    Map<String, ResourceAssignment> bestPossibleAssignment = Collections.emptyMap();
-    for (int i = 0; i < 10; i++) {
-      clusterModel.getContext().setBestPossibleAssignment(bestPossibleAssignment);
-      List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodesAsSet());
-      List<AssignableReplica> unAssignedReplicas =
-          crashNode == null ? clusterModel.getUnassignedReplicas() : clusterModel.onInstanceCrash(crashNode);
+    OptimalAssignment optimalAssignment = rebalanceAlgorithm.calculate(clusterModel);
+    Map<String, ResourceAssignment> bestPossibleAssignment = optimalAssignment.getOptimalResourceAssignment();
 
-      if (crashNode != null) {
-        nodes.remove(crashNode);
-      }
-      MockClusterModel testClusterModel = new MockClusterModel(clusterModel.getContext(), new HashSet<>(unAssignedReplicas), new HashSet<>(nodes));
-      OptimalAssignment optimalAssignment = rebalanceAlgorithm.calculate(testClusterModel);
-      System.out.println("After node crash");
+    System.out.println("Initial Assignment");
+    System.out.println(clusterModel.getCoefficientOfVariationAsEvenness());
+    System.out.println(clusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment));
+    for (int i = 0; i < 100; i++) {
+      clusterModel.getContext().setBestPossibleAssignment(bestPossibleAssignment);
+      List<AssignableNode> currentNodes = new ArrayList<>(clusterModel.getAssignableNodes());
+      AssignableNode crashNode = currentNodes.get(new Random().nextInt(currentNodes.size()));
+      clusterModel.onInstanceCrash(crashNode); // crash on one random instance
+      optimalAssignment = rebalanceAlgorithm.calculate(clusterModel);
+      System.out.println("After node crash.");
       System.out.println(clusterModel.getCoefficientOfVariationAsEvenness());
       System.out.println(clusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment));
-
       bestPossibleAssignment = optimalAssignment.getOptimalResourceAssignment();
-      if (crashNode != null) {
-        //add the node back
-        nodes.add(crashNode);
-        Set<AssignableReplica> replicas = new HashSet<>(crashNode.getAssignedReplicas());
-        for (AssignableReplica replica : replicas) {
-          crashNode.release(replica);
-        }
-        unAssignedReplicas =  testClusterModel.onInstanceAddition(crashNode);
-        testClusterModel = new MockClusterModel(clusterModel.getContext(), new HashSet<>(unAssignedReplicas), new HashSet<>(nodes));
-        optimalAssignment = rebalanceAlgorithm.calculate(testClusterModel);
-        System.out.println("After add the node back");
-        System.out.println(clusterModel.getCoefficientOfVariationAsEvenness());
-        System.out.println(clusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment));
-        bestPossibleAssignment = optimalAssignment.getOptimalResourceAssignment();
-      }
-      crashNode = nodes.get(new Random().nextInt(nodes.size()));
+      clusterModel.getContext().setBestPossibleAssignment(bestPossibleAssignment);
+      clusterModel.onInstanceAddition(crashNode); // add the instance back
+      optimalAssignment = rebalanceAlgorithm.calculate(clusterModel);
+      System.out.println("After adding back the crash node.");
+      System.out.println(clusterModel.getCoefficientOfVariationAsEvenness());
+      System.out.println(clusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment));
+      bestPossibleAssignment = optimalAssignment.getOptimalResourceAssignment();
     }
   }
 }

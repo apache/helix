@@ -34,17 +34,17 @@ import org.apache.helix.HelixException;
  * This class wraps the required input for the rebalance algorithm.
  */
 public class ClusterModel {
-  private final ClusterContext _clusterContext;
+  private ClusterContext _clusterContext;
   // Map to track all the assignable replications. <Resource Name, Set<Replicas>>
-  private final Map<String, Set<AssignableReplica>> _unAssignableReplicaMap;
+  private Map<String, Set<AssignableReplica>> _unAssignableReplicaMap;
   // The index to find the replication information with a certain state. <Resource, <Key(resource_partition_state), Replica>>
   // Note that the identical replicas are deduped in the index.
-  private final Map<String, Map<String, AssignableReplica>> _assignableReplicaIndex;
+  private Map<String, Map<String, AssignableReplica>> _assignableReplicaIndex;
   // All available nodes to assign replicas
   @Deprecated
-  private final Map<String, AssignableNode> _assignableNodeMap;
-  private final Set<AssignableNode> _assignableNodes;
-  private final Set<AssignableReplica> _unAssignedReplicas;
+  private Map<String, AssignableNode> _assignableNodeMap;
+  private Set<AssignableNode> _assignableNodes;
+  private Set<AssignableReplica> _unAssignedReplicas;
 
   /**
    * @param clusterContext         The initialized cluster context.
@@ -54,15 +54,20 @@ public class ClusterModel {
    */
   ClusterModel(ClusterContext clusterContext, Set<AssignableReplica> unAssignedReplicas,
       Set<AssignableNode> assignableNodes) {
-    _clusterContext = clusterContext;
+    reset(unAssignedReplicas, assignableNodes, clusterContext);
+  }
 
+  void reset(Set<AssignableReplica> unAssignedReplicas, Set<AssignableNode> assignableNodes,
+      ClusterContext clusterContext) {
     // Save all the to be assigned replication
     _unAssignableReplicaMap = unAssignedReplicas.stream()
         .collect(Collectors.groupingBy(AssignableReplica::getResourceName, Collectors.toSet()));
 
     _unAssignedReplicas = new HashSet<>(unAssignedReplicas);
     _assignableNodes = new HashSet<>(assignableNodes);
-
+    // reset the cluster context as well
+    _clusterContext = new ClusterContext(clusterContext.getAllReplicas(), assignableNodes.size(),
+        clusterContext.getBaselineAssignment(), clusterContext.getBestPossibleAssignment());
     // Index all the replicas to be assigned. Dedup the replica if two instances have the same resource/partition/state
     _assignableReplicaIndex = unAssignedReplicas.stream()
         .collect(Collectors.groupingBy(AssignableReplica::getResourceName,
@@ -80,7 +85,7 @@ public class ClusterModel {
     return _assignableNodeMap;
   }
 
-  public Set<AssignableNode> getAssignableNodesAsSet() {
+  public Set<AssignableNode> getAssignableNodes() {
     return _assignableNodes;
   }
 

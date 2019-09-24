@@ -63,7 +63,7 @@ public class TestPartitionMovementConstraint {
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0f);
-    Assert.assertEquals(normalizedScore, 1f);
+    Assert.assertEquals(normalizedScore, 0f);
   }
 
   @Test
@@ -82,15 +82,15 @@ public class TestPartitionMovementConstraint {
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
 
     Assert.assertEquals(score, 1f);
-    Assert.assertEquals(normalizedScore, 0.7615942f);
+    Assert.assertEquals(normalizedScore, 1f);
     // when the calculated states are both different from the replica's current state
     when(_testReplica.getReplicaState()).thenReturn("Slave");
     score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
 
-    Assert.assertEquals(score, 0.5f);
-    Assert.assertEquals(normalizedScore, 0.9640276f);
+    Assert.assertEquals(score, 0f);
+    Assert.assertEquals(normalizedScore, 0f);
   }
 
   @Test
@@ -112,8 +112,8 @@ public class TestPartitionMovementConstraint {
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
 
-    Assert.assertEquals(score, 0.875f);
-    Assert.assertEquals(normalizedScore, 0.81537396f);
+    Assert.assertEquals(score, 1f);
+    Assert.assertEquals(normalizedScore, 1f);
     // when the replica's state matches with baseline only
     when(_testReplica.getReplicaState()).thenReturn("Slave");
     score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
@@ -122,7 +122,7 @@ public class TestPartitionMovementConstraint {
 
     // The calculated score is lower than previous 0.875f cause the replica's state matches with
     // best possible is preferred
-    Assert.assertEquals(score, 0.625f);
-    Assert.assertEquals(normalizedScore, 0.9216685f);
+    Assert.assertEquals(score, 0f);
+    Assert.assertEquals(normalizedScore, 0f);
   }
 }

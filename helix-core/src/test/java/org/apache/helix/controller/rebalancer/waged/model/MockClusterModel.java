@@ -98,8 +98,9 @@ public class MockClusterModel extends ClusterModel {
       final ResourceAssignment resourceAssignment = assignment.get(resource);
       if (!baseAssignment.containsKey(resource)) {
         // It means the resource is a newly added resource
-        movements += resourceAssignment.getMappedPartitions().stream()
-            .map(resourceAssignment::getReplicaMap).map(Map::size).count();
+        movements +=
+            resourceAssignment.getMappedPartitions().stream().map(resourceAssignment::getReplicaMap)
+                .map(Map::size).mapToInt(i -> i).sum();
       } else {
         ResourceAssignment lastResourceAssignment = baseAssignment.get(resource);
         for (Partition partition : resourceAssignment.getMappedPartitions()) {

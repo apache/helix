@@ -19,12 +19,16 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
+
 
 /**
  * This class wraps the required input for the rebalance algorithm.
@@ -37,7 +41,10 @@ public class ClusterModel {
   // Note that the identical replicas are deduped in the index.
   private final Map<String, Map<String, AssignableReplica>> _assignableReplicaIndex;
   // All available nodes to assign replicas
+  @Deprecated
   private final Map<String, AssignableNode> _assignableNodeMap;
+  private final Set<AssignableNode> _assignableNodes;
+  private final Set<AssignableReplica> _unAssignedReplicas;
 
   /**
    * @param clusterContext         The initialized cluster context.
@@ -53,26 +60,62 @@ public class ClusterModel {
     _unAssignableReplicaMap = unAssignedReplicas.stream()
         .collect(Collectors.groupingBy(AssignableReplica::getResourceName, Collectors.toSet()));
 
-    // Index all the replicas to be assigned. Dedup the replica if two instances have the same resource/partition/state
-    _assignableReplicaIndex = unAssignedReplicas.stream().collect(Collectors
-        .groupingBy(AssignableReplica::getResourceName, Collectors
-            .toMap(AssignableReplica::toString, replica -> replica,
-                (oldValue, newValue) -> oldValue)));
+    _unAssignedReplicas = new HashSet<>(unAssignedReplicas);
+    _assignableNodes = new HashSet<>(assignableNodes);
 
-    _assignableNodeMap = assignableNodes.stream()
-        .collect(Collectors.toMap(AssignableNode::getInstanceName, node -> node));
+    // Index all the replicas to be assigned. Dedup the replica if two instances have the same resource/partition/state
+    _assignableReplicaIndex = unAssignedReplicas.stream()
+        .collect(Collectors.groupingBy(AssignableReplica::getResourceName,
+            Collectors.toMap(AssignableReplica::toString, replica -> replica, (oldValue, newValue) -> oldValue)));
+
+    _assignableNodeMap =
+        assignableNodes.stream().collect(Collectors.toMap(AssignableNode::getInstanceName, node -> node));
   }
 
   public ClusterContext getContext() {
     return _clusterContext;
   }
 
-  public Map<String, AssignableNode> getAssignableNodes() {
+  public Map<String, AssignableNode> getAssignableNodesAsMap() {
     return _assignableNodeMap;
+  }
+
+  public Set<AssignableNode> getAssignableNodesAsSet() {
+    return _assignableNodes;
   }
 
   public Map<String, Set<AssignableReplica>> getAssignableReplicaMap() {
     return _unAssignableReplicaMap;
+  }
+
+  public void assign(AssignableNode node, AssignableReplica replica) {
+    if (_assignableNodes.contains(node) && _unAssignedReplicas.contains(replica)) {
+      if (!node.hasAssigned(replica)) {
+        node.assign(replica);
+        _clusterContext.addPartitionToFaultZone(node.getFaultZone(), replica.getResourceName(),
+            replica.getPartitionName());
+      }
+    }
+  }
+
+  public void release(AssignableNode node, AssignableReplica replica) {
+    if (_assignableNodes.contains(node) && _unAssignedReplicas.contains(replica)) {
+      if (node.hasAssigned(replica)) {
+        node.release(replica);
+        _clusterContext.removePartitionFromFaultZone(node.getFaultZone(), replica.getResourceName(),
+            replica.getPartitionName());
+      }
+    }
+  }
+
+  public List<AssignableReplica> getAssignableReplicasByResource(String resource) {
+    return _unAssignedReplicas.stream()
+        .filter(replica -> replica.getResourceName().equals(resource))
+        .collect(Collectors.toList());
+  }
+
+  public List<AssignableReplica> getUnassignedReplicas() {
+    return new ArrayList<>(_unAssignedReplicas);
   }
 
   /**
@@ -84,6 +127,7 @@ public class ClusterModel {
    * @param state
    * @param instanceName
    */
+  @Deprecated
   public void assign(String resourceName, String partitionName, String state, String instanceName) {
     AssignableNode node = locateAssignableNode(instanceName);
     AssignableReplica replica = locateAssignableReplica(resourceName, partitionName, state);
@@ -101,8 +145,8 @@ public class ClusterModel {
    * @param state
    * @param instanceName
    */
-  public void release(String resourceName, String partitionName, String state,
-      String instanceName) {
+  @Deprecated
+  public void release(String resourceName, String partitionName, String state, String instanceName) {
     AssignableNode node = locateAssignableNode(instanceName);
     AssignableReplica replica = locateAssignableReplica(resourceName, partitionName, state);
 
@@ -118,15 +162,13 @@ public class ClusterModel {
     return node;
   }
 
-  private AssignableReplica locateAssignableReplica(String resourceName, String partitionName,
-      String state) {
-    AssignableReplica sampleReplica =
-        _assignableReplicaIndex.getOrDefault(resourceName, Collections.emptyMap())
-            .get(AssignableReplica.generateReplicaKey(resourceName, partitionName, state));
+  private AssignableReplica locateAssignableReplica(String resourceName, String partitionName, String state) {
+    AssignableReplica sampleReplica = _assignableReplicaIndex.getOrDefault(resourceName, Collections.emptyMap())
+        .get(AssignableReplica.generateReplicaKey(resourceName, partitionName, state));
     if (sampleReplica == null) {
-      throw new HelixException(String
-          .format("Cannot find the replication with resource name %s, partition name %s, state %s.",
-              resourceName, partitionName, state));
+      throw new HelixException(
+          String.format("Cannot find the replication with resource name %s, partition name %s, state %s.", resourceName,
+              partitionName, state));
     }
     return sampleReplica;
   }

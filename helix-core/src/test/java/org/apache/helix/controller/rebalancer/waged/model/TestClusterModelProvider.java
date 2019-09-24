@@ -105,11 +105,11 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     // There should be no existing assignment.
     Assert.assertFalse(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .anyMatch(resourceMap -> !resourceMap.isEmpty()));
-    Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
+    Assert.assertFalse(clusterModel.getAssignableNodesAsMap().values().stream()
         .anyMatch(node -> node.getAssignedReplicaCount() != 0));
     // Have all 3 instances
     Assert.assertEquals(
-        clusterModel.getAssignableNodes().values().stream().map(AssignableNode::getInstanceName)
+        clusterModel.getAssignableNodesAsMap().values().stream().map(AssignableNode::getInstanceName)
             .collect(Collectors.toSet()), _instances);
     // Shall have 2 resources and 4 replicas, since all nodes are in the same fault zone.
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().size(), 2);
@@ -134,7 +134,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
         Collections.emptyMap());
     // Have only one instance
     Assert.assertEquals(
-        clusterModel.getAssignableNodes().values().stream().map(AssignableNode::getInstanceName)
+        clusterModel.getAssignableNodesAsMap().values().stream().map(AssignableNode::getInstanceName)
             .collect(Collectors.toSet()), Collections.singleton(_testInstanceId));
     // Shall have 4 assignable replicas because there is only one valid node.
     Assert.assertTrue(clusterModel.getAssignableReplicaMap().values().stream()
@@ -146,7 +146,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
         Collections.emptySet(), Collections.emptyMap(), Collections.emptyMap(),
         Collections.emptyMap());
     // Have only one instance
-    Assert.assertEquals(clusterModel.getAssignableNodes().size(), 0);
+    Assert.assertEquals(clusterModel.getAssignableNodesAsMap().size(), 0);
     // Shall have 0 assignable replicas because there is only n0 valid node.
     Assert.assertTrue(clusterModel.getAssignableReplicaMap().values().stream()
         .allMatch(replicaSet -> replicaSet.isEmpty()));
@@ -179,7 +179,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
         .allMatch(resourceMap -> resourceMap.values().stream()
             .allMatch(partitionSet -> partitionSet.size() == 2)));
     Assert.assertEquals(
-        clusterModel.getAssignableNodes().get(_testInstanceId).getAssignedReplicaCount(), 4);
+        clusterModel.getAssignableNodesAsMap().get(_testInstanceId).getAssignedReplicaCount(), 4);
     // Since each resource has 2 replicas assigned, the assignable replica count should be 10.
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().size(), 2);
     Assert.assertTrue(clusterModel.getAssignableReplicaMap().values().stream()
@@ -193,7 +193,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     // There should be no existing assignment since the topology change invalidates all existing assignment
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .allMatch(resourceMap -> resourceMap.isEmpty()));
-    Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
+    Assert.assertFalse(clusterModel.getAssignableNodesAsMap().values().stream()
         .anyMatch(node -> node.getAssignedReplicaCount() != 0));
     // Shall have 2 resources and 12 replicas
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().size(), 2);
@@ -222,7 +222,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     // Only the first instance will have 2 assignment from resource2.
     for (String instance : _instances) {
       Assert
-          .assertEquals(clusterModel.getAssignableNodes().get(instance).getAssignedReplicaCount(),
+          .assertEquals(clusterModel.getAssignableNodesAsMap().get(instance).getAssignedReplicaCount(),
               instance.equals(_testInstanceId) ? 2 : 0);
     }
     // Shall have 2 resources and 12 replicas
@@ -243,11 +243,11 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     // There should be no existing assignment.
     Assert.assertFalse(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .anyMatch(resourceMap -> !resourceMap.isEmpty()));
-    Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
+    Assert.assertFalse(clusterModel.getAssignableNodesAsMap().values().stream()
         .anyMatch(node -> node.getAssignedReplicaCount() != 0));
     // Have only 2 instances
     Assert.assertEquals(
-        clusterModel.getAssignableNodes().values().stream().map(AssignableNode::getInstanceName)
+        clusterModel.getAssignableNodesAsMap().values().stream().map(AssignableNode::getInstanceName)
             .collect(Collectors.toSet()), limitedActiveInstances);
     // Since only 2 instances are active, we shall have 8 assignable replicas in each resource.
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().size(), 2);

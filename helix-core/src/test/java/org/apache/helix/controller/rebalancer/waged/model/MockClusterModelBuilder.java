@@ -77,9 +77,9 @@ public class MockClusterModelBuilder {
   private int resourceCount = 10;
   private int partitionCountPerResource = 10;
   private String[] stateModels = {"Master", "Slave", "Slave"};
-  private Map<String, Integer> instanceCapacity = ImmutableMap.of("size", 1000, "rcu", 200);
+  private Map<String, Integer> instanceCapacity = ImmutableMap.of("size", 1000);
   // by default, on average, one instance can at least host 20 partitions
-  private Map<String, Integer> partitionMaxUsage = ImmutableMap.of("size", 50, "rcu", 10);
+  private Map<String, Integer> partitionMaxUsage = ImmutableMap.of("size", 50);
   // by default the partition usage distribution is a uniform distribution between [0, maxUsage]
   private Function<Integer, Integer> partitionUsageSampleMethod =
       (maxUsage) -> (int) Math.round(new Random().nextDouble() * maxUsage);

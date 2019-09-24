@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,28 +43,22 @@ public class MockClusterModel extends ClusterModel {
     super(clusterContext, unAssignedReplicas, assignableNodes);
   }
 
-  public List<AssignableReplica> onInstanceCrash(String instanceName) {
-    if (!getAssignableNodes().containsKey(instanceName)) {
-      return Collections.emptyList();
-    }
-    AssignableNode assignableNode = getAssignableNodes().get(instanceName);
-    Set<AssignableReplica> replicas = assignableNode.getAssignedReplicas();
-    release(assignableNode, replicas);
-
-    return new ArrayList<>(replicas);
-  }
-
-  public List<AssignableReplica> onInstanceAdditon(AssignableNode assignableNode) {
+  public List<AssignableReplica> onInstanceAddition(AssignableNode assignableNode) {
     // release everything
-    getAssignableNodes().values().forEach(node -> release(node, node.getAssignedReplicas()));
+    Set<AssignableNode> availableNodes = new HashSet<>(getAssignableNodesAsSet());
+    availableNodes.forEach(node -> release(node, node.getAssignedReplicas()));
     // add the new node
-    getAssignableNodes().put(assignableNode.getInstanceName(), assignableNode);
+    getAssignableNodesAsSet().add(assignableNode);
+    // now all the replicas need to be re-assigned
     return new ArrayList<>(getContext().getAllReplicas());
   }
 
-  //TODO: implement the remaining method
-  public List<AssignableReplica> onResourceDeletion(String resource) {
-    return Collections.emptyList();
+  // 1st test case - generate some data sets
+  public List<AssignableReplica> onInstanceCrash(AssignableNode node) {
+    Set<AssignableReplica> assignedReplicas = new HashSet<>(node.getAssignedReplicas());
+    this.release(node, assignedReplicas);
+
+    return new ArrayList<>(assignedReplicas);
   }
 
   public void onNewReplicasAddition(List<AssignableReplica> replicas) {
@@ -80,7 +75,7 @@ public class MockClusterModel extends ClusterModel {
 
   private void release(AssignableNode node, Collection<AssignableReplica> replicas) {
     for (AssignableReplica replica : replicas) {
-      this.release(replica.getResourceName(), replica.getPartitionName(), replica.getReplicaState(), node.getInstanceName());
+      release(node, replica);
     }
   }
 
@@ -129,7 +124,7 @@ public class MockClusterModel extends ClusterModel {
    * @return a multi-dimension CV keyed by capacity key
    */
   public Map<String, Double> getCoefficientOfVariationAsEvenness() {
-    List<AssignableNode> instances = new ArrayList<>(getAssignableNodes().values());
+    List<AssignableNode> instances = new ArrayList<>(getAssignableNodesAsMap().values());
     Map<String, List<Integer>> usages = new HashMap<>();
     for (AssignableNode instance : instances) {
       Map<String, Integer> capacityUsage = instance.getCapacityUsage();

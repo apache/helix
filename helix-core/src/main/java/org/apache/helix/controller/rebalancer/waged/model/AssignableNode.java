@@ -58,6 +58,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   // A map of <resource name, <partition name, replica>> that tracks the replicas assigned to the
   // node. Set to empty map initially
   private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap = new HashMap<>();
+  private Set<AssignableReplica> _currentAssignedReplicas = new HashSet<>();
   // A map of <capacity key, capacity value> that tracks the current available node capacity. Set
   // empty map initially
   private Map<String, Integer> _currentCapacityMap = new HashMap<>();
@@ -129,11 +130,18 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
   }
 
+  boolean hasAssigned(AssignableReplica replica) {
+    return _currentAssignedReplicas.contains(replica);
+  }
+
   /**
    * Assign a replica to the node.
    * @param assignableReplica - the replica to be assigned
    */
   void assign(AssignableReplica assignableReplica) {
+    if (hasAssigned(assignableReplica)) {
+      return;
+    }
     addToAssignmentRecord(assignableReplica);
     assignableReplica.getCapacity().entrySet().stream()
         .forEach(capacity -> updateCapacityAndUtilization(capacity.getKey(), capacity.getValue()));
@@ -144,7 +152,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * If the replication is not on this node, the assignable node is not updated.
    * @param replica - the replica to be released
    */
-  void release(AssignableReplica replica) throws IllegalArgumentException {
+  public void release(AssignableReplica replica) throws IllegalArgumentException {
+    if (!hasAssigned(replica)) {
+      return;
+    }
     String resourceName = replica.getResourceName();
     String partitionName = replica.getPartitionName();
 
@@ -164,6 +175,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
 
     AssignableReplica removedReplica = partitionMap.remove(partitionName);
+    _currentAssignedReplicas.remove(replica);
     // Recalculate utilization because of release
     _highestCapacityUtilization = 0;
     removedReplica.getCapacity().entrySet().stream()
@@ -174,8 +186,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * @return A set of all assigned replicas on the node.
    */
   public Set<AssignableReplica> getAssignedReplicas() {
-    return _currentAssignedReplicaMap.values().stream()
-        .flatMap(replicaMap -> replicaMap.values().stream()).collect(Collectors.toSet());
+    return _currentAssignedReplicas;
   }
 
   /**
@@ -366,6 +377,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
           replica.getResourceName(), replica.getReplicaState(), replica.getPartitionName(),
           getInstanceName()));
     } else {
+      _currentAssignedReplicas.add(replica);
       _currentAssignedReplicaMap.computeIfAbsent(resourceName, key -> new HashMap<>())
           .put(partitionName, replica);
     }

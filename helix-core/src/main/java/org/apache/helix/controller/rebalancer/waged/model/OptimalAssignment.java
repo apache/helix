@@ -47,7 +47,7 @@ public class OptimalAssignment {
    */
   public void updateAssignments(ClusterModel clusterModel) {
     _optimalAssignment.clear();
-    clusterModel.getAssignableNodes().values().stream()
+    clusterModel.getAssignableNodesAsMap().values().stream()
         .forEach(node -> _optimalAssignment.put(node, new ArrayList<>(node.getAssignedReplicas())));
   }
 

@@ -48,14 +48,14 @@ public class MockRebalanceAlgorithm implements RebalanceAlgorithm {
     // If no predefined rebalance result setup, do card dealing.
     Map<String, ResourceAssignment> result = new HashMap<>();
     Iterator<AssignableNode> nodeIterator =
-        clusterModel.getAssignableNodes().values().stream().sorted().iterator();
+        clusterModel.getAssignableNodesAsMap().values().stream().sorted().iterator();
     for (String resource : clusterModel.getAssignableReplicaMap().keySet()) {
       Iterator<AssignableReplica> replicaIterator =
           clusterModel.getAssignableReplicaMap().get(resource).stream().sorted().iterator();
       while (replicaIterator.hasNext()) {
         AssignableReplica replica = replicaIterator.next();
         if (!nodeIterator.hasNext()) {
-          nodeIterator = clusterModel.getAssignableNodes().values().stream().sorted().iterator();
+          nodeIterator = clusterModel.getAssignableNodesAsMap().values().stream().sorted().iterator();
         }
         AssignableNode node = nodeIterator.next();
 

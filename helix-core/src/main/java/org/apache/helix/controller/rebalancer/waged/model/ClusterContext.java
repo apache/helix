@@ -49,9 +49,9 @@ public class ClusterContext {
   private Map<String, Map<String, Set<String>>> _assignmentForFaultZoneMap = new HashMap<>();
   // Records about the previous assignment
   // <ResourceName, ResourceAssignment contains the baseline assignment>
-  private final Map<String, ResourceAssignment> _baselineAssignment;
+  private Map<String, ResourceAssignment> _baselineAssignment;
   // <ResourceName, ResourceAssignment contains the best possible assignment>
-  private final Map<String, ResourceAssignment> _bestPossibleAssignment;
+  private Map<String, ResourceAssignment> _bestPossibleAssignment;
 
   /**
    * Construct the cluster context based on the current instance status.
@@ -89,6 +89,14 @@ public class ClusterContext {
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
     return _bestPossibleAssignment == null || _bestPossibleAssignment.isEmpty() ? Collections.emptyMap()
         : _bestPossibleAssignment;
+  }
+
+  public void setBestPossibleAssignment(Map<String, ResourceAssignment> assignment) {
+    _bestPossibleAssignment = assignment;
+  }
+
+  public void setBaselineAssignment(Map<String, ResourceAssignment> assignment) {
+    _baselineAssignment = assignment;
   }
 
   public Map<String, Map<String, Set<String>>> getAssignmentForFaultZoneMap() {

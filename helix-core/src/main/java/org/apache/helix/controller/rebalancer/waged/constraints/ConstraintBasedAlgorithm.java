@@ -65,8 +65,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   @Override
   public OptimalAssignment calculate(ClusterModel clusterModel) throws HelixRebalanceException {
     OptimalAssignment optimalAssignment = new OptimalAssignment();
-    List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodes().values());
-
+    List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodesAsSet());
     // Sort the replicas so the input is stable for the greedy algorithm.
     // For the other algorithm implementation, this sorting could be unnecessary.
     for (AssignableReplica replica : getOrderedAssignableReplica(clusterModel)) {
@@ -135,10 +134,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
 
   // TODO investigate better ways to sort replicas. One option is sorting based on the creation time.
   private List<AssignableReplica> getOrderedAssignableReplica(ClusterModel clusterModel) {
-    Map<String, Set<AssignableReplica>> replicasByResource = clusterModel.getAssignableReplicaMap();
-    List<AssignableReplica> orderedAssignableReplicas =
-        replicasByResource.values().stream().flatMap(replicas -> replicas.stream())
-            .collect(Collectors.toList());
+    List<AssignableReplica> replicas = clusterModel.getUnassignedReplicas();
 
     Map<String, ResourceAssignment> bestPossibleAssignment =
         clusterModel.getContext().getBestPossibleAssignment();
@@ -149,7 +145,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     // 2. Sort according to the state priority. Note that prioritizing the top state is required.
     // Or the greedy algorithm will unnecessarily shuffle the states between replicas.
     // 3. Sort according to the resource/partition name.
-    orderedAssignableReplicas.sort((replica1, replica2) -> {
+    replicas.sort((replica1, replica2) -> {
       String resourceName1 = replica1.getResourceName();
       String resourceName2 = replica2.getResourceName();
       if (bestPossibleAssignment.containsKey(resourceName1) == bestPossibleAssignment
@@ -181,6 +177,6 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         return bestPossibleAssignment.containsKey(resourceName1) ? -1 : 1;
       }
     });
-    return orderedAssignableReplicas;
+    return replicas;
   }
 }

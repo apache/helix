@@ -60,7 +60,7 @@ public class TestClusterModel extends AbstractTestClusterModel {
 
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .allMatch(resourceMap -> resourceMap.values().isEmpty()));
-    Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
+    Assert.assertFalse(clusterModel.getAssignableNodesAsMap().values().stream()
         .anyMatch(node -> node.getAssignedReplicaCount() != 0));
 
     // The initialization of the context, node and replication has been tested separately. So for
@@ -106,7 +106,7 @@ public class TestClusterModel extends AbstractTestClusterModel {
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .allMatch(resourceMap -> resourceMap.values().stream()
             .allMatch(partitions -> partitions.isEmpty())));
-    Assert.assertFalse(clusterModel.getAssignableNodes().values().stream()
+    Assert.assertFalse(clusterModel.getAssignableNodesAsMap().values().stream()
         .anyMatch(node -> node.getAssignedReplicaCount() != 0));
   }
 }

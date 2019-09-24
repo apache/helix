@@ -105,6 +105,7 @@ public class TestPartitionMovementConstraint {
         .thenReturn(ImmutableMap.of(RESOURCE, baselineResourceAssignment));
     when(_clusterContext.getBestPossibleAssignment())
         .thenReturn(ImmutableMap.of(RESOURCE, bestPossibleResourceAssignment));
+
     // when the replica's state matches with best possible only
     when(_testReplica.getReplicaState()).thenReturn("Master");
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);

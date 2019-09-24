@@ -19,7 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import java.util.Collections;
 import java.util.Map;
 
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
@@ -38,7 +37,7 @@ import org.apache.helix.model.ResourceAssignment;
  * evaluated score will become lower.
  */
 class PartitionMovementConstraint extends SoftConstraint {
-  //TODO: these factors will be tuned based on user's preference
+  // TODO: these factors will be tuned based on user's preference
   // This factor indicates the default score that is evaluated if only partition allocation matches
   // (states are different).
   private static final float ALLOCATION_MATCH_FACTOR = 0.5f;
@@ -48,38 +47,36 @@ class PartitionMovementConstraint extends SoftConstraint {
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    Map<String, String> bestPossibleStateMap =
-        getStateMap(replica, clusterContext.getBestPossibleAssignment());
-    Map<String, String> baselineStateMap =
-        getStateMap(replica, clusterContext.getBaselineAssignment());
+    boolean isBestPossibleMatch =
+        isMatch(node, replica, clusterContext.getBestPossibleAssignment());
+    boolean isBaselineMatch = isMatch(node, replica, clusterContext.getBestPossibleAssignment());
 
-    // Prioritize the matching of the previous Best Possible assignment.
-    float scale = calculateAssignmentScale(node, replica, bestPossibleStateMap);
-    // If the baseline is also provided, adjust the final score accordingly.
-    scale = scale * (1 - BASELINE_MATCH_FACTOR)
-        + calculateAssignmentScale(node, replica, baselineStateMap) * BASELINE_MATCH_FACTOR;
-
-    return scale;
+    /**
+     * The final follows the table look-up
+     * | True | False |
+     * True | 1 | |
+     * False | | 0 |
+     */
+    return isBaselineMatch ? 1
   }
 
-  private Map<String, String> getStateMap(AssignableReplica replica,
-      Map<String, ResourceAssignment> assignment) {
+  @Override
+  NormalizeFunction getNormalizeFunction() {
+    return score -> score;
+  }
+
+  private boolean isMatch(AssignableNode node, AssignableReplica replica,
+                          Map<String, ResourceAssignment> assignmentMap) {
+    if (assignmentMap == null || assignmentMap.isEmpty()) {
+      return false;
+    }
     String resourceName = replica.getResourceName();
     String partitionName = replica.getPartitionName();
-    if (assignment == null || !assignment.containsKey(resourceName)) {
-      return Collections.emptyMap();
-    }
-    return assignment.get(resourceName).getReplicaMap(new Partition(partitionName));
-  }
+    Map<String, String> instanceToStateMap =
+        assignmentMap.get(resourceName).getReplicaMap(new Partition(partitionName));
 
-  private float calculateAssignmentScale(AssignableNode node, AssignableReplica replica,
-      Map<String, String> instanceToStateMap) {
     String instanceName = node.getInstanceName();
-    if (!instanceToStateMap.containsKey(instanceName)) {
-      return 0;
-    } else {
-      return (instanceToStateMap.get(instanceName).equals(replica.getReplicaState()) ? 1
-          : ALLOCATION_MATCH_FACTOR);
-    }
+    return instanceToStateMap.containsKey(instanceName)
+        && instanceToStateMap.get(instanceName).equals(replica.getReplicaState());
   }
 }

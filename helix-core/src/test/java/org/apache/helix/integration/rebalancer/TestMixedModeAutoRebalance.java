@@ -29,6 +29,7 @@ import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
@@ -69,7 +70,6 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
   private int _replica = 3;
   private ZkHelixClusterVerifier _clusterVerifier;
   private ConfigAccessor _configAccessor;
-  private HelixDataAccessor _dataAccessor;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -98,7 +98,6 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     _configAccessor = new ConfigAccessor(_gZkClient);
-    _dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
   }
 
   @DataProvider(name = "stateModels")
@@ -152,7 +151,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
         new ResourceConfig.Builder(_db).setPreferenceLists(userDefinedPreferenceLists).build();
     _configAccessor.setResourceConfig(CLUSTER_NAME, _db, resourceConfig);
 
-    Assert.assertTrue(_clusterVerifier.verify(1000));
+    Assert.assertTrue(_clusterVerifier.verify(3000));
     verifyUserDefinedPreferenceLists(_db, userDefinedPreferenceLists, userDefinedPartitions);
 
     while (userDefinedPartitions.size() > 0) {
@@ -161,7 +160,9 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
       nonUserDefinedPartitions.removeAll(userDefinedPartitions);
 
       removePartitionFromUserDefinedList(_db, userDefinedPartitions);
-      Assert.assertTrue(_clusterVerifier.verify(1000));
+      // TODO: Remove wait once we enable the BestPossibleExternalViewVerifier for the WAGED rebalancer.
+      Thread.sleep(1000);
+      Assert.assertTrue(_clusterVerifier.verify(3000));
       verifyUserDefinedPreferenceLists(_db, userDefinedPreferenceLists, userDefinedPartitions);
       verifyNonUserDefinedAssignment(_db, originIS, nonUserDefinedPartitions);
     }
@@ -199,7 +200,19 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
         new ResourceConfig.Builder(_db).setPreferenceLists(userDefinedPreferenceLists).build();
     _configAccessor.setResourceConfig(CLUSTER_NAME, _db, resourceConfig);
 
-    Thread.sleep(1000);
+    TestHelper.verify(() -> {
+      ExternalView ev =
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, _db);
+      if (ev != null) {
+        for (String partition : ev.getPartitionSet()) {
+          Map<String, String> stateMap = ev.getStateMap(partition);
+          if (stateMap.values().contains("ERROR")) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }, 3000);
     ExternalView ev =
         _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, _db);
     IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, _db);
@@ -245,14 +258,12 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     resourceConfig.setPreferenceLists(lists);
     userDefinedPartitions.remove(0);
     _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
-
-    //TODO: Touch IS, remove this once Helix controller is listening on resource config changes.
-    RebalanceScheduler.invokeRebalance(_dataAccessor, db);
   }
 
   @AfterMethod
   public void afterMethod() {
     _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, _db);
+    getClusterVerifier().verify(5000);
   }
 
   @AfterClass

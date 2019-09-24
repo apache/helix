@@ -186,7 +186,9 @@ public class DelayedRebalanceUtil {
         }
       }
 
-      if (liveList.size() < minActiveReplica) {
+      if (liveList.size() >= minActiveReplica) {
+        finalPreferenceList.put(partition, activeList);
+      } else {
         List<String> candidates = new ArrayList<>(idealList);
         candidates.removeAll(activeList);
         for (String liveIns : candidates) {
@@ -195,8 +197,8 @@ public class DelayedRebalanceUtil {
             break;
           }
         }
+        finalPreferenceList.put(partition, liveList);
       }
-      finalPreferenceList.put(partition, liveList);
     }
     return finalPreferenceList;
   }

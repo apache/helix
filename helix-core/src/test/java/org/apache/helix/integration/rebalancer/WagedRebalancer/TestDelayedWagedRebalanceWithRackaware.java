@@ -31,6 +31,9 @@ import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+/**
+ * Inherit TestDelayedAutoRebalanceWithRackaware to ensure the test logic is the same.
+ */
 public class TestDelayedWagedRebalanceWithRackaware extends TestDelayedAutoRebalanceWithRackaware {
   protected ZkHelixClusterVerifier getClusterVerifier() {
     Set<String> dbNames = new HashSet<>();
@@ -62,15 +65,38 @@ public class TestDelayedWagedRebalanceWithRackaware extends TestDelayedAutoRebal
     return externalViews;
   }
 
-  @Test(enabled = false)
-  @Override
+  @Test
   public void testDelayedPartitionMovement() {
-    // Waged Rebalancer takes cluster level delay config only.
+    // Waged Rebalancer takes cluster level delay config only. Skip this test.
   }
 
-  @Test(enabled = false)
-  @Override
+  @Test
   public void testDisableDelayRebalanceInResource() {
-    // Waged Rebalancer takes cluster level delay config only.
+    // Waged Rebalancer takes cluster level delay config only. Skip this test.
+  }
+
+  @Test(dependsOnMethods = { "testDelayedPartitionMovement" })
+  public void testDelayedPartitionMovementWithClusterConfigedDelay() throws Exception {
+    super.testDelayedPartitionMovementWithClusterConfigedDelay();
+  }
+
+  @Test(dependsOnMethods = { "testDelayedPartitionMovementWithClusterConfigedDelay" })
+  public void testMinimalActiveReplicaMaintain() throws Exception {
+    super.testMinimalActiveReplicaMaintain();
+  }
+
+  @Test(dependsOnMethods = { "testMinimalActiveReplicaMaintain" })
+  public void testPartitionMovementAfterDelayTime() throws Exception {
+    super.testPartitionMovementAfterDelayTime();
+  }
+
+  @Test(dependsOnMethods = { "testDisableDelayRebalanceInResource" })
+  public void testDisableDelayRebalanceInCluster() throws Exception {
+    super.testDisableDelayRebalanceInCluster();
+  }
+
+  @Test(dependsOnMethods = { "testDisableDelayRebalanceInCluster" })
+  public void testDisableDelayRebalanceInInstance() throws Exception {
+    super.testDisableDelayRebalanceInInstance();
   }
 }

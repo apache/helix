@@ -242,7 +242,8 @@ public class WagedRebalancer {
 
     // Additional calculating required for the delayed rebalancing, user-defined preference list.
     applyRebalanceOverwrite(finalIdealStateMap, activeNodes, clusterData, resourceMap,
-        clusterChanges, resourceStatePriorityMap);
+        clusterChanges, resourceStatePriorityMap,
+        getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet()));
     // Note the user-defined list will be applied as an overwritten to the final result, instead of
     // part of the rebalance algorithm.
     finalIdealStateMap.entrySet().stream().forEach(idealStateEntry -> applyUserDefinePreferenceList(
@@ -525,17 +526,19 @@ public class WagedRebalancer {
    * @param resourceMap              the rebalanaced resource map.
    * @param clusterChanges           the detected cluster changes that triggeres the rebalance.
    * @param resourceStatePriorityMap the state priority map for each resource.
+   * @param baseline                 the baseline assignment
    */
   private void applyRebalanceOverwrite(Map<String, IdealState> idealStateMap,
       Set<String> virtualActiveNodes, ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap, Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
-      Map<String, Map<String, Integer>> resourceStatePriorityMap) throws HelixRebalanceException {
+      Map<String, Map<String, Integer>> resourceStatePriorityMap,
+      Map<String, ResourceAssignment> baseline) throws HelixRebalanceException {
     Set<String> activeInstances = clusterData.getEnabledLiveInstances();
     if (!virtualActiveNodes.equals(activeInstances)) {
       // Note that the calculation used the baseline as the input only. This is for minimizing unnecessary partition movement.
       Map<String, ResourceAssignment> activeAssignment =
           calculateAssignment(clusterData, clusterChanges, resourceMap, activeInstances,
-              Collections.emptyMap(), _assignmentMetadataStore.getBaseline());
+              Collections.emptyMap(), baseline);
       for (String resourceName : idealStateMap.keySet()) {
         IdealState is = idealStateMap.get(resourceName);
         if (!activeAssignment.containsKey(resourceName)) {

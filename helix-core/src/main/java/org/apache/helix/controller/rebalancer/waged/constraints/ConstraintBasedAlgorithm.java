@@ -53,7 +53,7 @@ import com.google.common.collect.Maps;
 class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private static final Logger LOG = LoggerFactory.getLogger(ConstraintBasedAlgorithm.class);
   private final List<HardConstraint> _hardConstraints;
-  private final Map<SoftConstraint, Float> _softConstraints;
+  private Map<SoftConstraint, Float> _softConstraints;
 
   ConstraintBasedAlgorithm(List<HardConstraint> hardConstraints,
       Map<SoftConstraint, Float> softConstraints) {

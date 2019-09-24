@@ -50,9 +50,8 @@ public class TestResourceTopStateAntiAffinityConstraint {
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.5f);
-    Assert.assertEquals(normalizedScore, 0.5f);
-    verifyZeroInteractions(_testNode);
+    Assert.assertEquals(score, 0f);
+    Assert.assertEquals(normalizedScore, 1f);
     verifyZeroInteractions(_clusterContext);
   }
 
@@ -60,23 +59,21 @@ public class TestResourceTopStateAntiAffinityConstraint {
   public void testGetAssignmentScoreWhenReplicaIsTopStateHeavyLoad() {
     when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(20);
-    when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.5f);
-    Assert.assertEquals(normalizedScore, 0.5f);
+    Assert.assertEquals(score, 21f);
+    Assert.assertEquals(normalizedScore, 0.04758309f);
   }
 
   @Test
   public void testGetAssignmentScoreWhenReplicaIsTopStateLightLoad() {
     when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(0);
-    when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 1f);
-    Assert.assertEquals(normalizedScore, 1f);
+    Assert.assertEquals(normalizedScore, 0.7615942f);
   }
 }

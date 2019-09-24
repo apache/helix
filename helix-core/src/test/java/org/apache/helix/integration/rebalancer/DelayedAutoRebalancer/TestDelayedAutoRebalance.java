@@ -196,8 +196,6 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
     // disable delay rebalance for the entire cluster.
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, false);
-    // TODO: remove this once controller is listening on cluster config change.
-    RebalanceScheduler.invokeRebalance(_controller.getHelixDataAccessor(), _testDBs.get(0));
     Thread.sleep(100);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {

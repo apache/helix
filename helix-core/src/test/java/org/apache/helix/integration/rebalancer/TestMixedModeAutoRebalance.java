@@ -141,8 +141,6 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
         new ResourceConfig.Builder(db).setPreferenceLists(userDefinedPreferenceLists).build();
     _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
 
-    //TODO: Trigger rebalancer, remove this once Helix controller is listening on resource config changes.
-    RebalanceScheduler.invokeRebalance(_dataAccessor, db);
     Assert.assertTrue(_clusterVerifier.verify(1000));
     verifyUserDefinedPreferenceLists(db, userDefinedPreferenceLists, userDefinedPartitions);
 
@@ -192,9 +190,6 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
         new ResourceConfig.Builder(db).setPreferenceLists(userDefinedPreferenceLists).build();
     _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
 
-    //TODO: Trigger rebalancer, remove this once Helix controller is listening on resource config changes.
-    RebalanceScheduler.invokeRebalance(_dataAccessor, db);
-
     Thread.sleep(1000);
     ExternalView ev =
         _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
@@ -241,9 +236,6 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     resourceConfig.setPreferenceLists(lists);
     userDefinedPartitions.remove(0);
     _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
-
-    //TODO: Touch IS, remove this once Helix controller is listening on resource config changes.
-    RebalanceScheduler.invokeRebalance(_dataAccessor, db);
   }
 
   @AfterClass

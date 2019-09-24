@@ -39,6 +39,7 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.HelixPropertyStore;
+import org.apache.helix.util.RebalanceUtil;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
@@ -1024,8 +1025,7 @@ public class TaskUtil {
           List<String> resourceConfigs =
               accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
           if (resourceConfigs.size() > 0) {
-            RebalanceScheduler.invokeRebalanceForResourceConfig(manager.getHelixDataAccessor(),
-                resourceConfigs.get(0));
+            RebalanceUtil.scheduleOnDemandPipeline(manager.getClusterName(), 0L);
           } else {
             LOG.warn(
                 "No resource config to trigger rebalance for clean up contexts for" + expiredJobs);

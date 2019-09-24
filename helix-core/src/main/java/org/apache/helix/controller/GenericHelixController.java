@@ -318,8 +318,10 @@ public class GenericHelixController implements IdealStateChangeListener,
   }
 
   /**
+   * This function is deprecated. Please use RebalanceUtil.scheduleInstantPipeline method instead.
    * schedule a future rebalance pipeline run, delayed at given time.
    */
+  @Deprecated
   public void scheduleRebalance(long rebalanceTime) {
     if (_helixManager == null) {
       logger.warn(
@@ -331,10 +333,6 @@ public class GenericHelixController implements IdealStateChangeListener,
     long delay = rebalanceTime - current;
 
     if (rebalanceTime > current) {
-      if (_onDemandRebalanceTimer == null) {
-        _onDemandRebalanceTimer = new Timer(true);
-      }
-
       RebalanceTask preTask = _nextRebalanceTask.get();
       if (preTask != null && preTask.getNextRebalanceTime() > current
           && preTask.getNextRebalanceTime() < rebalanceTime) {
@@ -354,6 +352,39 @@ public class GenericHelixController implements IdealStateChangeListener,
       if (preTask != null) {
         preTask.cancel();
       }
+    }
+  }
+
+  /**
+   * Schedule an on demand rebalance pipeline.
+   * @param delay
+   */
+  public void scheduleOnDemandRebalance(long delay) {
+    if (_helixManager == null) {
+      logger.error("Failed to schedule a future pipeline run for cluster {}. Helix manager is null!",
+          _clusterName);
+      return;
+    }
+    long currentTime = System.currentTimeMillis();
+    long rebalanceTime = currentTime + delay;
+    if (delay > 0) {
+      RebalanceTask preTask = _nextRebalanceTask.get();
+      if (preTask != null && preTask.getNextRebalanceTime() > currentTime
+          && preTask.getNextRebalanceTime() < rebalanceTime) {
+        // already have a earlier rebalance scheduled, no need to schedule again.
+        return;
+      }
+    }
+
+    RebalanceTask newTask =
+        new RebalanceTask(_helixManager, ClusterEventType.OnDemandRebalance, rebalanceTime);
+
+    _onDemandRebalanceTimer.schedule(newTask, delay);
+    logger.info("Scheduled instant pipeline run for cluster {}." , _helixManager.getClusterName());
+
+    RebalanceTask preTask = _nextRebalanceTask.getAndSet(newTask);
+    if (preTask != null) {
+      preTask.cancel();
     }
   }
 
@@ -457,6 +488,8 @@ public class GenericHelixController implements IdealStateChangeListener,
       registry.register(ClusterEventType.Resume, dataRefresh, dataPreprocess, rebalancePipeline);
       registry.register(ClusterEventType.PeriodicalRebalance, dataRefresh, dataPreprocess,
           rebalancePipeline);
+      registry.register(ClusterEventType.OnDemandRebalance, dataRefresh, dataPreprocess,
+          rebalancePipeline);
       return registry;
     }
   }
@@ -487,6 +520,8 @@ public class GenericHelixController implements IdealStateChangeListener,
         });
     _asyncFIFOWorkerPool = new HashMap<>();
     initializeAsyncFIFOWorkers();
+
+    _onDemandRebalanceTimer = new Timer(true);
 
     // initialize pipelines at the end so we have everything else prepared
     if (_enabledPipelineTypes.contains(Pipeline.Type.DEFAULT)) {

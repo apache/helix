@@ -39,6 +39,7 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -454,14 +455,9 @@ public class InstanceMessagesCache {
 
   // Schedule a future rebalance pipeline run.
   private void scheduleFuturePipeline(long rebalanceTime) {
-    GenericHelixController controller = GenericHelixController.getController(_clusterName);
-    if (controller != null) {
-      controller.scheduleRebalance(rebalanceTime);
-    } else {
-      LOG.warn(
-          "Failed to schedule a future pipeline run for cluster {} at delay {}, helix controller is null.",
-          _clusterName, (rebalanceTime - System.currentTimeMillis()));
-    }
+    long current = System.currentTimeMillis();
+    long delay = rebalanceTime - current;
+    RebalanceUtil.scheduleOnDemandPipeline(_clusterName, delay);
   }
 
   /**

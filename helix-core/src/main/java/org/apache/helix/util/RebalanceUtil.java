@@ -27,10 +27,15 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.HelixException;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.StateModelDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RebalanceUtil {
+  private static final Logger LOG = LoggerFactory.getLogger(RebalanceUtil.class.getName());
+
   public static Map<String, Object> buildInternalIdealState(IdealState state) {
     // Try parse the partition number from name DB_n. If not, sort the partitions and
     // assign id
@@ -135,5 +140,23 @@ public class RebalanceUtil {
     result[0] = masterStateValue;
     result[1] = slaveStateValue;
     return result;
+  }
+
+  public static void scheduleOnDemandPipeline(String clusterName, long delay) {
+    if (clusterName == null) {
+      LOG.error("Failed to issue a pipeline run. ClusterName is null.");
+      return;
+    }
+    if (delay < 0L) {
+      LOG.error("Failed to issue a pipeline run. Delay is invalid.");
+      return;
+    }
+    GenericHelixController controller = GenericHelixController.getController(clusterName);
+    if (controller != null) {
+      controller.scheduleOnDemandRebalance(delay);
+    } else {
+      LOG.error("Failed to issue a pipeline. Controller for cluster {} does not exist.",
+          clusterName);
+    }
   }
 }

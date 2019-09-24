@@ -34,7 +34,7 @@ import com.google.common.collect.ImmutableMap;
 public class ConstraintBasedAlgorithmFactory {
 
   public static RebalanceAlgorithm getInstance(
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences, Float... weights) {
     List<HardConstraint> hardConstraints =
         ImmutableList.of(new FaultZoneAwareConstraint(), new NodeCapacityConstraint(),
             new ReplicaActivateConstraint(), new NodeMaxPartitionLimitConstraint(),
@@ -47,12 +47,15 @@ public class ConstraintBasedAlgorithmFactory {
     float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
     float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
 
+    Float[] defaults = {1f, 0.3f, 0.1f, 0.1f, 0.5f};
+    Float[] w = weights.length == 0? defaults : weights;
     Map<SoftConstraint, Float> softConstraints = ImmutableMap.<SoftConstraint, Float> builder()
-        .put(new PartitionMovementConstraint(), movementRatio)
-        .put(new InstancePartitionsCountConstraint(), 0.3f * evennessRatio)
-        .put(new ResourcePartitionAntiAffinityConstraint(), 0.1f * evennessRatio)
-        .put(new ResourceTopStateAntiAffinityConstraint(), 0.1f * evennessRatio)
-        .put(new MaxCapacityUsageInstanceConstraint(), 0.5f * evennessRatio).build();
+        .put(new PartitionMovementConstraint(), w[0] * movementRatio)
+        .put(new InstancePartitionsCountConstraint(), w[1] * evennessRatio)
+        .put(new ResourcePartitionAntiAffinityConstraint(), w[2] * evennessRatio)
+        .put(new ResourceTopStateAntiAffinityConstraint(), w[3] * evennessRatio)
+        .put(new MaxCapacityUsageInstanceConstraint(), w[4] * evennessRatio)
+        .build();
 
     return new ConstraintBasedAlgorithm(hardConstraints, softConstraints);
   }

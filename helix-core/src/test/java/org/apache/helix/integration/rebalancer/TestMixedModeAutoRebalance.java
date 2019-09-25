@@ -27,16 +27,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
-import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.mock.participant.MockMSStateModel;
 import org.apache.helix.mock.participant.MockTransition;
@@ -63,7 +60,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
 
   private final String CLASS_NAME = getShortClassName();
   private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
-  protected final String _db = "Test-DB";
+  protected static final String DB_NAME = "Test-DB";
 
   private ClusterControllerManager _controller;
   private List<MockParticipantManager> _participants = new ArrayList<>();
@@ -120,10 +117,10 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
   protected void createResource(String stateModel, int numPartition, int replica,
       boolean delayEnabled, String rebalanceStrategy) {
     if (delayEnabled) {
-      createResourceWithDelayedRebalance(CLUSTER_NAME, _db, stateModel, numPartition, replica,
+      createResourceWithDelayedRebalance(CLUSTER_NAME, DB_NAME, stateModel, numPartition, replica,
           replica - 1, 200, rebalanceStrategy);
     } else {
-      createResourceWithDelayedRebalance(CLUSTER_NAME, _db, stateModel, numPartition, replica,
+      createResourceWithDelayedRebalance(CLUSTER_NAME, DB_NAME, stateModel, numPartition, replica,
           replica, 0, rebalanceStrategy);
     }
   }
@@ -134,7 +131,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     createResource(stateModel, _PARTITIONS, _replica, delayEnabled,
         rebalanceStrateyName);
     IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, _db);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB_NAME);
     Map<String, List<String>> userDefinedPreferenceLists = idealState.getPreferenceLists();
     List<String> userDefinedPartitions = new ArrayList<>();
     for (String partition : userDefinedPreferenceLists.keySet()) {
@@ -148,23 +145,24 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     }
 
     ResourceConfig resourceConfig =
-        new ResourceConfig.Builder(_db).setPreferenceLists(userDefinedPreferenceLists).build();
-    _configAccessor.setResourceConfig(CLUSTER_NAME, _db, resourceConfig);
+        new ResourceConfig.Builder(DB_NAME).setPreferenceLists(userDefinedPreferenceLists).build();
+    _configAccessor.setResourceConfig(CLUSTER_NAME, DB_NAME, resourceConfig);
 
     Assert.assertTrue(_clusterVerifier.verify(3000));
-    verifyUserDefinedPreferenceLists(_db, userDefinedPreferenceLists, userDefinedPartitions);
+    verifyUserDefinedPreferenceLists(DB_NAME, userDefinedPreferenceLists, userDefinedPartitions);
 
     while (userDefinedPartitions.size() > 0) {
-      IdealState originIS = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, _db);
+      IdealState originIS = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME,
+          DB_NAME);
       Set<String> nonUserDefinedPartitions = new HashSet<>(originIS.getPartitionSet());
       nonUserDefinedPartitions.removeAll(userDefinedPartitions);
 
-      removePartitionFromUserDefinedList(_db, userDefinedPartitions);
+      removePartitionFromUserDefinedList(DB_NAME, userDefinedPartitions);
       // TODO: Remove wait once we enable the BestPossibleExternalViewVerifier for the WAGED rebalancer.
       Thread.sleep(1000);
       Assert.assertTrue(_clusterVerifier.verify(3000));
-      verifyUserDefinedPreferenceLists(_db, userDefinedPreferenceLists, userDefinedPartitions);
-      verifyNonUserDefinedAssignment(_db, originIS, nonUserDefinedPartitions);
+      verifyUserDefinedPreferenceLists(DB_NAME, userDefinedPreferenceLists, userDefinedPartitions);
+      verifyNonUserDefinedAssignment(DB_NAME, originIS, nonUserDefinedPartitions);
     }
   }
 
@@ -174,7 +172,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
         false, CrushRebalanceStrategy.class.getName());
 
     IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, _db);
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB_NAME);
     Map<String, List<String>> userDefinedPreferenceLists = idealState.getPreferenceLists();
 
     List<String> newNodes = new ArrayList<>();
@@ -197,12 +195,12 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     }
 
     ResourceConfig resourceConfig =
-        new ResourceConfig.Builder(_db).setPreferenceLists(userDefinedPreferenceLists).build();
-    _configAccessor.setResourceConfig(CLUSTER_NAME, _db, resourceConfig);
+        new ResourceConfig.Builder(DB_NAME).setPreferenceLists(userDefinedPreferenceLists).build();
+    _configAccessor.setResourceConfig(CLUSTER_NAME, DB_NAME, resourceConfig);
 
     TestHelper.verify(() -> {
       ExternalView ev =
-          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, _db);
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);
       if (ev != null) {
         for (String partition : ev.getPartitionSet()) {
           Map<String, String> stateMap = ev.getStateMap(partition);
@@ -214,8 +212,9 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
       return false;
     }, 3000);
     ExternalView ev =
-        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, _db);
-    IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, _db);
+        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);
+    IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME,
+        DB_NAME);
     validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
   }
 
@@ -262,7 +261,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
 
   @AfterMethod
   public void afterMethod() {
-    _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, _db);
+    _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, DB_NAME);
     getClusterVerifier().verify(5000);
   }
 

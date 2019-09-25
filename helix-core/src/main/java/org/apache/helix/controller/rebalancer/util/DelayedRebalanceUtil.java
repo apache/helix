@@ -20,12 +20,12 @@ package org.apache.helix.controller.rebalancer.util;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.HelixManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -33,8 +33,9 @@ import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
- * The util to support delayed rebalance logic.
+ * The util for supporting delayed rebalance logic.
  */
 public class DelayedRebalanceUtil {
   private static final Logger LOG = LoggerFactory.getLogger(DelayedRebalanceUtil.class);
@@ -42,36 +43,29 @@ public class DelayedRebalanceUtil {
   private static RebalanceScheduler _rebalanceScheduler = new RebalanceScheduler();
 
   /**
-   * @return the rebalance delay based on the ClusterConfig configurations.
-   * Resource level configuration will be ignored.
-   */
-  public static long getRebalanceDelay(ClusterConfig clusterConfig) {
-    return getRebalanceDelay(null, clusterConfig);
-  }
-
-  /**
    * @return true if delay rebalance is configured and enabled in the ClusterConfig configurations.
-   * Resource level configuration will be ignored.
    */
   public static boolean isDelayRebalanceEnabled(ClusterConfig clusterConfig) {
-    return isDelayRebalanceEnabled(null, clusterConfig);
+    long delay = clusterConfig.getRebalanceDelayTime();
+    return (delay > 0 && clusterConfig.isDelayRebalaceEnabled());
   }
 
   /**
-   * @return all active instances (live instances plus offline-yet-active instances) while considering delay rebalance configurations.
+   * @return true if delay rebalance is configured and enabled in Resource IdealState and the
+   * ClusterConfig configurations.
    */
-  public static Set<String> getActiveInstances(Set<String> allNodes, Set<String> liveEnabledNodes,
-      Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
-      Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
-    return getActiveInstances(allNodes, null, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
-        instanceConfigMap, clusterConfig.getRebalanceDelayTime(), clusterConfig);
+  public static boolean isDelayRebalanceEnabled(IdealState idealState,
+      ClusterConfig clusterConfig) {
+    long delay = getRebalanceDelay(idealState, clusterConfig);
+    return (delay > 0 && idealState.isDelayRebalanceEnabled() && clusterConfig
+        .isDelayRebalaceEnabled());
   }
 
   /**
    * @return the rebalance delay based on Resource IdealState and the ClusterConfig configurations.
    */
   public static long getRebalanceDelay(IdealState idealState, ClusterConfig clusterConfig) {
-    long delayTime = idealState == null ? -1 : idealState.getRebalanceDelay();
+    long delayTime = idealState.getRebalanceDelay();
     if (delayTime < 0) {
       delayTime = clusterConfig.getRebalanceDelayTime();
     }
@@ -79,30 +73,39 @@ public class DelayedRebalanceUtil {
   }
 
   /**
-   * @return true if delay rebalance is configured and enabled in Resource IdealState or the ClusterConfig configurations.
+   * @return all active instances (live instances plus offline-yet-active instances) while
+   * considering cluster delay rebalance configurations.
    */
-  public static boolean isDelayRebalanceEnabled(IdealState idealState,
-      ClusterConfig clusterConfig) {
-    long delay = getRebalanceDelay(idealState, clusterConfig);
-    return (delay > 0 && (idealState == null || idealState.isDelayRebalanceEnabled())
-        && clusterConfig.isDelayRebalaceEnabled());
+  public static Set<String> getActiveInstances(Set<String> allNodes, Set<String> liveEnabledNodes,
+      Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
+      Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
+    if (!isDelayRebalanceEnabled(clusterConfig)) {
+      return Collections.emptySet();
+    }
+    return getActiveInstances(allNodes, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
+        instanceConfigMap, clusterConfig.getRebalanceDelayTime(), clusterConfig);
   }
 
   /**
-   * @return all active instances (live instances plus offline-yet-active instances) while considering delay rebalance configurations.
+   * @return all active instances (live instances plus offline-yet-active instances) while
+   * considering cluster and the resource delay rebalance configurations.
    */
   public static Set<String> getActiveInstances(Set<String> allNodes, IdealState idealState,
       Set<String> liveEnabledNodes, Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
       Map<String, InstanceConfig> instanceConfigMap, long delay, ClusterConfig clusterConfig) {
-    Set<String> activeInstances = new HashSet<>(liveEnabledNodes);
-
     if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
-      return activeInstances;
+      return Collections.emptySet();
     }
+    return getActiveInstances(allNodes, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
+        instanceConfigMap, delay, clusterConfig);
+  }
 
+  private static Set<String> getActiveInstances(Set<String> allNodes, Set<String> liveEnabledNodes,
+      Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
+      Map<String, InstanceConfig> instanceConfigMap, long delay, ClusterConfig clusterConfig) {
+    Set<String> activeInstances = new HashSet<>(liveEnabledNodes);
     Set<String> offlineOrDisabledInstances = new HashSet<>(allNodes);
     offlineOrDisabledInstances.removeAll(liveEnabledNodes);
-
     long currentTime = System.currentTimeMillis();
     for (String ins : offlineOrDisabledInstances) {
       long inactiveTime = getInactiveTime(ins, liveNodes, instanceOfflineTimeMap.get(ins), delay,
@@ -113,7 +116,6 @@ public class DelayedRebalanceUtil {
         activeInstances.add(ins);
       }
     }
-
     return activeInstances;
   }
 
@@ -121,7 +123,7 @@ public class DelayedRebalanceUtil {
    * @return The time when an offline or disabled instance should be treated as inactive.
    * Return -1 if it is inactive now.
    */
-  public static long getInactiveTime(String instance, Set<String> liveInstances, Long offlineTime,
+  private static long getInactiveTime(String instance, Set<String> liveInstances, Long offlineTime,
       long delay, InstanceConfig instanceConfig, ClusterConfig clusterConfig) {
     long inactiveTime = Long.MAX_VALUE;
 
@@ -157,12 +159,15 @@ public class DelayedRebalanceUtil {
   }
 
   /**
-   * Merge the new ideal preference list with the "active" mapping that is calculated based on the
-   * delayed rebalance configuration. The method will prioritize the active preference list so as to
-   * avoid unnecessary intermediate change.
+   * Merge the new ideal preference list with the delayed mapping that is calculated based on the
+   * delayed rebalance configurations.
+   * The method will prioritize the "active" preference list so as to avoid unnecessary transient
+   * state transitions.
    *
-   * @param newIdealPreferenceList  the ideal mapping that was calculated based on the current instance status
-   * @param newActivePreferenceList the mapping that was calculated based on the delayed instance status
+   * @param newIdealPreferenceList  the ideal mapping that was calculated based on the current
+   *                                instance status
+   * @param newDelayedPreferenceList the delayed mapping that was calculated based on the delayed
+   *                                 instance status
    * @param liveEnabledInstances    list of all the nodes that are both alive and enabled.
    * @param minActiveReplica        the minimum replica count to ensure a valid mapping.
    *                                If the active list does not have enough replica assignment,
@@ -172,25 +177,25 @@ public class DelayedRebalanceUtil {
    */
   public static Map<String, List<String>> getFinalDelayedMapping(
       Map<String, List<String>> newIdealPreferenceList,
-      Map<String, List<String>> newActivePreferenceList, Set<String> liveEnabledInstances,
+      Map<String, List<String>> newDelayedPreferenceList, Set<String> liveEnabledInstances,
       int minActiveReplica) {
     Map<String, List<String>> finalPreferenceList = new HashMap<>();
     for (String partition : newIdealPreferenceList.keySet()) {
       List<String> idealList = newIdealPreferenceList.get(partition);
-      List<String> activeList = newActivePreferenceList.get(partition);
+      List<String> delayedIdealList = newDelayedPreferenceList.get(partition);
 
       List<String> liveList = new ArrayList<>();
-      for (String ins : activeList) {
+      for (String ins : delayedIdealList) {
         if (liveEnabledInstances.contains(ins)) {
           liveList.add(ins);
         }
       }
 
       if (liveList.size() >= minActiveReplica) {
-        finalPreferenceList.put(partition, activeList);
+        finalPreferenceList.put(partition, delayedIdealList);
       } else {
         List<String> candidates = new ArrayList<>(idealList);
-        candidates.removeAll(activeList);
+        candidates.removeAll(delayedIdealList);
         for (String liveIns : candidates) {
           liveList.add(liveIns);
           if (liveList.size() >= minActiveReplica) {
@@ -210,7 +215,7 @@ public class DelayedRebalanceUtil {
    * @param replicaCount the expected active replica count.
    * @return the expected minimum active replica count that is required
    */
-  public static  int getMinActiveReplica(IdealState idealState, int replicaCount) {
+  public static int getMinActiveReplica(IdealState idealState, int replicaCount) {
     int minActiveReplicas = idealState.getMinActiveReplicas();
     if (minActiveReplicas < 0) {
       minActiveReplicas = replicaCount;
@@ -236,7 +241,7 @@ public class DelayedRebalanceUtil {
     // calculate the closest future rebalance time
     for (String ins : offlineOrDisabledInstances) {
       long inactiveTime = getInactiveTime(ins, liveNodes, instanceOfflineTimeMap.get(ins), delay,
-              instanceConfigMap.get(ins), clusterConfig);
+          instanceConfigMap.get(ins), clusterConfig);
       if (inactiveTime != -1 && inactiveTime > currentTime && inactiveTime < nextRebalanceTime) {
         nextRebalanceTime = inactiveTime;
       }

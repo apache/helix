@@ -52,7 +52,7 @@ public class TestDelayedWagedRebalanceWithDisabledInstance
     int i = 0;
     for (String stateModel : TestStateModels) {
       String db = "Test-DB-" + i++;
-      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
+      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
           _minActiveReplica);
       _testDBs.add(db);
     }

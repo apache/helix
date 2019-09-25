@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
-import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -44,9 +43,12 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestDelayedAutoRebalance extends ZkTestBase {
-  final int NUM_NODE = 5;
+  static final int NUM_NODE = 5;
   protected static final int START_PORT = 12918;
-  protected static final int _PARTITIONS = 5;
+  protected static final int PARTITIONS = 5;
+  // TODO: remove this wait time once we have a better way to determine if the rebalance has been
+  // TODO: done as a reaction of the test operations.
+  protected static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1000;
 
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
@@ -122,7 +124,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
     // bring down another node, the minimal active replica for each partition should be maintained.
     _participants.get(3).syncStop();
-    Thread.sleep(500);
+    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
@@ -144,7 +147,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
 
-    Thread.sleep(delay + 200);
+    Thread.sleep(delay + DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // after delay time, it should maintain required number of replicas.
     for (String db : _testDBs) {
@@ -167,7 +170,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
         CLUSTER_NAME, testDb);
     idealState.setDelayRebalanceEnabled(false);
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, testDb, idealState);
-
+    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // once delay rebalance is disabled, it should maintain required number of replicas for that db.
@@ -197,7 +200,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
     // disable delay rebalance for the entire cluster.
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, false);
-    Thread.sleep(100);
+    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =
@@ -217,7 +220,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
     String disabledInstanceName = _participants.get(0).getInstanceName();
     enableDelayRebalanceInInstance(_gZkClient, CLUSTER_NAME, disabledInstanceName, false);
-    Thread.sleep(1000);
+    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
@@ -236,7 +239,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, db);
     }
     _testDBs.clear();
-    Thread.sleep(50);
+    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
   }
 
   @BeforeMethod
@@ -261,11 +264,11 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     int i = 0;
     for (String stateModel : TestStateModels) {
       String db = "Test-DB-" + i++;
-      createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
+      createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
           _minActiveReplica, delayTime, CrushRebalanceStrategy.class.getName());
       _testDBs.add(db);
     }
-    Thread.sleep(100);
+    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =
@@ -308,7 +311,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
   private void validateDelayedMovements(Map<String, ExternalView> externalViewsBefore)
       throws InterruptedException {
     _participants.get(0).syncStop();
-    Thread.sleep(100);
+    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _testDBs) {

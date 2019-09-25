@@ -49,10 +49,10 @@ public class TestMixedModeWagedRebalance extends TestMixedModeAutoRebalance {
       int replica, boolean delayEnabled, String rebalanceStrategy) {
     if (delayEnabled) {
       setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 200);
-      createResourceWithWagedRebalance(CLUSTER_NAME, _db, stateModel, numPartition, replica,
+      createResourceWithWagedRebalance(CLUSTER_NAME, DB_NAME, stateModel, numPartition, replica,
           replica - 1);
     } else {
-      createResourceWithWagedRebalance(CLUSTER_NAME, _db, stateModel, numPartition, replica, replica);
+      createResourceWithWagedRebalance(CLUSTER_NAME, DB_NAME, stateModel, numPartition, replica, replica);
     }
   }
 

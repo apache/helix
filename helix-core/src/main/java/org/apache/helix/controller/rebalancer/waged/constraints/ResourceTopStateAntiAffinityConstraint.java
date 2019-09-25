@@ -33,7 +33,8 @@ class ResourceTopStateAntiAffinityConstraint extends SoftConstraint {
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    // if replica is top state, there're 1 more top state partition hosted on the instance if the assignment happens
+    // if the replica is of top state, with the new replica, it will add "one" additional top state
+    // partitions to the instance
     return (replica.isReplicaTopState() ? 1 : 0) + node.getAssignedTopStatePartitionsCount();
   }
 }

@@ -89,8 +89,8 @@ public class TestPartitionMovementConstraint {
     normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
 
-    Assert.assertEquals(score, 0f);
-    Assert.assertEquals(normalizedScore, 0f);
+    Assert.assertEquals(score, 0.5f);
+    Assert.assertEquals(normalizedScore, 0.5f);
   }
 
   @Test
@@ -105,15 +105,14 @@ public class TestPartitionMovementConstraint {
         .thenReturn(ImmutableMap.of(RESOURCE, baselineResourceAssignment));
     when(_clusterContext.getBestPossibleAssignment())
         .thenReturn(ImmutableMap.of(RESOURCE, bestPossibleResourceAssignment));
-
     // when the replica's state matches with best possible only
     when(_testReplica.getReplicaState()).thenReturn("Master");
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
 
-    Assert.assertEquals(score, 0.75f);
-    Assert.assertEquals(normalizedScore, 0.75f);
+    Assert.assertEquals(score, 0.875f);
+    Assert.assertEquals(normalizedScore, 0.875f);
     // when the replica's state matches with baseline only
     when(_testReplica.getReplicaState()).thenReturn("Slave");
     score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
@@ -122,7 +121,7 @@ public class TestPartitionMovementConstraint {
 
     // The calculated score is lower than previous 0.875f cause the replica's state matches with
     // best possible is preferred
-    Assert.assertEquals(score, 0.25f);
-    Assert.assertEquals(normalizedScore, 0.25f);
+    Assert.assertEquals(score, 0.625f);
+    Assert.assertEquals(normalizedScore, 0.625f);
   }
 }

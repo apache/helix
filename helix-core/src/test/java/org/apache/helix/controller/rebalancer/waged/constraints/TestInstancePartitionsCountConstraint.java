@@ -28,6 +28,11 @@ import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+/**
+ * Unit test for {@link InstancePartitionsCountConstraint}
+ * The scores in the test method are pre-calculated and verified, any changes to the score method in
+ * the future needs to be aware of the test result
+ */
 public class TestInstancePartitionsCountConstraint {
   private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
   private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);

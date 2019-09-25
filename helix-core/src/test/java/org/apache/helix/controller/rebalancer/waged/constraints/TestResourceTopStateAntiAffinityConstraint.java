@@ -30,6 +30,11 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+/**
+ * Unit test for {@link ResourceTopStateAntiAffinityConstraint}
+ * The scores in the test method are pre-calculated and verified, any changes to the score method in
+ * the future needs to be aware of the test result
+ */
 public class TestResourceTopStateAntiAffinityConstraint {
   private AssignableReplica _testReplica;
   private AssignableNode _testNode;

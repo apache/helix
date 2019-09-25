@@ -30,6 +30,11 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+/**
+ * Unit test for {@link MaxCapacityUsageInstanceConstraint}
+ * The scores in the test method are pre-calculated and verified, any changes to the score method in
+ * the future needs to be aware of the test result
+ */
 public class TestMaxCapacityUsageInstanceConstraint {
   private AssignableReplica _testReplica;
   private AssignableNode _testNode;
@@ -46,8 +51,7 @@ public class TestMaxCapacityUsageInstanceConstraint {
   @Test
   public void testGetNormalizedScore() {
     when(_testNode.getHighestCapacityUtilization()).thenReturn(0.8f);
-    float score =
-            _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.8f);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);

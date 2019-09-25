@@ -32,6 +32,11 @@ import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableSet;
 
+/**
+ * Unit test for {@link ResourcePartitionAntiAffinityConstraint}
+ * The scores in the test method are pre-calculated and verified, any changes to the score method in
+ * the future needs to be aware of the test result
+ */
 public class TestResourcePartitionAntiAffinityConstraint {
   private static final String TEST_PARTITION = "TestPartition";
   private static final String TEST_RESOURCE = "TestResource";

@@ -64,7 +64,7 @@ public class RebalanceAlgorithmAnalysis {
     Map<String, ResourceAssignment> bestPossibleAssignment =
         mockClusterModel.getContext().getBestPossibleAssignment();
 
-    for (int evennessSetting = 0; evennessSetting < 10; evennessSetting++) {
+    for (int evennessSetting = 1; evennessSetting <= 10; evennessSetting++) {
       int movementPreference = Math.round(settings.get(1));
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences =
           ImmutableMap.of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, evennessSetting,
@@ -126,9 +126,8 @@ public class RebalanceAlgorithmAnalysis {
     Map<String, ResourceAssignment> bestPossibleAssignment =
         mockClusterModel.getContext().getBestPossibleAssignment();
 
-    for (int movementsSetting = 0; movementsSetting < 10; movementsSetting++) {
+    for (int movementPreference = 1; movementPreference <= 10; movementPreference++) {
       int evennessPreference = Math.round(settings.get(0));
-      int movementPreference = movementsSetting;
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences =
           ImmutableMap.of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, evennessPreference,
               ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, movementPreference);
@@ -231,9 +230,9 @@ public class RebalanceAlgorithmAnalysis {
 
       List<String> rows = new ArrayList<>();
       rows.add(String.valueOf(evennessPreference));
-      rows.add(String.valueOf(i));
-      float evennessRatio = (float) evennessPreference / (i + i);
-      float movementRatio = (float) i / (i + i);
+      rows.add(String.valueOf(movementPreference));
+      float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
+      float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
       rows.add(String.valueOf(weights[0] * movementRatio));
       for (int j = 1; j < weights.length; j++) {
         rows.add(String.valueOf(weights[j] * evennessRatio));
@@ -253,26 +252,30 @@ public class RebalanceAlgorithmAnalysis {
         .setMaxPartitionsPerInstance(10).build();
     List<List<String>> result = new ArrayList<>();
 
-    List<Float> settings = getConfigs(7);
-    int evennessPreference = Math.round(settings.get(0));
-    int movementPreference = Math.round(settings.get(1));
-    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences =
-        ImmutableMap.of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, evennessPreference,
-            ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, movementPreference);
+    for (int r = 0; r < 10; r++) {
+      initClusterModel = new MockClusterModel(initClusterModel);
+      List<Float> settings = getConfigs(7);
+      int evennessPreference = Math.round(settings.get(0));
+      int movementPreference = Math.round(settings.get(1));
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences =
+          ImmutableMap.of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, evennessPreference,
+              ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, movementPreference);
 
-    float[] weights = getPrimitives(settings.subList(2, settings.size()));
-    RebalanceAlgorithm rebalanceAlgorithm =
-        ConstraintBasedAlgorithmFactory.getInstance(preferences, weights);
+      float[] weights = getPrimitives(settings.subList(2, settings.size()));
 
-    OptimalAssignment optimalAssignment = rebalanceAlgorithm.calculate(initClusterModel);
-    Map<String, ResourceAssignment> bestPossibleAssignment =
-        optimalAssignment.getOptimalResourceAssignment();
-    initClusterModel.getContext().setBestPossibleAssignment(bestPossibleAssignment);
+      RebalanceAlgorithm rebalanceAlgorithm =
+          ConstraintBasedAlgorithmFactory.getInstance(preferences, weights);
 
-    result.addAll(onEvennessPreferenceChange(new ArrayList<>(settings), initClusterModel));
-    result.addAll(onMovementPreferenceChange(new ArrayList<>(settings), initClusterModel));
-    for (int i = 2; i < 7; i++) {
-      result.addAll(onWeightChange(new ArrayList<>(settings), initClusterModel, i));
+      OptimalAssignment optimalAssignment = rebalanceAlgorithm.calculate(initClusterModel);
+      Map<String, ResourceAssignment> bestPossibleAssignment =
+          optimalAssignment.getOptimalResourceAssignment();
+      initClusterModel.getContext().setBestPossibleAssignment(bestPossibleAssignment);
+
+      result.addAll(onEvennessPreferenceChange(new ArrayList<>(settings), initClusterModel));
+      result.addAll(onMovementPreferenceChange(new ArrayList<>(settings), initClusterModel));
+      for (int i = 2; i < 7; i++) {
+        result.addAll(onWeightChange(new ArrayList<>(settings), initClusterModel, i));
+      }
     }
 
     List<String> names = ImmutableList.of("evenness", "movement", "PartitionMovement",

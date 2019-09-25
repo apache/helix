@@ -42,6 +42,11 @@ public class MockClusterModel extends ClusterModel {
     super(clusterContext, unAssignedReplicas, assignableNodes);
   }
 
+  public MockClusterModel(MockClusterModel other) {
+    this(other.getContext(), new HashSet<>(other.getUnassignedReplicas()),
+        other.getAssignableNodes());
+  }
+
   public void onInstanceAddition(AssignableNode newNode) {
     // release everything
     Set<AssignableNode> currentNodes = getAssignableNodes();
@@ -98,9 +103,8 @@ public class MockClusterModel extends ClusterModel {
       final ResourceAssignment resourceAssignment = assignment.get(resource);
       if (!baseAssignment.containsKey(resource)) {
         // It means the resource is a newly added resource
-        movements +=
-            resourceAssignment.getMappedPartitions().stream().map(resourceAssignment::getReplicaMap)
-                .map(Map::size).mapToInt(i -> i).sum();
+        movements += resourceAssignment.getMappedPartitions().stream()
+            .map(resourceAssignment::getReplicaMap).map(Map::size).mapToInt(i -> i).sum();
       } else {
         ResourceAssignment lastResourceAssignment = baseAssignment.get(resource);
         for (Partition partition : resourceAssignment.getMappedPartitions()) {
@@ -140,6 +144,32 @@ public class MockClusterModel extends ClusterModel {
 
     return usages.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> getCoefficientOfVariation(e.getValue())));
+  }
+
+  public Map<String, Double> getMaxDifferenceAsEvenness() {
+    Set<AssignableNode> instances = getAssignableNodes();
+    Map<String, List<Integer>> usages = new HashMap<>();
+    for (AssignableNode instance : instances) {
+      Map<String, Integer> capacityUsage = instance.getCapacityUsage();
+      for (String key : capacityUsage.keySet()) {
+        usages.computeIfAbsent(key, k -> new ArrayList<>()).add(capacityUsage.get(key));
+      }
+    }
+
+    return usages.entrySet().stream().collect(
+        Collectors.toMap(Map.Entry::getKey, e -> getMaxDifferenceOfVariation(e.getValue())));
+  }
+
+  private static double getMaxDifferenceOfVariation(List<Integer> nums) {
+    double max = nums.get(0);
+    double min = nums.get(1);
+
+    for (int i = 1; i < nums.size(); i++) {
+      max = Math.max(max, nums.get(i));
+      min = Math.min(min, nums.get(i));
+    }
+
+    return Math.abs(max - min);
   }
 
   private static double getCoefficientOfVariation(List<Integer> nums) {

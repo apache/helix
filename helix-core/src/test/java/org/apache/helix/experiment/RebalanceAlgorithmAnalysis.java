@@ -22,22 +22,19 @@ import com.google.common.collect.ImmutableMap;
 
 public class RebalanceAlgorithmAnalysis {
   private static List<Float> getConfigs(int size) {
-    Random random = new Random();
     List<Float> result = new ArrayList<>();
-    result.add((float) random.nextInt(10) + 1);
-    result.add((float) random.nextInt(10) + 1);
-    for (int i = 2; i < size; i++) {
+    for (int i = 0; i < size; i++) {
       result.add((float) round(new Random().nextDouble(), 2));
     }
 
     return result;
   }
 
-  public static double round(double value, int scale) {
+  private static double round(double value, int scale) {
     return Math.round(value * Math.pow(10, scale)) / Math.pow(10, scale);
   }
 
-  public static void writeToCSV(String fileName, List<String> columns, List<List<String>> rows)
+  private static void writeToCSV(String fileName, List<String> columns, List<List<String>> rows)
       throws IOException {
 
     FileWriter csvWriter = new FileWriter(fileName);
@@ -57,190 +54,78 @@ public class RebalanceAlgorithmAnalysis {
     return r;
   }
 
-  public static List<List<String>> onEvennessPreferenceChange(List<Float> settings,
+  private static List<Float> onWeightChange(int seed, List<Float> weights, int index) {
+    int diff = (int) Math.pow(10, seed);
+    List<Float> ret = new ArrayList<>(weights);
+    ret.set(index, diff + ret.get(index));
+    return ret;
+  }
+
+  private static List<String> generateTrainingDataSet(List<Float> settings,
       MockClusterModel mockClusterModel) throws HelixRebalanceException {
-    List<List<String>> result = new ArrayList<>();
     float totalPartitionsCount = mockClusterModel.getContext().getAllReplicas().size();
     Map<String, ResourceAssignment> bestPossibleAssignment =
         mockClusterModel.getContext().getBestPossibleAssignment();
 
-    for (int evennessSetting = 1; evennessSetting <= 10; evennessSetting++) {
-      int movementPreference = Math.round(settings.get(1));
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences =
-          ImmutableMap.of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, evennessSetting,
-              ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, movementPreference);
+    int evennessPreference = Math.round(settings.get(0)) + 1;
+    int movementPreference = Math.round(settings.get(1)) + 1;
+    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences =
+        ImmutableMap.of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, evennessPreference,
+            ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, movementPreference);
 
-      float[] weights = getPrimitives(settings.subList(2, settings.size()));
-      RebalanceAlgorithm rebalanceAlgorithm =
-          ConstraintBasedAlgorithmFactory.getInstance(preferences, weights);
+    float[] weights = getPrimitives(settings.subList(2, settings.size()));
+    RebalanceAlgorithm rebalanceAlgorithm =
+        ConstraintBasedAlgorithmFactory.getInstance(preferences, weights);
 
-      double worstEvenness = mockClusterModel.getMaxDifferenceAsEvenness().get("size");
-      float worstMovements = 0f;
+    double worstEvenness = mockClusterModel.getCoefficientOfVariationAsEvenness().get("size");
+    float worstMovements = 0f;
 
-      List<AssignableNode> currentNodes = new ArrayList<>(mockClusterModel.getAssignableNodes());
-      for (AssignableNode crashNode : currentNodes) {
-        mockClusterModel.onInstanceCrash(crashNode); // crash on the instance
-        OptimalAssignment optimalAssignment = rebalanceAlgorithm.calculate(mockClusterModel);
-        // after a node crashes.
-        worstEvenness =
-            Math.max(mockClusterModel.getMaxDifferenceAsEvenness().get("size"), worstEvenness);
-        worstMovements = Math.max(
-            mockClusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment)
-                / totalPartitionsCount,
-            worstMovements);
-        mockClusterModel.getContext().setBestPossibleAssignment(bestPossibleAssignment);
-        mockClusterModel.onInstanceAddition(crashNode); // add the instance back
-        optimalAssignment = rebalanceAlgorithm.calculate(mockClusterModel);
-        // "After adding back the crash node
-        worstEvenness =
-            Math.max(mockClusterModel.getMaxDifferenceAsEvenness().get("size"), worstEvenness);
-        worstMovements = Math.max(
-            mockClusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment)
-                / totalPartitionsCount,
-            worstMovements);
-        bestPossibleAssignment = optimalAssignment.getOptimalResourceAssignment();
-      }
-
-      List<String> rows = new ArrayList<>();
-      rows.add(String.valueOf(evennessSetting));
-      rows.add(String.valueOf(movementPreference));
-      float evennessRatio = (float) evennessSetting / (evennessSetting + movementPreference);
-      float movementRatio = (float) movementPreference / (evennessSetting + movementPreference);
-      rows.add(String.valueOf(weights[0] * movementRatio));
-      for (int j = 1; j < weights.length; j++) {
-        rows.add(String.valueOf(weights[j] * evennessRatio));
-      }
-      rows.add(String.valueOf(worstEvenness));
-      rows.add(String.valueOf(worstMovements));
-
-      result.add(rows);
+    List<AssignableNode> currentNodes = new ArrayList<>(mockClusterModel.getAssignableNodes());
+    for (AssignableNode crashNode : currentNodes) {
+      mockClusterModel.onInstanceCrash(crashNode); // crash on the instance
+      OptimalAssignment optimalAssignment = rebalanceAlgorithm.calculate(mockClusterModel);
+      // after a node crashes.
+      worstEvenness =
+          Math.max(mockClusterModel.getCoefficientOfVariationAsEvenness().get("size"), worstEvenness);
+      worstMovements = Math.max(
+          mockClusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment)
+              / totalPartitionsCount,
+          worstMovements);
+      mockClusterModel.getContext().setBestPossibleAssignment(bestPossibleAssignment);
+      mockClusterModel.onInstanceAddition(crashNode); // add the instance back
+      optimalAssignment = rebalanceAlgorithm.calculate(mockClusterModel);
+      // "After adding back the crash node
+      worstEvenness =
+          Math.max(mockClusterModel.getCoefficientOfVariationAsEvenness().get("size"), worstEvenness);
+      worstMovements = Math.max(
+          mockClusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment)
+              / totalPartitionsCount,
+          worstMovements);
+      bestPossibleAssignment = optimalAssignment.getOptimalResourceAssignment();
     }
 
-    return result;
-  }
-
-  public static List<List<String>> onMovementPreferenceChange(List<Float> settings,
-      MockClusterModel mockClusterModel) throws HelixRebalanceException {
-    List<List<String>> result = new ArrayList<>();
-    float totalPartitionsCount = mockClusterModel.getContext().getAllReplicas().size();
-    Map<String, ResourceAssignment> bestPossibleAssignment =
-        mockClusterModel.getContext().getBestPossibleAssignment();
-
-    for (int movementPreference = 1; movementPreference <= 10; movementPreference++) {
-      int evennessPreference = Math.round(settings.get(0));
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences =
-          ImmutableMap.of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, evennessPreference,
-              ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, movementPreference);
-
-      float[] weights = getPrimitives(settings.subList(2, settings.size()));
-      RebalanceAlgorithm rebalanceAlgorithm =
-          ConstraintBasedAlgorithmFactory.getInstance(preferences, weights);
-
-      double worstEvenness = mockClusterModel.getMaxDifferenceAsEvenness().get("size");
-      float worstMovements = 0f;
-
-      List<AssignableNode> currentNodes = new ArrayList<>(mockClusterModel.getAssignableNodes());
-      for (AssignableNode crashNode : currentNodes) {
-        mockClusterModel.onInstanceCrash(crashNode); // crash on the instance
-        OptimalAssignment optimalAssignment = rebalanceAlgorithm.calculate(mockClusterModel);
-        // after a node crashes.
-        worstEvenness =
-            Math.max(mockClusterModel.getMaxDifferenceAsEvenness().get("size"), worstEvenness);
-        worstMovements = Math.max(
-            mockClusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment)
-                / totalPartitionsCount,
-            worstMovements);
-        mockClusterModel.getContext().setBestPossibleAssignment(bestPossibleAssignment);
-        mockClusterModel.onInstanceAddition(crashNode); // add the instance back
-        optimalAssignment = rebalanceAlgorithm.calculate(mockClusterModel);
-        // "After adding back the crash node
-        worstEvenness =
-            Math.max(mockClusterModel.getMaxDifferenceAsEvenness().get("size"), worstEvenness);
-        worstMovements = Math.max(
-            mockClusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment)
-                / totalPartitionsCount,
-            worstMovements);
-        bestPossibleAssignment = optimalAssignment.getOptimalResourceAssignment();
-      }
-
-      List<String> rows = new ArrayList<>();
-      rows.add(String.valueOf(evennessPreference));
-      rows.add(String.valueOf(movementPreference));
-      float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
-      float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
-      rows.add(String.valueOf(weights[0] * movementRatio));
-      for (int j = 1; j < weights.length; j++) {
-        rows.add(String.valueOf(weights[j] * evennessRatio));
-      }
-      rows.add(String.valueOf(worstEvenness));
-      rows.add(String.valueOf(worstMovements));
-
-      result.add(rows);
+    List<String> rows = new ArrayList<>();
+    rows.add(String.valueOf(evennessPreference));
+    rows.add(String.valueOf(movementPreference));
+    float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
+    float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
+    rows.add(String.valueOf(weights[0] * movementRatio));
+    for (int j = 1; j < weights.length; j++) {
+      rows.add(String.valueOf(weights[j] * evennessRatio));
     }
+    rows.add(String.valueOf(worstEvenness));
+    rows.add(String.valueOf(worstMovements));
 
-    return result;
+    return rows;
   }
 
-  public static List<List<String>> onWeightChange(List<Float> settings,
+  private static List<List<String>> onWeightChange(List<Float> dummyWeights,
       MockClusterModel mockClusterModel, int weightIndex) throws HelixRebalanceException {
     List<List<String>> result = new ArrayList<>();
-    float totalPartitionsCount = mockClusterModel.getContext().getAllReplicas().size();
-    Map<String, ResourceAssignment> bestPossibleAssignment =
-        mockClusterModel.getContext().getBestPossibleAssignment();
-
-    for (int i = 0; i < 10; i++) {
-      int evennessPreference = Math.round(settings.get(0));
-      int movementPreference = Math.round(settings.get(1));
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences =
-          ImmutableMap.of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, evennessPreference,
-              ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, movementPreference);
-
-      // increase the weight of the soft constraint each time by 0.1f
-      settings.set(weightIndex, settings.get(weightIndex) + 0.1f);
-      float[] weights = getPrimitives(settings.subList(2, settings.size()));
-      RebalanceAlgorithm rebalanceAlgorithm =
-          ConstraintBasedAlgorithmFactory.getInstance(preferences, weights);
-
-      double worstEvenness = mockClusterModel.getMaxDifferenceAsEvenness().get("size");
-      float worstMovements = 0f;
-
-      List<AssignableNode> currentNodes = new ArrayList<>(mockClusterModel.getAssignableNodes());
-      for (AssignableNode crashNode : currentNodes) {
-        mockClusterModel.onInstanceCrash(crashNode); // crash on the instance
-        OptimalAssignment optimalAssignment = rebalanceAlgorithm.calculate(mockClusterModel);
-        // after a node crashes.
-        worstEvenness =
-            Math.max(mockClusterModel.getMaxDifferenceAsEvenness().get("size"), worstEvenness);
-        worstMovements = Math.max(
-            mockClusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment)
-                / totalPartitionsCount,
-            worstMovements);
-        mockClusterModel.getContext().setBestPossibleAssignment(bestPossibleAssignment);
-        mockClusterModel.onInstanceAddition(crashNode); // add the instance back
-        optimalAssignment = rebalanceAlgorithm.calculate(mockClusterModel);
-        // "After adding back the crash node
-        worstEvenness =
-            Math.max(mockClusterModel.getMaxDifferenceAsEvenness().get("size"), worstEvenness);
-        worstMovements = Math.max(
-            mockClusterModel.getTotalMovedPartitionsCount(optimalAssignment, bestPossibleAssignment)
-                / totalPartitionsCount,
-            worstMovements);
-        bestPossibleAssignment = optimalAssignment.getOptimalResourceAssignment();
-      }
-
-      List<String> rows = new ArrayList<>();
-      rows.add(String.valueOf(evennessPreference));
-      rows.add(String.valueOf(movementPreference));
-      float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
-      float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
-      rows.add(String.valueOf(weights[0] * movementRatio));
-      for (int j = 1; j < weights.length; j++) {
-        rows.add(String.valueOf(weights[j] * evennessRatio));
-      }
-      rows.add(String.valueOf(worstEvenness));
-      rows.add(String.valueOf(worstMovements));
-
-      result.add(rows);
+    for (int i = -1; i < 5; i++) {
+      List<Float> settings = onWeightChange(i, dummyWeights, weightIndex);
+      System.out.println(settings);
+      result.add(generateTrainingDataSet(settings, mockClusterModel));
     }
 
     return result;
@@ -271,9 +156,7 @@ public class RebalanceAlgorithmAnalysis {
           optimalAssignment.getOptimalResourceAssignment();
       initClusterModel.getContext().setBestPossibleAssignment(bestPossibleAssignment);
 
-      result.addAll(onEvennessPreferenceChange(new ArrayList<>(settings), initClusterModel));
-      result.addAll(onMovementPreferenceChange(new ArrayList<>(settings), initClusterModel));
-      for (int i = 2; i < 7; i++) {
+      for (int i = 0; i < settings.size(); i++) {
         result.addAll(onWeightChange(new ArrayList<>(settings), initClusterModel, i));
       }
     }

@@ -19,6 +19,7 @@ package org.apache.helix.integration.rebalancer.WagedRebalancer;
  * under the License.
  */
 
+import java.util.Collections;
 import org.apache.helix.integration.rebalancer.TestMixedModeAutoRebalance;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
@@ -42,7 +43,8 @@ public class TestMixedModeWagedRebalance extends TestMixedModeAutoRebalance {
   }
 
   protected ZkHelixClusterVerifier getClusterVerifier() {
-    return new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    return new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        .setResources(Collections.singleton(DB_NAME)).build();
   }
 
   protected void createResource(String stateModel, int numPartition,

@@ -193,24 +193,19 @@ public class WagedRebalancer {
       clusterChanges.putIfAbsent(HelixConstants.ChangeType.CLUSTER_CONFIG, Collections.emptySet());
     }
 
-    Set<String> activeNodes = new HashSet<>(clusterData.getEnabledLiveInstances());
-    ClusterConfig clusterConfig = clusterData.getClusterConfig();
-    if (DelayedRebalanceUtil.isDelayRebalanceEnabled(clusterConfig)) {
-      // If delayed rebalance is enabled, rebalance with the delayed active instance list.
-      Set<String> delayedActiveNodes = DelayedRebalanceUtil
-          .getActiveInstances(clusterData.getAllInstances(), activeNodes,
-              clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
-              clusterData.getInstanceConfigMap(), clusterConfig);
-      // Schedule delayed rebalance in case no later cluster event happens when the delay time
-      // window passes.
-      delayedRebalanceSchedule(clusterData, delayedActiveNodes);
-      activeNodes = delayedActiveNodes;
-    }
+    Set<String> activeNodes = DelayedRebalanceUtil
+        .getActiveNodes(clusterData.getAllInstances(), clusterData.getEnabledLiveInstances(),
+            clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
+            clusterData.getInstanceConfigMap(), clusterData.getClusterConfig());
+
+    // Schedule (or unschedule) delayed rebalance according to the delayed rebalance config.
+    delayedRebalanceSchedule(clusterData, activeNodes, resourceMap.keySet());
 
     Map<String, ResourceAssignment> newAssignment =
         partialRebalance(clusterData, clusterChanges, resourceMap, activeNodes,
             currentStateOutput);
 
+    // <ResourceName, <State, Priority>>
     Map<String, Map<String, Integer>> resourceStatePriorityMap = new HashMap<>();
     // Convert the assignments into IdealState for the following state mapping calculation.
     Map<String, IdealState> finalIdealStateMap = new HashMap<>();
@@ -496,19 +491,22 @@ public class WagedRebalancer {
    * Schedule rebalance according to the delayed rebalance logic.
    * @param clusterData the current cluster data cache
    * @param delayedActiveNodes the active nodes set that is calculated with the delay time window
+   * @param resourceSet the rebalanced resourceSet
    */
   private void delayedRebalanceSchedule(ResourceControllerDataProvider clusterData,
-      Set<String> delayedActiveNodes) {
+      Set<String> delayedActiveNodes, Set<String> resourceSet) {
     if (_manager != null) {
       // Schedule for the next delayed rebalance in case no cluster change event happens.
       ClusterConfig clusterConfig = clusterData.getClusterConfig();
+      boolean delayedRebalanceEnabled = DelayedRebalanceUtil.isDelayRebalanceEnabled(clusterConfig);
       Set<String> offlineOrDisabledInstances = new HashSet<>(delayedActiveNodes);
       offlineOrDisabledInstances.removeAll(clusterData.getEnabledLiveInstances());
-      for (IdealState idealState : clusterData.getIdealStates().values()) {
-        DelayedRebalanceUtil.setRebalanceScheduler(idealState, offlineOrDisabledInstances,
-            clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
-            clusterData.getInstanceConfigMap(), clusterConfig.getRebalanceDelayTime(),
-            clusterConfig, _manager);
+      for (String resource : resourceSet) {
+        DelayedRebalanceUtil
+            .setRebalanceScheduler(resource, delayedRebalanceEnabled, offlineOrDisabledInstances,
+                clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
+                clusterData.getInstanceConfigMap(), clusterConfig.getRebalanceDelayTime(),
+                clusterConfig, _manager);
       }
     } else {
       LOG.warn("Skip scheduling a delayed rebalancer since HelixManager is not specified.");

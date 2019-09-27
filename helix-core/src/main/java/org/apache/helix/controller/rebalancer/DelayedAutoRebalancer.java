@@ -44,7 +44,6 @@ import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * This is the Full-Auto Rebalancer that is featured with delayed partition movement.
  */
@@ -112,15 +111,16 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     if (delayRebalanceEnabled) {
       long delay = DelayedRebalanceUtil.getRebalanceDelay(currentIdealState, clusterConfig);
       activeNodes = DelayedRebalanceUtil
-          .getActiveInstances(allNodes, currentIdealState, liveEnabledNodes,
+          .getActiveNodes(allNodes, currentIdealState, liveEnabledNodes,
               clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
               clusterData.getInstanceConfigMap(), delay, clusterConfig);
 
       Set<String> offlineOrDisabledInstances = new HashSet<>(activeNodes);
       offlineOrDisabledInstances.removeAll(liveEnabledNodes);
-      DelayedRebalanceUtil.setRebalanceScheduler(currentIdealState, offlineOrDisabledInstances,
-          clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
-          clusterData.getInstanceConfigMap(), delay, clusterConfig, _manager);
+      DelayedRebalanceUtil.setRebalanceScheduler(currentIdealState.getResourceName(), true,
+          offlineOrDisabledInstances, clusterData.getInstanceOfflineTimeMap(),
+          clusterData.getLiveInstances().keySet(), clusterData.getInstanceConfigMap(), delay,
+          clusterConfig, _manager);
     }
 
     if (allNodes.isEmpty() || activeNodes.isEmpty()) {
@@ -247,7 +247,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     ClusterConfig clusterConfig = cache.getClusterConfig();
     long delayTime = DelayedRebalanceUtil.getRebalanceDelay(idealState, clusterConfig);
     Set<String> activeNodes = DelayedRebalanceUtil
-        .getActiveInstances(allNodes, idealState, liveNodes, cache.getInstanceOfflineTimeMap(),
+        .getActiveNodes(allNodes, idealState, liveNodes, cache.getInstanceOfflineTimeMap(),
             cache.getLiveInstances().keySet(), cache.getInstanceConfigMap(), delayTime,
             clusterConfig);
 

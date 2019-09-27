@@ -20,7 +20,6 @@ package org.apache.helix.controller.rebalancer.util;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,7 +39,7 @@ import org.slf4j.LoggerFactory;
 public class DelayedRebalanceUtil {
   private static final Logger LOG = LoggerFactory.getLogger(DelayedRebalanceUtil.class);
 
-  private static RebalanceScheduler _rebalanceScheduler = new RebalanceScheduler();
+  private static RebalanceScheduler REBALANCE_SCHEDULER = new RebalanceScheduler();
 
   /**
    * @return true if delay rebalance is configured and enabled in the ClusterConfig configurations.
@@ -73,37 +72,37 @@ public class DelayedRebalanceUtil {
   }
 
   /**
-   * @return all active instances (live instances plus offline-yet-active instances) while
-   * considering cluster delay rebalance configurations.
+   * @return all active nodes (live nodes plus offline-yet-active nodes) while considering cluster
+   * delay rebalance configurations.
    */
-  public static Set<String> getActiveInstances(Set<String> allNodes, Set<String> liveEnabledNodes,
+  public static Set<String> getActiveNodes(Set<String> allNodes, Set<String> liveEnabledNodes,
       Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
       Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
     if (!isDelayRebalanceEnabled(clusterConfig)) {
-      return Collections.emptySet();
+      return new HashSet<>(liveEnabledNodes);
     }
-    return getActiveInstances(allNodes, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
+    return getActiveNodes(allNodes, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
         instanceConfigMap, clusterConfig.getRebalanceDelayTime(), clusterConfig);
   }
 
   /**
-   * @return all active instances (live instances plus offline-yet-active instances) while
-   * considering cluster and the resource delay rebalance configurations.
+   * @return all active nodes (live nodes plus offline-yet-active nodes) while considering cluster
+   * and the resource delay rebalance configurations.
    */
-  public static Set<String> getActiveInstances(Set<String> allNodes, IdealState idealState,
+  public static Set<String> getActiveNodes(Set<String> allNodes, IdealState idealState,
       Set<String> liveEnabledNodes, Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
       Map<String, InstanceConfig> instanceConfigMap, long delay, ClusterConfig clusterConfig) {
     if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
-      return Collections.emptySet();
+      return new HashSet<>(liveEnabledNodes);
     }
-    return getActiveInstances(allNodes, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
+    return getActiveNodes(allNodes, liveEnabledNodes, instanceOfflineTimeMap, liveNodes,
         instanceConfigMap, delay, clusterConfig);
   }
 
-  private static Set<String> getActiveInstances(Set<String> allNodes, Set<String> liveEnabledNodes,
+  private static Set<String> getActiveNodes(Set<String> allNodes, Set<String> liveEnabledNodes,
       Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
       Map<String, InstanceConfig> instanceConfigMap, long delay, ClusterConfig clusterConfig) {
-    Set<String> activeInstances = new HashSet<>(liveEnabledNodes);
+    Set<String> activeNodes = new HashSet<>(liveEnabledNodes);
     Set<String> offlineOrDisabledInstances = new HashSet<>(allNodes);
     offlineOrDisabledInstances.removeAll(liveEnabledNodes);
     long currentTime = System.currentTimeMillis();
@@ -113,10 +112,10 @@ public class DelayedRebalanceUtil {
       InstanceConfig instanceConfig = instanceConfigMap.get(ins);
       if (inactiveTime > currentTime && instanceConfig != null && instanceConfig
           .isDelayRebalanceEnabled()) {
-        activeInstances.add(ins);
+        activeNodes.add(ins);
       }
     }
-    return activeInstances;
+    return activeNodes;
   }
 
   /**
@@ -226,13 +225,12 @@ public class DelayedRebalanceUtil {
   /**
    * Set a rebalance scheduler for the closest future rebalance time.
    */
-  public static void setRebalanceScheduler(IdealState idealState,
+  public static void setRebalanceScheduler(String resourceName, boolean isDelayedRebalanceEnabled,
       Set<String> offlineOrDisabledInstances, Map<String, Long> instanceOfflineTimeMap,
       Set<String> liveNodes, Map<String, InstanceConfig> instanceConfigMap, long delay,
       ClusterConfig clusterConfig, HelixManager manager) {
-    String resourceName = idealState.getResourceName();
-    if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
-      _rebalanceScheduler.removeScheduledRebalance(resourceName);
+    if (!isDelayedRebalanceEnabled) {
+      REBALANCE_SCHEDULER.removeScheduledRebalance(resourceName);
       return;
     }
 
@@ -248,16 +246,16 @@ public class DelayedRebalanceUtil {
     }
 
     if (nextRebalanceTime == Long.MAX_VALUE) {
-      long startTime = _rebalanceScheduler.removeScheduledRebalance(resourceName);
+      long startTime = REBALANCE_SCHEDULER.removeScheduledRebalance(resourceName);
       if (LOG.isDebugEnabled()) {
         LOG.debug(String
             .format("Remove exist rebalance timer for resource %s at %d\n", resourceName,
                 startTime));
       }
     } else {
-      long currentScheduledTime = _rebalanceScheduler.getRebalanceTime(resourceName);
+      long currentScheduledTime = REBALANCE_SCHEDULER.getRebalanceTime(resourceName);
       if (currentScheduledTime < 0 || currentScheduledTime > nextRebalanceTime) {
-        _rebalanceScheduler.scheduleRebalance(manager, resourceName, nextRebalanceTime);
+        REBALANCE_SCHEDULER.scheduleRebalance(manager, resourceName, nextRebalanceTime);
         if (LOG.isDebugEnabled()) {
           LOG.debug(String
               .format("Set next rebalance time for resource %s at time %d\n", resourceName,

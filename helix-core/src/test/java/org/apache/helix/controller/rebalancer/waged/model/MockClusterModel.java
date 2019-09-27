@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 
@@ -57,7 +58,15 @@ public class MockClusterModel extends ClusterModel {
     reset(getContext().getAllReplicas(), currentNodes, getContext());
   }
 
-  // 1st test case - generate some data sets
+  public void onClusterExpansion(List<AssignableNode> newNodes) {
+    Set<AssignableNode> currentNodes = getAssignableNodes();
+    currentNodes.forEach(AssignableNode::releaseAll);
+    // add the new node
+    currentNodes.addAll(newNodes);
+
+    reset(getContext().getAllReplicas(), currentNodes, getContext());
+  }
+
   public void onInstanceCrash(AssignableNode node) {
     Set<AssignableNode> currentNodes = getAssignableNodes();
     if (!currentNodes.contains(node)) {
@@ -68,6 +77,17 @@ public class MockClusterModel extends ClusterModel {
     currentNodes.remove(node);
 
     reset(unAssignedReplicas, currentNodes, getContext());
+  }
+
+  public void onInstanceCrash(List<AssignableNode> nodes) {
+    Set<AssignableNode> currentNodes = getAssignableNodes();
+    Set<AssignableNode> crashedNodes = new HashSet<>(nodes);
+    Set<AssignableNode> remains = Sets.difference(currentNodes, crashedNodes);
+    Set<AssignableReplica> unAssignedReplicas = crashedNodes.stream()
+        .map(AssignableNode::getAssignedReplicas).flatMap(Set::stream).collect(Collectors.toSet());
+    crashedNodes.forEach(AssignableNode::releaseAll);
+
+    reset(unAssignedReplicas, remains, getContext());
   }
 
   public void onNewReplicasAddition(List<AssignableReplica> replicas) {

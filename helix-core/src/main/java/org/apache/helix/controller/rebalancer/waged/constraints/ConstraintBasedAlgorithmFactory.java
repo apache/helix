@@ -52,11 +52,11 @@ public class ConstraintBasedAlgorithmFactory {
     };
     float[] w = weights.length == 0 ? defaults : weights;
     Map<SoftConstraint, Float> softConstraints = ImmutableMap.<SoftConstraint, Float> builder()
-        .put(new PartitionMovementConstraint(), w[0] * movementRatio)
-        .put(new InstancePartitionsCountConstraint(), w[1] * evennessRatio)
-        .put(new ResourcePartitionAntiAffinityConstraint(), w[2] * evennessRatio)
-        .put(new ResourceTopStateAntiAffinityConstraint(), w[3] * evennessRatio)
-        .put(new MaxCapacityUsageInstanceConstraint(), w[4] * evennessRatio).build();
+        .put(new PartitionMovementConstraint(), w[0])
+        .put(new InstancePartitionsCountConstraint(), w[1])
+        .put(new ResourcePartitionAntiAffinityConstraint(), w[2])
+        .put(new ResourceTopStateAntiAffinityConstraint(), w[3])
+        .put(new MaxCapacityUsageInstanceConstraint(), w[4]).build();
 
     return new ConstraintBasedAlgorithm(hardConstraints, softConstraints);
   }

@@ -39,7 +39,7 @@ public class TestNodeCapacityConstraint {
   @Test
   public void testConstraintValidWhenNodeHasEnoughSpace() {
     String key = "testKey";
-    when(_testNode.getCurrentCapacity()).thenReturn(ImmutableMap.of(key,  10));
+    when(_testNode.getRemainingCapacity()).thenReturn(ImmutableMap.of(key,  10));
     when(_testReplica.getCapacity()).thenReturn(ImmutableMap.of(key, 5));
     Assert.assertTrue(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }
@@ -47,7 +47,7 @@ public class TestNodeCapacityConstraint {
   @Test
   public void testConstraintInValidWhenNodeHasInsufficientSpace() {
     String key = "testKey";
-    when(_testNode.getCurrentCapacity()).thenReturn(ImmutableMap.of(key,  1));
+    when(_testNode.getRemainingCapacity()).thenReturn(ImmutableMap.of(key,  1));
     when(_testReplica.getCapacity()).thenReturn(ImmutableMap.of(key, 5));
     Assert.assertFalse(_constraint.isAssignmentValid(_testNode, _testReplica, _clusterContext));
   }

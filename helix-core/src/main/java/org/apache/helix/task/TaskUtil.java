@@ -734,24 +734,43 @@ public class TaskUtil {
       for (String job : workflowConfig.getJobDag().getAllNodes()) {
         JobConfig jobConfig = TaskUtil.getJobConfig(dataAccessor, job);
         JobContext jobContext = TaskUtil.getJobContext(propertyStore, job);
-        if (jobConfig == null) {
-          LOG.error(String.format(
-              "Job %s exists in JobDAG but JobConfig is missing! Job might have been deleted manually from the JobQueue: %s, or left in the DAG due to a failed clean-up attempt from last purge.",
-              job, workflowConfig.getWorkflowId()));
-          // Add the job name to expiredJobs so that purge operation will be tried again on this job
-          expiredJobs.add(job);
-          continue;
-        }
-        long expiry = jobConfig.getExpiry();
-        if (jobContext != null && jobStates.get(job) == TaskState.COMPLETED) {
-          if (jobContext.getFinishTime() != WorkflowContext.UNFINISHED
-              && System.currentTimeMillis() >= jobContext.getFinishTime() + expiry) {
-            expiredJobs.add(job);
+        if (jobConfig != null) {
+          long expiry = jobConfig.getExpiry();
+          if (jobContext != null && jobStates.get(job) == TaskState.COMPLETED) {
+            if (jobContext.getFinishTime() != WorkflowContext.UNFINISHED
+                && System.currentTimeMillis() >= jobContext.getFinishTime() + expiry) {
+              expiredJobs.add(job);
+            }
           }
         }
       }
     }
     return expiredJobs;
+  }
+
+  /**
+   * Return all jobs that are missing JobConfig
+   * @param dataAccessor
+   * @param workflowConfig
+   * @param workflowContext
+   * @return
+   */
+  protected static Set<String> getMisconfiguredJobs(HelixDataAccessor dataAccessor,
+      WorkflowConfig workflowConfig, WorkflowContext workflowContext) {
+    Set<String> misconfiguredJob = new HashSet<>();
+
+    if (workflowContext != null) {
+      for (String job : workflowConfig.getJobDag().getAllNodes()) {
+        JobConfig jobConfig = TaskUtil.getJobConfig(dataAccessor, job);
+        if (jobConfig == null) {
+          LOG.error(String.format(
+              "Job %s exists in JobDAG but JobConfig is missing! Job might have been deleted manually from the JobQueue: %s, or left in the DAG due to a failed clean-up attempt from last purge.",
+              job, workflowConfig.getWorkflowId()));
+          misconfiguredJob.add(job);
+        }
+      }
+    }
+    return misconfiguredJob;
   }
 
   /**
@@ -990,46 +1009,65 @@ public class TaskUtil {
     long purgeInterval = workflowConfig.getJobPurgeInterval();
     long currentTime = System.currentTimeMillis();
     final Set<String> expiredJobs = Sets.newHashSet();
+    final Set<String> misconfiguredJobs = Sets.newHashSet();
     if (purgeInterval > 0 && workflowContext.getLastJobPurgeTime() + purgeInterval <= currentTime) {
       expiredJobs.addAll(TaskUtil.getExpiredJobs(manager.getHelixDataAccessor(),
           manager.getHelixPropertyStore(), workflowConfig, workflowContext));
-      if (expiredJobs.isEmpty()) {
+      misconfiguredJobs.addAll(TaskUtil.getMisconfiguredJobs(manager.getHelixDataAccessor(),
+          workflowConfig, workflowContext));
+      if (expiredJobs.isEmpty() && misconfiguredJobs.isEmpty()) {
         LOG.info("No job to purge for the queue " + workflow);
       } else {
-        LOG.info("Purge jobs " + expiredJobs + " from queue " + workflow);
-        Set<String> failedJobRemovals = new HashSet<>();
-        for (String job : expiredJobs) {
-          if (!TaskUtil.removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(),
-              job)) {
-            failedJobRemovals.add(job);
-            LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
+        if (!expiredJobs.isEmpty()) {
+          LOG.info("Purge jobs " + expiredJobs + " from queue " + workflow);
+          Set<String> failedJobRemovals = new HashSet<>();
+          for (String job : expiredJobs) {
+            if (!TaskUtil.removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(),
+                job)) {
+              failedJobRemovals.add(job);
+              LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
+            }
+            rebalanceScheduler.removeScheduledRebalance(job);
           }
-          rebalanceScheduler.removeScheduledRebalance(job);
-        }
 
-        // If the job removal failed, make sure we do NOT prematurely delete it from DAG so that the
-        // removal will be tried again at next purge
-        expiredJobs.removeAll(failedJobRemovals);
+          // If the job removal failed, make sure we do NOT prematurely delete it from DAG so that
+          // the removal will be tried again at next purge
+          expiredJobs.removeAll(failedJobRemovals);
 
-        if (!TaskUtil.removeJobsFromDag(manager.getHelixDataAccessor(), workflow, expiredJobs,
-            true)) {
-          LOG.warn("Error occurred while trying to remove jobs + " + expiredJobs
-              + " from the workflow " + workflow);
-        }
-
-        if (expiredJobs.size() > 0) {
-          // Update workflow context will be in main pipeline not here. Otherwise, it will cause
-          // concurrent write issue. It is possible that jobs got purged but there is no event to
-          // trigger the pipeline to clean context.
-          HelixDataAccessor accessor = manager.getHelixDataAccessor();
-          List<String> resourceConfigs =
-              accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
-          if (resourceConfigs.size() > 0) {
-            RebalanceUtil.scheduleOnDemandPipeline(manager.getClusterName(), 0L);
-          } else {
-            LOG.warn(
-                "No resource config to trigger rebalance for clean up contexts for" + expiredJobs);
+          if (!TaskUtil.removeJobsFromDag(manager.getHelixDataAccessor(), workflow, expiredJobs,
+              true)) {
+            LOG.warn("Error occurred while trying to remove jobs + " + expiredJobs
+                + " from the workflow " + workflow);
           }
+        }
+        if (!misconfiguredJobs.isEmpty()) {
+          LOG.info("Purge jobs " + misconfiguredJobs + " from queue " + workflow);
+          for (String job : misconfiguredJobs) {
+            if (!TaskUtil.removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(),
+                job)) {
+              LOG.warn("Failed to clean up misconfigured jobs from workflow " + workflow);
+            }
+            rebalanceScheduler.removeScheduledRebalance(job);
+          }
+          if (!TaskUtil.removeJobsFromDag(manager.getHelixDataAccessor(), workflow,
+              misconfiguredJobs, true)) {
+            LOG.warn("Error occurred while trying to remove jobs + " + misconfiguredJobs
+                + " from the workflow " + workflow);
+          }
+        }
+      }
+      if (expiredJobs.size() > 0) {
+        // Update workflow context will be in main pipeline not here. Otherwise, it will cause
+        // concurrent write issue. It is possible that jobs got purged but there is no event to
+        // trigger the pipeline to clean context.
+        HelixDataAccessor accessor = manager.getHelixDataAccessor();
+        List<String> resourceConfigs =
+            accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
+        if (resourceConfigs.size() > 0) {
+          RebalanceUtil.scheduleOnDemandPipeline(manager.getClusterName(), 0L);
+        } else {
+          LOG.warn(
+              "No resource config to trigger rebalance for clean up contexts for " + expiredJobs);
         }
       }
     }

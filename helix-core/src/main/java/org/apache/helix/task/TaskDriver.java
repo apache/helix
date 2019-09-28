@@ -393,6 +393,13 @@ public class TaskDriver {
         if (!TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, expiredJobs, true)) {
           LOG.warn("Failed to clean up expired and completed jobs from queue " + queue);
         }
+
+        Set<String> misconfiguredJobs =
+            TaskUtil.getMisconfiguredJobs(_accessor, workflowConfig, workflowContext);
+        if (!TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, misconfiguredJobs, true)) {
+          LOG.warn("Failed to clean up misconfiguredJobs jobs from queue " + queue);
+        }
+
       }
       workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
       if (workflowConfig.getJobDag().size() >= capacity) {

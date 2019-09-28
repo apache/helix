@@ -30,7 +30,7 @@ class NodeCapacityConstraint extends HardConstraint {
   @Override
   boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    Map<String, Integer> nodeCapacity = node.getCurrentCapacity();
+    Map<String, Integer> nodeCapacity = node.getRemainingCapacity();
     Map<String, Integer> replicaCapacity = replica.getCapacity();
 
     for (String key : replicaCapacity.keySet()) {

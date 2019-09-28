@@ -143,6 +143,7 @@ public class HelixRestServer {
   private ResourceConfig getResourceConfig(HelixRestNamespace namespace, ServletType type) {
     ResourceConfig cfg = new ResourceConfig();
     cfg.packages(type.getServletPackageArray());
+    cfg.setApplicationName(namespace.getName());
 
     // Enable the default statistical monitoring MBean for Jersey server
     cfg.property(ServerProperties.MONITORING_STATISTICS_MBEANS_ENABLED, true);

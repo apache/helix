@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -235,6 +236,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       ResourceControllerDataProvider cache, CurrentStateOutput currentStateOutput,
       HelixManager helixManager, Map<String, Resource> resourceMap, BestPossibleStateOutput output,
       List<String> failureResources) {
+    if (cache.isMaintenanceModeEnabled()) {
+      // The WAGED rebalancer won't be used while maintenance mode is enabled.
+      return Collections.emptyMap();
+    }
+
     // Find the compatible resources: 1. FULL_AUTO 2. Configured to use the WAGED rebalancer
     Map<String, Resource> wagedRebalancedResourceMap =
         resourceMap.entrySet().stream().filter(resourceEntry -> {
@@ -394,10 +400,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
   }
 
-  private Rebalancer<ResourceControllerDataProvider> getRebalancer(IdealState idealState,
-      String resourceName, boolean isMaintenanceModeEnabled) {
+  private Rebalancer<ResourceControllerDataProvider> getCustomizedRebalancer(
+      String rebalancerClassName, String resourceName) {
     Rebalancer<ResourceControllerDataProvider> customizedRebalancer = null;
-    String rebalancerClassName = idealState.getRebalancerClassName();
     if (rebalancerClassName != null) {
       if (logger.isDebugEnabled()) {
         LogUtil.logDebug(logger, _eventId,
@@ -411,13 +416,19 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
             "Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
       }
     }
+    return customizedRebalancer;
+  }
 
+  private Rebalancer<ResourceControllerDataProvider> getRebalancer(IdealState idealState,
+      String resourceName, boolean isMaintenanceModeEnabled) {
     Rebalancer<ResourceControllerDataProvider> rebalancer = null;
     switch (idealState.getRebalanceMode()) {
     case FULL_AUTO:
       if (isMaintenanceModeEnabled) {
         rebalancer = new MaintenanceRebalancer();
       } else {
+        Rebalancer<ResourceControllerDataProvider> customizedRebalancer =
+            getCustomizedRebalancer(idealState.getRebalancerClassName(), resourceName);
         if (customizedRebalancer != null) {
           rebalancer = customizedRebalancer;
         } else {
@@ -433,14 +444,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       break;
     case USER_DEFINED:
     case TASK:
-      rebalancer = customizedRebalancer;
+      rebalancer = getCustomizedRebalancer(idealState.getRebalancerClassName(), resourceName);
       break;
     default:
       LogUtil.logError(logger, _eventId,
           "Fail to find the rebalancer, invalid rebalance mode " + idealState.getRebalanceMode());
       break;
     }
-
     return rebalancer;
   }
 

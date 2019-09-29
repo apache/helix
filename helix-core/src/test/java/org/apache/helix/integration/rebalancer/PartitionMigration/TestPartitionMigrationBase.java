@@ -58,14 +58,14 @@ public class TestPartitionMigrationBase extends ZkTestBase {
   protected ClusterControllerManager _controller;
 
   List<MockParticipantManager> _participants = new ArrayList<>();
-  int _replica = 3;
-  int _minActiveReplica = _replica - 1;
+  protected int _replica = 3;
+  protected int _minActiveReplica = _replica - 1;
   ZkHelixClusterVerifier _clusterVerifier;
-  List<String> _testDBs = new ArrayList<>();
+  protected List<String> _testDBs = new ArrayList<>();
 
   MigrationStateVerifier _migrationVerifier;
   HelixManager _manager;
-  ConfigAccessor _configAccessor;
+  protected ConfigAccessor _configAccessor;
 
 
   @BeforeClass
@@ -85,8 +85,7 @@ public class TestPartitionMigrationBase extends ZkTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    _clusterVerifier = getVerifier();
 
     enablePersistIntermediateAssignment(_gZkClient, CLUSTER_NAME, true);
 
@@ -94,6 +93,10 @@ public class TestPartitionMigrationBase extends ZkTestBase {
         HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
     _configAccessor = new ConfigAccessor(_gZkClient);
+  }
+
+  protected ZkHelixClusterVerifier getVerifier() {
+    return new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
   }
 
   protected MockParticipantManager createAndStartParticipant(String instancename) {

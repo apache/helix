@@ -22,32 +22,37 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
-import org.apache.helix.model.ClusterConfig;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
+import org.apache.helix.model.ClusterConfig;
 
 /**
  * The factory class to create an instance of {@link ConstraintBasedAlgorithm}
  */
 public class ConstraintBasedAlgorithmFactory {
+  // Evenness constraints tend to score within a smaller range.
+  // In order to let their scores cause enough difference in the final evaluation result, we need to
+  // enlarge the overall weight of the evenness constraints compared with the movement constraint.
+  // TODO: Tune or make the following factor configurable.
+  private static final int EVENNESS_PREFERENCE_NORMALIZE_FACTOR = 50;
 
   public static RebalanceAlgorithm getInstance(
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
-    List<HardConstraint> hardConstraints =
-        ImmutableList.of(new FaultZoneAwareConstraint(), new NodeCapacityConstraint(),
+    List<HardConstraint> hardConstraints = ImmutableList
+        .of(new FaultZoneAwareConstraint(), new NodeCapacityConstraint(),
             new ReplicaActivateConstraint(), new NodeMaxPartitionLimitConstraint(),
             new ValidGroupTagConstraint(), new SamePartitionOnInstanceConstraint());
 
     int evennessPreference =
-        preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 1);
+        preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 1)
+            * EVENNESS_PREFERENCE_NORMALIZE_FACTOR;
     int movementPreference =
         preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1);
     float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
     float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
 
-    Map<SoftConstraint, Float> softConstraints = ImmutableMap.<SoftConstraint, Float> builder()
+    Map<SoftConstraint, Float> softConstraints = ImmutableMap.<SoftConstraint, Float>builder()
         .put(new PartitionMovementConstraint(), movementRatio)
         .put(new InstancePartitionsCountConstraint(), 0.3f * evennessRatio)
         .put(new ResourcePartitionAntiAffinityConstraint(), 0.1f * evennessRatio)

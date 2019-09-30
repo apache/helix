@@ -30,7 +30,6 @@
   <option name="IMPORT_LAYOUT_TABLE">
     <value>
       <package name="java" withSubpackages="true" static="false" />
-      <emptyLine />
       <package name="javax" withSubpackages="true" static="false" />
       <emptyLine />
       <package name="" withSubpackages="true" static="false" />

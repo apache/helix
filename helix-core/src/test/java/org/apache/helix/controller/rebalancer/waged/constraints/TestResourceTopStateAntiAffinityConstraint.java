@@ -19,7 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
@@ -52,33 +51,35 @@ public class TestResourceTopStateAntiAffinityConstraint {
   @Test
   public void testGetAssignmentScoreWhenReplicaNotTopState() {
     when(_testReplica.isReplicaTopState()).thenReturn(false);
+    when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0f);
     Assert.assertEquals(normalizedScore, 1f);
-    verifyZeroInteractions(_clusterContext);
   }
 
   @Test
   public void testGetAssignmentScoreWhenReplicaIsTopStateHeavyLoad() {
     when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(20);
+    when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 21f);
-    Assert.assertEquals(normalizedScore, 0.04758309f);
+    Assert.assertEquals(score, 0.525f);
+    Assert.assertEquals(normalizedScore, 0.9566433f);
   }
 
   @Test
   public void testGetAssignmentScoreWhenReplicaIsTopStateLightLoad() {
     when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(0);
+    when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 1f);
-    Assert.assertEquals(normalizedScore, 0.7615942f);
+    Assert.assertEquals(score, 0.025f);
+    Assert.assertEquals(normalizedScore, 1f);
   }
 }

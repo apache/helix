@@ -33,6 +33,8 @@ class InstancePartitionsCountConstraint extends SoftConstraint {
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    return node.getAssignedReplicaCount();
+    float doubleEstimatedMaxPartitionCount = 2 * clusterContext.getEstimatedMaxPartitionCount();
+    // use the percentage as the input for normalization method
+    return node.getAssignedReplicaCount() / doubleEstimatedMaxPartitionCount;
   }
 }

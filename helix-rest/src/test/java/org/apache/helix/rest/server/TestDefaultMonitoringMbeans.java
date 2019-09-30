@@ -20,19 +20,27 @@ package org.apache.helix.rest.server;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
+
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
 import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 import javax.ws.rs.core.Response;
+
 import org.apache.helix.TestHelper;
+import org.apache.helix.rest.common.HelixRestNamespace;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestDefaultMonitoringMbeans extends AbstractTestClass {
+  private static final String DEFAULT_METRIC_DOMAIN = "org.glassfish.jersey";
 
   // For entire testing environment, we could have 2 - 4 rest server during the testing. So we dont
   // know which REST server got the request and report number. So we have to loop all of them to
@@ -73,5 +81,29 @@ public class TestDefaultMonitoringMbeans extends AbstractTestClass {
 
     Assert.assertTrue(correctReports);
     System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test
+  public void testMBeanApplicationName()
+      throws MalformedObjectNameException {
+    Set<String> namespaces =
+        new HashSet<>(Arrays.asList(HelixRestNamespace.DEFAULT_NAMESPACE_NAME, TEST_NAMESPACE));
+    MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+    Set<ObjectName> objectNames =
+        mBeanServer.queryNames(new ObjectName(DEFAULT_METRIC_DOMAIN + ":*"), null);
+
+    Set<String> appNames = new HashSet<>();
+    for (ObjectName mBeanName : objectNames) {
+      appNames.add(mBeanName.getKeyProperty("type"));
+    }
+
+    Assert.assertEquals(appNames.size(), namespaces.size(), String
+        .format("appNames: %s does't have the same size as namespaces: %s.", appNames, namespaces));
+
+    for (String appName : appNames) {
+      Assert.assertTrue(namespaces.contains(appName), String
+          .format("Application name: %s is not one of the namespaces: %s.", appName, namespaces));
+      namespaces.remove(appName);
+    }
   }
 }

@@ -75,9 +75,7 @@ public class TestPurgeJobWithoutConfig extends TaskTestBase {
 
     // Check the JOB1 is completed
     String nameSpacedJobName = TaskUtil.getNamespacedJobName(jobQueueName, "JOB1");
-
-    _driver.pollForJobState(jobQueueName, TaskUtil.getNamespacedJobName(jobQueueName, "JOB1"),
-        TaskState.COMPLETED);
+    _driver.pollForJobState(jobQueueName, nameSpacedJobName, TaskState.COMPLETED);
 
     // Remove the config associated with JOB1
     boolean configDeleted =

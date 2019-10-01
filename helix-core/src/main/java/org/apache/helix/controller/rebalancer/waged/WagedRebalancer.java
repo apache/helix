@@ -103,6 +103,11 @@ public class WagedRebalancer {
   }
 
   protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
+      RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator) {
+    this(assignmentMetadataStore, algorithm, mappingCalculator, null);
+  }
+
+  private WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator, HelixManager manager) {
     if (assignmentMetadataStore == null) {
       LOG.warn("Assignment Metadata Store is not configured properly."
@@ -210,7 +215,7 @@ public class WagedRebalancer {
     // Convert the assignments into IdealState for the following state mapping calculation.
     Map<String, IdealState> finalIdealStateMap = new HashMap<>();
     for (String resourceName : newAssignment.keySet()) {
-      IdealState newIdeaState;
+      IdealState newIdealState;
       try {
         IdealState currentIdealState = clusterData.getIdealState(resourceName);
         Map<String, Integer> statePriorityMap = clusterData
@@ -219,14 +224,14 @@ public class WagedRebalancer {
         resourceStatePriorityMap.put(resourceName, statePriorityMap);
         // Create a new IdealState instance contains the new calculated assignment in the preference
         // list.
-        newIdeaState = generateIdealStateWithAssignment(resourceName, currentIdealState,
+        newIdealState = generateIdealStateWithAssignment(resourceName, currentIdealState,
             newAssignment.get(resourceName), statePriorityMap);
       } catch (Exception ex) {
         throw new HelixRebalanceException(
             "Fail to calculate the new IdealState for resource: " + resourceName,
             HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
       }
-      finalIdealStateMap.put(resourceName, newIdeaState);
+      finalIdealStateMap.put(resourceName, newIdealState);
     }
 
     // The additional rebalance overwrite is required since the calculated mapping may contains

@@ -113,7 +113,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   public void testRebalance() throws IOException, HelixRebalanceException {
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
-        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer(), null);
+        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
 
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -137,7 +137,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       throws IOException, HelixRebalanceException {
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
-        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer(), null);
+        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
 
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -163,7 +163,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   public void testRebalanceWithCurrentState() throws IOException, HelixRebalanceException {
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
-        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer(), null);
+        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
 
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -224,7 +224,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       throws IOException, HelixRebalanceException {
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
-        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer(), null);
+        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     String nonCompatibleResourceName = _resourceNames.get(0);
@@ -247,7 +247,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       throws IOException {
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
-        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer(), null);
+        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     String invalidResource = _resourceNames.get(0);
@@ -273,7 +273,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     when(metadataStore.getBaseline())
         .thenThrow(new RuntimeException("Mock Error. Metadata store fails."));
     WagedRebalancer rebalancer =
-        new WagedRebalancer(metadataStore, _algorithm, new DelayedAutoRebalancer(), null);
+        new WagedRebalancer(metadataStore, _algorithm, new DelayedAutoRebalancer());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     // The input resource Map shall contain all the valid resources.
@@ -298,7 +298,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
-        new WagedRebalancer(_metadataStore, badAlgorithm, new DelayedAutoRebalancer(), null);
+        new WagedRebalancer(_metadataStore, badAlgorithm, new DelayedAutoRebalancer());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     Map<String, Resource> resourceMap = clusterData.getIdealStates().keySet().stream().collect(
@@ -323,7 +323,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
-        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer(), null);
+        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
 
     // 1. rebalance with baseline calculation done
     // Generate the input for the rebalancer.

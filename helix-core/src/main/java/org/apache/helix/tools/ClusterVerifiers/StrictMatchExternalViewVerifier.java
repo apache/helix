@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
@@ -250,11 +251,12 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
             + "is enabled."));
       }
       for (String partition : idealState.getPartitionSet()) {
-        if (idealState.getPreferenceList(partition) == null || idealState.getPreferenceList(partition).isEmpty()) {
+        if (idealState.getInstanceStateMap(partition) == null || idealState
+            .getInstanceStateMap(partition).isEmpty()) {
           return false;
         }
       }
-      idealPartitionState = computeIdealPartitionState(dataCache, idealState);
+      idealPartitionState = idealState.getRecord().getMapFields();
       break;
     case SEMI_AUTO:
     case USER_DEFINED:

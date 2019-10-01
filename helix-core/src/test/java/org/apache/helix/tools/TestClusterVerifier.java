@@ -125,19 +125,42 @@ public class TestClusterVerifier extends ZkUnitTestBase {
         new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(bestPossibleVerifier.verify(10000));
 
+    // Disable partition for 1 instance, then Full-Auto ExternalView should not match IdealState.
+    _admin.enablePartition(false, _clusterName, _participants[0].getInstanceName(),
+        FULL_AUTO_RESOURCES[0], Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
+    Thread.sleep(1000);
+    Assert.assertTrue(bestPossibleVerifier.verify(3000));
+
+    // Enable the partition back
+    _admin.enablePartition(true, _clusterName, _participants[0].getInstanceName(),
+        FULL_AUTO_RESOURCES[0], Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
+    Thread.sleep(1000);
+    Assert.assertTrue(bestPossibleVerifier.verify(10000));
+
+    // Make 1 instance non-live
+    _participants[0].syncStop();
+    Thread.sleep(1000);
+    Assert.assertTrue(bestPossibleVerifier.verify(10000));
+
+    // Recover the participant before next test
+    String id = _participants[0].getInstanceName();
+    _participants[0] = new MockParticipantManager(ZK_ADDR, _clusterName, id);
+    _participants[0].syncStart();
+
     HelixClusterVerifier strictMatchVerifier =
-        new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
+        new StrictMatchExternalViewVerifier.Builder(_clusterName)
+            .setResources(Sets.newHashSet(RESOURCES)).setZkClient(_gZkClient).build();
     Assert.assertTrue(strictMatchVerifier.verify(10000));
 
     // Disable partition for 1 instance, then Full-Auto ExternalView should not match IdealState.
-    _admin.enablePartition(false, _clusterName, _participants[0].getInstanceName(), FULL_AUTO_RESOURCES[0],
-        Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
+    _admin.enablePartition(false, _clusterName, _participants[0].getInstanceName(),
+        FULL_AUTO_RESOURCES[0], Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
     Thread.sleep(1000);
-    Assert.assertFalse(strictMatchVerifier.verify(3000));
+    Assert.assertTrue(strictMatchVerifier.verify(3000));
 
     // Enable the partition back
-    _admin.enablePartition(true, _clusterName, _participants[0].getInstanceName(), FULL_AUTO_RESOURCES[0],
-        Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
+    _admin.enablePartition(true, _clusterName, _participants[0].getInstanceName(),
+        FULL_AUTO_RESOURCES[0], Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
     Thread.sleep(1000);
     Assert.assertTrue(strictMatchVerifier.verify(10000));
 
@@ -148,14 +171,16 @@ public class TestClusterVerifier extends ZkUnitTestBase {
     // Semi-Auto ExternalView should not match IdealState
     for (String resource : SEMI_AUTO_RESOURCES) {
       System.out.println("Un-verify resource: " + resource);
-      strictMatchVerifier = new StrictMatchExternalViewVerifier.Builder(_clusterName)
-          .setZkClient(_gZkClient).setResources(Sets.newHashSet(resource)).build();
+      strictMatchVerifier =
+          new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+              .setResources(Sets.newHashSet(resource)).build();
       Assert.assertFalse(strictMatchVerifier.verify(3000));
     }
 
     // Full-Auto still match, because preference list wouldn't contain non-live instances
-    strictMatchVerifier = new StrictMatchExternalViewVerifier.Builder(_clusterName)
-        .setZkClient(_gZkClient).setResources(Sets.newHashSet(FULL_AUTO_RESOURCES)).build();
+    strictMatchVerifier =
+        new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+            .setResources(Sets.newHashSet(FULL_AUTO_RESOURCES)).build();
     Assert.assertTrue(strictMatchVerifier.verify(10000));
   }
 

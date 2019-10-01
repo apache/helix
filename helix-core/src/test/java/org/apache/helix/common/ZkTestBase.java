@@ -353,9 +353,9 @@ public class ZkTestBase {
   }
 
   protected IdealState createResourceWithWagedRebalance(String clusterName, String db,
-      String stateModel, int numPartition, int replica, int minActiveReplica, long delay) {
+      String stateModel, int numPartition, int replica, int minActiveReplica) {
     return createResource(clusterName, db, stateModel, numPartition, replica, minActiveReplica,
-        delay, WagedRebalancer.class.getName(), null);
+        -1, WagedRebalancer.class.getName(), null);
   }
 
   private IdealState createResource(String clusterName, String db, String stateModel,

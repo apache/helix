@@ -28,15 +28,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixException;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This class represents a possible allocation of the replication.
@@ -138,8 +136,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
 
     Map<String, AssignableReplica> partitionMap = _currentAssignedReplicaMap.get(resourceName);
-    if (!partitionMap.containsKey(partitionName)
-        || !partitionMap.get(partitionName).equals(replica)) {
+    if (!partitionMap.containsKey(partitionName) || !partitionMap.get(partitionName)
+        .equals(replica)) {
       LOG.warn("Replica {} is not assigned to node {}. Ignore the release call.",
           replica.toString(), getInstanceName());
       return;
@@ -269,10 +267,9 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * For example, when
    * the domain is "zone=2, instance=testInstance" and the fault zone type is "zone", this function
    * returns "2".
-   * If cannot find the fault zone id, this function leaves the fault zone id as the instance name.
-   * TODO merge this logic with Topology.java tree building logic.
-   * For now, the WAGED rebalancer has a more strict topology def requirement.
-   * Any missing field will cause an invalid topology config exception.
+   * If cannot find the fault zone type, this function leaves the fault zone id as the instance name.
+   * Note the WAGED rebalancer does not require full topology tree to be created. So this logic is
+   * simpler than the CRUSH based rebalancer.
    */
   private String computeFaultZone(ClusterConfig clusterConfig, InstanceConfig instanceConfig) {
     if (!clusterConfig.isTopologyAwareEnabled()) {
@@ -290,36 +287,27 @@ public class AssignableNode implements Comparable<AssignableNode> {
       return zoneId == null ? instanceConfig.getInstanceName() : zoneId;
     } else {
       // Get the fault zone information from the complete topology definition.
-      String[] topologyDef = topologyStr.trim().split("/");
-      if (topologyDef.length == 0
-          || Arrays.stream(topologyDef).noneMatch(type -> type.equals(faultZoneType))) {
+      String[] topologyKeys = topologyStr.trim().split("/");
+      if (topologyKeys.length == 0 || Arrays.stream(topologyKeys)
+          .noneMatch(type -> type.equals(faultZoneType))) {
         throw new HelixException(
             "The configured topology definition is empty or does not contain the fault zone type.");
       }
 
       Map<String, String> domainAsMap = instanceConfig.getDomainAsMap();
-      if (domainAsMap == null) {
-        throw new HelixException(
-            String.format("The domain configuration of node %s is not configured", _instanceName));
-      } else {
-        StringBuilder faultZoneStringBuilder = new StringBuilder();
-        for (String key : topologyDef) {
-          if (!key.isEmpty()) {
-            if (domainAsMap.containsKey(key)) {
-              faultZoneStringBuilder.append(domainAsMap.get(key));
-              faultZoneStringBuilder.append('/');
-            } else {
-              throw new HelixException(String.format(
-                  "The domain configuration of node %s is not complete. Type %s is not found.",
-                  _instanceName, key));
-            }
-            if (key.equals(faultZoneType)) {
-              break;
-            }
+      StringBuilder faultZoneStringBuilder = new StringBuilder();
+      for (String key : topologyKeys) {
+        if (!key.isEmpty()) {
+          // if a key does not exist in the instance domain config, apply the default domain value.
+          faultZoneStringBuilder.append(domainAsMap.getOrDefault(key, "Default_" + key));
+          if (key.equals(faultZoneType)) {
+            break;
+          } else {
+            faultZoneStringBuilder.append('/');
           }
         }
-        return faultZoneStringBuilder.toString();
       }
+      return faultZoneStringBuilder.toString();
     }
   }
 

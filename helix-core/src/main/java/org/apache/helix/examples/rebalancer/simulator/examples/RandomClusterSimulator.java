@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.examples.rebalancer.simulator.AbstractSimulator;
@@ -31,7 +32,6 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
-
 
 /**
  * Create a random cluster based on the specified scale and run the simulated tests.
@@ -108,16 +108,15 @@ public class RandomClusterSimulator extends AbstractSimulator {
     return instanceConfig;
   }
 
-  public static void main(String[] args)
-      throws Exception {
-    RandomClusterSimulator simulator = new RandomClusterSimulator(10, false);
+  public static void main(String[] args) throws Exception {
+    RandomClusterSimulator simulator = new RandomClusterSimulator(0, false);
 
     Set<String> faultZones = new HashSet<>();
     for (int i = 0; i < NUM_ZONES; i++) {
       faultZones.add("zone-" + i);
     }
     simulator.simulate(ZK_ADDRESS, CLUSTER_NAME, null,
-        ExampleScripts.expandFaultZones(2, simulator.defaultCapacity, faultZones, simulator),
+        ExampleScripts.rollingUpgrade(faultZones, simulator),
         false);
 
     System.exit(0);

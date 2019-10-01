@@ -20,22 +20,30 @@ package org.apache.helix.examples.rebalancer.simulator.examples;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.examples.rebalancer.simulator.AbstractSimulator;
 import org.apache.helix.examples.rebalancer.simulator.MetadataOverwrites;
-import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.examples.rebalancer.simulator.operations.Operation;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.tools.commandtools.ZkCopy;
-
 
 /**
  * Clone the cluster metadata from a real running Helix cluster and then simulate based on that metadata.
@@ -67,10 +75,14 @@ public class CloneClusterSimulator extends AbstractSimulator {
     String dstURI = String.format("zk://%s/%s", ZK_ADDRESS, getClusterName());
     String dstPath = String.format("/%s", getClusterName());
     try {
-      ZkCopy.main(new String[]{"--src", srcURI + "/CONFIGS", "--dst", dstURI + "/CONFIGS"});
-      ZkCopy.main(new String[]{"--src", srcURI + "/CONTROLLER", "--dst", dstURI + "/CONTROLLER"});
-      ZkCopy.main(new String[]{"--src", srcURI + "/IDEALSTATES", "--dst", dstURI + "/IDEALSTATES"});
-      ZkCopy.main(new String[]{"--src", srcURI + "/STATEMODELDEFS", "--dst", dstURI + "/STATEMODELDEFS"});
+      ZkCopy.main(new String[] { "--src", srcURI + "/CONFIGS", "--dst", dstURI + "/CONFIGS" });
+      ZkCopy
+          .main(new String[] { "--src", srcURI + "/CONTROLLER", "--dst", dstURI + "/CONTROLLER" });
+      ZkCopy.main(
+          new String[] { "--src", srcURI + "/IDEALSTATES", "--dst", dstURI + "/IDEALSTATES" });
+      ZkCopy.main(
+          new String[] { "--src", srcURI + "/STATEMODELDEFS", "--dst", dstURI + "/STATEMODELDEFS"
+          });
       getZkClient().createPersistent(dstPath + "/INSTANCES");
       getZkClient().createPersistent(dstPath + "/EXTERNALVIEW");
       getZkClient().createPersistent(dstPath + "/LIVEINSTANCES");
@@ -82,11 +94,20 @@ public class CloneClusterSimulator extends AbstractSimulator {
       String instanceConfigPath = PropertyPathBuilder.instanceConfig(getClusterName());
       List<String> instanceConfigChildrenPath = getZkClient().getChildren(instanceConfigPath);
       for (String instance : instanceConfigChildrenPath) {
-        getZkClient().createPersistent(PropertyPathBuilder.instanceMessage(getClusterName(), instance), true);
-        getZkClient().createPersistent(PropertyPathBuilder.instanceCurrentState(getClusterName(), instance), true);
-        getZkClient().createPersistent(PropertyPathBuilder.instanceError(getClusterName(), instance), true);
-        getZkClient().createPersistent(PropertyPathBuilder.instanceStatusUpdate(getClusterName(), instance), true);
-        getZkClient().createPersistent(PropertyPathBuilder.instanceHistory(getClusterName(), instance), true);
+        getZkClient()
+            .createPersistent(PropertyPathBuilder.instanceMessage(getClusterName(), instance),
+                true);
+        getZkClient()
+            .createPersistent(PropertyPathBuilder.instanceCurrentState(getClusterName(), instance),
+                true);
+        getZkClient()
+            .createPersistent(PropertyPathBuilder.instanceError(getClusterName(), instance), true);
+        getZkClient()
+            .createPersistent(PropertyPathBuilder.instanceStatusUpdate(getClusterName(), instance),
+                true);
+        getZkClient()
+            .createPersistent(PropertyPathBuilder.instanceHistory(getClusterName(), instance),
+                true);
       }
     } catch (Exception e) {
       return false;
@@ -165,17 +186,46 @@ public class CloneClusterSimulator extends AbstractSimulator {
     };
   }
 
-  public static void main(String[] args)
-      throws Exception {
+  public static void main(String[] args) throws Exception {
     String srcZkServers = "zk-ltx1-espresso.stg.linkedin.com:12913";
     String clusterName = "ESPRESSO_MT1";
     if (args.length >= 2) {
       srcZkServers = args[0];
       clusterName = args[1];
     }
-    CloneClusterSimulator simulator = new CloneClusterSimulator(srcZkServers, 10, false);
-    simulator.simulate(ZK_ADDRESS, clusterName, simulator.generateOverwrites(),
-        ExampleScripts.migrateToWagedRebalancer(), false);
+    CloneClusterSimulator simulator = new CloneClusterSimulator(srcZkServers, 0, false);
+
+    Set<String> faultZones = new HashSet<>();
+    String faultZoneType;
+    String topology;
+
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(new ZNRecordSerializer()).setConnectInitTimeout(3 * 1000);
+    HelixZkClient srcClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(srcZkServers), clientConfig);
+    try {
+      ConfigAccessor configAccessor = new ConfigAccessor(srcClient);
+      ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+      faultZoneType = clusterConfig.getFaultZoneType();
+      topology = clusterConfig.getTopology();
+      ZKHelixAdmin admin = new ZKHelixAdmin(srcClient);
+      for (String instance : admin.getInstancesInCluster(clusterName)) {
+        String faultZone =
+            admin.getInstanceConfig(clusterName, instance).getDomainAsMap().get(faultZoneType);
+        faultZones.add(faultZone);
+      }
+    } finally {
+      srcClient.close();
+    }
+
+    List<Operation> operations = new ArrayList<>();
+    operations.addAll(ExampleScripts.migrateToWagedRebalancer());
+    operations.addAll(ExampleScripts
+        .expandFaultZones(2, simulator.defaultCapacity, faultZones, topology, faultZoneType,
+            simulator));
+    operations.addAll(ExampleScripts.shrinkFaultZones(2, faultZones, simulator));
+
+    simulator.simulate(ZK_ADDRESS, clusterName, simulator.generateOverwrites(), operations, false);
     System.exit(0);
   }
 }

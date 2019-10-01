@@ -139,6 +139,9 @@ public abstract class AbstractSimulator {
       }
       printState("Cluster initialized.");
       executeScript(operations);
+    } catch (Exception e) {
+      echo("Exception: " + e.getMessage());
+      throw e;
     } finally {
       if (!shutdownAfterSimulate) {
         System.out.println("Press any key to exist...");
@@ -334,10 +337,12 @@ public abstract class AbstractSimulator {
       _admin.rebalance(_clusterName, is.getResourceName(),
           is.getReplicaCount(instanceConfigMap.size()));
     }
-
+    String faultZoneType = clusterConfig.getFaultZoneType();
     for (InstanceConfig instanceConfig : instanceConfigMap.values()) {
       startNewProcess(instanceConfig.getInstanceName(), stateModelDefRefs);
-      _nodeToZoneMap.put(instanceConfig.getInstanceName(), instanceConfig.getZoneId());
+      String faultZone =
+          instanceConfig.getDomainAsMap().getOrDefault(faultZoneType, instanceConfig.getZoneId());
+      _nodeToZoneMap.put(instanceConfig.getInstanceName(), faultZone);
     }
   }
 
@@ -358,14 +363,16 @@ public abstract class AbstractSimulator {
             }
             return false;
           }, DEFAULT_WAIT_TIME);
+          if (!isClusterConverged()) {
+            echo("Cluster does not converge after operation " + operation.getDescription()
+                + ". Stop the next operation.");
+            break;
+          }
+          printState("Done operation: " + operation.getDescription());
+        } else {
+          echo("Done operation: " + operation.getDescription()
+              + " when maintenance mode is enabled.");
         }
-
-        if (!isClusterConverged()) {
-          echo("Cluster does not converge after operation " + operation.getDescription()
-              + ". Stop the next operation.");
-          break;
-        }
-        printState("Done operation: " + operation.getDescription());
       } else {
         echo("Operation " + operation.getDescription() + " failed. Stop the next operation.");
         break;

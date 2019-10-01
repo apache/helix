@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.examples.rebalancer.simulator.AbstractSimulator;
 import org.apache.helix.examples.rebalancer.simulator.operations.AddNode;
@@ -21,7 +23,6 @@ import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
-
 
 public class ExampleScripts {
   public static List<Operation> showCaseOperations(int partitionCount, int replicaCount,
@@ -71,7 +72,7 @@ public class ExampleScripts {
           return "Disable all nodes in zone: " + zone;
         }
       });
-      // reset
+      // reset and re-enable
       operations.add(new Operation() {
         @Override
         public boolean execute(HelixAdmin admin, HelixZkClient zkClient, String clusterName) {
@@ -84,23 +85,6 @@ public class ExampleScripts {
             } catch (Exception e) {
               return false;
             }
-          }
-          return true;
-        }
-
-        @Override
-        public String getDescription() {
-          return "Reset nodes in zone: " + zone;
-        }
-      });
-      // re-enable
-      operations.add(new Operation() {
-        @Override
-        public boolean execute(HelixAdmin admin, HelixZkClient zkClient, String clusterName) {
-          List<String> nodes = simulator.getNodeToZoneMap().entrySet().stream()
-              .filter(entry -> entry.getValue().equals(zone)).map(entry -> entry.getKey())
-              .collect(Collectors.toList());
-          for (String node : nodes) {
             InstanceConfig instanceConfig = admin.getInstanceConfig(clusterName, node);
             instanceConfig.setInstanceEnabled(true);
             admin.setInstanceConfig(clusterName, node, instanceConfig);
@@ -110,7 +94,7 @@ public class ExampleScripts {
 
         @Override
         public String getDescription() {
-          return "Re-enable all nodes in zone: " + zone;
+          return "Reset and then re-enable all nodes in zone: " + zone;
         }
       });
     }
@@ -141,15 +125,29 @@ public class ExampleScripts {
   }
 
   public static List<Operation> expandFaultZones(int newNodeCountForEachZone,
-      Map<String, Integer> capacityMap, Set<String> faultZones, AbstractSimulator simulator) {
+      Map<String, Integer> capacityMap, Set<String> faultZones, String topology,
+      String faultZoneType, AbstractSimulator simulator) {
     List<Operation> operations = new ArrayList<>();
     operations.add(new EnableMaintenanceMode(true));
     for (String faultZone : faultZones) {
       for (int i = 0; i < newNodeCountForEachZone; i++) {
-        operations.add(
-            new AddNode("expansionNodes_" + i + "_" + faultZone, i, capacityMap, faultZone,
-                "Zone=" + faultZone + ",Instance=expansionNodes_" + i + "_" + faultZone,
-                simulator));
+        String nodeName = "expansionNodes_" + i + "_" + faultZone;
+        StringBuilder domainStrBuilder = new StringBuilder();
+        String[] keys = topology.split("/");
+        int j = 0;
+        for (; j < keys.length - 1; j++) {
+          String key = keys[j];
+          if (!key.isEmpty()) {
+            if (key.equals(faultZoneType)) {
+              domainStrBuilder.append(key + "=" + faultZone + ",");
+            } else {
+              domainStrBuilder.append(key + "=DEFAULT,");
+            }
+          }
+        }
+        domainStrBuilder.append(keys[j] + "=" + nodeName);
+        operations.add(new AddNode(nodeName, i, capacityMap, faultZone, domainStrBuilder.toString(),
+            simulator));
       }
     }
     operations.add(new EnableMaintenanceMode(false));
@@ -161,12 +159,32 @@ public class ExampleScripts {
     List<Operation> operations = new ArrayList<>();
     operations.add(new EnableMaintenanceMode(true));
     for (String faultZone : faultZones) {
-      List<String> instances = simulator.getNodeToZoneMap().entrySet().stream()
-          .filter(entry -> entry.getValue().equals(faultZone)).map(Map.Entry::getKey)
-          .collect(Collectors.toList());
-      for (int i = 0; i < removingNodeForEachZone; i++) {
-        operations.add(new RemoveNode(instances.get(i), simulator));
-      }
+      operations.add(new Operation() {
+        @Override
+        public boolean execute(HelixAdmin admin, HelixZkClient zkClient, String clusterName) {
+          List<String> nodes = simulator.getNodeToZoneMap().entrySet().stream()
+              .filter(entry -> entry.getValue().equals(faultZone)).map(entry -> entry.getKey())
+              .collect(Collectors.toList());
+          for (int i = 0; i < removingNodeForEachZone; i++) {
+            String instanceName = nodes.get(i);
+            simulator.stopProcess(instanceName);
+            admin.dropInstance(clusterName, admin.getInstanceConfig(clusterName, instanceName));
+            try {
+              admin.getInstanceConfig(clusterName, instanceName);
+              return false;
+            } catch (HelixException ex) {
+              simulator.getNodeToZoneMap().remove(instanceName);
+            }
+          }
+          return true;
+        }
+
+        @Override
+        public String getDescription() {
+          return String
+              .format("Remove %d nodes from fault zone %s", removingNodeForEachZone, faultZone);
+        }
+      });
     }
     operations.add(new EnableMaintenanceMode(false));
     return operations;

@@ -189,24 +189,25 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     assignableNode.assign(duplicateReplica);
   }
 
-  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "The domain configuration of node testInstanceId is not complete. Type DOES_NOT_EXIST is not found.")
+  @Test
   public void testParseFaultZoneNotFound() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
 
     ClusterConfig testClusterConfig = new ClusterConfig("testClusterConfigId");
-    testClusterConfig.setFaultZoneType("DOES_NOT_EXIST");
+    testClusterConfig.setFaultZoneType("zone");
     testClusterConfig.setTopologyAwareEnabled(true);
-    testClusterConfig.setTopology("/DOES_NOT_EXIST/");
+    testClusterConfig.setTopology("/zone/");
     when(testCache.getClusterConfig()).thenReturn(testClusterConfig);
 
     InstanceConfig testInstanceConfig = new InstanceConfig("testInstanceConfigId");
-    testInstanceConfig.setDomain("zone=2, instance=testInstance");
+    testInstanceConfig.setDomain("instance=testInstance");
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     instanceConfigMap.put(_testInstanceId, testInstanceConfig);
     when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
 
-    new AssignableNode(testCache.getClusterConfig(),
+    AssignableNode node = new AssignableNode(testCache.getClusterConfig(),
         testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
+    Assert.assertEquals(node.getFaultZone(), "Default_zone");
   }
 
   @Test
@@ -228,7 +229,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     AssignableNode assignableNode = new AssignableNode(testCache.getClusterConfig(),
         testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
 
-    Assert.assertEquals(assignableNode.getFaultZone(), "2/");
+    Assert.assertEquals(assignableNode.getFaultZone(), "2");
 
     testClusterConfig = new ClusterConfig("testClusterConfigId");
     testClusterConfig.setFaultZoneType("instance");
@@ -245,7 +246,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     assignableNode = new AssignableNode(testCache.getClusterConfig(),
         testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
 
-    Assert.assertEquals(assignableNode.getFaultZone(), "2/testInstance/");
+    Assert.assertEquals(assignableNode.getFaultZone(), "2/testInstance");
   }
 
   @Test

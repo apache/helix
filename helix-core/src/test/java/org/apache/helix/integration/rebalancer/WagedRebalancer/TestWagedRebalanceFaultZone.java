@@ -112,7 +112,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
-          _replica, -1);
+          _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
@@ -128,7 +128,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
     for (String tag : tags) {
       String db = "Test-DB-" + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db,
-          BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica, -1);
+          BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
       IdealState is =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       is.setInstanceGroupTag(tag);
@@ -156,7 +156,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + j++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
-          _replica, -1);
+          _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
@@ -198,7 +198,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + j++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
-          _replica, -1);
+          _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
@@ -230,7 +230,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
-          _replica, -1);
+          _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }

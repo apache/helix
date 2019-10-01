@@ -29,7 +29,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebalance {
-  final int NUM_NODE = 9;
+  static final int NUM_NODE = 9;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -58,8 +58,7 @@ public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebala
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    _clusterVerifier = getClusterVerifier();
   }
 
   @Override

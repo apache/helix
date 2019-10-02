@@ -37,6 +37,6 @@ class ResourceTopStateAntiAffinityConstraint extends SoftConstraint {
     // partitions to the instance
     int targetTopStateCount =
         (replica.isReplicaTopState() ? 1 : 0) + node.getAssignedTopStatePartitionsCount();
-    return targetTopStateCount / clusterContext.getEstimatedMaxTopStateCount();
+    return targetTopStateCount / (float) clusterContext.getEstimatedMaxTopStateCount();
   }
 }

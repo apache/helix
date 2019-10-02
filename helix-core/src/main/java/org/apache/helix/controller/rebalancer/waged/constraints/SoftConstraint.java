@@ -31,8 +31,8 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  */
 abstract class SoftConstraint {
   // Default alpha used in "usage percentage" focused soft constraint
-  // The granularity is 0.01 (differentiate between 1% and 2% usage)
-  private float alpha = 100f;
+  // The sensitivity is 0.1% (return different values when usage differs by 0.1%)
+  private float alpha = 1000f;
 
   SoftConstraint() {
   }

@@ -35,23 +35,16 @@ import org.testng.annotations.Test;
  * the future needs to be aware of the test result
  */
 public class TestResourceTopStateAntiAffinityConstraint {
-  private AssignableReplica _testReplica;
-  private AssignableNode _testNode;
-  private ClusterContext _clusterContext;
-
+  private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
+  private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
+  private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
   private final SoftConstraint _constraint = new ResourceTopStateAntiAffinityConstraint();
 
-  @BeforeMethod
-  public void init() {
-    _testReplica = Mockito.mock(AssignableReplica.class);
-    _testNode = Mockito.mock(AssignableNode.class);
-    _clusterContext = Mockito.mock(ClusterContext.class);
-  }
-
   @Test
-  public void testGetAssignmentScoreWhenReplicaNotTopState() {
+  public void testWhenZeroUsage() {
     when(_testReplica.isReplicaTopState()).thenReturn(false);
-    when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
+    when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(100);
+    when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(0);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
@@ -60,26 +53,50 @@ public class TestResourceTopStateAntiAffinityConstraint {
   }
 
   @Test
-  public void testGetAssignmentScoreWhenReplicaIsTopStateHeavyLoad() {
+  public void testWhen1PercentUsage() {
     when(_testReplica.isReplicaTopState()).thenReturn(true);
+    when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(0);
+    when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(100);
+    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
+        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0.01f);
+    Assert.assertEquals(normalizedScore, 0.099667996f);
+  }
+
+  @Test
+  public void testWhenHalfUsage() {
+    when(_testReplica.isReplicaTopState()).thenReturn(false);
+    when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(10);
+    when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
+    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
+        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0.5f);
+    Assert.assertEquals(normalizedScore, 0.0019999975f);
+  }
+
+  @Test
+  public void testWhenFullUsage() {
+    when(_testReplica.isReplicaTopState()).thenReturn(false);
     when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(20);
     when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.525f);
-    Assert.assertEquals(normalizedScore, 0.9566433f);
+    Assert.assertEquals(score, 1f);
+    Assert.assertEquals(normalizedScore, 9.999997E-4f);
   }
 
   @Test
-  public void testGetAssignmentScoreWhenReplicaIsTopStateLightLoad() {
-    when(_testReplica.isReplicaTopState()).thenReturn(true);
-    when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(0);
+  public void testWhenExceedUsage() {
+    when(_testReplica.isReplicaTopState()).thenReturn(false);
+    when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(40);
     when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.025f);
-    Assert.assertEquals(normalizedScore, 1f);
+    Assert.assertEquals(score, 2f);
+    Assert.assertEquals(normalizedScore, 4.9999997E-4f);
   }
 }

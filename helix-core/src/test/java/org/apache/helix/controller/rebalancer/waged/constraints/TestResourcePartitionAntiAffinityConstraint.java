@@ -46,21 +46,35 @@ public class TestResourcePartitionAntiAffinityConstraint {
   private final SoftConstraint _constraint = new ResourcePartitionAntiAffinityConstraint();
 
   @Test
-  public void testGetAssignmentScoreWhenHalfOccupied() {
+  public void testWhenFullUsage() {
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testNode.getAssignedPartitionsByResource(TEST_RESOURCE)).thenReturn(
-        ImmutableSet.of(TEST_PARTITION + "1", TEST_PARTITION + "2", TEST_PARTITION + "3"));
-    when(_clusterContext.getEstimatedMaxPartitionByResource(TEST_RESOURCE)).thenReturn(3);
+        ImmutableSet.of(TEST_PARTITION + "1", TEST_PARTITION + "2"));
+    when(_clusterContext.getEstimatedMaxPartitionByResource(TEST_RESOURCE)).thenReturn(2);
+
+    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
+        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 1f);
+    Assert.assertEquals(normalizedScore, 9.999997E-4f);
+  }
+
+  @Test
+  public void testWhenHalfUsage() {
+    when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
+    when(_testNode.getAssignedPartitionsByResource(TEST_RESOURCE)).thenReturn(
+        ImmutableSet.of(TEST_PARTITION + "1"));
+    when(_clusterContext.getEstimatedMaxPartitionByResource(TEST_RESOURCE)).thenReturn(2);
 
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.5f);
-    Assert.assertEquals(normalizedScore, 0.9640276f);
+    Assert.assertEquals(normalizedScore, 0.0019999975f);
   }
 
   @Test
-  public void testGetAssignmentScoreMaxScore() {
+  public void testWhenZeroUsage() {
     when(_testReplica.getResourceName()).thenReturn(TEST_RESOURCE);
     when(_testNode.getAssignedPartitionsByResource(TEST_RESOURCE))
         .thenReturn(Collections.emptySet());

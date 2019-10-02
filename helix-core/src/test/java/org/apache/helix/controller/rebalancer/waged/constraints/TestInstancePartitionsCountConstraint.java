@@ -37,7 +37,6 @@ public class TestInstancePartitionsCountConstraint {
   private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
   private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
   private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
-
   private final SoftConstraint _constraint = new InstancePartitionsCountConstraint();
 
   @Test
@@ -45,8 +44,11 @@ public class TestInstancePartitionsCountConstraint {
     when(_testNode.getAssignedReplicaCount()).thenReturn(0);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
     float score =
+        _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 1.0f);
+    Assert.assertEquals(score, 0f);
+    Assert.assertEquals(normalizedScore, 1f);
   }
 
   @Test
@@ -54,8 +56,11 @@ public class TestInstancePartitionsCountConstraint {
     when(_testNode.getAssignedReplicaCount()).thenReturn(20);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
     float score =
+        _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.0049999584f);
+    Assert.assertEquals(score, 2f);
+    Assert.assertEquals(normalizedScore, 4.9999997E-4f);
   }
 
   @Test
@@ -63,10 +68,11 @@ public class TestInstancePartitionsCountConstraint {
     when(_testNode.getAssignedReplicaCount()).thenReturn(10);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
     float score =
-        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+        _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
             _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.009999666f);
+    Assert.assertEquals(score, 1f);
+    Assert.assertEquals(normalizedScore, 9.999997E-4f);
   }
 
   @Test
@@ -77,8 +83,8 @@ public class TestInstancePartitionsCountConstraint {
             _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
             _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(normalizedScore, 0.5f);
-    Assert.assertEquals(normalizedScore, 0.009999666f);
+    Assert.assertEquals(score, 0.5f);
+    Assert.assertEquals(normalizedScore, 0.0019999975f);
   }
 
   @Test
@@ -90,6 +96,6 @@ public class TestInstancePartitionsCountConstraint {
     float normalizedScore =
             _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.01f);
-    Assert.assertEquals(normalizedScore, 0.7615942f);
+    Assert.assertEquals(normalizedScore, 0.099667996f);
   }
 }

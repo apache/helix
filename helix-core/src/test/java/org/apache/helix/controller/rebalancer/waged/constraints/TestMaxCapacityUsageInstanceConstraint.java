@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -35,17 +36,10 @@ import org.testng.annotations.Test;
  * the future needs to be aware of the test result
  */
 public class TestMaxCapacityUsageInstanceConstraint {
-  private AssignableReplica _testReplica;
-  private AssignableNode _testNode;
-  private ClusterContext _clusterContext;
+  private final AssignableReplica _testReplica = Mockito.mock(AssignableReplica.class);
+  private final AssignableNode _testNode = Mockito.mock(AssignableNode.class);
+  private final ClusterContext _clusterContext = Mockito.mock(ClusterContext.class);
   private final SoftConstraint _constraint = new MaxCapacityUsageInstanceConstraint();
-
-  @BeforeMethod
-  public void setUp() {
-    _testNode = mock(AssignableNode.class);
-    _testReplica = mock(AssignableReplica.class);
-    _clusterContext = mock(ClusterContext.class);
-  }
 
   @Test
   public void testWhenZeroUsage() {
@@ -64,7 +58,7 @@ public class TestMaxCapacityUsageInstanceConstraint {
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.5f);
-    Assert.assertEquals(normalizedScore, 1f);
+    Assert.assertEquals(normalizedScore, 0.0019999975f);
   }
 
   @Test
@@ -74,7 +68,7 @@ public class TestMaxCapacityUsageInstanceConstraint {
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.01f);
-    Assert.assertEquals(normalizedScore, 0.7615942f);
+    Assert.assertEquals(normalizedScore, 0.099667996f);
   }
 
   @Test
@@ -84,7 +78,7 @@ public class TestMaxCapacityUsageInstanceConstraint {
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 1f);
-    Assert.assertEquals(normalizedScore, 0.009999666f);
+    Assert.assertEquals(normalizedScore, 9.999997E-4f);
   }
 
   @Test
@@ -94,6 +88,6 @@ public class TestMaxCapacityUsageInstanceConstraint {
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 2f);
-    Assert.assertEquals(normalizedScore, 0.0049999584f);
+    Assert.assertEquals(normalizedScore, 4.9999997E-4f);
   }
 }

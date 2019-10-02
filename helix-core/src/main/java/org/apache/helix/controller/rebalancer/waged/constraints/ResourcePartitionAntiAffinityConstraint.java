@@ -36,6 +36,6 @@ class ResourcePartitionAntiAffinityConstraint extends SoftConstraint {
       ClusterContext clusterContext) {
     String resource = replica.getResourceName();
     // use the resource usage percentage as the input for normalization method
-    return node.getAssignedPartitionsByResource(resource).size() / clusterContext.getEstimatedMaxPartitionByResource(resource);
+    return node.getAssignedPartitionsByResource(resource).size() / (float) clusterContext.getEstimatedMaxPartitionByResource(resource);
   }
 }

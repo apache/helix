@@ -28,9 +28,7 @@ import org.testng.annotations.Test;
 public class TestSoftConstraintNormalizeFunction {
   @Test
   public void testDefaultNormalizeFunction() {
-    int maxScore = 1000;
-    int minScore = 0;
-    SoftConstraint softConstraint = new SoftConstraint() {
+    SoftConstraint dummySoftConstraint = new SoftConstraint() {
       @Override
       protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
           ClusterContext clusterContext) {
@@ -40,12 +38,13 @@ public class TestSoftConstraintNormalizeFunction {
 
     float currentScore = 1f;
     // verifies the function is decreasing when score gets larger and the normalized score range within (0, 1]
-    for (int i = minScore; i <= maxScore; i++) {
-      float normalized = softConstraint.getNormalizeFunction().scale(i);
-      Assert.assertTrue(currentScore >= normalized,
-          String.format("input: %s, output: %s", i, normalized));
+    // verify the sensitivity by default is 0.1%
+    for (float x = 0.01f; x <= 2f; x += 0.01f) {
+      float normalized = dummySoftConstraint.getNormalizeFunction().scale(x);
+      Assert.assertTrue(currentScore > normalized,
+          String.format("input: %s, output: %s", x, normalized));
       Assert.assertTrue(normalized <= 1 && normalized > 0,
-          String.format("input: %s, output: %s", i, normalized));
+          String.format("input: %s, output: %s", x, normalized));
       currentScore = normalized;
     }
   }

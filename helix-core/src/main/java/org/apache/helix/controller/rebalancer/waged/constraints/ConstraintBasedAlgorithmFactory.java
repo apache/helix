@@ -19,13 +19,18 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import org.apache.helix.HelixManagerProperties;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.model.ClusterConfig;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 
 /**
  * The factory class to create an instance of {@link ConstraintBasedAlgorithm}
@@ -36,11 +41,29 @@ public class ConstraintBasedAlgorithmFactory {
   // enlarge the overall weight of the evenness constraints compared with the movement constraint.
   // TODO: Tune or make the following factor configurable.
   private static final int EVENNESS_PREFERENCE_NORMALIZE_FACTOR = 50;
+  private static final Map<String, Float> MODEL = new HashMap<>() {
+    {
+      // The default setting
+      put(PartitionMovementConstraint.class.getSimpleName(), 1f);
+      put(InstancePartitionsCountConstraint.class.getSimpleName(), 0.3f);
+      put(ResourcePartitionAntiAffinityConstraint.class.getSimpleName(), 0.1f);
+      put(ResourceTopStateAntiAffinityConstraint.class.getSimpleName(), 0.1f);
+      put(MaxCapacityUsageInstanceConstraint.class.getSimpleName(), 0.5f);
+    }
+  };
+
+  static {
+    Properties properties =
+        new HelixManagerProperties(SystemPropertyKeys.SOFT_CONSTRAINT_WEIGHTS).getProperties();
+    // overwrite the default value with data load from property file
+    properties.forEach((constraintName, weight) -> MODEL.put(String.valueOf(constraintName),
+        Float.valueOf(String.valueOf(weight))));
+  }
 
   public static RebalanceAlgorithm getInstance(
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
-    List<HardConstraint> hardConstraints = ImmutableList
-        .of(new FaultZoneAwareConstraint(), new NodeCapacityConstraint(),
+    List<HardConstraint> hardConstraints =
+        ImmutableList.of(new FaultZoneAwareConstraint(), new NodeCapacityConstraint(),
             new ReplicaActivateConstraint(), new NodeMaxPartitionLimitConstraint(),
             new ValidGroupTagConstraint(), new SamePartitionOnInstanceConstraint());
 
@@ -52,13 +75,16 @@ public class ConstraintBasedAlgorithmFactory {
     float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
     float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
 
-    Map<SoftConstraint, Float> softConstraints = ImmutableMap.<SoftConstraint, Float>builder()
-        .put(new PartitionMovementConstraint(), movementRatio)
-        .put(new InstancePartitionsCountConstraint(), 0.3f * evennessRatio)
-        .put(new ResourcePartitionAntiAffinityConstraint(), 0.1f * evennessRatio)
-        .put(new ResourceTopStateAntiAffinityConstraint(), 0.1f * evennessRatio)
-        .put(new MaxCapacityUsageInstanceConstraint(), 0.5f * evennessRatio).build();
+    List<SoftConstraint> softConstraints = ImmutableList.of(new PartitionMovementConstraint(),
+        new InstancePartitionsCountConstraint(), new ResourcePartitionAntiAffinityConstraint(),
+        new ResourceTopStateAntiAffinityConstraint(), new MaxCapacityUsageInstanceConstraint());
+    Map<SoftConstraint, Float> softConstraintsWithWeight = Maps.toMap(softConstraints, key -> {
+      String name = key.getClass().getSimpleName();
+      float weight = MODEL.get(name);
+      return name.equals(PartitionMovementConstraint.class.getSimpleName()) ? movementRatio * weight
+          : evennessRatio * weight;
+    });
 
-    return new ConstraintBasedAlgorithm(hardConstraints, softConstraints);
+    return new ConstraintBasedAlgorithm(hardConstraints, softConstraintsWithWeight);
   }
 }

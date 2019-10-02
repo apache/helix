@@ -19,7 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -43,18 +42,58 @@ public class TestMaxCapacityUsageInstanceConstraint {
 
   @BeforeMethod
   public void setUp() {
-    _testNode = mock(AssignableNode.class, CALLS_REAL_METHODS);
+    _testNode = mock(AssignableNode.class);
     _testReplica = mock(AssignableReplica.class);
     _clusterContext = mock(ClusterContext.class);
   }
 
   @Test
-  public void testGetNormalizedScore() {
-    when(_testNode.getHighestCapacityUtilization()).thenReturn(0.8f);
+  public void testWhenZeroUsage() {
+    when(_testNode.getHighestCapacityUtilization()).thenReturn(0f);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.8f);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(normalizedScore, 0.84828365f);
+    Assert.assertEquals(score, 0f);
+    Assert.assertEquals(normalizedScore, 1f);
+  }
+
+  @Test
+  public void testWhenHalfUsage() {
+    when(_testNode.getHighestCapacityUtilization()).thenReturn(0.5f);
+    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
+        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0.5f);
+    Assert.assertEquals(normalizedScore, 1f);
+  }
+
+  @Test
+  public void testWhen1PercentUsage() {
+    when(_testNode.getHighestCapacityUtilization()).thenReturn(0.01f);
+    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
+        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0.01f);
+    Assert.assertEquals(normalizedScore, 0.7615942f);
+  }
+
+  @Test
+  public void testWhenFullUsage() {
+    when(_testNode.getHighestCapacityUtilization()).thenReturn(1f);
+    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
+        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 1f);
+    Assert.assertEquals(normalizedScore, 0.009999666f);
+  }
+
+  @Test
+  public void testWhenExceedUsage() {
+    when(_testNode.getHighestCapacityUtilization()).thenReturn(2f);
+    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
+        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 2f);
+    Assert.assertEquals(normalizedScore, 0.0049999584f);
   }
 }

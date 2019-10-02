@@ -41,7 +41,7 @@ public class TestInstancePartitionsCountConstraint {
   private final SoftConstraint _constraint = new InstancePartitionsCountConstraint();
 
   @Test
-  public void testWhenInstanceIsIdle() {
+  public void testWhenZeroUsage() {
     when(_testNode.getAssignedReplicaCount()).thenReturn(0);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
     float score =
@@ -50,20 +50,46 @@ public class TestInstancePartitionsCountConstraint {
   }
 
   @Test
-  public void testWhenInstanceIsFull() {
+  public void testWhenExceedUsage() {
     when(_testNode.getAssignedReplicaCount()).thenReturn(20);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
     float score =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.7615942f);
+    Assert.assertEquals(score, 0.0049999584f);
   }
 
   @Test
-  public void testWhenInstanceHalfOccupied() {
+  public void testWhenFullUsage() {
     when(_testNode.getAssignedReplicaCount()).thenReturn(10);
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
     float score =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.9640276f);
+    float normalizedScore =
+            _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0.009999666f);
+  }
+
+  @Test
+  public void testWhenHalfUsage() {
+    when(_testNode.getAssignedReplicaCount()).thenReturn(10);
+    when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(20);
+    float score =
+            _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
+            _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(normalizedScore, 0.5f);
+    Assert.assertEquals(normalizedScore, 0.009999666f);
+  }
+
+  @Test
+  public void testWhen1PercentUsage() {
+    when(_testNode.getAssignedReplicaCount()).thenReturn(1);
+    when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(100);
+    float score =
+            _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
+            _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0.01f);
+    Assert.assertEquals(normalizedScore, 0.7615942f);
   }
 }

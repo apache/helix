@@ -30,6 +30,16 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * The lower score the score, the worse the assignment; Intuitively, the assignment is penalized.
  */
 abstract class SoftConstraint {
+  // Default alpha used in "usage percentage" focused soft constraint
+  // The granularity is 0.01 (differentiate between 1% and 2% usage)
+  private float alpha = 100f;
+
+  SoftConstraint() {
+  }
+
+  SoftConstraint(float alpha) {
+    this.alpha = alpha;
+  }
 
   interface NormalizeFunction {
     /**
@@ -60,11 +70,12 @@ abstract class SoftConstraint {
   }
 
   /**
-   * The default normalize function f(x) = tanh(1/(\alpha * x)) that squashes any score >= 0 to (0, 1]
+   * The default normalize function f(x) = tanh(1/(\alpha * x)) that squashes any score >= 0 to (0,
+   * 1]
    * The hyper parameter determines the converging rate of scores to 0 when X gets larger
    * Child class could override the method and customize the method on its own
    */
   NormalizeFunction getNormalizeFunction() {
-    return score -> (score == 0f ? 1f : (float) Math.tanh(1 / score));
+    return score -> (score == 0f ? 1f : (float) Math.tanh(1 / (this.alpha * score)));
   }
 }

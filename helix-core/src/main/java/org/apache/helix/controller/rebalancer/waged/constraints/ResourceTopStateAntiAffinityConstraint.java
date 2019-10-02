@@ -33,10 +33,10 @@ class ResourceTopStateAntiAffinityConstraint extends SoftConstraint {
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    float doubleMaxTopStateCount = 2 * clusterContext.getEstimatedMaxTopStateCount();
     // if the replica is of top state, with the new replica, it will add "one" additional top state
     // partitions to the instance
-    int targetTopStateCount = (replica.isReplicaTopState() ? 1 : 0) + node.getAssignedTopStatePartitionsCount();
-    return targetTopStateCount / doubleMaxTopStateCount;
+    int targetTopStateCount =
+        (replica.isReplicaTopState() ? 1 : 0) + node.getAssignedTopStatePartitionsCount();
+    return targetTopStateCount / clusterContext.getEstimatedMaxTopStateCount();
   }
 }

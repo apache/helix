@@ -35,9 +35,7 @@ class ResourcePartitionAntiAffinityConstraint extends SoftConstraint {
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     String resource = replica.getResourceName();
-    float doubleMaxPartitionCountForResource =
-            2 * clusterContext.getEstimatedMaxPartitionByResource(resource);
     // use the resource usage percentage as the input for normalization method
-    return node.getAssignedPartitionsByResource(resource).size() / doubleMaxPartitionCountForResource;
+    return node.getAssignedPartitionsByResource(resource).size() / clusterContext.getEstimatedMaxPartitionByResource(resource);
   }
 }

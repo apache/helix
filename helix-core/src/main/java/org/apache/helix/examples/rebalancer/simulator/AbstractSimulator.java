@@ -22,6 +22,7 @@ package org.apache.helix.examples.rebalancer.simulator;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,7 +30,6 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
@@ -58,15 +58,21 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 
+
 /**
  * The abstract simulator class that contains basic logic.
  */
 public abstract class AbstractSimulator {
-  private final int DEFAULT_WAIT_TIME = 120000;
+  protected static final Map<String, Integer> DEFAULT_CAPACITY =
+      Collections.singletonMap("Partition", 1000);
+  protected static final Map<String, Integer> DEFAULT_USAGE =
+      Collections.singletonMap("Partition", 1);
+  private static final int DEFAULT_WAIT_TIME = 20 * 60 * 1000; // 20 mins
+
   private final boolean _verbose;
   private final int _transitionDelay;
 
-  private Map<String, SimulateParticipantProcess> _processMap = new HashMap<>();
+  private Map<String, SimulateParticipantProcess> _participantProcessMap = new HashMap<>();
   private HelixManager _controller;
   private HelixAdmin _admin;
   private HelixZkClient _zkClient;
@@ -107,8 +113,9 @@ public abstract class AbstractSimulator {
    * @param operations            the simulate operations, cluster status will be output after each operation
    * @param shutdownAfterSimulate if true, the environment will be destroyed immediately after the simulation
    */
-  public void simulate(String zkServers, String clusterName, MetadataOverwrites overwrites,
-      List<Operation> operations, boolean shutdownAfterSimulate) throws Exception {
+  public void simulate(String zkServers, String clusterName, MetadataOverwrite overwrites,
+      List<Operation> operations, boolean shutdownAfterSimulate)
+      throws Exception {
     startZookeeper(zkServers);
 
     _zkServers = zkServers;
@@ -127,17 +134,11 @@ public abstract class AbstractSimulator {
       }
       List<String> stateModelDefRefs = _admin.getStateModelDefs(_clusterName);
       setup(stateModelDefRefs, overwrites);
-      Set<String> resources = new HashSet<>(_admin.getResourcesInCluster(_clusterName));
       startController();
-      HelixClusterVerifier clusterVerifier =
-          new StrictMatchExternalViewVerifier.Builder(_clusterName).setResources(resources)
-              .setZkAddr(_zkServers).build();
-      boolean result = clusterVerifier.verify(DEFAULT_WAIT_TIME);
-      if (!result) {
+      if (!checkAndPrint("Initialization")) {
         echo("Cluster does not converge after setup. Stop executing operation.");
         return;
       }
-      printState("Cluster initialized.");
       executeScript(operations);
     } catch (Exception e) {
       echo("Exception: " + e.getMessage());
@@ -153,10 +154,10 @@ public abstract class AbstractSimulator {
       if (_controller != null) {
         _controller.disconnect();
       }
-      for (SimulateParticipantProcess process : _processMap.values()) {
+      for (SimulateParticipantProcess process : _participantProcessMap.values()) {
         process.stop();
       }
-      _processMap.clear();
+      _participantProcessMap.clear();
       _zkClient.deleteRecursively("/" + _clusterName);
       _zkClient.close();
       stopZookeeper();
@@ -173,24 +174,49 @@ public abstract class AbstractSimulator {
   /**
    * @return true if the cluster is converged.
    */
-  protected boolean isClusterConverged() {
-    Set<String> resources = new HashSet<>(_admin.getResourcesInCluster(_clusterName));
-    HelixClusterVerifier clusterVerifier =
-        new StrictMatchExternalViewVerifier.Builder(_clusterName).setResources(resources)
-            .setZkAddr(_zkServers).build();
-    if (!clusterVerifier.verify(DEFAULT_WAIT_TIME * 3)) {
-      return false;
-    }
-    for (String db : getAdmin().getResourcesInCluster(getClusterName())) {
-      IdealState is = getAdmin().getResourceIdealState(getClusterName(), db);
-      ExternalView ev = getAdmin().getResourceExternalView(getClusterName(), db);
-      if (is == null || ev == null) {
+  private boolean checkAndPrint(String description)
+      throws IOException {
+    if (!_admin.isInMaintenanceMode(_clusterName)) {
+      // Wait until any movement has been triggered, this indicates the rebalance calculation is finished.
+      ClusterStateVerifier.verifyByPolling(() -> {
+        for (SimulateParticipantProcess process : _participantProcessMap.values()) {
+          if (process.getTransitionCount() > 0) {
+            return true;
+          }
+        }
         return false;
-      } else if (!validateZoneAndTagIsolation(getAdmin(), getClusterName(), is, ev,
-          is.getReplicaCount(Math.min(getAdmin().getInstancesInCluster(getClusterName()).size(),
-              new HashSet<>(_nodeToZoneMap.values()).size())))) {
+      }, DEFAULT_WAIT_TIME);
+      if (!ClusterStateVerifier.verifyByPolling(() -> {
+        Set<String> resources = new HashSet<>(_admin.getResourcesInCluster(_clusterName));
+        HelixClusterVerifier clusterVerifier =
+            new StrictMatchExternalViewVerifier.Builder(_clusterName).setResources(resources)
+                .setZkAddr(_zkServers).build();
+        if (!clusterVerifier.verify(DEFAULT_WAIT_TIME)) {
+          echo("StrictMatchExternalViewVerifier fails to converge!");
+          return false;
+        }
+        for (String db : getAdmin().getResourcesInCluster(getClusterName())) {
+          IdealState is = getAdmin().getResourceIdealState(getClusterName(), db);
+          ExternalView ev = getAdmin().getResourceExternalView(getClusterName(), db);
+          if (is == null || ev == null) {
+            echo(String.format("Resource %s does not exist.", db));
+            return false;
+          } else if (!validateZoneAndTagIsolation(getAdmin(), getClusterName(), is, ev,
+              is.getReplicaCount(Math.min(getAdmin().getInstancesInCluster(getClusterName()).size(),
+                  new HashSet<>(_nodeToZoneMap.values()).size())))) {
+            echo(String.format("Resource %s validateZoneAndTagIsolation fails.", db));
+            return false;
+          }
+        }
+        return true;
+      }, DEFAULT_WAIT_TIME * 3)) {
+        echo("Cluster does not converge after operation " + description
+            + ". Stop the next operation.");
         return false;
       }
+      printState("Done operation: " + description);
+    } else {
+      echo("Done operation: " + description + " when maintenance mode is enabled.");
     }
     return true;
   }
@@ -203,7 +229,6 @@ public abstract class AbstractSimulator {
     String tag = is.getInstanceGroupTag();
     for (String partition : is.getPartitionSet()) {
       Set<String> assignedZones = new HashSet<>();
-
       Map<String, String> assignmentMap = ev.getRecord().getMapField(partition);
       Set<String> instancesInEV = assignmentMap.keySet();
       for (String instance : instancesInEV) {
@@ -228,30 +253,31 @@ public abstract class AbstractSimulator {
 
   public void startNewProcess(String instanceName, List<String> stateModelDefRefs)
       throws Exception {
-    if (_processMap.containsKey(instanceName)) {
+    if (_participantProcessMap.containsKey(instanceName)) {
       throw new HelixException("Instance already started.");
     }
     SimulateParticipantProcess process =
-        new SimulateParticipantProcess(instanceName, stateModelDefRefs, _transitionDelay, _verbose);
-    _processMap.put(instanceName, process);
+        new SimulateParticipantProcess(instanceName, stateModelDefRefs, _transitionDelay, false);
+    _participantProcessMap.put(instanceName, process);
     process.start(_clusterName, _zkServers);
   }
 
-  public void resetProcess(String instanceName) throws Exception {
-    SimulateParticipantProcess process = _processMap.get(instanceName);
+  public void resetProcess(String instanceName)
+      throws Exception {
+    SimulateParticipantProcess process = _participantProcessMap.get(instanceName);
     if (process != null) {
       process.restart();
     }
   }
 
   public void stopProcess(String instanceName) {
-    SimulateParticipantProcess process = _processMap.remove(instanceName);
+    SimulateParticipantProcess process = _participantProcessMap.remove(instanceName);
     if (process != null) {
       process.stop();
     }
   }
 
-  protected void setup(List<String> stateModelDefRefs, MetadataOverwrites overwrites)
+  protected void setup(List<String> stateModelDefRefs, MetadataOverwrite overwrites)
       throws Exception {
     ConfigAccessor configAccessor = new ConfigAccessor(_zkClient);
 
@@ -346,41 +372,26 @@ public abstract class AbstractSimulator {
     }
   }
 
-  private void executeScript(List<Operation> operations) throws IOException {
+  private void executeScript(List<Operation> operations)
+      throws IOException {
     for (Operation operation : operations) {
       echo("Start operation: " + operation.getDescription());
       // Reset the count before operation.
-      for (SimulateParticipantProcess process : _processMap.values()) {
+      for (SimulateParticipantProcess process : _participantProcessMap.values()) {
         process.getAndResetTransitions();
       }
-      if (operation.execute(_admin, _zkClient, _clusterName)) {
-        if (!_admin.isInMaintenanceMode(_clusterName)) {
-          ClusterStateVerifier.verifyByPolling(() -> {
-            for (SimulateParticipantProcess process : _processMap.values()) {
-              if (process.getTransitionCount() > 0) {
-                return true;
-              }
-            }
-            return false;
-          }, DEFAULT_WAIT_TIME);
-          if (!isClusterConverged()) {
-            echo("Cluster does not converge after operation " + operation.getDescription()
-                + ". Stop the next operation.");
-            break;
-          }
-          printState("Done operation: " + operation.getDescription());
-        } else {
-          echo("Done operation: " + operation.getDescription()
-              + " when maintenance mode is enabled.");
-        }
-      } else {
+      if (!operation.execute(_admin, _zkClient, _clusterName)) {
         echo("Operation " + operation.getDescription() + " failed. Stop the next operation.");
+        break;
+      }
+      if (!checkAndPrint(operation.getDescription())) {
         break;
       }
     }
   }
 
-  private void printState(String desc) throws IOException {
+  private void printState(String desc)
+      throws IOException {
     echo(desc);
 
     ConfigAccessor configAccessor = new ConfigAccessor(_zkClient);
@@ -389,8 +400,11 @@ public abstract class AbstractSimulator {
 
     Set<String> resources = new HashSet<>(_admin.getResourcesInCluster(_clusterName));
 
+    // <instance name, partition count>
     Map<String, Integer> partitionCount = new HashMap<>();
+    // <state, <instance name, partition count>>
     Map<String, Map<String, Integer>> perStatePartitionCount = new HashMap<>();
+    // <capacity, <instance name, partition count>>
     Map<String, Map<String, Integer>> perCapacityKeyResourceUsage = new HashMap<>();
     for (String key : capacityKeys) {
       perCapacityKeyResourceUsage.put(key, new HashMap<>());
@@ -435,18 +449,16 @@ public abstract class AbstractSimulator {
     for (int pcount : partitionCount.values()) {
       stats.addValue(pcount);
     }
-    echo(String
-        .format("Partition distribution: Max %f, Min %f, STDEV %f", stats.getMax(), stats.getMin(),
-            stats.getStandardDeviation()));
+    echo(String.format("Partition distribution:\tMax\t%f\tMin\t%f\tSTDEV\t%f", stats.getMax(),
+        stats.getMin(), stats.getStandardDeviation()));
 
     for (String state : perStatePartitionCount.keySet()) {
       stats = new SummaryStatistics();
       for (int mcount : perStatePartitionCount.get(state).values()) {
         stats.addValue(mcount);
       }
-      echo(String
-          .format(state + " distribution: Max %f, Min %f, STDEV %f", stats.getMax(), stats.getMin(),
-              stats.getStandardDeviation()));
+      echo(String.format(state + " distribution:\tMax\t%f\tMin\t%f\tSTDEV\t%f", stats.getMax(),
+          stats.getMin(), stats.getStandardDeviation()));
     }
 
     for (String capacityKey : perCapacityKeyResourceUsage.keySet()) {
@@ -455,22 +467,55 @@ public abstract class AbstractSimulator {
         stats.addValue(mcount);
       }
       echo(String
-          .format("Capacity Usage " + capacityKey + " distribution: Max %f, Min %f, STDEV %f",
+          .format("Capacity Usage " + capacityKey + " distribution:\tMax\t%f\tMin\t%f\tSTDEV\t%f",
               stats.getMax(), stats.getMin(), stats.getStandardDeviation()));
     }
 
+    if (_verbose) {
+      echo("Instance Assignment Details");
+      for (String instance : partitionCount.keySet()) {
+        StringBuilder stateCounts = new StringBuilder();
+        perStatePartitionCount.entrySet().stream().forEach(entry -> {
+          String state = entry.getKey();
+          int count = entry.getValue().getOrDefault(instance, 0);
+          stateCounts.append(String.format("\tState\t%s\tCount\t%d", state, count));
+        });
+        StringBuilder capacities = new StringBuilder();
+        perCapacityKeyResourceUsage.entrySet().stream().forEach(entry -> {
+          String state = entry.getKey();
+          int value = entry.getValue().getOrDefault(instance, 0);
+          capacities.append(String.format("\tCapacity\t%s\tValue\t%d", state, value));
+        });
+        echo(String
+            .format("Instance:\t%s\tPartitionCount\t%d\tStateCount:(\t%s\t)Capacity(\t%s\t)", instance,
+                partitionCount.get(instance), stateCounts.toString(), capacities.toString()));
+      }
+    }
+
     Map<String, Integer> totalTransitionCount = new HashMap<>();
-    for (SimulateParticipantProcess process : _processMap.values()) {
+    for (SimulateParticipantProcess process : _participantProcessMap.values()) {
       Map<String, Integer> transitionCount = process.getAndResetTransitions();
       if (_verbose) {
+        StringBuilder partitionMovements = new StringBuilder();
+        transitionCount.entrySet().stream().forEach(entry -> {
+          String state = entry.getKey();
+          int value = entry.getValue();
+          partitionMovements.append(String.format("\tType\t%s\tCount\t%d", state, value));
+        });
         echo(String
-            .format("Transitions Done on %s for this operation: %s", process.getInstanceName(),
-                transitionCount.toString()));
+            .format("Transitions Done on\t%s\tfor this operation:\t%s", process.getInstanceName(),
+                partitionMovements.toString()));
       }
       transitionCount.forEach(
           (k, v) -> totalTransitionCount.put(k, totalTransitionCount.getOrDefault(k, 0) + v));
     }
-    echo("Total Transitions Done for this operation: " + totalTransitionCount.toString());
+    StringBuilder totalPartitionMovements = new StringBuilder();
+    totalTransitionCount.entrySet().stream().forEach(entry -> {
+      String state = entry.getKey();
+      int value = entry.getValue();
+      totalPartitionMovements.append(String.format("\tType\t%s\tCount\t%d", state, value));
+    });
+    echo("Total Transitions Done for this operation: " + totalPartitionMovements.toString());
   }
 
   private void startController() {
@@ -481,7 +526,8 @@ public abstract class AbstractSimulator {
             HelixControllerMain.STANDALONE);
   }
 
-  private void startZookeeper(String zkServers) throws IOException {
+  private void startZookeeper(String zkServers)
+      throws IOException {
     echo("STARTING Zookeeper at " + zkServers);
     String zkFolderName = "helix-rebalanceSimulator-ZK";
     IDefaultNameSpace defaultNameSpace = zkClient -> {
@@ -533,7 +579,8 @@ public abstract class AbstractSimulator {
       _stateModelDefRefs = new ArrayList<>(stateModelDefRefs);
     }
 
-    void start(String clusterName, String zkServers) throws Exception {
+    void start(String clusterName, String zkServers)
+        throws Exception {
       _manager = HelixManagerFactory
           .getZKHelixManager(clusterName, _instanceName, InstanceType.PARTICIPANT, zkServers);
       _factory = new WildcardStateModelFactory(_instanceName, _transitionDelay, _verbose);
@@ -548,7 +595,8 @@ public abstract class AbstractSimulator {
       _manager.disconnect();
     }
 
-    void restart() throws Exception {
+    void restart()
+        throws Exception {
       String clusterName = _manager.getClusterName();
       String zkServers = _manager.getMetadataStoreConnectionString();
       stop();

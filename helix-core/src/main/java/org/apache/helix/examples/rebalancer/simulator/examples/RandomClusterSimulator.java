@@ -45,8 +45,6 @@ public class RandomClusterSimulator extends AbstractSimulator {
   private static final int NUM_PARTITIONS = 128;
   private static final int NUM_REPLICAS = 3;
   private static final int NUM_ZONES = INIT_NUM_NODES / 3;
-  private Map<String, Integer> defaultCapacity = Collections.singletonMap("Partition", 1000);
-  private Map<String, Integer> defaultUsage = Collections.singletonMap("Partition", 1);
 
   private String rebalanaceClass = WagedRebalancer.class.getName();
   private String rebalanceStrategy = null; //CrushEdRebalanceStrategy.class.getName();
@@ -79,14 +77,14 @@ public class RandomClusterSimulator extends AbstractSimulator {
     // Add node configs to the cluster
     for (int i = 0; i < INIT_NUM_NODES; i++) {
       String instancePrefix = "instance" + i;
-      InstanceConfig instanceConfig = getInstanceConfig(instancePrefix, i, defaultCapacity);
+      InstanceConfig instanceConfig = getInstanceConfig(instancePrefix, i, DEFAULT_CAPACITY);
       getAdmin().addInstance(getClusterName(), instanceConfig);
     }
 
     for (int ri = 0; ri < NUM_RESOURCES; ri++) {
       String resourceName = "resource" + "_" + ri;
       new AddResource(resourceName,
-          BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition().getId(), defaultUsage,
+          BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition().getId(), DEFAULT_USAGE,
           NUM_PARTITIONS, NUM_REPLICAS, rebalanaceClass, rebalanceStrategy)
           .execute(getAdmin(), getZkClient(), getClusterName());
     }

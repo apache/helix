@@ -32,7 +32,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.examples.rebalancer.simulator.AbstractSimulator;
-import org.apache.helix.examples.rebalancer.simulator.MetadataOverwrites;
+import org.apache.helix.examples.rebalancer.simulator.MetadataOverwrite;
 import org.apache.helix.examples.rebalancer.simulator.operations.Operation;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -49,11 +49,8 @@ import org.apache.helix.tools.commandtools.ZkCopy;
  * Clone the cluster metadata from a real running Helix cluster and then simulate based on that metadata.
  */
 public class CloneClusterSimulator extends AbstractSimulator {
-  private static String ZK_ADDRESS = "localhost:2199";
+  private static final String ZK_ADDRESS = "localhost:2199";
   private final String _srcZkServers;
-
-  private Map<String, Integer> defaultCapacity = Collections.singletonMap("Partition", 1000);
-  private Map<String, Integer> defaultUsage = Collections.singletonMap("Partition", 1);
 
   /**
    * @param srcZkServers    the source ZkServers connection string that will be cloned
@@ -115,8 +112,8 @@ public class CloneClusterSimulator extends AbstractSimulator {
     return true;
   }
 
-  private MetadataOverwrites generateOverwrites() {
-    return new MetadataOverwrites() {
+  private MetadataOverwrite generateOverwrites() {
+    return new MetadataOverwrite() {
       @Override
       public Map<String, ResourceConfig> updateResourceConfigs(
           Map<String, ResourceConfig> resourceConfigMap, Map<String, IdealState> idealStateMap) {
@@ -132,7 +129,7 @@ public class CloneClusterSimulator extends AbstractSimulator {
             }
             try {
               resourceConfig.setPartitionCapacityMap(
-                  Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, defaultUsage));
+                  Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, DEFAULT_USAGE));
             } catch (IOException e) {
               throw new HelixException("Failed to set usage weight.", e);
             }
@@ -171,13 +168,13 @@ public class CloneClusterSimulator extends AbstractSimulator {
       @Override
       public ClusterConfig updateClusterConfig(ClusterConfig clusterConfig) {
         Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
-        preference.put(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 3);
-        preference.put(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 7);
+        preference.put(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 1);
+        preference.put(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1);
         clusterConfig.setGlobalRebalancePreference(preference);
         clusterConfig.setPersistIntermediateAssignment(false);
         clusterConfig.setPersistBestPossibleAssignment(true);
         clusterConfig.setInstanceCapacityKeys(Collections.singletonList("Partition"));
-        clusterConfig.setDefaultInstanceCapacityMap(defaultCapacity);
+        clusterConfig.setDefaultInstanceCapacityMap(DEFAULT_CAPACITY);
         clusterConfig.getRecord().setListField(
             ClusterConfig.ClusterConfigProperty.STATE_TRANSITION_THROTTLE_CONFIGS.name(),
             Collections.emptyList());
@@ -187,13 +184,13 @@ public class CloneClusterSimulator extends AbstractSimulator {
   }
 
   public static void main(String[] args) throws Exception {
-    String srcZkServers = "zk-ltx1-espresso.stg.linkedin.com:12913";
-    String clusterName = "ESPRESSO_MT1";
+    String srcZkServers = "zk-ei4-ring.int.linkedin.com:3764";
+    String clusterName = "espresso-mt-ld3";
     if (args.length >= 2) {
       srcZkServers = args[0];
       clusterName = args[1];
     }
-    CloneClusterSimulator simulator = new CloneClusterSimulator(srcZkServers, 0, false);
+    CloneClusterSimulator simulator = new CloneClusterSimulator(srcZkServers, 5, true);
 
     Set<String> faultZones = new HashSet<>();
     String faultZoneType;
@@ -221,7 +218,7 @@ public class CloneClusterSimulator extends AbstractSimulator {
     List<Operation> operations = new ArrayList<>();
     operations.addAll(ExampleScripts.migrateToWagedRebalancer());
     operations.addAll(ExampleScripts
-        .expandFaultZones(2, simulator.defaultCapacity, faultZones, topology, faultZoneType,
+        .expandFaultZones(2, simulator.DEFAULT_CAPACITY, faultZones, topology, faultZoneType,
             simulator));
     operations.addAll(ExampleScripts.shrinkFaultZones(2, faultZones, simulator));
 

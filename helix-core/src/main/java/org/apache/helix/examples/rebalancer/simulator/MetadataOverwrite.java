@@ -29,7 +29,7 @@ import org.apache.helix.model.ResourceConfig;
 /**
  * Overwrites the cluster metadata for the simulation purposes.
  */
-public interface MetadataOverwrites {
+public interface MetadataOverwrite {
   /**
    * @param clusterConfig the existing cluster config.
    * @return the new cluster config.

@@ -47,9 +47,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 
 public class TestWagedRebalancer extends AbstractTestClusterModel {
   private Set<String> _instances;
@@ -133,8 +132,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   }
 
   @Test(dependsOnMethods = "testRebalance")
-  public void testPartialRebalance()
-      throws IOException, HelixRebalanceException {
+  public void testPartialRebalance() throws IOException, HelixRebalanceException {
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
         new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
@@ -184,9 +182,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
         String resourceName = csEntry.getKey();
         CurrentState cs = csEntry.getValue();
         for (Map.Entry<String, String> partitionStateEntry : cs.getPartitionStateMap().entrySet()) {
-          currentStateOutput
-              .setCurrentState(resourceName, new Partition(partitionStateEntry.getKey()),
-                  instanceName, partitionStateEntry.getValue());
+          currentStateOutput.setCurrentState(resourceName,
+              new Partition(partitionStateEntry.getKey()), instanceName,
+              partitionStateEntry.getValue());
         }
       }
     }
@@ -220,8 +218,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   }
 
   @Test(dependsOnMethods = "testRebalance", expectedExceptions = HelixRebalanceException.class, expectedExceptionsMessageRegExp = "Input contains invalid resource\\(s\\) that cannot be rebalanced by the WAGED rebalancer. \\[Resource1\\] Failure Type: INVALID_INPUT")
-  public void testNonCompatibleConfiguration()
-      throws IOException, HelixRebalanceException {
+  public void testNonCompatibleConfiguration() throws IOException, HelixRebalanceException {
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
         new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
@@ -243,8 +240,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
   // TODO test with invalid capacity configuration which will fail the cluster model constructing.
   @Test(dependsOnMethods = "testRebalance")
-  public void testInvalidClusterStatus()
-      throws IOException {
+  public void testInvalidClusterStatus() throws IOException {
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
         new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
@@ -291,7 +287,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   }
 
   @Test(dependsOnMethods = "testRebalance")
-  public void testAlgorithmExepction() throws IOException, HelixRebalanceException {
+  public void testAlgorithmException() throws IOException, HelixRebalanceException {
     RebalanceAlgorithm badAlgorithm = Mockito.mock(RebalanceAlgorithm.class);
     when(badAlgorithm.calculate(any())).thenThrow(new HelixRebalanceException("Algorithm fails.",
         HelixRebalanceException.Type.FAILED_TO_CALCULATE));
@@ -430,9 +426,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       Assert.assertTrue(newIdealStates.containsKey(resourceName));
       IdealState is = newIdealStates.get(resourceName);
       ResourceAssignment assignment = expectedResult.get(resourceName);
-      Assert.assertEquals(is.getPartitionSet(), new HashSet<>(
-          assignment.getMappedPartitions().stream().map(partition -> partition.getPartitionName())
-              .collect(Collectors.toSet())));
+      Assert.assertEquals(is.getPartitionSet(), new HashSet<>(assignment.getMappedPartitions()
+          .stream().map(partition -> partition.getPartitionName()).collect(Collectors.toSet())));
       for (String partitionName : is.getPartitionSet()) {
         Assert.assertEquals(is.getInstanceStateMap(partitionName),
             assignment.getReplicaMap(new Partition(partitionName)));

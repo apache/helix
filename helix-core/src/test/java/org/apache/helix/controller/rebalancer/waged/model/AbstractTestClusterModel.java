@@ -27,8 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.management.JMException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
@@ -39,7 +37,7 @@ import org.apache.helix.model.ResourceConfig;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeClass;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public abstract class AbstractTestClusterModel {
   protected static String _sessionId = "testSessionId";
@@ -117,11 +115,11 @@ public abstract class AbstractTestClusterModel {
     // 4. Mock two resources, each with 2 partitions on the default instance.
     // The instance will have the following partitions assigned
     // Resource 1:
-    //          partition 1 - MASTER
-    //          partition 2 - SLAVE
+    // partition 1 - MASTER
+    // partition 2 - SLAVE
     // Resource 2:
-    //          partition 3 - MASTER
-    //          partition 4 - SLAVE
+    // partition 3 - MASTER
+    // partition 4 - SLAVE
     CurrentState testCurrentStateResource1 = Mockito.mock(CurrentState.class);
     Map<String, String> partitionStateMap1 = new HashMap<>();
     partitionStateMap1.put(_partitionNames.get(0), "MASTER");
@@ -180,9 +178,10 @@ public abstract class AbstractTestClusterModel {
     for (CurrentState cs : currentStatemap.values()) {
       ResourceConfig resourceConfig = dataProvider.getResourceConfig(cs.getResourceName());
       // Construct one AssignableReplica for each partition in the current state.
-      cs.getPartitionStateMap().entrySet().stream().forEach(entry -> assignmentSet.add(
-          new AssignableReplica(dataProvider.getClusterConfig(), resourceConfig, entry.getKey(),
-              entry.getValue(), entry.getValue().equals("MASTER") ? 1 : 2)));
+      cs.getPartitionStateMap().entrySet().stream()
+          .forEach(entry -> assignmentSet
+              .add(new AssignableReplica(dataProvider.getClusterConfig(), resourceConfig,
+                  entry.getKey(), entry.getValue(), entry.getValue().equals("MASTER") ? 1 : 2)));
     }
     return assignmentSet;
   }

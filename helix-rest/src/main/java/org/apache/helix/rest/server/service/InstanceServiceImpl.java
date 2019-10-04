@@ -21,6 +21,7 @@ package org.apache.helix.rest.server.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ import org.apache.helix.rest.common.HelixDataAccessorWrapper;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.util.InstanceValidationUtil;
+import org.apache.http.conn.HttpHostConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -219,6 +221,12 @@ public class InstanceServiceImpl implements InstanceService {
     try {
       return new StoppableCheck(
           _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads),
+          StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
+    } catch (HttpHostConnectException ex) {
+      String msg = "Custom client side instance level health check for {}/{} failed "
+          + "because of connection refused.";
+      LOG.error(msg, clusterId, instanceName, ex);
+      return new StoppableCheck(false, Arrays.asList(instanceName),
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
     } catch (IOException e) {
       LOG.error("Failed to perform custom client side instance level health checks for {}/{}",

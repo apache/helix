@@ -37,9 +37,9 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 public abstract class MetricCollector extends DynamicMBeanProvider {
   private static final String CLUSTER_NAME_KEY = "ClusterName";
   private static final String ENTITY_NAME_KEY = "EntityName";
-  private String _monitorDomainName;
-  private String _clusterName;
-  private String _entityName;
+  private final String _monitorDomainName;
+  private final String _clusterName;
+  private final String _entityName;
   private Map<String, Metric> _metricMap;
 
   public MetricCollector(String monitorDomainName, String clusterName, String entityName) {

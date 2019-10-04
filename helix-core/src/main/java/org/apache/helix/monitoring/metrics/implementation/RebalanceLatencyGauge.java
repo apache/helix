@@ -59,15 +59,17 @@ public class RebalanceLatencyGauge extends LatencyMetric {
    */
   @Override
   public void endMeasuringLatency() {
-    if (_startTime == 0L || _endTime != 0L) {
+    if (_startTime == VALUE_NOT_SET || _endTime != VALUE_NOT_SET) {
       LOG.error(
           "Needs to call startMeasuringLatency first! Ignoring and resetting the metric. Metric name: {}",
           _metricName);
       reset();
+      return;
     }
     _endTime = System.currentTimeMillis();
     _lastEmittedMetricValue = _endTime - _startTime;
     updateValue(_lastEmittedMetricValue);
+    reset();
   }
 
   @Override
@@ -77,8 +79,8 @@ public class RebalanceLatencyGauge extends LatencyMetric {
 
   @Override
   public void reset() {
-    _startTime = 0L;
-    _endTime = 0L;
+    _startTime = VALUE_NOT_SET;
+    _endTime = VALUE_NOT_SET;
   }
 
   @Override

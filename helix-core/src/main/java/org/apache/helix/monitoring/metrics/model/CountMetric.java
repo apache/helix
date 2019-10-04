@@ -1,4 +1,4 @@
-package org.apache.helix.monitoring.mbeans;
+package org.apache.helix.monitoring.metrics.model;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,15 +19,23 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+
 /**
- * This enum defines all of domain names used with various Helix monitor mbeans.
+ * Represents a count metric and defines methods to help with calculation. A count metric gives a
+ * gauge value of a certain property.
  */
-public enum MonitorDomainNames {
-  ClusterStatus,
-  HelixZkClient,
-  HelixThreadPoolExecutor,
-  HelixCallback,
-  RoutingTableProvider,
-  CLMParticipantReport,
-  Rebalancer
+public abstract class CountMetric<V> extends SimpleDynamicMetric<V> implements Metric {
+  protected V _count;
+
+  /**
+   * Instantiates a new Simple dynamic metric.
+   * @param metricName the metric name
+   * @param metricObject the metric object
+   */
+  public CountMetric(String metricName, V metricObject) {
+    super(metricName, metricObject);
+  }
+
+  public abstract void setCount(Object count);
 }

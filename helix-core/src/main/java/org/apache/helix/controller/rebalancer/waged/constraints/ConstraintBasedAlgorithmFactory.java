@@ -41,7 +41,7 @@ public class ConstraintBasedAlgorithmFactory {
   // enlarge the overall weight of the evenness constraints compared with the movement constraint.
   // TODO: Tune or make the following factor configurable.
   private static final int EVENNESS_PREFERENCE_NORMALIZE_FACTOR = 50;
-  private static final Map<String, Float> MODEL = new HashMap<>() {
+  private static final Map<String, Float> MODEL = new HashMap<String, Float>() {
     {
       // The default setting
       put(PartitionMovementConstraint.class.getSimpleName(), 1f);

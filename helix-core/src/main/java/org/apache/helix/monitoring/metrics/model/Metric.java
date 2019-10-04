@@ -1,4 +1,4 @@
-package org.apache.helix.monitoring.mbeans;
+package org.apache.helix.monitoring.metrics.model;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,15 +19,36 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+
 /**
- * This enum defines all of domain names used with various Helix monitor mbeans.
+ * Defines a generic metric interface.
  */
-public enum MonitorDomainNames {
-  ClusterStatus,
-  HelixZkClient,
-  HelixThreadPoolExecutor,
-  HelixCallback,
-  RoutingTableProvider,
-  CLMParticipantReport,
-  Rebalancer
+public interface Metric {
+
+  /**
+   * Gets the name of the metric.
+   */
+  String getMetricName();
+
+  /**
+   * Resets the internal state of this metric.
+   */
+  void reset();
+
+  /**
+   * Prints the metric along with its name.
+   */
+  String toString();
+
+  /**
+   * Returns the most recently emitted value for the metric at the time of the call.
+   * @return metric value
+   */
+  long getLastEmittedMetricValue();
+
+  /**
+   * Returns the underlying DynamicMetric.
+   */
+  DynamicMetric getDynamicMetric();
 }

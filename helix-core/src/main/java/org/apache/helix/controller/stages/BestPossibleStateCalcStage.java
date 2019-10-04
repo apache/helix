@@ -26,8 +26,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-
 import java.util.stream.Collectors;
+
+import javax.management.JMException;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
@@ -42,6 +43,8 @@ import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
+import org.apache.helix.monitoring.metrics.MetricCollector;
+import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -64,6 +67,8 @@ import org.slf4j.LoggerFactory;
 public class BestPossibleStateCalcStage extends AbstractBaseStage {
   private static final Logger logger =
       LoggerFactory.getLogger(BestPossibleStateCalcStage.class.getName());
+  // Create a ThreadLocal of MetricCollector. Metrics could only be updated by the controller thread only.
+  private static final ThreadLocal<MetricCollector> METRIC_COLLECTOR_THREAD_LOCAL = new ThreadLocal<>();
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -253,20 +258,41 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     Map<String, IdealState> newIdealStates = new HashMap<>();
 
     // Init rebalancer with the rebalance preferences.
-    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences = cache.getClusterConfig()
-        .getGlobalRebalancePreference();
+    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences =
+        cache.getClusterConfig().getGlobalRebalancePreference();
+
+    if (METRIC_COLLECTOR_THREAD_LOCAL.get() == null) {
+      try {
+        // If HelixManager is null, we just pass in null for MetricCollector so that a
+        // non-functioning WagedRebalancerMetricCollector would be created in WagedRebalancer's
+        // constructor. This is to handle two cases: 1. HelixManager is null for non-testing cases -
+        // in this case, WagedRebalancer will not read/write to metadata store and just use
+        // CurrentState-based rebalancing. 2. Tests that require instrumenting the rebalancer for
+        // verifying whether the cluster has converged.
+        METRIC_COLLECTOR_THREAD_LOCAL.set(helixManager == null ? null
+            : new WagedRebalancerMetricCollector(helixManager.getClusterName()));
+      } catch (JMException e) {
+        LogUtil.logWarn(logger, _eventId, String.format(
+            "MetricCollector instantiation failed! WagedRebalancer will not emit metrics due to JMException %s",
+            e));
+      }
+    }
+
     // TODO avoid creating the rebalancer on every rebalance call for performance enhancement
-    WagedRebalancer wagedRebalancer = new WagedRebalancer(helixManager, preferences);
+    WagedRebalancer wagedRebalancer =
+        new WagedRebalancer(helixManager, preferences, METRIC_COLLECTOR_THREAD_LOCAL.get());
     try {
-      newIdealStates.putAll(wagedRebalancer
-          .computeNewIdealStates(cache, wagedRebalancedResourceMap, currentStateOutput));
+      newIdealStates.putAll(wagedRebalancer.computeNewIdealStates(cache, wagedRebalancedResourceMap,
+          currentStateOutput));
     } catch (HelixRebalanceException ex) {
       // Note that unlike the legacy rebalancer, the WAGED rebalance won't return partial result.
       // Since it calculates for all the eligible resources globally, a partial result is invalid.
       // TODO propagate the rebalancer failure information to updateRebalanceStatus for monitoring.
-      LogUtil.logError(logger, _eventId, String
-          .format("Failed to calculate the new Ideal States using the rebalancer %s due to %s",
-              wagedRebalancer.getClass().getSimpleName(), ex.getFailureType()), ex);
+      LogUtil.logError(logger, _eventId,
+          String.format(
+              "Failed to calculate the new Ideal States using the rebalancer %s due to %s",
+              wagedRebalancer.getClass().getSimpleName(), ex.getFailureType()),
+          ex);
     } finally {
       wagedRebalancer.close();
     }

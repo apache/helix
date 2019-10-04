@@ -19,7 +19,6 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -106,9 +105,29 @@ public class WagedRebalancer {
         helixManager, metricCollector);
   }
 
+  /**
+   * This constructor will use null for HelixManager and MetricCollector. With null HelixManager,
+   * the rebalancer will rebalance solely based on CurrentStates. With null MetricCollector, the
+   * rebalancer will not emit JMX metrics.
+   * @param assignmentMetadataStore
+   * @param algorithm
+   * @param mappingCalculator
+   */
   protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator) {
     this(assignmentMetadataStore, algorithm, mappingCalculator, null, null);
+  }
+
+  /**
+   * This constructor will use null for HelixManager and MetricCollector. With null HelixManager,
+   * the rebalancer will rebalance solely based on CurrentStates.
+   * @param assignmentMetadataStore
+   * @param algorithm
+   * @param metricCollector
+   */
+  protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
+      RebalanceAlgorithm algorithm, MetricCollector metricCollector) {
+    this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer(), null, metricCollector);
   }
 
   private WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
@@ -126,12 +145,6 @@ public class WagedRebalancer {
     // allow rebalancer to proceed
     _metricCollector =
         metricCollector == null ? new WagedRebalancerMetricCollector() : metricCollector;
-  }
-
-  @VisibleForTesting
-  protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
-      RebalanceAlgorithm algorithm, MetricCollector metricCollector) {
-    this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer(), null, metricCollector);
   }
 
   // Release all the resources.
@@ -499,7 +512,12 @@ public class WagedRebalancer {
     Map<String, ResourceAssignment> currentBestAssignment = Collections.emptyMap();
     if (assignmentMetadataStore != null) {
       try {
+        LatencyMetric stateReadLatency = _metricCollector.getMetric(
+            WagedRebalancerMetricCollector.WagedRebalancerMetricNames.StateReadLatencyGauge.name(),
+            LatencyMetric.class);
+        stateReadLatency.startMeasuringLatency();
         currentBestAssignment = assignmentMetadataStore.getBestPossibleAssignment();
+        stateReadLatency.endMeasuringLatency();
       } catch (HelixException ex) {
         // Report error. and use empty mapping instead.
         LOG.error("Failed to get the current best possible assignment.", ex);

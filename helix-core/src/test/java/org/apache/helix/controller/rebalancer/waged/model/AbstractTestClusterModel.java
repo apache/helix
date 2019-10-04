@@ -115,11 +115,11 @@ public abstract class AbstractTestClusterModel {
     // 4. Mock two resources, each with 2 partitions on the default instance.
     // The instance will have the following partitions assigned
     // Resource 1:
-    // partition 1 - MASTER
-    // partition 2 - SLAVE
+    // -------------- partition 1 - MASTER
+    // -------------- partition 2 - SLAVE
     // Resource 2:
-    // partition 3 - MASTER
-    // partition 4 - SLAVE
+    // -------------- partition 3 - MASTER
+    // -------------- partition 4 - SLAVE
     CurrentState testCurrentStateResource1 = Mockito.mock(CurrentState.class);
     Map<String, String> partitionStateMap1 = new HashMap<>();
     partitionStateMap1.put(_partitionNames.get(0), "MASTER");

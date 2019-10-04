@@ -33,7 +33,7 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
   private Map<String, ResourceAssignment> _persistGlobalBaseline = new HashMap<>();
   private Map<String, ResourceAssignment> _persistBestPossibleAssignment = new HashMap<>();
 
-  public MockAssignmentMetadataStore() {
+  MockAssignmentMetadataStore() {
     super(Mockito.mock(BucketDataAccessor.class), "");
   }
 

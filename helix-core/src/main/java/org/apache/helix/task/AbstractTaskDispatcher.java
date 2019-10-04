@@ -818,6 +818,7 @@ public abstract class AbstractTaskDispatcher {
             paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
             jobContext.setPartitionState(pId, TaskPartitionState.DROPPED);
             // Now it will be dropped and be rescheduled
+            // drop it from new assignemnt
           }
         }
       }

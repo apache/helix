@@ -263,8 +263,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     if (METRIC_COLLECTOR_THREAD_LOCAL.get() == null) {
       try {
-        METRIC_COLLECTOR_THREAD_LOCAL
-            .set(new WagedRebalancerMetricCollector(helixManager.getClusterName()));
+        // If HelixManager is null, we just pass in null for MetricCollector so that a
+        // non-functioning WagedRebalancerMetricCollector would be created in WagedRebalancer's
+        // constructor. This is to handle two cases: 1. HelixManager is null for non-testing cases -
+        // in this case, WagedRebalancer will not read/write to metadata store and just use
+        // CurrentState-based rebalancing. 2. Tests that require instrumenting the rebalancer for
+        // verifying whether the cluster has converged.
+        METRIC_COLLECTOR_THREAD_LOCAL.set(helixManager == null ? null
+            : new WagedRebalancerMetricCollector(helixManager.getClusterName()));
       } catch (JMException e) {
         LogUtil.logWarn(logger, _eventId, String.format(
             "MetricCollector instantiation failed! WagedRebalancer will not emit metrics due to JMException %s",

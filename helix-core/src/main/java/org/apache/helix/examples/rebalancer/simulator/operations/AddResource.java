@@ -39,16 +39,19 @@ public class AddResource implements Operation {
   private final Map<String, Integer> _capacityUsage;
   private final int _partitions;
   private final int _replicas;
+  private final int _minReplicas;
   private final String _rebalanceClassName;
   private final String _rebalanceStrategy;
 
   public AddResource(String resourceName, String stateModelDef, Map<String, Integer> capacityUsage,
-      int partitions, int replicas, String rebalanceClassName, String rebalanceStrategy) {
+      int partitions, int replicas, int minReplicas, String rebalanceClassName,
+      String rebalanceStrategy) {
     _resourceName = resourceName;
     _stateModelDef = stateModelDef;
     _capacityUsage = capacityUsage;
     _partitions = partitions;
     _replicas = replicas;
+    _minReplicas = minReplicas;
     _rebalanceClassName = rebalanceClassName;
     _rebalanceStrategy = rebalanceStrategy;
   }
@@ -62,6 +65,7 @@ public class AddResource implements Operation {
     is.setRebalancerClassName(_rebalanceClassName);
     is.setRebalanceStrategy(_rebalanceStrategy);
     is.setReplicas("" + _replicas);
+    is.setMinActiveReplicas(_minReplicas);
     admin.setResourceIdealState(clusterName, _resourceName, is);
 
     ResourceConfig resourceConfig = new ResourceConfig(_resourceName);

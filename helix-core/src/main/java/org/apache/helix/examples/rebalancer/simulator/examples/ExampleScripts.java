@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -24,6 +23,7 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 
+
 public class ExampleScripts {
   public static List<Operation> showCaseOperations(int partitionCount, int replicaCount,
       Map<String, Integer> defaultUsage, String rebalanaceClass, String rebalanceStrategy,
@@ -32,7 +32,8 @@ public class ExampleScripts {
     List<Operation> operations = new ArrayList<>();
     operations.add(
         new AddResource(targetResourceName, BuiltInStateModelDefinitions.OnlineOffline.name(),
-            defaultUsage, partitionCount, replicaCount, rebalanaceClass, rebalanceStrategy));
+            defaultUsage, partitionCount, replicaCount, replicaCount, rebalanaceClass,
+            rebalanceStrategy));
     String targetNode = "newInstance0_12000";
     operations.add(new EnableNode(targetNode, false));
     operations.add(new EnableNode(targetNode, true));

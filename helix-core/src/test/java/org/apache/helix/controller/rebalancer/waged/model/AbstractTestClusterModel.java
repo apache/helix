@@ -37,7 +37,7 @@ import org.apache.helix.model.ResourceConfig;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeClass;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 public abstract class AbstractTestClusterModel {
   protected static String _sessionId = "testSessionId";

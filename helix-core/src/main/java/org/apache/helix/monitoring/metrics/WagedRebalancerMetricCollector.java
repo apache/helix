@@ -20,6 +20,7 @@ package org.apache.helix.monitoring.metrics;
  */
 
 import javax.management.JMException;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.metrics.implementation.RebalanceLatencyGauge;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 
@@ -41,7 +42,7 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
   }
 
   public WagedRebalancerMetricCollector(String clusterName) throws JMException {
-    super(clusterName, WAGED_REBALANCER_ENTITY_NAME);
+    super(MonitorDomainNames.Rebalancer.name(), clusterName, WAGED_REBALANCER_ENTITY_NAME);
     createMetrics();
     register();
   }
@@ -52,7 +53,7 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
    * metrics.
    */
   public WagedRebalancerMetricCollector() {
-    super(null, null);
+    super(MonitorDomainNames.Rebalancer.name(), null, null);
     createMetrics();
   }
 

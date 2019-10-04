@@ -22,11 +22,13 @@ package org.apache.helix.monitoring.metrics.implementation;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import java.util.concurrent.TimeUnit;
-import org.apache.helix.HelixException;
-import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.metrics.model.LatencyMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RebalanceLatencyGauge extends LatencyMetric {
+  private static final Logger LOG = LoggerFactory.getLogger(RebalanceLatencyGauge.class);
   private static final long VALUE_NOT_SET = -1;
   private long _lastEmittedMetricValue = VALUE_NOT_SET;
 
@@ -41,6 +43,7 @@ public class RebalanceLatencyGauge extends LatencyMetric {
   }
 
   /**
+   * WARNING: this method is not thread-safe.
    * Calling this method multiple times would simply overwrite the previous state. This is because
    * the rebalancer could fail at any point, and we want it to recover gracefully by resetting the
    * internal state of this metric.
@@ -51,11 +54,16 @@ public class RebalanceLatencyGauge extends LatencyMetric {
     _startTime = System.currentTimeMillis();
   }
 
+  /**
+   * WARNING: this method is not thread-safe.
+   */
   @Override
   public void endMeasuringLatency() {
-    if (_endTime != 0L) {
-      throw new HelixException(
-          String.format("Needs to call startMeasuringLatency first! Metric name: %s", _metricName));
+    if (_startTime == 0L || _endTime != 0L) {
+      LOG.error(
+          "Needs to call startMeasuringLatency first! Ignoring and resetting the metric. Metric name: {}",
+          _metricName);
+      reset();
     }
     _endTime = System.currentTimeMillis();
     _lastEmittedMetricValue = _endTime - _startTime;

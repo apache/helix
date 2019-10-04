@@ -37,11 +37,13 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 public abstract class MetricCollector extends DynamicMBeanProvider {
   private static final String CLUSTER_NAME_KEY = "ClusterName";
   private static final String ENTITY_NAME_KEY = "EntityName";
+  private String _monitorDomainName;
   private String _clusterName;
   private String _entityName;
   private Map<String, Metric> _metricMap;
 
-  public MetricCollector(String clusterName, String entityName) {
+  public MetricCollector(String monitorDomainName, String clusterName, String entityName) {
+    _monitorDomainName = monitorDomainName;
     _clusterName = clusterName;
     _entityName = entityName;
     _metricMap = new HashMap<>();
@@ -53,11 +55,17 @@ public abstract class MetricCollector extends DynamicMBeanProvider {
     Collection<DynamicMetric<?, ?>> dynamicMetrics = new HashSet<>();
     _metricMap.values().forEach(metric -> dynamicMetrics.add(metric.getDynamicMetric()));
 
-    // TODO: Create helper methods for mbeanName and ObjectName
+    // Define MBeanName and ObjectName
+    // MBean name has two key-value pairs:
+    // ------ 1) ClusterName KV pair (first %s=%s)
+    // ------ 2) EntityName KV pair (second %s=%s)
     String mbeanName =
         String.format("%s=%s, %s=%s", CLUSTER_NAME_KEY, _clusterName, ENTITY_NAME_KEY, _entityName);
+
+    // ObjectName has one key-value pair:
+    // ------ 1) Monitor domain name KV pair where value is the MBean name
     doRegister(dynamicMetrics,
-        new ObjectName(String.format("%s:%s", MonitorDomainNames.Rebalancer.name(), mbeanName)));
+        new ObjectName(String.format("%s:%s", _monitorDomainName, mbeanName)));
     return this;
   }
 

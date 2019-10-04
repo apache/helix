@@ -45,7 +45,6 @@ import org.apache.helix.rest.common.HelixDataAccessorWrapper;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.util.InstanceValidationUtil;
-import org.apache.http.conn.HttpHostConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -216,21 +215,17 @@ public class InstanceServiceImpl implements InstanceService {
   }
 
   private StoppableCheck performCustomInstanceCheck(String clusterId, String instanceName,
-      String baseUrl, Map<String, String> customPayLoads) throws IOException {
+      String baseUrl, Map<String, String> customPayLoads) {
     LOG.info("Perform instance level client side health checks for {}/{}", clusterId, instanceName);
     try {
       return new StoppableCheck(
           _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads),
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
-    } catch (HttpHostConnectException ex) {
-      LOG.error("Custom client side instance level health check for {}/{} failed "
-          + "because of connection refused.", clusterId, instanceName, ex);
+    } catch (IOException ex) {
+      LOG.error("Custom client side instance level health check for {}/{} failed.", clusterId,
+          instanceName, ex);
       return new StoppableCheck(false, Arrays.asList(instanceName),
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
-    } catch (IOException e) {
-      LOG.error("Failed to perform custom client side instance level health checks for {}/{}",
-          clusterId, instanceName, e);
-      throw e;
     }
   }
 

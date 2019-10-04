@@ -37,7 +37,6 @@ import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
-import org.apache.http.conn.HttpHostConnectException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -124,7 +123,7 @@ public class TestInstanceService {
         };
 
     when(_customRestClient.getInstanceStoppableCheck(anyString(), anyMap()))
-        .thenThrow(HttpHostConnectException.class);
+        .thenThrow(IOException.class);
 
     Map<String, String> dataMap =
         ImmutableMap.of("instance", TEST_INSTANCE, "selection_base", "zone_based");

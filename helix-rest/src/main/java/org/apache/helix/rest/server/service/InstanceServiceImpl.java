@@ -223,9 +223,8 @@ public class InstanceServiceImpl implements InstanceService {
           _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads),
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
     } catch (HttpHostConnectException ex) {
-      String msg = "Custom client side instance level health check for {}/{} failed "
-          + "because of connection refused.";
-      LOG.error(msg, clusterId, instanceName, ex);
+      LOG.error("Custom client side instance level health check for {}/{} failed "
+          + "because of connection refused.", clusterId, instanceName, ex);
       return new StoppableCheck(false, Arrays.asList(instanceName),
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
     } catch (IOException e) {

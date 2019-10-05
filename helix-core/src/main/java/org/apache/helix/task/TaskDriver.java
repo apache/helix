@@ -19,6 +19,7 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -388,16 +389,17 @@ public class TaskDriver {
       // if queue is full, Helix will try to clean up the expired job to free more space.
       WorkflowContext workflowContext = TaskUtil.getWorkflowContext(_propertyStore, queue);
       if (workflowContext != null) {
-        Set<String> expiredJobs =
-            TaskUtil.getExpiredJobs(_accessor, _propertyStore, workflowConfig, workflowContext);
+        Set<String> expiredJobs = Sets.newHashSet();
+        Set<String> jobsWithoutConfig = Sets.newHashSet();
+        TaskUtil.getExpiredJobs(_accessor, _propertyStore, workflowConfig, workflowContext,
+            expiredJobs, jobsWithoutConfig);
         if (!TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, expiredJobs, true)) {
           LOG.warn("Failed to clean up expired and completed jobs from queue " + queue);
         }
 
-        Set<String> misconfiguredJobs =
-            TaskUtil.getMisconfiguredJobs(_accessor, workflowConfig, workflowContext);
-        if (!TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, misconfiguredJobs, true)) {
-          LOG.warn("Failed to clean up misconfiguredJobs jobs from queue " + queue);
+        if (!TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, jobsWithoutConfig,
+            true)) {
+          LOG.warn("Failed to clean up jobsWithoutConfig jobs from queue {}" , queue);
         }
 
       }

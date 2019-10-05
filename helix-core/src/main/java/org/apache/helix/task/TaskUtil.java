@@ -717,17 +717,17 @@ public class TaskUtil {
   }
 
   /**
-   * Return all jobs that are COMPLETED and passes its expiry time.
+   * Update all jobs that are COMPLETED and passes its expiry time and the jobs that are missing
+   * config.
    * @param dataAccessor
    * @param propertyStore
    * @param workflowConfig
    * @param workflowContext
    * @return
    */
-  protected static Set<String> getExpiredJobs(HelixDataAccessor dataAccessor,
+  protected static void getExpiredJobs(HelixDataAccessor dataAccessor,
       HelixPropertyStore<ZNRecord> propertyStore, WorkflowConfig workflowConfig,
-      WorkflowContext workflowContext) {
-    Set<String> expiredJobs = new HashSet<>();
+      WorkflowContext workflowContext, Set<String> expiredJobs, Set<String> jobsWithoutConfig) {
 
     if (workflowContext != null) {
       Map<String, TaskState> jobStates = workflowContext.getJobStates();
@@ -742,35 +742,14 @@ public class TaskUtil {
               expiredJobs.add(job);
             }
           }
-        }
-      }
-    }
-    return expiredJobs;
-  }
-
-  /**
-   * Return all jobs that are missing JobConfig
-   * @param dataAccessor
-   * @param workflowConfig
-   * @param workflowContext
-   * @return
-   */
-  protected static Set<String> getMisconfiguredJobs(HelixDataAccessor dataAccessor,
-      WorkflowConfig workflowConfig, WorkflowContext workflowContext) {
-    Set<String> misconfiguredJob = new HashSet<>();
-
-    if (workflowContext != null) {
-      for (String job : workflowConfig.getJobDag().getAllNodes()) {
-        JobConfig jobConfig = TaskUtil.getJobConfig(dataAccessor, job);
-        if (jobConfig == null) {
+        } else {
           LOG.error(String.format(
               "Job %s exists in JobDAG but JobConfig is missing! Job might have been deleted manually from the JobQueue: %s, or left in the DAG due to a failed clean-up attempt from last purge.",
               job, workflowConfig.getWorkflowId()));
-          misconfiguredJob.add(job);
+          jobsWithoutConfig.add(job);
         }
       }
     }
-    return misconfiguredJob;
   }
 
   /**
@@ -1008,14 +987,13 @@ public class TaskUtil {
     }
     long purgeInterval = workflowConfig.getJobPurgeInterval();
     long currentTime = System.currentTimeMillis();
-    final Set<String> expiredJobs = Sets.newHashSet();
-    final Set<String> misconfiguredJobs = Sets.newHashSet();
+    Set<String> expiredJobs = Sets.newHashSet();
+    Set<String> jobsWithoutConfig = Sets.newHashSet();
     if (purgeInterval > 0 && workflowContext.getLastJobPurgeTime() + purgeInterval <= currentTime) {
-      expiredJobs.addAll(TaskUtil.getExpiredJobs(manager.getHelixDataAccessor(),
-          manager.getHelixPropertyStore(), workflowConfig, workflowContext));
-      misconfiguredJobs.addAll(TaskUtil.getMisconfiguredJobs(manager.getHelixDataAccessor(),
-          workflowConfig, workflowContext));
-      if (expiredJobs.isEmpty() && misconfiguredJobs.isEmpty()) {
+      TaskUtil.getExpiredJobs(manager.getHelixDataAccessor(),
+          manager.getHelixPropertyStore(), workflowConfig, workflowContext, expiredJobs, jobsWithoutConfig);
+
+      if (expiredJobs.isEmpty() && jobsWithoutConfig.isEmpty()) {
         LOG.info("No job to purge for the queue " + workflow);
       } else {
         if (!expiredJobs.isEmpty()) {
@@ -1040,18 +1018,18 @@ public class TaskUtil {
                 + " from the workflow " + workflow);
           }
         }
-        if (!misconfiguredJobs.isEmpty()) {
-          LOG.info("Purge jobs " + misconfiguredJobs + " from queue " + workflow);
-          for (String job : misconfiguredJobs) {
+        if (!jobsWithoutConfig.isEmpty()) {
+          LOG.info("Purge jobs " + jobsWithoutConfig + " from queue " + workflow);
+          for (String job : jobsWithoutConfig) {
             if (!TaskUtil.removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(),
                 job)) {
-              LOG.warn("Failed to clean up misconfigured jobs from workflow " + workflow);
+              LOG.warn("Failed to clean up jobsWithoutConfig jobs from workflow " + workflow);
             }
             rebalanceScheduler.removeScheduledRebalance(job);
           }
           if (!TaskUtil.removeJobsFromDag(manager.getHelixDataAccessor(), workflow,
-              misconfiguredJobs, true)) {
-            LOG.warn("Error occurred while trying to remove jobs + " + misconfiguredJobs
+              jobsWithoutConfig, true)) {
+            LOG.warn("Error occurred while trying to remove jobs + " + jobsWithoutConfig
                 + " from the workflow " + workflow);
           }
         }

@@ -78,33 +78,21 @@ public class TestPurgeJobWithoutConfig extends TaskTestBase {
     _driver.pollForJobState(jobQueueName, nameSpacedJobName, TaskState.COMPLETED);
 
     // Remove the config associated with JOB1
-    boolean configDeleted =
-        removeWorkflowJobConfig(_manager.getHelixDataAccessor(), nameSpacedJobName);
-    Assert.assertTrue(configDeleted);
+    boolean hasConfigBeenRemoved = false;
+    PropertyKey cfgKey = _manager.getHelixDataAccessor().keyBuilder().resourceConfig(nameSpacedJobName);
+    if (_manager.getHelixDataAccessor().getPropertyStat(cfgKey) != null) {
+      if (_manager.getHelixDataAccessor().removeProperty(cfgKey)) {
+        hasConfigBeenRemoved = true;
+      }
+    }
+    Assert.assertTrue(hasConfigBeenRemoved);
 
     // Check whether JOB1 has been successfully removed from the DAG
-    boolean haveJobDeletedFromDag = TestHelper.verify(() -> {
+    boolean hasJobBeenRemovedFromDag = TestHelper.verify(() -> {
       WorkflowConfig workflowConfig = _driver.getWorkflowConfig(jobQueueName);
       JobDag dag = workflowConfig.getJobDag();
       return !dag.getAllNodes().contains(nameSpacedJobName);
     }, 60 * 1000);
-    Assert.assertTrue(haveJobDeletedFromDag);
-  }
-
-  /**
-   * This function removes the job config from the ZooKeeper
-   * @param accessor
-   * @param workflowJobResource
-   * @return
-   */
-  private static boolean removeWorkflowJobConfig(HelixDataAccessor accessor,
-      String workflowJobResource) {
-    PropertyKey cfgKey = accessor.keyBuilder().resourceConfig(workflowJobResource);
-    if (accessor.getPropertyStat(cfgKey) != null) {
-      if (!accessor.removeProperty(cfgKey)) {
-        return false;
-      }
-    }
-    return true;
+    Assert.assertTrue(hasJobBeenRemovedFromDag);
   }
 }

@@ -723,7 +723,8 @@ public class TaskUtil {
    * @param propertyStore
    * @param workflowConfig
    * @param workflowContext
-   * @return
+   * @param expiredJobs
+   * @param jobsWithoutConfig
    */
   protected static void getExpiredJobs(HelixDataAccessor dataAccessor,
       HelixPropertyStore<ZNRecord> propertyStore, WorkflowConfig workflowConfig,

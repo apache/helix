@@ -306,9 +306,25 @@ public abstract class AbstractTaskDispatcher {
           } else if (jobState == TaskState.IN_PROGRESS
               && (jobTgtState != TargetState.STOP && jobTgtState != TargetState.DELETE)) {
             // Job is in progress, implying that tasks are being re-tried, so set it to RUNNING
-            paMap.put(pId,
-                new JobRebalancer.PartitionAssignment(instance, TaskPartitionState.RUNNING.name()));
-            assignedPartitions.get(instance).add(pId);
+            String currentStateString =
+                currStateOutput.getCurrentState(jobResource, new Partition(pName), instance);
+            TaskPartitionState stateFromContext = jobCtx.getPartitionState(pId);
+
+            // If current state is null and context is INIT, the task should be dropped and
+            // reassigned in next pipeline.
+            if (currentStateString == null && stateFromContext != null) {
+              // Considered as Dropped case
+              LOG.info(
+                  "CurrentState for Task partition {} on instance {} is null. StateFromContext is {}. It will be dropped and re-scheduled in next pipelines.",
+                  pName, instance, stateFromContext);
+              jobCtx.setPartitionState(pId, TaskPartitionState.DROPPED);
+              donePartitions.add(pId);
+              assignableInstanceManager.release(instance, taskConfig, quotaType);
+            } else {
+              paMap.put(pId, new JobRebalancer.PartitionAssignment(instance,
+                  TaskPartitionState.RUNNING.name()));
+              assignedPartitions.get(instance).add(pId);
+            }
           }
         }
 

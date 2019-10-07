@@ -124,7 +124,7 @@ public class TestTaskStage extends TaskTestBase {
    * Test that if there is a job in the DAG with JobConfig gone (due to ZK delete failure), the
    * async job purge will try to delete it again.
    */
-  @Test(dependsOnMethods = "testPersistContextData")
+  @Test(dependsOnMethods = "testPersistContextData", enabled = false)
   public void testPartialDataPurge() {
     // Manually delete JobConfig
     deleteJobConfigs(_testWorkflow, _testJobPrefix + "0");

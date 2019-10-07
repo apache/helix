@@ -48,9 +48,13 @@ public class TestPurgeJobWithoutConfig extends TaskTestBase {
   public void testPurgeJobWithoutConfig() throws Exception {
     // Timeout per task has been set to be a large number.
     final long timeout = 60000L;
+    final long purgeInterval = 5000L;
     String jobQueueName = TestHelper.getTestMethodName();
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
+    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(jobQueue.getWorkflowConfig());
+    cfgBuilder.setJobPurgeInterval(purgeInterval);
+    jobQueue.setWorkflowConfig(cfgBuilder.build());
 
     JobConfig.Builder jobBuilder0 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
         .setTimeoutPerTask(timeout).setMaxAttemptsPerTask(1)
@@ -88,11 +92,13 @@ public class TestPurgeJobWithoutConfig extends TaskTestBase {
     Assert.assertTrue(hasConfigBeenRemoved);
 
     // Check whether JOB1 has been successfully removed from the DAG
+    // Wait for (2 * purgeInterval) to make sure we tried at least once to remove JOB1 from
+    // the DAG
     boolean hasJobBeenRemovedFromDag = TestHelper.verify(() -> {
       WorkflowConfig workflowConfig = _driver.getWorkflowConfig(jobQueueName);
       JobDag dag = workflowConfig.getJobDag();
       return !dag.getAllNodes().contains(nameSpacedJobName);
-    }, 60 * 1000);
+    }, 2 * purgeInterval);
     Assert.assertTrue(hasJobBeenRemovedFromDag);
   }
 }

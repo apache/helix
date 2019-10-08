@@ -401,6 +401,7 @@ public class TaskDriver {
           LOG.warn("Failed to clean up jobs without JobConfigs from queue's DAG. Queue name: {}", queue);
         }
       }
+      
       workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
       if (workflowConfig.getJobDag().size() >= capacity) {
         throw new HelixException("Failed to enqueue a job, queue is full.");

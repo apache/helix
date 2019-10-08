@@ -55,7 +55,7 @@ public class TestResourceTopStateAntiAffinityConstraint {
   @Test
   public void testWhen1PercentUsage() {
     when(_testReplica.isReplicaTopState()).thenReturn(true);
-    when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(0);
+    when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(1);
     when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(100);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
@@ -66,7 +66,7 @@ public class TestResourceTopStateAntiAffinityConstraint {
 
   @Test
   public void testWhenHalfUsage() {
-    when(_testReplica.isReplicaTopState()).thenReturn(false);
+    when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(10);
     when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
@@ -78,7 +78,7 @@ public class TestResourceTopStateAntiAffinityConstraint {
 
   @Test
   public void testWhenFullUsage() {
-    when(_testReplica.isReplicaTopState()).thenReturn(false);
+    when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(20);
     when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
@@ -90,7 +90,7 @@ public class TestResourceTopStateAntiAffinityConstraint {
 
   @Test
   public void testWhenExceedUsage() {
-    when(_testReplica.isReplicaTopState()).thenReturn(false);
+    when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(40);
     when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
@@ -98,5 +98,15 @@ public class TestResourceTopStateAntiAffinityConstraint {
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 2f);
     Assert.assertEquals(normalizedScore, 4.9999997E-4f);
+  }
+
+  @Test
+  public void testWhenReplicaIsNotTopState() {
+    when(_testReplica.isReplicaTopState()).thenReturn(false);
+    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    float normalizedScore =
+        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertEquals(score, 0f);
+    Assert.assertEquals(normalizedScore, 1f);
   }
 }

@@ -23,6 +23,7 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
+
 /**
  * Evaluate the proposed assignment according to the top state replication count on the instance.
  * The higher number the number of top state partitions assigned to the instance, the lower the
@@ -30,13 +31,19 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  */
 class ResourceTopStateAntiAffinityConstraint extends SoftConstraint {
 
+  /**
+   * {@inheritDoc}
+   * The soft constraint returns constant number for non-top state replica
+   * Only evaluate when the replica is at top state
+   * It's because the current algorithm only considers node status when assigning the replica, non-top state is not the one of evenness targets
+   */
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    // if the replica is of top state, with the new replica, it will add "one" additional top state
-    // partitions to the instance
-    int targetTopStateCount =
-        (replica.isReplicaTopState() ? 1 : 0) + node.getAssignedTopStatePartitionsCount();
-    return targetTopStateCount / (float) clusterContext.getEstimatedMaxTopStateCount();
+    if (!replica.isReplicaTopState()) {
+      return 0;
+    }
+    return node.getAssignedTopStatePartitionsCount() / (float) clusterContext
+        .getEstimatedMaxTopStateCount();
   }
 }

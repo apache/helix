@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import com.google.common.base.Joiner;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -42,8 +44,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Joiner;
 
 public final class HelixUtil {
   static private Logger LOG = LoggerFactory.getLogger(HelixUtil.class);
@@ -201,23 +201,42 @@ public final class HelixUtil {
    */
   public static Map<String, String> computeIdealMapping(List<String> preferenceList,
       StateModelDefinition stateModelDef, Set<String> liveAndEnabled) {
+    return computeIdealMapping(preferenceList, stateModelDef, liveAndEnabled,
+        Collections.emptySet());
+  }
+
+  /**
+   * compute the ideal mapping for resource in Full-Auto and Semi-Auto based on its preference list
+   */
+  public static Map<String, String> computeIdealMapping(List<String> preferenceList,
+      StateModelDefinition stateModelDef, Set<String> liveInstanceSet,
+      Set<String> disabledInstancesForPartition) {
     Map<String, String> idealStateMap = new HashMap<String, String>();
 
     if (preferenceList == null) {
       return idealStateMap;
     }
 
+    for (String instance : preferenceList) {
+      if (disabledInstancesForPartition.contains(instance) && liveInstanceSet.contains(instance)) {
+        idealStateMap.put(instance, stateModelDef.getInitialState());
+      }
+    }
+
+    Set<String> liveAndEnabledInstances = new HashSet<>(liveInstanceSet);
+    liveAndEnabledInstances.removeAll(disabledInstancesForPartition);
+
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
     Set<String> assigned = new HashSet<String>();
 
     for (String state : statesPriorityList) {
-      int stateCount = AbstractRebalancer.getStateCount(state, stateModelDef, liveAndEnabled.size(),
-          preferenceList.size());
+      int stateCount = AbstractRebalancer
+          .getStateCount(state, stateModelDef, liveAndEnabledInstances.size(), preferenceList.size());
       for (String instance : preferenceList) {
         if (stateCount <= 0) {
           break;
         }
-        if (!assigned.contains(instance)) {
+        if (!assigned.contains(instance) && liveAndEnabledInstances.contains(instance)) {
           idealStateMap.put(instance, state);
           assigned.add(instance);
           stateCount--;

@@ -148,7 +148,7 @@ public class TestNodeSwap extends ZkTestBase {
 
     HelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(_allDBs).build();
+            .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
 
     Map<String, ExternalView> record = new HashMap<>();
@@ -192,7 +192,7 @@ public class TestNodeSwap extends ZkTestBase {
     Thread.sleep(2000);
 
     _clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setResources(_allDBs).build();
+        .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
 
     for (String db : _allDBs) {

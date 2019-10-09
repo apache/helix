@@ -23,6 +23,7 @@ import com.google.common.collect.Sets;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.model.ClusterConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,10 +113,12 @@ public class ResourceChangeDetector implements ChangeDetector {
     case LIVE_INSTANCE:
       return snapshot.getLiveInstances();
     case CLUSTER_CONFIG:
-      // In the case of ClusterConfig, we return an empty map
-      // This is to allow the caller to iterate on the change types without throwing an exception or
-      // leaving a warn log for ClusterConfig changes
-      return Collections.emptyMap();
+      ClusterConfig config = snapshot.getClusterConfig();
+      if (config == null) {
+        return Collections.emptyMap();
+      } else {
+        return Collections.singletonMap(config.getClusterName(), config);
+      }
     default:
       LOG.warn(
           "ResourceChangeDetector cannot determine propertyMap for the given ChangeType: {}. Returning an empty map.",

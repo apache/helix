@@ -20,14 +20,14 @@ package org.apache.helix.manager.zk;
  */
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
@@ -44,15 +44,11 @@ import org.apache.helix.util.GZipCompressionUtil;
 import org.codehaus.jackson.map.ObjectMapper;
 
 public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
-  private static final int DEFAULT_NUM_VERSIONS = 10;
   private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
   private static final String DATA_SIZE_KEY = "DATA_SIZE";
-  private static final String WRITE_LOCK_KEY = "WRITE_LOCK";
-
   private static final String METADATA_KEY = "METADATA";
   private static final String LAST_SUCCESSFUL_WRITE_KEY = "LAST_SUCCESSFUL_WRITE";
   private static final String LAST_WRITE_KEY = "LAST_WRITE";
-
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   // 100 KB for default bucket size
@@ -66,9 +62,8 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * Constructor that allows a custom bucket size.
    * @param zkAddr
    * @param bucketSize
-   * @param numVersions number of versions to store in ZK
    */
-  public ZkBucketDataAccessor(String zkAddr, int bucketSize, int numVersions) {
+  public ZkBucketDataAccessor(String zkAddr, int bucketSize) {
     // There are two HelixZkClients:
     // 1. _zkBaseDataAccessor for writes of binary data
     // 2. _znRecordBaseDataAccessor for writes of ZNRecord (metadata)
@@ -98,24 +93,24 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param zkAddr
    */
   public ZkBucketDataAccessor(String zkAddr) {
-    this(zkAddr, DEFAULT_BUCKET_SIZE, DEFAULT_NUM_VERSIONS);
+    this(zkAddr, DEFAULT_BUCKET_SIZE);
   }
 
   @Override
   public <T extends HelixProperty> boolean compressedBucketWrite(String path, T value)
       throws IOException {
-    AtomicInteger versionRef = new AtomicInteger();
+    AtomicLong versionRef = new AtomicLong();
     DataUpdater<byte[]> lastWriteVersionUpdater = dataInZk -> {
       if (dataInZk == null || dataInZk.length == 0) {
         // No last write version exists, so start with 0
-        return Ints.toByteArray(0);
+        return Longs.toByteArray(0);
       }
       // Last write exists, so increment and write it back
-      int lastWriteVersion = Ints.fromByteArray(dataInZk);
+      long lastWriteVersion = Longs.fromByteArray(dataInZk);
       lastWriteVersion++;
       // Set the AtomicReference
       versionRef.set(lastWriteVersion);
-      return Ints.toByteArray(lastWriteVersion);
+      return Longs.toByteArray(lastWriteVersion);
     };
 
     // 1. Increment lastWriteVersion using DataUpdater
@@ -125,7 +120,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
           String.format("Failed to write the write version at path: %s!", path));
     }
     // Successfully reserved a version number
-    final int version = versionRef.get();
+    final long version = versionRef.get();
 
     // 2. Write to the incremented last write version
     String versionedDataPath = path + "/" + version;
@@ -178,14 +173,13 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     DataUpdater<byte[]> lastSuccessfulWriteVersionUpdater = dataInZk -> {
       if (dataInZk == null || dataInZk.length == 0) {
         // No last write version exists, so write version from this write
-        return Ints.toByteArray(version);
+        return Longs.toByteArray(version);
       }
       // Last successful write exists so check if it's smaller than my number
-      int lastWriteVersion = Ints.fromByteArray(dataInZk);
-      // TODO: Improve this with a high watermark (say, Integer.MAX_VALUE)
+      long lastWriteVersion = Longs.fromByteArray(dataInZk);
       if (lastWriteVersion < version) {
         // Smaller, so I can overwrite
-        return Ints.toByteArray(version);
+        return Longs.toByteArray(version);
       } else {
         // Greater, I have lagged behind. Return the existing data
         return dataInZk;
@@ -197,7 +191,8 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
           String.format("Failed to write the last successful write metadata at path: %s!", path));
     }
 
-    // TODO: 5. Garbage collect
+    // 5. Garbage collect stale versions
+    new Thread(() -> deleteStaleVersions(path, Long.toString(version))).start();
     return true;
   }
 
@@ -229,7 +224,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       throw new ZkNoNodeException(
           String.format("Last successful write ZNode does not exist for path: %s", path));
     }
-    int versionToRead = Ints.fromByteArray(binaryVersionToRead);
+    long versionToRead = Longs.fromByteArray(binaryVersionToRead);
 
     // 2. Get the metadata map
     byte[] binaryMetadata = _zkBaseDataAccessor.get(path + "/" + versionToRead + "/" + METADATA_KEY,
@@ -301,5 +296,48 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   @Override
   public void close() {
     disconnect();
+  }
+
+  /**
+   * Deletes all versions that are older than the currentVersion given.
+   * @param path
+   * @param currentVersion
+   */
+  private void deleteStaleVersions(String path, String currentVersion) {
+    // Get all children names under path
+    List<String> children = _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT);
+    if (children == null || children.isEmpty()) {
+      // The whole path has been deleted so return immediately
+      return;
+    }
+    filterChildrenNames(children, currentVersion);
+    List<String> pathsToDelete = getPathsToDelete(path, children);
+    for (String pathToDelete : pathsToDelete) {
+      // TODO: Should be batch delete but it doesn't work. It's okay since this runs async
+      _zkBaseDataAccessor.remove(pathToDelete, AccessOption.PERSISTENT);
+    }
+  }
+
+  /**
+   * Filter out currentVersion and non-version children names from the children list given.
+   * @param children
+   * @param currentVersion
+   */
+  private void filterChildrenNames(List<String> children, String currentVersion) {
+    children.remove(LAST_SUCCESSFUL_WRITE_KEY);
+    children.remove(LAST_WRITE_KEY);
+    children.remove(currentVersion);
+  }
+
+  /**
+   * Generates all stale paths to delete.
+   * @param path
+   * @param staleVersions
+   * @return
+   */
+  private List<String> getPathsToDelete(String path, List<String> staleVersions) {
+    List<String> pathsToDelete = new ArrayList<>();
+    staleVersions.forEach(ver -> pathsToDelete.add(path + "/" + ver));
+    return pathsToDelete;
   }
 }

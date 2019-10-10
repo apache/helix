@@ -27,13 +27,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
@@ -50,13 +50,14 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private static final String LAST_SUCCESSFUL_WRITE_KEY = "LAST_SUCCESSFUL_WRITE";
   private static final String LAST_WRITE_KEY = "LAST_WRITE";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ExecutorService GC_THREAD_POOL = Executors.newFixedThreadPool(1);
 
   // 100 KB for default bucket size
   private static final int DEFAULT_BUCKET_SIZE = 50 * 1024;
   private final int _bucketSize;
   private ZkSerializer _zkSerializer;
   private HelixZkClient _zkClient;
-  private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
+  private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
 
   /**
    * Constructor that allows a custom bucket size.
@@ -99,7 +100,6 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   @Override
   public <T extends HelixProperty> boolean compressedBucketWrite(String path, T value)
       throws IOException {
-    AtomicLong versionRef = new AtomicLong();
     DataUpdater<byte[]> lastWriteVersionUpdater = dataInZk -> {
       if (dataInZk == null || dataInZk.length == 0) {
         // No last write version exists, so start with 0
@@ -108,19 +108,20 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       // Last write exists, so increment and write it back
       long lastWriteVersion = Longs.fromByteArray(dataInZk);
       lastWriteVersion++;
-      // Set the AtomicReference
-      versionRef.set(lastWriteVersion);
       return Longs.toByteArray(lastWriteVersion);
     };
 
     // 1. Increment lastWriteVersion using DataUpdater
-    if (!_zkBaseDataAccessor.update(path + "/" + LAST_WRITE_KEY, lastWriteVersionUpdater,
-        AccessOption.PERSISTENT)) {
+    ZkBaseDataAccessor.AccessResult result = _zkBaseDataAccessor
+        .doUpdate(path + "/" + LAST_WRITE_KEY, lastWriteVersionUpdater, AccessOption.PERSISTENT);
+    if (result._retCode != ZkBaseDataAccessor.RetCode.OK) {
       throw new HelixException(
           String.format("Failed to write the write version at path: %s!", path));
     }
+
     // Successfully reserved a version number
-    final long version = versionRef.get();
+    byte[] binaryVersion = (byte[]) result._updatedValue;
+    final long version = Longs.fromByteArray(binaryVersion);
 
     // 2. Write to the incremented last write version
     String versionedDataPath = path + "/" + version;
@@ -150,6 +151,13 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       counter++;
     }
 
+    // 3. Include the metadata in the batch write
+    Map<String, String> metadata = ImmutableMap.of(BUCKET_SIZE_KEY, Integer.toString(_bucketSize),
+        DATA_SIZE_KEY, Integer.toString(compressedRecord.length));
+    byte[] binaryMetadata = OBJECT_MAPPER.writeValueAsBytes(metadata);
+    paths.add(path + "/" + version + "/" + METADATA_KEY);
+    buckets.add(binaryMetadata);
+
     // Do an async set to ZK
     boolean[] success = _zkBaseDataAccessor.setChildren(paths, buckets, AccessOption.PERSISTENT);
     // Exception and fail the write if any failed
@@ -158,15 +166,6 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
         throw new HelixException(
             String.format("Failed to write the data buckets for path: %s", path));
       }
-    }
-
-    // 3. Data write succeeded, so write the metadata by first serializing to byte array
-    Map<String, String> metadata = ImmutableMap.of(BUCKET_SIZE_KEY, Integer.toString(_bucketSize),
-        DATA_SIZE_KEY, Integer.toString(compressedRecord.length));
-    byte[] binaryMetadata = OBJECT_MAPPER.writeValueAsBytes(metadata);
-    if (!_zkBaseDataAccessor.set(path + "/" + version + "/" + METADATA_KEY, binaryMetadata,
-        AccessOption.PERSISTENT)) {
-      throw new HelixException(String.format("Failed to write the metadata at path: %s!", path));
     }
 
     // 4. Update lastSuccessfulWriteVersion using Updater
@@ -181,8 +180,8 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
         // Smaller, so I can overwrite
         return Longs.toByteArray(version);
       } else {
-        // Greater, I have lagged behind. Return the existing data
-        return dataInZk;
+        // Greater, I have lagged behind. Return null and do not write
+        return null;
       }
     };
     if (!_zkBaseDataAccessor.update(path + "/" + LAST_SUCCESSFUL_WRITE_KEY,
@@ -192,7 +191,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     }
 
     // 5. Garbage collect stale versions
-    new Thread(() -> deleteStaleVersions(path, Long.toString(version))).start();
+    GC_THREAD_POOL.submit(() -> deleteStaleVersions(path, Long.toString(version)));
     return true;
   }
 

@@ -50,6 +50,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private static final String LAST_SUCCESSFUL_WRITE_KEY = "LAST_SUCCESSFUL_WRITE";
   private static final String LAST_WRITE_KEY = "LAST_WRITE";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  // Thread pool for deleting stale versions
   private static final ExecutorService GC_THREAD_POOL = Executors.newFixedThreadPool(1);
 
   // 100 KB for default bucket size
@@ -65,9 +66,6 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param bucketSize
    */
   public ZkBucketDataAccessor(String zkAddr, int bucketSize) {
-    // There are two HelixZkClients:
-    // 1. _zkBaseDataAccessor for writes of binary data
-    // 2. _znRecordBaseDataAccessor for writes of ZNRecord (metadata)
     _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     _zkClient.setZkSerializer(new ZkSerializer() {

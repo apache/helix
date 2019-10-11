@@ -21,7 +21,6 @@ package org.apache.helix.manager.zk;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.primitives.Longs;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -63,7 +62,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   @BeforeClass
   public void beforeClass() {
     // Initialize ZK accessors for testing
-    _bucketDataAccessor = new ZkBucketDataAccessor(ZK_ADDR);
+    _bucketDataAccessor = new ZkBucketDataAccessor(ZK_ADDR, 50 * 1024, 0L);
     HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
     zkClient.setZkSerializer(new ZkSerializer() {
@@ -114,13 +113,14 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     // Last known good version number should be "count"
     byte[] binarySuccessfulWriteVer = _zkBaseDataAccessor
         .get(PATH + "/" + LAST_SUCCESSFUL_WRITE_KEY, null, AccessOption.PERSISTENT);
-    long lastSuccessfulWriteKey = Longs.fromByteArray(binarySuccessfulWriteVer);
-    Assert.assertEquals(lastSuccessfulWriteKey, count);
+    long lastSuccessfulWriteVer =
+        Long.parseLong(new String(binarySuccessfulWriteVer).split("_")[0]);
+    Assert.assertEquals(lastSuccessfulWriteVer, count);
 
     // Last write version should be "count"
     byte[] binaryWriteVer =
         _zkBaseDataAccessor.get(PATH + "/" + LAST_WRITE_KEY, null, AccessOption.PERSISTENT);
-    long writeVer = Longs.fromByteArray(binaryWriteVer);
+    long writeVer = Long.parseLong(new String(binaryWriteVer).split("_")[0]);
     Assert.assertEquals(writeVer, count);
 
     // Test that all previous versions have been deleted

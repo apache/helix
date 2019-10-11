@@ -20,7 +20,6 @@ package org.apache.helix.manager.zk;
  */
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.primitives.Longs;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,6 +43,7 @@ import org.apache.helix.util.GZipCompressionUtil;
 import org.codehaus.jackson.map.ObjectMapper;
 
 public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
+  private static final long DEFAULT_VERSION_TTL = 60000L; // 1 min
   private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
   private static final String DATA_SIZE_KEY = "DATA_SIZE";
   private static final String METADATA_KEY = "METADATA";
@@ -56,6 +56,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   // 100 KB for default bucket size
   private static final int DEFAULT_BUCKET_SIZE = 50 * 1024;
   private final int _bucketSize;
+  private final long _versionTTL;
   private ZkSerializer _zkSerializer;
   private HelixZkClient _zkClient;
   private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
@@ -65,7 +66,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param zkAddr
    * @param bucketSize
    */
-  public ZkBucketDataAccessor(String zkAddr, int bucketSize) {
+  public ZkBucketDataAccessor(String zkAddr, int bucketSize, long versionTTL) {
     _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     _zkClient.setZkSerializer(new ZkSerializer() {
@@ -85,6 +86,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     _zkBaseDataAccessor = new ZkBaseDataAccessor<>(_zkClient);
     _zkSerializer = new ZNRecordJacksonSerializer();
     _bucketSize = bucketSize;
+    _versionTTL = versionTTL;
   }
 
   /**
@@ -92,21 +94,24 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param zkAddr
    */
   public ZkBucketDataAccessor(String zkAddr) {
-    this(zkAddr, DEFAULT_BUCKET_SIZE);
+    this(zkAddr, DEFAULT_BUCKET_SIZE, DEFAULT_VERSION_TTL);
   }
 
   @Override
   public <T extends HelixProperty> boolean compressedBucketWrite(String path, T value)
       throws IOException {
+    final long timestamp = System.currentTimeMillis();
+
     DataUpdater<byte[]> lastWriteVersionUpdater = dataInZk -> {
       if (dataInZk == null || dataInZk.length == 0) {
         // No last write version exists, so start with 0
-        return Longs.toByteArray(0);
+        return ("0_" + timestamp).getBytes();
       }
-      // Last write exists, so increment and write it back
-      long lastWriteVersion = Longs.fromByteArray(dataInZk);
+      // Last write exists, so increment and write it back with a timestamp
+      String lastWriteVersionStr = new String(dataInZk);
+      long lastWriteVersion = extractVersion(lastWriteVersionStr);
       lastWriteVersion++;
-      return Longs.toByteArray(lastWriteVersion);
+      return (lastWriteVersion + "_" + timestamp).getBytes();
     };
 
     // 1. Increment lastWriteVersion using DataUpdater
@@ -119,12 +124,13 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
     // Successfully reserved a version number
     byte[] binaryVersion = (byte[]) result._updatedValue;
-    final long version = Longs.fromByteArray(binaryVersion);
+    final String timestampedVersion = new String(binaryVersion);
+    final long version = extractVersion(timestampedVersion);
 
-    // 2. Write to the incremented last write version
-    String versionedDataPath = path + "/" + version;
+    // 2. Write to the incremented last write version with timestamp for TTL
+    String versionedDataPath = path + "/" + timestampedVersion;
 
-    // Take the ZNrecord and serialize it (get byte[])
+    // Take the ZNRecord and serialize it (get byte[])
     byte[] serializedRecord = _zkSerializer.serialize(value.getRecord());
     // Compress the byte[]
     byte[] compressedRecord = GZipCompressionUtil.compress(serializedRecord);
@@ -153,7 +159,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     Map<String, String> metadata = ImmutableMap.of(BUCKET_SIZE_KEY, Integer.toString(_bucketSize),
         DATA_SIZE_KEY, Integer.toString(compressedRecord.length));
     byte[] binaryMetadata = OBJECT_MAPPER.writeValueAsBytes(metadata);
-    paths.add(path + "/" + version + "/" + METADATA_KEY);
+    paths.add(versionedDataPath + "/" + METADATA_KEY);
     buckets.add(binaryMetadata);
 
     // Do an async set to ZK
@@ -170,13 +176,14 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     DataUpdater<byte[]> lastSuccessfulWriteVersionUpdater = dataInZk -> {
       if (dataInZk == null || dataInZk.length == 0) {
         // No last write version exists, so write version from this write
-        return Longs.toByteArray(version);
+        return timestampedVersion.getBytes();
       }
       // Last successful write exists so check if it's smaller than my number
-      long lastWriteVersion = Longs.fromByteArray(dataInZk);
+      String timestampedLastWriteVersion = new String(dataInZk);
+      long lastWriteVersion = extractVersion(timestampedLastWriteVersion);
       if (lastWriteVersion < version) {
         // Smaller, so I can overwrite
-        return Longs.toByteArray(version);
+        return timestampedVersion.getBytes();
       } else {
         // Greater, I have lagged behind. Return null and do not write
         return null;
@@ -189,7 +196,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     }
 
     // 5. Garbage collect stale versions
-    GC_THREAD_POOL.submit(() -> deleteStaleVersions(path, Long.toString(version)));
+    GC_THREAD_POOL.submit(() -> deleteStaleVersions(path, version));
     return true;
   }
 
@@ -221,7 +228,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       throw new ZkNoNodeException(
           String.format("Last successful write ZNode does not exist for path: %s", path));
     }
-    long versionToRead = Longs.fromByteArray(binaryVersionToRead);
+    String versionToRead = new String(binaryVersionToRead);
 
     // 2. Get the metadata map
     byte[] binaryMetadata = _zkBaseDataAccessor.get(path + "/" + versionToRead + "/" + METADATA_KEY,
@@ -300,7 +307,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param path
    * @param currentVersion
    */
-  private void deleteStaleVersions(String path, String currentVersion) {
+  private void deleteStaleVersions(String path, long currentVersion) {
     // Get all children names under path
     List<String> children = _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT);
     if (children == null || children.isEmpty()) {
@@ -320,10 +327,36 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param children
    * @param currentVersion
    */
-  private void filterChildrenNames(List<String> children, String currentVersion) {
+  private void filterChildrenNames(List<String> children, long currentVersion) {
+    // Leave out metadata
     children.remove(LAST_SUCCESSFUL_WRITE_KEY);
     children.remove(LAST_WRITE_KEY);
-    children.remove(currentVersion);
+
+    // Keep the children that are not expired and exclude currentVersion from deletion
+    long currTime = System.currentTimeMillis();
+    children.removeIf(childName -> currTime < extractTimestamp(childName) + _versionTTL
+        || extractVersion(childName) == currentVersion);
+  }
+
+  /**
+   * Extracts timestamp from the znode name.
+   * @param name
+   * @return
+   */
+  private long extractTimestamp(String name) {
+    // Path structure: ~~/ver_timestamp
+    String[] parts = name.split("_");
+    return Long.parseLong(parts[1]);
+  }
+
+  /**
+   * Extracts the version from the znode name.
+   * @param name
+   * @return
+   */
+  private long extractVersion(String name) {
+    String[] parts = name.split("_");
+    return Long.parseLong(parts[0]);
   }
 
   /**

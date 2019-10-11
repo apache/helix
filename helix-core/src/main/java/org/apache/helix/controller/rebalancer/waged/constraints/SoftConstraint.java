@@ -32,13 +32,13 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 abstract class SoftConstraint {
   // Default alpha used in "usage percentage" focused soft constraint
   // The sensitivity is 0.1% (return different values when usage differs by 0.1%)
-  private float alpha = 1000f;
+  private float _alpha = 1000f;
 
   SoftConstraint() {
   }
 
   SoftConstraint(float alpha) {
-    this.alpha = alpha;
+    this._alpha = alpha;
   }
 
   interface NormalizeFunction {
@@ -76,6 +76,6 @@ abstract class SoftConstraint {
    * Child class could override the method and customize the method on its own
    */
   NormalizeFunction getNormalizeFunction() {
-    return score -> (score == 0f ? 1f : (float) Math.tanh(1 / (this.alpha * score)));
+    return score -> (score == 0f ? 1f : (float) Math.tanh(1 / (_alpha * score)));
   }
 }

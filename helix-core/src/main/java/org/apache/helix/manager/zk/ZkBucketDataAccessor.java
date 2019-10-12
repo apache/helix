@@ -41,8 +41,12 @@ import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.util.GZipCompressionUtil;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
+  private static final Logger LOG = LoggerFactory.getLogger(ZkBucketDataAccessor.class);
+
   private static final long DEFAULT_VERSION_TTL = 60000L; // 1 min
   private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
   private static final String DATA_SIZE_KEY = "DATA_SIZE";
@@ -335,7 +339,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     // Keep the children that are not expired and exclude currentVersion from deletion
     long currTime = System.currentTimeMillis();
     children.removeIf(childName -> currTime < extractTimestamp(childName) + _versionTTL
-        || extractVersion(childName) == currentVersion);
+        || extractVersion(childName) >= currentVersion);
   }
 
   /**
@@ -346,7 +350,23 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private long extractTimestamp(String name) {
     // Path structure: ~~/ver_timestamp
     String[] parts = name.split("_");
-    return Long.parseLong(parts[1]);
+    if (parts.length == 2) {
+      String timestampStr = parts[1];
+      long timestamp;
+      try {
+        timestamp = Long.parseLong(timestampStr);
+        return timestamp;
+      } catch (Exception e) {
+        LOG.warn(
+            "Failed to parse timestamp for ZNode name: {}. Returning Long.MAX_VALUE for timestamp!",
+            name);
+        return Long.MAX_VALUE;
+      }
+    }
+    LOG.warn(
+        "ZNode with an invalid name detected while extracting timestamp. ZNode name: {}. Returning Long.MAX_VALUE for timestamp!",
+        name);
+    return Long.MAX_VALUE;
   }
 
   /**
@@ -356,7 +376,23 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    */
   private long extractVersion(String name) {
     String[] parts = name.split("_");
-    return Long.parseLong(parts[0]);
+    if (parts.length == 2) {
+      String versionStr = parts[0];
+      long version;
+      try {
+        version = Long.parseLong(versionStr);
+        return version;
+      } catch (Exception e) {
+        LOG.warn(
+            "Failed to parse version for ZNode name: {}. Returning Long.MAX_VALUE for version!",
+            name);
+        return Long.MAX_VALUE;
+      }
+    }
+    LOG.warn(
+        "ZNode with an invalid name detected while extracting version. ZNode name: {}. Returning Long.MAX_VALUE for version!",
+        name);
+    return Long.MAX_VALUE;
   }
 
   /**

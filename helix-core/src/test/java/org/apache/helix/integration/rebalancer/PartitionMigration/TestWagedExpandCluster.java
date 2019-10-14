@@ -38,7 +38,7 @@ public class TestWagedExpandCluster extends TestExpandCluster {
       dbNames.add("Test-DB-" + i++);
     }
     return new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setResources(dbNames)
-        .setZkAddr(ZK_ADDR).build();
+        .setDeactivatedNodeAwareness(true).setZkAddr(ZK_ADDR).build();
   }
 
   protected Map<String, IdealState> createTestDBs(long delayTime) {

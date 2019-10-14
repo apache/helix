@@ -42,7 +42,7 @@ public class TestDelayedWagedRebalanceWithRackaware extends TestDelayedAutoRebal
       dbNames.add("Test-DB-" + i++);
     }
     return new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setResources(dbNames)
-        .setZkAddr(ZK_ADDR).build();
+        .setDeactivatedNodeAwareness(true).setZkAddr(ZK_ADDR).build();
   }
 
   // create test DBs, wait it converged and return externalviews
@@ -55,7 +55,7 @@ public class TestDelayedWagedRebalanceWithRackaware extends TestDelayedAutoRebal
           _minActiveReplica);
       _testDBs.add(db);
     }
-    Thread.sleep(100);
+    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _testDBs) {
       ExternalView ev =

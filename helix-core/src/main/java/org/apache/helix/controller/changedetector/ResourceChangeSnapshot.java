@@ -23,8 +23,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -47,6 +49,7 @@ class ResourceChangeSnapshot {
   private Map<String, IdealState> _idealStateMap;
   private Map<String, ResourceConfig> _resourceConfigMap;
   private Map<String, LiveInstance> _liveInstances;
+  private ClusterConfig _clusterConfig;
 
   /**
    * Default constructor that constructs an empty snapshot.
@@ -57,10 +60,12 @@ class ResourceChangeSnapshot {
     _idealStateMap = new HashMap<>();
     _resourceConfigMap = new HashMap<>();
     _liveInstances = new HashMap<>();
+    _clusterConfig = null;
   }
 
   /**
    * Constructor using controller cache (ResourceControllerDataProvider).
+   *
    * @param dataProvider
    */
   ResourceChangeSnapshot(ResourceControllerDataProvider dataProvider) {
@@ -69,6 +74,7 @@ class ResourceChangeSnapshot {
     _idealStateMap = new HashMap<>(dataProvider.getIdealStates());
     _resourceConfigMap = new HashMap<>(dataProvider.getResourceConfigMap());
     _liveInstances = new HashMap<>(dataProvider.getLiveInstances());
+    _clusterConfig = dataProvider.getClusterConfig();
   }
 
   /**
@@ -81,6 +87,7 @@ class ResourceChangeSnapshot {
     _idealStateMap = new HashMap<>(cache._idealStateMap);
     _resourceConfigMap = new HashMap<>(cache._resourceConfigMap);
     _liveInstances = new HashMap<>(cache._liveInstances);
+    _clusterConfig = cache._clusterConfig;
   }
 
   Set<HelixConstants.ChangeType> getChangedTypes() {
@@ -101,5 +108,9 @@ class ResourceChangeSnapshot {
 
   Map<String, LiveInstance> getLiveInstances() {
     return _liveInstances;
+  }
+
+  ClusterConfig getClusterConfig() {
+    return _clusterConfig;
   }
 }

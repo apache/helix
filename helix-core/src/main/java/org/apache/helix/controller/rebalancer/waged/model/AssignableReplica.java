@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -151,22 +152,24 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
 
     Map<String, Integer> partitionCapacity = capacityMap.get(partitionName);
     if (partitionCapacity == null) {
-      partitionCapacity = capacityMap.get(ResourceConfig.DEFAULT_PARTITION_KEY);
+      partitionCapacity =
+          capacityMap.getOrDefault(ResourceConfig.DEFAULT_PARTITION_KEY, new HashMap<>());
     }
-    if (partitionCapacity == null) {
-      LOG.warn("The capacity usage of the specified partition {} is not configured in the Resource"
-          + " Config {}. No default partition capacity is configured either. Will proceed with"
-          + " empty capacity configuration.", partitionName, resourceConfig.getResourceName());
-      partitionCapacity = new HashMap<>();
+
+    for (Map.Entry<String, Integer> capacityEntry : clusterConfig.getDefaultPartitionWeightMap()
+        .entrySet()) {
+      partitionCapacity.putIfAbsent(capacityEntry.getKey(), capacityEntry.getValue());
     }
 
     List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
     // Remove the non-required capacity items.
     partitionCapacity.keySet().retainAll(requiredCapacityKeys);
-    // If any required capacity key is not configured in the resource config, fill the partition
-    // capacity map with 0 usage.
-    for (String capacityKey : requiredCapacityKeys) {
-      partitionCapacity.putIfAbsent(capacityKey, 0);
+    // If any required capacity key is not configured in the resource config, fail the model creating.
+    if (!partitionCapacity.keySet().containsAll(requiredCapacityKeys)) {
+      throw new HelixException(String.format(
+          "The required capacity keys %s are not fully configured int the resource %s partition %s weight map %s.",
+          requiredCapacityKeys.toString(), resourceConfig.getResourceName(), partitionName,
+          partitionCapacity.toString()));
     }
 
     return partitionCapacity;

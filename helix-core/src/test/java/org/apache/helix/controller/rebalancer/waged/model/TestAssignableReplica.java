@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -103,6 +104,24 @@ public class TestAssignableReplica {
   }
 
   @Test
+  public void testDefaultPartitionWeight() {
+    Map<String, Integer> defaultWeightDataMapResource = new HashMap<>();
+    defaultWeightDataMapResource.put("item1", 3);
+    defaultWeightDataMapResource.put("item2", 6);
+    ClusterConfig testClusterConfig = new ClusterConfig("testClusterConfigId");
+    testClusterConfig
+        .setInstanceCapacityKeys(new ArrayList<>(defaultWeightDataMapResource.keySet()));
+    testClusterConfig.setDefaultPartitionWeightMap(defaultWeightDataMapResource);
+
+    ResourceConfig testResourceConfigResource = new ResourceConfig(resourceName);
+    AssignableReplica replica = new AssignableReplica(testClusterConfig, testResourceConfigResource,
+        partitionNamePrefix + 1, masterState, masterPriority);
+
+    Assert.assertEquals(replica.getCapacity().size(), defaultWeightDataMapResource.size());
+    Assert.assertEquals(replica.getCapacity(), defaultWeightDataMapResource);
+  }
+
+  @Test
   public void testIncompletePartitionWeightConfig() throws IOException {
     // Init assignable replica with a basic config object
     Map<String, Integer> capacityDataMapResource = new HashMap<>();
@@ -119,6 +138,20 @@ public class TestAssignableReplica {
     String newCapacityKey = "newCapacityKey";
     requiredCapacityKeys.add(newCapacityKey);
     testClusterConfig.setInstanceCapacityKeys(requiredCapacityKeys);
+
+    try {
+      new AssignableReplica(testClusterConfig, testResourceConfigResource,
+          partitionNamePrefix + 1, masterState, masterPriority);
+      Assert.fail("Creating new replica should fail because of incomplete partition weight.");
+    } catch (HelixException ex) {
+      // expected
+    }
+
+    Map<String, Integer> defaultCapacityDataMap = new HashMap<>();
+    for (String key : requiredCapacityKeys) {
+      defaultCapacityDataMap.put(key, 0);
+    }
+    testClusterConfig.setDefaultPartitionWeightMap(defaultCapacityDataMap);
 
     AssignableReplica replica = new AssignableReplica(testClusterConfig, testResourceConfigResource,
         partitionNamePrefix + 1, masterState, masterPriority);

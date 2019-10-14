@@ -166,7 +166,7 @@ public class TestClusterConfig {
         DEFAULT_INSTANCE_CAPACITY_MAP.name()), capacityDataMapString);
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default Instance Capacity Data is empty")
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data is empty")
   public void testSetInstanceCapacityMapEmpty() {
     Map<String, Integer> capacityDataMap = new HashMap<>();
 
@@ -174,11 +174,63 @@ public class TestClusterConfig {
     testConfig.setDefaultInstanceCapacityMap(capacityDataMap);
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default Instance Capacity Data contains a negative value: item3 = -3")
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data contains a negative value: item3 = -3")
   public void testSetInstanceCapacityMapInvalid() {
     Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1, "item2", 2, "item3", -3);
 
     ClusterConfig testConfig = new ClusterConfig("testConfig");
     testConfig.setDefaultInstanceCapacityMap(capacityDataMap);
+  }
+
+  @Test
+  public void testGetPartitionWeightMap() {
+    Map<String, Integer> weightDataMap = ImmutableMap.of("item1", 1, "item2", 2, "item3", 3);
+
+    Map<String, String> weightDataMapString =
+        ImmutableMap.of("item1", "1", "item2", "2", "item3", "3");
+
+    ZNRecord rec = new ZNRecord("testId");
+    rec.setMapField(ClusterConfig.ClusterConfigProperty.DEFAULT_PARTITION_WEIGHT_MAP.name(),
+        weightDataMapString);
+    ClusterConfig testConfig = new ClusterConfig(rec);
+
+    Assert.assertTrue(testConfig.getDefaultPartitionWeightMap().equals(weightDataMap));
+  }
+
+  @Test
+  public void testGetPartitionWeightMapEmpty() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+
+    Assert.assertTrue(testConfig.getDefaultPartitionWeightMap().equals(Collections.emptyMap()));
+  }
+
+  @Test
+  public void testSetPartitionWeightMap() {
+    Map<String, Integer> weightDataMap = ImmutableMap.of("item1", 1, "item2", 2, "item3", 3);
+
+    Map<String, String> weightDataMapString =
+        ImmutableMap.of("item1", "1", "item2", "2", "item3", "3");
+
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    testConfig.setDefaultPartitionWeightMap(weightDataMap);
+
+    Assert.assertEquals(testConfig.getRecord().getMapField(ClusterConfig.ClusterConfigProperty.
+        DEFAULT_PARTITION_WEIGHT_MAP.name()), weightDataMapString);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data is empty")
+  public void testSetPartitionWeightMapEmpty() {
+    Map<String, Integer> weightDataMap = new HashMap<>();
+
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    testConfig.setDefaultPartitionWeightMap(weightDataMap);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data contains a negative value: item3 = -3")
+  public void testSetPartitionWeightMapInvalid() {
+    Map<String, Integer> weightDataMap = ImmutableMap.of("item1", 1, "item2", 2, "item3", -3);
+
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    testConfig.setDefaultPartitionWeightMap(weightDataMap);
   }
 }

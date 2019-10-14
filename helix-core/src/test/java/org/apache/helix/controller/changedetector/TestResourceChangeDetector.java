@@ -47,7 +47,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
   // since we don't provide the names of changed fields for ClusterConfig
   private static final ChangeType[] RESOURCE_CHANGE_TYPES = {
       ChangeType.IDEAL_STATE, ChangeType.INSTANCE_CONFIG, ChangeType.LIVE_INSTANCE,
-      ChangeType.RESOURCE_CONFIG
+      ChangeType.RESOURCE_CONFIG, ChangeType.CLUSTER_CONFIG
   };
 
   private static final String CLUSTER_NAME = TestHelper.getTestClassName();
@@ -121,7 +121,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
    * @throws Exception
    */
   @Test
-  public void testResourceChangeDetectorInit() throws Exception {
+  public void testResourceChangeDetectorInit() {
     _dataProvider.refresh(_dataAccessor);
     _resourceChangeDetector.updateSnapshots(_dataProvider);
 
@@ -135,6 +135,9 @@ public class TestResourceChangeDetector extends ZkTestBase {
     // Check that the right amount of instances show up as added
     checkDetectionCounts(ChangeType.LIVE_INSTANCE, NUM_NODES, 0, 0);
     checkDetectionCounts(ChangeType.INSTANCE_CONFIG, NUM_NODES, 0, 0);
+
+    // Check that the right amount of cluster config item show up
+    checkDetectionCounts(ChangeType.CLUSTER_CONFIG, 1, 0, 0);
   }
 
   /**
@@ -308,7 +311,11 @@ public class TestResourceChangeDetector extends ZkTestBase {
     checkChangeTypes(ChangeType.CLUSTER_CONFIG);
     // Check the counts for other types
     for (ChangeType type : RESOURCE_CHANGE_TYPES) {
-      checkDetectionCounts(type, 0, 0, 0);
+      if (type == ChangeType.CLUSTER_CONFIG) {
+        checkDetectionCounts(type, 0, 1, 0);
+      } else {
+        checkDetectionCounts(type, 0, 0, 0);
+      }
     }
   }
 

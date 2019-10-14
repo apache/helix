@@ -85,7 +85,8 @@ public class TestWagedRebalancerMigration extends TestPartitionMigrationBase {
     Thread.sleep(2000);
     ZkHelixClusterVerifier clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME)
-            .setResources(Collections.singleton(db)).setZkAddr(ZK_ADDR).build();
+            .setResources(Collections.singleton(db)).setZkAddr(ZK_ADDR)
+            .setDeactivatedNodeAwareness(true).build();
     Assert.assertTrue(clusterVerifier.verifyByPolling());
 
     _migrationVerifier =

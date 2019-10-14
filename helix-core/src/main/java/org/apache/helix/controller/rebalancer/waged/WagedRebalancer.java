@@ -19,7 +19,6 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -216,6 +217,11 @@ public class WagedRebalancer {
               itemKeys.addAll(getChangeDetector().getRemovalsByType(changeType));
               return itemKeys;
             }));
+    // Filter for the items that have content changed.
+    clusterChanges =
+        clusterChanges.entrySet().stream().filter(changeEntry -> !changeEntry.getValue().isEmpty())
+            .collect(Collectors
+                .toMap(changeEntry -> changeEntry.getKey(), changeEntry -> changeEntry.getValue()));
 
     // Perform Global Baseline Calculation
     if (clusterChanges.keySet().stream()

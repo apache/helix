@@ -150,7 +150,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
 
     HelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(_allDBs).build();
+            .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
     for (String db : _allDBs) {
       IdealState is =
@@ -182,7 +182,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
 
     HelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(_allDBs).build();
+            .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
     for (String db : _allDBs) {
       IdealState is =
@@ -218,7 +218,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
 
     HelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(_allDBs).build();
+            .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
     for (String db : _allDBs) {
       IdealState is =
@@ -262,7 +262,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     Thread.sleep(300);
     ZkHelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(_allDBs).build();
+            .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     for (String db : _allDBs) {
       IdealState is =

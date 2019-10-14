@@ -211,7 +211,6 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
       }
       return false;
     }, 2000);
-    Assert.assertTrue(_clusterVerifier.verify(3000));
 
     ExternalView ev =
         _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);

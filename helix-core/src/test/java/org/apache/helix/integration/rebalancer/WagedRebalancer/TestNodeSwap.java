@@ -116,7 +116,7 @@ public class TestNodeSwap extends ZkTestBase {
     Thread.sleep(1000);
 
     _clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setResources(_allDBs).build();
+        .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
   }
 
@@ -177,7 +177,7 @@ public class TestNodeSwap extends ZkTestBase {
 
     Thread.sleep(2000);
     _clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setResources(_allDBs).build();
+        .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
 
     // Since only one node temporary down, the same partitions will be moved to the newly added node.
@@ -265,7 +265,7 @@ public class TestNodeSwap extends ZkTestBase {
 
     Thread.sleep(2000);
     _clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setResources(_allDBs).build();
+        .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
 
     for (String db : _allDBs) {

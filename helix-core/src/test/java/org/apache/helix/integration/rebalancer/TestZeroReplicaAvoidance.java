@@ -165,7 +165,8 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, partition, replica, replica);
     }
     ZkHelixClusterVerifier clusterVerifier =
-        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+            .setDeactivatedNodeAwareness(true).build();
     Assert.assertTrue(clusterVerifier.verifyByPolling(50000L, 100L));
 
     _startListen = true;

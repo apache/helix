@@ -79,7 +79,7 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     /*
      * The latency between a ZK data change happening in the server side and the client side getting notification.
      */
-    DataPropagationLatencyGuage
+    DataPropagationLatencyGauge
   }
 
   private SimpleDynamicMetric<Long> _readCounter;
@@ -140,7 +140,7 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
         new Histogram(
             new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
     _dataPropagationLatencyGauge =
-        new HistogramDynamicMetric(PredefinedMetricDomains.DataPropagationLatencyGuage.name(),
+        new HistogramDynamicMetric(PredefinedMetricDomains.DataPropagationLatencyGauge.name(),
             new Histogram(new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(),
                 TimeUnit.MILLISECONDS)));
   }

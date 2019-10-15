@@ -715,15 +715,14 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Set the default instance capacity information with an Integer mapping.
-   *
-   * @param capacityDataMap - map of instance capacity data
-   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
-   *                                  This information is required by the global rebalancer.
+   * This information is required by the global rebalancer.
    * @see <a href="Rebalance Algorithm">
    * https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer#rebalance-algorithm-adapter
    * </a>
-   * If the instance capacity is not configured in neither Instance Config nor Cluster Config, the
+   * If the instance capacity is not configured in either Instance Config nor Cluster Config, the
    * cluster topology is considered invalid. So the rebalancer may stop working.
+   * @param capacityDataMap - map of instance capacity data
+   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
    */
   public void setDefaultInstanceCapacityMap(Map<String, Integer> capacityDataMap)
       throws IllegalArgumentException {
@@ -741,15 +740,14 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Set the default partition weight information with an Integer mapping.
-   *
-   * @param weightDataMap - map of partition weight data
-   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
-   *                                  This information is required by the global rebalancer.
+   * This information is required by the global rebalancer.
    * @see <a href="Rebalance Algorithm">
    * https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer#rebalance-algorithm-adapter
    * </a>
-   * If the partition weight is not configured in neither Resource Config nor Cluster Config, the
+   * If the partition weight is not configured in either Resource Config nor Cluster Config, the
    * cluster topology is considered invalid. So the rebalancer may stop working.
+   * @param weightDataMap - map of partition weight data
+   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
    */
   public void setDefaultPartitionWeightMap(Map<String, Integer> weightDataMap)
       throws IllegalArgumentException {

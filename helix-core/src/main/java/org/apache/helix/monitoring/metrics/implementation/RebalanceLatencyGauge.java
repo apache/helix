@@ -48,7 +48,6 @@ public class RebalanceLatencyGauge extends LatencyMetric {
    * the rebalancer could fail at any point, and we want it to recover gracefully by resetting the
    * internal state of this metric.
    */
-  @Override
   public void startMeasuringLatency() {
     reset();
     _startTime = System.currentTimeMillis();
@@ -57,7 +56,6 @@ public class RebalanceLatencyGauge extends LatencyMetric {
   /**
    * WARNING: this method is not thread-safe.
    */
-  @Override
   public void endMeasuringLatency() {
     if (_startTime == VALUE_NOT_SET || _endTime != VALUE_NOT_SET) {
       LOG.error(
@@ -72,33 +70,19 @@ public class RebalanceLatencyGauge extends LatencyMetric {
     reset();
   }
 
-  @Override
-  public String getMetricName() {
-    return _metricName;
-  }
-
-  @Override
-  public void reset() {
-    _startTime = VALUE_NOT_SET;
-    _endTime = VALUE_NOT_SET;
-  }
-
-  @Override
-  public String toString() {
-    return String.format("Metric %s's latency is %d", _metricName, getLastEmittedMetricValue());
-  }
-
   /**
    * Returns the most recently emitted metric value at the time of the call.
    * @return
    */
-  @Override
   public long getLastEmittedMetricValue() {
     return _lastEmittedMetricValue;
   }
 
-  @Override
-  public DynamicMetric getDynamicMetric() {
-    return this;
+  /**
+   * Resets the internal state of this metric.
+   */
+  private void reset() {
+    _startTime = VALUE_NOT_SET;
+    _endTime = VALUE_NOT_SET;
   }
 }

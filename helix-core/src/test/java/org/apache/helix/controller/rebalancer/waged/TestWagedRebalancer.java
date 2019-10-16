@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -41,6 +42,8 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
+import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.testng.Assert;
@@ -241,7 +244,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
   // TODO test with invalid capacity configuration which will fail the cluster model constructing.
   @Test(dependsOnMethods = "testRebalance")
-  public void testInvalidClusterStatus() throws IOException {
+  public void testInvalidClusterStatus() throws IOException, HelixRebalanceException {
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
         new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
@@ -254,13 +257,18 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Map<String, Resource> resourceMap = clusterData.getIdealStates().keySet().stream().collect(
         Collectors.toMap(resourceName -> resourceName, resourceName -> new Resource(resourceName)));
     try {
-      rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+      rebalancer.computeBestPossibleStates(clusterData, resourceMap, new CurrentStateOutput());
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.INVALID_CLUSTER_STATUS);
       Assert.assertEquals(ex.getMessage(),
           "Failed to generate cluster model. Failure Type: INVALID_CLUSTER_STATUS");
     }
+
+    // The rebalance will be done with empty mapping result since there is no previously calculated assignment.
+    Assert.assertTrue(
+        rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput())
+            .isEmpty());
   }
 
   @Test(dependsOnMethods = "testRebalance")
@@ -289,24 +297,44 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
   @Test(dependsOnMethods = "testRebalance")
   public void testAlgorithmException() throws IOException, HelixRebalanceException {
+    _metadataStore.clearMetadataStore();
+    WagedRebalancer rebalancer =
+        new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
+
+    ResourceControllerDataProvider clusterData = setupClusterDataCache();
+    Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
+        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+          Resource resource = new Resource(entry.getKey());
+          entry.getValue().getPartitionSet().stream()
+              .forEach(partition -> resource.addPartition(partition));
+          return resource;
+        }));
+    // Rebalance with normal configuration. So the assignment will be persisted in the metadata store.
+    Map<String, IdealState> result =
+        rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+
+    // Recreate a rebalance with the same metadata store but bad algorithm instance.
     RebalanceAlgorithm badAlgorithm = Mockito.mock(RebalanceAlgorithm.class);
     when(badAlgorithm.calculate(any())).thenThrow(new HelixRebalanceException("Algorithm fails.",
         HelixRebalanceException.Type.FAILED_TO_CALCULATE));
+    rebalancer = new WagedRebalancer(_metadataStore, badAlgorithm, new DelayedAutoRebalancer());
 
-    _metadataStore.clearMetadataStore();
-    WagedRebalancer rebalancer =
-        new WagedRebalancer(_metadataStore, badAlgorithm, new DelayedAutoRebalancer());
-
-    ResourceControllerDataProvider clusterData = setupClusterDataCache();
-    Map<String, Resource> resourceMap = clusterData.getIdealStates().keySet().stream().collect(
-        Collectors.toMap(resourceName -> resourceName, resourceName -> new Resource(resourceName)));
+    // Calculation will fail
     try {
-      rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+      rebalancer.computeBestPossibleStates(clusterData, resourceMap, new CurrentStateOutput());
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       Assert.assertEquals(ex.getMessage(), "Algorithm fails. Failure Type: FAILED_TO_CALCULATE");
     }
+    // But if call with the public method computeNewIdealStates(), the rebalance will return with the previous rebalance result.
+    Map<String, IdealState> newResult =
+        rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+    Assert.assertEquals(newResult, result);
+    // Ensure failure has been recorded
+    Assert.assertEquals(rebalancer.getMetricCollector().getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCount.name(),
+        CountMetric.class).getValue().longValue(), 1l);
   }
 
   @Test(dependsOnMethods = "testRebalance")

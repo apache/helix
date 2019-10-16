@@ -27,10 +27,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
@@ -45,8 +43,13 @@ import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.util.GZipCompressionUtil;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
+  private static final Logger LOG = LoggerFactory.getLogger(ZkBucketDataAccessor.class);
+
+  private static final int DEFAULT_BUCKET_SIZE = 50 * 1024; // 50KB
   private static final long DEFAULT_VERSION_TTL = TimeUnit.MINUTES.toMillis(1L); // 1 min
   private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
   private static final String DATA_SIZE_KEY = "DATA_SIZE";
@@ -56,10 +59,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   // Thread pool for deleting stale versions
   private static final ScheduledExecutorService GC_THREAD = Executors.newScheduledThreadPool(1);
-  // Concurrent map to keep track of <Root path, ScheduledFuture (gc task)> pairs
-  private static final Map<String, ScheduledFuture> GC_TASK_MAP = new ConcurrentHashMap<>();
 
-  private static final int DEFAULT_BUCKET_SIZE = 50 * 1024; // 50KB
   private final int _bucketSize;
   private final long _versionTTL;
   private ZkSerializer _zkSerializer;
@@ -201,7 +201,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     }
 
     // 5. Update the timer for GC
-    updateGCTimer(rootPath);
+    updateGCTimer(rootPath, versionStr);
     return true;
   }
 
@@ -307,39 +307,31 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     disconnect();
   }
 
-  private void updateGCTimer(String rootPath) {
-    // Reset the timer
-    ScheduledFuture future = GC_TASK_MAP.get(rootPath);
-    if (future != null) {
-      future.cancel(false);
-    }
-
+  private void updateGCTimer(String rootPath, String currentVersion) {
     TimerTask gcTask = new TimerTask() {
       @Override
       public void run() {
-        deleteStaleVersions(rootPath);
-        // GC complete so remove myself from task map
-        GC_TASK_MAP.remove(rootPath);
+        deleteStaleVersions(rootPath, currentVersion);
       }
     };
 
     // Schedule the gc task with TTL
-    ScheduledFuture gcFuture = GC_THREAD.schedule(gcTask, _versionTTL, TimeUnit.MILLISECONDS);
-    GC_TASK_MAP.put(rootPath, gcFuture);
+    GC_THREAD.schedule(gcTask, _versionTTL, TimeUnit.MILLISECONDS);
   }
 
   /**
    * Deletes all stale versions.
    * @param rootPath
+   * @param currentVersion
    */
-  private void deleteStaleVersions(String rootPath) {
+  private void deleteStaleVersions(String rootPath, String currentVersion) {
     // Get all children names under path
     List<String> children = _zkBaseDataAccessor.getChildNames(rootPath, AccessOption.PERSISTENT);
     if (children == null || children.isEmpty()) {
       // The whole path has been deleted so return immediately
       return;
     }
-    filterChildrenNames(rootPath, children);
+    filterChildrenNames(children, currentVersion);
     List<String> pathsToDelete = getPathsToDelete(rootPath, children);
     for (String pathToDelete : pathsToDelete) {
       // TODO: Should be batch delete but it doesn't work. It's okay since this runs async
@@ -348,22 +340,29 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   }
 
   /**
-   * Filter out non-version children names and last successful write version from the children list
-   * given.
-   * @param rootPath
+   * Filter out non-version children names and non-stale versions.
    * @param children
    */
-  private void filterChildrenNames(String rootPath, List<String> children) {
+  private void filterChildrenNames(List<String> children, String currentVersion) {
     // Leave out metadata
     children.remove(LAST_SUCCESSFUL_WRITE_KEY);
     children.remove(LAST_WRITE_KEY);
 
-    // Get the last successful write version and exclude from removal
-    byte[] binaryLastSuccessfulWrite = _zkBaseDataAccessor
-        .get(rootPath + "/" + LAST_SUCCESSFUL_WRITE_KEY, null, AccessOption.PERSISTENT);
-    if (binaryLastSuccessfulWrite != null) {
-      String lastSuccessfulWriteVersion = new String(binaryLastSuccessfulWrite);
-      children.remove(lastSuccessfulWriteVersion);
+    // Leave out currentVersion and above
+    // This is because we want to honor the TTL for newer versions
+    children.remove(currentVersion);
+    long currentVer = Long.parseLong(currentVersion);
+    for (String child : children) {
+      try {
+        long version = Long.parseLong(child);
+        if (version >= currentVer) {
+          children.remove(child);
+        }
+      } catch (Exception e) {
+        // Ignore ZNode names that aren't parseable
+        children.remove(child);
+        LOG.debug("Found an invalid ZNode: {}", child);
+      }
     }
   }
 

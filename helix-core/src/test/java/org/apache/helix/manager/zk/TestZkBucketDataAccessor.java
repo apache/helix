@@ -105,7 +105,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   public void testMultipleWrites() throws Exception {
     int count = 50;
 
-    // Write 10 times
+    // Write "count" times
     for (int i = 0; i < count; i++) {
       _bucketDataAccessor.compressedBucketWrite(PATH, new HelixProperty(record));
     }
@@ -113,14 +113,13 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     // Last known good version number should be "count"
     byte[] binarySuccessfulWriteVer = _zkBaseDataAccessor
         .get(PATH + "/" + LAST_SUCCESSFUL_WRITE_KEY, null, AccessOption.PERSISTENT);
-    long lastSuccessfulWriteVer =
-        Long.parseLong(new String(binarySuccessfulWriteVer).split("_")[0]);
+    long lastSuccessfulWriteVer = Long.parseLong(new String(binarySuccessfulWriteVer));
     Assert.assertEquals(lastSuccessfulWriteVer, count);
 
     // Last write version should be "count"
     byte[] binaryWriteVer =
         _zkBaseDataAccessor.get(PATH + "/" + LAST_WRITE_KEY, null, AccessOption.PERSISTENT);
-    long writeVer = Long.parseLong(new String(binaryWriteVer).split("_")[0]);
+    long writeVer = Long.parseLong(new String(binaryWriteVer));
     Assert.assertEquals(writeVer, count);
 
     // Test that all previous versions have been deleted

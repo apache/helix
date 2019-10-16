@@ -26,8 +26,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
+import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
@@ -41,13 +45,9 @@ import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.util.GZipCompressionUtil;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
-  private static final Logger LOG = LoggerFactory.getLogger(ZkBucketDataAccessor.class);
-
-  private static final long DEFAULT_VERSION_TTL = 60000L; // 1 min
+  private static final long DEFAULT_VERSION_TTL = TimeUnit.MINUTES.toMillis(1L); // 1 min
   private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
   private static final String DATA_SIZE_KEY = "DATA_SIZE";
   private static final String METADATA_KEY = "METADATA";
@@ -55,10 +55,11 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private static final String LAST_WRITE_KEY = "LAST_WRITE";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   // Thread pool for deleting stale versions
-  private static final ExecutorService GC_THREAD_POOL = Executors.newFixedThreadPool(1);
+  private static final ScheduledExecutorService GC_THREAD = Executors.newScheduledThreadPool(1);
+  // Concurrent map to keep track of <Root path, ScheduledFuture (gc task)> pairs
+  private static final Map<String, ScheduledFuture> GC_TASK_MAP = new ConcurrentHashMap<>();
 
-  // 100 KB for default bucket size
-  private static final int DEFAULT_BUCKET_SIZE = 50 * 1024;
+  private static final int DEFAULT_BUCKET_SIZE = 50 * 1024; // 50KB
   private final int _bucketSize;
   private final long _versionTTL;
   private ZkSerializer _zkSerializer;
@@ -69,6 +70,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * Constructor that allows a custom bucket size.
    * @param zkAddr
    * @param bucketSize
+   * @param versionTTL in ms
    */
   public ZkBucketDataAccessor(String zkAddr, int bucketSize, long versionTTL) {
     _zkClient = DedicatedZkClientFactory.getInstance()
@@ -102,37 +104,36 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   }
 
   @Override
-  public <T extends HelixProperty> boolean compressedBucketWrite(String path, T value)
+  public <T extends HelixProperty> boolean compressedBucketWrite(String rootPath, T value)
       throws IOException {
-    final long timestamp = System.currentTimeMillis();
-
     DataUpdater<byte[]> lastWriteVersionUpdater = dataInZk -> {
       if (dataInZk == null || dataInZk.length == 0) {
         // No last write version exists, so start with 0
-        return ("0_" + timestamp).getBytes();
+        return "0".getBytes();
       }
-      // Last write exists, so increment and write it back with a timestamp
+      // Last write exists, so increment and write it back
+      // **String conversion is necessary to make it display in ZK (zooinspector)**
       String lastWriteVersionStr = new String(dataInZk);
-      long lastWriteVersion = extractVersion(lastWriteVersionStr);
+      long lastWriteVersion = Long.parseLong(lastWriteVersionStr);
       lastWriteVersion++;
-      return (lastWriteVersion + "_" + timestamp).getBytes();
+      return String.valueOf(lastWriteVersion).getBytes();
     };
 
     // 1. Increment lastWriteVersion using DataUpdater
-    ZkBaseDataAccessor.AccessResult result = _zkBaseDataAccessor
-        .doUpdate(path + "/" + LAST_WRITE_KEY, lastWriteVersionUpdater, AccessOption.PERSISTENT);
+    ZkBaseDataAccessor.AccessResult result = _zkBaseDataAccessor.doUpdate(
+        rootPath + "/" + LAST_WRITE_KEY, lastWriteVersionUpdater, AccessOption.PERSISTENT);
     if (result._retCode != ZkBaseDataAccessor.RetCode.OK) {
       throw new HelixException(
-          String.format("Failed to write the write version at path: %s!", path));
+          String.format("Failed to write the write version at path: %s!", rootPath));
     }
 
     // Successfully reserved a version number
     byte[] binaryVersion = (byte[]) result._updatedValue;
-    final String timestampedVersion = new String(binaryVersion);
-    final long version = extractVersion(timestampedVersion);
+    String versionStr = new String(binaryVersion);
+    final long version = Long.parseLong(versionStr);
 
-    // 2. Write to the incremented last write version with timestamp for TTL
-    String versionedDataPath = path + "/" + timestampedVersion;
+    // 2. Write to the incremented last write version
+    String versionedDataPath = rootPath + "/" + versionStr;
 
     // Take the ZNRecord and serialize it (get byte[])
     byte[] serializedRecord = _zkSerializer.serialize(value.getRecord());
@@ -172,7 +173,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     for (boolean s : success) {
       if (!s) {
         throw new HelixException(
-            String.format("Failed to write the data buckets for path: %s", path));
+            String.format("Failed to write the data buckets for path: %s", rootPath));
       }
     }
 
@@ -180,27 +181,27 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     DataUpdater<byte[]> lastSuccessfulWriteVersionUpdater = dataInZk -> {
       if (dataInZk == null || dataInZk.length == 0) {
         // No last write version exists, so write version from this write
-        return timestampedVersion.getBytes();
+        return versionStr.getBytes();
       }
       // Last successful write exists so check if it's smaller than my number
-      String timestampedLastWriteVersion = new String(dataInZk);
-      long lastWriteVersion = extractVersion(timestampedLastWriteVersion);
+      String lastWriteVersionStr = new String(dataInZk);
+      long lastWriteVersion = Long.parseLong(lastWriteVersionStr);
       if (lastWriteVersion < version) {
         // Smaller, so I can overwrite
-        return timestampedVersion.getBytes();
+        return versionStr.getBytes();
       } else {
         // Greater, I have lagged behind. Return null and do not write
         return null;
       }
     };
-    if (!_zkBaseDataAccessor.update(path + "/" + LAST_SUCCESSFUL_WRITE_KEY,
+    if (!_zkBaseDataAccessor.update(rootPath + "/" + LAST_SUCCESSFUL_WRITE_KEY,
         lastSuccessfulWriteVersionUpdater, AccessOption.PERSISTENT)) {
-      throw new HelixException(
-          String.format("Failed to write the last successful write metadata at path: %s!", path));
+      throw new HelixException(String
+          .format("Failed to write the last successful write metadata at path: %s!", rootPath));
     }
 
-    // 5. Garbage collect stale versions
-    GC_THREAD_POOL.submit(() -> deleteStaleVersions(path, version));
+    // 5. Update the timer for GC
+    updateGCTimer(rootPath);
     return true;
   }
 
@@ -306,20 +307,40 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     disconnect();
   }
 
+  private void updateGCTimer(String rootPath) {
+    // Reset the timer
+    ScheduledFuture future = GC_TASK_MAP.get(rootPath);
+    if (future != null) {
+      future.cancel(false);
+    }
+
+    TimerTask gcTask = new TimerTask() {
+      @Override
+      public void run() {
+        deleteStaleVersions(rootPath);
+        // GC complete so remove myself from task map
+        GC_TASK_MAP.remove(rootPath);
+      }
+    };
+
+    // Schedule the gc task with TTL
+    ScheduledFuture gcFuture = GC_THREAD.schedule(gcTask, _versionTTL, TimeUnit.MILLISECONDS);
+    GC_TASK_MAP.put(rootPath, gcFuture);
+  }
+
   /**
-   * Deletes all versions that are older than the currentVersion given.
-   * @param path
-   * @param currentVersion
+   * Deletes all stale versions.
+   * @param rootPath
    */
-  private void deleteStaleVersions(String path, long currentVersion) {
+  private void deleteStaleVersions(String rootPath) {
     // Get all children names under path
-    List<String> children = _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT);
+    List<String> children = _zkBaseDataAccessor.getChildNames(rootPath, AccessOption.PERSISTENT);
     if (children == null || children.isEmpty()) {
       // The whole path has been deleted so return immediately
       return;
     }
-    filterChildrenNames(children, currentVersion);
-    List<String> pathsToDelete = getPathsToDelete(path, children);
+    filterChildrenNames(rootPath, children);
+    List<String> pathsToDelete = getPathsToDelete(rootPath, children);
     for (String pathToDelete : pathsToDelete) {
       // TODO: Should be batch delete but it doesn't work. It's okay since this runs async
       _zkBaseDataAccessor.remove(pathToDelete, AccessOption.PERSISTENT);
@@ -327,72 +348,23 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   }
 
   /**
-   * Filter out currentVersion and non-version children names from the children list given.
+   * Filter out non-version children names and last successful write version from the children list
+   * given.
+   * @param rootPath
    * @param children
-   * @param currentVersion
    */
-  private void filterChildrenNames(List<String> children, long currentVersion) {
+  private void filterChildrenNames(String rootPath, List<String> children) {
     // Leave out metadata
     children.remove(LAST_SUCCESSFUL_WRITE_KEY);
     children.remove(LAST_WRITE_KEY);
 
-    // Keep the children that are not expired and exclude currentVersion from deletion
-    long currTime = System.currentTimeMillis();
-    children.removeIf(childName -> currTime < extractTimestamp(childName) + _versionTTL
-        || extractVersion(childName) >= currentVersion);
-  }
-
-  /**
-   * Extracts timestamp from the znode name.
-   * @param name
-   * @return
-   */
-  private long extractTimestamp(String name) {
-    // Path structure: ~~/ver_timestamp
-    String[] parts = name.split("_");
-    if (parts.length == 2) {
-      String timestampStr = parts[1];
-      long timestamp;
-      try {
-        timestamp = Long.parseLong(timestampStr);
-        return timestamp;
-      } catch (Exception e) {
-        LOG.warn(
-            "Failed to parse timestamp for ZNode name: {}. Returning Long.MAX_VALUE for timestamp!",
-            name);
-        return Long.MAX_VALUE;
-      }
+    // Get the last successful write version and exclude from removal
+    byte[] binaryLastSuccessfulWrite = _zkBaseDataAccessor
+        .get(rootPath + "/" + LAST_SUCCESSFUL_WRITE_KEY, null, AccessOption.PERSISTENT);
+    if (binaryLastSuccessfulWrite != null) {
+      String lastSuccessfulWriteVersion = new String(binaryLastSuccessfulWrite);
+      children.remove(lastSuccessfulWriteVersion);
     }
-    LOG.warn(
-        "ZNode with an invalid name detected while extracting timestamp. ZNode name: {}. Returning Long.MAX_VALUE for timestamp!",
-        name);
-    return Long.MAX_VALUE;
-  }
-
-  /**
-   * Extracts the version from the znode name.
-   * @param name
-   * @return
-   */
-  private long extractVersion(String name) {
-    String[] parts = name.split("_");
-    if (parts.length == 2) {
-      String versionStr = parts[0];
-      long version;
-      try {
-        version = Long.parseLong(versionStr);
-        return version;
-      } catch (Exception e) {
-        LOG.warn(
-            "Failed to parse version for ZNode name: {}. Returning Long.MAX_VALUE for version!",
-            name);
-        return Long.MAX_VALUE;
-      }
-    }
-    LOG.warn(
-        "ZNode with an invalid name detected while extracting version. ZNode name: {}. Returning Long.MAX_VALUE for version!",
-        name);
-    return Long.MAX_VALUE;
   }
 
   /**

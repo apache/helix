@@ -160,8 +160,6 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
         capacityMap.getOrDefault(ResourceConfig.DEFAULT_PARTITION_KEY, new HashMap<>())));
 
     List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
-    // Remove the non-required capacity items.
-    partitionCapacity.keySet().retainAll(requiredCapacityKeys);
     // If any required capacity key is not configured in the resource config, fail the model creating.
     if (!partitionCapacity.keySet().containsAll(requiredCapacityKeys)) {
       throw new HelixException(String.format(
@@ -169,6 +167,8 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
           requiredCapacityKeys.toString(), resourceConfig.getResourceName(), partitionName,
           partitionCapacity.toString()));
     }
+    // Remove the non-required capacity items.
+    partitionCapacity.keySet().retainAll(requiredCapacityKeys);
 
     return partitionCapacity;
   }

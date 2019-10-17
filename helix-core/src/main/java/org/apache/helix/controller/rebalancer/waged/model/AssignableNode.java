@@ -357,14 +357,15 @@ public class AssignableNode implements Comparable<AssignableNode> {
     instanceCapacity.putAll(instanceConfig.getInstanceCapacityMap());
 
     List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
-    // Remove all the non-required capacity items from the map.
-    instanceCapacity.keySet().retainAll(requiredCapacityKeys);
     // All the required keys must exist in the instance config.
     if (!instanceCapacity.keySet().containsAll(requiredCapacityKeys)) {
       throw new HelixException(String.format(
           "The required capacity keys: %s are not fully configured in the instance: %s, capacity map: %s.",
           requiredCapacityKeys.toString(), _instanceName, instanceCapacity.toString()));
     }
+    // Remove all the non-required capacity items from the map.
+    instanceCapacity.keySet().retainAll(requiredCapacityKeys);
+
     return instanceCapacity;
   }
 

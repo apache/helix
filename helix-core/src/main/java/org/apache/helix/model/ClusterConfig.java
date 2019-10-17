@@ -765,8 +765,8 @@ public class ClusterConfig extends HelixProperty {
 
   public void setDefaultCapacityMap(ClusterConfigProperty capacityPropertyType,
       Map<String, Integer> capacityDataMap) throws IllegalArgumentException {
-    if (capacityDataMap == null || capacityDataMap.size() == 0) {
-      throw new IllegalArgumentException("Default capacity data is empty");
+    if (capacityDataMap == null) {
+      throw new IllegalArgumentException("Default capacity data is null");
     }
     Map<String, String> data = new HashMap<>();
     capacityDataMap.entrySet().stream().forEach(entry -> {

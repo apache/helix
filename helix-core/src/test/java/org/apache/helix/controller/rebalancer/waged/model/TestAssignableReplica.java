@@ -103,6 +103,11 @@ public class TestAssignableReplica {
     Assert.assertEquals(replica.getResourceMaxPartitionsPerInstance(), maxPartition);
   }
 
+  /**
+   *  Tests that if default partition weight map is configured in ClusterConfig and NOT in
+   *  ResourceConfig. AssignableReplica actually will get the default weight from ClusterConfig
+   *  even though it's not set in ResourceConfig.
+   */
   @Test
   public void testDefaultPartitionWeight() {
     Map<String, Integer> defaultWeightDataMapResource = new HashMap<>();

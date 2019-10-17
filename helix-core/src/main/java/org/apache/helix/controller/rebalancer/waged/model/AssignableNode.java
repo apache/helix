@@ -349,17 +349,20 @@ public class AssignableNode implements Comparable<AssignableNode> {
    */
   private Map<String, Integer> fetchInstanceCapacity(ClusterConfig clusterConfig,
       InstanceConfig instanceConfig) {
+    // Fetch the capacity of instance from 2 possible sources according to the following priority.
+    // 1. The instance capacity that is configured in the instance config.
+    // 2. If the default instance capacity that is configured in the cluster config contains more capacity keys, fill the capacity map with those additional values.
+    Map<String, Integer> instanceCapacity =
+        new HashMap<>(clusterConfig.getDefaultInstanceCapacityMap());
+    instanceCapacity.putAll(instanceConfig.getInstanceCapacityMap());
+
     List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
-    Map<String, Integer> instanceCapacity = instanceConfig.getInstanceCapacityMap();
-    if (instanceCapacity.isEmpty()) {
-      instanceCapacity = clusterConfig.getDefaultInstanceCapacityMap();
-    }
     // Remove all the non-required capacity items from the map.
     instanceCapacity.keySet().retainAll(requiredCapacityKeys);
     // All the required keys must exist in the instance config.
     if (!instanceCapacity.keySet().containsAll(requiredCapacityKeys)) {
       throw new HelixException(String.format(
-          "The required capacity keys %s are not fully configured in the instance %s capacity map %s.",
+          "The required capacity keys: %s are not fully configured in the instance: %s, capacity map: %s.",
           requiredCapacityKeys.toString(), _instanceName, instanceCapacity.toString()));
     }
     return instanceCapacity;

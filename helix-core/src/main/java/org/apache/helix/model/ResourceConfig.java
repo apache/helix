@@ -408,13 +408,13 @@ public class ResourceConfig extends HelixProperty {
    * Set the partition capacity information with a map <PartitionName or DEFAULT_PARTITION_KEY, <Capacity Key, Capacity Number>>
    *
    * @param partitionCapacityMap - map of partition capacity data
-   * @throws IllegalArgumentException - when any of the data value is a negative number or map is empty
+   * @throws IllegalArgumentException - when any of the data value is a negative number or map is incomplete
    * @throws IOException              - when JSON parsing fails
    */
   public void setPartitionCapacityMap(Map<String, Map<String, Integer>> partitionCapacityMap)
       throws IllegalArgumentException, IOException {
-    if (partitionCapacityMap == null || partitionCapacityMap.isEmpty()) {
-      throw new IllegalArgumentException("Capacity Map is empty");
+    if (partitionCapacityMap == null) {
+      throw new IllegalArgumentException("Capacity Map is null");
     }
     if (!partitionCapacityMap.containsKey(DEFAULT_PARTITION_KEY)) {
       throw new IllegalArgumentException(String

@@ -185,22 +185,23 @@ public class WagedRebalancer {
       CountMetric rebalanceFailureCount = _metricCollector.getMetric(
           WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCount.name(),
           CountMetric.class);
-      rebalanceFailureCount.increaseCount(1l);
+      rebalanceFailureCount.increaseCount(1L);
 
       HelixRebalanceException.Type failureType = ex.getFailureType();
       if (failureType.equals(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS) || failureType
           .equals(HelixRebalanceException.Type.UNKNOWN_FAILURE)) {
+        // If the failure is unknown or because of assignment store access failure, throw the
+        // rebalance exception.
         throw ex;
+      } else { // return the previously calculated assignment.
+        LOG.warn("Trying to return the previously calculated assignment.");
+        // Note that don't return an assignment based on the current state if there is no previously
+        // calculated result in this fallback logic.
+        Map<String, ResourceAssignment> assignmentRecord =
+            getBestPossibleAssignment(_assignmentMetadataStore, new CurrentStateOutput(),
+                resourceMap.keySet());
+        newIdealStates = convertResourceAssignment(clusterData, assignmentRecord);
       }
-
-      // If the failure is because of cluster status input or calculating failure, return the previously calculated assignment.
-      LOG.warn("Trying to return the previously calculated assignment.");
-      // Note that don't return an assignment based on the current state if there is no previously
-      // calculated result in this fallback logic.
-      Map<String, ResourceAssignment> assignmentRecord =
-          getBestPossibleAssignment(_assignmentMetadataStore, new CurrentStateOutput(),
-              resourceMap.keySet());
-      newIdealStates = convertResourceAssignment(clusterData, assignmentRecord);
     }
 
     // Construct the new best possible states according to the current state and target assignment.
@@ -282,8 +283,8 @@ public class WagedRebalancer {
     // Note the user-defined list is intentionally applied to the final mapping after calculation.
     // This is to avoid persisting it into the assignment store, which impacts the long term
     // assignment evenness and partition movements.
-    finalIdealStateMap.entrySet().stream().forEach(
-        idealStateEntry -> applyUserDefinedPreferenceList(
+    finalIdealStateMap.entrySet().stream()
+        .forEach(idealStateEntry -> applyUserDefinedPreferenceList(
             clusterData.getResourceConfig(idealStateEntry.getKey()), idealStateEntry.getValue()));
 
     return finalIdealStateMap;
@@ -303,15 +304,15 @@ public class WagedRebalancer {
         Map<String, Integer> statePriorityMap =
             clusterData.getStateModelDef(currentIdealState.getStateModelDefRef())
                 .getStatePriorityMap();
-        // Create a new IdealState instance contains the new calculated assignment in the preference
-        // list.
+        // Create a new IdealState instance which contains the new calculated assignment in the
+        // preference list.
         IdealState newIdealState = new IdealState(resourceName);
         // Copy the simple fields
         newIdealState.getRecord().setSimpleFields(currentIdealState.getRecord().getSimpleFields());
         // Sort the preference list according to state priority.
         newIdealState.setPreferenceLists(
             getPreferenceLists(assignments.get(resourceName), statePriorityMap));
-        // Note the state mapping in the new assignment won't be directly propagate to the map fields.
+        // Note the state mapping in the new assignment won't directly propagate to the map fields.
         // The rebalancer will calculate for the final state mapping considering the current states.
         finalIdealStateMap.put(resourceName, newIdealState);
       } catch (Exception ex) {

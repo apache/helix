@@ -9,9 +9,10 @@ public class RebalanceFailureCount extends CountMetric {
    * @param metricName the metric name
    */
   public RebalanceFailureCount(String metricName) {
-    super(metricName, 0l);
+    super(metricName, 0L);
   }
 
+  @Override
   public void increaseCount(long count) {
     updateValue(getValue() + count);
   }

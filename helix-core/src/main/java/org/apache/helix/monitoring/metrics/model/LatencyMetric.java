@@ -52,6 +52,7 @@ public abstract class LatencyMetric extends HistogramDynamicMetric implements Me
    */
   public abstract void endMeasuringLatency();
 
+  @Override
   public String getMetricName() {
     return _metricName;
   }
@@ -61,6 +62,7 @@ public abstract class LatencyMetric extends HistogramDynamicMetric implements Me
     return String.format("Metric %s's latency is %d", getMetricName(), getLastEmittedMetricValue());
   }
 
+  @Override
   public DynamicMetric getDynamicMetric() {
     return this;
   }

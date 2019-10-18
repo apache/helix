@@ -45,6 +45,7 @@ public abstract class CountMetric extends SimpleDynamicMetric<Long> implements M
    */
   public abstract void increaseCount(long count);
 
+  @Override
   public String getMetricName() {
     return _metricName;
   }
@@ -54,10 +55,12 @@ public abstract class CountMetric extends SimpleDynamicMetric<Long> implements M
     return String.format("Metric %s's count is %d", getMetricName(), getValue());
   }
 
+  @Override
   public long getLastEmittedMetricValue() {
     return getValue();
   }
 
+  @Override
   public DynamicMetric getDynamicMetric() {
     return this;
   }

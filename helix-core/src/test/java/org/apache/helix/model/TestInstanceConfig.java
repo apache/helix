@@ -54,7 +54,7 @@ public class TestInstanceConfig {
   }
 
   @Test
-  public void testGetParsedDomain_emptyDomain() {
+  public void testGetParsedDomainEmptyDomain() {
     InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
 
     Map<String, String> parsedDomain = instanceConfig.getDomainAsMap();
@@ -102,12 +102,15 @@ public class TestInstanceConfig {
         INSTANCE_CAPACITY_MAP.name()), capacityDataMapString);
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Capacity Data is empty")
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Capacity Data is null")
   public void testSetInstanceCapacityMapEmpty() {
     Map<String, Integer> capacityDataMap = new HashMap<>();
 
     InstanceConfig testConfig = new InstanceConfig("testConfig");
+    // This operation shall be done. This will clear the instance capacity map in the InstanceConfig
     testConfig.setInstanceCapacityMap(capacityDataMap);
+    // This operation will fall.
+    testConfig.setInstanceCapacityMap(null);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class,

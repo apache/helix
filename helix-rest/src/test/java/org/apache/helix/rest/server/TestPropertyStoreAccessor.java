@@ -19,10 +19,6 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.junit.Assert;
 import org.testng.annotations.Test;
@@ -30,15 +26,21 @@ import org.testng.annotations.Test;
 public class TestPropertyStoreAccessor extends AbstractTestClass {
   private static final String TEST_CLUSTER = "TestCluster_0";
 
-  private String encode(String path) throws UnsupportedEncodingException {
-    return URLEncoder.encode(path, StandardCharsets.UTF_8.toString());
+  @Test
+  public void testGetPropertyStore() {
+    String path = "/TaskRebalancer/Workflow_0/Context";
+    String result = new JerseyUriRequestBuilder("clusters/{}/propertyStore" + path)
+        .format(TEST_CLUSTER).isBodyReturnExpected(true).get(this);
+    Assert.assertFalse(result.isEmpty());
   }
 
+  //TODO: implement the method
   @Test
-  public void testGetPropertyStore() throws UnsupportedEncodingException {
-    String path = "/TaskRebalancer/Workflow_0/Context";
-    String result = new JerseyUriRequestBuilder("clusters/{}/propertyStore?path=" + encode(path))
-        .format(TEST_CLUSTER).isBodyReturnExpected(true).get(this);
+  public void testGetPropertyStoreWithInValidPath() {
+    String path = "/TaskRebalancer///Workflow_0/Context/";
+    String result = new JerseyUriRequestBuilder("clusters/{}/propertyStore" + path)
+        .format(TEST_CLUSTER).isBodyReturnExpected(true).expectedReturnStatusCode(400)
+        .get(this);
     Assert.assertFalse(result.isEmpty());
   }
 }

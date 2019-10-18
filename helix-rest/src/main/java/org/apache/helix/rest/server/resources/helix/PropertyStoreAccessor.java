@@ -19,19 +19,15 @@ package org.apache.helix.rest.server.resources.helix;
  * under the License.
  */
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
-import org.apache.helix.HelixException;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -45,24 +41,35 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(PropertyStoreAccessor.class);
 
   @GET
+  @Path("{path: .+}")
   public Response getPropertyByPath(@PathParam("clusterId") String clusterId,
-      @QueryParam("path") String urlEncodedPath) {
+      @PathParam("path") String path) {
+    path = "/" + path;
+    if (!isPathValid(path)) {
+      LOG.error("The path {} is mis-inputted for cluster {}", path, clusterId);
+      throw new BadRequestException(
+          "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
+    }
     String propertyStoreRootPath = PropertyPathBuilder.propertyStore(clusterId);
     HelixPropertyStore<ZNRecord> propertyStore = new ZkHelixPropertyStore<>(
         (ZkBaseDataAccessor<ZNRecord>) getDataAccssor(clusterId).getBaseDataAccessor(),
         propertyStoreRootPath, Collections.emptyList());
-    try {
-      urlEncodedPath = decode(urlEncodedPath);
-    } catch (UnsupportedEncodingException e) {
-      LOG.error("The path {} is mis-inputted for cluster {}", urlEncodedPath, clusterId);
-      throw new HelixException("The path needs to be url encoded from of '/%/%/.../'");
-    }
-    ZNRecord record = propertyStore.get(urlEncodedPath, null, AccessOption.PERSISTENT);
+    ZNRecord record = propertyStore.get(path, null, AccessOption.PERSISTENT);
 
-    return OK(record.toString());
+    return JSONRepresentation(record);
   }
 
-  private static String decode(String path) throws UnsupportedEncodingException {
-    return URLDecoder.decode(path, StandardCharsets.UTF_8.toString());
+  /**
+   * Valid matches:
+   * /
+   * /abc
+   * /abc/abc/abc/abc
+   * Invalid matches:
+   * null or empty string
+   * /abc/
+   * /abc/abc/abc/abc/
+   **/
+  private static boolean isPathValid(String path) {
+    return path.matches("^/|(/[\\w-]+)+$");
   }
 }

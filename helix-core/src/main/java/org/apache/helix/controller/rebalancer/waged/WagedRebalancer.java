@@ -509,18 +509,18 @@ public class WagedRebalancer {
             LatencyMetric.class);
         stateReadLatency.startMeasuringLatency();
         currentBaseline = assignmentMetadataStore.getBaseline();
-        currentBaseline.keySet().retainAll(resources);
         stateReadLatency.endMeasuringLatency();
-      } catch (HelixException ex) {
-        LOG.error("Failed to get the current baseline assignment. Use the current states instead.",
-            ex);
-        currentBaseline = getCurrentStateAssingment(currentStateOutput, resources);
       } catch (Exception ex) {
         throw new HelixRebalanceException(
             "Failed to get the current baseline assignment because of unexpected error.",
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
       }
     }
+    if (currentBaseline.isEmpty()) {
+      LOG.warn("The current baseline assignment record is empty. Use the current states instead.");
+      currentBaseline = getCurrentStateAssingment(currentStateOutput, resources);
+    }
+    currentBaseline.keySet().retainAll(resources);
     return currentBaseline;
   }
 
@@ -543,19 +543,19 @@ public class WagedRebalancer {
             LatencyMetric.class);
         stateReadLatency.startMeasuringLatency();
         currentBestAssignment = assignmentMetadataStore.getBestPossibleAssignment();
-        currentBestAssignment.keySet().retainAll(resources);
         stateReadLatency.endMeasuringLatency();
-      } catch (HelixException ex) {
-        LOG.error(
-            "Failed to get the current best possible assignment. Use the current states instead.",
-            ex);
-        currentBestAssignment = getCurrentStateAssingment(currentStateOutput, resources);
       } catch (Exception ex) {
         throw new HelixRebalanceException(
             "Failed to get the current best possible assignment because of unexpected error.",
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
       }
     }
+    if (currentBestAssignment.isEmpty()) {
+      LOG.warn(
+          "The current best possible assignment record is empty. Use the current states instead.");
+      currentBestAssignment = getCurrentStateAssingment(currentStateOutput, resources);
+    }
+    currentBestAssignment.keySet().retainAll(resources);
     return currentBestAssignment;
   }
 

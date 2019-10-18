@@ -298,7 +298,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
     zkClient.process(new WatchedEvent(Watcher.Event.EventType.NodeDataChanged, null, TEST_PATH));
     Assert.assertTrue(callbackFinish.await(10, TimeUnit.SECONDS));
     Assert.assertTrue(
-        (long) beanServer.getAttribute(rootname, "DataPropagationLatencyGuage.Max") >= waitTime);
+        (long) beanServer.getAttribute(rootname, "DataPropagationLatencyGauge.Max") >= waitTime);
 
     _zkClient.delete(TEST_PATH);
   }

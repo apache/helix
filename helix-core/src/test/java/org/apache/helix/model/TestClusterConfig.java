@@ -166,12 +166,15 @@ public class TestClusterConfig {
         DEFAULT_INSTANCE_CAPACITY_MAP.name()), capacityDataMapString);
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data is empty")
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data is null")
   public void testSetInstanceCapacityMapEmpty() {
     Map<String, Integer> capacityDataMap = new HashMap<>();
 
     ClusterConfig testConfig = new ClusterConfig("testConfig");
+    // The following operation can be done, this will clear the default values
     testConfig.setDefaultInstanceCapacityMap(capacityDataMap);
+    // The following operation will fail
+    testConfig.setDefaultInstanceCapacityMap(null);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data contains a negative value: item3 = -3")
@@ -218,12 +221,15 @@ public class TestClusterConfig {
         DEFAULT_PARTITION_WEIGHT_MAP.name()), weightDataMapString);
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data is empty")
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data is null")
   public void testSetPartitionWeightMapEmpty() {
     Map<String, Integer> weightDataMap = new HashMap<>();
 
     ClusterConfig testConfig = new ClusterConfig("testConfig");
+    // The following operation can be done, this will clear the default values
     testConfig.setDefaultPartitionWeightMap(weightDataMap);
+    // The following operation will fail
+    testConfig.setDefaultPartitionWeightMap(null);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data contains a negative value: item3 = -3")

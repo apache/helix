@@ -20,11 +20,10 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.util.Collections;
-
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
@@ -35,6 +34,7 @@ import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 @Path("/clusters/{clusterId}/propertyStore")
 public class PropertyStoreAccessor extends AbstractHelixResource {
@@ -47,8 +47,9 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
     path = "/" + path;
     if (!isPathValid(path)) {
       LOG.error("The path {} is mis-inputted for cluster {}", path, clusterId);
-      throw new BadRequestException(
-          "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
+      throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
+          "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode")
+          .build());
     }
     String propertyStoreRootPath = PropertyPathBuilder.propertyStore(clusterId);
     HelixPropertyStore<ZNRecord> propertyStore = new ZkHelixPropertyStore<>(

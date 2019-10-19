@@ -19,9 +19,13 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import javax.ws.rs.core.Response;
+
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestPropertyStoreAccessor extends AbstractTestClass {
   private static final String TEST_CLUSTER = "TestCluster_0";
@@ -29,18 +33,19 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
   @Test
   public void testGetPropertyStore() {
     String path = "/TaskRebalancer/Workflow_0/Context";
-    String result = new JerseyUriRequestBuilder("clusters/{}/propertyStore" + path)
-        .format(TEST_CLUSTER).isBodyReturnExpected(true).get(this);
+    String result =
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore" + path).format(TEST_CLUSTER)
+            .isBodyReturnExpected(true).get(this);
     Assert.assertFalse(result.isEmpty());
   }
 
   //TODO: implement the method
   @Test
   public void testGetPropertyStoreWithInValidPath() {
-    String path = "/TaskRebalancer///Workflow_0/Context/";
-    String result = new JerseyUriRequestBuilder("clusters/{}/propertyStore" + path)
-        .format(TEST_CLUSTER).isBodyReturnExpected(true).expectedReturnStatusCode(400)
-        .get(this);
-    Assert.assertFalse(result.isEmpty());
+    String path = "/context/";
+    Response response =
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore" + path).format(TEST_CLUSTER)
+            .getResponse(this);
+    Assert.assertEquals(response.getStatus(), HttpStatus.SC_BAD_REQUEST);
   }
 }

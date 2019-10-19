@@ -27,35 +27,64 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import org.I0Itec.zkclient.exception.ZkMarshallingError;
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestZkBucketDataAccessor extends ZkTestBase {
-
   private static final String PATH = "/" + TestHelper.getTestClassName();
   private static final String NAME_KEY = TestHelper.getTestClassName();
-  private static final String LAST_SUCCESS_KEY = "LAST_SUCCESS";
-  private static final String BUCKET_SIZE_KEY = "BUCKET_SIZE";
-  private static final String WRITE_LOCK_KEY = "WRITE_LOCK";
+  private static final String LAST_SUCCESSFUL_WRITE_KEY = "LAST_SUCCESSFUL_WRITE";
+  private static final String LAST_WRITE_KEY = "LAST_WRITE";
 
   // Populate list and map fields for content comparison
   private static final List<String> LIST_FIELD = ImmutableList.of("1", "2");
   private static final Map<String, String> MAP_FIELD = ImmutableMap.of("1", "2");
 
   private BucketDataAccessor _bucketDataAccessor;
+  private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
+
+  private ZNRecord record = new ZNRecord(NAME_KEY);
 
   @BeforeClass
   public void beforeClass() {
-    _bucketDataAccessor = new ZkBucketDataAccessor(ZK_ADDR);
+    // Initialize ZK accessors for testing
+    _bucketDataAccessor = new ZkBucketDataAccessor(ZK_ADDR, 50 * 1024, 0L);
+    HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+    zkClient.setZkSerializer(new ZkSerializer() {
+      @Override
+      public byte[] serialize(Object data) throws ZkMarshallingError {
+        if (data instanceof byte[]) {
+          return (byte[]) data;
+        }
+        throw new HelixException("ZkBucketDataAccesor only supports a byte array as an argument!");
+      }
+
+      @Override
+      public Object deserialize(byte[] data) throws ZkMarshallingError {
+        return data;
+      }
+    });
+    _zkBaseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
+
+    // Fill in some data for the record
+    record.setSimpleField(NAME_KEY, NAME_KEY);
+    record.setListField(NAME_KEY, LIST_FIELD);
+    record.setMapField(NAME_KEY, MAP_FIELD);
   }
 
   @AfterClass
@@ -69,17 +98,42 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
    */
   @Test
   public void testCompressedBucketWrite() throws IOException {
-    ZNRecord record = new ZNRecord(NAME_KEY);
-    record.setSimpleField(NAME_KEY, NAME_KEY);
-    record.setListField(NAME_KEY, LIST_FIELD);
-    record.setMapField(NAME_KEY, MAP_FIELD);
     Assert.assertTrue(_bucketDataAccessor.compressedBucketWrite(PATH, new HelixProperty(record)));
+  }
+
+  @Test(dependsOnMethods = "testCompressedBucketWrite")
+  public void testMultipleWrites() throws Exception {
+    int count = 50;
+
+    // Write "count" times
+    for (int i = 0; i < count; i++) {
+      _bucketDataAccessor.compressedBucketWrite(PATH, new HelixProperty(record));
+    }
+
+    // Last known good version number should be "count"
+    byte[] binarySuccessfulWriteVer = _zkBaseDataAccessor
+        .get(PATH + "/" + LAST_SUCCESSFUL_WRITE_KEY, null, AccessOption.PERSISTENT);
+    long lastSuccessfulWriteVer = Long.parseLong(new String(binarySuccessfulWriteVer));
+    Assert.assertEquals(lastSuccessfulWriteVer, count);
+
+    // Last write version should be "count"
+    byte[] binaryWriteVer =
+        _zkBaseDataAccessor.get(PATH + "/" + LAST_WRITE_KEY, null, AccessOption.PERSISTENT);
+    long writeVer = Long.parseLong(new String(binaryWriteVer));
+    Assert.assertEquals(writeVer, count);
+
+    // Test that all previous versions have been deleted
+    // Use Verifier because GC can take ZK delay
+    Assert.assertTrue(TestHelper.verify(() -> {
+      List<String> children = _zkBaseDataAccessor.getChildNames(PATH, AccessOption.PERSISTENT);
+      return children.size() == 3;
+    }, 60 * 1000L));
   }
 
   /**
    * The record written in {@link #testCompressedBucketWrite()} is the same record that was written.
    */
-  @Test(dependsOnMethods = "testCompressedBucketWrite")
+  @Test(dependsOnMethods = "testMultipleWrites")
   public void testCompressedBucketRead() {
     HelixProperty readRecord = _bucketDataAccessor.compressedBucketRead(PATH, HelixProperty.class);
     Assert.assertEquals(readRecord.getRecord().getSimpleField(NAME_KEY), NAME_KEY);
@@ -89,42 +143,9 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   }
 
   /**
-   * Do 10 writes and check that there are 5 versions of the data.
-   */
-  @Test(dependsOnMethods = "testCompressedBucketRead")
-  public void testManyWritesWithVersionCounts() throws IOException {
-    int bucketSize = 50 * 1024;
-    int numVersions = 5;
-    int expectedLastSuccessfulIndex = 4;
-    String path = PATH + "2";
-    ZNRecord record = new ZNRecord(NAME_KEY);
-    record.setSimpleField(NAME_KEY, NAME_KEY);
-    record.setListField(NAME_KEY, LIST_FIELD);
-    record.setMapField(NAME_KEY, MAP_FIELD);
-
-    BucketDataAccessor bucketDataAccessor =
-        new ZkBucketDataAccessor(ZK_ADDR, bucketSize, numVersions);
-    for (int i = 0; i < 10; i++) {
-      bucketDataAccessor.compressedBucketWrite(path, new HelixProperty(record));
-    }
-
-    // Check that there are numVersions number of children under path
-    List<String> children = _baseAccessor.getChildNames(path, AccessOption.PERSISTENT);
-    Assert.assertEquals(children.size(), numVersions);
-
-    // Check that last successful index is 4 (since we did 10 writes)
-    ZNRecord metadata = _baseAccessor.get(path, null, AccessOption.PERSISTENT);
-    Assert.assertEquals(metadata.getIntField(LAST_SUCCESS_KEY, -1), expectedLastSuccessfulIndex);
-
-    // Clean up
-    bucketDataAccessor.compressedBucketDelete(path);
-    bucketDataAccessor.disconnect();
-  }
-
-  /**
    * Write a HelixProperty with large number of entries using BucketDataAccessor and read it back.
    */
-  @Test(dependsOnMethods = "testManyWritesWithVersionCounts")
+  @Test(dependsOnMethods = "testCompressedBucketRead")
   public void testLargeWriteAndRead() throws IOException {
     String name = "largeResourceAssignment";
     HelixProperty property = createLargeHelixProperty(name, 100000);
@@ -144,71 +165,6 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
     // Check against the original HelixProperty
     Assert.assertEquals(readRecord, property);
-  }
-
-  /**
-   * Tests that each write cleans up previous bucketed data. This method writes some small amount of
-   * data and checks that the data buckets from the large write performed in the previous test
-   * method have been cleaned up.
-   * @throws IOException
-   */
-  @Test(dependsOnMethods = "testLargeWriteAndRead")
-  public void testCleanupBeforeWrite() throws IOException {
-    // Create a HelixProperty of a very small size with the same name as the large HelixProperty
-    // created from the previous method
-    String name = "largeResourceAssignment";
-    HelixProperty property = new HelixProperty(name);
-    property.getRecord().setIntField("Hi", 10);
-
-    // Get the bucket count from the write performed in the previous method
-    ZNRecord metadata = _baseAccessor.get("/" + name, null, AccessOption.PERSISTENT);
-    int origBucketSize = metadata.getIntField(BUCKET_SIZE_KEY, -1);
-
-    // Perform a write twice to overwrite both versions
-    _bucketDataAccessor.compressedBucketWrite("/" + name, property);
-    _bucketDataAccessor.compressedBucketWrite("/" + name, property);
-
-    // Check that the children count for version 0 (version for the large write) is 1
-    Assert.assertEquals(
-        _baseAccessor.getChildNames("/" + name + "/0", AccessOption.PERSISTENT).size(), 1);
-
-    // Clean up
-    _bucketDataAccessor.compressedBucketDelete("/" + name);
-  }
-
-  /**
-   * Test that no concurrent reads and writes are allowed by triggering multiple operations after
-   * creating an artificial lock.
-   * @throws IOException
-   */
-  @Test(dependsOnMethods = "testCleanupBeforeWrite")
-  public void testFailureToAcquireLock() throws Exception {
-    String name = "acquireLock";
-    // Use a large HelixProperty to simulate a write that keeps the lock for some time
-    HelixProperty property = createLargeHelixProperty(name, 100);
-
-    // Artificially create the ephemeral ZNode
-    _baseAccessor.create("/" + name + "/" + WRITE_LOCK_KEY, new ZNRecord(name),
-        AccessOption.EPHEMERAL);
-
-    // Test write
-    try {
-      _bucketDataAccessor.compressedBucketWrite("/" + name, property);
-      Assert.fail("Should fail due to an already-existing lock ZNode!");
-    } catch (HelixException e) {
-      // Expect an exception
-    }
-
-    // Test read
-    try {
-      _bucketDataAccessor.compressedBucketRead("/" + name, HelixProperty.class);
-      Assert.fail("Should fail due to an already-existing lock ZNode!");
-    } catch (HelixException e) {
-      // Expect an exception
-    }
-
-    // Clean up
-    _bucketDataAccessor.compressedBucketDelete("/" + name);
   }
 
   private HelixProperty createLargeHelixProperty(String name, int numEntries) {

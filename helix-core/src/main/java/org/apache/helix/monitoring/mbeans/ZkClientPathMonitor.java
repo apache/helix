@@ -77,9 +77,15 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     ReadBytesGauge,
     WriteBytesGauge,
     /*
-     * The latency between a ZK data change happening in the server side and the client side getting notification.
+     * The latency between a ZK data change happening on the server side and the client side.
      */
-    DataPropagationLatencyGauge
+    DataPropagationLatencyGauge,
+    /**
+     * @deprecated
+     * This domain name has a typo. Keep it in case its historical metric data is being used.
+     */
+    @Deprecated
+    DataPropagationLatencyGuage
   }
 
   private SimpleDynamicMetric<Long> _readCounter;
@@ -96,6 +102,7 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
   private HistogramDynamicMetric _readBytesGauge;
   private HistogramDynamicMetric _writeBytesGauge;
   private HistogramDynamicMetric _dataPropagationLatencyGauge;
+  private HistogramDynamicMetric _dataPropagationLatencyGuage;
 
   @Override
   public String getSensorName() {
@@ -143,6 +150,10 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
         new HistogramDynamicMetric(PredefinedMetricDomains.DataPropagationLatencyGauge.name(),
             new Histogram(new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(),
                 TimeUnit.MILLISECONDS)));
+    _dataPropagationLatencyGuage =
+        new HistogramDynamicMetric(PredefinedMetricDomains.DataPropagationLatencyGuage.name(),
+        new Histogram(new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(),
+            TimeUnit.MILLISECONDS)));
   }
 
   public ZkClientPathMonitor register() throws JMException {
@@ -160,6 +171,7 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     attributeList.add(_readBytesGauge);
     attributeList.add(_writeBytesGauge);
     attributeList.add(_dataPropagationLatencyGauge);
+    attributeList.add(_dataPropagationLatencyGuage);
 
     ObjectName objectName = new ObjectName(String
         .format("%s,%s=%s", ZkClientMonitor.getObjectName(_type, _key, _instanceName).toString(),
@@ -184,6 +196,7 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
 
   public void recordDataPropagationLatency(long latency) {
     _dataPropagationLatencyGauge.updateValue(latency);
+    _dataPropagationLatencyGuage.updateValue(latency);
   }
 
   private void increaseFailureCounter(boolean isRead) {

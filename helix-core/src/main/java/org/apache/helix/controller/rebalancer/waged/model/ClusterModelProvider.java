@@ -77,7 +77,7 @@ public class ClusterModelProvider {
         new HashMap<>(); // <instanceName, replica set>
     Set<AssignableReplica> toBeAssignedReplicas =
         findToBeAssignedReplicas(replicaMap, clusterChanges, activeInstances,
-            bestPossibleAssignment, allocatedReplicas);
+            dataProvider.getLiveInstances().keySet(), bestPossibleAssignment, allocatedReplicas);
 
     // Update the allocated replicas to the assignable nodes.
     assignableNodes.stream().forEach(node -> node.assignInitBatch(
@@ -97,14 +97,13 @@ public class ClusterModelProvider {
    * Find the minimum set of replicas that need to be reassigned.
    * A replica needs to be reassigned if one of the following condition is true:
    * 1. Cluster topology (the cluster config / any instance config) has been updated.
-   * 2. The baseline assignment has been updated.
-   * 3. The resource config has been updated.
-   * 4. The resource idealstate has been updated. TODO remove this condition when all resource configurations are migrated to resource config.
-   * 5. If the current best possible assignment does not contain the partition's valid assignment.
+   * 2. The resource config has been updated.
+   * 3. If the current best possible assignment does not contain the partition's valid assignment.
    *
    * @param replicaMap             A map contains all the replicas grouped by resource name.
    * @param clusterChanges         A map contains all the important metadata updates that happened after the previous rebalance.
-   * @param activeInstances        All the instances that are alive and enabled.
+   * @param activeInstances        All the instances that are alive and enabled according to the delay rebalance configuration.
+   * @param liveInstances          All the instances that are alive.
    * @param bestPossibleAssignment The current best possible assignment.
    * @param allocatedReplicas      Return the allocated replicas grouped by the target instance name.
    * @return The replicas that need to be reassigned.
@@ -112,12 +111,18 @@ public class ClusterModelProvider {
   private static Set<AssignableReplica> findToBeAssignedReplicas(
       Map<String, Set<AssignableReplica>> replicaMap,
       Map<HelixConstants.ChangeType, Set<String>> clusterChanges, Set<String> activeInstances,
-      Map<String, ResourceAssignment> bestPossibleAssignment,
+      Set<String> liveInstances, Map<String, ResourceAssignment> bestPossibleAssignment,
       Map<String, Set<AssignableReplica>> allocatedReplicas) {
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
+
+    // newly connected nodes = changed liveInstance nodes & currently active instances.
+    Set<String> newlyConnectedNodes = clusterChanges
+        .getOrDefault(HelixConstants.ChangeType.LIVE_INSTANCE, Collections.emptySet());
+    newlyConnectedNodes.retainAll(liveInstances);
     if (clusterChanges.containsKey(HelixConstants.ChangeType.CLUSTER_CONFIG) || clusterChanges
-        .containsKey(HelixConstants.ChangeType.INSTANCE_CONFIG)) {
-      // If the cluster topology has been modified, need to reassign all replicas
+        .containsKey(HelixConstants.ChangeType.INSTANCE_CONFIG) || !newlyConnectedNodes.isEmpty()) {
+      // 1. If the cluster topology has been modified, need to reassign all replicas.
+      // 2. If any node was re-connect, need to reassign all replicas for balance.
       toBeAssignedReplicas
           .addAll(replicaMap.values().stream().flatMap(Set::stream).collect(Collectors.toSet()));
     } else {

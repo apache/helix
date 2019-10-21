@@ -42,6 +42,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.mockito.Mockito;
@@ -347,7 +348,6 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     // Note that this test relies on the MockRebalanceAlgorithm implementation. The mock algorithm
     // won't propagate any existing assignment from the cluster model.
-
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer =
         new WagedRebalancer(_metadataStore, _algorithm, new DelayedAutoRebalancer());
@@ -379,13 +379,13 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     // 2. rebalance with one ideal state changed only
     String changedResourceName = _resourceNames.get(0);
-    // Create a new cluster data cache to simulate cluster change
-    clusterData = setupClusterDataCache();
     when(clusterData.getRefreshedChangeTypes())
-        .thenReturn(Collections.singleton(HelixConstants.ChangeType.IDEAL_STATE));
-    IdealState is = clusterData.getIdealState(changedResourceName);
-    // Update the tag so the ideal state will be marked as changed.
-    is.setInstanceGroupTag("newTag");
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.RESOURCE_CONFIG));
+    ResourceConfig config = new ResourceConfig(clusterData.getResourceConfig(changedResourceName).getRecord());
+    // Update the config so the resource will be marked as changed.
+    config.putSimpleConfig("foo", "bar");
+    when(clusterData.getResourceConfig(changedResourceName)).thenReturn(config);
+    clusterData.getResourceConfigMap().put(changedResourceName, config);
 
     // Although the input contains 2 resources, the rebalancer shall only call the algorithm to
     // rebalance the changed one.

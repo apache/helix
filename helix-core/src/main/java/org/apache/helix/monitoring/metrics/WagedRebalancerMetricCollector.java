@@ -44,8 +44,9 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
     StateWriteLatencyGauge,
 
     // Count of any rebalance failure.
-    // Note the rebalancer may still be able to return an assignment based on the previous record on an error.
-    RebalanceFailureCount
+    // Note the rebalancer may still be able to return an assignment based on the previous record
+    // on an error.
+    RebalanceFailureCounter
   }
 
   public WagedRebalancerMetricCollector(String clusterName) throws JMException {
@@ -69,10 +70,12 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
    */
   private void createMetrics() {
     // Define all metrics
-    LatencyMetric globalBaselineCalcLatencyGauge = new RebalanceLatencyGauge(
-        WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge.name(), getResetIntervalInMs());
-    LatencyMetric partialRebalanceLatencyGauge = new RebalanceLatencyGauge(
-        WagedRebalancerMetricNames.PartialRebalanceLatencyGauge.name(), getResetIntervalInMs());
+    LatencyMetric globalBaselineCalcLatencyGauge =
+        new RebalanceLatencyGauge(WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge.name(),
+            getResetIntervalInMs());
+    LatencyMetric partialRebalanceLatencyGauge =
+        new RebalanceLatencyGauge(WagedRebalancerMetricNames.PartialRebalanceLatencyGauge.name(),
+            getResetIntervalInMs());
     LatencyMetric stateReadLatencyGauge =
         new RebalanceLatencyGauge(WagedRebalancerMetricNames.StateReadLatencyGauge.name(),
             getResetIntervalInMs());
@@ -80,7 +83,7 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
         new RebalanceLatencyGauge(WagedRebalancerMetricNames.StateWriteLatencyGauge.name(),
             getResetIntervalInMs());
     CountMetric calcFailureCount =
-        new RebalanceFailureCount(WagedRebalancerMetricNames.RebalanceFailureCount.name());
+        new RebalanceFailureCount(WagedRebalancerMetricNames.RebalanceFailureCounter.name());
 
     // Add metrics to WagedRebalancerMetricCollector
     addMetric(globalBaselineCalcLatencyGauge);

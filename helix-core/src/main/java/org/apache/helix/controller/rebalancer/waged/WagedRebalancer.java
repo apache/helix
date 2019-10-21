@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixConstants;
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
@@ -183,7 +182,7 @@ public class WagedRebalancer {
       LOG.error("The new assignment calculation fails.", ex);
       // Record the failure in metrics.
       CountMetric rebalanceFailureCount = _metricCollector.getMetric(
-          WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCount.name(),
+          WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
           CountMetric.class);
       rebalanceFailureCount.increaseCount(1L);
 

@@ -383,7 +383,8 @@ public class TestWagedRebalance extends ZkTestBase {
       configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
       Thread.sleep(300);
 
-      // Since the WAGED rebalancer does not partial rebalance, the assignment won't show even removed cluster level restriction
+      // Since the WAGED rebalancer does not partial rebalance, the assignment won't show even
+      // removed cluster level restriction
       Assert.assertFalse(TestHelper.verify(() -> _allDBs.stream().anyMatch(db -> {
         ExternalView ev =
             _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);

@@ -265,7 +265,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
           "Failed to generate cluster model. Failure Type: INVALID_CLUSTER_STATUS");
     }
 
-    // The rebalance will be done with empty mapping result since there is no previously calculated assignment.
+    // The rebalance will be done with empty mapping result since there is no previously calculated
+    // assignment.
     Assert.assertTrue(
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput())
             .isEmpty());
@@ -327,13 +328,14 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       Assert.assertEquals(ex.getMessage(), "Algorithm fails. Failure Type: FAILED_TO_CALCULATE");
     }
-    // But if call with the public method computeNewIdealStates(), the rebalance will return with the previous rebalance result.
+    // But if call with the public method computeNewIdealStates(), the rebalance will return with
+    // the previous rebalance result.
     Map<String, IdealState> newResult =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
     Assert.assertEquals(newResult, result);
     // Ensure failure has been recorded
     Assert.assertEquals(rebalancer.getMetricCollector().getMetric(
-        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCount.name(),
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
         CountMetric.class).getValue().longValue(), 1l);
   }
 

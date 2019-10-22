@@ -25,7 +25,7 @@ package org.apache.helix.monitoring.mbeans.dynamicMBeans;
  * @param <T> the type of the metric value
  */
 public class SimpleDynamicMetric<T> extends DynamicMetric<T, T> {
-  private final String _metricName;
+  protected final String _metricName;
 
   /**
    * Instantiates a new Simple dynamic metric.

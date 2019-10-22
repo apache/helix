@@ -179,7 +179,7 @@ public class WagedRebalancer {
       // Calculate the target assignment based on the current cluster status.
       newIdealStates = computeBestPossibleStates(clusterData, resourceMap, currentStateOutput);
     } catch (HelixRebalanceException ex) {
-      LOG.error("The new assignment calculation fails.", ex);
+      LOG.error("Failed to calculate the new assignments.", ex);
       // Record the failure in metrics.
       CountMetric rebalanceFailureCount = _metricCollector.getMetric(
           WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),

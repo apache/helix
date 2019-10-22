@@ -155,11 +155,26 @@ public class HelixStateMachineEngine implements StateMachineEngine {
           for (String partitionKey : stateModelFactory.getPartitionSet(resourceName)) {
             logger.info("Resetting {}::{}", resourceName, partitionKey);
             StateModel stateModel = stateModelFactory.getStateModel(resourceName, partitionKey);
-            stateModel.reset();
-            String initialState = _stateModelParser.getInitialState(stateModel.getClass());
-            stateModel.updateState(initialState);
-            // TODO probably should update the state on ZK. Shi confirm what needs
-            // to be done here.
+            if (stateModel != null) {
+              stateModel.reset();
+              String initialState = _stateModelParser.getInitialState(stateModel.getClass());
+              stateModel.updateState(initialState);
+              // TODO probably should update the state on ZK. Shi confirm what needs
+              // to be done here.
+            } else {
+              // TODO: If stateModel is null, we might need to do something here
+              // This reset() is not synchronized. We observed that during a shutdown (where
+              // resources
+              // are all dropped), an NPE could be possible due to stateModel being null
+              // Two cases are possible: 1) removing a partition/resource 2) adding a
+              // partition/resource
+              // We may need to add more processing here to make sure things are being set to
+              // initialState. Otherwise, there might be inconsistencies that might cause partitions
+              // to be stuck in some state (because reset() would be a NOP here)
+              logger.warn(
+                  "Failed to reset due to StateModel being null! Resource: {}, Partition: {}",
+                  resourceName, partitionKey);
+            }
           }
         }
       }

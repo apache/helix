@@ -29,6 +29,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
@@ -50,6 +52,7 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.metrics.MetricCollector;
 import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
+import org.apache.helix.monitoring.metrics.implementation.BaselineDivergenceGauge;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 import org.slf4j.Logger;
@@ -74,6 +77,7 @@ public class WagedRebalancer {
   // Make it static to avoid unnecessary reinitialization.
   private static final ThreadLocal<ResourceChangeDetector> CHANGE_DETECTOR_THREAD_LOCAL =
       new ThreadLocal<>();
+  private static final long REBALANCE_COUNTER_INCREMENT = 1L;
   private final HelixManager _manager;
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
   private final AssignmentMetadataStore _assignmentMetadataStore;
@@ -330,6 +334,11 @@ public class WagedRebalancer {
       Map<HelixConstants.ChangeType, Set<String>> clusterChanges, Map<String, Resource> resourceMap,
       final CurrentStateOutput currentStateOutput) throws HelixRebalanceException {
     LOG.info("Start calculating the new baseline.");
+    CountMetric globalBaselineCalcCounter = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcCounter.name(),
+        CountMetric.class);
+    globalBaselineCalcCounter.increaseCount(REBALANCE_COUNTER_INCREMENT);
+
     LatencyMetric globalBaselineCalcLatency = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge
             .name(),
@@ -372,6 +381,11 @@ public class WagedRebalancer {
       Set<String> activeNodes, final CurrentStateOutput currentStateOutput)
       throws HelixRebalanceException {
     LOG.info("Start calculating the new best possible assignment.");
+    CountMetric partialRebalanceCounter = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceCounter.name(),
+        CountMetric.class);
+    partialRebalanceCounter.increaseCount(REBALANCE_COUNTER_INCREMENT);
+
     LatencyMetric partialRebalanceLatency = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceLatencyGauge
             .name(),
@@ -389,6 +403,9 @@ public class WagedRebalancer {
     // Compute the new assignment
     Map<String, ResourceAssignment> newAssignment = calculateAssignment(clusterData, clusterChanges,
         resourceMap, activeNodes, currentBaseline, currentBestPossibleAssignment);
+
+    // Measure BaselineDivergenceGauge.
+    measureBaselineDivergenceGauge(currentBaseline, newAssignment);
 
     if (_assignmentMetadataStore != null) {
       try {
@@ -410,6 +427,30 @@ public class WagedRebalancer {
     partialRebalanceLatency.endMeasuringLatency();
     LOG.info("Finish calculating the new best possible assignment.");
     return newAssignment;
+  }
+
+  private void measureBaselineDivergenceGauge(Map<String, ResourceAssignment> baseline,
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
+    MapDifference<String, ResourceAssignment> mapDifference =
+        Maps.difference(baseline, bestPossibleAssignment);
+    Map<String, ResourceAssignment> matchedAssignment = mapDifference.entriesInCommon();
+    Map<String, MapDifference.ValueDifference<ResourceAssignment>> differentAssignment =
+        mapDifference.entriesDiffering();
+
+    int matched = matchedAssignment.size();
+    int total = matched;
+    total += mapDifference.entriesOnlyOnLeft().size();
+    total += mapDifference.entriesOnlyOnRight().size();
+    // Each entry of differentAssignment has 2 values: {k1=(v1, v2), k2=(v3, v4)}
+    total += 2 * differentAssignment.size();
+
+    double baselineDivergence = total == 0 ? 0.0d : (double) matched / (double) total;
+
+    BaselineDivergenceGauge baselineDivergenceGauge = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
+        BaselineDivergenceGauge.class);
+
+    baselineDivergenceGauge.updateValue(baselineDivergence);
   }
 
   /**

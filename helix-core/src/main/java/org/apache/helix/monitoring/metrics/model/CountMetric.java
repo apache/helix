@@ -19,23 +19,49 @@ package org.apache.helix.monitoring.metrics.model;
  * under the License.
  */
 
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
 /**
  * Represents a count metric and defines methods to help with calculation. A count metric gives a
  * gauge value of a certain property.
  */
-public abstract class CountMetric<V> extends SimpleDynamicMetric<V> implements Metric {
-  protected V _count;
+public abstract class CountMetric extends SimpleDynamicMetric<Long> implements Metric {
 
   /**
-   * Instantiates a new Simple dynamic metric.
+   * Instantiates a new count metric.
+   *
    * @param metricName the metric name
-   * @param metricObject the metric object
+   * @param initCount the initial count
    */
-  public CountMetric(String metricName, V metricObject) {
-    super(metricName, metricObject);
+  public CountMetric(String metricName, long initCount) {
+    super(metricName, initCount);
   }
 
-  public abstract void setCount(Object count);
+  /**
+   * Increment the metric by the input count.
+   *
+   * @param count
+   */
+  public abstract void increaseCount(long count);
+
+  @Override
+  public String getMetricName() {
+    return _metricName;
+  }
+
+  @Override
+  public String toString() {
+    return String.format("Metric %s's count is %d", getMetricName(), getValue());
+  }
+
+  @Override
+  public long getLastEmittedMetricValue() {
+    return getValue();
+  }
+
+  @Override
+  public DynamicMetric getDynamicMetric() {
+    return this;
+  }
 }

@@ -110,7 +110,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
   public void testZoneIsolation() throws Exception {
     int i = 0;
     for (String stateModel : _testModels) {
-      String db = "Test-DB-" + i++;
+      String db = "Test-DB-testZoneIsolation" + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
           _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
@@ -126,7 +126,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
     Set<String> tags = new HashSet<String>(_nodeToTagMap.values());
     int i = 0;
     for (String tag : tags) {
-      String db = "Test-DB-" + i++;
+      String db = "Test-DB-testZoneIsolationWithInstanceTag" + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db,
           BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
       IdealState is =
@@ -154,7 +154,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
 
     int j = 0;
     for (String stateModel : _testModels) {
-      String db = "Test-DB-" + j++;
+      String db = "Test-DB-testLackEnoughLiveRacks" + j++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
           _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
@@ -196,7 +196,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
 
     int j = 0;
     for (String stateModel : _testModels) {
-      String db = "Test-DB-" + j++;
+      String db = "Test-DB-testLackEnoughRacks" + j++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
           _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
@@ -228,7 +228,7 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
   public void testAddZone() throws Exception {
     int i = 0;
     for (String stateModel : _testModels) {
-      String db = "Test-DB-" + i++;
+      String db = "Test-DB-testAddZone" + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
           _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);

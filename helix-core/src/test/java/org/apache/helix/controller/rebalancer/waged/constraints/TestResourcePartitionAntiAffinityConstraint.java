@@ -49,8 +49,8 @@ public class TestResourcePartitionAntiAffinityConstraint {
 
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.85f);
-    Assert.assertEquals(normalizedScore, 0.85f);
+    Assert.assertEquals(score, 0.865f);
+    Assert.assertEquals(normalizedScore, 0.865f);
   }
 
   @Test

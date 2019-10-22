@@ -30,8 +30,8 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * The lower score the score, the worse the assignment; Intuitively, the assignment is penalized.
  */
 abstract class SoftConstraint {
-  private float _maxScore = 1000f;
-  private float _minScore = -1000f;
+  private final float _maxScore;
+  private final float _minScore;
 
   interface NormalizeFunction {
     /**
@@ -44,12 +44,6 @@ abstract class SoftConstraint {
   }
 
   /**
-   * Default constructor, uses default min/max scores
-   */
-  SoftConstraint() {
-  }
-
-  /**
    * Child class customize the min/max score on its own
    * @param maxScore The max score
    * @param minScore The min score
@@ -59,11 +53,11 @@ abstract class SoftConstraint {
     _minScore = minScore;
   }
 
-  float getMaxScore() {
+  protected float getMaxScore() {
     return _maxScore;
   }
 
-  float getMinScore() {
+  protected float getMinScore() {
     return _minScore;
   }
 
@@ -90,7 +84,7 @@ abstract class SoftConstraint {
    * Child class could override the method and customize the method on its own
    * @return The MinMaxScaler instance by default
    */
-  NormalizeFunction getNormalizeFunction() {
+  protected NormalizeFunction getNormalizeFunction() {
     return (score) -> (score - getMinScore()) / (getMaxScore() - getMinScore());
   }
 }

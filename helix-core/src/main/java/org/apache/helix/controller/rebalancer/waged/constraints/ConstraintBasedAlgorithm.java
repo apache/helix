@@ -121,7 +121,10 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     for (Map.Entry<SoftConstraint, Float> softConstraintEntry : _softConstraints.entrySet()) {
       SoftConstraint softConstraint = softConstraintEntry.getKey();
       float weight = softConstraintEntry.getValue();
-      sum += weight * softConstraint.getAssignmentNormalizedScore(node, replica, clusterContext);
+      if (weight != 0) {
+        // Skip calculating zero weight constraints.
+        sum += weight * softConstraint.getAssignmentNormalizedScore(node, replica, clusterContext);
+      }
     }
     return sum;
   }

@@ -50,8 +50,8 @@ public class TestResourceTopStateAntiAffinityConstraint {
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.5f);
-    Assert.assertEquals(normalizedScore, 0.5f);
+    Assert.assertEquals(score, 0.0f);
+    Assert.assertEquals(normalizedScore, 0.0f);
     verifyZeroInteractions(_testNode);
     verifyZeroInteractions(_clusterContext);
   }
@@ -64,8 +64,8 @@ public class TestResourceTopStateAntiAffinityConstraint {
     float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     float normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.5f);
-    Assert.assertEquals(normalizedScore, 0.5f);
+    Assert.assertEquals(score, 0.55f);
+    Assert.assertEquals(normalizedScore, 0.55f);
   }
 
   @Test

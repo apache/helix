@@ -49,7 +49,7 @@ public class TestInstancePartitionsCountConstraint {
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(10);
     float score =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.5f);
+    Assert.assertEquals(score, 0.55f);
   }
 
   @Test
@@ -58,6 +58,6 @@ public class TestInstancePartitionsCountConstraint {
     when(_clusterContext.getEstimatedMaxPartitionCount()).thenReturn(20);
     float score =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.75f);
+    Assert.assertEquals(score, 0.775f);
   }
 }

@@ -58,8 +58,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap;
   // A map of <capacity key, capacity value> that tracks the current available node capacity
   private Map<String, Integer> _remainingCapacity;
-  // The maximum capacity utilization (0.0 - 1.0) across all the capacity categories.
-  private float _highestCapacityUtilization;
 
   /**
    * Update the node with a ClusterDataCache. This resets the current assignment and recalculates
@@ -81,7 +79,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
     _remainingCapacity = new HashMap<>(instanceCapacity);
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
     _currentAssignedReplicaMap = new HashMap<>();
-    _highestCapacityUtilization = 0f;
   }
 
   /**
@@ -144,8 +141,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
 
     AssignableReplica removedReplica = partitionMap.remove(partitionName);
-    // Recalculate utilization because of release
-    _highestCapacityUtilization = 0;
     removedReplica.getCapacity().entrySet().stream()
         .forEach(entry -> updateCapacityAndUtilization(entry.getKey(), -1 * entry.getValue()));
   }
@@ -222,13 +217,21 @@ public class AssignableNode implements Comparable<AssignableNode> {
   /**
    * Return the most concerning capacity utilization number for evenly partition assignment.
    * The method dynamically returns the highest utilization number among all the capacity
-   * categories.
+   * categories assuming the new capacity usage is added to the node.
    * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}. Then this call shall
    * return 0.9.
+   * @param newUsage the proposed new additional capacity usage.
    * @return The highest utilization number of the node among all the capacity category.
    */
-  public float getHighestCapacityUtilization() {
-    return _highestCapacityUtilization;
+  public float getExpectedHighestUtilization(Map<String, Integer> newUsage) {
+    float highestCapacityUtilization = 0;
+    for (String capacityKey : _maxAllowedCapacity.keySet()) {
+      float capacityValue = _maxAllowedCapacity.get(capacityKey);
+      float utilization = (capacityValue - _remainingCapacity.get(capacityKey) + newUsage
+          .getOrDefault(capacityKey, 0)) / capacityValue;
+      highestCapacityUtilization = Math.max(highestCapacityUtilization, utilization);
+    }
+    return highestCapacityUtilization;
   }
 
   public String getInstanceName() {
@@ -337,10 +340,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
     int newCapacity = _remainingCapacity.get(capacityKey) - usage;
     _remainingCapacity.put(capacityKey, newCapacity);
-    // For the purpose of constraint calculation, the max utilization cannot be larger than 100%.
-    float utilization = Math.min((float) (_maxAllowedCapacity.get(capacityKey) - newCapacity)
-        / _maxAllowedCapacity.get(capacityKey), 1);
-    _highestCapacityUtilization = Math.max(_highestCapacityUtilization, utilization);
   }
 
   /**

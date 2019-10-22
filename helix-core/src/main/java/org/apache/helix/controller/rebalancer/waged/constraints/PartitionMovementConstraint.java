@@ -44,8 +44,6 @@ class PartitionMovementConstraint extends SoftConstraint {
   // This factor indicates the default score that is evaluated if only partition allocation matches
   // (states are different).
   private static final float ALLOCATION_MATCH_FACTOR = 0.5f;
-  // This factor indicates the contribution of the Baseline assignment matching to the final score.
-  private static final float BASELINE_MATCH_FACTOR = 0.25f;
 
   PartitionMovementConstraint() {
     super(MAX_SCORE, MIN_SCORE);
@@ -54,23 +52,18 @@ class PartitionMovementConstraint extends SoftConstraint {
   @Override
   protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
+    // Prioritize the matching of the previous Best Possible assignment.
     Map<String, String> bestPossibleStateMap =
         getStateMap(replica, clusterContext.getBestPossibleAssignment());
+    if (!bestPossibleStateMap.isEmpty()) {
+      return calculateAssignmentScale(node, replica, bestPossibleStateMap);
+    }
     Map<String, String> baselineStateMap =
         getStateMap(replica, clusterContext.getBaselineAssignment());
-
-    // Prioritize the matching of the previous Best Possible assignment.
-    float scale = calculateAssignmentScale(node, replica, bestPossibleStateMap);
-    // If the baseline is also provided, adjust the final score accordingly.
-    scale = scale * (1 - BASELINE_MATCH_FACTOR)
-        + calculateAssignmentScale(node, replica, baselineStateMap) * BASELINE_MATCH_FACTOR;
-
-    return scale;
-  }
-
-  @Override
-  NormalizeFunction getNormalizeFunction() {
-    return score -> score * (getMaxScore() - getMinScore()) + getMinScore();
+    if (!baselineStateMap.isEmpty()) {
+      return calculateAssignmentScale(node, replica, baselineStateMap);
+    }
+    return 0;
   }
 
   private Map<String, String> getStateMap(AssignableReplica replica,
@@ -89,8 +82,14 @@ class PartitionMovementConstraint extends SoftConstraint {
     if (!instanceToStateMap.containsKey(instanceName)) {
       return 0;
     } else {
-      return (instanceToStateMap.get(instanceName).equals(replica.getReplicaState()) ? 1
-          : ALLOCATION_MATCH_FACTOR);
+      return (instanceToStateMap.get(instanceName).equals(replica.getReplicaState()) ? 1 :
+          ALLOCATION_MATCH_FACTOR);
     }
+  }
+
+  @Override
+  protected NormalizeFunction getNormalizeFunction() {
+    // PartitionMovementConstraint already scale the score properly.
+    return (score) -> score;
   }
 }

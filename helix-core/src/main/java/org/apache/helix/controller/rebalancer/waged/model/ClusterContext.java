@@ -35,14 +35,14 @@ import org.apache.helix.model.ResourceAssignment;
  * This class tracks the rebalance-related global cluster status.
  */
 public class ClusterContext {
-  private final static float ERROR_MARGIN_FOR_ESTIMATED_MAX_COUNT = 1.1f;
-
   // This estimation helps to ensure global partition count evenness
   private final int _estimatedMaxPartitionCount;
   // This estimation helps to ensure global top state replica count evenness
   private final int _estimatedMaxTopStateCount;
   // This estimation helps to ensure per-resource partition count evenness
   private final Map<String, Integer> _estimatedMaxPartitionByResource = new HashMap<>();
+  // This estmations helps to ensure global resource usage evenness.
+  private final float _estimatedMaxUtilization;
 
   // map{zoneName : map{resourceName : set(partitionNames)}}
   private Map<String, Map<String, Set<String>>> _assignmentForFaultZoneMap = new HashMap<>();
@@ -55,12 +55,15 @@ public class ClusterContext {
   /**
    * Construct the cluster context based on the current instance status.
    * @param replicaSet All the partition replicas that are managed by the rebalancer
-   * @param instanceCount The count of all the active instances that can be used to host partitions.
+   * @param nodeSet All the active nodes that are managed by the rebalancer
    */
-  ClusterContext(Set<AssignableReplica> replicaSet, int instanceCount,
+  ClusterContext(Set<AssignableReplica> replicaSet, Set<AssignableNode> nodeSet,
       Map<String, ResourceAssignment> baselineAssignment, Map<String, ResourceAssignment> bestPossibleAssignment) {
+    int instanceCount = nodeSet.size();
     int totalReplicas = 0;
     int totalTopStateReplicas = 0;
+    Map<String, Integer> totalUsage = new HashMap<>();
+    Map<String, Integer> totalCapacity = new HashMap<>();
 
     for (Map.Entry<String, List<AssignableReplica>> entry : replicaSet.stream()
         .collect(Collectors.groupingBy(AssignableReplica::getResourceName))
@@ -71,9 +74,31 @@ public class ClusterContext {
       int replicaCnt = Math.max(1, estimateAvgReplicaCount(replicas, instanceCount));
       _estimatedMaxPartitionByResource.put(entry.getKey(), replicaCnt);
 
-      totalTopStateReplicas += entry.getValue().stream().filter(AssignableReplica::isReplicaTopState).count();
+      for (AssignableReplica replica : entry.getValue()) {
+        if (replica.isReplicaTopState()) {
+          totalTopStateReplicas += 1;
+        }
+        replica.getCapacity().entrySet().stream().forEach(capacityEntry -> totalUsage
+            .computeIfPresent(capacityEntry.getKey(),
+                (key, value) -> value + capacityEntry.getValue()));
+      }
     }
+    nodeSet.stream().forEach(node -> node.getMaxCapacity().entrySet().stream().forEach(
+        capacityEntry -> totalCapacity.computeIfPresent(capacityEntry.getKey(),
+            (key, value) -> value + capacityEntry.getValue())));
 
+    if (totalCapacity.isEmpty()) {
+      _estimatedMaxUtilization = 1f;
+    } else {
+      float estimatedMaxUsage = 0;
+      for (String capacityKey : totalCapacity.keySet()) {
+        int maxCapacity = totalCapacity.get(capacityKey);
+        int usage = totalUsage.getOrDefault(capacityKey, 0);
+        int utilization = (maxCapacity == 0) ? 1 : usage / maxCapacity;
+        estimatedMaxUsage = Math.max(estimatedMaxUsage, utilization);
+      }
+      _estimatedMaxUtilization = estimatedMaxUsage;
+    }
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
     _baselineAssignment = baselineAssignment;
@@ -105,6 +130,10 @@ public class ClusterContext {
     return _estimatedMaxTopStateCount;
   }
 
+  public float getEstimatedMaxUtilization() {
+    return _estimatedMaxUtilization;
+  }
+
   public Set<String> getPartitionsForResourceAndFaultZone(String resourceName, String faultZoneId) {
     return _assignmentForFaultZoneMap.getOrDefault(faultZoneId, Collections.emptyMap())
         .getOrDefault(resourceName, Collections.emptySet());
@@ -131,6 +160,6 @@ public class ClusterContext {
   }
 
   private int estimateAvgReplicaCount(int replicaCount, int instanceCount) {
-    return (int) Math.ceil((float) replicaCount / instanceCount * ERROR_MARGIN_FOR_ESTIMATED_MAX_COUNT);
+    return (int) Math.ceil((float) replicaCount / instanceCount);
   }
 }

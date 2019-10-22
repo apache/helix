@@ -35,6 +35,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeClass;
@@ -188,5 +189,13 @@ public abstract class AbstractTestClusterModel {
                   entry.getKey(), entry.getValue(), entry.getValue().equals("MASTER") ? 1 : 2)));
     }
     return assignmentSet;
+  }
+
+  protected Set<AssignableNode> generateNodes(ResourceControllerDataProvider testCache) {
+    Set<AssignableNode> nodeSet = new HashSet<>();
+    testCache.getInstanceConfigMap().values().stream()
+        .forEach(config -> nodeSet.add(new AssignableNode(testCache.getClusterConfig(),
+            testCache.getInstanceConfigMap().get(_testInstanceId), config.getInstanceName())));
+    return nodeSet;
   }
 }

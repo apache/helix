@@ -160,6 +160,12 @@ public class ClusterContext {
   }
 
   private int estimateAvgReplicaCount(int replicaCount, int instanceCount) {
-    return (int) Math.ceil((float) replicaCount / instanceCount);
+    // Use the floor to ensure evenness.
+    // Note if we calculate estimation based on ceil, we might have some low usage participants.
+    // For example, if the evaluation is between 1 and 2. While we use 2, many participants will be
+    // allocated with 2 partitions. And the other participants only has 0 partitions. Otherwise,
+    // if we use 1, most participant will have 1 partition assigned and several participant has 2
+    // partitions. The later scenario is what we want to achieve.
+    return (int) Math.floor((float) replicaCount / instanceCount);
   }
 }

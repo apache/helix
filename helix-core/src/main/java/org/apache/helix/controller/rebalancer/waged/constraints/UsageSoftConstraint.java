@@ -31,26 +31,25 @@ abstract class UsageSoftConstraint extends SoftConstraint {
   }
 
   /**
-   * Compute utilization score which is higher when the usage is low.
-   * Considering the real usage could be larger than the estimated usage, use a segmented function
-   * to convert the utilization number into range [0.0, 1.0].
-   * In detail, when the current usage is smaller than the estimation, return a value between
-   * [0.1, 1.0]. When the current usage is larger than the estimation, return a value between
-   * [0.0, 0.1)
+   * Compute utilization score based on the current usage and the estimated usage.
+   * The score is higher when the usage is relatively low.
+   * The score is evaluated using a segmented function.
+   * When the usage is smaller than estimation, the constraint returns the max score since this
+   * is the expected condition.
+   * When the usage is larger than the estimate, the constraint returns the score by calculating
+   * estimate / current usage. So more usage, lower the score will be.
    * @param estimatedUsage
    * @param currentUsage
    * @return The score between [0.0, 1.0] that evaluates the utilization.
    */
   protected float computeUtilizationScore(float estimatedUsage, float currentUsage) {
     if (estimatedUsage <= 0) {
-      return 0;
+      return MIN_SCORE;
     }
-    // Enlarge the estimated usage range so as to avoid oversensitive constraint evaluation
-    estimatedUsage *= 2;
     if (currentUsage <= estimatedUsage) {
-      return (estimatedUsage - currentUsage) / estimatedUsage * 0.9f + 0.1f;
+      return MAX_SCORE;
     } else {
-      return estimatedUsage / currentUsage * 0.1f;
+      return estimatedUsage / currentUsage * (MAX_SCORE - MIN_SCORE);
     }
   }
 

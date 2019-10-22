@@ -22,7 +22,6 @@ package org.apache.helix.monitoring.metrics.implementation;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import java.util.concurrent.TimeUnit;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,22 +71,6 @@ public class RebalanceLatencyGauge extends LatencyMetric {
     reset();
   }
 
-  @Override
-  public String getMetricName() {
-    return _metricName;
-  }
-
-  @Override
-  public void reset() {
-    _startTime = VALUE_NOT_SET;
-    _endTime = VALUE_NOT_SET;
-  }
-
-  @Override
-  public String toString() {
-    return String.format("Metric %s's latency is %d", _metricName, getLastEmittedMetricValue());
-  }
-
   /**
    * Returns the most recently emitted metric value at the time of the call.
    * @return
@@ -97,8 +80,11 @@ public class RebalanceLatencyGauge extends LatencyMetric {
     return _lastEmittedMetricValue;
   }
 
-  @Override
-  public DynamicMetric getDynamicMetric() {
-    return this;
+  /**
+   * Resets the internal state of this metric.
+   */
+  private void reset() {
+    _startTime = VALUE_NOT_SET;
+    _endTime = VALUE_NOT_SET;
   }
 }

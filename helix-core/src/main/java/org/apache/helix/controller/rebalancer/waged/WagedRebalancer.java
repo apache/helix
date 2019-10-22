@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixConstants;
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
@@ -51,6 +50,7 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.metrics.MetricCollector;
 import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
+import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -174,9 +174,36 @@ public class WagedRebalancer {
     LOG.info("Start computing new ideal states for resources: {}", resourceMap.keySet().toString());
     validateInput(clusterData, resourceMap);
 
-    // Calculate the target assignment based on the current cluster status.
-    Map<String, IdealState> newIdealStates =
-        computeBestPossibleStates(clusterData, resourceMap, currentStateOutput);
+    Map<String, IdealState> newIdealStates;
+    try {
+      // Calculate the target assignment based on the current cluster status.
+      newIdealStates = computeBestPossibleStates(clusterData, resourceMap, currentStateOutput);
+    } catch (HelixRebalanceException ex) {
+      LOG.error("Failed to calculate the new assignments.", ex);
+      // Record the failure in metrics.
+      CountMetric rebalanceFailureCount = _metricCollector.getMetric(
+          WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
+          CountMetric.class);
+      rebalanceFailureCount.increaseCount(1L);
+
+      HelixRebalanceException.Type failureType = ex.getFailureType();
+      if (failureType.equals(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS) || failureType
+          .equals(HelixRebalanceException.Type.UNKNOWN_FAILURE)) {
+        // If the failure is unknown or because of assignment store access failure, throw the
+        // rebalance exception.
+        throw ex;
+      } else { // return the previously calculated assignment.
+        LOG.warn(
+            "Returning the last known-good best possible assignment from metadata store due to "
+                + "rebalance failure of type: {}", failureType);
+        // Note that don't return an assignment based on the current state if there is no previously
+        // calculated result in this fallback logic.
+        Map<String, ResourceAssignment> assignmentRecord =
+            getBestPossibleAssignment(_assignmentMetadataStore, new CurrentStateOutput(),
+                resourceMap.keySet());
+        newIdealStates = convertResourceAssignment(clusterData, assignmentRecord);
+      }
+    }
 
     // Construct the new best possible states according to the current state and target assignment.
     // Note that the new ideal state might be an intermediate state between the current state and
@@ -203,7 +230,7 @@ public class WagedRebalancer {
   }
 
   // Coordinate baseline recalculation and partial rebalance according to the cluster changes.
-  private Map<String, IdealState> computeBestPossibleStates(
+  protected Map<String, IdealState> computeBestPossibleStates(
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
       final CurrentStateOutput currentStateOutput) throws HelixRebalanceException {
     getChangeDetector().updateSnapshots(clusterData);
@@ -243,36 +270,15 @@ public class WagedRebalancer {
     Map<String, ResourceAssignment> newAssignment =
         partialRebalance(clusterData, clusterChanges, resourceMap, activeNodes, currentStateOutput);
 
-    // <ResourceName, <State, Priority>>
-    Map<String, Map<String, Integer>> resourceStatePriorityMap = new HashMap<>();
-    // Convert the assignments into IdealState for the following state mapping calculation.
-    Map<String, IdealState> finalIdealStateMap = new HashMap<>();
-    for (String resourceName : newAssignment.keySet()) {
-      IdealState newIdealState;
-      try {
-        IdealState currentIdealState = clusterData.getIdealState(resourceName);
-        Map<String, Integer> statePriorityMap = clusterData
-            .getStateModelDef(currentIdealState.getStateModelDefRef()).getStatePriorityMap();
-        // Keep the priority map for the rebalance overwrite logic later.
-        resourceStatePriorityMap.put(resourceName, statePriorityMap);
-        // Create a new IdealState instance contains the new calculated assignment in the preference
-        // list.
-        newIdealState = generateIdealStateWithAssignment(resourceName, currentIdealState,
-            newAssignment.get(resourceName), statePriorityMap);
-      } catch (Exception ex) {
-        throw new HelixRebalanceException(
-            "Fail to calculate the new IdealState for resource: " + resourceName,
-            HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
-      }
-      finalIdealStateMap.put(resourceName, newIdealState);
-    }
+    Map<String, IdealState> finalIdealStateMap =
+        convertResourceAssignment(clusterData, newAssignment);
 
     // The additional rebalance overwrite is required since the calculated mapping may contains
     // some delayed rebalanced assignments.
     if (!activeNodes.equals(clusterData.getEnabledLiveInstances())) {
       applyRebalanceOverwrite(finalIdealStateMap, clusterData, resourceMap, clusterChanges,
-          resourceStatePriorityMap, getBaselineAssignment(_assignmentMetadataStore,
-              currentStateOutput, resourceMap.keySet()));
+          getBaselineAssignment(_assignmentMetadataStore, currentStateOutput,
+              resourceMap.keySet()));
     }
     // Replace the assignment if user-defined preference list is configured.
     // Note the user-defined list is intentionally applied to the final mapping after calculation.
@@ -282,6 +288,40 @@ public class WagedRebalancer {
         .forEach(idealStateEntry -> applyUserDefinedPreferenceList(
             clusterData.getResourceConfig(idealStateEntry.getKey()), idealStateEntry.getValue()));
 
+    return finalIdealStateMap;
+  }
+
+  /**
+   * Convert the resource assignment map into an IdealState map.
+   */
+  private Map<String, IdealState> convertResourceAssignment(
+      ResourceControllerDataProvider clusterData, Map<String, ResourceAssignment> assignments)
+      throws HelixRebalanceException {
+    // Convert the assignments into IdealState for the following state mapping calculation.
+    Map<String, IdealState> finalIdealStateMap = new HashMap<>();
+    for (String resourceName : assignments.keySet()) {
+      try {
+        IdealState currentIdealState = clusterData.getIdealState(resourceName);
+        Map<String, Integer> statePriorityMap =
+            clusterData.getStateModelDef(currentIdealState.getStateModelDefRef())
+                .getStatePriorityMap();
+        // Create a new IdealState instance which contains the new calculated assignment in the
+        // preference list.
+        IdealState newIdealState = new IdealState(resourceName);
+        // Copy the simple fields
+        newIdealState.getRecord().setSimpleFields(currentIdealState.getRecord().getSimpleFields());
+        // Sort the preference list according to state priority.
+        newIdealState.setPreferenceLists(
+            getPreferenceLists(assignments.get(resourceName), statePriorityMap));
+        // Note the state mapping in the new assignment won't directly propagate to the map fields.
+        // The rebalancer will calculate for the final state mapping considering the current states.
+        finalIdealStateMap.put(resourceName, newIdealState);
+      } catch (Exception ex) {
+        throw new HelixRebalanceException(
+            "Failed to calculate the new IdealState for resource: " + resourceName,
+            HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
+      }
+    }
     return finalIdealStateMap;
   }
 
@@ -414,23 +454,6 @@ public class WagedRebalancer {
     return CHANGE_DETECTOR_THREAD_LOCAL.get();
   }
 
-  // Generate a new IdealState based on the input newAssignment.
-  // The assignment will be propagate to the preference lists.
-  // Note that we will recalculate the states based on the current state, so there is no need to
-  // update the mapping fields in the IdealState output.
-  private IdealState generateIdealStateWithAssignment(String resourceName,
-      IdealState currentIdealState, ResourceAssignment newAssignment,
-      Map<String, Integer> statePriorityMap) {
-    IdealState newIdealState = new IdealState(resourceName);
-    // Copy the simple fields
-    newIdealState.getRecord().setSimpleFields(currentIdealState.getRecord().getSimpleFields());
-    // Sort the preference list according to state priority.
-    newIdealState.setPreferenceLists(getPreferenceLists(newAssignment, statePriorityMap));
-    // Note the state mapping in the new assignment won't be directly propagate to the map fields.
-    // The rebalancer will calculate for the final state mapping considering the current states.
-    return newIdealState;
-  }
-
   // Generate the preference lists from the state mapping based on state priority.
   private Map<String, List<String>> getPreferenceLists(ResourceAssignment newAssignment,
       Map<String, Integer> statePriorityMap) {
@@ -488,9 +511,6 @@ public class WagedRebalancer {
         stateReadLatency.startMeasuringLatency();
         currentBaseline = assignmentMetadataStore.getBaseline();
         stateReadLatency.endMeasuringLatency();
-      } catch (HelixException ex) {
-        // Report error. and use empty mapping instead.
-        LOG.error("Failed to get the current baseline assignment.", ex);
       } catch (Exception ex) {
         throw new HelixRebalanceException(
             "Failed to get the current baseline assignment because of unexpected error.",
@@ -501,6 +521,7 @@ public class WagedRebalancer {
       LOG.warn("The current baseline assignment record is empty. Use the current states instead.");
       currentBaseline = getCurrentStateAssingment(currentStateOutput, resources);
     }
+    currentBaseline.keySet().retainAll(resources);
     return currentBaseline;
   }
 
@@ -524,9 +545,6 @@ public class WagedRebalancer {
         stateReadLatency.startMeasuringLatency();
         currentBestAssignment = assignmentMetadataStore.getBestPossibleAssignment();
         stateReadLatency.endMeasuringLatency();
-      } catch (HelixException ex) {
-        // Report error. and use empty mapping instead.
-        LOG.error("Failed to get the current best possible assignment.", ex);
       } catch (Exception ex) {
         throw new HelixRebalanceException(
             "Failed to get the current best possible assignment because of unexpected error.",
@@ -538,6 +556,7 @@ public class WagedRebalancer {
           "The current best possible assignment record is empty. Use the current states instead.");
       currentBestAssignment = getCurrentStateAssingment(currentStateOutput, resources);
     }
+    currentBestAssignment.keySet().retainAll(resources);
     return currentBestAssignment;
   }
 
@@ -593,39 +612,39 @@ public class WagedRebalancer {
    * @param clusterData the cluster data cache.
    * @param resourceMap the rebalanaced resource map.
    * @param clusterChanges the detected cluster changes that triggeres the rebalance.
-   * @param resourceStatePriorityMap the state priority map for each resource.
    * @param baseline the baseline assignment
    */
   private void applyRebalanceOverwrite(Map<String, IdealState> idealStateMap,
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
       Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
-      Map<String, Map<String, Integer>> resourceStatePriorityMap,
       Map<String, ResourceAssignment> baseline) throws HelixRebalanceException {
     Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
     // Note that the calculation used the baseline as the input only. This is for minimizing
     // unnecessary partition movement.
-    Map<String, ResourceAssignment> activeAssignment = calculateAssignment(clusterData,
-        clusterChanges, resourceMap, enabledLiveInstances, Collections.emptyMap(), baseline);
+    Map<String, IdealState> activeIdealStates = convertResourceAssignment(clusterData,
+        calculateAssignment(clusterData, clusterChanges, resourceMap, enabledLiveInstances,
+            Collections.emptyMap(), baseline));
     for (String resourceName : idealStateMap.keySet()) {
-      IdealState is = idealStateMap.get(resourceName);
-      if (!activeAssignment.containsKey(resourceName)) {
+      // The new calculated ideal state before overwrite
+      IdealState newIdealState = idealStateMap.get(resourceName);
+      if (!activeIdealStates.containsKey(resourceName)) {
         throw new HelixRebalanceException(
             "Failed to calculate the complete partition assignment with all active nodes. Cannot find the resource assignment for "
-                + resourceName,
-            HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+                + resourceName, HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       }
+      // The ideal state that is calculated based on the real alive/enabled instances list
+      IdealState newActiveIdealState = activeIdealStates.get(resourceName);
+      // The current ideal state that exists in the IdealState znode
       IdealState currentIdealState = clusterData.getIdealState(resourceName);
-      IdealState newActiveIdealState =
-          generateIdealStateWithAssignment(resourceName, currentIdealState,
-              activeAssignment.get(resourceName), resourceStatePriorityMap.get(resourceName));
+      int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
+      int minActiveReplica =
+          DelayedRebalanceUtil.getMinActiveReplica(currentIdealState, numReplica);
+      Map<String, List<String>> finalPreferenceLists = DelayedRebalanceUtil
+          .getFinalDelayedMapping(newActiveIdealState.getPreferenceLists(),
+              newIdealState.getPreferenceLists(), enabledLiveInstances,
+              Math.min(minActiveReplica, numReplica));
 
-      int numReplia = currentIdealState.getReplicaCount(enabledLiveInstances.size());
-      int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(currentIdealState, numReplia);
-      Map<String, List<String>> finalPreferenceLists =
-          DelayedRebalanceUtil.getFinalDelayedMapping(newActiveIdealState.getPreferenceLists(),
-              is.getPreferenceLists(), enabledLiveInstances, Math.min(minActiveReplica, numReplia));
-
-      is.setPreferenceLists(finalPreferenceLists);
+      newIdealState.setPreferenceLists(finalPreferenceLists);
     }
   }
 
@@ -640,5 +659,9 @@ public class WagedRebalancer {
         }
       }
     }
+  }
+
+  protected MetricCollector getMetricCollector() {
+    return _metricCollector;
   }
 }

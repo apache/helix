@@ -43,9 +43,9 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
     StateReadLatencyGauge,
     StateWriteLatencyGauge,
 
-    // Count of any rebalance failure.
-    // Note the rebalancer may still be able to return an assignment based on the previous record
-    // on an error.
+    // Count of any rebalance compute failure.
+    // Note the rebalancer may still be able to return the last known-good assignment on a rebalance
+    // compute failure. And this fallback logic won't impact this counting.
     RebalanceFailureCounter
   }
 

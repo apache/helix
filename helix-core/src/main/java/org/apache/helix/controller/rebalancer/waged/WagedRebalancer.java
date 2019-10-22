@@ -193,7 +193,9 @@ public class WagedRebalancer {
         // rebalance exception.
         throw ex;
       } else { // return the previously calculated assignment.
-        LOG.warn("Trying to return the previously calculated assignment.");
+        LOG.warn(
+            "Returning the last known-good best possible assignment from metadata store due to "
+                + "rebalance failure of type: {}", failureType);
         // Note that don't return an assignment based on the current state if there is no previously
         // calculated result in this fallback logic.
         Map<String, ResourceAssignment> assignmentRecord =
@@ -316,7 +318,7 @@ public class WagedRebalancer {
         finalIdealStateMap.put(resourceName, newIdealState);
       } catch (Exception ex) {
         throw new HelixRebalanceException(
-            "Fail to calculate the new IdealState for resource: " + resourceName,
+            "Failed to calculate the new IdealState for resource: " + resourceName,
             HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
       }
     }
@@ -623,21 +625,26 @@ public class WagedRebalancer {
         calculateAssignment(clusterData, clusterChanges, resourceMap, enabledLiveInstances,
             Collections.emptyMap(), baseline));
     for (String resourceName : idealStateMap.keySet()) {
-      IdealState is = idealStateMap.get(resourceName);
+      // The new calculated ideal state before overwrite
+      IdealState newIdealState = idealStateMap.get(resourceName);
       if (!activeIdealStates.containsKey(resourceName)) {
         throw new HelixRebalanceException(
             "Failed to calculate the complete partition assignment with all active nodes. Cannot find the resource assignment for "
                 + resourceName, HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       }
+      // The ideal state that is calculated based on the real alive/enabled instances list
       IdealState newActiveIdealState = activeIdealStates.get(resourceName);
+      // The current ideal state that exists in the IdealState znode
       IdealState currentIdealState = clusterData.getIdealState(resourceName);
       int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
-      int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(currentIdealState, numReplica);
+      int minActiveReplica =
+          DelayedRebalanceUtil.getMinActiveReplica(currentIdealState, numReplica);
       Map<String, List<String>> finalPreferenceLists = DelayedRebalanceUtil
-          .getFinalDelayedMapping(newActiveIdealState.getPreferenceLists(), is.getPreferenceLists(),
-              enabledLiveInstances, Math.min(minActiveReplica, numReplica));
+          .getFinalDelayedMapping(newActiveIdealState.getPreferenceLists(),
+              newIdealState.getPreferenceLists(), enabledLiveInstances,
+              Math.min(minActiveReplica, numReplica));
 
-      is.setPreferenceLists(finalPreferenceLists);
+      newIdealState.setPreferenceLists(finalPreferenceLists);
     }
   }
 

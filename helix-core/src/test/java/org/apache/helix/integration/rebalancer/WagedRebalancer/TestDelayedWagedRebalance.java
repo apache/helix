@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.rebalancer.DelayedAutoRebalancer.TestDelayedAutoRebalance;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
@@ -39,7 +40,7 @@ public class TestDelayedWagedRebalance extends TestDelayedAutoRebalance {
     Set<String> dbNames = new HashSet<>();
     int i = 0;
     for (String stateModel : TestStateModels) {
-      dbNames.add("Test-DB-" + i++);
+      dbNames.add("Test-DB-" + TestHelper.getTestMethodName() + i++);
     }
     return new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setResources(dbNames)
         .setDeactivatedNodeAwareness(true).setZkAddr(ZK_ADDR).build();
@@ -47,10 +48,10 @@ public class TestDelayedWagedRebalance extends TestDelayedAutoRebalance {
 
   // create test DBs, wait it converged and return externalviews
   protected Map<String, ExternalView> createTestDBs(long delayTime) throws InterruptedException {
-    Map<String, ExternalView> externalViews = new HashMap<String, ExternalView>();
+    Map<String, ExternalView> externalViews = new HashMap<>();
     int i = 0;
     for (String stateModel : TestStateModels) {
-      String db = "Test-DB-" + i++;
+      String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
           _minActiveReplica);
       _testDBs.add(db);

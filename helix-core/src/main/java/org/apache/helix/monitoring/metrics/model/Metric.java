@@ -32,11 +32,6 @@ public interface Metric {
   String getMetricName();
 
   /**
-   * Resets the internal state of this metric.
-   */
-  void reset();
-
-  /**
    * Prints the metric along with its name.
    */
   String toString();

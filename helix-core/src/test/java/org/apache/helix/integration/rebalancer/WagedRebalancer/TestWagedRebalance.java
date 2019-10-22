@@ -108,7 +108,7 @@ public class TestWagedRebalance extends ZkTestBase {
   public void test() throws Exception {
     int i = 0;
     for (String stateModel : _testModels) {
-      String db = "Test-DB-" + i++;
+      String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica, _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
@@ -148,7 +148,7 @@ public class TestWagedRebalance extends ZkTestBase {
     Set<String> tags = new HashSet<String>(_nodeToTagMap.values());
     int i = 3;
     for (String tag : tags) {
-      String db = "Test-DB-" + i++;
+      String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db,
           BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
       IdealState is =
@@ -164,7 +164,7 @@ public class TestWagedRebalance extends ZkTestBase {
 
   @Test(dependsOnMethods = "test")
   public void testChangeIdealState() throws InterruptedException {
-    String dbName = "Test-DB";
+    String dbName = "Test-DB-" + TestHelper.getTestMethodName();
     createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
         BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
@@ -198,7 +198,7 @@ public class TestWagedRebalance extends ZkTestBase {
 
   @Test(dependsOnMethods = "test")
   public void testDisableInstance() throws InterruptedException {
-    String dbName = "Test-DB";
+    String dbName = "Test-DB-" + TestHelper.getTestMethodName();
     createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
         BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
@@ -254,7 +254,7 @@ public class TestWagedRebalance extends ZkTestBase {
 
     int j = 0;
     for (String stateModel : _testModels) {
-      String db = "Test-DB-" + j++;
+      String db = "Test-DB-" + TestHelper.getTestMethodName() + j++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
           _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
@@ -293,7 +293,7 @@ public class TestWagedRebalance extends ZkTestBase {
 
     int j = 0;
     for (String stateModel : _testModels) {
-      String db = "Test-DB-" + j++;
+      String db = "Test-DB-" + TestHelper.getTestMethodName() + j++;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
           _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
@@ -324,7 +324,7 @@ public class TestWagedRebalance extends ZkTestBase {
   public void testMixedRebalancerUsage() throws InterruptedException {
     int i = 0;
     for (String stateModel : _testModels) {
-      String db = "Test-DB-" + i++;
+      String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
       if (i == 0) {
         _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, PARTITIONS, stateModel,
             IdealState.RebalanceMode.FULL_AUTO + "", CrushRebalanceStrategy.class.getName());
@@ -354,12 +354,14 @@ public class TestWagedRebalance extends ZkTestBase {
       String limitedResourceName = null;
       int i = 0;
       for (String stateModel : _testModels) {
-        String db = "Test-DB-" + i++;
+        String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
         createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
             _replica);
         if (i == 1) {
-          // The limited resource has additional limitation, so even the other resources can be assigned
-          // later, this resource will still be blocked by the max partition limitation.
+          // The limited resource has additional limitation.
+          // The other resources could have been assigned in theory if the WAGED rebalancer were
+          // not used.
+          // However, with the WAGED rebalancer, this restricted resource will block the other ones.
           limitedResourceName = db;
           IdealState idealState =
               _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
@@ -371,8 +373,9 @@ public class TestWagedRebalance extends ZkTestBase {
       }
       Thread.sleep(300);
 
-      // Since the WAGED rebalancer does not do partial rebalance, the initial assignment won't show.
-      Assert.assertFalse(TestHelper.verify(() -> _allDBs.stream().allMatch(db -> {
+      // Since the WAGED rebalancer need to finish rebalancing every resources, the initial
+      // assignment won't show.
+      Assert.assertFalse(TestHelper.verify(() -> _allDBs.stream().anyMatch(db -> {
         ExternalView ev =
             _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
         return ev != null && !ev.getPartitionSet().isEmpty();
@@ -383,20 +386,13 @@ public class TestWagedRebalance extends ZkTestBase {
       configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
       Thread.sleep(300);
 
-      // wait until any of the resources is rebalanced
-      TestHelper.verify(() -> {
-        for (String db : _allDBs) {
-          ExternalView ev =
-              _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-          if (ev != null && !ev.getPartitionSet().isEmpty()) {
-            return true;
-          }
-        }
-        return false;
-      }, 3000);
-      ExternalView ev = _gSetupTool.getClusterManagementTool()
-          .getResourceExternalView(CLUSTER_NAME, limitedResourceName);
-      Assert.assertFalse(ev != null && !ev.getPartitionSet().isEmpty());
+      // Since the WAGED rebalancer need to finish rebalancing every resources, the assignment won't
+      // show even removed cluster level restriction
+      Assert.assertFalse(TestHelper.verify(() -> _allDBs.stream().anyMatch(db -> {
+        ExternalView ev =
+            _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+        return ev != null && !ev.getPartitionSet().isEmpty();
+      }), 2000));
 
       // Remove the resource level limitation
       IdealState idealState = _gSetupTool.getClusterManagementTool()

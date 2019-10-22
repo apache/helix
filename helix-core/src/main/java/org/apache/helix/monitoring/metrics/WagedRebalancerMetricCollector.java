@@ -20,8 +20,11 @@ package org.apache.helix.monitoring.metrics;
  */
 
 import javax.management.JMException;
+
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.monitoring.metrics.implementation.RebalanceFailureCount;
 import org.apache.helix.monitoring.metrics.implementation.RebalanceLatencyGauge;
+import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 
 public class WagedRebalancerMetricCollector extends MetricCollector {
@@ -38,7 +41,12 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
 
     // The following latency metrics are related to AssignmentMetadataStore
     StateReadLatencyGauge,
-    StateWriteLatencyGauge
+    StateWriteLatencyGauge,
+
+    // Count of any rebalance compute failure.
+    // Note the rebalancer may still be able to return the last known-good assignment on a rebalance
+    // compute failure. And this fallback logic won't impact this counting.
+    RebalanceFailureCounter
   }
 
   public WagedRebalancerMetricCollector(String clusterName) throws JMException {
@@ -62,19 +70,26 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
    */
   private void createMetrics() {
     // Define all metrics
-    LatencyMetric globalBaselineCalcLatencyGauge = new RebalanceLatencyGauge(
-        WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge.name(), getResetIntervalInMs());
-    LatencyMetric partialRebalanceLatencyGauge = new RebalanceLatencyGauge(
-        WagedRebalancerMetricNames.PartialRebalanceLatencyGauge.name(), getResetIntervalInMs());
-    LatencyMetric stateReadLatencyGauge = new RebalanceLatencyGauge(
-        WagedRebalancerMetricNames.StateReadLatencyGauge.name(), getResetIntervalInMs());
-    LatencyMetric stateWriteLatencyGauge = new RebalanceLatencyGauge(
-        WagedRebalancerMetricNames.StateWriteLatencyGauge.name(), getResetIntervalInMs());
+    LatencyMetric globalBaselineCalcLatencyGauge =
+        new RebalanceLatencyGauge(WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge.name(),
+            getResetIntervalInMs());
+    LatencyMetric partialRebalanceLatencyGauge =
+        new RebalanceLatencyGauge(WagedRebalancerMetricNames.PartialRebalanceLatencyGauge.name(),
+            getResetIntervalInMs());
+    LatencyMetric stateReadLatencyGauge =
+        new RebalanceLatencyGauge(WagedRebalancerMetricNames.StateReadLatencyGauge.name(),
+            getResetIntervalInMs());
+    LatencyMetric stateWriteLatencyGauge =
+        new RebalanceLatencyGauge(WagedRebalancerMetricNames.StateWriteLatencyGauge.name(),
+            getResetIntervalInMs());
+    CountMetric calcFailureCount =
+        new RebalanceFailureCount(WagedRebalancerMetricNames.RebalanceFailureCounter.name());
 
     // Add metrics to WagedRebalancerMetricCollector
     addMetric(globalBaselineCalcLatencyGauge);
     addMetric(partialRebalanceLatencyGauge);
     addMetric(stateReadLatencyGauge);
     addMetric(stateWriteLatencyGauge);
+    addMetric(calcFailureCount);
   }
 }

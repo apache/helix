@@ -20,6 +20,7 @@ package org.apache.helix.monitoring.metrics.model;
  */
 
 import com.codahale.metrics.Histogram;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 
 /**
@@ -38,6 +39,7 @@ public abstract class LatencyMetric extends HistogramDynamicMetric implements Me
    */
   public LatencyMetric(String metricName, Histogram metricObject) {
     super(metricName, metricObject);
+    _metricName = metricName;
   }
 
   /**
@@ -49,4 +51,19 @@ public abstract class LatencyMetric extends HistogramDynamicMetric implements Me
    * Ends measuring the latency.
    */
   public abstract void endMeasuringLatency();
+
+  @Override
+  public String getMetricName() {
+    return _metricName;
+  }
+
+  @Override
+  public String toString() {
+    return String.format("Metric %s's latency is %d", getMetricName(), getLastEmittedMetricValue());
+  }
+
+  @Override
+  public DynamicMetric getDynamicMetric() {
+    return this;
+  }
 }

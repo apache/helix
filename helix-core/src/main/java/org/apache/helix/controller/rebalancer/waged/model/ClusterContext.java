@@ -79,13 +79,13 @@ public class ClusterContext {
           totalTopStateReplicas += 1;
         }
         replica.getCapacity().entrySet().stream().forEach(capacityEntry -> totalUsage
-            .computeIfPresent(capacityEntry.getKey(),
-                (key, value) -> value + capacityEntry.getValue()));
+            .compute(capacityEntry.getKey(),
+                (k, v) -> (v == null) ? capacityEntry.getValue() : (v + capacityEntry.getValue())));
       }
     }
     nodeSet.stream().forEach(node -> node.getMaxCapacity().entrySet().stream().forEach(
-        capacityEntry -> totalCapacity.computeIfPresent(capacityEntry.getKey(),
-            (key, value) -> value + capacityEntry.getValue())));
+        capacityEntry -> totalCapacity.compute(capacityEntry.getKey(),
+            (k, v) -> (v == null) ? capacityEntry.getValue() : (v + capacityEntry.getValue()))));
 
     if (totalCapacity.isEmpty()) {
       _estimatedMaxUtilization = 1f;
@@ -94,7 +94,7 @@ public class ClusterContext {
       for (String capacityKey : totalCapacity.keySet()) {
         int maxCapacity = totalCapacity.get(capacityKey);
         int usage = totalUsage.getOrDefault(capacityKey, 0);
-        int utilization = (maxCapacity == 0) ? 1 : usage / maxCapacity;
+        float utilization = (maxCapacity == 0) ? 1 : (float) usage / maxCapacity;
         estimatedMaxUsage = Math.max(estimatedMaxUsage, utilization);
       }
       _estimatedMaxUtilization = estimatedMaxUsage;

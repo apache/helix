@@ -20,6 +20,9 @@ package org.apache.helix.controller.changedetector;
  */
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixDataAccessor;
@@ -31,6 +34,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.testng.Assert;
@@ -336,6 +340,47 @@ public class TestResourceChangeDetector extends ZkTestBase {
         checkDetectionCounts(type, 0, 0, 0);
       }
     }
+  }
+
+  /**
+   * Modify IdealState mapping fields for a FULL_AUTO resource and see if detector detects.
+   */
+  @Test//(dependsOnMethods = "testNoChange")
+  public void testIgnoreHelixSourceChange() {
+    // Modify cluster config and IdealState to ensure the mapping field of the IdealState will be
+    // considered as the fields that are modified by Helix logic.
+    ClusterConfig clusterConfig = _dataAccessor.getProperty(_keyBuilder.clusterConfig());
+    clusterConfig.setPersistBestPossibleAssignment(true);
+    _dataAccessor.updateProperty(_keyBuilder.clusterConfig(), clusterConfig);
+
+    // Create an new IS
+    String resourceName = "Resource" + TestHelper.getTestMethodName();
+    _gSetupTool.getClusterManagementTool()
+        .addResource(CLUSTER_NAME, resourceName, NUM_PARTITIONS, STATE_MODEL);
+    IdealState idealState = _dataAccessor.getProperty(_keyBuilder.idealStates(resourceName));
+    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+    _dataAccessor.updateProperty(_keyBuilder.idealStates(resourceName), idealState);
+
+    _dataProvider.notifyDataChange(ChangeType.CLUSTER_CONFIG);
+    _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
+    _dataProvider.refresh(_dataAccessor);
+
+    ResourceChangeDetector changeDetector = new ResourceChangeDetector(true);
+    changeDetector.updateSnapshots(_dataProvider);
+
+    // Now, modify the field that is modifying by Helix logic
+    idealState.getRecord().getMapFields().put("Extra_Change", new HashMap<>());
+    _dataAccessor.updateProperty(_keyBuilder.idealStates(NEW_RESOURCE_NAME), idealState);
+    _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
+    _dataProvider.refresh(_dataAccessor);
+    changeDetector.updateSnapshots(_dataProvider);
+
+    Assert.assertEquals(changeDetector.getChangeTypes(),
+        Collections.singleton(ChangeType.IDEAL_STATE));
+    Assert.assertEquals(
+        changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
+            .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
+            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 0);
   }
 
   /**

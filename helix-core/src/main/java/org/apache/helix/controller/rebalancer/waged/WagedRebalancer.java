@@ -448,7 +448,7 @@ public class WagedRebalancer {
 
   private ResourceChangeDetector getChangeDetector() {
     if (CHANGE_DETECTOR_THREAD_LOCAL.get() == null) {
-      CHANGE_DETECTOR_THREAD_LOCAL.set(new ResourceChangeDetector());
+      CHANGE_DETECTOR_THREAD_LOCAL.set(new ResourceChangeDetector(true));
     }
     return CHANGE_DETECTOR_THREAD_LOCAL.get();
   }

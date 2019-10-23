@@ -68,13 +68,16 @@ class ResourceChangeSnapshot {
    * Constructor using controller cache (ResourceControllerDataProvider).
    *
    * @param dataProvider
+   * @param ignoreHelixSourceChange if true, the snapshot won't record any changes that is modifying
+   *                               by the controller.
    */
-  ResourceChangeSnapshot(ResourceControllerDataProvider dataProvider) {
+  ResourceChangeSnapshot(ResourceControllerDataProvider dataProvider,
+      boolean ignoreHelixSourceChange) {
     _changedTypes = new HashSet<>(dataProvider.getRefreshedChangeTypes());
     _instanceConfigMap = new HashMap<>(dataProvider.getInstanceConfigMap());
     _idealStateMap = new HashMap<>(dataProvider.getIdealStates());
-    if (dataProvider.getClusterConfig().isPersistBestPossibleAssignment() ||
-        dataProvider.getClusterConfig().isPersistIntermediateAssignment()) {
+    if (ignoreHelixSourceChange || dataProvider.getClusterConfig().isPersistBestPossibleAssignment()
+        || dataProvider.getClusterConfig().isPersistIntermediateAssignment()) {
       for (String resourceName : _idealStateMap.keySet()) {
         _idealStateMap.put(resourceName, trimIdealState(_idealStateMap.get(resourceName)));
       }
@@ -86,15 +89,15 @@ class ResourceChangeSnapshot {
 
   /**
    * Copy constructor for ResourceChangeCache.
-   * @param cache
+   * @param snapshot
    */
-  ResourceChangeSnapshot(ResourceChangeSnapshot cache) {
-    _changedTypes = new HashSet<>(cache._changedTypes);
-    _instanceConfigMap = new HashMap<>(cache._instanceConfigMap);
-    _idealStateMap = new HashMap<>(cache._idealStateMap);
-    _resourceConfigMap = new HashMap<>(cache._resourceConfigMap);
-    _liveInstances = new HashMap<>(cache._liveInstances);
-    _clusterConfig = cache._clusterConfig;
+  ResourceChangeSnapshot(ResourceChangeSnapshot snapshot) {
+    _changedTypes = new HashSet<>(snapshot._changedTypes);
+    _instanceConfigMap = new HashMap<>(snapshot._instanceConfigMap);
+    _idealStateMap = new HashMap<>(snapshot._idealStateMap);
+    _resourceConfigMap = new HashMap<>(snapshot._resourceConfigMap);
+    _liveInstances = new HashMap<>(snapshot._liveInstances);
+    _clusterConfig = snapshot._clusterConfig;
   }
 
   Set<HelixConstants.ChangeType> getChangedTypes() {
@@ -127,18 +130,18 @@ class ResourceChangeSnapshot {
     // be used by the other stages in the pipeline.
     IdealState trimmedIdealState = new IdealState(originalIdealState.getRecord());
     switch (originalIdealState.getRebalanceMode()) {
-    case FULL_AUTO:
-      // For FULL_AUTO resources, both map fields and list fields are not considered as data input
-      // for the controller.
-      trimmedIdealState.getRecord().setListFields(Collections.emptyMap());
-      trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
-      break;
-    case SEMI_AUTO:
-      // For SEMI_AUTO resources, map fields are not considered as data input for the controller.
-      trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
-      break;
-    default:
-      break;
+      case FULL_AUTO:
+        // For FULL_AUTO resources, both map fields and list fields are not considered as data input
+        // for the controller.
+        trimmedIdealState.getRecord().setListFields(Collections.emptyMap());
+        trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
+        break;
+      case SEMI_AUTO:
+        // For SEMI_AUTO resources, map fields are not considered as data input for the controller.
+        trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
+        break;
+      default:
+        break;
     }
     return trimmedIdealState;
   }

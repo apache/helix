@@ -19,6 +19,12 @@ package org.apache.helix.controller.changedetector;
  * under the License.
  */
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+
 import com.google.common.collect.Sets;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
@@ -26,12 +32,6 @@ import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 
 /**
  * ResourceChangeDetector implements ChangeDetector. It caches resource-related metadata from
@@ -42,6 +42,7 @@ import java.util.Map;
 public class ResourceChangeDetector implements ChangeDetector {
   private static final Logger LOG = LoggerFactory.getLogger(ResourceChangeDetector.class.getName());
 
+  private final boolean _ignoreHelixSourceChange;
   private ResourceChangeSnapshot _oldSnapshot; // snapshot for previous pipeline run
   private ResourceChangeSnapshot _newSnapshot; // snapshot for this pipeline run
 
@@ -50,8 +51,13 @@ public class ResourceChangeDetector implements ChangeDetector {
   private Map<HelixConstants.ChangeType, Collection<String>> _addedItems = new HashMap<>();
   private Map<HelixConstants.ChangeType, Collection<String>> _removedItems = new HashMap<>();
 
-  public ResourceChangeDetector() {
+  public ResourceChangeDetector(boolean ignoreHelixSourceChange) {
     _newSnapshot = new ResourceChangeSnapshot();
+    _ignoreHelixSourceChange = ignoreHelixSourceChange;
+  }
+
+  public ResourceChangeDetector() {
+    this(false);
   }
 
   /**
@@ -135,7 +141,7 @@ public class ResourceChangeDetector implements ChangeDetector {
   public synchronized void updateSnapshots(ResourceControllerDataProvider dataProvider) {
     // If there are changes, update internal states
     _oldSnapshot = new ResourceChangeSnapshot(_newSnapshot);
-    _newSnapshot = new ResourceChangeSnapshot(dataProvider);
+    _newSnapshot = new ResourceChangeSnapshot(dataProvider, _ignoreHelixSourceChange);
     dataProvider.clearRefreshedChangeTypes();
 
     // Invalidate cached computation

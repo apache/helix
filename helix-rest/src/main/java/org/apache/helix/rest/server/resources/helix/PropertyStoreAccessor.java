@@ -19,19 +19,16 @@ package org.apache.helix.rest.server.resources.helix;
  * under the License.
  */
 
-import java.util.Collections;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
-import org.apache.helix.AccessOption;
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.store.HelixPropertyStore;
-import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.helix.rest.server.service.PropertyStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,24 +37,36 @@ import org.slf4j.LoggerFactory;
 public class PropertyStoreAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(PropertyStoreAccessor.class);
 
+  /**
+   * Sample HTTP URLs:
+   *  http://<HOST>/clusters/{clusterId}/propertyStore/<PATH>
+   * It refers to the /PROPERTYSTORE/<PATH> in Helix metadata store
+   * @param clusterId The cluster Id
+   * @param path path parameter is like "abc/abc/abc" in the URL
+   * @return JSON object as the response
+   */
   @GET
   @Path("{path: .+}")
   public Response getPropertyByPath(@PathParam("clusterId") String clusterId,
       @PathParam("path") String path) {
     path = "/" + path;
     if (!isPathValid(path)) {
-      LOG.error("The path {} is mis-inputted for cluster {}", path, clusterId);
+      LOG.error("The propertyStore path {} is invalid for cluster {}", path, clusterId);
       throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
           "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode")
           .build());
     }
     String propertyStoreRootPath = PropertyPathBuilder.propertyStore(clusterId);
-    HelixPropertyStore<ZNRecord> propertyStore = new ZkHelixPropertyStore<>(
-        (ZkBaseDataAccessor<ZNRecord>) getDataAccssor(clusterId).getBaseDataAccessor(),
-        propertyStoreRootPath, Collections.emptyList());
-    ZNRecord record = propertyStore.get(path, null, AccessOption.PERSISTENT);
-
-    return JSONRepresentation(record);
+    PropertyStoreService propertyStoreService = new PropertyStoreService(getHelixZkClient());
+    try {
+      ZNRecord record = propertyStoreService.readRecord(propertyStoreRootPath + path);
+      return JSONRepresentation(record);
+    } catch (ZkNoNodeException e) {
+      String errorMessage = "The node doesn't exist for propertyStore path: " + path;
+      LOG.error(errorMessage);
+      throw new WebApplicationException(
+          Response.status(Response.Status.NOT_FOUND).entity(errorMessage).build());
+    }
   }
 
   /**

@@ -39,7 +39,6 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
     Assert.assertFalse(result.isEmpty());
   }
 
-  //TODO: implement the method
   @Test
   public void testGetPropertyStoreWithInValidPath() {
     String path = "/context/";

@@ -116,9 +116,10 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
     Assert.assertEquals((long) metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceCounter.name(),
         CountMetric.class).getLastEmittedMetricValue(), 0L);
+    // -1.0d means metric value is not set.
     Assert.assertEquals((double) metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
-        RatioMetric.class).getLastEmittedMetricValue(), 0.0d);
+        RatioMetric.class).getLastEmittedMetricValue(), -1.0d);
 
     // Cluster config change will trigger baseline recalculation and partial rebalance.
     when(clusterData.getRefreshedChangeTypes())

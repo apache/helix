@@ -27,12 +27,12 @@ import org.apache.helix.monitoring.metrics.model.RatioMetric;
  * possible assignment.
  */
 public class BaselineDivergenceGauge extends RatioMetric {
-  private static final double BASELINE_DIVERGENCE_GAUGE_INIT = 0.0d;
+  private static final double VALUE_NOT_SET = -1.0d;
   /**
    * Instantiates a new Simple dynamic metric.
    * @param metricName   the metric name
    */
   public BaselineDivergenceGauge(String metricName) {
-    super(metricName, BASELINE_DIVERGENCE_GAUGE_INIT);
+    super(metricName, VALUE_NOT_SET);
   }
 }

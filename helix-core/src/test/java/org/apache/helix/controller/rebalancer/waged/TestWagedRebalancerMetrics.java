@@ -37,7 +37,9 @@ import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.metrics.MetricCollector;
 import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
@@ -116,7 +118,7 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
         CountMetric.class).getLastEmittedMetricValue(), 0L);
     Assert.assertEquals((double) metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
-        RatioMetric.class).getLastEmittedMetricValue(), -1.0d);
+        RatioMetric.class).getLastEmittedMetricValue(), 0.0d);
 
     // Cluster config change will trigger baseline recalculation and partial rebalance.
     when(clusterData.getRefreshedChangeTypes())

@@ -1,4 +1,4 @@
-package org.apache.helix.monitoring.metrics.implementation;
+package org.apache.helix.controller.rebalancer.util;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,20 +19,15 @@ package org.apache.helix.monitoring.metrics.implementation;
  * under the License.
  */
 
-import org.apache.helix.monitoring.metrics.model.RatioMetric;
+import java.util.Collection;
+
+import org.apache.helix.model.ResourceAssignment;
 
 
-/**
- * Gauge of the difference (state and partition allocation) between the baseline and the best
- * possible assignment.
- */
-public class BaselineDivergenceGauge extends RatioMetric {
-  private static final double BASELINE_DIVERGENCE_GAUGE_INIT = 0.0d;
-  /**
-   * Instantiates a new Simple dynamic metric.
-   * @param metricName   the metric name
-   */
-  public BaselineDivergenceGauge(String metricName) {
-    super(metricName, BASELINE_DIVERGENCE_GAUGE_INIT);
+public class WagedRebalancer {
+  public static int countResourceAssignmentPartitions(Collection<ResourceAssignment> assignments) {
+    return assignments.stream()
+        .mapToInt(resourceAssignment -> resourceAssignment.getMappedPartitions().size())
+        .sum();
   }
 }

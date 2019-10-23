@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
@@ -57,6 +58,9 @@ import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.helix.controller.rebalancer.util.WagedRebalancer.countResourceAssignmentPartitions;
+
 
 /**
  * Weight-Aware Globally-Even Distribute Rebalancer.
@@ -404,7 +408,7 @@ public class WagedRebalancer {
         resourceMap, activeNodes, currentBaseline, currentBestPossibleAssignment);
 
     // Measure BaselineDivergenceGauge.
-    measureBaselineDivergenceGauge(currentBaseline, newAssignment);
+    reportBaselineDivergenceGauge(currentBaseline, newAssignment);
 
     if (_assignmentMetadataStore != null) {
       try {
@@ -428,7 +432,18 @@ public class WagedRebalancer {
     return newAssignment;
   }
 
-  private void measureBaselineDivergenceGauge(Map<String, ResourceAssignment> baseline,
+  private void reportBaselineDivergenceGauge(Map<String, ResourceAssignment> baseline,
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
+    double baselineDivergence = measureBaselineDivergence(baseline, bestPossibleAssignment);
+
+    BaselineDivergenceGauge baselineDivergenceGauge = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
+        BaselineDivergenceGauge.class);
+
+    baselineDivergenceGauge.updateValue(baselineDivergence);
+  }
+
+  private double measureBaselineDivergence(Map<String, ResourceAssignment> baseline,
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     MapDifference<String, ResourceAssignment> mapDifference =
         Maps.difference(baseline, bestPossibleAssignment);
@@ -436,20 +451,27 @@ public class WagedRebalancer {
     Map<String, MapDifference.ValueDifference<ResourceAssignment>> differentAssignment =
         mapDifference.entriesDiffering();
 
-    int matched = matchedAssignment.size();
-    int total = matched;
-    total += mapDifference.entriesOnlyOnLeft().size();
-    total += mapDifference.entriesOnlyOnRight().size();
-    // Each entry of differentAssignment has 2 values: {k1=(v1, v2), k2=(v3, v4)}
-    total += 2 * differentAssignment.size();
+    // Count all partitions.
+    int numMatchedPartitions = countResourceAssignmentPartitions(matchedAssignment.values());
 
-    double baselineDivergence = total == 0 ? 0.0d : (double) matched / (double) total;
+    int numTotalPartitions = numMatchedPartitions;
+    numTotalPartitions +=
+        countResourceAssignmentPartitions(mapDifference.entriesOnlyOnLeft().values());
+    numTotalPartitions +=
+        countResourceAssignmentPartitions(mapDifference.entriesOnlyOnRight().values());
 
-    BaselineDivergenceGauge baselineDivergenceGauge = _metricCollector.getMetric(
-        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
-        BaselineDivergenceGauge.class);
+    // Count all different partitions for both resource assignments in each entry.
+    for (Map.Entry<String, MapDifference.ValueDifference<ResourceAssignment>> entry
+        : differentAssignment.entrySet()) {
+      ResourceAssignment left = entry.getValue().leftValue();
+      ResourceAssignment right = entry.getValue().rightValue();
+      Set<Partition> partitionUnion = Sets.union(Sets.newHashSet(left.getMappedPartitions()),
+          Sets.newHashSet(right.getMappedPartitions()));
+      numTotalPartitions += partitionUnion.size();
+    }
 
-    baselineDivergenceGauge.updateValue(baselineDivergence);
+    return numTotalPartitions == 0 ? 0.0d
+        : (double) numMatchedPartitions / (double) numTotalPartitions;
   }
 
   /**

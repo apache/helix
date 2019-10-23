@@ -74,11 +74,11 @@ class ResourceChangeSnapshot {
     _instanceConfigMap = new HashMap<>(dataProvider.getInstanceConfigMap());
     _idealStateMap = new HashMap<>(dataProvider.getIdealStates());
     for (String resourceName : _idealStateMap.keySet()) {
-      IdealState orgIdealState = _idealStateMap.get(resourceName);
-      if (orgIdealState.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)) {
-        IdealState trimmedIdealState = new IdealState(orgIdealState.getRecord());
+      IdealState originalIdealState = _idealStateMap.get(resourceName);
+      if (originalIdealState.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)) {
+        IdealState trimmedIdealState = new IdealState(originalIdealState.getRecord());
         // For FullAuto resources, map fields and list fields in the IdealStates is not user's input.
-        // So there is no need to detect any change in these 2 scopes.
+        // So there is no need to detect any change in these two fields.
         trimmedIdealState.getRecord().setListFields(Collections.emptyMap());
         trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
         _idealStateMap.put(resourceName, trimmedIdealState);

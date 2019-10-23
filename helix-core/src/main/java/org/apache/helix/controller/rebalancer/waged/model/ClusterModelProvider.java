@@ -115,14 +115,21 @@ public class ClusterModelProvider {
       Map<String, Set<AssignableReplica>> allocatedReplicas) {
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
 
-    // newly connected nodes = changed liveInstance nodes & currently active instances.
+    // A newly connected node = A new LiveInstance znode (or session Id updated) & the
+    // corresponding instance is alive.
+    // TODO: The assumption here is that if the LiveInstance znode is created or it's session Id is
+    // TODO: updated, we need to call algorithm for moving some partitions to this new node.
+    // TODO: However, if the liveInstance znode is changed because of some other reason, it will be
+    // TODO: treated as a newly connected nodes. We need to find a better way to identify which one
+    // TODO: is the real newly connected nodes.
     Set<String> newlyConnectedNodes = clusterChanges
         .getOrDefault(HelixConstants.ChangeType.LIVE_INSTANCE, Collections.emptySet());
     newlyConnectedNodes.retainAll(liveInstances);
     if (clusterChanges.containsKey(HelixConstants.ChangeType.CLUSTER_CONFIG) || clusterChanges
         .containsKey(HelixConstants.ChangeType.INSTANCE_CONFIG) || !newlyConnectedNodes.isEmpty()) {
       // 1. If the cluster topology has been modified, need to reassign all replicas.
-      // 2. If any node was re-connect, need to reassign all replicas for balance.
+      // 2. If any node was newly connected, need to rebalance all replicas for the evenness of
+      // distribution.
       toBeAssignedReplicas
           .addAll(replicaMap.values().stream().flatMap(Set::stream).collect(Collectors.toSet()));
     } else {

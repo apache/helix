@@ -377,7 +377,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
         _metadataStore.getBestPossibleAssignment();
     Assert.assertEquals(bestPossibleAssignment, algorithmResult);
 
-    // 2. rebalance with one ideal state changed only
+    // 2. rebalance with one resource changed in the Resource Config znode only
     String changedResourceName = _resourceNames.get(0);
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.RESOURCE_CONFIG));

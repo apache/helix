@@ -102,6 +102,12 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
   private HistogramDynamicMetric _readBytesGauge;
   private HistogramDynamicMetric _writeBytesGauge;
   private HistogramDynamicMetric _dataPropagationLatencyGauge;
+
+  /**
+   * @deprecated
+   * Keep it for backward-compatibility purpose.
+   */
+  @Deprecated
   private HistogramDynamicMetric _dataPropagationLatencyGuage;
 
   @Override
@@ -150,10 +156,12 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
         new HistogramDynamicMetric(PredefinedMetricDomains.DataPropagationLatencyGauge.name(),
             new Histogram(new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(),
                 TimeUnit.MILLISECONDS)));
+
+    // This is deprecated and keep it for backward-compatibility purpose.
     _dataPropagationLatencyGuage =
         new HistogramDynamicMetric(PredefinedMetricDomains.DataPropagationLatencyGuage.name(),
-        new Histogram(new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(),
-            TimeUnit.MILLISECONDS)));
+            new Histogram(new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(),
+                TimeUnit.MILLISECONDS)));
   }
 
   public ZkClientPathMonitor register() throws JMException {
@@ -171,6 +179,7 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     attributeList.add(_readBytesGauge);
     attributeList.add(_writeBytesGauge);
     attributeList.add(_dataPropagationLatencyGauge);
+    // This is deprecated and keep it for backward-compatibility purpose.
     attributeList.add(_dataPropagationLatencyGuage);
 
     ObjectName objectName = new ObjectName(String

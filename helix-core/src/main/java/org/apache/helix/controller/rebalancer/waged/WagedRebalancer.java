@@ -77,7 +77,6 @@ public class WagedRebalancer {
   // Make it static to avoid unnecessary reinitialization.
   private static final ThreadLocal<ResourceChangeDetector> CHANGE_DETECTOR_THREAD_LOCAL =
       new ThreadLocal<>();
-  private static final long REBALANCE_COUNTER_INCREMENT = 1L;
   private final HelixManager _manager;
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
   private final AssignmentMetadataStore _assignmentMetadataStore;
@@ -337,7 +336,7 @@ public class WagedRebalancer {
     CountMetric globalBaselineCalcCounter = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcCounter.name(),
         CountMetric.class);
-    globalBaselineCalcCounter.increaseCount(REBALANCE_COUNTER_INCREMENT);
+    globalBaselineCalcCounter.increaseCount(1L);
 
     LatencyMetric globalBaselineCalcLatency = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge

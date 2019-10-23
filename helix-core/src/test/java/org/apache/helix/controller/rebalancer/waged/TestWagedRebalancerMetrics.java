@@ -92,7 +92,7 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
         .anyMatch(metric -> (long) metric.getLastEmittedMetricValue() > 0L));
   }
 
-  @Test()
+  @Test
   public void testWagedRebalanceMetrics()
       throws JMException, IOException, HelixRebalanceException {
     _metadataStore.clearMetadataStore();

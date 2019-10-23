@@ -38,6 +38,10 @@ public class StoppableCheck {
     Category(String prefix) {
       this.prefix = prefix;
     }
+
+    public String getPrefix() {
+      return prefix;
+    }
   }
 
   @JsonProperty("stoppable")

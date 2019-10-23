@@ -21,6 +21,7 @@ package org.apache.helix.rest.server.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -214,16 +215,17 @@ public class InstanceServiceImpl implements InstanceService {
   }
 
   private StoppableCheck performCustomInstanceCheck(String clusterId, String instanceName,
-      String baseUrl, Map<String, String> customPayLoads) throws IOException {
+      String baseUrl, Map<String, String> customPayLoads) {
     LOG.info("Perform instance level client side health checks for {}/{}", clusterId, instanceName);
     try {
       return new StoppableCheck(
           _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads),
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
-    } catch (IOException e) {
-      LOG.error("Failed to perform custom client side instance level health checks for {}/{}",
-          clusterId, instanceName, e);
-      throw e;
+    } catch (IOException ex) {
+      LOG.error("Custom client side instance level health check for {}/{} failed.", clusterId,
+          instanceName, ex);
+      return new StoppableCheck(false, Arrays.asList(instanceName),
+          StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
     }
   }
 

@@ -383,7 +383,7 @@ public class WagedRebalancer {
     CountMetric partialRebalanceCounter = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceCounter.name(),
         CountMetric.class);
-    partialRebalanceCounter.increaseCount(REBALANCE_COUNTER_INCREMENT);
+    partialRebalanceCounter.increaseCount(1L);
 
     LatencyMetric partialRebalanceLatency = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceLatencyGauge

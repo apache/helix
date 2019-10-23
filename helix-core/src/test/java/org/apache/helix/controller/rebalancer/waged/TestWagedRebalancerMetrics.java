@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import javax.management.JMException;
 
@@ -37,9 +38,7 @@ import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.metrics.MetricCollector;
 import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
@@ -133,6 +132,14 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
     Assert.assertEquals((long) metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceCounter.name(),
         CountMetric.class).getLastEmittedMetricValue(), 1L);
+
+    // Wait for asyncReportBaselineDivergenceGauge to complete.
+    try {
+      Thread.sleep(200L);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
     Assert.assertEquals((double) metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
         RatioMetric.class).getLastEmittedMetricValue(), 1.0d);
@@ -158,6 +165,7 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
     when(testCache.getIdealState(anyString())).thenAnswer(
         (Answer<IdealState>) invocationOnMock -> isMap.get(invocationOnMock.getArguments()[0]));
     when(testCache.getIdealStates()).thenReturn(isMap);
+    when(testCache.getAsyncTasksThreadPool()).thenReturn(Executors.newSingleThreadExecutor());
 
     // Set up 2 more instances
     for (int i = 1; i < 3; i++) {

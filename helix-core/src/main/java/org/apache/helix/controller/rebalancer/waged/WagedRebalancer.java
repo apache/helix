@@ -59,6 +59,7 @@ import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.helix.controller.pipeline.AbstractBaseStage.asyncExecute;
 import static org.apache.helix.controller.rebalancer.util.WagedRebalancer.countResourceAssignmentPartitions;
 
 
@@ -407,9 +408,6 @@ public class WagedRebalancer {
     Map<String, ResourceAssignment> newAssignment = calculateAssignment(clusterData, clusterChanges,
         resourceMap, activeNodes, currentBaseline, currentBestPossibleAssignment);
 
-    // Measure BaselineDivergenceGauge.
-    reportBaselineDivergenceGauge(currentBaseline, newAssignment);
-
     if (_assignmentMetadataStore != null) {
       try {
         LatencyMetric writeLatency = _metricCollector.getMetric(
@@ -430,6 +428,19 @@ public class WagedRebalancer {
     partialRebalanceLatency.endMeasuringLatency();
     LOG.info("Finish calculating the new best possible assignment.");
     return newAssignment;
+  }
+
+  private void asyncReportBaselineDivergenceGauge(ResourceControllerDataProvider clusterData,
+      Map<String, ResourceAssignment> baseline,
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
+    asyncExecute(clusterData.getAsyncTasksThreadPool(), () -> {
+      try {
+        reportBaselineDivergenceGauge(baseline, bestPossibleAssignment);
+      } catch (Exception e) {
+        LOG.error("Failed to report BaselineDivergenceGauge metric.", e);
+      }
+      return null;
+    });
   }
 
   private void reportBaselineDivergenceGauge(Map<String, ResourceAssignment> baseline,
@@ -506,6 +517,9 @@ public class WagedRebalancer {
         optimalAssignment.getOptimalResourceAssignment();
 
     LOG.info("Finish calculating. Time spent: {}ms.", System.currentTimeMillis() - startTime);
+
+    asyncReportBaselineDivergenceGauge(clusterData, baseline, newAssignment);
+
     return newAssignment;
   }
 

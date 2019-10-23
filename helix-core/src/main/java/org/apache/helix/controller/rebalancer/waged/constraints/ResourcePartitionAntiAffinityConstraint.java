@@ -30,9 +30,8 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * The score is higher the fewer the partitions are on the node belonging to the same resource.
  */
 class ResourcePartitionAntiAffinityConstraint extends UsageSoftConstraint {
-
   @Override
-  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+  protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     String resource = replica.getResourceName();
     int curPartitionCountForResource = node.getAssignedPartitionsByResource(resource).size();

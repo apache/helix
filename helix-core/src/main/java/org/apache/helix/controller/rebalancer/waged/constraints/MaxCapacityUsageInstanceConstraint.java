@@ -33,9 +33,10 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 class MaxCapacityUsageInstanceConstraint extends UsageSoftConstraint {
 
   @Override
-  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+  protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    float expectedUtilization = node.getExpectedHighestUtilization(replica.getCapacity());
-    return computeUtilizationScore(clusterContext.getEstimatedMaxUtilization(), expectedUtilization);
+    float projectedHighestUtilization = node.getProjectedHighestUtilization(replica.getCapacity());
+    return computeUtilizationScore(clusterContext.getEstimatedMaxUtilization(),
+        projectedHighestUtilization);
   }
 }

@@ -45,11 +45,11 @@ public class TestMaxCapacityUsageInstanceConstraint {
 
   @Test
   public void testGetNormalizedScore() {
-    when(_testNode.getExpectedHighestUtilization(anyMap())).thenReturn(0.8f);
+    when(_testNode.getProjectedHighestUtilization(anyMap())).thenReturn(0.8f);
     when(_clusterContext.getEstimatedMaxUtilization()).thenReturn(1f);
-    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.64000005f);
-    float normalizedScore =
+    double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(normalizedScore, 0.64000005f);
   }

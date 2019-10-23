@@ -47,8 +47,8 @@ public class TestResourceTopStateAntiAffinityConstraint {
   @Test
   public void testGetAssignmentScoreWhenReplicaNotTopState() {
     when(_testReplica.isReplicaTopState()).thenReturn(false);
-    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    float normalizedScore =
+    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.0f);
     Assert.assertEquals(normalizedScore, 0.0f);
@@ -61,8 +61,8 @@ public class TestResourceTopStateAntiAffinityConstraint {
     when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(20);
     when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
-    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    float normalizedScore =
+    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.55f);
     Assert.assertEquals(normalizedScore, 0.55f);
@@ -73,8 +73,8 @@ public class TestResourceTopStateAntiAffinityConstraint {
     when(_testReplica.isReplicaTopState()).thenReturn(true);
     when(_testNode.getAssignedTopStatePartitionsCount()).thenReturn(0);
     when(_clusterContext.getEstimatedMaxTopStateCount()).thenReturn(20);
-    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    float normalizedScore =
+    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 1f);
     Assert.assertEquals(normalizedScore, 1f);

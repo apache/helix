@@ -30,8 +30,8 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * The lower score the score, the worse the assignment; Intuitively, the assignment is penalized.
  */
 abstract class SoftConstraint {
-  private final float _maxScore;
-  private final float _minScore;
+  private final double _maxScore;
+  private final double _minScore;
 
   interface NormalizeFunction {
     /**
@@ -40,7 +40,7 @@ abstract class SoftConstraint {
      * @param originScore The origin score
      * @return The normalized value between (0, 1)
      */
-    float scale(float originScore);
+    double scale(double originScore);
   }
 
   /**
@@ -48,25 +48,25 @@ abstract class SoftConstraint {
    * @param maxScore The max score
    * @param minScore The min score
    */
-  SoftConstraint(float maxScore, float minScore) {
+  SoftConstraint(double maxScore, double minScore) {
     _maxScore = maxScore;
     _minScore = minScore;
   }
 
-  protected float getMaxScore() {
+  protected double getMaxScore() {
     return _maxScore;
   }
 
-  protected float getMinScore() {
+  protected double getMinScore() {
     return _minScore;
   }
 
   /**
    * Evaluate and give a score for an potential assignment partition -> instance
    * Child class only needs to care about how the score is implemented
-   * @return The score of the assignment in float value
+   * @return The score of the assignment in double value
    */
-  protected abstract float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+  protected abstract double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
   /**
@@ -74,7 +74,7 @@ abstract class SoftConstraint {
    * It's the only exposed method to the caller
    * @return The score is normalized to be within MinScore and MaxScore
    */
-  float getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,
+  double getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     return getNormalizeFunction().scale(getAssignmentScore(node, replica, clusterContext));
   }

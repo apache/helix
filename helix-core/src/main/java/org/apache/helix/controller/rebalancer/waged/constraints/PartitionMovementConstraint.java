@@ -38,19 +38,19 @@ import org.apache.helix.model.ResourceAssignment;
  * evaluated score will become lower.
  */
 class PartitionMovementConstraint extends SoftConstraint {
-  private static final float MAX_SCORE = 1f;
-  private static final float MIN_SCORE = 0f;
+  private static final double MAX_SCORE = 1f;
+  private static final double MIN_SCORE = 0f;
   //TODO: these factors will be tuned based on user's preference
   // This factor indicates the default score that is evaluated if only partition allocation matches
   // (states are different).
-  private static final float ALLOCATION_MATCH_FACTOR = 0.5f;
+  private static final double ALLOCATION_MATCH_FACTOR = 0.5;
 
   PartitionMovementConstraint() {
     super(MAX_SCORE, MIN_SCORE);
   }
 
   @Override
-  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+  protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     // Prioritize the matching of the previous Best Possible assignment.
     Map<String, String> bestPossibleStateMap =
@@ -76,7 +76,7 @@ class PartitionMovementConstraint extends SoftConstraint {
     return assignment.get(resourceName).getReplicaMap(new Partition(partitionName));
   }
 
-  private float calculateAssignmentScale(AssignableNode node, AssignableReplica replica,
+  private double calculateAssignmentScale(AssignableNode node, AssignableReplica replica,
       Map<String, String> instanceToStateMap) {
     String instanceName = node.getInstanceName();
     if (!instanceToStateMap.containsKey(instanceName)) {

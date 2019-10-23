@@ -30,15 +30,13 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  */
 class ResourceTopStateAntiAffinityConstraint extends UsageSoftConstraint {
   @Override
-  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+  protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     if (!replica.isReplicaTopState()) {
       return 0;
     }
-
     int curTopPartitionCountForResource = node.getAssignedTopStatePartitionsCount();
     int estimatedMaxTopStateCount = clusterContext.getEstimatedMaxTopStateCount();
-
     return computeUtilizationScore(estimatedMaxTopStateCount, curTopPartitionCountForResource);
   }
 }

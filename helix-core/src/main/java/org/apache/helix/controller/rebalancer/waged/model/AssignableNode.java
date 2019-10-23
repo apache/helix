@@ -216,14 +216,14 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   /**
    * Return the most concerning capacity utilization number for evenly partition assignment.
-   * The method dynamically returns the highest utilization number among all the capacity
+   * The method dynamically calculates the highest utilization number among all the capacity
    * categories assuming the new capacity usage is added to the node.
    * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}. Then this call shall
    * return 0.9.
    * @param newUsage the proposed new additional capacity usage.
    * @return The highest utilization number of the node among all the capacity category.
    */
-  public float getExpectedHighestUtilization(Map<String, Integer> newUsage) {
+  public float getProjectedHighestUtilization(Map<String, Integer> newUsage) {
     float highestCapacityUtilization = 0;
     for (String capacityKey : _maxAllowedCapacity.keySet()) {
       float capacityValue = _maxAllowedCapacity.get(capacityKey);

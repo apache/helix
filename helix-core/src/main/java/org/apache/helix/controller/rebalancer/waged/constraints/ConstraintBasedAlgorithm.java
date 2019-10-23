@@ -109,15 +109,15 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       return Optional.empty();
     }
 
-    Function<AssignableNode, Float> calculatePoints =
+    Function<AssignableNode, Double> calculatePoints =
         (candidateNode) -> getAssignmentNormalizedScore(candidateNode, replica, clusterContext);
 
     return candidateNodes.stream().max(Comparator.comparing(calculatePoints));
   }
 
-  private float getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,
+  private double getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    float sum = 0;
+    double sum = 0;
     for (Map.Entry<SoftConstraint, Float> softConstraintEntry : _softConstraints.entrySet()) {
       SoftConstraint softConstraint = softConstraintEntry.getKey();
       float weight = softConstraintEntry.getValue();

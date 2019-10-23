@@ -59,8 +59,8 @@ public class TestPartitionMovementConstraint {
   public void testGetAssignmentScoreWhenBestPossibleBaselineMissing() {
     when(_clusterContext.getBaselineAssignment()).thenReturn(Collections.emptyMap());
     when(_clusterContext.getBestPossibleAssignment()).thenReturn(Collections.emptyMap());
-    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    float normalizedScore =
+    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0f);
     Assert.assertEquals(normalizedScore, 0f);
@@ -77,8 +77,8 @@ public class TestPartitionMovementConstraint {
     when(_clusterContext.getBestPossibleAssignment()).thenReturn(assignmentMap);
     // when the calculated states are both equal to the replica's current state
     when(_testReplica.getReplicaState()).thenReturn("Master");
-    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    float normalizedScore =
+    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
 
     Assert.assertEquals(score, 1f);
@@ -107,8 +107,8 @@ public class TestPartitionMovementConstraint {
         .thenReturn(ImmutableMap.of(RESOURCE, bestPossibleResourceAssignment));
     // when the replica's state matches with best possible only
     when(_testReplica.getReplicaState()).thenReturn("Master");
-    float score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    float normalizedScore =
+    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
 
     Assert.assertEquals(score, 1.0f);

@@ -32,10 +32,10 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 class InstancePartitionsCountConstraint extends UsageSoftConstraint {
 
   @Override
-  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+  protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    float estimatedMaxPartitionCount = clusterContext.getEstimatedMaxPartitionCount();
-    float currentPartitionCount = node.getAssignedReplicaCount();
+    int estimatedMaxPartitionCount = clusterContext.getEstimatedMaxPartitionCount();
+    int currentPartitionCount = node.getAssignedReplicaCount();
     return computeUtilizationScore(estimatedMaxPartitionCount, currentPartitionCount);
   }
 }

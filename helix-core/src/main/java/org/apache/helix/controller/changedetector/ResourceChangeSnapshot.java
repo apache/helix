@@ -73,15 +73,10 @@ class ResourceChangeSnapshot {
     _changedTypes = new HashSet<>(dataProvider.getRefreshedChangeTypes());
     _instanceConfigMap = new HashMap<>(dataProvider.getInstanceConfigMap());
     _idealStateMap = new HashMap<>(dataProvider.getIdealStates());
-    for (String resourceName : _idealStateMap.keySet()) {
-      IdealState originalIdealState = _idealStateMap.get(resourceName);
-      if (originalIdealState.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)) {
-        IdealState trimmedIdealState = new IdealState(originalIdealState.getRecord());
-        // For FullAuto resources, map fields and list fields in the IdealStates is not user's input.
-        // So there is no need to detect any change in these two fields.
-        trimmedIdealState.getRecord().setListFields(Collections.emptyMap());
-        trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
-        _idealStateMap.put(resourceName, trimmedIdealState);
+    if (dataProvider.getClusterConfig().isPersistBestPossibleAssignment() ||
+        dataProvider.getClusterConfig().isPersistIntermediateAssignment()) {
+      for (String resourceName : _idealStateMap.keySet()) {
+        _idealStateMap.put(resourceName, trimIdealState(_idealStateMap.get(resourceName)));
       }
     }
     _resourceConfigMap = new HashMap<>(dataProvider.getResourceConfigMap());
@@ -124,5 +119,27 @@ class ResourceChangeSnapshot {
 
   ClusterConfig getClusterConfig() {
     return _clusterConfig;
+  }
+
+  // Trim the IdealState to exclude any controller modified information.
+  private IdealState trimIdealState(IdealState originalIdealState) {
+    // Clone the IdealState to avoid modifying the objects in the Cluster Data Cache, which might
+    // be used by the other stages in the pipeline.
+    IdealState trimmedIdealState = new IdealState(originalIdealState.getRecord());
+    switch (originalIdealState.getRebalanceMode()) {
+    case FULL_AUTO:
+      // For FULL_AUTO resources, both map fields and list fields are not considered as data input
+      // for the controller.
+      trimmedIdealState.getRecord().setListFields(Collections.emptyMap());
+      trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
+      break;
+    case SEMI_AUTO:
+      // For SEMI_AUTO resources, map fields are not considered as data input for the controller.
+      trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
+      break;
+    default:
+      break;
+    }
+    return trimmedIdealState;
   }
 }

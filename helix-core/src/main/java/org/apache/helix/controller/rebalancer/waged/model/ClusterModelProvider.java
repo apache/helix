@@ -102,8 +102,8 @@ public class ClusterModelProvider {
    *
    * @param replicaMap             A map contains all the replicas grouped by resource name.
    * @param clusterChanges         A map contains all the important metadata updates that happened after the previous rebalance.
-   * @param activeInstances        All the instances that are alive and enabled according to the delay rebalance configuration.
-   * @param liveInstances          All the instances that are alive.
+   * @param activeInstances        All the instances that are live and enabled according to the delay rebalance configuration.
+   * @param liveInstances          All the instances that are live.
    * @param bestPossibleAssignment The current best possible assignment.
    * @param allocatedReplicas      Return the allocated replicas grouped by the target instance name.
    * @return The replicas that need to be reassigned.
@@ -116,7 +116,7 @@ public class ClusterModelProvider {
     Set<AssignableReplica> toBeAssignedReplicas = new HashSet<>();
 
     // A newly connected node = A new LiveInstance znode (or session Id updated) & the
-    // corresponding instance is alive.
+    // corresponding instance is live.
     // TODO: The assumption here is that if the LiveInstance znode is created or it's session Id is
     // TODO: updated, we need to call algorithm for moving some partitions to this new node.
     // TODO: However, if the liveInstance znode is changed because of some other reason, it will be

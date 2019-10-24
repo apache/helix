@@ -38,11 +38,11 @@ public class ConstraintBasedAlgorithmFactory {
   private static final Map<String, Float> MODEL = new HashMap<String, Float>() {
     {
       // The default setting
-      put(PartitionMovementConstraint.class.getSimpleName(), 1f);
-      put(InstancePartitionsCountConstraint.class.getSimpleName(), 5f);
-      put(ResourcePartitionAntiAffinityConstraint.class.getSimpleName(), 5f);
-      put(ResourceTopStateAntiAffinityConstraint.class.getSimpleName(), 15f);
-      put(MaxCapacityUsageInstanceConstraint.class.getSimpleName(), 30f);
+      put(PartitionMovementConstraint.class.getSimpleName(), 2f);
+      put(InstancePartitionsCountConstraint.class.getSimpleName(), 1f);
+      put(ResourcePartitionAntiAffinityConstraint.class.getSimpleName(), 1f);
+      put(ResourceTopStateAntiAffinityConstraint.class.getSimpleName(), 3f);
+      put(MaxCapacityUsageInstanceConstraint.class.getSimpleName(), 5f);
     }
   };
 

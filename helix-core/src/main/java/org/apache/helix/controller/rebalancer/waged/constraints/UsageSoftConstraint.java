@@ -30,13 +30,13 @@ abstract class UsageSoftConstraint extends SoftConstraint {
   /**
    * Alpha is used to adjust how smooth the sigmoid function should be.
    * As tested, when we have the input number which surrounding 1, the default alpha value will
-   * ensure a smooth curve (sigmoid(0.9) = 0.90, sigmoid(1.1) = 0.1).
-   * This means if the usage is within 10% difference compared with the estimated usage, the
+   * ensure a smooth curve (sigmoid(0.95) = 0.90, sigmoid(1.05) = 0.1).
+   * This means if the usage is within +-5% difference compared with the estimated usage, the
    * evaluated score will be reasonably different so the rebalancer can decide accordingly.
    * Else, if the current usage is much less or more than the estimation, the score will be very
    * close to 1.0 (less than estimation), or very close to 0.1 (more than estimation).
    **/
-  private static final int DEFAULT_ALPHA = 22;
+  private static final int DEFAULT_ALPHA = 44;
   private static final Sigmoid SIGMOID = new Sigmoid();
 
   UsageSoftConstraint() {
@@ -70,20 +70,5 @@ abstract class UsageSoftConstraint extends SoftConstraint {
     // Children classes that do not directly use computeUtilizationScore to compute the
     // score should override this method.
     return (score) -> score;
-  }
-
-
-  // TODO remove this test method before merging.
-  public static void main(String [] args)
-  {
-    final Sigmoid sigL = new Sigmoid();
-    final float min = 0;
-    final float max = 2;
-    final int n = 100;
-    final float delta = (max - min) / n;
-    for (int i = 0; i < n; i++) {
-      final float x = min + i * delta;
-      System.out.println("x="  + x + ", result =" + sigL.value(-(x-1) * DEFAULT_ALPHA));
-    }
   }
 }

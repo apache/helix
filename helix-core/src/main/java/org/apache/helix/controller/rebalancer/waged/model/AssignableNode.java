@@ -216,8 +216,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
   /**
    * Return the most concerning capacity utilization number for evenly partition assignment.
-   * The method dynamically calculates the highest utilization number among all the capacity
-   * categories assuming the new capacity usage is added to the node.
+   * The method dynamically calculates the projected highest utilization number among all the
+   * capacity categories assuming the new capacity usage is added to the node.
    * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}. Then this call shall
    * return 0.9.
    * @param newUsage the proposed new additional capacity usage.

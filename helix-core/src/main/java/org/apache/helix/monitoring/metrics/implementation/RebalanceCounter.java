@@ -23,7 +23,7 @@ import org.apache.helix.monitoring.metrics.model.CountMetric;
 
 
 /**
- * To report counter type metrics related to rebalance. This monitor monotonically increase values.
+ * To report counter type metrics related to rebalance. This monitor monotonically increases values.
  */
 public class RebalanceCounter extends CountMetric {
   /**

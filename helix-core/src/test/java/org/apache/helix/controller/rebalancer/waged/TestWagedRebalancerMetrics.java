@@ -31,6 +31,7 @@ import javax.management.JMException;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixRebalanceException;
+import org.apache.helix.TestHelper;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.constraints.MockRebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.AbstractTestClusterModel;
@@ -95,7 +96,7 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
 
   @Test
   public void testWagedRebalanceMetrics()
-      throws JMException, IOException, HelixRebalanceException {
+      throws Exception {
     _metadataStore.clearMetadataStore();
     MetricCollector metricCollector = new WagedRebalancerMetricCollector(TEST_STRING);
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, metricCollector);
@@ -134,11 +135,9 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
         CountMetric.class).getLastEmittedMetricValue(), 1L);
 
     // Wait for asyncReportBaselineDivergenceGauge to complete.
-    try {
-      Thread.sleep(200L);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
+    TestHelper.verify(() -> (double) metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
+        RatioMetric.class).getLastEmittedMetricValue() == 1.0d, TestHelper.WAIT_DURATION);
 
     Assert.assertEquals((double) metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),

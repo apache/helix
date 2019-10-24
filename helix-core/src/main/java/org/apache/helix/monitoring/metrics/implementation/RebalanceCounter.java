@@ -22,15 +22,16 @@ package org.apache.helix.monitoring.metrics.implementation;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
 
 
+/**
+ * To report counter type metrics related to rebalance. This monitor monotonically increase values.
+ */
 public class RebalanceCounter extends CountMetric {
-  private static final long REBALANCE_COUNTER_INIT = 0L;
-
   /**
    * Instantiates a new count metric.
    * @param metricName the metric name
    */
   public RebalanceCounter(String metricName) {
-    super(metricName, REBALANCE_COUNTER_INIT);
+    super(metricName, 0L);
   }
 
   @Override

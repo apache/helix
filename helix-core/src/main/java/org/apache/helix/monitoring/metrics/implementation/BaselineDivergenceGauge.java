@@ -19,20 +19,53 @@ package org.apache.helix.monitoring.metrics.implementation;
  * under the License.
  */
 
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+
+import org.apache.helix.controller.pipeline.AbstractBaseStage;
+import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.metrics.model.RatioMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * Gauge of the difference (state and partition allocation) between the baseline and the best
- * possible assignment.
+ * possible assignment. Its value range is [0.0, 1.0].
  */
 public class BaselineDivergenceGauge extends RatioMetric {
+  private static final Logger LOG = LoggerFactory.getLogger(BaselineDivergenceGauge.class);
+
   private static final double VALUE_NOT_SET = -1.0d;
+
   /**
    * Instantiates a new Simple dynamic metric.
    * @param metricName   the metric name
    */
   public BaselineDivergenceGauge(String metricName) {
     super(metricName, VALUE_NOT_SET);
+  }
+
+  /**
+   * Asynchronously measure and update metric value.
+   * @param threadPool an executor service to asynchronously run the task
+   * @param baseline baseline assignment
+   * @param bestPossibleAssignment best possible assignment
+   */
+  public void asyncMeasureAndUpdateValue(ExecutorService threadPool,
+      Map<String,ResourceAssignment> baseline,
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
+    AbstractBaseStage.asyncExecute(threadPool, () -> {
+      try {
+        double baselineDivergence =
+            ResourceUsageCalculator.measureBaselineDivergence(baseline, bestPossibleAssignment);
+
+        updateValue(baselineDivergence);
+      } catch (Exception e) {
+        LOG.error("Failed to report BaselineDivergenceGauge metric.", e);
+      }
+      return null;
+    });
   }
 }

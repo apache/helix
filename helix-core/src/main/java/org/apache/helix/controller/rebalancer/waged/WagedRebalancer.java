@@ -29,9 +29,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
@@ -58,9 +55,6 @@ import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.helix.controller.pipeline.AbstractBaseStage.asyncExecute;
-import static org.apache.helix.controller.rebalancer.util.WagedRebalancer.countResourceAssignmentPartitions;
 
 
 /**
@@ -430,61 +424,6 @@ public class WagedRebalancer {
     return newAssignment;
   }
 
-  private void asyncReportBaselineDivergenceGauge(ResourceControllerDataProvider clusterData,
-      Map<String, ResourceAssignment> baseline,
-      Map<String, ResourceAssignment> bestPossibleAssignment) {
-    asyncExecute(clusterData.getAsyncTasksThreadPool(), () -> {
-      try {
-        reportBaselineDivergenceGauge(baseline, bestPossibleAssignment);
-      } catch (Exception e) {
-        LOG.error("Failed to report BaselineDivergenceGauge metric.", e);
-      }
-      return null;
-    });
-  }
-
-  private void reportBaselineDivergenceGauge(Map<String, ResourceAssignment> baseline,
-      Map<String, ResourceAssignment> bestPossibleAssignment) {
-    double baselineDivergence = measureBaselineDivergence(baseline, bestPossibleAssignment);
-
-    BaselineDivergenceGauge baselineDivergenceGauge = _metricCollector.getMetric(
-        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
-        BaselineDivergenceGauge.class);
-
-    baselineDivergenceGauge.updateValue(baselineDivergence);
-  }
-
-  private double measureBaselineDivergence(Map<String, ResourceAssignment> baseline,
-      Map<String, ResourceAssignment> bestPossibleAssignment) {
-    MapDifference<String, ResourceAssignment> mapDifference =
-        Maps.difference(baseline, bestPossibleAssignment);
-    Map<String, ResourceAssignment> matchedAssignment = mapDifference.entriesInCommon();
-    Map<String, MapDifference.ValueDifference<ResourceAssignment>> differentAssignment =
-        mapDifference.entriesDiffering();
-
-    // Count all partitions.
-    int numMatchedPartitions = countResourceAssignmentPartitions(matchedAssignment.values());
-
-    int numTotalPartitions = numMatchedPartitions;
-    numTotalPartitions +=
-        countResourceAssignmentPartitions(mapDifference.entriesOnlyOnLeft().values());
-    numTotalPartitions +=
-        countResourceAssignmentPartitions(mapDifference.entriesOnlyOnRight().values());
-
-    // Count all different partitions for both resource assignments in each entry.
-    for (Map.Entry<String, MapDifference.ValueDifference<ResourceAssignment>> entry
-        : differentAssignment.entrySet()) {
-      ResourceAssignment left = entry.getValue().leftValue();
-      ResourceAssignment right = entry.getValue().rightValue();
-      Set<Partition> partitionUnion = Sets.union(Sets.newHashSet(left.getMappedPartitions()),
-          Sets.newHashSet(right.getMappedPartitions()));
-      numTotalPartitions += partitionUnion.size();
-    }
-
-    return numTotalPartitions == 0 ? 0.0d
-        : (double) numMatchedPartitions / (double) numTotalPartitions;
-  }
-
   /**
    * Generate the cluster model based on the input and calculate the optimal assignment.
    * @param clusterData the cluster data cache.
@@ -518,7 +457,11 @@ public class WagedRebalancer {
 
     LOG.info("Finish calculating. Time spent: {}ms.", System.currentTimeMillis() - startTime);
 
-    asyncReportBaselineDivergenceGauge(clusterData, baseline, newAssignment);
+    BaselineDivergenceGauge baselineDivergenceGauge = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge
+            .name(), BaselineDivergenceGauge.class);
+    baselineDivergenceGauge.asyncMeasureAndUpdateValue(clusterData.getAsyncTasksThreadPool(),
+        baseline, newAssignment);
 
     return newAssignment;
   }

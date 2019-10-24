@@ -443,7 +443,7 @@ public class WagedRebalancer {
     Map<String, ResourceAssignment> newAssignment =
         optimalAssignment.getOptimalResourceAssignment();
 
-    LOG.info("Finish calculateAssignment(). Took: {} ms.", System.currentTimeMillis() - startTime);
+    LOG.info("Finish calculating an assignment. Took: {} ms.", System.currentTimeMillis() - startTime);
     return newAssignment;
   }
 

@@ -48,9 +48,9 @@ public class TestMaxCapacityUsageInstanceConstraint {
     when(_testNode.getProjectedHighestUtilization(anyMap())).thenReturn(0.8f);
     when(_clusterContext.getEstimatedMaxUtilization()).thenReturn(1f);
     double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.64000005f);
+    Assert.assertTrue(score > 0.99);
     double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(normalizedScore, 0.64000005f);
+    Assert.assertTrue(normalizedScore > 0.99);
   }
 }

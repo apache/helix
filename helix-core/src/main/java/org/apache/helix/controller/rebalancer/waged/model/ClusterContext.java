@@ -41,7 +41,7 @@ public class ClusterContext {
   private final int _estimatedMaxTopStateCount;
   // This estimation helps to ensure per-resource partition count evenness
   private final Map<String, Integer> _estimatedMaxPartitionByResource = new HashMap<>();
-  // This estmations helps to ensure global resource usage evenness.
+  // This estimation helps to ensure global resource usage evenness.
   private final float _estimatedMaxUtilization;
 
   // map{zoneName : map{resourceName : set(partitionNames)}}
@@ -88,6 +88,7 @@ public class ClusterContext {
             (k, v) -> (v == null) ? capacityEntry.getValue() : (v + capacityEntry.getValue()))));
 
     if (totalCapacity.isEmpty()) {
+      // If no capacity is configured, we treat the cluster as fully utilized.
       _estimatedMaxUtilization = 1f;
     } else {
       float estimatedMaxUsage = 0;

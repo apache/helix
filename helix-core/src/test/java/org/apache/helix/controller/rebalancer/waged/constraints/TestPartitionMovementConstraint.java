@@ -62,8 +62,8 @@ public class TestPartitionMovementConstraint {
     double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0f);
-    Assert.assertEquals(normalizedScore, 0f);
+    Assert.assertEquals(score, 0.0);
+    Assert.assertEquals(normalizedScore, 0.0);
   }
 
   @Test
@@ -81,16 +81,16 @@ public class TestPartitionMovementConstraint {
     double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
 
-    Assert.assertEquals(score, 1f);
-    Assert.assertEquals(normalizedScore, 1f);
+    Assert.assertEquals(score, 1.0);
+    Assert.assertEquals(normalizedScore, 1.0);
     // when the calculated states are both different from the replica's current state
     when(_testReplica.getReplicaState()).thenReturn("Slave");
     score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
 
-    Assert.assertEquals(score, 0.5f);
-    Assert.assertEquals(normalizedScore, 0.5f);
+    Assert.assertEquals(score, 0.5);
+    Assert.assertEquals(normalizedScore, 0.5);
   }
 
   @Test
@@ -111,8 +111,8 @@ public class TestPartitionMovementConstraint {
     double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
 
-    Assert.assertEquals(score, 1.0f);
-    Assert.assertEquals(normalizedScore, 1.0f);
+    Assert.assertEquals(score, 1.0);
+    Assert.assertEquals(normalizedScore, 1.0);
     // when the replica's state matches with baseline only
     when(_testReplica.getReplicaState()).thenReturn("Slave");
     score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
@@ -121,7 +121,7 @@ public class TestPartitionMovementConstraint {
 
     // The calculated score is lower than previous value cause the replica's state matches with
     // best possible is preferred
-    Assert.assertEquals(score, 0.5f);
-    Assert.assertEquals(normalizedScore, 0.5f);
+    Assert.assertEquals(score, 0.5);
+    Assert.assertEquals(normalizedScore, 0.5);
   }
 }

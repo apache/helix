@@ -49,8 +49,8 @@ public class TestResourcePartitionAntiAffinityConstraint {
 
     double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     double normalizedScore = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.865f);
-    Assert.assertEquals(normalizedScore, 0.865f);
+    Assert.assertTrue(score > 0.99);
+    Assert.assertTrue(score > 0.99);
   }
 
   @Test
@@ -61,7 +61,7 @@ public class TestResourcePartitionAntiAffinityConstraint {
 
     double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     double normalizedScore = _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 1f);
-    Assert.assertEquals(normalizedScore, 1f);
+    Assert.assertEquals(score, 1.0);
+    Assert.assertEquals(normalizedScore, 1.0);
   }
 }

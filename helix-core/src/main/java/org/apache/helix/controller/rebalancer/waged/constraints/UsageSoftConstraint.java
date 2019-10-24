@@ -65,10 +65,10 @@ abstract class UsageSoftConstraint extends SoftConstraint {
 
   @Override
   protected NormalizeFunction getNormalizeFunction() {
-    // By default, if the score is calculated by calling computeUtilizationScore, it has been scaled
-    // properly.
-    // Children classes that do not directly use computeUtilizationScore to compute the
-    // score should override this method.
+    // By default, if the evaluate score is calculated by calling computeUtilizationScore, it will
+    // be scaled properly.
+    // Children classes should override this method only if it does not use computeUtilizationScore
+    // to compute the final score
     return (score) -> score;
   }
 }

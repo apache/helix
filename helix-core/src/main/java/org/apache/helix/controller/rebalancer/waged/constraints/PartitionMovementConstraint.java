@@ -52,16 +52,17 @@ class PartitionMovementConstraint extends SoftConstraint {
   @Override
   protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    // Prioritize the matching of the previous Best Possible assignment.
-    Map<String, String> bestPossibleStateMap =
+    // Prioritize the previous Best Possible assignment
+    Map<String, String> bestPossibleAssignment =
         getStateMap(replica, clusterContext.getBestPossibleAssignment());
-    if (!bestPossibleStateMap.isEmpty()) {
-      return calculateAssignmentScale(node, replica, bestPossibleStateMap);
+    if (!bestPossibleAssignment.isEmpty()) {
+      return calculateAssignmentScale(node, replica, bestPossibleAssignment);
     }
-    Map<String, String> baselineStateMap =
+    // else, compare the baseline only if the best possible assignment does not contain the replica
+    Map<String, String> baselineAssignment =
         getStateMap(replica, clusterContext.getBaselineAssignment());
-    if (!baselineStateMap.isEmpty()) {
-      return calculateAssignmentScale(node, replica, baselineStateMap);
+    if (!baselineAssignment.isEmpty()) {
+      return calculateAssignmentScale(node, replica, baselineAssignment);
     }
     return 0;
   }

@@ -122,7 +122,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       SoftConstraint softConstraint = softConstraintEntry.getKey();
       float weight = softConstraintEntry.getValue();
       if (weight != 0) {
-        // Skip calculating zero weight constraints.
+        // Skip calculating zero weighted constraints.
         sum += weight * softConstraint.getAssignmentNormalizedScore(node, replica, clusterContext);
       }
     }

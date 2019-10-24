@@ -21,7 +21,6 @@ package org.apache.helix.controller.rebalancer.waged.model;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;

@@ -33,6 +33,8 @@ class ResourceTopStateAntiAffinityConstraint extends UsageSoftConstraint {
   protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     if (!replica.isReplicaTopState()) {
+      // For non top state replica, this constraint is not applicable.
+      // So return zero on any assignable node candidate.
       return 0;
     }
     int curTopPartitionCountForResource = node.getAssignedTopStatePartitionsCount();

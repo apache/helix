@@ -24,6 +24,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -134,7 +135,6 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         .collect(Collectors.toList());
   }
 
-  // TODO investigate better ways to sort replicas. One option is sorting based on the creation time.
   private List<AssignableReplica> getOrderedAssignableReplica(ClusterModel clusterModel) {
     Map<String, Set<AssignableReplica>> replicasByResource = clusterModel.getAssignableReplicaMap();
     List<AssignableReplica> orderedAssignableReplicas =
@@ -162,12 +162,19 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           int statePriority1 = replica1.getStatePriority();
           int statePriority2 = replica2.getStatePriority();
           if (statePriority1 == statePriority2) {
-            // If state prioritizes are the same, compare the names.
-            if (resourceName1.equals(resourceName2)) {
-              return replica1.getPartitionName().compareTo(replica2.getPartitionName());
-            } else {
-              return resourceName1.compareTo(resourceName2);
-            }
+            // If state prioritizes are the same, try to randomize the replicas order. Otherwise,
+            // the same replicas might always be moved in the rebalance. This is because their
+            // rebalance calculating will always happen at the critical moment while the cluster is
+            // almost full.
+            //
+            // Note that to ensure the algorithm is deterministic with the same inputs, do not use
+            // Random functions here. Use hashcode based on the cluster topology information to get
+            // a controlled randomized order is good enough.
+            Long replicaHash1 = Long.valueOf(Objects
+                .hash(replica1.toString(), clusterModel.getAssignableNodes().keySet()));
+            Long replicaHash2 = Long.valueOf(Objects
+                .hash(replica2.toString(), clusterModel.getAssignableNodes().keySet()));
+            return replicaHash1.compareTo(replicaHash2);
           } else {
             // Note we shall prioritize the replica with a higher state priority,
             // the smaller priority number means higher priority.

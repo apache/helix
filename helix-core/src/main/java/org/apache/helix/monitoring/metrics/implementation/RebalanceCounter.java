@@ -1,4 +1,4 @@
-package org.apache.helix.monitoring.metrics.model;
+package org.apache.helix.monitoring.metrics.implementation;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -9,7 +9,7 @@ package org.apache.helix.monitoring.metrics.model;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,32 +19,23 @@ package org.apache.helix.monitoring.metrics.model;
  * under the License.
  */
 
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.metrics.model.CountMetric;
+
 
 /**
- * Defines a generic metric interface.
- * @param <T> type of input value for the metric
+ * To report counter type metrics related to rebalance. This monitor monotonically increases values.
  */
-public interface Metric<T> {
-
+public class RebalanceCounter extends CountMetric {
   /**
-   * Gets the name of the metric.
+   * Instantiates a new count metric.
+   * @param metricName the metric name
    */
-  String getMetricName();
+  public RebalanceCounter(String metricName) {
+    super(metricName, 0L);
+  }
 
-  /**
-   * Prints the metric along with its name.
-   */
-  String toString();
-
-  /**
-   * Returns the most recently emitted value for the metric at the time of the call.
-   * @return metric value
-   */
-  T getLastEmittedMetricValue();
-
-  /**
-   * Returns the underlying DynamicMetric.
-   */
-  DynamicMetric getDynamicMetric();
+  @Override
+  public void increaseCount(long count) {
+    updateValue(getValue() + count);
+  }
 }

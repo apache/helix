@@ -33,13 +33,23 @@ import org.testng.annotations.Test;
 public class TestResourceUsageCalculator {
   @Test(dataProvider = "TestMeasureBaselineDivergenceInput")
   public void testMeasureBaselineDivergence(Map<String, Map<String, Map<String, String>>> baseline,
-      Map<String, Map<String, Map<String, String>>> bestPossible) {
+      Map<String, Map<String, Map<String, String>>> someMatchBestPossible,
+      Map<String, Map<String, Map<String, String>>> noMatchBestPossible) {
     Map<String, ResourceAssignment> baselineAssignment = buildResourceAssignment(baseline);
-    Map<String, ResourceAssignment> bestPossibleAssignment = buildResourceAssignment(bestPossible);
+    Map<String, ResourceAssignment> someMatchBestPossibleAssignment =
+        buildResourceAssignment(someMatchBestPossible);
+    Map<String, ResourceAssignment> noMatchBestPossibleAssignment =
+        buildResourceAssignment(noMatchBestPossible);
 
     Assert.assertEquals(ResourceUsageCalculator
-            .measureBaselineDivergence(baselineAssignment, bestPossibleAssignment),
+            .measureBaselineDivergence(baselineAssignment, noMatchBestPossibleAssignment),
+        0.0d);
+    Assert.assertEquals(ResourceUsageCalculator
+            .measureBaselineDivergence(baselineAssignment, someMatchBestPossibleAssignment),
         (double) 1 / (double) 3);
+    Assert.assertEquals(
+        ResourceUsageCalculator.measureBaselineDivergence(baselineAssignment, baselineAssignment),
+        1.0d);
   }
 
   private Map<String, ResourceAssignment> buildResourceAssignment(
@@ -61,7 +71,8 @@ public class TestResourceUsageCalculator {
 
   @DataProvider(name = "TestMeasureBaselineDivergenceInput")
   public Object[][] loadTestMeasureBaselineDivergenceInput() {
-    final String[] params = new String[]{"bestline", "bestPossible"};
+    final String[] params =
+        new String[]{"bestline", "someMatchBestPossible", "noMatchBestPossible"};
     return TestInputLoader
         .loadTestInputs("TestResourceUsageCalculator.MeasureBaselineDivergence.json", params);
   }

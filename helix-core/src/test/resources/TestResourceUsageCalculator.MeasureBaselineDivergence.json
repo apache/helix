@@ -11,10 +11,21 @@
         }
       }
     },
-    "bestPossible": {
+    "someMatchBestPossible": {
       "resource1": {
         "partition1": {
           "instance1": "MASTER",
+          "instance3": "SLAVE"
+        },
+        "partition2": {
+          "instance3": "MASTER"
+        }
+      }
+    },
+    "noMatchBestPossible": {
+      "resource1": {
+        "partition1": {
+          "instance2": "MASTER",
           "instance3": "SLAVE"
         },
         "partition2": {

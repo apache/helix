@@ -28,13 +28,23 @@ abstract class UsageSoftConstraint extends SoftConstraint {
   private static final double MAX_SCORE = 1f;
   private static final double MIN_SCORE = 0f;
   /**
-   * Alpha is used to adjust how smooth the sigmoid function should be.
-   * As tested, when we have the input number which surrounding 1, the default alpha value will
-   * ensure a smooth curve (sigmoid(0.95) = 0.90, sigmoid(1.05) = 0.1).
-   * This means if the usage is within +-5% difference compared with the estimated usage, the
-   * evaluated score will be reasonably different so the rebalancer can decide accordingly.
-   * Else, if the current usage is much less or more than the estimation, the score will be very
-   * close to 1.0 (less than estimation), or very close to 0.1 (more than estimation).
+   * Alpha is used to adjust the curve of sigmoid function.
+   * Intuitively, this is for tolerating the inaccuracy of the estimation.
+   * Ideally, if we have the prefect estimation, we can use a segmented function here, which
+   * scores the assignment with 1.0 if projected usage is below the estimation, and scores 0.0
+   * if the projected usage exceeds the estimation. However, in reality, it is hard to get a
+   * prefect estimation. With the curve of sigmoid, the algorithm reacts differently and
+   * reasonally even the usage is a little bit more or less than the estimation for a certain
+   * extend.
+   * As tested, when we have the input number which surrounds 1, the default alpha value will
+   * ensure a curve that has sigmoid(0.95) = 0.90, sigmoid(1.05) = 0.1. Meaning the constraint
+   * can handle the estimation inaccuracy of +-5%.
+   * To adjust the curve:
+   * 1. Smaller alpha will increase the curve's scope. So the function will be handler a wilder
+   * range of inaccuracy. However, the downside is more random movements since the evenness
+   * score would be more changable and nondefinitive.
+   * 2. Larger alpha will decrease the curve's scope. In that case, we might want to change to
+   * use segmented function so as to speed up the algorthm.
    **/
   private static final int DEFAULT_ALPHA = 44;
   private static final Sigmoid SIGMOID = new Sigmoid();

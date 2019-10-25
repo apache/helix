@@ -80,7 +80,7 @@ public class TestResourceUsageCalculator {
   @DataProvider(name = "TestMeasureBaselineDivergenceInput")
   public Object[][] loadTestMeasureBaselineDivergenceInput() {
     final String[] params =
-        new String[]{"bestline", "someMatchBestPossible", "noMatchBestPossible"};
+        new String[]{"baseline", "someMatchBestPossible", "noMatchBestPossible"};
     return TestInputLoader
         .loadTestInputs("TestResourceUsageCalculator.MeasureBaselineDivergence.json", params);
   }

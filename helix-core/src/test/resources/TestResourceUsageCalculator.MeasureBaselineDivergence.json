@@ -1,6 +1,6 @@
 [
   {
-    "bestline": {
+    "baseline": {
       "resource1": {
         "partition1": {
           "instance1": "MASTER",

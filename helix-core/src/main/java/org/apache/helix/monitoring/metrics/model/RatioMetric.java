@@ -29,7 +29,7 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 public abstract class RatioMetric extends SimpleDynamicMetric<Double> implements Metric<Double> {
   /**
    * Instantiates a new Simple dynamic metric.
-   *  @param metricName   the metric name
+   *  @param metricName the metric name
    * @param metricObject the metric object
    */
   public RatioMetric(String metricName, double metricObject) {

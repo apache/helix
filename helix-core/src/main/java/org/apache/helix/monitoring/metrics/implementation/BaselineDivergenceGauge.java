@@ -52,13 +52,12 @@ public class BaselineDivergenceGauge extends RatioMetric {
    * @param bestPossibleAssignment best possible assignment
    */
   public void asyncMeasureAndUpdateValue(ExecutorService threadPool,
-      Map<String,ResourceAssignment> baseline,
+      Map<String, ResourceAssignment> baseline,
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     AbstractBaseStage.asyncExecute(threadPool, () -> {
       try {
         double baselineDivergence =
             ResourceUsageCalculator.measureBaselineDivergence(baseline, bestPossibleAssignment);
-
         updateValue(baselineDivergence);
       } catch (Exception e) {
         LOG.error("Failed to report BaselineDivergenceGauge metric.", e);

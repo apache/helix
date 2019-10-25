@@ -402,8 +402,8 @@ public class WagedRebalancer {
     Map<String, ResourceAssignment> newAssignment = calculateAssignment(clusterData, clusterChanges,
         resourceMap, activeNodes, currentBaseline, currentBestPossibleAssignment);
 
-    // Asynchronously report baseline divergence metric before persistence just in case persistence
-    // fails, we still have the metric.
+    // Asynchronously report baseline divergence metric before persisting to metadata store,
+    // just in case if persisting fails, we still have the metric.
     BaselineDivergenceGauge baselineDivergenceGauge = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
         BaselineDivergenceGauge.class);

@@ -30,8 +30,7 @@ import org.apache.helix.model.ResourceAssignment;
 
 public class ResourceUsageCalculator {
   /**
-   * A convenient tool for calculating partition capacity usage based on the assignment and resource
-   * weight provider.
+   * A convenient tool for calculating partition capacity usage based on the assignment and resource weight provider.
    *
    * @param resourceAssignment
    * @param weightProvider

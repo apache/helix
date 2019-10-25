@@ -186,7 +186,7 @@ public class WagedRebalancer {
       CountMetric rebalanceFailureCount = _metricCollector.getMetric(
           WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
           CountMetric.class);
-      rebalanceFailureCount.increaseCount(1L);
+      rebalanceFailureCount.increment(1L);
 
       HelixRebalanceException.Type failureType = ex.getFailureType();
       if (failureType.equals(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS) || failureType
@@ -335,7 +335,7 @@ public class WagedRebalancer {
     CountMetric globalBaselineCalcCounter = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcCounter.name(),
         CountMetric.class);
-    globalBaselineCalcCounter.increaseCount(1L);
+    globalBaselineCalcCounter.increment(1L);
 
     LatencyMetric globalBaselineCalcLatency = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge
@@ -382,7 +382,7 @@ public class WagedRebalancer {
     CountMetric partialRebalanceCounter = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceCounter.name(),
         CountMetric.class);
-    partialRebalanceCounter.increaseCount(1L);
+    partialRebalanceCounter.increment(1L);
 
     LatencyMetric partialRebalanceLatency = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceLatencyGauge

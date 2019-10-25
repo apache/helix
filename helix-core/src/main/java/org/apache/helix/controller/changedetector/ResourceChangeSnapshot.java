@@ -69,7 +69,7 @@ class ResourceChangeSnapshot {
    *
    * @param dataProvider
    * @param ignoreControllerGeneratedFields if true, the snapshot won't record any changes that is
-   *                                        modifying by the controller.
+   *                                        being modified by the controller.
    */
   ResourceChangeSnapshot(ResourceControllerDataProvider dataProvider,
       boolean ignoreControllerGeneratedFields) {

@@ -162,6 +162,10 @@ public abstract class AbstractTestClusterModel {
     testResourceConfigResource2.setPartitionCapacityMap(
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMapResource2));
     when(testCache.getResourceConfig("Resource2")).thenReturn(testResourceConfigResource2);
+    Map<String, ResourceConfig> configMap = new HashMap<>();
+    configMap.put("Resource1", testResourceConfigResource1);
+    configMap.put("Resource2", testResourceConfigResource2);
+    when(testCache.getResourceConfigMap()).thenReturn(configMap);
 
     // 6. Define mock state model
     for (BuiltInStateModelDefinitions bsmd : BuiltInStateModelDefinitions.values()) {

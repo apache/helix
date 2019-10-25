@@ -68,16 +68,17 @@ class ResourceChangeSnapshot {
    * Constructor using controller cache (ResourceControllerDataProvider).
    *
    * @param dataProvider
-   * @param ignoreHelixSourceChange if true, the snapshot won't record any changes that is modifying
-   *                               by the controller.
+   * @param ignoreControllerGeneratedFields if true, the snapshot won't record any changes that is
+   *                                        modifying by the controller.
    */
   ResourceChangeSnapshot(ResourceControllerDataProvider dataProvider,
-      boolean ignoreHelixSourceChange) {
+      boolean ignoreControllerGeneratedFields) {
     _changedTypes = new HashSet<>(dataProvider.getRefreshedChangeTypes());
     _instanceConfigMap = new HashMap<>(dataProvider.getInstanceConfigMap());
     _idealStateMap = new HashMap<>(dataProvider.getIdealStates());
-    if (ignoreHelixSourceChange || dataProvider.getClusterConfig().isPersistBestPossibleAssignment()
-        || dataProvider.getClusterConfig().isPersistIntermediateAssignment()) {
+    if (ignoreControllerGeneratedFields && (
+        dataProvider.getClusterConfig().isPersistBestPossibleAssignment() || dataProvider
+            .getClusterConfig().isPersistIntermediateAssignment())) {
       for (String resourceName : _idealStateMap.keySet()) {
         _idealStateMap.put(resourceName, trimIdealState(_idealStateMap.get(resourceName)));
       }
@@ -132,12 +133,14 @@ class ResourceChangeSnapshot {
     switch (originalIdealState.getRebalanceMode()) {
       case FULL_AUTO:
         // For FULL_AUTO resources, both map fields and list fields are not considered as data input
-        // for the controller.
+        // for the controller. The controller will write to these two types of fields for persisting
+        // the assignment mapping.
         trimmedIdealState.getRecord().setListFields(Collections.emptyMap());
         trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
         break;
       case SEMI_AUTO:
         // For SEMI_AUTO resources, map fields are not considered as data input for the controller.
+        // The controller will write to the map fields for persisting the assignment mapping.
         trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
         break;
       default:

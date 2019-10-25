@@ -345,8 +345,8 @@ public class TestResourceChangeDetector extends ZkTestBase {
   /**
    * Modify IdealState mapping fields for a FULL_AUTO resource and see if detector detects.
    */
-  @Test//(dependsOnMethods = "testNoChange")
-  public void testIgnoreHelixSourceChange() {
+  @Test(dependsOnMethods = "testNoChange")
+  public void testIgnoreControllerGeneratedFields() {
     // Modify cluster config and IdealState to ensure the mapping field of the IdealState will be
     // considered as the fields that are modified by Helix logic.
     ClusterConfig clusterConfig = _dataAccessor.getProperty(_keyBuilder.clusterConfig());

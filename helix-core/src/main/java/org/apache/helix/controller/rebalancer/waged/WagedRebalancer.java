@@ -71,6 +71,7 @@ public class WagedRebalancer {
   // contains 1. baseline recalculate, 2. partial rebalance that is based on the new baseline.
   private static final Set<HelixConstants.ChangeType> GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES =
       ImmutableSet.of(HelixConstants.ChangeType.RESOURCE_CONFIG,
+          HelixConstants.ChangeType.IDEAL_STATE,
           HelixConstants.ChangeType.CLUSTER_CONFIG, HelixConstants.ChangeType.INSTANCE_CONFIG);
   // The cluster change detector is a stateful object.
   // Make it static to avoid unnecessary reinitialization.
@@ -256,8 +257,6 @@ public class WagedRebalancer {
     if (clusterChanges.keySet().stream()
         .anyMatch(GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES::contains)) {
       refreshBaseline(clusterData, clusterChanges, resourceMap, currentStateOutput);
-      // Inject a cluster config change for large scale partial rebalance once the baseline changed.
-      clusterChanges.putIfAbsent(HelixConstants.ChangeType.CLUSTER_CONFIG, Collections.emptySet());
     }
 
     Set<String> activeNodes = DelayedRebalanceUtil.getActiveNodes(clusterData.getAllInstances(),
@@ -470,7 +469,7 @@ public class WagedRebalancer {
 
   private ResourceChangeDetector getChangeDetector() {
     if (CHANGE_DETECTOR_THREAD_LOCAL.get() == null) {
-      CHANGE_DETECTOR_THREAD_LOCAL.set(new ResourceChangeDetector());
+      CHANGE_DETECTOR_THREAD_LOCAL.set(new ResourceChangeDetector(true));
     }
     return CHANGE_DETECTOR_THREAD_LOCAL.get();
   }

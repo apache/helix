@@ -107,6 +107,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       when(testCache.getLiveInstances()).thenReturn(liveInstanceMap);
       when(testCache.getEnabledInstances()).thenReturn(liveInstanceMap.keySet());
       when(testCache.getEnabledLiveInstances()).thenReturn(liveInstanceMap.keySet());
+      when(testCache.getAllInstances()).thenReturn(_instances);
     }
 
     return testCache;

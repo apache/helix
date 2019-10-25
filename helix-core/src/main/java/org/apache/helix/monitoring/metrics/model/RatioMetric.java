@@ -9,7 +9,7 @@ package org.apache.helix.monitoring.metrics.model;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,28 +22,24 @@ package org.apache.helix.monitoring.metrics.model;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
-/**
- * Represents a count metric and defines methods to help with calculation. A count metric gives a
- * gauge value of a certain property.
- */
-public abstract class CountMetric extends SimpleDynamicMetric<Long> implements Metric<Long> {
 
+/**
+ * A gauge which defines the ratio of one value to another.
+ */
+public abstract class RatioMetric extends SimpleDynamicMetric<Double> implements Metric<Double> {
   /**
-   * Instantiates a new count metric.
-   *
-   * @param metricName the metric name
-   * @param initCount the initial count
+   * Instantiates a new Simple dynamic metric.
+   *  @param metricName the metric name
+   * @param metricObject the metric object
    */
-  public CountMetric(String metricName, long initCount) {
-    super(metricName, initCount);
+  public RatioMetric(String metricName, double metricObject) {
+    super(metricName, metricObject);
   }
 
-  /**
-   * Increment the metric by the input count.
-   *
-   * @param count
-   */
-  public abstract void increaseCount(long count);
+  @Override
+  public DynamicMetric getDynamicMetric() {
+    return this;
+  }
 
   @Override
   public String getMetricName() {
@@ -51,17 +47,12 @@ public abstract class CountMetric extends SimpleDynamicMetric<Long> implements M
   }
 
   @Override
-  public String toString() {
-    return String.format("Metric %s's count is %d", getMetricName(), getValue());
-  }
-
-  @Override
-  public Long getLastEmittedMetricValue() {
+  public Double getLastEmittedMetricValue() {
     return getValue();
   }
 
   @Override
-  public DynamicMetric getDynamicMetric() {
-    return this;
+  public String toString() {
+    return String.format("Metric name: %s, metric value: %f", getMetricName(), getValue());
   }
 }

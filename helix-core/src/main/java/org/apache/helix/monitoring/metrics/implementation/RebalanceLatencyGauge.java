@@ -76,7 +76,7 @@ public class RebalanceLatencyGauge extends LatencyMetric {
    * @return
    */
   @Override
-  public long getLastEmittedMetricValue() {
+  public Long getLastEmittedMetricValue() {
     return _lastEmittedMetricValue;
   }
 

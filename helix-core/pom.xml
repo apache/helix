@@ -142,7 +142,7 @@ under the License.
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
-      <version>3.0</version>
+      <version>3.6.1</version>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>

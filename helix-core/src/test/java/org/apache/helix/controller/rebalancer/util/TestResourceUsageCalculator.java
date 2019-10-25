@@ -19,9 +19,11 @@ package org.apache.helix.controller.rebalancer.util;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.util.TestInputLoader;
@@ -41,9 +43,15 @@ public class TestResourceUsageCalculator {
     Map<String, ResourceAssignment> noMatchBestPossibleAssignment =
         buildResourceAssignment(noMatchBestPossible);
 
+    // Empty best possible assignment.
     Assert.assertEquals(ResourceUsageCalculator
-            .measureBaselineDivergence(baselineAssignment, noMatchBestPossibleAssignment),
-        0.0d);
+        .measureBaselineDivergence(baselineAssignment, Collections.emptyMap()), 0.0d);
+    // Empty baseline assignment.
+    Assert.assertEquals(ResourceUsageCalculator
+        .measureBaselineDivergence(Collections.emptyMap(), noMatchBestPossibleAssignment), 0.0d);
+
+    Assert.assertEquals(ResourceUsageCalculator
+        .measureBaselineDivergence(baselineAssignment, noMatchBestPossibleAssignment), 0.0d);
     Assert.assertEquals(ResourceUsageCalculator
             .measureBaselineDivergence(baselineAssignment, someMatchBestPossibleAssignment),
         (double) 1 / (double) 3);

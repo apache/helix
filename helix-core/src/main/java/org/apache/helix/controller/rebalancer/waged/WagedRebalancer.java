@@ -402,6 +402,14 @@ public class WagedRebalancer {
     Map<String, ResourceAssignment> newAssignment = calculateAssignment(clusterData, clusterChanges,
         resourceMap, activeNodes, currentBaseline, currentBestPossibleAssignment);
 
+    // Asynchronously report baseline divergence metric before persistence just in case persistence
+    // fails, we still have the metric.
+    BaselineDivergenceGauge baselineDivergenceGauge = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
+        BaselineDivergenceGauge.class);
+    baselineDivergenceGauge.asyncMeasureAndUpdateValue(clusterData.getAsyncTasksThreadPool(),
+        currentBaseline, newAssignment);
+
     if (_assignmentMetadataStore != null) {
       try {
         LatencyMetric writeLatency = _metricCollector.getMetric(
@@ -456,12 +464,6 @@ public class WagedRebalancer {
         optimalAssignment.getOptimalResourceAssignment();
 
     LOG.info("Finish calculating. Time spent: {}ms.", System.currentTimeMillis() - startTime);
-
-    BaselineDivergenceGauge baselineDivergenceGauge = _metricCollector.getMetric(
-        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge
-            .name(), BaselineDivergenceGauge.class);
-    baselineDivergenceGauge.asyncMeasureAndUpdateValue(clusterData.getAsyncTasksThreadPool(),
-        baseline, newAssignment);
 
     return newAssignment;
   }

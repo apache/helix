@@ -1,13 +1,27 @@
 package org.apache.helix.controller.rebalancer.util;
 
-import java.util.Collection;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.model.Partition;
@@ -43,56 +57,88 @@ public class ResourceUsageCalculator {
   }
 
   /**
-   * Count total number of all partitions in the collection of resource assignments.
-   * @param assignments collection of resource assignments
-   * @return total number of all partitions in the collection of resource assignments.
-   */
-  public static int countResourceAssignmentPartitions(Collection<ResourceAssignment> assignments) {
-    return assignments.stream()
-        .mapToInt(resourceAssignment -> resourceAssignment.getMappedPartitions().size())
-        .sum();
-  }
-
-  /**
    * Measure baseline divergence between baseline assignment and best possible assignment at
-   * partition level. Baseline divergence = (total number of common partitions for each key)
-   * / (total number of different partitions for each key)
+   * replica level. Example as below:
+   * baseline =
+   * {
+   *    resource1={
+   *       partition1={
+   *          instance1=master,
+   *          instance2=slave
+   *       },
+   *       partition2={
+   *          instance2=slave
+   *       }
+   *    }
+   * }
+   * bestPossible =
+   * {
+   *    resource1={
+   *       partition1={
+   *          instance1=master,  <--- matched
+   *          instance3=slave    <--- doesn't match
+   *       },
+   *       partition2={
+   *          instance3=master   <--- doesn't match
+   *       }
+   *    }
+   * }
+   * baseline divergence = (matched: 1) / (doesn't match: 3) = 1/3 ~= 0.333
    * @param baseline baseline assignment
    * @param bestPossibleAssignment best possible assignment
    * @return double value range at [0.0, 1.0]
    */
   public static double measureBaselineDivergence(Map<String, ResourceAssignment> baseline,
       Map<String, ResourceAssignment> bestPossibleAssignment) {
-    MapDifference<String, ResourceAssignment> mapDifference =
-        Maps.difference(baseline, bestPossibleAssignment);
-    Map<String, ResourceAssignment> matchedAssignment = mapDifference.entriesInCommon();
-    Map<String, MapDifference.ValueDifference<ResourceAssignment>> differentAssignment =
-        mapDifference.entriesDiffering();
+    int numMatchedReplicas = 0;
+    int numTotalBestPossibleReplicas = 0;
 
-    // For each matched assignment, count all partitions and sum up.
-    int numMatchedPartitions = countResourceAssignmentPartitions(matchedAssignment.values());
+    // 1. Check resource assignment names.
+    for (Map.Entry<String, ResourceAssignment> resourceEntry : bestPossibleAssignment.entrySet()) {
+      String resourceKey = resourceEntry.getKey();
+      if (!baseline.containsKey(resourceKey)) {
+        continue;
+      }
 
-    // Count total partitions.
-    // 1. Add all partitions in each matched resource assignment.
-    int numTotalPartitions = numMatchedPartitions;
-    // 2. Add all partitions for each key that only exists in beseline.
-    numTotalPartitions +=
-        countResourceAssignmentPartitions(mapDifference.entriesOnlyOnLeft().values());
-    // 3. Add all partitions for each key that only exists in best possible.
-    numTotalPartitions +=
-        countResourceAssignmentPartitions(mapDifference.entriesOnlyOnRight().values());
+      // Resource assignment names are matched.
+      // 2. check partitions.
+      Map<String, Map<String, String>> bestPossiblePartitions =
+          resourceEntry.getValue().getRecord().getMapFields();
+      Map<String, Map<String, String>> baselinePartitions =
+          baseline.get(resourceKey).getRecord().getMapFields();
 
-    // 4. Add all different partitions for both resource assignments in each entry.
-    for (Map.Entry<String, MapDifference.ValueDifference<ResourceAssignment>> entry
-        : differentAssignment.entrySet()) {
-      ResourceAssignment left = entry.getValue().leftValue();
-      ResourceAssignment right = entry.getValue().rightValue();
-      Set<Partition> partitionUnion = Sets.union(Sets.newHashSet(left.getMappedPartitions()),
-          Sets.newHashSet(right.getMappedPartitions()));
-      numTotalPartitions += partitionUnion.size();
+      for (Map.Entry<String, Map<String, String>> partitionEntry
+          : bestPossiblePartitions.entrySet()) {
+        String partitionName = partitionEntry.getKey();
+        if (!baselinePartitions.containsKey(partitionName)) {
+          continue;
+        }
+
+        // Partition names are matched.
+        // 3. Check replicas.
+        Map<String, String> bestPossibleReplicas = partitionEntry.getValue();
+        Map<String, String> baselineReplicas = baselinePartitions.get(partitionName);
+
+        for (Map.Entry<String, String> replicaEntry : bestPossibleReplicas.entrySet()) {
+          String replicaName = replicaEntry.getKey();
+          if (!baselineReplicas.containsKey(replicaName)) {
+            continue;
+          }
+
+          // Replica names are matched.
+          // 4. Check replica values.
+          String bestPossibleReplica = replicaEntry.getValue();
+          String baselineReplica = baselineReplicas.get(replicaName);
+          if (bestPossibleReplica.equals(baselineReplica)) {
+            numMatchedReplicas++;
+          }
+        }
+
+        // Count total best possible replicas.
+        numTotalBestPossibleReplicas += bestPossibleReplicas.size();
+      }
     }
 
-    return numTotalPartitions == 0 ? 0.0d
-        : (double) numMatchedPartitions / (double) numTotalPartitions;
+    return (double) numMatchedReplicas / (double) numTotalBestPossibleReplicas;
   }
 }

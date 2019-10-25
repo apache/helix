@@ -37,14 +37,12 @@ import org.slf4j.LoggerFactory;
 public class BaselineDivergenceGauge extends RatioMetric {
   private static final Logger LOG = LoggerFactory.getLogger(BaselineDivergenceGauge.class);
 
-  private static final double VALUE_NOT_SET = -1.0d;
-
   /**
    * Instantiates a new Simple dynamic metric.
    * @param metricName   the metric name
    */
   public BaselineDivergenceGauge(String metricName) {
-    super(metricName, VALUE_NOT_SET);
+    super(metricName, 0.0d);
   }
 
   /**

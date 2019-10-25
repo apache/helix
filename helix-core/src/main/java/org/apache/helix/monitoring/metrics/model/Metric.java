@@ -23,6 +23,7 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 
 /**
  * Defines a generic metric interface.
+ * @param <T> type of input value for the metric
  */
 public interface Metric<T> {
 

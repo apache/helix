@@ -56,13 +56,9 @@ abstract class UsageSoftConstraint extends SoftConstraint {
   }
 
   /**
-   * Compute utilization score based on the current usage and the estimated usage.
-   * The score is evaluated using a sigmoid function.
-   * When the usage is smaller than estimation, the constraint returns a value that is very close to
-   * the max score.
-   * When the usage is close or larger than the estimate, the constraint returns a score that is
-   * very close to the min score. Note even in this case, more usage will still be assigned with a
-   * smaller score.
+   * Compute the utilization score based on the estimated and current usage numbers.
+   * The score = currentUsage / estimatedUsage.
+   * In short, a smaller score means better assignment proposal.
    *
    * @param estimatedUsage The estimated usage that is between [0.0, 1.0]
    * @param currentUsage   The current usage that is between [0.0, 1.0]
@@ -72,16 +68,21 @@ abstract class UsageSoftConstraint extends SoftConstraint {
     if (estimatedUsage == 0) {
       return 0;
     }
-    return SIGMOID.value(-(currentUsage / estimatedUsage - 1) * DEFAULT_ALPHA) * (MAX_SCORE
-        - MIN_SCORE);
+    return currentUsage / estimatedUsage;
   }
 
+  /**
+   * Compute evaluation score based on the utilization data.
+   * The normalized score is evaluated using a sigmoid function.
+   * When the usage is smaller than 1.0, the constraint returns a value that is very close to the
+   * max score.
+   * When the usage is close or larger than 1.0, the constraint returns a score that is very close
+   * to the min score. Note even in this case, more usage will still be assigned with a
+   * smaller score.
+   */
   @Override
   protected NormalizeFunction getNormalizeFunction() {
-    // By default, if the evaluate score is calculated by calling computeUtilizationScore, it will
-    // be scaled properly.
-    // Children classes should override this method only if it does not use computeUtilizationScore
-    // to compute the final score
-    return (score) -> score;
+    return (score) -> SIGMOID.value(-(score - 1) * DEFAULT_ALPHA) * (MAX_SCORE
+        - MIN_SCORE);
   }
 }

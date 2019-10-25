@@ -27,7 +27,7 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
  * Represents a latency metric and defines methods to help with calculation. A latency metric gives
  * how long a particular stage in the logic took in milliseconds.
  */
-public abstract class LatencyMetric extends HistogramDynamicMetric implements Metric {
+public abstract class LatencyMetric extends HistogramDynamicMetric implements Metric<Long> {
   protected long _startTime;
   protected long _endTime;
   protected String _metricName;

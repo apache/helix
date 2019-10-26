@@ -44,10 +44,11 @@ public class TestClusterContext extends AbstractTestClusterModel {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
 
-    ClusterContext context = new ClusterContext(assignmentSet, 2, new HashMap<>(), new HashMap<>());
+    ClusterContext context =
+        new ClusterContext(assignmentSet, generateNodes(testCache), new HashMap<>(),
+            new HashMap<>());
 
-    // Note that we left some margin for the max estimation.
-    Assert.assertEquals(context.getEstimatedMaxPartitionCount(), 3);
+    Assert.assertEquals(context.getEstimatedMaxPartitionCount(), 4);
     Assert.assertEquals(context.getEstimatedMaxTopStateCount(), 2);
     Assert.assertEquals(context.getAssignmentForFaultZoneMap(), Collections.emptyMap());
     for (String resourceName : _resourceNames) {
@@ -81,9 +82,10 @@ public class TestClusterContext extends AbstractTestClusterModel {
   public void testDuplicateAssign() throws IOException {
     ResourceControllerDataProvider testCache = setupClusterDataCache();
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
-    ClusterContext context = new ClusterContext(assignmentSet, 2, new HashMap<>(), new HashMap<>());
-    context
-        .addPartitionToFaultZone(_testFaultZoneId, _resourceNames.get(0), _partitionNames.get(0));
+    ClusterContext context =
+        new ClusterContext(assignmentSet, generateNodes(testCache), new HashMap<>(),
+            new HashMap<>());
+    context.addPartitionToFaultZone(_testFaultZoneId, _resourceNames.get(0), _partitionNames.get(0));
     // Insert again and trigger the error.
     context
         .addPartitionToFaultZone(_testFaultZoneId, _resourceNames.get(0), _partitionNames.get(0));

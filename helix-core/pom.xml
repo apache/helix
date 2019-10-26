@@ -37,7 +37,7 @@ under the License.
       org.I0Itec.zkclient*,
       org.apache.commons.cli*;version="[1.2,2)",
       org.apache.commons.io*;version="[1.4,2)",
-      org.apache.commons.math*;version="[2.1,3)",
+      org.apache.commons.math*;version="[2.1,4)",
       org.apache.jute*;resolution:=optional,
       org.apache.zookeeper.server.persistence*;resolution:=optional,
       org.apache.zookeeper.server.util*;resolution:=optional,
@@ -138,6 +138,11 @@ under the License.
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math</artifactId>
       <version>2.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-math3</artifactId>
+      <version>3.6.1</version>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>

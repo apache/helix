@@ -44,7 +44,7 @@ public class TestConstraintBasedAlgorithm {
     HardConstraint mockHardConstraint = mock(HardConstraint.class);
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
     when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(false);
-    when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0f);
+    when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0);
 
     _algorithm = new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
         ImmutableMap.of(mockSoftConstraint, 1f));
@@ -61,7 +61,7 @@ public class TestConstraintBasedAlgorithm {
     HardConstraint mockHardConstraint = mock(HardConstraint.class);
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
     when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(true);
-    when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0f);
+    when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0);
     _algorithm = new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
         ImmutableMap.of(mockSoftConstraint, 1f));
     ClusterModel clusterModel = new ClusterModelTestHelper().getDefaultClusterModel();

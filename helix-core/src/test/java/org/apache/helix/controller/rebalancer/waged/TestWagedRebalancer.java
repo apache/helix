@@ -430,10 +430,10 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     // Verify that only the changed resource has been included in the calculation.
     validateRebalanceResult(Collections.emptyMap(), newIdealStates, newAlgorithmResult);
-    // There is nothing changes the baseline since only current state changed.
+    // There should be no changes in the baseline since only the currentStates changed
     baseline = _metadataStore.getBaseline();
     Assert.assertEquals(baseline, algorithmResult);
-    // The best possible assignment has been updated as long as computeNewIdealStates() is called.
+    // The BestPossible assignment should have been updated since computeNewIdealStates() should have been called.
     bestPossibleAssignment = _metadataStore.getBestPossibleAssignment();
     Assert.assertEquals(bestPossibleAssignment, newAlgorithmResult);
 
@@ -447,10 +447,10 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     newAlgorithmResult = _algorithm.getRebalanceResult();
     // Verify that both resource has been included in the calculation.
     validateRebalanceResult(resourceMap, newIdealStates, newAlgorithmResult);
-    // There is nothing changes the baseline.
+    // There should not be any changes in the baseline.
     baseline = _metadataStore.getBaseline();
     Assert.assertEquals(baseline, algorithmResult);
-    // The best possible assignment has been updated as long as computeNewIdealStates() is called.
+    // The BestPossible assignment should have been updated since computeNewIdealStates() should have been called.
     bestPossibleAssignment = _metadataStore.getBestPossibleAssignment();
     Assert.assertEquals(bestPossibleAssignment, newAlgorithmResult);
   }

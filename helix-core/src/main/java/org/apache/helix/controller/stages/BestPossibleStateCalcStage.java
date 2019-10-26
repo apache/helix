@@ -283,7 +283,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       }
     }
 
-    // Create MetricCollector ThreadLocal if it hasn't been already initialized
+    // Create WagedRebalancer ThreadLocal if it hasn't been already initialized
     if (WAGED_REBALANCER_THREAD_LOCAL.get() == null) {
       WAGED_REBALANCER_THREAD_LOCAL
           .set(new WagedRebalancer(helixManager, preferences, METRIC_COLLECTOR_THREAD_LOCAL.get()));

@@ -73,10 +73,7 @@ public class WagedRebalancer {
       ImmutableSet.of(HelixConstants.ChangeType.RESOURCE_CONFIG,
           HelixConstants.ChangeType.IDEAL_STATE,
           HelixConstants.ChangeType.CLUSTER_CONFIG, HelixConstants.ChangeType.INSTANCE_CONFIG);
-  // The cluster change detector is a stateful object.
-  // Make it static to avoid unnecessary reinitialization.
-  private static final ThreadLocal<ResourceChangeDetector> CHANGE_DETECTOR_THREAD_LOCAL =
-      new ThreadLocal<>();
+  private final ResourceChangeDetector _changeDetector;
   private final HelixManager _manager;
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
   private final AssignmentMetadataStore _assignmentMetadataStore;
@@ -149,6 +146,7 @@ public class WagedRebalancer {
     // allow rebalancer to proceed
     _metricCollector =
         metricCollector == null ? new WagedRebalancerMetricCollector() : metricCollector;
+    _changeDetector = new ResourceChangeDetector();
   }
 
   // Release all the resources.
@@ -468,10 +466,7 @@ public class WagedRebalancer {
   }
 
   private ResourceChangeDetector getChangeDetector() {
-    if (CHANGE_DETECTOR_THREAD_LOCAL.get() == null) {
-      CHANGE_DETECTOR_THREAD_LOCAL.set(new ResourceChangeDetector(true));
-    }
-    return CHANGE_DETECTOR_THREAD_LOCAL.get();
+    return _changeDetector;
   }
 
   // Generate the preference lists from the state mapping based on state priority.
@@ -683,5 +678,12 @@ public class WagedRebalancer {
 
   protected MetricCollector getMetricCollector() {
     return _metricCollector;
+  }
+
+  @Override
+  protected void finalize()
+      throws Throwable {
+    super.finalize();
+    close();
   }
 }

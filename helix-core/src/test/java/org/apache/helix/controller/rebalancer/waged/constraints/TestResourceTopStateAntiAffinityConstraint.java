@@ -51,7 +51,7 @@ public class TestResourceTopStateAntiAffinityConstraint {
     double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertEquals(score, 0.0);
-    Assert.assertEquals(normalizedScore, 0.0);
+    Assert.assertEquals(normalizedScore, 1.0);
     verifyZeroInteractions(_testNode);
     verifyZeroInteractions(_clusterContext);
   }
@@ -64,7 +64,7 @@ public class TestResourceTopStateAntiAffinityConstraint {
     double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.5);
+    Assert.assertEquals(score, 1.0);
     Assert.assertEquals(normalizedScore, 0.5);
   }
 
@@ -76,7 +76,7 @@ public class TestResourceTopStateAntiAffinityConstraint {
     double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 1.0);
+    Assert.assertEquals(score, 0.0);
     Assert.assertEquals(normalizedScore, 1.0);
   }
 }

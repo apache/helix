@@ -19,8 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import java.util.function.Function;
-
 import org.apache.commons.math3.analysis.function.Sigmoid;
 
 /**

@@ -73,6 +73,13 @@ public class TestNodeSwap extends ZkTestBase {
     clusterConfig.setDelayRebalaceEnabled(true);
     // Set a long enough time to ensure delayed rebalance is activate
     clusterConfig.setRebalanceDelayTime(3000000);
+
+    // TODO remove this setup once issue https://github.com/apache/helix/issues/532 is fixed
+    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
+    preference.put(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 0);
+    preference.put(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 10);
+    clusterConfig.setGlobalRebalancePreference(preference);
+
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     Set<String> nodes = new HashSet<>();

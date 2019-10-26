@@ -24,31 +24,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.model.ClusterConfig;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-
 /**
  * The factory class to create an instance of {@link ConstraintBasedAlgorithm}
  */
 public class ConstraintBasedAlgorithmFactory {
-  // Evenness constraints tend to score within a smaller range.
-  // In order to let their scores cause enough difference in the final evaluation result, we need to
-  // enlarge the overall weight of the evenness constraints compared with the movement constraint.
-  // TODO: Tune or make the following factor configurable.
-  private static final int EVENNESS_PREFERENCE_NORMALIZE_FACTOR = 50;
   private static final Map<String, Float> MODEL = new HashMap<String, Float>() {
     {
       // The default setting
-      put(PartitionMovementConstraint.class.getSimpleName(), 1f);
-      put(InstancePartitionsCountConstraint.class.getSimpleName(), 0.3f);
-      put(ResourcePartitionAntiAffinityConstraint.class.getSimpleName(), 0.1f);
-      put(ResourceTopStateAntiAffinityConstraint.class.getSimpleName(), 0.1f);
-      put(MaxCapacityUsageInstanceConstraint.class.getSimpleName(), 0.5f);
+      put(PartitionMovementConstraint.class.getSimpleName(), 2f);
+      put(InstancePartitionsCountConstraint.class.getSimpleName(), 1f);
+      put(ResourcePartitionAntiAffinityConstraint.class.getSimpleName(), 1f);
+      put(ResourceTopStateAntiAffinityConstraint.class.getSimpleName(), 3f);
+      put(MaxCapacityUsageInstanceConstraint.class.getSimpleName(), 5f);
     }
   };
 
@@ -68,21 +62,19 @@ public class ConstraintBasedAlgorithmFactory {
             new ValidGroupTagConstraint(), new SamePartitionOnInstanceConstraint());
 
     int evennessPreference =
-        preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 1)
-            * EVENNESS_PREFERENCE_NORMALIZE_FACTOR;
+        preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 1);
     int movementPreference =
         preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1);
-    float evennessRatio = (float) evennessPreference / (evennessPreference + movementPreference);
-    float movementRatio = (float) movementPreference / (evennessPreference + movementPreference);
 
-    List<SoftConstraint> softConstraints = ImmutableList.of(new PartitionMovementConstraint(),
-        new InstancePartitionsCountConstraint(), new ResourcePartitionAntiAffinityConstraint(),
-        new ResourceTopStateAntiAffinityConstraint(), new MaxCapacityUsageInstanceConstraint());
+    List<SoftConstraint> softConstraints = ImmutableList
+        .of(new PartitionMovementConstraint(), new InstancePartitionsCountConstraint(),
+            new ResourcePartitionAntiAffinityConstraint(),
+            new ResourceTopStateAntiAffinityConstraint(), new MaxCapacityUsageInstanceConstraint());
     Map<SoftConstraint, Float> softConstraintsWithWeight = Maps.toMap(softConstraints, key -> {
       String name = key.getClass().getSimpleName();
       float weight = MODEL.get(name);
-      return name.equals(PartitionMovementConstraint.class.getSimpleName()) ? movementRatio * weight
-          : evennessRatio * weight;
+      return name.equals(PartitionMovementConstraint.class.getSimpleName()) ?
+          movementPreference * weight : evennessPreference * weight;
     });
 
     return new ConstraintBasedAlgorithm(hardConstraints, softConstraintsWithWeight);

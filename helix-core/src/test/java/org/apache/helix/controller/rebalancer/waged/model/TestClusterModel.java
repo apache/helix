@@ -21,7 +21,6 @@ package org.apache.helix.controller.rebalancer.waged.model;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.helix.HelixException;
@@ -36,17 +35,6 @@ public class TestClusterModel extends AbstractTestClusterModel {
     super.initialize();
   }
 
-  /**
-   * Generate AssignableNodes according to the instances included in the cluster data cache.
-   */
-  Set<AssignableNode> generateNodes(ResourceControllerDataProvider testCache) {
-    Set<AssignableNode> nodeSet = new HashSet<>();
-    testCache.getInstanceConfigMap().values().stream().forEach(config -> nodeSet.add(
-        new AssignableNode(testCache.getClusterConfig(),
-            testCache.getInstanceConfigMap().get(_testInstanceId), config.getInstanceName())));
-    return nodeSet;
-  }
-
   @Test
   public void testNormalUsage() throws IOException {
     // Test 1 - initialize the cluster model based on the data cache.
@@ -54,9 +42,10 @@ public class TestClusterModel extends AbstractTestClusterModel {
     Set<AssignableReplica> assignableReplicas = generateReplicas(testCache);
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 
-    ClusterContext context = new ClusterContext(assignableReplicas, 2, Collections.emptyMap(), Collections.emptyMap());
-    ClusterModel clusterModel =
-        new ClusterModel(context, assignableReplicas, assignableNodes);
+    ClusterContext context =
+        new ClusterContext(assignableReplicas, assignableNodes, Collections.emptyMap(),
+            Collections.emptyMap());
+    ClusterModel clusterModel = new ClusterModel(context, assignableReplicas, assignableNodes);
 
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .allMatch(resourceMap -> resourceMap.values().isEmpty()));

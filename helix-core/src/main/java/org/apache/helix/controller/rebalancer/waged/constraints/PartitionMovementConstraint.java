@@ -38,39 +38,33 @@ import org.apache.helix.model.ResourceAssignment;
  * evaluated score will become lower.
  */
 class PartitionMovementConstraint extends SoftConstraint {
-  private static final float MAX_SCORE = 1f;
-  private static final float MIN_SCORE = 0f;
+  private static final double MAX_SCORE = 1f;
+  private static final double MIN_SCORE = 0f;
   //TODO: these factors will be tuned based on user's preference
   // This factor indicates the default score that is evaluated if only partition allocation matches
   // (states are different).
-  private static final float ALLOCATION_MATCH_FACTOR = 0.5f;
-  // This factor indicates the contribution of the Baseline assignment matching to the final score.
-  private static final float BASELINE_MATCH_FACTOR = 0.25f;
+  private static final double ALLOCATION_MATCH_FACTOR = 0.5;
 
   PartitionMovementConstraint() {
     super(MAX_SCORE, MIN_SCORE);
   }
 
   @Override
-  protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+  protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    Map<String, String> bestPossibleStateMap =
+    // Prioritize the previous Best Possible assignment
+    Map<String, String> bestPossibleAssignment =
         getStateMap(replica, clusterContext.getBestPossibleAssignment());
-    Map<String, String> baselineStateMap =
+    if (!bestPossibleAssignment.isEmpty()) {
+      return calculateAssignmentScale(node, replica, bestPossibleAssignment);
+    }
+    // else, compare the baseline only if the best possible assignment does not contain the replica
+    Map<String, String> baselineAssignment =
         getStateMap(replica, clusterContext.getBaselineAssignment());
-
-    // Prioritize the matching of the previous Best Possible assignment.
-    float scale = calculateAssignmentScale(node, replica, bestPossibleStateMap);
-    // If the baseline is also provided, adjust the final score accordingly.
-    scale = scale * (1 - BASELINE_MATCH_FACTOR)
-        + calculateAssignmentScale(node, replica, baselineStateMap) * BASELINE_MATCH_FACTOR;
-
-    return scale;
-  }
-
-  @Override
-  NormalizeFunction getNormalizeFunction() {
-    return score -> score * (getMaxScore() - getMinScore()) + getMinScore();
+    if (!baselineAssignment.isEmpty()) {
+      return calculateAssignmentScale(node, replica, baselineAssignment);
+    }
+    return 0;
   }
 
   private Map<String, String> getStateMap(AssignableReplica replica,
@@ -83,14 +77,20 @@ class PartitionMovementConstraint extends SoftConstraint {
     return assignment.get(resourceName).getReplicaMap(new Partition(partitionName));
   }
 
-  private float calculateAssignmentScale(AssignableNode node, AssignableReplica replica,
+  private double calculateAssignmentScale(AssignableNode node, AssignableReplica replica,
       Map<String, String> instanceToStateMap) {
     String instanceName = node.getInstanceName();
     if (!instanceToStateMap.containsKey(instanceName)) {
       return 0;
     } else {
-      return (instanceToStateMap.get(instanceName).equals(replica.getReplicaState()) ? 1
-          : ALLOCATION_MATCH_FACTOR);
+      return (instanceToStateMap.get(instanceName).equals(replica.getReplicaState()) ? 1 :
+          ALLOCATION_MATCH_FACTOR);
     }
+  }
+
+  @Override
+  protected NormalizeFunction getNormalizeFunction() {
+    // PartitionMovementConstraint already scale the score properly.
+    return (score) -> score;
   }
 }

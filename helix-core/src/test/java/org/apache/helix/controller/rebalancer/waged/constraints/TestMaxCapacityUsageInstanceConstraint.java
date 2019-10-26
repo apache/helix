@@ -19,16 +19,16 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import static org.mockito.Matchers.anyMap;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestMaxCapacityUsageInstanceConstraint {
   private AssignableReplica _testReplica;
@@ -38,19 +38,19 @@ public class TestMaxCapacityUsageInstanceConstraint {
 
   @BeforeMethod
   public void setUp() {
-    _testNode = mock(AssignableNode.class, CALLS_REAL_METHODS);
+    _testNode = mock(AssignableNode.class);
     _testReplica = mock(AssignableReplica.class);
     _clusterContext = mock(ClusterContext.class);
   }
 
   @Test
   public void testGetNormalizedScore() {
-    when(_testNode.getHighestCapacityUtilization()).thenReturn(0.8f);
-    float score =
-            _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.6f);
-    float normalizedScore =
+    when(_testNode.getProjectedHighestUtilization(anyMap())).thenReturn(0.8f);
+    when(_clusterContext.getEstimatedMaxUtilization()).thenReturn(1f);
+    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
+    Assert.assertTrue(score > 0.99);
+    double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(normalizedScore, 0.6f);
+    Assert.assertTrue(normalizedScore > 0.99);
   }
 }

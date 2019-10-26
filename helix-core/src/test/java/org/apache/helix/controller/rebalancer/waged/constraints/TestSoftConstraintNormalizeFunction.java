@@ -32,14 +32,14 @@ public class TestSoftConstraintNormalizeFunction {
     int minScore = 0;
     SoftConstraint softConstraint = new SoftConstraint(maxScore, minScore) {
       @Override
-      protected float getAssignmentScore(AssignableNode node, AssignableReplica replica,
+      protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
           ClusterContext clusterContext) {
         return 0;
       }
     };
 
     for (int i = minScore; i <= maxScore; i++) {
-      float normalized = softConstraint.getNormalizeFunction().scale(i);
+      double normalized = softConstraint.getNormalizeFunction().scale(i);
       Assert.assertTrue(normalized <= 1 && normalized >= 0,
           String.format("input: %s, output: %s", i, normalized));
     }

@@ -123,6 +123,8 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
     // Cluster config change will trigger baseline recalculation and partial rebalance.
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+    // Update the config so the cluster config will be marked as changed.
+    clusterData.getClusterConfig().getRecord().setSimpleField("foo", "bar");
 
     rebalancer.computeBestPossibleStates(clusterData, resourceMap, new CurrentStateOutput());
 

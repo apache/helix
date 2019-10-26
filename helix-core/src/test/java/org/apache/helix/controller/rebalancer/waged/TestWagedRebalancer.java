@@ -359,6 +359,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Cluster config change will trigger baseline to be recalculated.
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+    // Update the config so the cluster config will be marked as changed.
+    clusterData.getClusterConfig().getRecord().setSimpleField("foo", "bar");
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
         .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
           Resource resource = new Resource(entry.getKey());
@@ -373,10 +375,10 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // as the mock algorithm result.
     validateRebalanceResult(resourceMap, newIdealStates, algorithmResult);
     Map<String, ResourceAssignment> baseline = _metadataStore.getBaseline();
-    Assert.assertEquals(baseline, algorithmResult);
+    Assert.assertEquals(algorithmResult, baseline);
     Map<String, ResourceAssignment> bestPossibleAssignment =
         _metadataStore.getBestPossibleAssignment();
-    Assert.assertEquals(bestPossibleAssignment, algorithmResult);
+    Assert.assertEquals(algorithmResult, bestPossibleAssignment);
 
     // 2. rebalance with one resource changed in the Resource Config znode only
     String changedResourceName = _resourceNames.get(0);
@@ -398,15 +400,16 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     validateRebalanceResult(
         Collections.singletonMap(changedResourceName, new Resource(changedResourceName)),
         newIdealStates, partialAlgorithmResult);
-    // Baseline should be empty, because there is no cluster topology change.
+    // Best possible assignment contains the new assignment of only one resource.
     baseline = _metadataStore.getBaseline();
-    Assert.assertEquals(baseline, Collections.emptyMap());
+    Assert.assertEquals(baseline, partialAlgorithmResult);
     // Best possible assignment contains the new assignment of only one resource.
     bestPossibleAssignment = _metadataStore.getBestPossibleAssignment();
     Assert.assertEquals(bestPossibleAssignment, partialAlgorithmResult);
 
     // * Before the next test, recover the best possible assignment record.
     _metadataStore.persistBestPossibleAssignment(algorithmResult);
+    _metadataStore.persistBaseline(algorithmResult);
 
     // 3. rebalance with current state change only
     // Create a new cluster data cache to simulate cluster change
@@ -423,15 +426,16 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // assignment since there is only current state change.
     newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
-    algorithmResult = _algorithm.getRebalanceResult();
+    Map<String, ResourceAssignment> newAlgorithmResult = _algorithm.getRebalanceResult();
 
     // Verify that only the changed resource has been included in the calculation.
-    validateRebalanceResult(Collections.emptyMap(), newIdealStates, algorithmResult);
-    // Both assignment state should be empty.
+    validateRebalanceResult(Collections.emptyMap(), newIdealStates, newAlgorithmResult);
+    // There is nothing changes the baseline since only current state changed.
     baseline = _metadataStore.getBaseline();
-    Assert.assertEquals(baseline, Collections.emptyMap());
+    Assert.assertEquals(baseline, algorithmResult);
+    // The best possible assignment has been updated as long as computeNewIdealStates() is called.
     bestPossibleAssignment = _metadataStore.getBestPossibleAssignment();
-    Assert.assertEquals(bestPossibleAssignment, Collections.emptyMap());
+    Assert.assertEquals(bestPossibleAssignment, newAlgorithmResult);
 
     // 4. rebalance with no change but best possible state record missing.
     // This usually happens when the persisted assignment state is gone.
@@ -440,15 +444,15 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // calculate the assignment for both resources.
     newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
-    algorithmResult = _algorithm.getRebalanceResult();
+    newAlgorithmResult = _algorithm.getRebalanceResult();
     // Verify that both resource has been included in the calculation.
-    validateRebalanceResult(resourceMap, newIdealStates, algorithmResult);
-    // Both assignment state should be empty since no cluster topology change.
+    validateRebalanceResult(resourceMap, newIdealStates, newAlgorithmResult);
+    // There is nothing changes the baseline.
     baseline = _metadataStore.getBaseline();
-    Assert.assertEquals(baseline, Collections.emptyMap());
-    // The best possible assignment should be present.
+    Assert.assertEquals(baseline, algorithmResult);
+    // The best possible assignment has been updated as long as computeNewIdealStates() is called.
     bestPossibleAssignment = _metadataStore.getBestPossibleAssignment();
-    Assert.assertEquals(bestPossibleAssignment, algorithmResult);
+    Assert.assertEquals(bestPossibleAssignment, newAlgorithmResult);
   }
 
   private void validateRebalanceResult(Map<String, Resource> resourceMap,

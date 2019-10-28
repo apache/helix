@@ -43,7 +43,9 @@ public abstract class CountMetric extends SimpleDynamicMetric<Long> implements M
    *
    * @param count
    */
-  public abstract void increaseCount(long count);
+  public void increment(long count) {
+    updateValue(getValue() + count);
+  }
 
   @Override
   public String getMetricName() {

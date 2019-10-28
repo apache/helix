@@ -162,19 +162,24 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           int statePriority1 = replica1.getStatePriority();
           int statePriority2 = replica2.getStatePriority();
           if (statePriority1 == statePriority2) {
-            // If state prioritizes are the same, try to randomize the replicas order. Otherwise,
-            // the same replicas might always be moved in the rebalance. This is because their
-            // rebalance calculating will always happen at the critical moment while the cluster is
-            // almost full.
+            // If state priorities are the same, try to randomize the replicas order. Otherwise,
+            // the same replicas might always be moved in each rebalancing. This is because their
+            // placement calculating will always happen at the critical moment while the cluster is
+            // almost close to the expected utilization.
             //
             // Note that to ensure the algorithm is deterministic with the same inputs, do not use
             // Random functions here. Use hashcode based on the cluster topology information to get
             // a controlled randomized order is good enough.
-            Long replicaHash1 = Long.valueOf(Objects
-                .hash(replica1.toString(), clusterModel.getAssignableNodes().keySet()));
-            Long replicaHash2 = Long.valueOf(Objects
-                .hash(replica2.toString(), clusterModel.getAssignableNodes().keySet()));
-            return replicaHash1.compareTo(replicaHash2);
+            Long replicaHash1 = (long) Objects
+                .hash(replica1.toString(), clusterModel.getAssignableNodes().keySet());
+            Long replicaHash2 = (long) Objects
+                .hash(replica2.toString(), clusterModel.getAssignableNodes().keySet());
+            if (!replicaHash1.equals(replicaHash2)) {
+              return replicaHash1.compareTo(replicaHash2);
+            } else {
+              // In case of hash collision, return order according to the name.
+              return replica1.toString().compareTo(replica2.toString());
+            }
           } else {
             // Note we shall prioritize the replica with a higher state priority,
             // the smaller priority number means higher priority.

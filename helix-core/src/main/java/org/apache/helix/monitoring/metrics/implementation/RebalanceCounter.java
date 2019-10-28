@@ -27,15 +27,10 @@ import org.apache.helix.monitoring.metrics.model.CountMetric;
  */
 public class RebalanceCounter extends CountMetric {
   /**
-   * Instantiates a new count metric.
+   * Instantiates a new rebalance count metric.
    * @param metricName the metric name
    */
   public RebalanceCounter(String metricName) {
     super(metricName, 0L);
-  }
-
-  @Override
-  public void increaseCount(long count) {
-    updateValue(getValue() + count);
   }
 }

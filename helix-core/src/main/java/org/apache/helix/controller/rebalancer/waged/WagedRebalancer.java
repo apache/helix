@@ -146,7 +146,7 @@ public class WagedRebalancer {
     // allow rebalancer to proceed
     _metricCollector =
         metricCollector == null ? new WagedRebalancerMetricCollector() : metricCollector;
-    _changeDetector = new ResourceChangeDetector();
+    _changeDetector = new ResourceChangeDetector(true);
   }
 
   // Release all the resources.

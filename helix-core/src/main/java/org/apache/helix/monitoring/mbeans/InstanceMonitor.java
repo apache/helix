@@ -39,6 +39,27 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
  * Implementation of the instance status bean
  */
 public class InstanceMonitor extends DynamicMBeanProvider {
+  /**
+   * Metric names for instance capacity.
+   */
+  public enum InstanceMonitorMetrics {
+    TOTAL_MESSAGE_RECEIVED_COUNTER("TotalMessageReceivedCounter"),
+    ENABLED_STATUS_GAUGE("EnabledStatusGauge"),
+    ONLINE_STATUS_GAUGE("OnlineStatusGauge"),
+    MAX_CAPACITY_USAGE_GAUGE("MaxCapacityUsageGauge"),
+    DISABLED_PARTITIONS_GAUGE("DisabledPartitionsGauge");
+
+    private String metricName;
+
+    InstanceMonitorMetrics(String name) {
+      metricName = name;
+    }
+
+    public String metricName() {
+      return metricName;
+    }
+  }
+
   private final String _clusterName;
   private final String _participantName;
   private List<String> _tags;
@@ -49,7 +70,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
 
   // Gauges
   private SimpleDynamicMetric<Long> _enabledStatusGauge;
-  private SimpleDynamicMetric<Long> _numDisabledPartitionsGauge;
+  private SimpleDynamicMetric<Long> _disabledPartitionsGauge;
   private SimpleDynamicMetric<Long> _onlineStatusGauge;
   private SimpleDynamicMetric<Double> _maxCapacityUsageGauge;
 
@@ -70,12 +91,19 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   }
 
   private void createMetrics() {
-    _totalMessagedReceivedCounter = new SimpleDynamicMetric<>("TotalMessageReceivedCounter", 0L);
+    _totalMessagedReceivedCounter = new SimpleDynamicMetric<>(
+        InstanceMonitorMetrics.TOTAL_MESSAGE_RECEIVED_COUNTER.metricName(), 0L);
 
-    _numDisabledPartitionsGauge = new SimpleDynamicMetric<>("DisabledPartitionsGauge", 0L);
-    _enabledStatusGauge = new SimpleDynamicMetric<>("EnabledStatusGauge", 0L);
-    _onlineStatusGauge = new SimpleDynamicMetric<>("OnlineStatusGauge", 0L);
-    _maxCapacityUsageGauge = new SimpleDynamicMetric<>("MaxCapacityUsageGauge", 0.0d);
+    _disabledPartitionsGauge =
+        new SimpleDynamicMetric<>(InstanceMonitorMetrics.DISABLED_PARTITIONS_GAUGE.metricName(),
+            0L);
+    _enabledStatusGauge =
+        new SimpleDynamicMetric<>(InstanceMonitorMetrics.ENABLED_STATUS_GAUGE.metricName(), 0L);
+    _onlineStatusGauge =
+        new SimpleDynamicMetric<>(InstanceMonitorMetrics.ONLINE_STATUS_GAUGE.metricName(), 0L);
+    _maxCapacityUsageGauge =
+        new SimpleDynamicMetric<>(InstanceMonitorMetrics.MAX_CAPACITY_USAGE_GAUGE.metricName(),
+            0.0d);
   }
 
   @Override
@@ -97,7 +125,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   }
 
   public long getDisabledPartitions() {
-    return _numDisabledPartitionsGauge.getValue();
+    return _disabledPartitionsGauge.getValue();
   }
 
   /**
@@ -151,7 +179,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
 
     _onlineStatusGauge.updateValue(isLive ? 1L : 0L);
     _enabledStatusGauge.updateValue(isEnabled ? 1L : 0L);
-    _numDisabledPartitionsGauge.updateValue(numDisabledPartitions);
+    _disabledPartitionsGauge.updateValue(numDisabledPartitions);
   }
 
   /**
@@ -179,8 +207,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   public DynamicMBeanProvider register()
       throws JMException {
     List<DynamicMetric<?, ?>> attributeList = ImmutableList.of(
-        _totalMessagedReceivedCounter,
-        _numDisabledPartitionsGauge,
+        _totalMessagedReceivedCounter, _disabledPartitionsGauge,
         _enabledStatusGauge,
         _onlineStatusGauge,
         _maxCapacityUsageGauge

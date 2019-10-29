@@ -54,6 +54,7 @@ public class TestInstanceMonitor {
     Assert.assertEquals(monitor.getEnabled(), 0L);
     Assert.assertEquals(monitor.getTotalMessageReceived(), 0L);
     Assert.assertEquals(monitor.getDisabledPartitions(), 0L);
+    Assert.assertEquals(monitor.getMaxCapacityUsageGauge(), 0.0d);
 
     // Update metrics.
     monitor.updateMaxCapacityUsage(0.5d);

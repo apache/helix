@@ -159,6 +159,10 @@ under the License.
       <artifactId>metrics-core</artifactId>
       <version>3.2.3</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.helix</groupId>
+      <artifactId>helix-zk</artifactId>
+    </dependency>
   </dependencies>
   <build>
     <resources>

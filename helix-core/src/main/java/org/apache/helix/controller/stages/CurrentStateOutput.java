@@ -28,6 +28,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 
 import com.google.common.collect.Sets;
+import org.apache.helix.model.ResourceAssignment;
+
 
 /**
  * The current state includes both current state and pending messages
@@ -428,4 +430,26 @@ public class CurrentStateOutput {
     return sb.toString();
   }
 
+  /**
+   * Get current state assignment for a set of resources.
+   * @param resourceSet a set of resources' names
+   * @return a map of current state resource assignment, {resourceName: resourceAssignment}
+   */
+  public Map<String, ResourceAssignment> getCurrentStateAssignment(Set<String> resourceSet) {
+    Map<String, ResourceAssignment> currentStateAssignment = new HashMap<>();
+    for (String resourceName : resourceSet) {
+      Map<Partition, Map<String, String>> currentStateMap =
+          getCurrentStateMap(resourceName);
+      if (!currentStateMap.isEmpty()) {
+        ResourceAssignment newResourceAssignment = new ResourceAssignment(resourceName);
+        currentStateMap.entrySet().stream().forEach(currentStateEntry -> {
+          newResourceAssignment.addReplicaMap(currentStateEntry.getKey(),
+              currentStateEntry.getValue());
+        });
+        currentStateAssignment.put(resourceName, newResourceAssignment);
+      }
+    }
+
+    return currentStateAssignment;
+  }
 }

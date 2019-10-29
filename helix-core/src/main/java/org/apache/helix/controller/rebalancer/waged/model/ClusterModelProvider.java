@@ -94,6 +94,23 @@ public class ClusterModelProvider {
   }
 
   /**
+   * Generate a cluster model based on the current state output and data cache.
+   * @param dataProvider           The controller's data cache.
+   * @param resourceMap            The full list of the resources to be rebalanced. Note that any
+   *                               resources that are not in this list will be removed from the
+   *                               final assignment.
+   * @param bestPossibleAssignment The resource assignment built from current state output.
+   * @return A cluster model based on the current state and data cache.
+   */
+  public static ClusterModel generateClusterModelFromCurrentState(
+      ResourceControllerDataProvider dataProvider,
+      Map<String, Resource> resourceMap,
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
+    return generateClusterModel(dataProvider, resourceMap, dataProvider.getEnabledLiveInstances(),
+        Collections.emptyMap(), Collections.emptyMap(), bestPossibleAssignment);
+  }
+
+  /**
    * Find the minimum set of replicas that need to be reassigned.
    * A replica needs to be reassigned if one of the following condition is true:
    * 1. Cluster topology (the cluster config / any instance config) has been updated.

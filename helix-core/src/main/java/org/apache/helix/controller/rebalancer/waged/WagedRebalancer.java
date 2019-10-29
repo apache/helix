@@ -534,7 +534,7 @@ public class WagedRebalancer {
     }
     if (currentBaseline.isEmpty()) {
       LOG.warn("The current baseline assignment record is empty. Use the current states instead.");
-      currentBaseline = getCurrentStateAssingment(currentStateOutput, resources);
+      currentBaseline = currentStateOutput.getCurrentStateAssignment(resources);
     }
     currentBaseline.keySet().retainAll(resources);
     return currentBaseline;
@@ -569,28 +569,10 @@ public class WagedRebalancer {
     if (currentBestAssignment.isEmpty()) {
       LOG.warn(
           "The current best possible assignment record is empty. Use the current states instead.");
-      currentBestAssignment = getCurrentStateAssingment(currentStateOutput, resources);
+      currentBestAssignment = currentStateOutput.getCurrentStateAssignment(resources);
     }
     currentBestAssignment.keySet().retainAll(resources);
     return currentBestAssignment;
-  }
-
-  private Map<String, ResourceAssignment> getCurrentStateAssingment(
-      CurrentStateOutput currentStateOutput, Set<String> resourceSet) {
-    Map<String, ResourceAssignment> currentStateAssignment = new HashMap<>();
-    for (String resourceName : resourceSet) {
-      Map<Partition, Map<String, String>> currentStateMap =
-          currentStateOutput.getCurrentStateMap(resourceName);
-      if (!currentStateMap.isEmpty()) {
-        ResourceAssignment newResourceAssignment = new ResourceAssignment(resourceName);
-        currentStateMap.entrySet().stream().forEach(currentStateEntry -> {
-          newResourceAssignment.addReplicaMap(currentStateEntry.getKey(),
-              currentStateEntry.getValue());
-        });
-        currentStateAssignment.put(resourceName, newResourceAssignment);
-      }
-    }
-    return currentStateAssignment;
   }
 
   /**

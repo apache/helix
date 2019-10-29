@@ -19,18 +19,27 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import com.beust.jcommander.internal.Maps;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
+import javax.management.IntrospectionException;
 import javax.management.JMException;
+import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
+import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import javax.management.ReflectionException;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
@@ -47,13 +56,15 @@ import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class TestClusterStatusMonitor {
   private static final MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
-  String testDB = "TestDB";
-  String testDB_0 = testDB + "_0";
+  private String testDB = "TestDB";
+  private String testDB_0 = testDB + "_0";
 
   @Test()
-  public void testReportData() throws Exception {
+  public void testReportData()
+      throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -64,11 +75,8 @@ public class TestClusterStatusMonitor {
     ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
     monitor.active();
     ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
-    try {
-      _server.getMBeanInfo(clusterMonitorObjName);
-    } catch (Exception e) {
-      Assert.fail("Fail to register ClusterStatusMonitor");
-    }
+
+    Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
 
     // Test #setPerInstanceResourceStatus()
     BestPossibleStateOutput bestPossibleStates = new BestPossibleStateOutput();
@@ -137,42 +145,30 @@ public class TestClusterStatusMonitor {
         "localhost_12918");
     monitor.setPerInstanceResourceStatus(bestPossibleStates, instanceConfigMap, resourceMap,
         stateModelDefMap);
-    try {
-      objName =
-          monitor.getObjectName(monitor.getPerInstanceResourceBeanName("localhost_12918", testDB));
-      _server.getMBeanInfo(objName);
-      Assert.fail("Fail to unregister PerInstanceResource mbean for localhost_12918");
 
-    } catch (InstanceNotFoundException e) {
-      // OK
-    }
+    objName =
+        monitor.getObjectName(monitor.getPerInstanceResourceBeanName("localhost_12918", testDB));
+    Assert.assertFalse(_server.isRegistered(objName),
+        "Fail to unregister PerInstanceResource mbean for localhost_12918");
 
     // Clean up
     monitor.reset();
 
-    try {
-      objName =
-          monitor.getObjectName(monitor.getPerInstanceResourceBeanName("localhost_12920", testDB));
-      _server.getMBeanInfo(objName);
-      Assert.fail("Fail to unregister PerInstanceResource mbean for localhost_12920");
+    objName =
+        monitor.getObjectName(monitor.getPerInstanceResourceBeanName("localhost_12920", testDB));
+    Assert.assertFalse(_server.isRegistered(objName),
+        "Fail to unregister PerInstanceResource mbean for localhost_12920");
 
-    } catch (InstanceNotFoundException e) {
-      // OK
-    }
-
-    try {
-      _server.getMBeanInfo(clusterMonitorObjName);
-      Assert.fail("Fail to unregister ClusterStatusMonitor");
-    } catch (InstanceNotFoundException e) {
-      // OK
-    }
+    Assert.assertFalse(_server.isRegistered(clusterMonitorObjName),
+        "Failed to unregister ClusterStatusMonitor.");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
 
   @Test
-  public void testResourceAggregation() throws JMException {
+  public void testResourceAggregation()
+      throws JMException, IOException {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -182,11 +178,8 @@ public class TestClusterStatusMonitor {
     ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
     monitor.active();
     ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
-    try {
-      _server.getMBeanInfo(clusterMonitorObjName);
-    } catch (Exception e) {
-      Assert.fail("Fail to register ClusterStatusMonitor");
-    }
+
+    Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
 
     int numInstance = 5;
     int numPartition = 10;
@@ -315,5 +308,56 @@ public class TestClusterStatusMonitor {
     messageCount = new Random().nextInt(numPartition) + 1;
     monitor.setResourceStatus(externalView, idealState, stateModelDef, messageCount);
     Assert.assertEquals(monitor.getPendingStateTransitionGuage(), messageCount);
+
+    // Reset monitor.
+    monitor.reset();
+    Assert.assertFalse(_server.isRegistered(clusterMonitorObjName),
+        "Failed to unregister ClusterStatusMonitor.");
+  }
+
+  @Test
+  public void testUpdateMaxCapacityUsage()
+      throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
+             ReflectionException, InstanceNotFoundException, IntrospectionException {
+    String clusterName = "testCluster";
+    List<Double> maxUsageList = ImmutableList.of(0.0d, 0.32d, 0.85d, 1.0d, 0.50d, 0.75d);
+    Map<String, Double> maxCapacityUsageMap = new HashMap<>();
+    for (int i = 0; i < maxUsageList.size(); i++) {
+      maxCapacityUsageMap.put("instance" + i, maxUsageList.get(i));
+    }
+
+    // Setup cluster status monitor.
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
+    monitor.active();
+    ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
+
+    Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
+
+    // Update stats.
+    monitor.updateMaxCapacityUsage(maxCapacityUsageMap);
+
+    // Verify results.
+    for (Map.Entry<String, Double> entry : maxCapacityUsageMap.entrySet()) {
+      String instance = entry.getKey();
+      double usage = entry.getValue();
+      String instanceBeanName =
+          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
+      ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
+
+      Assert.assertTrue(_server.isRegistered(instanceObjectName));
+      Assert.assertEquals(_server.getAttribute(instanceObjectName, "MaxCapacityUsageGauge"), usage);
+    }
+
+    // Reset monitor.
+    monitor.reset();
+    Assert.assertFalse(_server.isRegistered(clusterMonitorObjName),
+        "Failed to unregister ClusterStatusMonitor.");
+    for (String instance : maxCapacityUsageMap.keySet()) {
+      String instanceBeanName =
+          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
+      ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
+      Assert.assertFalse(_server.isRegistered(instanceObjectName),
+          "Failed to unregister instance monitor for instance: " + instance);
+    }
   }
 }

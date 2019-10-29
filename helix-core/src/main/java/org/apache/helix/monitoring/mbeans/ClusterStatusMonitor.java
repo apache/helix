@@ -245,18 +245,11 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       // Register beans for instances that are newly configured
       Set<String> toRegister = Sets.newHashSet(instanceSet);
       toRegister.removeAll(_instanceMonitorMap.keySet());
-      Set<InstanceMonitor> monitorsToRegister = Sets.newHashSet();
       for (String instanceName : toRegister) {
-        InstanceMonitor bean = new InstanceMonitor(_clusterName, instanceName);
+        InstanceMonitor bean = getOrCreateInstanceMonitor(instanceName);
         bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
             oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
             !disabledInstanceSet.contains(instanceName));
-        monitorsToRegister.add(bean);
-      }
-      try {
-        registerInstances(monitorsToRegister);
-      } catch (MalformedObjectNameException e) {
-        LOG.error("Could not register instances with MBean server: " + toRegister, e);
       }
 
       // Update all the sets
@@ -281,7 +274,6 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           if (!oldSensorName.equals(newSensorName)) {
             try {
               unregisterInstances(Arrays.asList(instanceName));
-              registerInstances(Arrays.asList(bean));
             } catch (MalformedObjectNameException e) {
               LOG.error("Could not refresh registration with MBean server: " + instanceName, e);
             }
@@ -363,6 +355,35 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         resourceMonitor.increaseMessageCount(messageCountPerResource.get(resource));
       }
     }
+  }
+
+  /**
+   * Update max capacity usage for per instance.
+   * @param maxCapacityUsageMap a map of max capacity usage, {instance: maxCapacityUsage}
+   */
+  public void updateMaxCapacityUsage(Map<String, Double> maxCapacityUsageMap) {
+    for (Map.Entry<String, Double> entry : maxCapacityUsageMap.entrySet()) {
+      getOrCreateInstanceMonitor(entry.getKey()).updateMaxCapacityUsage(entry.getValue());
+    }
+  }
+
+  private InstanceMonitor getOrCreateInstanceMonitor(String instance) {
+    try {
+      if (!_instanceMonitorMap.containsKey(instance)) {
+        synchronized (_instanceMonitorMap) {
+          if (!_instanceMonitorMap.containsKey(instance)) {
+            String beanName = getInstanceBeanName(instance);
+            InstanceMonitor bean =
+                new InstanceMonitor(_clusterName, instance, getObjectName(beanName));
+            _instanceMonitorMap.put(instance, bean);
+          }
+        }
+      }
+    } catch (JMException ex) {
+      LOG.error("Fail to register resource mbean, instance: {}.", instance, ex);
+    }
+
+    return _instanceMonitorMap.get(instance);
   }
 
   /**
@@ -693,21 +714,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     return jobType;
   }
 
-  private void registerInstances(Collection<InstanceMonitor> instances)
-      throws MalformedObjectNameException {
+  private void unregisterAllInstances() {
     synchronized (_instanceMonitorMap) {
-      for (InstanceMonitor monitor : instances) {
-        String instanceName = monitor.getInstanceName();
-        String beanName = getInstanceBeanName(instanceName);
-        register(monitor, getObjectName(beanName));
-        _instanceMonitorMap.put(instanceName, monitor);
-      }
-    }
-  }
-
-  private void unregisterAllInstances() throws MalformedObjectNameException {
-    synchronized (_instanceMonitorMap) {
-      unregisterInstances(_instanceMonitorMap.keySet());
+      _instanceMonitorMap.values().forEach(monitor -> monitor.unregister());
     }
   }
 

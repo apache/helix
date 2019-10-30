@@ -199,6 +199,10 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     _maxCapacityUsageGauge.updateValue(maxCapacityUsage);
   }
 
+  /**
+   * Get max capacity usage of this instance.
+   * @return Max capacity usage of this instance.
+   */
   public synchronized double getMaxCapacityUsageGauge() {
     return _maxCapacityUsageGauge.getValue();
   }

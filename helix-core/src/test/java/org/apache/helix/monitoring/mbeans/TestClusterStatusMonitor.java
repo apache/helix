@@ -318,7 +318,7 @@ public class TestClusterStatusMonitor {
   @Test
   public void testUpdateMaxCapacityUsage()
       throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
-             ReflectionException, InstanceNotFoundException, IntrospectionException {
+             ReflectionException, InstanceNotFoundException {
     String clusterName = "testCluster";
     List<Double> maxUsageList = ImmutableList.of(0.0d, 0.32d, 0.85d, 1.0d, 0.50d, 0.75d);
     Map<String, Double> maxCapacityUsageMap = new HashMap<>();

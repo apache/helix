@@ -256,6 +256,5 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
       return null;
     });
-
   }
 }

@@ -207,7 +207,8 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   public DynamicMBeanProvider register()
       throws JMException {
     List<DynamicMetric<?, ?>> attributeList = ImmutableList.of(
-        _totalMessagedReceivedCounter, _disabledPartitionsGauge,
+        _totalMessagedReceivedCounter,
+        _disabledPartitionsGauge,
         _enabledStatusGauge,
         _onlineStatusGauge,
         _maxCapacityUsageGauge

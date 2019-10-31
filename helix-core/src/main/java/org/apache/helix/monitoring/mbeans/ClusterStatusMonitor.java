@@ -381,7 +381,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
             entry.getKey());
         continue;
       }
-      monitor.updateMaxUsage(entry.getValue());
+      monitor.updateMaxCapacityUsage(entry.getValue());
     }
   }
 

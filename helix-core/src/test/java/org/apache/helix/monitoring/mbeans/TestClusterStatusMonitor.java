@@ -39,6 +39,7 @@ import javax.management.ObjectName;
 import javax.management.ReflectionException;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -358,6 +359,84 @@ public class TestClusterStatusMonitor {
       ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
       Assert.assertFalse(_server.isRegistered(instanceObjectName),
           "Failed to unregister instance monitor for instance: " + instance);
+    }
+  }
+
+  @Test
+  public void testUpdateInstanceCapacity()
+      throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
+             ReflectionException, InstanceNotFoundException {
+    String clusterName = "testCluster";
+    Map<String, Map<String, Integer>> instanceCapacityMap = ImmutableMap
+        .of("instance1", ImmutableMap.of("capacity1", 20, "capacity2", 40), "instance2",
+            ImmutableMap.of("capacity1", 30, "capacity2", 50));
+
+    // Setup cluster status monitor.
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
+    monitor.active();
+    ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
+
+    Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
+
+    monitor.updateInstanceCapacity(instanceCapacityMap);
+
+    // Verify results.
+    verifyCapacityMetrics(monitor, instanceCapacityMap);
+
+    // Change capacity keys: "capacity2" -> "capacity3"
+    instanceCapacityMap = ImmutableMap.of(
+        "instance1", ImmutableMap.of("capacity1", 20, "capacity3", 60),
+        "instance2", ImmutableMap.of("capacity1", 30, "capacity3", 80));
+
+    // Update metrics.
+    monitor.updateInstanceCapacity(instanceCapacityMap);
+
+    // Verify results.
+    verifyCapacityMetrics(monitor, instanceCapacityMap);
+
+    // "capacity2" metric should not exist in MBean server.
+    String removedAttribute = "capacity2Gauge";
+    for (Map.Entry<String, Map<String, Integer>> instanceEntry : instanceCapacityMap.entrySet()) {
+      String instance = instanceEntry.getKey();
+      String instanceBeanName =
+          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
+      ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
+
+      Assert.assertNull(_server.getAttribute(instanceObjectName, removedAttribute));
+    }
+
+    // Reset monitor.
+    monitor.reset();
+    Assert.assertFalse(_server.isRegistered(clusterMonitorObjName),
+        "Failed to unregister ClusterStatusMonitor.");
+    for (String instance : instanceCapacityMap.keySet()) {
+      String instanceBeanName =
+          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
+      ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
+      Assert.assertFalse(_server.isRegistered(instanceObjectName),
+          "Failed to unregister instance monitor for instance: " + instance);
+    }
+  }
+
+  private void verifyCapacityMetrics(ClusterStatusMonitor monitor,
+      Map<String, Map<String, Integer>> instanceCapacityMap)
+      throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
+             ReflectionException, InstanceNotFoundException {
+    // Verify results.
+    for (Map.Entry<String, Map<String, Integer>> instanceEntry : instanceCapacityMap.entrySet()) {
+      String instance = instanceEntry.getKey();
+      Map<String, Integer> capacityMap = instanceEntry.getValue();
+      String instanceBeanName =
+          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
+      ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
+
+      Assert.assertTrue(_server.isRegistered(instanceObjectName));
+
+      for (Map.Entry<String, Integer> capacityEntry : capacityMap.entrySet()) {
+        String attributeName = capacityEntry.getKey() + "Gauge";
+        Assert.assertEquals((long) _server.getAttribute(instanceObjectName, attributeName),
+            (long) instanceCapacityMap.get(instance).get(capacityEntry.getKey()));
+      }
     }
   }
 }

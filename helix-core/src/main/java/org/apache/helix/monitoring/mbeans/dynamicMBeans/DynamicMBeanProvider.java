@@ -88,7 +88,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
           objectName.getCanonicalName());
       return false;
     }
-    updateAttributtInfos(dynamicMetrics, description);
+    updateAttributeInfo(dynamicMetrics, description);
     _objectName = MBeanRegistrar.register(this, objectName);
     return true;
   }
@@ -103,7 +103,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * @param description description of the MBean
    * @param dynamicMetrics the DynamicMetrics
    */
-  private void updateAttributtInfos(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+  public void updateAttributeInfo(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       String description) {
     _attributeMap.clear();
 

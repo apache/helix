@@ -51,6 +51,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private final ImmutableSet<String> _instanceTags;
   private final ImmutableMap<String, List<String>> _disabledPartitionsMap;
   private final ImmutableMap<String, Integer> _maxAllowedCapacity;
+  private final Map<String, Integer> _instanceCapacity;
 
   // Mutable (Dynamic) Instance Properties
   // A map of <resource name, <partition name, replica>> that tracks the replicas assigned to the
@@ -70,13 +71,13 @@ public class AssignableNode implements Comparable<AssignableNode> {
    */
   AssignableNode(ClusterConfig clusterConfig, InstanceConfig instanceConfig, String instanceName) {
     _instanceName = instanceName;
-    Map<String, Integer> instanceCapacity = fetchInstanceCapacity(clusterConfig, instanceConfig);
+    _instanceCapacity = fetchInstanceCapacity(clusterConfig, instanceConfig);
     _faultZone = computeFaultZone(clusterConfig, instanceConfig);
     _instanceTags = ImmutableSet.copyOf(instanceConfig.getTags());
     _disabledPartitionsMap = ImmutableMap.copyOf(instanceConfig.getDisabledPartitionsMap());
     // make a copy of max capacity
-    _maxAllowedCapacity = ImmutableMap.copyOf(instanceCapacity);
-    _remainingCapacity = new HashMap<>(instanceCapacity);
+    _maxAllowedCapacity = ImmutableMap.copyOf(_instanceCapacity);
+    _remainingCapacity = new HashMap<>(_instanceCapacity);
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
     _currentAssignedReplicaMap = new HashMap<>();
   }
@@ -212,6 +213,16 @@ public class AssignableNode implements Comparable<AssignableNode> {
    */
   public Map<String, Integer> getMaxCapacity() {
     return _maxAllowedCapacity;
+  }
+
+  /**
+   * Get the instance's capacity. The returned map only has capacity keys being configured in
+   * cluster config.
+   *
+   * @return A map of this instance's capacity. Map structure: {capacity key: capacity value}
+   */
+  public Map<String, Integer> getInstanceCapacity() {
+    return _instanceCapacity;
   }
 
   /**

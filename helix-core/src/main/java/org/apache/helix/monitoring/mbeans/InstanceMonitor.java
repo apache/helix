@@ -19,6 +19,7 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,15 +31,20 @@ import javax.management.ObjectName;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * Implementation of the instance status bean
  */
 public class InstanceMonitor extends DynamicMBeanProvider {
+  private final static Logger LOG = LoggerFactory.getLogger(InstanceMonitor.class);
+
   /**
    * Metric names for instance capacity.
    */
@@ -64,6 +70,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   private final String _participantName;
   private List<String> _tags;
   private ObjectName _initObjectName;
+  private DynamicMBeanProvider _mBeanProvider;
 
   // Counters
   private SimpleDynamicMetric<Long> _totalMessagedReceivedCounter;
@@ -73,6 +80,9 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _disabledPartitionsGauge;
   private SimpleDynamicMetric<Long> _onlineStatusGauge;
   private SimpleDynamicMetric<Double> _maxCapacityUsageGauge;
+
+  private List<DynamicMetric<?, ?>> _NonCapacityAttributeList;
+  private Map<String, SimpleDynamicMetric<Long>> _capacityMetrics;
 
   /**
    * Initialize the bean
@@ -85,9 +95,10 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     _participantName = participantName;
     _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
     _initObjectName = objectName;
+    _capacityMetrics = Maps.newHashMap();
 
     createMetrics();
-    register();
+    _mBeanProvider = register();
   }
 
   private void createMetrics() {
@@ -104,6 +115,14 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     _maxCapacityUsageGauge =
         new SimpleDynamicMetric<>(InstanceMonitorMetrics.MAX_CAPACITY_USAGE_GAUGE.metricName(),
             0.0d);
+
+    _NonCapacityAttributeList = ImmutableList.of(
+        _totalMessagedReceivedCounter,
+        _disabledPartitionsGauge,
+        _enabledStatusGauge,
+        _onlineStatusGauge,
+        _maxCapacityUsageGauge
+    );
   }
 
   @Override
@@ -207,18 +226,38 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     return _maxCapacityUsageGauge.getValue();
   }
 
+  /**
+   * Update instance capacity metrics.
+   * @param capacityMap A map of instance capacity.
+   */
+  public synchronized void updateCapacity(Map<String, Integer> capacityMap) {
+    if (_capacityMetrics.keySet().equals(capacityMap.keySet())) {
+      for (Map.Entry<String, Integer> entry : capacityMap.entrySet()) {
+        _capacityMetrics.get(entry.getKey()).updateValue((long) entry.getValue());
+      }
+    } else {
+      // If capacity keys have any changes, we need to clear the old capacity metrics
+      // and create new capacity metrics.
+      LOG.info("Updating instance capacity attributes.");
+      _capacityMetrics.clear();
+      for (Map.Entry<String, Integer> entry : capacityMap.entrySet()) {
+        String capacityName = entry.getKey();
+        _capacityMetrics.put(capacityName,
+            new SimpleDynamicMetric<>(capacityName + "Gauge", (long) entry.getValue()));
+      }
+
+      // Update MBean's all attributes.
+      List<DynamicMetric<?, ?>> attributeList = new ArrayList<>(_NonCapacityAttributeList);
+      attributeList.addAll(_capacityMetrics.values());
+      _mBeanProvider.updateAttributeInfo(attributeList,
+          "Instance status monitor for instance: " + getInstanceName());
+    }
+  }
+
   @Override
   public DynamicMBeanProvider register()
       throws JMException {
-    List<DynamicMetric<?, ?>> attributeList = ImmutableList.of(
-        _totalMessagedReceivedCounter,
-        _disabledPartitionsGauge,
-        _enabledStatusGauge,
-        _onlineStatusGauge,
-        _maxCapacityUsageGauge
-    );
-
-    doRegister(attributeList, _initObjectName);
+    doRegister(_NonCapacityAttributeList, _initObjectName);
 
     return this;
   }

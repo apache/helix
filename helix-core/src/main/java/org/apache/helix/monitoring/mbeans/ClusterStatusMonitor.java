@@ -19,10 +19,6 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import javax.management.JMException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +31,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
@@ -359,11 +359,22 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   /**
    * Update max capacity usage for per instance.
-   * @param maxCapacityUsageMap a map of max capacity usage, {instance: maxCapacityUsage}
+   * @param maxCapacityUsageMap A map of max capacity usage, {instance: maxCapacityUsage}
    */
   public void updateMaxCapacityUsage(Map<String, Double> maxCapacityUsageMap) {
     for (Map.Entry<String, Double> entry : maxCapacityUsageMap.entrySet()) {
       getOrCreateInstanceMonitor(entry.getKey()).updateMaxCapacityUsage(entry.getValue());
+    }
+  }
+
+  /**
+   * Update capacity for per instance.
+   * @param instanceCapacityMap A map of instance capacity,
+   *                            {instance: {capacity key: capacity value}}.
+   */
+  public void updateInstanceCapacity(Map<String, Map<String, Integer>> instanceCapacityMap) {
+    for (Map.Entry<String, Map<String, Integer>> instanceEntry : instanceCapacityMap.entrySet()) {
+      getOrCreateInstanceMonitor(instanceEntry.getKey()).updateCapacity(instanceEntry.getValue());
     }
   }
 

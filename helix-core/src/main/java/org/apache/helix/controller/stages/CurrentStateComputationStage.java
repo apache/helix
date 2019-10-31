@@ -29,6 +29,7 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
@@ -251,8 +252,16 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           instanceCapacityMap.put(instanceName, node.getInstanceCapacity());
         }
 
+        Map<String, Map<String, Integer>> partitionWeightMap = new HashMap<>();
+        for (ResourceConfig config : dataProvider.getResourceConfigMap().values()) {
+          Map<String, Integer> averageWeight =
+              ResourceUsageCalculator.calculateAveragePartitionWeight(config);
+          partitionWeightMap.put(config.getResourceName(), averageWeight);
+        }
+
         clusterStatusMonitor.updateMaxCapacityUsage(maxCapacityUsageMap);
         clusterStatusMonitor.updateInstanceCapacity(instanceCapacityMap);
+        clusterStatusMonitor.updatePartitionWeight(partitionWeightMap);
       } catch (Exception ex) {
         LOG.error("Failed to report instance capacity metrics.", ex);
       }

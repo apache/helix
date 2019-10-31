@@ -506,6 +506,18 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
+  public void updatePartitionWeight(Map<String, Map<String, Integer>> partitionWeightMap) {
+    for (Map.Entry<String, Map<String, Integer>> resourceEntry : partitionWeightMap.entrySet()) {
+      try {
+        getOrCreateResourceMonitor(resourceEntry.getKey())
+            .updatePartitionWeight(resourceEntry.getValue());
+      } catch (Exception ex) {
+        LOG.error("Failed to update partition weight metric for resource: {}.",
+            resourceEntry.getKey(), ex);
+      }
+    }
+  }
+
   public void updateMissingTopStateDurationStats(String resourceName, long totalDuration,
       long helixLatency, boolean isGraceful, boolean succeeded) {
     ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);

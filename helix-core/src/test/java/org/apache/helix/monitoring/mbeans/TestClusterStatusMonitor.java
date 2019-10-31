@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Random;
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
-import javax.management.IntrospectionException;
 import javax.management.JMException;
 import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
@@ -367,9 +366,9 @@ public class TestClusterStatusMonitor {
       throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
              ReflectionException, InstanceNotFoundException {
     String clusterName = "testCluster";
-    Map<String, Map<String, Integer>> instanceCapacityMap = ImmutableMap
-        .of("instance1", ImmutableMap.of("capacity1", 20, "capacity2", 40), "instance2",
-            ImmutableMap.of("capacity1", 30, "capacity2", 50));
+    Map<String, Map<String, Integer>> instanceCapacityMap = ImmutableMap.of(
+        "instance1", ImmutableMap.of("capacity1", 20, "capacity2", 40),
+        "instance2", ImmutableMap.of("capacity1", 30, "capacity2", 50));
 
     // Setup cluster status monitor.
     ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
@@ -381,7 +380,7 @@ public class TestClusterStatusMonitor {
     monitor.updateInstanceCapacity(instanceCapacityMap);
 
     // Verify results.
-    verifyCapacityMetrics(monitor, instanceCapacityMap);
+    verifyCapacityMetrics(monitor, ClusterStatusMonitor.INSTANCE_DN_KEY, instanceCapacityMap);
 
     // Change capacity keys: "capacity2" -> "capacity3"
     instanceCapacityMap = ImmutableMap.of(
@@ -392,7 +391,7 @@ public class TestClusterStatusMonitor {
     monitor.updateInstanceCapacity(instanceCapacityMap);
 
     // Verify results.
-    verifyCapacityMetrics(monitor, instanceCapacityMap);
+    verifyCapacityMetrics(monitor, ClusterStatusMonitor.INSTANCE_DN_KEY, instanceCapacityMap);
 
     // "capacity2" metric should not exist in MBean server.
     String removedAttribute = "capacity2Gauge";
@@ -418,24 +417,78 @@ public class TestClusterStatusMonitor {
     }
   }
 
-  private void verifyCapacityMetrics(ClusterStatusMonitor monitor,
-      Map<String, Map<String, Integer>> instanceCapacityMap)
+  @Test
+  public void testUpdatePartitionWeight()
+      throws IOException, MalformedObjectNameException, AttributeNotFoundException, MBeanException,
+             ReflectionException, InstanceNotFoundException {
+    String clusterName = "testCluster";
+    Map<String, Map<String, Integer>> partitionWeightMap = ImmutableMap.of(
+        "resource1", ImmutableMap.of("capacity1", 20, "capacity2", 40),
+        "resource2", ImmutableMap.of("capacity1", 30, "capacity2", 50));
+
+    // Setup cluster status monitor.
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
+    monitor.active();
+    ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
+
+    Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
+
+    monitor.updatePartitionWeight(partitionWeightMap);
+
+    // Verify results.
+    verifyCapacityMetrics(monitor, ClusterStatusMonitor.RESOURCE_DN_KEY, partitionWeightMap);
+
+    // Change capacity keys: "capacity2" -> "capacity3"
+    partitionWeightMap = ImmutableMap.of(
+        "resource1", ImmutableMap.of("capacity1", 20, "capacity3", 60),
+        "resource2", ImmutableMap.of("capacity1", 30, "capacity3", 80));
+
+    // Update metrics.
+    monitor.updatePartitionWeight(partitionWeightMap);
+
+    // Verify results.
+    verifyCapacityMetrics(monitor, ClusterStatusMonitor.RESOURCE_DN_KEY, partitionWeightMap);
+
+    // "capacity2" metric should not exist in MBean server.
+    String removedAttribute = "capacity2Gauge";
+    for (Map.Entry<String, Map<String, Integer>> entry : partitionWeightMap.entrySet()) {
+      String resourceName = entry.getKey();
+      String beanName = String
+          .format("%s,%s=%s", monitor.clusterBeanName(), monitor.RESOURCE_DN_KEY, resourceName);
+      ObjectName objectName = monitor.getObjectName(beanName);
+
+      Assert.assertNull(_server.getAttribute(objectName, removedAttribute));
+    }
+
+    // Reset monitor.
+    monitor.reset();
+    Assert.assertFalse(_server.isRegistered(clusterMonitorObjName),
+        "Failed to unregister ClusterStatusMonitor.");
+    for (String resourceName : partitionWeightMap.keySet()) {
+      String beanName =
+          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.RESOURCE_DN_KEY, resourceName);
+      ObjectName objectName = monitor.getObjectName(beanName);
+      Assert.assertFalse(_server.isRegistered(objectName),
+          "Failed to unregister instance monitor for instance: " + resourceName);
+    }
+  }
+
+  private void verifyCapacityMetrics(ClusterStatusMonitor monitor, String dnKey,
+      Map<String, Map<String, Integer>> capacityMap)
       throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
              ReflectionException, InstanceNotFoundException {
     // Verify results.
-    for (Map.Entry<String, Map<String, Integer>> instanceEntry : instanceCapacityMap.entrySet()) {
-      String instance = instanceEntry.getKey();
-      Map<String, Integer> capacityMap = instanceEntry.getValue();
-      String instanceBeanName =
-          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
-      ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
+    for (Map.Entry<String, Map<String, Integer>> entry : capacityMap.entrySet()) {
+      String name = entry.getKey();
+      Map<String, Integer> capacity = entry.getValue();
+      String beanName = String.format("%s,%s=%s", monitor.clusterBeanName(), dnKey, name);
+      ObjectName objectName = monitor.getObjectName(beanName);
+      Assert.assertTrue(_server.isRegistered(objectName));
 
-      Assert.assertTrue(_server.isRegistered(instanceObjectName));
-
-      for (Map.Entry<String, Integer> capacityEntry : capacityMap.entrySet()) {
+      for (Map.Entry<String, Integer> capacityEntry : capacity.entrySet()) {
         String attributeName = capacityEntry.getKey() + "Gauge";
-        Assert.assertEquals((long) _server.getAttribute(instanceObjectName, attributeName),
-            (long) instanceCapacityMap.get(instance).get(capacityEntry.getKey()));
+        Assert.assertEquals((long) _server.getAttribute(objectName, attributeName),
+            (long) capacityMap.get(name).get(capacityEntry.getKey()));
       }
     }
   }

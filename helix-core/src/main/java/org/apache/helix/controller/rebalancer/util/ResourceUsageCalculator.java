@@ -19,16 +19,24 @@ package org.apache.helix.controller.rebalancer.util;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class ResourceUsageCalculator {
+  private static final Logger LOG = LoggerFactory.getLogger(ResourceUsageCalculator.class);
+
   /**
    * A convenient tool for calculating partition capacity usage based on the assignment and resource weight provider.
    *
@@ -140,5 +148,46 @@ public class ResourceUsageCalculator {
 
     return numTotalBestPossibleReplicas == 0 ? 0.0d
         : (double) numMatchedReplicas / (double) numTotalBestPossibleReplicas;
+  }
+
+  /**
+   * Calculate average partition weight per capacity key for a resource config.
+   *
+   * @param resourceConfig Resource config
+   * @return A map of partition weight. {capacity key: partition weight}
+   */
+  public static Map<String, Integer> calculateAveragePartitionWeight(
+      ResourceConfig resourceConfig) {
+    // Map structure: {capacity key: [per capacity key entries, total weight per capacity key]}
+    Map<String, List<Integer>> countPartitionWeightMap = new HashMap<>();
+
+    try {
+      for (Map.Entry<String, Map<String, Integer>> partitionWeightEntry
+          : resourceConfig.getPartitionCapacityMap().entrySet()) {
+        Map<String, Integer> partitionWeightMap = partitionWeightEntry.getValue();
+        for (Map.Entry<String, Integer> weightEntry : partitionWeightMap.entrySet()) {
+          String capacityKey = weightEntry.getKey();
+          int weight = weightEntry.getValue();
+          List<Integer> weightCounter =
+              countPartitionWeightMap.computeIfAbsent(capacityKey, list -> Arrays.asList(0, 0));
+          weightCounter.set(0, weightCounter.get(0) + 1);
+          weightCounter.set(1, weightCounter.get(1) + weight);
+        }
+      }
+    } catch (IOException ex) {
+      LOG.error("Failed to calculate average weight for resource: {}",
+          resourceConfig.getResourceName(), ex);
+    }
+
+    // {capacity key: average partition weight}
+    Map<String, Integer> averagePartitionWeightMap = new HashMap<>();
+    for (Map.Entry<String, List<Integer>> entry : countPartitionWeightMap.entrySet()) {
+      String capacityKey = entry.getKey();
+      List<Integer> weightCounter = entry.getValue();
+      int averageWeight = weightCounter.get(1) / weightCounter.get(0);
+      averagePartitionWeightMap.put(capacityKey, averageWeight);
+    }
+
+    return averagePartitionWeightMap;
   }
 }

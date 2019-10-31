@@ -23,6 +23,7 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 import javax.management.ObjectName;
+
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -82,31 +85,16 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private final String _clusterName;
   private final ObjectName _initObjectName;
 
+  private List<DynamicMetric<?, ?>> _nonWeightAttributeList;
+  private final Map<String, SimpleDynamicMetric<Long>> _capacityAttributeMap;
+
   @Override
-  public ResourceMonitor register() throws JMException {
-    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
-    attributeList.add(_numOfPartitions);
-    attributeList.add(_numOfPartitionsInExternalView);
-    attributeList.add(_numOfErrorPartitions);
-    attributeList.add(_numNonTopStatePartitions);
-    attributeList.add(_numLessMinActiveReplicaPartitions);
-    attributeList.add(_numLessReplicaPartitions);
-    attributeList.add(_numPendingRecoveryRebalancePartitions);
-    attributeList.add(_numPendingLoadRebalancePartitions);
-    attributeList.add(_numRecoveryRebalanceThrottledPartitions);
-    attributeList.add(_numLoadRebalanceThrottledPartitions);
-    attributeList.add(_externalViewIdealStateDiff);
-    attributeList.add(_successfulTopStateHandoffDurationCounter);
-    attributeList.add(_successTopStateHandoffCounter);
-    attributeList.add(_failedTopStateHandoffCounter);
-    attributeList.add(_maxSinglePartitionTopStateHandoffDuration);
-    attributeList.add(_partitionTopStateHandoffDurationGauge);
-    attributeList.add(_partitionTopStateHandoffHelixLatencyGauge);
-    attributeList.add(_partitionTopStateNonGracefulHandoffDurationGauge);
-    attributeList.add(_totalMessageReceived);
-    attributeList.add(_numPendingStateTransitions);
-    attributeList.add(_rebalanceState);
+  public DynamicMBeanProvider register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>(_nonWeightAttributeList);
+    attributeList.addAll(_capacityAttributeMap.values());
+
     doRegister(attributeList, _initObjectName);
+
     return this;
   }
 
@@ -115,10 +103,12 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   }
 
   @SuppressWarnings("unchecked")
-  public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName) {
+  public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName)
+      throws JMException {
     _clusterName = clusterName;
     _resourceName = resourceName;
     _initObjectName = objectName;
+    _capacityAttributeMap = new HashMap<>();
 
     _externalViewIdealStateDiff = new SimpleDynamicMetric("DifferenceWithIdealStateGauge", 0L);
     _numLoadRebalanceThrottledPartitions =
@@ -158,6 +148,32 @@ public class ResourceMonitor extends DynamicMBeanProvider {
         new SimpleDynamicMetric("SuccessfulTopStateHandoffDurationCounter", 0L);
 
     _rebalanceState = new SimpleDynamicMetric<>("RebalanceStatus", RebalanceStatus.UNKNOWN.name());
+
+    _nonWeightAttributeList = ImmutableList.of(
+        _numOfPartitions,
+        _numOfPartitionsInExternalView,
+        _numOfErrorPartitions,
+        _numNonTopStatePartitions,
+        _numLessMinActiveReplicaPartitions,
+        _numLessReplicaPartitions,
+        _numPendingRecoveryRebalancePartitions,
+        _numPendingLoadRebalancePartitions,
+        _numRecoveryRebalanceThrottledPartitions,
+        _numLoadRebalanceThrottledPartitions,
+        _externalViewIdealStateDiff,
+        _successfulTopStateHandoffDurationCounter,
+        _successTopStateHandoffCounter,
+        _failedTopStateHandoffCounter,
+        _maxSinglePartitionTopStateHandoffDuration,
+        _partitionTopStateHandoffDurationGauge,
+        _partitionTopStateHandoffHelixLatencyGauge,
+        _partitionTopStateNonGracefulHandoffDurationGauge,
+        _totalMessageReceived,
+        _numPendingStateTransitions,
+        _rebalanceState
+    );
+
+    register();
   }
 
   @Override
@@ -379,6 +395,33 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numPendingLoadRebalancePartitions.updateValue(numPendingLoadRebalancePartitions);
     _numRecoveryRebalanceThrottledPartitions.updateValue(numRecoveryRebalanceThrottledPartitions);
     _numLoadRebalanceThrottledPartitions.updateValue(numLoadRebalanceThrottledPartitions);
+  }
+
+  /**
+   * Update partition weight metric.
+   *
+   * @param partitionWeightMap A map of partition weight, {capacity key: weight}
+   */
+  public void updatePartitionWeight(Map<String, Integer> partitionWeightMap) {
+    if (_capacityAttributeMap.keySet().equals(partitionWeightMap.keySet())) {
+      for (Map.Entry<String, Integer> entry : partitionWeightMap.entrySet()) {
+        _capacityAttributeMap.get(entry.getKey()).updateValue((long) entry.getValue());
+      }
+    } else {
+      _logger.info("Capacity keys are changed. Updating MBean attribute info for resource: {}.",
+          getResourceName());
+      _capacityAttributeMap.clear();
+      for (Map.Entry<String, Integer> entry : partitionWeightMap.entrySet()) {
+        String capacityKey = entry.getKey();
+        _capacityAttributeMap.put(capacityKey,
+            new SimpleDynamicMetric<>(capacityKey + "Gauge", (long) entry.getValue()));
+      }
+    }
+
+    // Update MBean's all attributes.
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>(_nonWeightAttributeList);
+    attributeList.addAll(_capacityAttributeMap.values());
+    updateAttributeInfo(attributeList, "Resource monitor for resource: " + getResourceName());
   }
 
   public void setRebalanceState(RebalanceStatus state) {

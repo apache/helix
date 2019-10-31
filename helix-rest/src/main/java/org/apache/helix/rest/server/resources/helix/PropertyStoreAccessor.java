@@ -28,7 +28,6 @@ import javax.ws.rs.core.Response;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.rest.server.service.PropertyStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,16 +56,26 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
           .build());
     }
     String propertyStoreRootPath = PropertyPathBuilder.propertyStore(clusterId);
-    PropertyStoreService propertyStoreService = new PropertyStoreService(getHelixZkClient());
+    Object content;
     try {
-      ZNRecord record = propertyStoreService.readRecord(propertyStoreRootPath + path);
-      return JSONRepresentation(record);
+      // throw exception instead of returning null
+      content = getHelixZkClient().readData(propertyStoreRootPath + path, false);
     } catch (ZkNoNodeException e) {
       String errorMessage = "The node doesn't exist for propertyStore path: " + path;
       LOG.error(errorMessage);
       throw new WebApplicationException(
           Response.status(Response.Status.NOT_FOUND).entity(errorMessage).build());
     }
+    try {
+      return JSONRepresentation(ZNRecord.class.cast(content));
+    } catch (ClassCastException e) {
+      LOG.warn("The content of node at path {} is not ZNRecord format", path);
+    }
+
+    // fallback to a default and simple ZNRecord
+    ZNRecord znRecord = new ZNRecord(path);
+    znRecord.setSimpleField(path, content.toString());
+    return JSONRepresentation(znRecord);
   }
 
   /**

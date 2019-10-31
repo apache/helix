@@ -80,8 +80,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
    * @param clusterName the cluster to monitor
    * @param participantName the instance whose statistics this holds
    */
-  public InstanceMonitor(String clusterName, String participantName, ObjectName objectName)
-      throws JMException {
+  public InstanceMonitor(String clusterName, String participantName, ObjectName objectName) {
     _clusterName = clusterName;
     _participantName = participantName;
     _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);

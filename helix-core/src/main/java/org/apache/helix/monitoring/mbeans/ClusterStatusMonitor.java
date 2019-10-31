@@ -250,7 +250,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
             oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
             !disabledInstanceSet.contains(instanceName));
           monitorsToRegister.add(bean);
-        } catch (JMException ex) {
+        } catch (MalformedObjectNameException ex) {
           LOG.error("Failed to create instance monitor for instance: {}.", instanceName);
         }
       }
@@ -284,7 +284,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
               unregisterInstances(Arrays.asList(instanceName));
               registerInstances(Arrays.asList(bean));
             } catch (JMException e) {
-              LOG.error("Could not refresh registration with MBean server: " + instanceName, e);
+              LOG.error("Could not refresh registration with MBean server: {}", instanceName, e);
             }
           }
         }

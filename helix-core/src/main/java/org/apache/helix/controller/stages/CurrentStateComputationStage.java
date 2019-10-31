@@ -242,14 +242,14 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         ClusterModel clusterModel = ClusterModelProvider.generateClusterModelFromCurrentState(
             dataProvider, resourceMap, currentStateAssignment);
 
-        Map<String, Double> maxCapacityUsageMap = new HashMap<>();
+        Map<String, Double> maxUsageMap = new HashMap<>();
         for (AssignableNode node : clusterModel.getAssignableNodes().values()) {
           String instanceName = node.getInstanceName();
           double usage = node.getProjectedHighestUtilization(Collections.emptyMap());
-          maxCapacityUsageMap.put(instanceName, usage);
+          maxUsageMap.put(instanceName, usage);
         }
 
-        clusterStatusMonitor.updateMaxCapacityUsage(maxCapacityUsageMap);
+        clusterStatusMonitor.updateInstanceMaxUsage(maxUsageMap);
       } catch (Exception ex) {
         LOG.error("Failed to report instance capacity metrics.", ex);
       }

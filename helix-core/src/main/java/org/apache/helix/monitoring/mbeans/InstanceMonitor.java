@@ -195,7 +195,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
    * Update max capacity usage for this instance.
    * @param maxCapacityUsage max capacity usage of this instance
    */
-  public synchronized void updateMaxCapacityUsage(double maxCapacityUsage) {
+  public synchronized void updateMaxUsage(double maxCapacityUsage) {
     _maxCapacityUsageGauge.updateValue(maxCapacityUsage);
   }
 

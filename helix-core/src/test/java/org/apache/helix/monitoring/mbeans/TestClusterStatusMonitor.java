@@ -22,6 +22,7 @@ package org.apache.helix.monitoring.mbeans;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -30,7 +31,6 @@ import java.util.Map;
 import java.util.Random;
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
-import javax.management.IntrospectionException;
 import javax.management.JMException;
 import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
@@ -321,9 +321,9 @@ public class TestClusterStatusMonitor {
              ReflectionException, InstanceNotFoundException {
     String clusterName = "testCluster";
     List<Double> maxUsageList = ImmutableList.of(0.0d, 0.32d, 0.85d, 1.0d, 0.50d, 0.75d);
-    Map<String, Double> maxCapacityUsageMap = new HashMap<>();
+    Map<String, Double> maxUsageMap = new HashMap<>();
     for (int i = 0; i < maxUsageList.size(); i++) {
-      maxCapacityUsageMap.put("instance" + i, maxUsageList.get(i));
+      maxUsageMap.put("instance" + i, maxUsageList.get(i));
     }
 
     // Setup cluster status monitor.
@@ -333,11 +333,15 @@ public class TestClusterStatusMonitor {
 
     Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
 
-    // Update stats.
-    monitor.updateMaxCapacityUsage(maxCapacityUsageMap);
+    // Call setClusterInstanceStatus to register instance monitors.
+    monitor.setClusterInstanceStatus(maxUsageMap.keySet(), maxUsageMap.keySet(),
+        Collections.emptySet(), Collections.emptyMap(), Collections.emptyMap(),
+        Collections.emptyMap());
+    // Update max usage stats.
+    monitor.updateInstanceMaxUsage(maxUsageMap);
 
     // Verify results.
-    for (Map.Entry<String, Double> entry : maxCapacityUsageMap.entrySet()) {
+    for (Map.Entry<String, Double> entry : maxUsageMap.entrySet()) {
       String instance = entry.getKey();
       double usage = entry.getValue();
       String instanceBeanName =
@@ -352,7 +356,7 @@ public class TestClusterStatusMonitor {
     monitor.reset();
     Assert.assertFalse(_server.isRegistered(clusterMonitorObjName),
         "Failed to unregister ClusterStatusMonitor.");
-    for (String instance : maxCapacityUsageMap.keySet()) {
+    for (String instance : maxUsageMap.keySet()) {
       String instanceBeanName =
           String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
       ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);

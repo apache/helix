@@ -157,6 +157,15 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
     _objectName = null;
   }
 
+  /**
+   * Check whether the MBean is registered or not.
+   *
+   * @return True, if the MBean is already registered. Otherwise, false.
+   */
+  public boolean isRegister() {
+    return _objectName != null;
+  }
+
   @Override
   public Object getAttribute(String attribute)
       throws AttributeNotFoundException, MBeanException, ReflectionException {

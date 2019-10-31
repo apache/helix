@@ -57,7 +57,7 @@ public class TestInstanceMonitor {
     Assert.assertEquals(monitor.getMaxCapacityUsageGauge(), 0.0d);
 
     // Update metrics.
-    monitor.updateMaxCapacityUsage(0.5d);
+    monitor.updateMaxUsage(0.5d);
     monitor.increaseMessageCount(10L);
     monitor.updateInstance(tags, disabledPartitions, Collections.emptyList(), true, true);
 

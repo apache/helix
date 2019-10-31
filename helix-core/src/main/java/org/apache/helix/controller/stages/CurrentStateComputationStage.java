@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import org.apache.helix.controller.LogUtil;
@@ -30,6 +31,7 @@ import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
@@ -41,6 +43,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,8 +92,11 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     final ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
     if (clusterStatusMonitor != null && cache instanceof ResourceControllerDataProvider) {
-      reportInstanceCapacityMetrics(clusterStatusMonitor, (ResourceControllerDataProvider) cache,
-          resourceToRebalance, currentStateOutput);
+      final ResourceControllerDataProvider dataProvider = (ResourceControllerDataProvider) cache;
+      reportInstanceCapacityMetrics(clusterStatusMonitor, dataProvider, resourceToRebalance,
+          currentStateOutput);
+      reportResourcePartitionCapacityMetrics(dataProvider.getAsyncTasksThreadPool(),
+          clusterStatusMonitor, dataProvider.getResourceConfigMap().values());
     }
   }
 
@@ -265,6 +271,24 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         }
       } catch (Exception ex) {
         LOG.error("Failed to report instance capacity metrics. Exception message: {}",
+            ex.getMessage());
+      }
+
+      return null;
+    });
+  }
+
+  private void reportResourcePartitionCapacityMetrics(ExecutorService executorService,
+      ClusterStatusMonitor clusterStatusMonitor, Collection<ResourceConfig> resourceConfigs) {
+    asyncExecute(executorService, () -> {
+      try {
+        for (ResourceConfig config : resourceConfigs) {
+          Map<String, Integer> averageWeight = ResourceUsageCalculator
+              .calculateAveragePartitionWeight(config.getPartitionCapacityMap());
+          clusterStatusMonitor.updatePartitionWeight(config.getResourceName(), averageWeight);
+        }
+      } catch (Exception ex) {
+        LOG.error("Failed to report resource partition capacity metrics. Exception message: {}",
             ex.getMessage());
       }
 

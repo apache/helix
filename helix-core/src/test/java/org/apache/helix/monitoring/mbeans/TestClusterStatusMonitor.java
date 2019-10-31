@@ -401,11 +401,85 @@ public class TestClusterStatusMonitor {
     Assert.assertFalse(_server.isRegistered(clusterMonitorObjName),
         "Failed to unregister ClusterStatusMonitor.");
     for (String instance : maxUsageMap.keySet()) {
-      String instanceBeanName =
-          String.format("%s,%s=%s", monitor.clusterBeanName(), ClusterStatusMonitor.INSTANCE_DN_KEY, instance);
+      String instanceBeanName = String
+          .format("%s,%s=%s", monitor.clusterBeanName(), ClusterStatusMonitor.INSTANCE_DN_KEY,
+              instance);
       ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
       Assert.assertFalse(_server.isRegistered(instanceObjectName),
           "Failed to unregister instance monitor for instance: " + instance);
+    }
+  }
+
+  @Test
+  public void testUpdatePartitionWeight()
+      throws IOException, MalformedObjectNameException, AttributeNotFoundException, MBeanException,
+             ReflectionException, InstanceNotFoundException {
+    String clusterName = TestHelper.getTestMethodName();
+    Map<String, Map<String, Integer>> partitionWeightMap = ImmutableMap.of(
+        "resource1", ImmutableMap.of("capacity1", 20, "capacity2", 40),
+        "resource2", ImmutableMap.of("capacity1", 30, "capacity2", 50));
+
+    // Setup cluster status monitor.
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
+    monitor.active();
+    ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
+
+    Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
+
+    // Register resource monitor. Otherwise, updatePartitionWeight() would fail.
+    partitionWeightMap.keySet().forEach(resourceName -> {
+      try {
+        monitor.getOrCreateResourceMonitor(resourceName).register();
+      } catch (JMException e) {
+        Assert.fail("Resource monitor could not register to MBean server.");
+      }
+    });
+
+    // Update Metrics
+    partitionWeightMap.forEach(monitor::updatePartitionWeight);
+
+    verifyPartitionWeightMetrics(monitor, partitionWeightMap);
+
+    // Change capacity keys: "capacity2" -> "capacity3"
+    partitionWeightMap = ImmutableMap.of(
+        "resource1", ImmutableMap.of("capacity1", 20, "capacity3", 60),
+        "resource2", ImmutableMap.of("capacity1", 30, "capacity3", 80));
+
+    // Update metrics.
+    partitionWeightMap.forEach(monitor::updatePartitionWeight);
+
+    // Verify results.
+    verifyPartitionWeightMetrics(monitor, partitionWeightMap);
+
+    // "capacity2" metric should not exist in MBean server.
+    String removedAttribute = "capacity2Gauge";
+    for (Map.Entry<String, Map<String, Integer>> entry : partitionWeightMap.entrySet()) {
+      String resourceName = entry.getKey();
+      String beanName = String
+          .format("%s,%s=%s", monitor.clusterBeanName(), ClusterStatusMonitor.RESOURCE_DN_KEY,
+              resourceName);
+      ObjectName objectName = monitor.getObjectName(beanName);
+
+      try {
+        _server.getAttribute(objectName, removedAttribute);
+        Assert.fail("AttributeNotFoundException should be thrown because attribute [capacity2Gauge]"
+            + " is removed.");
+      } catch (AttributeNotFoundException expected) {
+        // AttributeNotFoundException is expected because attribute [capacity2Gauge] is removed.
+      }
+    }
+
+    // Reset monitor.
+    monitor.reset();
+    Assert.assertFalse(_server.isRegistered(clusterMonitorObjName),
+        "Failed to unregister ClusterStatusMonitor.");
+    for (String resourceName : partitionWeightMap.keySet()) {
+      String beanName = String
+          .format("%s,%s=%s", monitor.clusterBeanName(), ClusterStatusMonitor.RESOURCE_DN_KEY,
+              resourceName);
+      ObjectName objectName = monitor.getObjectName(beanName);
+      Assert.assertFalse(_server.isRegistered(objectName),
+          "Failed to unregister instance monitor for instance: " + resourceName);
     }
   }
 
@@ -432,6 +506,29 @@ public class TestClusterStatusMonitor {
         String attributeName = capacityKey + "Gauge";
         Assert.assertEquals((long) _server.getAttribute(instanceObjectName, attributeName),
             (long) instanceCapacityMap.get(instance).get(capacityKey));
+      }
+    }
+  }
+
+  private void verifyPartitionWeightMetrics(ClusterStatusMonitor monitor,
+      Map<String, Map<String, Integer>> expectedPartitionWeightMap)
+      throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
+             ReflectionException, InstanceNotFoundException {
+    final String gaugeMetricSuffix = "Gauge";
+    for (Map.Entry<String, Map<String, Integer>> entry : expectedPartitionWeightMap.entrySet()) {
+      String resourceName = entry.getKey();
+      String beanName = String
+          .format("%s,%s=%s", monitor.clusterBeanName(), ClusterStatusMonitor.RESOURCE_DN_KEY,
+              resourceName);
+      ObjectName objectName = monitor.getObjectName(beanName);
+
+      // Resource monitor for this resource is already registered.
+      Assert.assertTrue(_server.isRegistered(objectName));
+
+      for (Map.Entry<String, Integer> capacityEntry : entry.getValue().entrySet()) {
+        String attributeName = capacityEntry.getKey() + gaugeMetricSuffix;
+        Assert.assertEquals((long) _server.getAttribute(objectName, attributeName),
+            (long) capacityEntry.getValue());
       }
     }
   }

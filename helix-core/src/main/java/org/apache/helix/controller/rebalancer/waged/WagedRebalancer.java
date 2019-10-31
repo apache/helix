@@ -401,11 +401,17 @@ public class WagedRebalancer {
 
     // Asynchronously report baseline divergence metric before persisting to metadata store,
     // just in case if persisting fails, we still have the metric.
+    // To avoid changes of the new assignment and make it safe when being used to measure baseline
+    // divergence, use a deep copy of the new assignment.
+    Map<String, ResourceAssignment> newAssignmentCopy = new HashMap<>();
+    for (Map.Entry<String, ResourceAssignment> entry : newAssignment.entrySet()) {
+      newAssignmentCopy.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
+    }
     BaselineDivergenceGauge baselineDivergenceGauge = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
         BaselineDivergenceGauge.class);
     baselineDivergenceGauge.asyncMeasureAndUpdateValue(clusterData.getAsyncTasksThreadPool(),
-        currentBaseline, newAssignment);
+        currentBaseline, newAssignmentCopy);
 
     if (_assignmentMetadataStore != null) {
       try {

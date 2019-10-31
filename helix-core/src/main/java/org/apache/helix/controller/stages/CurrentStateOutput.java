@@ -435,7 +435,7 @@ public class CurrentStateOutput {
    * @param resourceSet a set of resources' names
    * @return a map of current state resource assignment, {resourceName: resourceAssignment}
    */
-  public Map<String, ResourceAssignment> getCurrentStateAssignment(Set<String> resourceSet) {
+  public Map<String, ResourceAssignment> getAssignment(Set<String> resourceSet) {
     Map<String, ResourceAssignment> currentStateAssignment = new HashMap<>();
     for (String resourceName : resourceSet) {
       Map<Partition, Map<String, String>> currentStateMap =

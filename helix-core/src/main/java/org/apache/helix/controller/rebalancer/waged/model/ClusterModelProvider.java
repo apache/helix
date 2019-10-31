@@ -99,15 +99,15 @@ public class ClusterModelProvider {
    * @param resourceMap            The full list of the resources to be rebalanced. Note that any
    *                               resources that are not in this list will be removed from the
    *                               final assignment.
-   * @param bestPossibleAssignment The resource assignment built from current state output.
+   * @param currentStateAssignment The resource assignment built from current state output.
    * @return A cluster model based on the current state and data cache.
    */
   public static ClusterModel generateClusterModelFromCurrentState(
       ResourceControllerDataProvider dataProvider,
       Map<String, Resource> resourceMap,
-      Map<String, ResourceAssignment> bestPossibleAssignment) {
+      Map<String, ResourceAssignment> currentStateAssignment) {
     return generateClusterModel(dataProvider, resourceMap, dataProvider.getEnabledLiveInstances(),
-        Collections.emptyMap(), Collections.emptyMap(), bestPossibleAssignment);
+        Collections.emptyMap(), Collections.emptyMap(), currentStateAssignment);
   }
 
   /**

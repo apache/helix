@@ -534,7 +534,7 @@ public class WagedRebalancer {
     }
     if (currentBaseline.isEmpty()) {
       LOG.warn("The current baseline assignment record is empty. Use the current states instead.");
-      currentBaseline = currentStateOutput.getCurrentStateAssignment(resources);
+      currentBaseline = currentStateOutput.getAssignment(resources);
     }
     currentBaseline.keySet().retainAll(resources);
     return currentBaseline;
@@ -569,7 +569,7 @@ public class WagedRebalancer {
     if (currentBestAssignment.isEmpty()) {
       LOG.warn(
           "The current best possible assignment record is empty. Use the current states instead.");
-      currentBestAssignment = currentStateOutput.getCurrentStateAssignment(resources);
+      currentBestAssignment = currentStateOutput.getAssignment(resources);
     }
     currentBestAssignment.keySet().retainAll(resources);
     return currentBestAssignment;

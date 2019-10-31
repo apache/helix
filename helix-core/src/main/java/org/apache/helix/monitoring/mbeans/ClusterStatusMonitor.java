@@ -236,20 +236,28 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       // Unregister beans for instances that are no longer configured
       Set<String> toUnregister = Sets.newHashSet(_instanceMonitorMap.keySet());
       toUnregister.removeAll(instanceSet);
-      try {
-        unregisterInstances(toUnregister);
-      } catch (MalformedObjectNameException e) {
-        LOG.error("Could not unregister instances from MBean server: " + toUnregister, e);
-      }
+      unregisterInstances(toUnregister);
 
       // Register beans for instances that are newly configured
       Set<String> toRegister = Sets.newHashSet(instanceSet);
       toRegister.removeAll(_instanceMonitorMap.keySet());
+      Set<InstanceMonitor> monitorsToRegister = Sets.newHashSet();
       for (String instanceName : toRegister) {
-        InstanceMonitor bean = getOrCreateInstanceMonitor(instanceName);
+        try {
+        ObjectName objectName = getObjectName(getInstanceBeanName(instanceName));
+        InstanceMonitor bean = new InstanceMonitor(_clusterName, instanceName, objectName);
         bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
             oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
             !disabledInstanceSet.contains(instanceName));
+          monitorsToRegister.add(bean);
+        } catch (JMException ex) {
+          LOG.error("Failed to create instance monitor for instance: {}.", instanceName);
+        }
+      }
+      try {
+        registerInstances(monitorsToRegister);
+      } catch (JMException e) {
+        LOG.error("Could not register instances with MBean server: {}.", toRegister, e);
       }
 
       // Update all the sets
@@ -274,7 +282,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           if (!oldSensorName.equals(newSensorName)) {
             try {
               unregisterInstances(Arrays.asList(instanceName));
-            } catch (MalformedObjectNameException e) {
+              registerInstances(Arrays.asList(bean));
+            } catch (JMException e) {
               LOG.error("Could not refresh registration with MBean server: " + instanceName, e);
             }
           }
@@ -359,31 +368,18 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   /**
    * Update max capacity usage for per instance.
-   * @param maxCapacityUsageMap a map of max capacity usage, {instance: maxCapacityUsage}
+   * @param maxUsageMap a map of max capacity usage, {instance: maxCapacityUsage}
    */
-  public void updateMaxCapacityUsage(Map<String, Double> maxCapacityUsageMap) {
-    for (Map.Entry<String, Double> entry : maxCapacityUsageMap.entrySet()) {
-      getOrCreateInstanceMonitor(entry.getKey()).updateMaxCapacityUsage(entry.getValue());
-    }
-  }
-
-  private InstanceMonitor getOrCreateInstanceMonitor(String instance) {
-    try {
-      if (!_instanceMonitorMap.containsKey(instance)) {
-        synchronized (_instanceMonitorMap) {
-          if (!_instanceMonitorMap.containsKey(instance)) {
-            String beanName = getInstanceBeanName(instance);
-            InstanceMonitor bean =
-                new InstanceMonitor(_clusterName, instance, getObjectName(beanName));
-            _instanceMonitorMap.put(instance, bean);
-          }
-        }
+  public void updateMaxCapacityUsage(Map<String, Double> maxUsageMap) {
+    for (Map.Entry<String, Double> entry : maxUsageMap.entrySet()) {
+      InstanceMonitor monitor = _instanceMonitorMap.get(entry.getKey());
+      if (monitor == null) {
+        LOG.warn("Failed to update max usage because instance monitor is not found, instance: {}.",
+            entry.getKey());
+        continue;
       }
-    } catch (JMException ex) {
-      LOG.error("Fail to register resource mbean, instance: {}.", instance, ex);
+      monitor.updateMaxCapacityUsage(entry.getValue());
     }
-
-    return _instanceMonitorMap.get(instance);
   }
 
   /**
@@ -714,20 +710,33 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     return jobType;
   }
 
-  private void unregisterAllInstances() {
+  private void registerInstances(Collection<InstanceMonitor> instances)
+      throws JMException {
     synchronized (_instanceMonitorMap) {
-      _instanceMonitorMap.values().forEach(monitor -> monitor.unregister());
+      for (InstanceMonitor monitor : instances) {
+        String instanceName = monitor.getInstanceName();
+        String beanName = getInstanceBeanName(instanceName);
+        // If mbean is already registered, unregister it.
+        unregister(getObjectName(beanName));
+        monitor.register();
+        _instanceMonitorMap.put(instanceName, monitor);
+      }
     }
   }
 
-  private void unregisterInstances(Collection<String> instances)
-      throws MalformedObjectNameException {
+  private void unregisterAllInstances() {
+    synchronized (_instanceMonitorMap) {
+      _instanceMonitorMap.values().forEach(monitor -> monitor.unregister());
+      _instanceMonitorMap.clear();
+    }
+  }
+
+  private void unregisterInstances(Collection<String> instances) {
     synchronized (_instanceMonitorMap) {
       for (String instanceName : instances) {
-        String beanName = getInstanceBeanName(instanceName);
-        unregister(getObjectName(beanName));
+        _instanceMonitorMap.get(instanceName).unregister();
+        _instanceMonitorMap.remove(instanceName);
       }
-      _instanceMonitorMap.keySet().removeAll(instances);
     }
   }
 

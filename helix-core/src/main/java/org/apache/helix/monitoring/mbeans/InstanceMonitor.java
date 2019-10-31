@@ -62,8 +62,9 @@ public class InstanceMonitor extends DynamicMBeanProvider {
 
   private final String _clusterName;
   private final String _participantName;
+  private final ObjectName _initObjectName;
+
   private List<String> _tags;
-  private ObjectName _initObjectName;
 
   // Counters
   private SimpleDynamicMetric<Long> _totalMessagedReceivedCounter;
@@ -87,7 +88,6 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     _initObjectName = objectName;
 
     createMetrics();
-    register();
   }
 
   private void createMetrics() {
@@ -203,7 +203,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
    * Get max capacity usage of this instance.
    * @return Max capacity usage of this instance.
    */
-  public synchronized double getMaxCapacityUsageGauge() {
+  protected synchronized double getMaxCapacityUsageGauge() {
     return _maxCapacityUsageGauge.getValue();
   }
 

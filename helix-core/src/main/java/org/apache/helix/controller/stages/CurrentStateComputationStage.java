@@ -79,9 +79,9 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
-    if (cache instanceof ResourceControllerDataProvider) {
-      final ClusterStatusMonitor clusterStatusMonitor =
-          event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    final ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    if (clusterStatusMonitor != null && cache instanceof ResourceControllerDataProvider) {
       reportInstanceCapacityMetrics(clusterStatusMonitor, (ResourceControllerDataProvider) cache,
           resourceToRebalance, currentStateOutput);
     }
@@ -238,7 +238,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
       try {
         Map<String, ResourceAssignment> currentStateAssignment =
-            currentStateOutput.getCurrentStateAssignment(resourceMap.keySet());
+            currentStateOutput.getAssignment(resourceMap.keySet());
         ClusterModel clusterModel = ClusterModelProvider.generateClusterModelFromCurrentState(
             dataProvider, resourceMap, currentStateAssignment);
 

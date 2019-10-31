@@ -112,35 +112,27 @@ public class InstanceMonitor extends DynamicMBeanProvider {
         serializedTags(), _participantName);
   }
 
-  public long getOnline() {
+  protected long getOnline() {
     return _onlineStatusGauge.getValue();
   }
 
-  public long getEnabled() {
+  protected long getEnabled() {
     return _enabledStatusGauge.getValue();
   }
 
-  public long getTotalMessageReceived() {
+  protected long getTotalMessageReceived() {
     return _totalMessagedReceivedCounter.getValue();
   }
 
-  public long getDisabledPartitions() {
+  protected long getDisabledPartitions() {
     return _disabledPartitionsGauge.getValue();
-  }
-
-  /**
-   * Get all the tags currently on this instance
-   * @return list of tags
-   */
-  public List<String> getTags() {
-    return _tags;
   }
 
   /**
    * Get the name of the monitored instance
    * @return instance name as a string
    */
-  public String getInstanceName() {
+  protected String getInstanceName() {
     return _participantName;
   }
 

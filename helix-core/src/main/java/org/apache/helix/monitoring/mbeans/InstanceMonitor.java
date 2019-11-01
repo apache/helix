@@ -43,11 +43,12 @@ public class InstanceMonitor extends DynamicMBeanProvider {
    * Metric names for instance capacity.
    */
   public enum InstanceMonitorMetrics {
-    TOTAL_MESSAGE_RECEIVED_COUNTER("TotalMessageReceivedCounter"),
-    ENABLED_STATUS_GAUGE("EnabledStatusGauge"),
-    ONLINE_STATUS_GAUGE("OnlineStatusGauge"),
-    MAX_CAPACITY_USAGE_GAUGE("MaxCapacityUsageGauge"),
-    DISABLED_PARTITIONS_GAUGE("DisabledPartitionsGauge");
+    // TODO: change the metric names with Counter and Gauge suffix and deprecate old names.
+    TOTAL_MESSAGE_RECEIVED_COUNTER("TotalMessageReceived"),
+    ENABLED_STATUS_GAUGE("Enabled"),
+    ONLINE_STATUS_GAUGE("Online"),
+    DISABLED_PARTITIONS_GAUGE("DisabledPartitions"),
+    MAX_CAPACITY_USAGE_GAUGE("MaxCapacityUsageGauge");
 
     private String metricName;
 

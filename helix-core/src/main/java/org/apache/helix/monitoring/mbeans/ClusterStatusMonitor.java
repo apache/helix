@@ -244,11 +244,11 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       Set<InstanceMonitor> monitorsToRegister = Sets.newHashSet();
       for (String instanceName : toRegister) {
         try {
-        ObjectName objectName = getObjectName(getInstanceBeanName(instanceName));
-        InstanceMonitor bean = new InstanceMonitor(_clusterName, instanceName, objectName);
-        bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
-            oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
-            !disabledInstanceSet.contains(instanceName));
+          ObjectName objectName = getObjectName(getInstanceBeanName(instanceName));
+          InstanceMonitor bean = new InstanceMonitor(_clusterName, instanceName, objectName);
+          bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
+              oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
+              !disabledInstanceSet.contains(instanceName));
           monitorsToRegister.add(bean);
         } catch (MalformedObjectNameException ex) {
           LOG.error("Failed to create instance monitor for instance: {}.", instanceName);
@@ -374,14 +374,16 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param maxUsageMap a map of max capacity usage, {instance: maxCapacityUsage}
    */
   public void updateInstanceMaxUsage(Map<String, Double> maxUsageMap) {
-    for (Map.Entry<String, Double> entry : maxUsageMap.entrySet()) {
-      InstanceMonitor monitor = _instanceMonitorMap.get(entry.getKey());
-      if (monitor == null || !monitor.isRegister()) {
-        LOG.warn("Failed to update max usage because instance monitor is not found, instance: {}.",
-            entry.getKey());
-        continue;
+    synchronized (_instanceMonitorMap) {
+      for (Map.Entry<String, Double> entry : maxUsageMap.entrySet()) {
+        InstanceMonitor monitor = _instanceMonitorMap.get(entry.getKey());
+        if (monitor == null) {
+          LOG.warn("Failed to update max usage because instance monitor is not found, instance: {}.",
+              entry.getKey());
+          continue;
+        }
+        monitor.updateMaxCapacityUsage(entry.getValue());
       }
-      monitor.updateMaxCapacityUsage(entry.getValue());
     }
   }
 
@@ -718,9 +720,11 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     synchronized (_instanceMonitorMap) {
       for (InstanceMonitor monitor : instances) {
         String instanceName = monitor.getInstanceName();
-        String beanName = getInstanceBeanName(instanceName);
-        // If mbean is already registered, unregister it.
-        unregister(getObjectName(beanName));
+        // If this instance MBean is already registered, unregister it.
+        InstanceMonitor removedMonitor = _instanceMonitorMap.remove(instanceName);
+        if (removedMonitor != null) {
+          removedMonitor.unregister();
+        }
         monitor.register();
         _instanceMonitorMap.put(instanceName, monitor);
       }

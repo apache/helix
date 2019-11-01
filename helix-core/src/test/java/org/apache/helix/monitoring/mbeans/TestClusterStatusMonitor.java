@@ -333,6 +333,16 @@ public class TestClusterStatusMonitor {
 
     Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
 
+    // Before calling setClusterInstanceStatus, instance monitors are not yet registered.
+    for (Map.Entry<String, Double> entry : maxUsageMap.entrySet()) {
+      String instance = entry.getKey();
+      String instanceBeanName =
+          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
+      ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
+
+      Assert.assertFalse(_server.isRegistered(instanceObjectName));
+    }
+
     // Call setClusterInstanceStatus to register instance monitors.
     monitor.setClusterInstanceStatus(maxUsageMap.keySet(), maxUsageMap.keySet(),
         Collections.emptySet(), Collections.emptyMap(), Collections.emptyMap(),

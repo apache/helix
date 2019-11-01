@@ -733,8 +733,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   private void unregisterAllInstances() {
     synchronized (_instanceMonitorMap) {
-      _instanceMonitorMap.values().forEach(monitor -> monitor.unregister());
-      _instanceMonitorMap.clear();
+      unregisterInstances(_instanceMonitorMap.keySet());
     }
   }
 

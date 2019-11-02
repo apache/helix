@@ -24,35 +24,86 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.management.JMException;
+import javax.management.ObjectName;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+
 
 /**
  * Implementation of the instance status bean
  */
-public class InstanceMonitor implements InstanceMonitorMBean {
+public class InstanceMonitor extends DynamicMBeanProvider {
+  /**
+   * Metric names for instance capacity.
+   */
+  public enum InstanceMonitorMetrics {
+    // TODO: change the metric names with Counter and Gauge suffix and deprecate old names.
+    TOTAL_MESSAGE_RECEIVED_COUNTER("TotalMessageReceived"),
+    ENABLED_STATUS_GAUGE("Enabled"),
+    ONLINE_STATUS_GAUGE("Online"),
+    DISABLED_PARTITIONS_GAUGE("DisabledPartitions"),
+    MAX_CAPACITY_USAGE_GAUGE("MaxCapacityUsageGauge");
+
+    private String metricName;
+
+    InstanceMonitorMetrics(String name) {
+      metricName = name;
+    }
+
+    public String metricName() {
+      return metricName;
+    }
+  }
+
   private final String _clusterName;
   private final String _participantName;
+  private final ObjectName _initObjectName;
+
   private List<String> _tags;
-  private long _disabledPartitions;
-  private boolean _isUp;
-  private boolean _isEnabled;
-  private long _totalMessageReceived;
+
+  // Counters
+  private SimpleDynamicMetric<Long> _totalMessagedReceivedCounter;
+
+  // Gauges
+  private SimpleDynamicMetric<Long> _enabledStatusGauge;
+  private SimpleDynamicMetric<Long> _disabledPartitionsGauge;
+  private SimpleDynamicMetric<Long> _onlineStatusGauge;
+  private SimpleDynamicMetric<Double> _maxCapacityUsageGauge;
 
   /**
    * Initialize the bean
    * @param clusterName the cluster to monitor
    * @param participantName the instance whose statistics this holds
    */
-  public InstanceMonitor(String clusterName, String participantName) {
+  public InstanceMonitor(String clusterName, String participantName, ObjectName objectName) {
     _clusterName = clusterName;
     _participantName = participantName;
     _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
-    _disabledPartitions = 0L;
-    _isUp = false;
-    _isEnabled = false;
-    _totalMessageReceived = 0;
+    _initObjectName = objectName;
+
+    createMetrics();
+  }
+
+  private void createMetrics() {
+    _totalMessagedReceivedCounter = new SimpleDynamicMetric<>(
+        InstanceMonitorMetrics.TOTAL_MESSAGE_RECEIVED_COUNTER.metricName(), 0L);
+
+    _disabledPartitionsGauge =
+        new SimpleDynamicMetric<>(InstanceMonitorMetrics.DISABLED_PARTITIONS_GAUGE.metricName(),
+            0L);
+    _enabledStatusGauge =
+        new SimpleDynamicMetric<>(InstanceMonitorMetrics.ENABLED_STATUS_GAUGE.metricName(), 0L);
+    _onlineStatusGauge =
+        new SimpleDynamicMetric<>(InstanceMonitorMetrics.ONLINE_STATUS_GAUGE.metricName(), 0L);
+    _maxCapacityUsageGauge =
+        new SimpleDynamicMetric<>(InstanceMonitorMetrics.MAX_CAPACITY_USAGE_GAUGE.metricName(),
+            0.0d);
   }
 
   @Override
@@ -61,44 +112,32 @@ public class InstanceMonitor implements InstanceMonitorMBean {
         serializedTags(), _participantName);
   }
 
-  @Override
-  public long getOnline() {
-    return _isUp ? 1 : 0;
+  protected long getOnline() {
+    return _onlineStatusGauge.getValue();
   }
 
-  @Override
-  public long getEnabled() {
-    return _isEnabled ? 1 : 0;
+  protected long getEnabled() {
+    return _enabledStatusGauge.getValue();
   }
 
-  @Override
-  public long getTotalMessageReceived() {
-    return _totalMessageReceived;
+  protected long getTotalMessageReceived() {
+    return _totalMessagedReceivedCounter.getValue();
   }
 
-  @Override
-  public long getDisabledPartitions() {
-    return _disabledPartitions;
-  }
-
-  /**
-   * Get all the tags currently on this instance
-   * @return list of tags
-   */
-  public List<String> getTags() {
-    return _tags;
+  protected long getDisabledPartitions() {
+    return _disabledPartitionsGauge.getValue();
   }
 
   /**
    * Get the name of the monitored instance
    * @return instance name as a string
    */
-  public String getInstanceName() {
+  protected String getInstanceName() {
     return _participantName;
   }
 
   private String serializedTags() {
-    return Joiner.on('|').skipNulls().join(_tags).toString();
+    return Joiner.on('|').skipNulls().join(_tags);
   }
 
   /**
@@ -117,20 +156,22 @@ public class InstanceMonitor implements InstanceMonitorMBean {
       _tags = Lists.newArrayList(tags);
       Collections.sort(_tags);
     }
-    _disabledPartitions = 0L;
+    long numDisabledPartitions = 0L;
     if (disabledPartitions != null) {
       for (List<String> partitions : disabledPartitions.values()) {
         if (partitions != null) {
-          _disabledPartitions += partitions.size();
+          numDisabledPartitions += partitions.size();
         }
       }
     }
     // TODO : Get rid of this when old API removed.
     if (oldDisabledPartitions != null) {
-      _disabledPartitions += oldDisabledPartitions.size();
+      numDisabledPartitions += oldDisabledPartitions.size();
     }
-    _isUp = isLive;
-    _isEnabled = isEnabled;
+
+    _onlineStatusGauge.updateValue(isLive ? 1L : 0L);
+    _enabledStatusGauge.updateValue(isEnabled ? 1L : 0L);
+    _disabledPartitionsGauge.updateValue(numDisabledPartitions);
   }
 
   /**
@@ -138,7 +179,39 @@ public class InstanceMonitor implements InstanceMonitorMBean {
    * @param messageReceived received message numbers
    */
   public synchronized void increaseMessageCount(long messageReceived) {
-    _totalMessageReceived += messageReceived;
+    _totalMessagedReceivedCounter
+        .updateValue(_totalMessagedReceivedCounter.getValue() + messageReceived);
   }
 
+  /**
+   * Update max capacity usage for this instance.
+   * @param maxUsage max capacity usage of this instance
+   */
+  public synchronized void updateMaxCapacityUsage(double maxUsage) {
+    _maxCapacityUsageGauge.updateValue(maxUsage);
+  }
+
+  /**
+   * Get max capacity usage of this instance.
+   * @return Max capacity usage of this instance.
+   */
+  protected synchronized double getMaxCapacityUsageGauge() {
+    return _maxCapacityUsageGauge.getValue();
+  }
+
+  @Override
+  public DynamicMBeanProvider register()
+      throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = ImmutableList.of(
+        _totalMessagedReceivedCounter,
+        _disabledPartitionsGauge,
+        _enabledStatusGauge,
+        _onlineStatusGauge,
+        _maxCapacityUsageGauge
+    );
+
+    doRegister(attributeList, _initObjectName);
+
+    return this;
+  }
 }

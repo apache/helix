@@ -19,14 +19,20 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -49,6 +55,9 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
   protected int _replica = 3;
 
   private AssignmentMetadataStore _store;
+  // Counters to signal whether persist functions have been called
+  private static AtomicInteger _booleanBaseline = new AtomicInteger(0);
+  private static AtomicInteger _booleanBestPossible = new AtomicInteger(0);
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -81,7 +90,7 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     _manager.connect();
 
     // create AssignmentMetadataStore
-    _store = new AssignmentMetadataStore(_manager.getMetadataStoreConnectionString(),
+    _store = new MockAssignmentMetadataStore(_manager.getMetadataStoreConnectionString(),
         _manager.getClusterName());
   }
 
@@ -103,5 +112,97 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
   public void testReadEmptyBaseline() {
     Map<String, ResourceAssignment> baseline = _store.getBaseline();
     Assert.assertTrue(baseline.isEmpty());
+  }
+
+  /**
+   * Test that if the old assignment and new assignment are the same,
+   */
+  @Test(dependsOnMethods = "testReadEmptyBaseline")
+  public void testAvoidingRedundantWrite() {
+    // Generate a dummy assignment
+    Map<String, ResourceAssignment> dummyAssignment = new HashMap<>();
+    ResourceAssignment assignment = new ResourceAssignment(TEST_DB);
+    Partition partition = new Partition(TEST_DB);
+    Map<String, String> replicaMap = new HashMap<>();
+    replicaMap.put(TEST_DB, TEST_DB);
+    assignment.addReplicaMap(partition, replicaMap);
+    dummyAssignment.put(TEST_DB, new ResourceAssignment(TEST_DB));
+
+    // Call persist functions
+    resetPersistCounts();
+    _store.persistBaseline(dummyAssignment);
+    _store.persistBestPossibleAssignment(dummyAssignment);
+
+    // The counts should be 1 at this point
+    Assert.assertEquals(_booleanBaseline.get(), 1);
+    Assert.assertEquals(_booleanBestPossible.get(), 1);
+
+    // Call persist functions again
+    _store.persistBaseline(dummyAssignment);
+    _store.persistBestPossibleAssignment(dummyAssignment);
+
+    // The counts should still be 1 since the mappings didn't change
+    Assert.assertEquals(_booleanBaseline.get(), 1);
+    Assert.assertEquals(_booleanBestPossible.get(), 1);
+  }
+
+  /**
+   * Reset persist counts for the MockAssignmentMetadataStore.
+   */
+  private void resetPersistCounts() {
+    _booleanBaseline.set(0);
+    _booleanBestPossible.set(0);
+  }
+
+  /**
+   * MockAssignmentMetadataStore for testing purposes only.
+   */
+  private class MockAssignmentMetadataStore extends AssignmentMetadataStore {
+
+    MockAssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
+      super(metadataStoreAddrs, clusterName);
+    }
+
+    @Override
+    public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+      // If baseline hasn't changed, skip writing to metadata store
+      if (compareAssignments(_globalBaseline, globalBaseline)) {
+        return;
+      }
+      _booleanBaseline.incrementAndGet();
+      // Persist to ZK
+      HelixProperty combinedAssignments = combineAssignments(BASELINE_KEY, globalBaseline);
+      try {
+        _dataAccessor.compressedBucketWrite(_baselinePath, combinedAssignments);
+      } catch (IOException e) {
+        // TODO: Improve failure handling
+        throw new HelixException("Failed to persist baseline!", e);
+      }
+
+      // Update the in-memory reference
+      _globalBaseline = globalBaseline;
+    }
+
+    @Override
+    public void persistBestPossibleAssignment(
+        Map<String, ResourceAssignment> bestPossibleAssignment) {
+      // If bestPossibleAssignment hasn't changed, skip writing to metadata store
+      if (compareAssignments(_bestPossibleAssignment, bestPossibleAssignment)) {
+        return;
+      }
+      _booleanBestPossible.incrementAndGet();
+      // Persist to ZK
+      HelixProperty combinedAssignments =
+          combineAssignments(BEST_POSSIBLE_KEY, bestPossibleAssignment);
+      try {
+        _dataAccessor.compressedBucketWrite(_bestPossiblePath, combinedAssignments);
+      } catch (IOException e) {
+        // TODO: Improve failure handling
+        throw new HelixException("Failed to persist BestPossibleAssignment!", e);
+      }
+
+      // Update the in-memory reference
+      _bestPossibleAssignment = bestPossibleAssignment;
+    }
   }
 }

@@ -42,15 +42,15 @@ public class AssignmentMetadataStore {
   private static final String ASSIGNMENT_METADATA_KEY = "ASSIGNMENT_METADATA";
   private static final String BASELINE_TEMPLATE = "/%s/%s/BASELINE";
   private static final String BEST_POSSIBLE_TEMPLATE = "/%s/%s/BEST_POSSIBLE";
-  private static final String BASELINE_KEY = "BASELINE";
-  private static final String BEST_POSSIBLE_KEY = "BEST_POSSIBLE";
+  static final String BASELINE_KEY = "BASELINE";
+  static final String BEST_POSSIBLE_KEY = "BEST_POSSIBLE";
   private static final ZkSerializer SERIALIZER = new ZNRecordJacksonSerializer();
 
-  private BucketDataAccessor _dataAccessor;
-  private String _baselinePath;
-  private String _bestPossiblePath;
-  private Map<String, ResourceAssignment> _globalBaseline;
-  private Map<String, ResourceAssignment> _bestPossibleAssignment;
+  BucketDataAccessor _dataAccessor;
+  String _baselinePath;
+  String _bestPossiblePath;
+  Map<String, ResourceAssignment> _globalBaseline;
+  Map<String, ResourceAssignment> _bestPossibleAssignment;
 
   AssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
     this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
@@ -148,7 +148,7 @@ public class AssignmentMetadataStore {
    * @param assignmentMap
    * @return
    */
-  private HelixProperty combineAssignments(String name,
+  HelixProperty combineAssignments(String name,
       Map<String, ResourceAssignment> assignmentMap) {
     HelixProperty property = new HelixProperty(name);
     // Add each resource's assignment as a simple field in one ZNRecord
@@ -179,7 +179,7 @@ public class AssignmentMetadataStore {
    * @param newAssignment
    * @return true if they are the same. False otherwise or oldAssignment is null
    */
-  private boolean compareAssignments(Map<String, ResourceAssignment> oldAssignment,
+  boolean compareAssignments(Map<String, ResourceAssignment> oldAssignment,
       Map<String, ResourceAssignment> newAssignment) {
     // If oldAssignment is null, that means that we haven't read from/written to
     // the metadata store yet. In that case, we return false so that we write to metadata store.

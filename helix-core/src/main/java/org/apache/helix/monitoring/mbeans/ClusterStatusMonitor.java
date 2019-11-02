@@ -740,8 +740,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private void unregisterInstances(Collection<String> instances) {
     synchronized (_instanceMonitorMap) {
       for (String instanceName : instances) {
-        _instanceMonitorMap.get(instanceName).unregister();
-        _instanceMonitorMap.remove(instanceName);
+        InstanceMonitor monitor = _instanceMonitorMap.remove(instanceName);
+        if (monitor != null) {
+          monitor.unregister();
+        }
       }
     }
   }

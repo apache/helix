@@ -80,7 +80,6 @@ abstract class UsageSoftConstraint extends SoftConstraint {
    */
   @Override
   protected NormalizeFunction getNormalizeFunction() {
-    return (score) -> SIGMOID.value(-(score - 1) * DEFAULT_ALPHA) * (MAX_SCORE
-        - MIN_SCORE);
+    return (score) -> SIGMOID.value(-(score - 1) * DEFAULT_ALPHA) * (MAX_SCORE - MIN_SCORE);
   }
 }

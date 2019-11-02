@@ -363,7 +363,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
 
     chargePendingTransition(resource, currentStateOutput, throttleController,
-        partitionsNeedRecovery, partitionsNeedLoadBalance, cache);
+        partitionsNeedRecovery, partitionsNeedLoadBalance, cache,
+        bestPossiblePartitionStateMap, intermediatePartitionStateMap);
 
     // Perform recovery balance
     Set<Partition> recoveryThrottledPartitions =
@@ -461,7 +462,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    */
   private void chargePendingTransition(Resource resource, CurrentStateOutput currentStateOutput,
       StateTransitionThrottleController throttleController, Set<Partition> partitionsNeedRecovery,
-      Set<Partition> partitionsNeedLoadbalance, ResourceControllerDataProvider cache) {
+      Set<Partition> partitionsNeedLoadbalance, ResourceControllerDataProvider cache,
+      PartitionStateMap bestPossiblePartitionStateMap,
+      PartitionStateMap intermediatePartitionStateMap) {
     String resourceName = resource.getResourceName();
 
     // check and charge pending transitions
@@ -487,10 +490,20 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           String pendingState = pendingMap.get(instance);
           if (pendingState != null && !pendingState.equals(currentState)
               && !cache.getDisabledInstancesForPartition(resourceName, partition.getPartitionName())
-                  .contains(instance)) {
+              .contains(instance)) {
             // Only charge this instance if the partition is not disabled
             throttleController.chargeInstance(rebalanceType, instance);
             shouldChargePartition = true;
+            // If there is a pending state transition for the partition, that means that an assignment
+            // has already been made and the state transition message has already been sent out for the partition
+            // in a previous pipeline run. We must honor this and reflect it by charging for the pending state transition message.
+
+            // Since the assignment has already been made for the pending message, we do a special treatment
+            // for it by setting the best possible state directly in intermediatePartitionStateMap so that the pending
+            // message won't be double-assigned or double-charged in recovery or load balance.
+            handlePendingStateTransitionsForThrottling(partition, partitionsNeedRecovery,
+                partitionsNeedLoadbalance, rebalanceType, bestPossiblePartitionStateMap,
+                intermediatePartitionStateMap);
           }
         }
         if (shouldChargePartition) {
@@ -943,6 +956,32 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         }
       }
       return matchedState;
+    }
+  }
+
+  /**
+   * Handle a partition with a pending message so that the partition will not be double-charged or double-assigned during recovery and load balance.
+   * @param partition
+   * @param partitionsNeedRecovery
+   * @param partitionsNeedLoadbalance
+   * @param rebalanceType
+   */
+  private void handlePendingStateTransitionsForThrottling(Partition partition,
+      Set<Partition> partitionsNeedRecovery, Set<Partition> partitionsNeedLoadbalance,
+      RebalanceType rebalanceType, PartitionStateMap bestPossiblePartitionStateMap,
+      PartitionStateMap intermediatePartitionStateMap) {
+    // Pass the best possible state directly into intermediatePartitionStateMap
+    // This is safe to do so because we already have a pending transition for this partition, implying that the assignment has been made in previous pipeline
+    intermediatePartitionStateMap
+        .setState(partition, bestPossiblePartitionStateMap.getPartitionMap(partition));
+    // Remove the partition's name from the set of partition (names) that need to be charged and assigned to prevent double-processing
+    switch (rebalanceType) {
+    case RECOVERY_BALANCE:
+      partitionsNeedRecovery.remove(partition);
+      break;
+    case LOAD_BALANCE:
+      partitionsNeedLoadbalance.remove(partition);
+      break;
     }
   }
 }

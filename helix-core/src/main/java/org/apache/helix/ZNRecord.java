@@ -20,7 +20,6 @@ package org.apache.helix;
  */
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -102,9 +101,8 @@ public class ZNRecord {
   public ZNRecord(ZNRecord record, String id) {
     this(id);
     simpleFields.putAll(record.getSimpleFields());
-    // Deep copy for both mapFields and listFields.
-    record.getMapFields().forEach((k, v) -> mapFields.put(k, new HashMap<>(v)));
-    record.getListFields().forEach((k, v) -> listFields.put(k, new ArrayList<>(v)));
+    mapFields.putAll(record.getMapFields());
+    listFields.putAll(record.getListFields());
     if (record.rawPayload != null) {
       rawPayload = new byte[record.rawPayload.length];
       System.arraycopy(record.rawPayload, 0, rawPayload, 0, record.rawPayload.length);

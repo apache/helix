@@ -20,7 +20,6 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 
@@ -43,6 +42,20 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
 public class TestZkBaseDataAccessor extends ZkUnitTestBase {
+  private static final ZkSerializer CUSTOM_ZK_SERIALIZER = new ZkSerializer() {
+    @Override
+    public byte[] serialize(Object o)
+        throws ZkMarshallingError {
+      String st = (String) o;
+      return st.getBytes();
+    }
+
+    @Override
+    public Object deserialize(byte[] bytes)
+        throws ZkMarshallingError {
+      return bytes;
+    }
+  };
   String _rootPath = TestHelper.getTestClassName();
 
 
@@ -197,7 +210,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-
     System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
@@ -205,24 +217,12 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
 
     String recordData = "DummyContent";
-    ZkSerializer zkSerializer = new ZkSerializer() {
-      @Override
-      public byte[] serialize(Object o)
-          throws ZkMarshallingError {
-        String st = (String) o;
-        return st.getBytes();
-      }
-
-      @Override
-      public Object deserialize(byte[] bytes)
-          throws ZkMarshallingError {
-        return bytes;
-      }
-    };
-    boolean success = accessor.create(path, recordData, AccessOption.PERSISTENT, zkSerializer);
+    boolean success = accessor.create(path, recordData, AccessOption.PERSISTENT, CUSTOM_ZK_SERIALIZER);
     Assert.assertTrue(success);
-    Object data = accessor.get(path, null, AccessOption.PERSISTENT, zkSerializer);
+
+    Object data = accessor.get(path, null, AccessOption.PERSISTENT, CUSTOM_ZK_SERIALIZER);
     Assert.assertEquals(new String((byte[]) data), "DummyContent");
+
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 

@@ -362,6 +362,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       if (AccessOption.isThrowExceptionIfNotExist(options)) {
         throw ex;
       }
+    } catch (ZkMarshallingError ex) {
+      LOG.error("Failed to deserialize the byte array", ex);
+      throw ex;
     }
     return content;
   }
@@ -370,8 +373,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * Sync create method with custom serializer support
    */
   public boolean create(String path, Object data, int options, ZkSerializer serializer) {
-    AccessResult result = doCreate(_nonZNRecordClient, path, serializer.serialize(data), options);
-    return result._retCode == RetCode.OK;
+    try {
+      byte[] bytes = serializer.serialize(data);
+      AccessResult result = doCreate(_nonZNRecordClient, path, bytes, options);
+      return result._retCode == RetCode.OK;
+    } catch (ZkMarshallingError ex) {
+      LOG.error("Failed to serialize the data object", ex);
+      throw ex;
+    }
   }
 
   /**

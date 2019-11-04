@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -123,47 +122,5 @@ public class TestZNRecord {
     expectMap2.put("map2Key1", "map2Value1");
     expectRecord.setMapField("mapKey2", expectMap2);
     Assert.assertEquals(record, expectRecord, "Should be equal.");
-  }
-
-  @Test
-  public void testDeepCopyConstructor() {
-    ZNRecord record = new ZNRecord("record");
-
-    // set simple field
-    record.setSimpleField("simpleKey1", "simpleValue1");
-
-    // set list field
-    List<String> list1 = new ArrayList<>();
-    list1.add("list1Value1");
-    list1.add("list1Value2");
-    record.setListField("listKey1", list1);
-
-    // set map field
-    Map<String, String> map1 = new HashMap<>();
-    map1.put("map1Key1", "map1Value1");
-    record.setMapField("mapKey1", map1);
-
-    Map<String, String> map2 = new HashMap<>();
-    map2.put("map2Key1", "map2Value1");
-    record.setMapField("mapKey2", map2);
-
-    ZNRecord newRecord = new ZNRecord(record);
-
-    // Verify initial copy results.
-    Assert.assertEquals(record.getMapFields(), newRecord.getMapFields());
-    Assert.assertEquals(record.getListFields(), newRecord.getListFields());
-    Assert.assertEquals(record, newRecord);
-
-    // Change values in original record.
-    map1.put("map1Key1", "valueChanged");
-    record.setMapField("mapKey1", map1);
-
-    list1.set(0, "valueChanged");
-    record.setListField("listKey1", list1);
-
-    // Value changes in original record should not change new record.
-    Assert.assertFalse(record.getMapFields().equals(newRecord.getMapFields()));
-    Assert.assertFalse(record.getListFields().equals(newRecord.getListFields()));
-    Assert.assertFalse(record.equals(newRecord));
   }
 }

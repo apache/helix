@@ -20,9 +20,13 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
+
 import org.I0Itec.zkclient.DataUpdater;
+import org.I0Itec.zkclient.exception.ZkMarshallingError;
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.PropertyPathBuilder;
@@ -185,6 +189,40 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 0);
 
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testSyncCreateWithCustomSerializer() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String path = String.format("/%s/%s", _rootPath, "msg_0");
+
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
+
+    String recordData = "DummyContent";
+    ZkSerializer zkSerializer = new ZkSerializer() {
+      @Override
+      public byte[] serialize(Object o)
+          throws ZkMarshallingError {
+        String st = (String) o;
+        return st.getBytes();
+      }
+
+      @Override
+      public Object deserialize(byte[] bytes)
+          throws ZkMarshallingError {
+        return bytes;
+      }
+    };
+    boolean success = accessor.create(path, recordData, AccessOption.PERSISTENT, zkSerializer);
+    Assert.assertTrue(success);
+    Object data = accessor.get(path, null, AccessOption.PERSISTENT, zkSerializer);
+    Assert.assertEquals(new String((byte[]) data), "DummyContent");
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 

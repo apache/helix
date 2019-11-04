@@ -10,7 +10,6 @@
  */
 package org.apache.helix.manager.zk.zookeeper;
 
-import javax.management.JMException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
@@ -23,6 +22,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import javax.management.JMException;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.ExceptionUtil;
@@ -1141,6 +1141,7 @@ public class ZkClient implements Watcher {
           throw new IllegalStateException("ZkClient already closed!");
         }
         try {
+          // ERROR:
           final ZkConnection zkConnection = (ZkConnection) getConnection();
           // Validate that the connection is not null before trigger callback
           if (zkConnection == null || zkConnection.getZookeeper() == null) {
@@ -1571,6 +1572,9 @@ public class ZkClient implements Watcher {
       }
 
       started = true;
+    } catch (Exception e) {
+      LOG.error("Exception while connecting the ZooKeeper", e);
+      throw e;
     } finally {
       getEventLock().unlock();
 

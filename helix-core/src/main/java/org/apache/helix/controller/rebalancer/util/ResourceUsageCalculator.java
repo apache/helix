@@ -81,7 +81,7 @@ public class ResourceUsageCalculator {
    *       }
    *    }
    * }
-   * baseline divergence = (matched: 1) / (doesn't match: 3) = 1/3 ~= 0.333
+   * baseline divergence = (matched: 1) / (total(matched + doesn't match): 3) = 1/3 ~= 0.333
    * @param baseline baseline assignment
    * @param bestPossibleAssignment best possible assignment
    * @return double value range at [0.0, 1.0]

@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -237,10 +239,17 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       CurrentStateOutput currentStateOutput) {
     asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
       try {
+        // ResourceToRebalance map also has resources from current states.
+        // Only use the resources in ideal states to parse all replicas.
+        Map<String, IdealState> idealStateMap = dataProvider.getIdealStates();
+        Map<String, Resource> metricResourceMap = resourceMap.entrySet().stream()
+            .filter(resourceName -> idealStateMap.containsKey(resourceName))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
         Map<String, ResourceAssignment> currentStateAssignment =
-            currentStateOutput.getAssignment(resourceMap.keySet());
+            currentStateOutput.getAssignment(metricResourceMap.keySet());
         ClusterModel clusterModel = ClusterModelProvider.generateClusterModelFromCurrentState(
-            dataProvider, resourceMap, currentStateAssignment);
+            dataProvider, metricResourceMap, currentStateAssignment);
 
         Map<String, Double> maxUsageMap = new HashMap<>();
         for (AssignableNode node : clusterModel.getAssignableNodes().values()) {

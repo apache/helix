@@ -242,14 +242,14 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         // ResourceToRebalance map also has resources from current states.
         // Only use the resources in ideal states to parse all replicas.
         Map<String, IdealState> idealStateMap = dataProvider.getIdealStates();
-        Map<String, Resource> metricResourceMap = resourceMap.entrySet().stream()
+        Map<String, Resource> resourceToMonitorMap = resourceMap.entrySet().stream()
             .filter(resourceName -> idealStateMap.containsKey(resourceName))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         Map<String, ResourceAssignment> currentStateAssignment =
-            currentStateOutput.getAssignment(metricResourceMap.keySet());
+            currentStateOutput.getAssignment(resourceToMonitorMap.keySet());
         ClusterModel clusterModel = ClusterModelProvider.generateClusterModelFromCurrentState(
-            dataProvider, metricResourceMap, currentStateAssignment);
+            dataProvider, resourceToMonitorMap, currentStateAssignment);
 
         Map<String, Double> maxUsageMap = new HashMap<>();
         for (AssignableNode node : clusterModel.getAssignableNodes().values()) {

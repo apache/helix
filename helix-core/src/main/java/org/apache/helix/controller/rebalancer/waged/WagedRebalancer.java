@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixManager;
@@ -70,33 +71,39 @@ public class WagedRebalancer {
   // When any of the following change happens, the rebalancer needs to do a global rebalance which
   // contains 1. baseline recalculate, 2. partial rebalance that is based on the new baseline.
   private static final Set<HelixConstants.ChangeType> GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES =
-      ImmutableSet.of(HelixConstants.ChangeType.RESOURCE_CONFIG,
-          HelixConstants.ChangeType.IDEAL_STATE,
-          HelixConstants.ChangeType.CLUSTER_CONFIG, HelixConstants.ChangeType.INSTANCE_CONFIG);
+      ImmutableSet
+          .of(HelixConstants.ChangeType.RESOURCE_CONFIG, HelixConstants.ChangeType.IDEAL_STATE,
+              HelixConstants.ChangeType.CLUSTER_CONFIG, HelixConstants.ChangeType.INSTANCE_CONFIG);
+  // To identify if the preference has been configured or not.
+  private static final Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer>
+      NOT_CONFIGURED_PREFERENCE = ImmutableMap
+      .of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, -1,
+          ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, -1);
+
   private final ResourceChangeDetector _changeDetector;
   private final HelixManager _manager;
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
   private final AssignmentMetadataStore _assignmentMetadataStore;
-  private final RebalanceAlgorithm _rebalanceAlgorithm;
+  private RebalanceAlgorithm _rebalanceAlgorithm;
+  private Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> _preference =
+      NOT_CONFIGURED_PREFERENCE;
   private MetricCollector _metricCollector;
 
-  private static AssignmentMetadataStore constructAssignmentStore(HelixManager helixManager) {
-    AssignmentMetadataStore assignmentMetadataStore = null;
-    if (helixManager != null) {
-      String metadataStoreAddrs = helixManager.getMetadataStoreConnectionString();
-      String clusterName = helixManager.getClusterName();
-      if (metadataStoreAddrs != null && clusterName != null) {
-        assignmentMetadataStore = new AssignmentMetadataStore(metadataStoreAddrs, clusterName);
-      }
+  protected static AssignmentMetadataStore constructAssignmentStore(String metadataStoreAddrs,
+      String clusterName) {
+    if (metadataStoreAddrs != null && clusterName != null) {
+      return new AssignmentMetadataStore(metadataStoreAddrs, clusterName);
     }
-    return assignmentMetadataStore;
+    return null;
   }
 
   public WagedRebalancer(HelixManager helixManager,
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences,
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference,
       MetricCollector metricCollector) {
-    this(constructAssignmentStore(helixManager),
-        ConstraintBasedAlgorithmFactory.getInstance(preferences),
+    this(helixManager == null ? null
+            : constructAssignmentStore(helixManager.getMetadataStoreConnectionString(),
+                helixManager.getClusterName()),
+        ConstraintBasedAlgorithmFactory.getInstance(preference),
         // Use DelayedAutoRebalancer as the mapping calculator for the final assignment output.
         // Mapping calculator will translate the best possible assignment into the applicable state
         // mapping based on the current states.
@@ -104,24 +111,24 @@ public class WagedRebalancer {
         new DelayedAutoRebalancer(),
         // Helix Manager is required for the rebalancer scheduler
         helixManager, metricCollector);
+    _preference = ImmutableMap.copyOf(preference);
   }
 
   /**
    * This constructor will use null for HelixManager and MetricCollector. With null HelixManager,
-   * the rebalancer will rebalance solely based on CurrentStates. With null MetricCollector, the
+   * the rebalancer will not schedule for a future delayed rebalance. With null MetricCollector, the
    * rebalancer will not emit JMX metrics.
    * @param assignmentMetadataStore
    * @param algorithm
-   * @param mappingCalculator
    */
   protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
-      RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator) {
-    this(assignmentMetadataStore, algorithm, mappingCalculator, null, null);
+      RebalanceAlgorithm algorithm) {
+    this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer(), null, null);
   }
 
   /**
-   * This constructor will use null for HelixManager and MetricCollector. With null HelixManager,
-   * the rebalancer will rebalance solely based on CurrentStates.
+   * This constructor will use null for HelixManager. With null HelixManager, the rebalancer will
+   * not schedule for a future delayed rebalance.
    * @param assignmentMetadataStore
    * @param algorithm
    * @param metricCollector
@@ -149,11 +156,25 @@ public class WagedRebalancer {
     _changeDetector = new ResourceChangeDetector(true);
   }
 
+  // Update the rebalancer preference configuration if the new preference is different from the
+  // current preference configuration.
+  public void updatePreference(
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> newPreference) {
+    if (_preference.equals(NOT_CONFIGURED_PREFERENCE) || _preference.equals(newPreference)) {
+      // 1. if the preference was not configured during constructing, no need to update.
+      // 2. if the preference equals to the new preference, no need to update.
+      return;
+    }
+    _rebalanceAlgorithm = ConstraintBasedAlgorithmFactory.getInstance(newPreference);
+    _preference = ImmutableMap.copyOf(newPreference);
+  }
+
   // Release all the resources.
   public void close() {
     if (_assignmentMetadataStore != null) {
       _assignmentMetadataStore.close();
     }
+    _metricCollector.unregister();
   }
 
   /**
@@ -503,7 +524,7 @@ public class WagedRebalancer {
     Set<String> nonCompatibleResources = resourceMap.entrySet().stream().filter(resourceEntry -> {
       IdealState is = clusterData.getIdealState(resourceEntry.getKey());
       return is == null || !is.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)
-          || !getClass().getName().equals(is.getRebalancerClassName());
+          || !WagedRebalancer.class.getName().equals(is.getRebalancerClassName());
     }).map(Map.Entry::getKey).collect(Collectors.toSet());
     if (!nonCompatibleResources.isEmpty()) {
       throw new HelixRebalanceException(String.format(

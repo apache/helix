@@ -19,10 +19,20 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.common.PartitionStateMap;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
@@ -42,16 +52,6 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * verifier that the ExternalViews of given resources (or all resources in the cluster)
@@ -377,8 +377,12 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     }
 
     runStage(event, new CurrentStateComputationStage());
+    DryrunWagedRebalancer wagedRebalancer = new DryrunWagedRebalancer(_zkClient.getServers(), cache.getClusterName(),
+        cache.getClusterConfig().getGlobalRebalancePreference());
     // TODO: be caution here, should be handled statelessly.
-    runStage(event, new BestPossibleStateCalcStage());
+    runStage(event, new BestPossibleStateCalcStage(wagedRebalancer));
+
+    wagedRebalancer.close();
 
     BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
     return output;

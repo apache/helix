@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
@@ -407,6 +408,67 @@ public class TestWagedRebalance extends ZkTestBase {
       clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
       clusterConfig.setMaxPartitionsPerInstance(-1);
       configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+    }
+  }
+
+  @Test(dependsOnMethods = "test")
+  public void testNewInstances()
+      throws InterruptedException {
+    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setGlobalRebalancePreference(ImmutableMap.of(
+        ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 0, ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 10));
+    configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    int i = 0;
+    for (String stateModel : _testModels) {
+      String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
+      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica, _replica);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
+      _allDBs.add(db);
+    }
+    Thread.sleep(300);
+    validate(_replica);
+
+    String newNodeName = "newNode-" + TestHelper.getTestMethodName() + "_" + START_PORT;
+    MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, newNodeName);
+    try {
+      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, newNodeName);
+      participant.syncStart();
+
+      Thread.sleep(300);
+      validate(_replica);
+
+      Assert.assertFalse(_allDBs.stream().anyMatch(db -> {
+        ExternalView ev =
+            _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+        for (String partition : ev.getPartitionSet()) {
+          if (ev.getStateMap(partition).containsKey(newNodeName)) {
+            return true;
+          }
+        }
+        return false;
+      }));
+
+      clusterConfig.setGlobalRebalancePreference(ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
+      configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+      Thread.sleep(300);
+      validate(_replica);
+
+      Assert.assertTrue(_allDBs.stream().anyMatch(db -> {
+        ExternalView ev =
+            _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+        for (String partition : ev.getPartitionSet()) {
+          if (ev.getStateMap(partition).containsKey(newNodeName)) {
+            return true;
+          }
+        }
+        return false;
+      }));
+    } finally {
+      if (participant != null && participant.isConnected()) {
+        participant.syncStop();
+      }
     }
   }
 

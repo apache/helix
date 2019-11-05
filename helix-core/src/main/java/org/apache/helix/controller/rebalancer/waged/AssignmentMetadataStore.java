@@ -56,7 +56,7 @@ public class AssignmentMetadataStore {
     this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
   }
 
-  AssignmentMetadataStore(BucketDataAccessor bucketDataAccessor, String clusterName) {
+  protected AssignmentMetadataStore(BucketDataAccessor bucketDataAccessor, String clusterName) {
     _dataAccessor = bucketDataAccessor;
     _baselinePath = String.format(BASELINE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
     _bestPossiblePath = String.format(BEST_POSSIBLE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);

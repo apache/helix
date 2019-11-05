@@ -21,6 +21,7 @@ package org.apache.helix.manager.zk;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +40,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.examples.MasterSlaveStateModelFactory;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -48,6 +50,8 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.MasterSlaveSMD;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
@@ -504,5 +508,94 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertEquals(instanceConfig.getRecord()
         .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
         2);
+  }
+
+  /**
+   * Test addResourceWithWeight() and validateForWagedRebalance() by trying to add a resource with incomplete ResourceConfig.
+   */
+  @Test
+  public void testAddResourceWithWeightAndValidation() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    String testResourcePrefix = "TestResource";
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    admin.addStateModelDef(clusterName, "MasterSlave", new MasterSlaveSMD());
+
+    IdealState idealState = new IdealState(testResourcePrefix);
+    idealState.setNumPartitions(3);
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+
+    ResourceConfig resourceConfig = new ResourceConfig(testResourcePrefix);
+    // validate
+    Map<String, Boolean> validationResult =
+        admin.validateForWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
+    Assert.assertEquals(validationResult.size(), 1);
+    Assert.assertFalse(validationResult.get(testResourcePrefix));
+    try {
+      admin.addResourceWithWeight(clusterName, idealState, resourceConfig);
+      Assert.fail();
+    } catch (HelixException e) {
+      // OK since WEIGHT is empty
+    }
+
+    Map<String, String> weightMap = new HashMap<>();
+    weightMap.put("DEFAULT", "{\"WCU\":100,\"RCU\":120,\"STORAGE\":10}");
+    weightMap.put("DBName_1_1", "{\"WCU\":100,\"RCU\":120,\"STORAGE\":10}");
+    resourceConfig.getRecord().setMapField("WEIGHT", weightMap);
+
+    // validate
+    validationResult =
+        admin.validateForWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
+    Assert.assertEquals(validationResult.size(), 1);
+    Assert.assertFalse(validationResult.get(testResourcePrefix));
+    try {
+      admin.addResourceWithWeight(clusterName, idealState, resourceConfig);
+    } catch (HelixException e) {
+      // OK since ClusterConfig is empty
+    }
+
+    // Add the capacity key to ClusterConfig
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+    ClusterConfig clusterConfig = dataAccessor.getProperty(keyBuilder.clusterConfig());
+    clusterConfig.setInstanceCapacityKeys(Arrays.asList("WCU", "RCU", "STORAGE"));
+    dataAccessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
+
+    // Should succeed now
+    Assert.assertTrue(admin.addResourceWithWeight(clusterName, idealState, resourceConfig));
+    // validate
+    validationResult =
+        admin.validateForWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
+    Assert.assertEquals(validationResult.size(), 1);
+    Assert.assertTrue(validationResult.get(testResourcePrefix));
+  }
+
+  /**
+   * Test enabledWagedRebalance by checking the rebalancer class name changed.
+   */
+  @Test
+  public void testEnableWagedRebalance() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    String testResourcePrefix = "TestResource";
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    admin.addStateModelDef(clusterName, "MasterSlave", new MasterSlaveSMD());
+
+    // Add an IdealState
+    IdealState idealState = new IdealState(testResourcePrefix);
+    idealState.setNumPartitions(3);
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+    admin.addResource(clusterName, testResourcePrefix, idealState);
+
+    admin.enableWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
+    IdealState is = admin.getResourceIdealState(clusterName, testResourcePrefix);
+    Assert.assertEquals(is.getRebalancerClassName(),
+        "org.apache.helix.controller.rebalancer.WagedRebalancer");
   }
 }

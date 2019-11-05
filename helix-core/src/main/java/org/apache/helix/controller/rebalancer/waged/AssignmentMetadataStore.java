@@ -94,6 +94,10 @@ public class AssignmentMetadataStore {
 
   public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     // TODO: Make the write async?
+    // If baseline hasn't changed, skip writing to metadata store
+    if (compareAssignments(_globalBaseline, globalBaseline)) {
+      return;
+    }
     // Persist to ZK
     HelixProperty combinedAssignments = combineAssignments(BASELINE_KEY, globalBaseline);
     try {
@@ -110,14 +114,18 @@ public class AssignmentMetadataStore {
   public void persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     // TODO: Make the write async?
-    // Persist to ZK asynchronously
+    // If bestPossibleAssignment hasn't changed, skip writing to metadata store
+    if (compareAssignments(_bestPossibleAssignment, bestPossibleAssignment)) {
+      return;
+    }
+    // Persist to ZK
     HelixProperty combinedAssignments =
         combineAssignments(BEST_POSSIBLE_KEY, bestPossibleAssignment);
     try {
       _dataAccessor.compressedBucketWrite(_bestPossiblePath, combinedAssignments);
     } catch (IOException e) {
       // TODO: Improve failure handling
-      throw new HelixException("Failed to persist baseline!", e);
+      throw new HelixException("Failed to persist BestPossibleAssignment!", e);
     }
 
     // Update the in-memory reference
@@ -163,5 +171,18 @@ public class AssignmentMetadataStore {
         .forEach((resource, assignmentStr) -> assignmentMap.put(resource,
             new ResourceAssignment((ZNRecord) SERIALIZER.deserialize(assignmentStr.getBytes()))));
     return assignmentMap;
+  }
+
+  /**
+   * Returns whether two assignments are same.
+   * @param oldAssignment
+   * @param newAssignment
+   * @return true if they are the same. False otherwise or oldAssignment is null
+   */
+  private boolean compareAssignments(Map<String, ResourceAssignment> oldAssignment,
+      Map<String, ResourceAssignment> newAssignment) {
+    // If oldAssignment is null, that means that we haven't read from/written to
+    // the metadata store yet. In that case, we return false so that we write to metadata store.
+    return oldAssignment != null && oldAssignment.equals(newAssignment);
   }
 }

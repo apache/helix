@@ -19,19 +19,24 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 
 public class TestAssignmentMetadataStore extends ZkTestBase {
   protected static final int NODE_NR = 5;
@@ -51,7 +56,8 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
   private AssignmentMetadataStore _store;
 
   @BeforeClass
-  public void beforeClass() throws Exception {
+  public void beforeClass()
+      throws Exception {
     super.beforeClass();
 
     // setup storage cluster
@@ -76,8 +82,8 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     _controller.syncStart();
 
     // create cluster manager
-    _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
-        InstanceType.ADMINISTRATOR, ZK_ADDR);
+    _manager = HelixManagerFactory
+        .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
 
     // create AssignmentMetadataStore
@@ -103,5 +109,57 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
   public void testReadEmptyBaseline() {
     Map<String, ResourceAssignment> baseline = _store.getBaseline();
     Assert.assertTrue(baseline.isEmpty());
+  }
+
+  /**
+   * Test that if the old assignment and new assignment are the same,
+   */
+  @Test(dependsOnMethods = "testReadEmptyBaseline")
+  public void testAvoidingRedundantWrite() {
+    String baselineKey = "BASELINE";
+    String bestPossibleKey = "BEST_POSSIBLE";
+
+    // Generate a dummy assignment
+    Map<String, ResourceAssignment> dummyAssignment = new HashMap<>();
+    ResourceAssignment assignment = new ResourceAssignment(TEST_DB);
+    Partition partition = new Partition(TEST_DB);
+    Map<String, String> replicaMap = new HashMap<>();
+    replicaMap.put(TEST_DB, TEST_DB);
+    assignment.addReplicaMap(partition, replicaMap);
+    dummyAssignment.put(TEST_DB, new ResourceAssignment(TEST_DB));
+
+    // Call persist functions
+    _store.persistBaseline(dummyAssignment);
+    _store.persistBestPossibleAssignment(dummyAssignment);
+
+    // Check that only one version exists
+    List<String> baselineVersions = getExistingVersionNumbers(baselineKey);
+    List<String> bestPossibleVersions = getExistingVersionNumbers(bestPossibleKey);
+    Assert.assertEquals(baselineVersions.size(), 1);
+    Assert.assertEquals(bestPossibleVersions.size(), 1);
+
+    // Call persist functions again
+    _store.persistBaseline(dummyAssignment);
+    _store.persistBestPossibleAssignment(dummyAssignment);
+
+    // Check that only one version exists still
+    baselineVersions = getExistingVersionNumbers(baselineKey);
+    bestPossibleVersions = getExistingVersionNumbers(bestPossibleKey);
+    Assert.assertEquals(baselineVersions.size(), 1);
+    Assert.assertEquals(bestPossibleVersions.size(), 1);
+  }
+
+  /**
+   * Returns a list of existing version numbers only.
+   * @param metadataType
+   * @return
+   */
+  private List<String> getExistingVersionNumbers(String metadataType) {
+    List<String> children = _baseAccessor
+        .getChildNames("/" + CLUSTER_NAME + "/ASSIGNMENT_METADATA/" + metadataType,
+            AccessOption.PERSISTENT);
+    children.remove("LAST_SUCCESSFUL_WRITE");
+    children.remove("LAST_WRITE");
+    return children;
   }
 }

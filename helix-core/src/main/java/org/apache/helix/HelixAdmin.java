@@ -30,6 +30,7 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 
 /*
@@ -576,4 +577,28 @@ public interface HelixAdmin {
    * Release resources
    */
   void close();
+
+  /**
+   * Adds a resource with IdealState and ResourceConfig to be rebalanced by WAGED rebalancer with validation.
+   * @param clusterName
+   * @param idealState
+   * @param resourceConfig
+   * @return true if the resource has been added successfully. False otherwise
+   */
+  boolean addResourceWithWeight(String clusterName, IdealState idealState, ResourceConfig resourceConfig);
+
+  /**
+   * Batch-enables Waged rebalance for the names of resources given.
+   * @param clusterName
+   * @param resourceNames
+   * @return
+   */
+  boolean enableWagedRebalance(String clusterName, List<String> resourceNames);
+
+  /**
+   * Validates the resources to see if their weight configs have been set properly.
+   * @param resourceNames
+   * @return for each resource, true if the weight configs have been set properly, false otherwise
+   */
+  Map<String, Boolean> validateForWagedRebalance(String clusterName, List<String> resourceNames);
 }

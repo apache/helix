@@ -75,6 +75,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
@@ -1578,4 +1579,124 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
   }
 
+  @Override
+  public boolean addResourceWithWeight(String clusterName, IdealState idealState, ResourceConfig resourceConfig) {
+    // Null checks
+    if (idealState == null) {
+      throw new HelixException("IdealState is null!");
+    }
+    if (resourceConfig == null) {
+      // TODO This might be okay because of default weight?
+      throw new HelixException("ResourceConfig is null!");
+    }
+
+    // Order in which a resource should be added:
+    // 1. Validate the weights in ResourceConfig against ClusterConfig
+    // Check that all capacity keys in ClusterConfig are set up in every partition in ResourceConfig's WEIGHT field
+    if (!validateWeightForResourceConfig(_configAccessor.getClusterConfig(clusterName), resourceConfig)) {
+      return false;
+    }
+
+    // 2. Add the resourceConfig to ZK
+    _configAccessor.setResourceConfig(clusterName, resourceConfig.getResourceName(), resourceConfig);
+
+    // 3. Add the idealState to ZK
+    setResourceIdealState(clusterName, idealState.getResourceName(), idealState);
+
+    // 4. rebalance the resource
+    rebalance(clusterName, idealState.getResourceName(), Integer.parseInt(idealState.getReplicas()),
+        idealState.getResourceName(), idealState.getInstanceGroupTag());
+
+    return true;
+  }
+
+  @Override
+  public boolean enableWagedRebalance(String clusterName, List<String> resourceNames) {
+    // Null checks
+    if (clusterName == null || clusterName.isEmpty()) {
+      throw new HelixException("Cluster name is invalid!");
+    }
+    if (resourceNames == null || resourceNames.isEmpty()) {
+      throw new HelixException("Resource name list is invalid!");
+    }
+
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    List<IdealState> idealStates = accessor.getChildValues(keyBuilder.idealStates());
+    List<String> nullIdealStates = new ArrayList<>();
+    for (int i = 0; i < idealStates.size(); i++) {
+      if (idealStates.get(i) == null) {
+        nullIdealStates.add(resourceNames.get(i));
+      } else {
+        idealStates.get(i).setRebalancerClassName("org.apache.helix.controller.rebalancer.WagedRebalancer");
+      }
+    }
+    if (!nullIdealStates.isEmpty()) {
+      throw new HelixException(String.format("Not all IdealStates exist in the cluster: %s", nullIdealStates));
+    }
+    List<PropertyKey> idealStateKeys = new ArrayList<>();
+    idealStates.forEach(idealState -> idealStateKeys.add(keyBuilder.idealStates(idealState.getResourceName())));
+    boolean[] success = accessor.setChildren(idealStateKeys, idealStates);
+    for (boolean s : success) {
+      if (!s) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @Override
+  public Map<String, Boolean> validateForWagedRebalance(String clusterName, List<String> resourceNames) {
+    // Null checks
+    if (clusterName == null || clusterName.isEmpty()) {
+      throw new HelixException("Cluster name is invalid!");
+    }
+    if (resourceNames == null || resourceNames.isEmpty()) {
+      throw new HelixException("Resource name list is invalid!");
+    }
+
+    Map<String, Boolean> result = new HashMap<>();
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
+    for (String resourceName : resourceNames) {
+      IdealState idealState = getResourceIdealState(clusterName, resourceName);
+      if (idealState == null || !idealState.isValid()) {
+        result.put(resourceName, false);
+        continue;
+      }
+      ResourceConfig resourceConfig = _configAccessor.getResourceConfig(clusterName, resourceName);
+      result.put(resourceName, validateWeightForResourceConfig(clusterConfig, resourceConfig));
+    }
+    return result;
+  }
+
+  /**
+   * Validates ResourceConfig's weight field against the given ClusterConfig.
+   * @param clusterConfig
+   * @param resourceConfig
+   * @return true if ResourceConfig has all the required fields. False otherwise.
+   */
+  private boolean validateWeightForResourceConfig(ClusterConfig clusterConfig, ResourceConfig resourceConfig) {
+    // Check that the ResourceConfig has the WEIGHT field
+    Map<String, String> weightMap = resourceConfig.getMapConfig("WEIGHT");
+    if (weightMap == null || weightMap.isEmpty()) {
+      throw new HelixException("WEIGHT field in ResourceConfig is null or empty!");
+    }
+
+    // Check that all capacity keys in ClusterConfig are set up in every partition in ResourceConfig's WEIGHT field
+    if (clusterConfig.getDefaultInstanceCapacityMap().isEmpty()) {
+      // If default instance capacity is not defined, we need to make sure all capacity key-values are set up
+      List<String> capacityKeys = clusterConfig.getInstanceCapacityKeys();
+      if (capacityKeys == null || capacityKeys.isEmpty()) {
+        throw new HelixException("CAPACITY_KEYS in ClusterConfig is null or empty!");
+      }
+      // Check that all ResourceConfig's weightMap fields have all of the capacity keys
+      weightMap.forEach((partitionName, weightJson) -> capacityKeys.forEach(capacityKey -> {
+        if (!weightJson.contains(capacityKey)) {
+          throw new HelixException(
+              String.format("Partition %s does not contain weight key %s!", partitionName, capacityKey));
+        }
+      }));
+    }
+    return true;
+  }
 }

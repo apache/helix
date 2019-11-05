@@ -89,7 +89,7 @@ public class WagedRebalancer {
       NOT_CONFIGURED_PREFERENCE;
   private MetricCollector _metricCollector;
 
-  protected static AssignmentMetadataStore constructAssignmentStore(String metadataStoreAddrs,
+  private static AssignmentMetadataStore constructAssignmentStore(String metadataStoreAddrs,
       String clusterName) {
     if (metadataStoreAddrs != null && clusterName != null) {
       return new AssignmentMetadataStore(metadataStoreAddrs, clusterName);
@@ -252,9 +252,43 @@ public class WagedRebalancer {
   }
 
   // Coordinate baseline recalculation and partial rebalance according to the cluster changes.
-  protected Map<String, IdealState> computeBestPossibleStates(
+  private Map<String, IdealState> computeBestPossibleStates(
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-      final CurrentStateOutput currentStateOutput) throws HelixRebalanceException {
+      final CurrentStateOutput currentStateOutput)
+      throws HelixRebalanceException {
+    Set<String> activeNodes = DelayedRebalanceUtil
+        .getActiveNodes(clusterData.getAllInstances(), clusterData.getEnabledLiveInstances(),
+            clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
+            clusterData.getInstanceConfigMap(), clusterData.getClusterConfig());
+
+    // Schedule (or unschedule) delayed rebalance according to the delayed rebalance config.
+    delayedRebalanceSchedule(clusterData, activeNodes, resourceMap.keySet());
+
+    Map<String, IdealState> newIdealStates = convertResourceAssignment(clusterData,
+        computeBestPossibleAssignment(clusterData, resourceMap, activeNodes, currentStateOutput));
+
+    // The additional rebalance overwrite is required since the calculated mapping may contains
+    // some delayed rebalanced assignments.
+    if (!activeNodes.equals(clusterData.getEnabledLiveInstances())) {
+      applyRebalanceOverwrite(newIdealStates, clusterData, resourceMap,
+          getBaselineAssignment(_assignmentMetadataStore, currentStateOutput,
+              resourceMap.keySet()));
+    }
+    // Replace the assignment if user-defined preference list is configured.
+    // Note the user-defined list is intentionally applied to the final mapping after calculation.
+    // This is to avoid persisting it into the assignment store, which impacts the long term
+    // assignment evenness and partition movements.
+    newIdealStates.entrySet().stream().forEach(idealStateEntry -> applyUserDefinedPreferenceList(
+        clusterData.getResourceConfig(idealStateEntry.getKey()), idealStateEntry.getValue()));
+
+    return newIdealStates;
+  }
+
+  // Coordinate baseline recalculation and partial rebalance according to the cluster changes.
+  protected Map<String, ResourceAssignment> computeBestPossibleAssignment(
+      ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
+      Set<String> activeNodes, final CurrentStateOutput currentStateOutput)
+      throws HelixRebalanceException {
     getChangeDetector().updateSnapshots(clusterData);
     // Get all the changed items' information
     Map<HelixConstants.ChangeType, Set<String>> clusterChanges =
@@ -278,37 +312,11 @@ public class WagedRebalancer {
       refreshBaseline(clusterData, clusterChanges, resourceMap, currentStateOutput);
     }
 
-    Set<String> activeNodes = DelayedRebalanceUtil.getActiveNodes(clusterData.getAllInstances(),
-        clusterData.getEnabledLiveInstances(), clusterData.getInstanceOfflineTimeMap(),
-        clusterData.getLiveInstances().keySet(), clusterData.getInstanceConfigMap(),
-        clusterData.getClusterConfig());
-
-    // Schedule (or unschedule) delayed rebalance according to the delayed rebalance config.
-    delayedRebalanceSchedule(clusterData, activeNodes, resourceMap.keySet());
-
     // Perform partial rebalance
     Map<String, ResourceAssignment> newAssignment =
         partialRebalance(clusterData, clusterChanges, resourceMap, activeNodes, currentStateOutput);
 
-    Map<String, IdealState> finalIdealStateMap =
-        convertResourceAssignment(clusterData, newAssignment);
-
-    // The additional rebalance overwrite is required since the calculated mapping may contains
-    // some delayed rebalanced assignments.
-    if (!activeNodes.equals(clusterData.getEnabledLiveInstances())) {
-      applyRebalanceOverwrite(finalIdealStateMap, clusterData, resourceMap, clusterChanges,
-          getBaselineAssignment(_assignmentMetadataStore, currentStateOutput,
-              resourceMap.keySet()));
-    }
-    // Replace the assignment if user-defined preference list is configured.
-    // Note the user-defined list is intentionally applied to the final mapping after calculation.
-    // This is to avoid persisting it into the assignment store, which impacts the long term
-    // assignment evenness and partition movements.
-    finalIdealStateMap.entrySet().stream()
-        .forEach(idealStateEntry -> applyUserDefinedPreferenceList(
-            clusterData.getResourceConfig(idealStateEntry.getKey()), idealStateEntry.getValue()));
-
-    return finalIdealStateMap;
+    return newAssignment;
   }
 
   /**
@@ -575,7 +583,7 @@ public class WagedRebalancer {
    *         assignmentMetadataStore, return the current state assignment.
    * @throws HelixRebalanceException
    */
-  private Map<String, ResourceAssignment> getBestPossibleAssignment(
+  protected Map<String, ResourceAssignment> getBestPossibleAssignment(
       AssignmentMetadataStore assignmentMetadataStore, CurrentStateOutput currentStateOutput,
       Set<String> resources) throws HelixRebalanceException {
     Map<String, ResourceAssignment> currentBestAssignment = Collections.emptyMap();
@@ -635,18 +643,16 @@ public class WagedRebalancer {
    * @param idealStateMap the calculated ideal states.
    * @param clusterData the cluster data cache.
    * @param resourceMap the rebalanaced resource map.
-   * @param clusterChanges the detected cluster changes that triggeres the rebalance.
    * @param baseline the baseline assignment
    */
   private void applyRebalanceOverwrite(Map<String, IdealState> idealStateMap,
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-      Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
       Map<String, ResourceAssignment> baseline) throws HelixRebalanceException {
     Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
     // Note that the calculation used the baseline as the input only. This is for minimizing
     // unnecessary partition movement.
     Map<String, IdealState> activeIdealStates = convertResourceAssignment(clusterData,
-        calculateAssignment(clusterData, clusterChanges, resourceMap, enabledLiveInstances,
+        calculateAssignment(clusterData, Collections.emptyMap(), resourceMap, enabledLiveInstances,
             Collections.emptyMap(), baseline));
     for (String resourceName : idealStateMap.keySet()) {
       // The new calculated ideal state before overwrite
@@ -683,6 +689,10 @@ public class WagedRebalancer {
         }
       }
     }
+  }
+
+  protected AssignmentMetadataStore getAssignmentMetadataStore() {
+    return _assignmentMetadataStore;
   }
 
   protected MetricCollector getMetricCollector() {

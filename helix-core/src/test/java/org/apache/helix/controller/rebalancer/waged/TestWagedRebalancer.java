@@ -255,7 +255,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Map<String, Resource> resourceMap = clusterData.getIdealStates().keySet().stream().collect(
         Collectors.toMap(resourceName -> resourceName, resourceName -> new Resource(resourceName)));
     try {
-      rebalancer.computeBestPossibleStates(clusterData, resourceMap, new CurrentStateOutput());
+      rebalancer.computeBestPossibleAssignment(clusterData, resourceMap,
+          clusterData.getEnabledLiveInstances(), new CurrentStateOutput());
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.INVALID_CLUSTER_STATUS);
@@ -319,7 +320,8 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     // Calculation will fail
     try {
-      rebalancer.computeBestPossibleStates(clusterData, resourceMap, new CurrentStateOutput());
+      rebalancer.computeBestPossibleAssignment(clusterData, resourceMap,
+          clusterData.getEnabledLiveInstances(), new CurrentStateOutput());
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);

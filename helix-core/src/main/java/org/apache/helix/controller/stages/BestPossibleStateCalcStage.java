@@ -69,10 +69,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
   // Lazy initialize the WAGED rebalancer instance since the BestPossibleStateCalcStage instance was
   // instantiated without the HelixManager information that is required.
-  // TODO: Simplify the thread local objects once the BestPossibleStateCalcStage constructor is
+  // TODO: Initialize the WAGED rebalancer in the BestPossibleStateCalcStage constructor once it is
   // TODO: updated so as to accept a HelixManager or HelixZkClient information.
-  private final ThreadLocal<WagedRebalancer> WAGED_REBALANCER_THREAD_LOCAL =
-      new ThreadLocal<>();
+  private WagedRebalancer _wagedRebalancer = null;
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -120,14 +119,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   // Construct the BestPossibleStateCalcStage with a given WAGED rebalancer for the callers other
   // than the controller pipeline. Such as the verifiers and test cases.
   public BestPossibleStateCalcStage(WagedRebalancer wagedRebalancer) {
-    WAGED_REBALANCER_THREAD_LOCAL.set(wagedRebalancer);
+    _wagedRebalancer = wagedRebalancer;
   }
 
   private WagedRebalancer getWagedRebalancer(HelixManager helixManager,
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
-    WagedRebalancer rebalancer = WAGED_REBALANCER_THREAD_LOCAL.get();
-    // Create WagedRebalancer ThreadLocal if it hasn't been already initialized
-    if (rebalancer == null) {
+    // Create WagedRebalancer instance if it hasn't been already initialized
+    if (_wagedRebalancer == null) {
       // If HelixManager is null, we just pass in null for MetricCollector so that a
       // non-functioning WagedRebalancerMetricCollector would be created in WagedRebalancer's
       // constructor. This is to handle two cases: 1. HelixManager is null for non-testing cases -
@@ -136,14 +134,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       // verifying whether the cluster has converged.
       MetricCollector metricCollector = helixManager == null ? null
           : new WagedRebalancerMetricCollector(helixManager.getClusterName());
-      rebalancer = new WagedRebalancer(helixManager, preferences, metricCollector);
-      WAGED_REBALANCER_THREAD_LOCAL.set(rebalancer);
+      _wagedRebalancer = new WagedRebalancer(helixManager, preferences, metricCollector);
     } else {
       // Since the preference can be updated at runtime, try to update the algorithm preference
       // before returning the rebalancer.
-      rebalancer.updatePreference(preferences);
+      _wagedRebalancer.updatePreference(preferences);
     }
-    return rebalancer;
+    return _wagedRebalancer;
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,

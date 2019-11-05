@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.BucketDataAccessor;
@@ -51,20 +50,27 @@ public class AssignmentMetadataStore {
   private String _bestPossiblePath;
   private Map<String, ResourceAssignment> _globalBaseline;
   private Map<String, ResourceAssignment> _bestPossibleAssignment;
+  private boolean _useCache;
 
   AssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
-    this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
+    this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName, true);
   }
 
   protected AssignmentMetadataStore(BucketDataAccessor bucketDataAccessor, String clusterName) {
+    this(bucketDataAccessor, clusterName, true);
+  }
+
+  protected AssignmentMetadataStore(BucketDataAccessor bucketDataAccessor, String clusterName,
+      boolean useCache) {
     _dataAccessor = bucketDataAccessor;
     _baselinePath = String.format(BASELINE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
     _bestPossiblePath = String.format(BEST_POSSIBLE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
+    _useCache = useCache;
   }
 
   public Map<String, ResourceAssignment> getBaseline() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
-    if (_globalBaseline == null) {
+    if (!_useCache || _globalBaseline == null) {
       try {
         HelixProperty baseline =
             _dataAccessor.compressedBucketRead(_baselinePath, HelixProperty.class);
@@ -79,7 +85,7 @@ public class AssignmentMetadataStore {
 
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
-    if (_bestPossibleAssignment == null) {
+    if (!_useCache || _bestPossibleAssignment == null) {
       try {
         HelixProperty baseline =
             _dataAccessor.compressedBucketRead(_bestPossiblePath, HelixProperty.class);
@@ -95,7 +101,7 @@ public class AssignmentMetadataStore {
   public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     // TODO: Make the write async?
     // If baseline hasn't changed, skip writing to metadata store
-    if (compareAssignments(_globalBaseline, globalBaseline)) {
+    if (_useCache && compareAssignments(_globalBaseline, globalBaseline)) {
       return;
     }
     // Persist to ZK
@@ -115,7 +121,7 @@ public class AssignmentMetadataStore {
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     // TODO: Make the write async?
     // If bestPossibleAssignment hasn't changed, skip writing to metadata store
-    if (compareAssignments(_bestPossibleAssignment, bestPossibleAssignment)) {
+    if (_useCache && compareAssignments(_bestPossibleAssignment, bestPossibleAssignment)) {
       return;
     }
     // Persist to ZK

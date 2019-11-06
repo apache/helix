@@ -19,6 +19,8 @@ package org.apache.helix.spectator;
  * under the License.
  */
 
+import java.util.Map;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
@@ -26,6 +28,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.MockZkHelixDataAccessor;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
@@ -121,5 +124,45 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     cache.notifyDataChange(HelixConstants.ChangeType.EXTERNAL_VIEW);
     cache.refresh(accessor);
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 1);
+  }
+
+  @Test
+  public void testCurrentStatesSelectiveUpdate() {
+    String clusterName = "CLUSTER_" + TestHelper.getTestClassName();
+    MockZkHelixDataAccessor accessor =
+        new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
+    RoutingDataCache cache = new RoutingDataCache(clusterName, PropertyType.CURRENTSTATES);
+
+    // Empty current states map before refreshing.
+    Assert.assertTrue(cache.getCurrentStatesMap().isEmpty());
+
+    // 1. Initial cache refresh.
+    cache.refresh(accessor);
+    Map<String, Map<String, Map<String, CurrentState>>> currentStatesV1 = cache.getCurrentStatesMap();
+
+    // Current states map is not empty and size equals to number of live instances.
+    Assert.assertFalse(currentStatesV1.isEmpty());
+    Assert.assertEquals(currentStatesV1.size(), _participants.length);
+
+    // 2. Without any change, refresh routing data cache.
+    cache.refresh(accessor);
+    // Because of no current states change, current states cache doesn't refresh.
+    Assert.assertEquals(cache.getCurrentStatesMap(), currentStatesV1);
+
+    // 3. Stop one participant to make live instance change and refresh routing data cache.
+    _participants[0].syncStop();
+    cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
+    cache.refresh(accessor);
+    Map<String, Map<String, Map<String, CurrentState>>> currentStatesV2 = cache.getCurrentStatesMap();
+
+    // Current states cache should refresh and change.
+    Assert.assertFalse(currentStatesV2.isEmpty());
+    Assert.assertEquals(currentStatesV2.size(), _participants.length - 1);
+    Assert.assertFalse(currentStatesV1.equals(currentStatesV2));
+
+    cache.refresh(accessor);
+
+    // No change.
+    Assert.assertEquals(cache.getCurrentStatesMap(), currentStatesV2);
   }
 }

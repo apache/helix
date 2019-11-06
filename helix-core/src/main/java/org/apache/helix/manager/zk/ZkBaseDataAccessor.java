@@ -88,33 +88,37 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
   private final HelixZkClient _zkClient;
-  private final HelixZkClient _nonZNRecordClient;
+  // onDemand ZnRecordClient
+  private HelixZkClient _nonZNRecordClient = null;
 
   public ZkBaseDataAccessor(HelixZkClient zkClient) {
     if (zkClient == null) {
       throw new NullPointerException("zkclient is null");
     }
     _zkClient = zkClient;
-    _nonZNRecordClient = new ZkClient.Builder().setConnection(
-        new ZkConnection(zkClient.getServers(), ZkClient.DEFAULT_SESSION_TIMEOUT))
-        .setZkSerializer(new ZkSerializer() {
-          @Override
-          public byte[] serialize(Object data) throws ZkMarshallingError {
-            if (data instanceof byte[]) {
-              return (byte[]) data;
-            }
-            throw new HelixException("Only support a byte array as an argument!");
-          }
-
-          @Override
-          public Object deserialize(byte[] data) throws ZkMarshallingError {
-            return data;
-          }
-        }).build();
   }
 
-  public HelixZkClient getZkClient() {
-    return _zkClient;
+  private synchronized HelixZkClient getNonZNRecordClient() {
+    if (_nonZNRecordClient == null) {
+      _nonZNRecordClient = new ZkClient.Builder().setConnection(
+          new ZkConnection(_zkClient.getServers(), ZkClient.DEFAULT_SESSION_TIMEOUT))
+          .setZkSerializer(new ZkSerializer() {
+            @Override
+            public byte[] serialize(Object data) throws ZkMarshallingError {
+              if (data instanceof byte[]) {
+                return (byte[]) data;
+              }
+              throw new HelixException("Only support a byte array as an argument!");
+            }
+
+            @Override
+            public Object deserialize(byte[] data) throws ZkMarshallingError {
+              return data;
+            }
+          }).build();
+    }
+
+    return _nonZNRecordClient;
   }
 
   /**
@@ -122,14 +126,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public boolean create(String path, T record, int options) {
-    AccessResult result = doCreate(_zkClient, path, record, options);
+    AccessResult result = doCreate(path, record, options, true);
     return result._retCode == RetCode.OK;
   }
 
   /**
    * sync create. In order to support non-ZnRecord creation, the instance of {@link HelixZkClient} needs to be a parameter
    */
-  public AccessResult doCreate(HelixZkClient zkClient, String path, Object record, int options) {
+  public AccessResult doCreate(String path, Object record, int options, boolean isZnRecord) {
     AccessResult result = new AccessResult();
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
@@ -138,6 +142,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return result;
     }
 
+    HelixZkClient zkClient = isZnRecord ? _zkClient : getNonZNRecordClient();
     boolean retry;
     do {
       retry = false;
@@ -150,7 +155,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         // this will happen if parent node does not exist
         String parentPath = HelixUtil.getZkParentPath(path);
         try {
-          AccessResult res = doCreate(zkClient, parentPath, null, AccessOption.PERSISTENT);
+          AccessResult res = doCreate(parentPath, null, AccessOption.PERSISTENT, isZnRecord);
           result._pathCreated.addAll(res._pathCreated);
           RetCode rc = res._retCode;
           if (rc == RetCode.OK || rc == RetCode.NODE_EXISTS) {
@@ -222,7 +227,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         }
         try {
           // may create recursively
-          AccessResult res = doCreate(_zkClient, path, record, options);
+          AccessResult res = doCreate(path, record, options, true);
           result._pathCreated.addAll(res._pathCreated);
           RetCode rc = res._retCode;
           switch (rc) {
@@ -298,7 +303,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           T newData = updater.update(null);
           RetCode rc;
           if (newData != null) {
-            AccessResult res = doCreate(_zkClient, path, newData, options);
+            AccessResult res = doCreate(path, newData, options, true);
             result._pathCreated.addAll(res._pathCreated);
             rc = res._retCode;
           } else {
@@ -356,7 +361,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   public Object get(String path, Stat stat, int options, ZkSerializer serializer) {
     byte[] content = null;
     try {
-      content = _nonZNRecordClient.readData(path, stat);
+      content = getNonZNRecordClient().readData(path, stat);
       return serializer.deserialize(content);
     } catch (ZkNoNodeException ex) {
       if (AccessOption.isThrowExceptionIfNotExist(options)) {
@@ -374,7 +379,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   public boolean create(String path, Object data, int options, ZkSerializer serializer) {
     byte[] bytes = serializer.serialize(data);
-    AccessResult result = doCreate(_nonZNRecordClient, path, bytes, options);
+    AccessResult result = doCreate(path, bytes, options, false);
     return result._retCode == RetCode.OK;
   }
 

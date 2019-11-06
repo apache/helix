@@ -150,7 +150,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         // this will happen if parent node does not exist
         String parentPath = HelixUtil.getZkParentPath(path);
         try {
-          AccessResult res = doCreate(zkClient, parentPath, record, AccessOption.PERSISTENT);
+          AccessResult res = doCreate(zkClient, parentPath, null, AccessOption.PERSISTENT);
           result._pathCreated.addAll(res._pathCreated);
           RetCode rc = res._retCode;
           if (rc == RetCode.OK || rc == RetCode.NODE_EXISTS) {
@@ -373,14 +373,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * Sync create method with custom serializer support
    */
   public boolean create(String path, Object data, int options, ZkSerializer serializer) {
-    try {
-      byte[] bytes = serializer.serialize(data);
-      AccessResult result = doCreate(_nonZNRecordClient, path, bytes, options);
-      return result._retCode == RetCode.OK;
-    } catch (ZkMarshallingError ex) {
-      LOG.error("Failed to serialize the data object", ex);
-      throw ex;
-    }
+    byte[] bytes = serializer.serialize(data);
+    AccessResult result = doCreate(_nonZNRecordClient, path, bytes, options);
+    return result._retCode == RetCode.OK;
   }
 
   /**

@@ -30,24 +30,32 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
+import org.apache.helix.controller.rebalancer.waged.AssignmentMetadataStore;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
+import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintBasedAlgorithmFactory;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
+import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.ResourceComputationStage;
+import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.slf4j.Logger;
@@ -401,5 +409,44 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     String verifierName = getClass().getSimpleName();
     return verifierName + "(" + _clusterName + "@" + _zkClient + "@resources["
        + (_resources != null ? Arrays.toString(_resources.toArray()) : "") + "])";
+  }
+}
+
+/**
+ * A Dryrun WAGED rebalancer that only calculates the assignment based on the cluster status but
+ * never update the rebalancer assignment metadata.
+ * This rebalacer is used in the verifiers or tests.
+ */
+class DryrunWagedRebalancer extends WagedRebalancer {
+  DryrunWagedRebalancer(String metadataStoreAddrs, String clusterName,
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
+    super(new ReadOnlyAssignmentMetadataStore(metadataStoreAddrs, clusterName),
+        ConstraintBasedAlgorithmFactory.getInstance(preferences));
+  }
+
+  @Override
+  protected Map<String, ResourceAssignment> computeBestPossibleAssignment(
+      ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
+      Set<String> activeNodes, CurrentStateOutput currentStateOutput)
+      throws HelixRebalanceException {
+    return getBestPossibleAssignment(getAssignmentMetadataStore(), currentStateOutput,
+        resourceMap.keySet());
+  }
+}
+
+class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {
+  ReadOnlyAssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
+    super(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName, false);
+  }
+
+  @Override
+  public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+    // Do nothing. It is a readonly store.
+  }
+
+  @Override
+  public void persistBestPossibleAssignment(
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
+    // Do nothing. It is a readonly store.
   }
 }

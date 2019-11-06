@@ -88,7 +88,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
   private final HelixZkClient _zkClient;
-  // onDemand ZnRecordClient
+  // onDemand zkClient for read/write non-znRecord data path
   private HelixZkClient _nonZNRecordClient = null;
 
   public ZkBaseDataAccessor(HelixZkClient zkClient) {
@@ -367,9 +367,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       if (AccessOption.isThrowExceptionIfNotExist(options)) {
         throw ex;
       }
-    } catch (ZkMarshallingError ex) {
-      LOG.error("Failed to deserialize the byte array", ex);
-      throw ex;
     }
     return content;
   }

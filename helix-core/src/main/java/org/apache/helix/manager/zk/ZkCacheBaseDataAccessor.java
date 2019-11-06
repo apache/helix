@@ -263,7 +263,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       if (cache != null) {
         cache.lockWrite();
         ZkBaseDataAccessor<T>.AccessResult result =
-            _baseAccessor.doSet(serverPath, data, expectVersion, options);
+            _baseAccessor.doSet(serverPath, data, expectVersion, options, true);
         success = result._retCode == RetCode.OK;
 
         updateCache(cache, result._pathCreated, success, serverPath, data, result._stat);

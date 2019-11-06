@@ -37,7 +37,6 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor.AccessResult;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
@@ -65,11 +64,6 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     if (_gZkClient.exists(path)) {
       _gZkClient.deleteRecursively(path);
     }
-  }
-
-  @AfterClass
-  public void after() {
-    int a =1;
   }
 
   @Test
@@ -163,7 +157,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     ZNRecord record = new ZNRecord("submsg_0");
     ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
-    AccessResult result = accessor.doSet(path, record, -1, AccessOption.PERSISTENT);
+    AccessResult result = accessor.doSet(path, record, -1, AccessOption.PERSISTENT, true);
     Assert.assertEquals(result._retCode, RetCode.OK);
     Assert.assertEquals(result._pathCreated.size(), 3);
     Assert.assertTrue(result._pathCreated.contains(String.format("/%s/%s", _rootPath, "msg_0")));
@@ -216,12 +210,18 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
 
-    String recordData = "DummyContent";
-    boolean success = accessor.create(path, recordData, AccessOption.PERSISTENT, CUSTOM_ZK_SERIALIZER);
-    Assert.assertTrue(success);
+    String content0 = "DummyContent";
+    String content1 = "ChangedContent";
+    boolean createResult = accessor.create(path, content0, AccessOption.PERSISTENT, CUSTOM_ZK_SERIALIZER);
+    Assert.assertTrue(createResult);
 
     Object data = accessor.get(path, null, AccessOption.PERSISTENT, CUSTOM_ZK_SERIALIZER);
-    Assert.assertEquals(new String((byte[]) data), "DummyContent");
+    Assert.assertEquals(new String((byte[]) data), content0);
+    boolean setResult = accessor.set(path, content1, AccessOption.PERSISTENT, 0, CUSTOM_ZK_SERIALIZER);
+    Assert.assertTrue(setResult);
+
+    data = accessor.get(path, null, AccessOption.PERSISTENT, CUSTOM_ZK_SERIALIZER);
+    Assert.assertEquals(new String((byte[]) data), content1);
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }

@@ -195,14 +195,30 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public boolean set(String path, T record, int expectVersion, int options) {
-    AccessResult result = doSet(path, record, expectVersion, options);
+    AccessResult result = doSet(path, record, expectVersion, options, true);
+    return result._retCode == RetCode.OK;
+  }
+
+  /**
+   * Sync set operation with custom serializer support
+   */
+  public boolean set(String path, Object record, int options, ZkSerializer zkSerializer) {
+    AccessResult result = doSet(path, zkSerializer.serialize(record), -1, options, false);
+    return result._retCode == RetCode.OK;
+  }
+
+  /**
+   * Sync set operation with custom serializer support
+   */
+  public boolean set(String path, Object record, int options, int expectVersion, ZkSerializer zkSerializer) {
+    AccessResult result = doSet(path, zkSerializer.serialize(record), expectVersion, options, false);
     return result._retCode == RetCode.OK;
   }
 
   /**
    * sync set
    */
-  public AccessResult doSet(String path, T record, int expectVersion, int options) {
+  public AccessResult doSet(String path, Object record, int expectVersion, int options, boolean isZnRecord) {
     AccessResult result = new AccessResult();
 
     CreateMode mode = AccessOption.getMode(options);
@@ -212,11 +228,12 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return result;
     }
 
+    HelixZkClient helixZkClient = isZnRecord ? _zkClient : getNonZNRecordClient();
     boolean retry;
     do {
       retry = false;
       try {
-        Stat stat = _zkClient.writeDataGetStat(path, record, expectVersion);
+        Stat stat = helixZkClient.writeDataGetStat(path, record, expectVersion);
         DataTree.copyStat(stat, result._stat);
       } catch (ZkNoNodeException e) {
         // node not exists, try create if expectedVersion == -1; in this case, stat will not be set

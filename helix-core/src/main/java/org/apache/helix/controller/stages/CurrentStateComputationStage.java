@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
@@ -33,8 +34,14 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
-import org.apache.helix.model.*;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -238,10 +245,17 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       CurrentStateOutput currentStateOutput) {
     asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
       try {
+        // ResourceToRebalance map also has resources from current states.
+        // Only use the resources in ideal states to parse all replicas.
+        Map<String, IdealState> idealStateMap = dataProvider.getIdealStates();
+        Map<String, Resource> resourceToMonitorMap = resourceMap.entrySet().stream()
+            .filter(resourceName -> idealStateMap.containsKey(resourceName))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
         Map<String, ResourceAssignment> currentStateAssignment =
-            currentStateOutput.getAssignment(resourceMap.keySet());
+            currentStateOutput.getAssignment(resourceToMonitorMap.keySet());
         ClusterModel clusterModel = ClusterModelProvider.generateClusterModelFromCurrentState(
-            dataProvider, resourceMap, currentStateAssignment);
+            dataProvider, resourceToMonitorMap, currentStateAssignment);
 
         Map<String, Double> maxUsageMap = new HashMap<>();
         for (AssignableNode node : clusterModel.getAssignableNodes().values()) {

@@ -19,30 +19,6 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
-import org.apache.helix.HelixDefinedState;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
-import org.apache.helix.controller.common.PartitionStateMap;
-import org.apache.helix.controller.pipeline.Stage;
-import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.ClusterEventType;
-import org.apache.helix.controller.stages.CurrentStateComputationStage;
-import org.apache.helix.controller.stages.ResourceComputationStage;
-import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
-import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.task.TaskConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,6 +28,38 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.helix.HelixDefinedState;
+import org.apache.helix.HelixRebalanceException;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.common.PartitionStateMap;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.pipeline.Stage;
+import org.apache.helix.controller.pipeline.StageContext;
+import org.apache.helix.controller.rebalancer.waged.AssignmentMetadataStore;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
+import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintBasedAlgorithmFactory;
+import org.apache.helix.controller.stages.AttributeName;
+import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
+import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventType;
+import org.apache.helix.controller.stages.CurrentStateComputationStage;
+import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.controller.stages.ResourceComputationStage;
+import org.apache.helix.manager.zk.ZkBucketDataAccessor;
+import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.task.TaskConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * verifier that the ExternalViews of given resources (or all resources in the cluster)
@@ -377,8 +385,15 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     }
 
     runStage(event, new CurrentStateComputationStage());
-    // TODO: be caution here, should be handled statelessly.
-    runStage(event, new BestPossibleStateCalcStage());
+    // Note the dryrunWagedRebalancer is just for one time usage
+    DryrunWagedRebalancer dryrunWagedRebalancer = new DryrunWagedRebalancer(_zkClient.getServers(), cache.getClusterName(),
+        cache.getClusterConfig().getGlobalRebalancePreference());
+    try {
+      // TODO: be caution here, should be handled statelessly.
+      runStage(event, new BestPossibleStateCalcStage(dryrunWagedRebalancer));
+    } finally {
+      dryrunWagedRebalancer.close();
+    }
 
     BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
     return output;
@@ -397,5 +412,46 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     String verifierName = getClass().getSimpleName();
     return verifierName + "(" + _clusterName + "@" + _zkClient + "@resources["
        + (_resources != null ? Arrays.toString(_resources.toArray()) : "") + "])";
+  }
+}
+
+/**
+ * A Dryrun WAGED rebalancer that only calculates the assignment based on the cluster status but
+ * never update the rebalancer assignment metadata.
+ * This rebalacer is used in the verifiers or tests.
+ */
+class DryrunWagedRebalancer extends WagedRebalancer {
+  DryrunWagedRebalancer(String metadataStoreAddrs, String clusterName,
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
+    super(new ReadOnlyAssignmentMetadataStore(metadataStoreAddrs, clusterName),
+        ConstraintBasedAlgorithmFactory.getInstance(preferences));
+  }
+
+  @Override
+  protected Map<String, ResourceAssignment> computeBestPossibleAssignment(
+      ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
+      Set<String> activeNodes, CurrentStateOutput currentStateOutput)
+      throws HelixRebalanceException {
+    return getBestPossibleAssignment(getAssignmentMetadataStore(), currentStateOutput,
+        resourceMap.keySet());
+  }
+}
+
+class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {
+  ReadOnlyAssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
+    super(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
+  }
+
+  @Override
+  public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+    // Update the in-memory reference only
+    _globalBaseline = globalBaseline;
+  }
+
+  @Override
+  public void persistBestPossibleAssignment(
+      Map<String, ResourceAssignment> bestPossibleAssignment) {
+    // Update the in-memory reference only
+    _bestPossibleAssignment = bestPossibleAssignment;
   }
 }

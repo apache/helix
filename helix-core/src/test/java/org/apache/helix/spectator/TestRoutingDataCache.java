@@ -138,7 +138,8 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
 
     // 1. Initial cache refresh.
     cache.refresh(accessor);
-    Map<String, Map<String, Map<String, CurrentState>>> currentStatesV1 = cache.getCurrentStatesMap();
+    Map<String, Map<String, Map<String, CurrentState>>> currentStatesV1 =
+        cache.getCurrentStatesMap();
 
     // Current states map is not empty and size equals to number of live instances.
     Assert.assertFalse(currentStatesV1.isEmpty());
@@ -153,7 +154,8 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     _participants[0].syncStop();
     cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
     cache.refresh(accessor);
-    Map<String, Map<String, Map<String, CurrentState>>> currentStatesV2 = cache.getCurrentStatesMap();
+    Map<String, Map<String, Map<String, CurrentState>>> currentStatesV2 =
+        cache.getCurrentStatesMap();
 
     // Current states cache should refresh and change.
     Assert.assertFalse(currentStatesV2.isEmpty());

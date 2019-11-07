@@ -84,10 +84,10 @@ public class WagedRebalancer {
   private final HelixManager _manager;
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
   private final AssignmentMetadataStore _assignmentMetadataStore;
+  private final MetricCollector _metricCollector;
   private RebalanceAlgorithm _rebalanceAlgorithm;
   private Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> _preference =
       NOT_CONFIGURED_PREFERENCE;
-  private MetricCollector _metricCollector;
 
   private static AssignmentMetadataStore constructAssignmentStore(String metadataStoreAddrs,
       String clusterName) {
@@ -98,19 +98,25 @@ public class WagedRebalancer {
   }
 
   public WagedRebalancer(HelixManager helixManager,
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference,
-      MetricCollector metricCollector) {
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference) {
     this(helixManager == null ? null
             : constructAssignmentStore(helixManager.getMetadataStoreConnectionString(),
-                helixManager.getClusterName()),
-        ConstraintBasedAlgorithmFactory.getInstance(preference),
+                helixManager.getClusterName()), ConstraintBasedAlgorithmFactory.getInstance(preference),
         // Use DelayedAutoRebalancer as the mapping calculator for the final assignment output.
         // Mapping calculator will translate the best possible assignment into the applicable state
         // mapping based on the current states.
         // TODO abstract and separate the main mapping calculator logic from DelayedAutoRebalancer
         new DelayedAutoRebalancer(),
         // Helix Manager is required for the rebalancer scheduler
-        helixManager, metricCollector);
+        helixManager,
+        // If HelixManager is null, we just pass in null for MetricCollector so that a
+        // non-functioning WagedRebalancerMetricCollector would be created in WagedRebalancer's
+        // constructor. This is to handle two cases: 1. HelixManager is null for non-testing cases -
+        // in this case, WagedRebalancer will not read/write to metadata store and just use
+        // CurrentState-based rebalancing. 2. Tests that require instrumenting the rebalancer for
+        // verifying whether the cluster has converged.
+        helixManager == null ? null
+            : new WagedRebalancerMetricCollector(helixManager.getClusterName()));
     _preference = ImmutableMap.copyOf(preference);
   }
 

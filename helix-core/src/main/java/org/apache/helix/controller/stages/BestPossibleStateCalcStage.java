@@ -126,15 +126,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
     // Create WagedRebalancer instance if it hasn't been already initialized
     if (_wagedRebalancer == null) {
-      // If HelixManager is null, we just pass in null for MetricCollector so that a
-      // non-functioning WagedRebalancerMetricCollector would be created in WagedRebalancer's
-      // constructor. This is to handle two cases: 1. HelixManager is null for non-testing cases -
-      // in this case, WagedRebalancer will not read/write to metadata store and just use
-      // CurrentState-based rebalancing. 2. Tests that require instrumenting the rebalancer for
-      // verifying whether the cluster has converged.
-      MetricCollector metricCollector = helixManager == null ? null
-          : new WagedRebalancerMetricCollector(helixManager.getClusterName());
-      _wagedRebalancer = new WagedRebalancer(helixManager, preferences, metricCollector);
+      _wagedRebalancer = new WagedRebalancer(helixManager, preferences);
     } else {
       // Since the preference can be updated at runtime, try to update the algorithm preference
       // before returning the rebalancer.

@@ -438,7 +438,7 @@ class DryrunWagedRebalancer extends WagedRebalancer {
 
 class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {
   ReadOnlyAssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
-    super(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName, false);
+    super(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
   }
 
   @Override

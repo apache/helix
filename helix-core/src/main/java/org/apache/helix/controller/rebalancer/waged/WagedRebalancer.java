@@ -267,7 +267,7 @@ public class WagedRebalancer {
     Map<String, IdealState> newIdealStates = convertResourceAssignment(clusterData,
         computeBestPossibleAssignment(clusterData, resourceMap, activeNodes, currentStateOutput));
 
-    // The additional rebalance overwrite is required since the calculated mapping may contains
+    // The additional rebalance overwrite is required since the calculated mapping may contain
     // some delayed rebalanced assignments.
     if (!activeNodes.equals(clusterData.getEnabledLiveInstances())) {
       applyRebalanceOverwrite(newIdealStates, clusterData, resourceMap,

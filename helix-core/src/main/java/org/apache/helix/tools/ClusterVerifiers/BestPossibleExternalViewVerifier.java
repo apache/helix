@@ -387,10 +387,12 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     runStage(event, new CurrentStateComputationStage());
     DryrunWagedRebalancer wagedRebalancer = new DryrunWagedRebalancer(_zkClient.getServers(), cache.getClusterName(),
         cache.getClusterConfig().getGlobalRebalancePreference());
-    // TODO: be caution here, should be handled statelessly.
-    runStage(event, new BestPossibleStateCalcStage(wagedRebalancer));
-
-    wagedRebalancer.close();
+    try {
+      // TODO: be caution here, should be handled statelessly.
+      runStage(event, new BestPossibleStateCalcStage(wagedRebalancer));
+    } finally {
+      wagedRebalancer.close();
+    }
 
     BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
     return output;

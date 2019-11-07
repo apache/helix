@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-import javax.management.JMException;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRebalanceException;
@@ -43,8 +42,6 @@ import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
-import org.apache.helix.monitoring.metrics.MetricCollector;
-import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -55,6 +52,8 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.monitoring.mbeans.ResourceMonitor;
+import org.apache.helix.monitoring.metrics.MetricCollector;
+import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
@@ -67,12 +66,12 @@ import org.slf4j.LoggerFactory;
 public class BestPossibleStateCalcStage extends AbstractBaseStage {
   private static final Logger logger =
       LoggerFactory.getLogger(BestPossibleStateCalcStage.class.getName());
-  // Create a ThreadLocal of MetricCollector. Metrics could only be updated by the controller thread
-  // only.
-  private static final ThreadLocal<MetricCollector> METRIC_COLLECTOR_THREAD_LOCAL =
-      new ThreadLocal<>();
-  private static final ThreadLocal<WagedRebalancer> WAGED_REBALANCER_THREAD_LOCAL =
-      new ThreadLocal<>();
+
+  // Lazy initialize the WAGED rebalancer instance since the BestPossibleStateCalcStage instance was
+  // instantiated without the HelixManager information that is required.
+  // TODO: Initialize the WAGED rebalancer in the BestPossibleStateCalcStage constructor once it is
+  // TODO: updated so as to accept a HelixManager or HelixZkClient information.
+  private WagedRebalancer _wagedRebalancer = null;
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -111,6 +110,29 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         return null;
       }
     });
+  }
+
+  // Need to keep a default constructor for backward compatibility
+  public BestPossibleStateCalcStage() {
+  }
+
+  // Construct the BestPossibleStateCalcStage with a given WAGED rebalancer for the callers other
+  // than the controller pipeline. Such as the verifiers and test cases.
+  public BestPossibleStateCalcStage(WagedRebalancer wagedRebalancer) {
+    _wagedRebalancer = wagedRebalancer;
+  }
+
+  private WagedRebalancer getWagedRebalancer(HelixManager helixManager,
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
+    // Create WagedRebalancer instance if it hasn't been already initialized
+    if (_wagedRebalancer == null) {
+      _wagedRebalancer = new WagedRebalancer(helixManager, preferences);
+    } else {
+      // Since the preference can be updated at runtime, try to update the algorithm preference
+      // before returning the rebalancer.
+      _wagedRebalancer.updatePreference(preferences);
+    }
+    return _wagedRebalancer;
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
@@ -261,35 +283,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     Map<String, IdealState> newIdealStates = new HashMap<>();
 
-    // Init rebalancer with the rebalance preferences.
-    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences =
-        cache.getClusterConfig().getGlobalRebalancePreference();
-
-    // Create MetricCollector ThreadLocal if it hasn't been already initialized
-    if (METRIC_COLLECTOR_THREAD_LOCAL.get() == null) {
-      try {
-        // If HelixManager is null, we just pass in null for MetricCollector so that a
-        // non-functioning WagedRebalancerMetricCollector would be created in WagedRebalancer's
-        // constructor. This is to handle two cases: 1. HelixManager is null for non-testing cases -
-        // in this case, WagedRebalancer will not read/write to metadata store and just use
-        // CurrentState-based rebalancing. 2. Tests that require instrumenting the rebalancer for
-        // verifying whether the cluster has converged.
-        METRIC_COLLECTOR_THREAD_LOCAL.set(helixManager == null ? null
-            : new WagedRebalancerMetricCollector(helixManager.getClusterName()));
-      } catch (JMException e) {
-        LogUtil.logWarn(logger, _eventId, String.format(
-            "MetricCollector instantiation failed! WagedRebalancer will not emit metrics due to JMException %s",
-            e));
-      }
-    }
-
-    // Create WagedRebalancer ThreadLocal if it hasn't been already initialized
-    if (WAGED_REBALANCER_THREAD_LOCAL.get() == null) {
-      WAGED_REBALANCER_THREAD_LOCAL
-          .set(new WagedRebalancer(helixManager, preferences, METRIC_COLLECTOR_THREAD_LOCAL.get()));
-    }
-    WagedRebalancer wagedRebalancer = WAGED_REBALANCER_THREAD_LOCAL.get();
-
+    WagedRebalancer wagedRebalancer =
+        getWagedRebalancer(helixManager, cache.getClusterConfig().getGlobalRebalancePreference());
     try {
       newIdealStates.putAll(wagedRebalancer.computeNewIdealStates(cache, wagedRebalancedResourceMap,
           currentStateOutput));

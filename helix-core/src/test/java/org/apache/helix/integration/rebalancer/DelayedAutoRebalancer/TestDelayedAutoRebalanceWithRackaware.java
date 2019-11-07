@@ -59,7 +59,8 @@ public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebala
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    _clusterVerifier = getClusterVerifier();
+    _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
   }
 
   @Override

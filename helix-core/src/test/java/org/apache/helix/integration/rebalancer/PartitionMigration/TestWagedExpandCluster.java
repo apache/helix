@@ -20,27 +20,13 @@ package org.apache.helix.integration.rebalancer.PartitionMigration;
  */
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+
 
 public class TestWagedExpandCluster extends TestExpandCluster {
-// TODO check the movements in between
-  protected ZkHelixClusterVerifier getVerifier() {
-    Set<String> dbNames = new HashSet<>();
-    int i = 0;
-    for (String stateModel : TestStateModels) {
-      dbNames.add("Test-DB-" + i++);
-    }
-    return new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setResources(dbNames)
-        .setDeactivatedNodeAwareness(true).setZkAddr(ZK_ADDR).build();
-  }
-
   protected Map<String, IdealState> createTestDBs(long delayTime) {
     Map<String, IdealState> idealStateMap = new HashMap<>();
     int i = 0;

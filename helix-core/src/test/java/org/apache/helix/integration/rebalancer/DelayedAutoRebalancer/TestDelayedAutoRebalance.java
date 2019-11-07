@@ -83,7 +83,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    _clusterVerifier = getClusterVerifier();
+    _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
   }
@@ -253,10 +254,6 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
         _participants.get(i).syncStart();
       }
     }
-  }
-
-  protected ZkHelixClusterVerifier getClusterVerifier() {
-    return new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
   }
 
   // create test DBs, wait it converged and return externalviews

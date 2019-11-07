@@ -28,7 +28,7 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -39,7 +39,8 @@ public class TestWagedRebalancerMigration extends TestPartitionMigrationBase {
   ConfigAccessor _configAccessor;
 
   @BeforeClass
-  public void beforeClass() throws Exception {
+  public void beforeClass()
+      throws Exception {
     super.beforeClass();
     _configAccessor = new ConfigAccessor(_gZkClient);
   }
@@ -58,7 +59,8 @@ public class TestWagedRebalancerMigration extends TestPartitionMigrationBase {
   // TODO check the movements in between
   @Test(dataProvider = "stateModels")
   public void testMigrateToWagedRebalancerWhileExpandCluster(String stateModel,
-      boolean delayEnabled) throws Exception {
+      boolean delayEnabled)
+      throws Exception {
     String db = "Test-DB-" + stateModel;
     if (delayEnabled) {
       createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
@@ -84,9 +86,7 @@ public class TestWagedRebalancerMigration extends TestPartitionMigrationBase {
     }
     Thread.sleep(2000);
     ZkHelixClusterVerifier clusterVerifier =
-        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME)
-            .setResources(Collections.singleton(db)).setZkAddr(ZK_ADDR)
-            .setDeactivatedNodeAwareness(true).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
     Assert.assertTrue(clusterVerifier.verifyByPolling());
 
     _migrationVerifier =
@@ -95,9 +95,11 @@ public class TestWagedRebalancerMigration extends TestPartitionMigrationBase {
     _migrationVerifier.reset();
     _migrationVerifier.start();
 
-    IdealState currentIdealState = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+    IdealState currentIdealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
     currentIdealState.setRebalancerClassName(WagedRebalancer.class.getName());
-    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, db, currentIdealState);
+    _gSetupTool.getClusterManagementTool()
+        .setResourceIdealState(CLUSTER_NAME, db, currentIdealState);
     Thread.sleep(2000);
     Assert.assertTrue(clusterVerifier.verifyByPolling());
 

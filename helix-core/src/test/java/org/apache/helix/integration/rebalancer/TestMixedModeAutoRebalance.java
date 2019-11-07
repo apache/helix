@@ -90,7 +90,8 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    _clusterVerifier = getClusterVerifier();
+    _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
@@ -108,10 +109,6 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
         {BuiltInStateModelDefinitions.MasterSlave.name(), true, CrushEdRebalanceStrategy.class.getName()},
         {BuiltInStateModelDefinitions.OnlineOffline.name(), true, CrushEdRebalanceStrategy.class.getName()}
     };
-  }
-
-  protected ZkHelixClusterVerifier getClusterVerifier() {
-    return new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
   }
 
   protected void createResource(String stateModel, int numPartition, int replica,
@@ -147,6 +144,9 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     ResourceConfig resourceConfig =
         new ResourceConfig.Builder(DB_NAME).setPreferenceLists(userDefinedPreferenceLists).build();
     _configAccessor.setResourceConfig(CLUSTER_NAME, DB_NAME, resourceConfig);
+
+    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
+    Thread.sleep(500);
 
     Assert.assertTrue(_clusterVerifier.verify(3000));
     verifyUserDefinedPreferenceLists(DB_NAME, userDefinedPreferenceLists, userDefinedPartitions);
@@ -263,7 +263,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
   @AfterMethod
   public void afterMethod() {
     _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, DB_NAME);
-    getClusterVerifier().verify(5000);
+    _clusterVerifier.verify(5000);
   }
 
   @AfterClass

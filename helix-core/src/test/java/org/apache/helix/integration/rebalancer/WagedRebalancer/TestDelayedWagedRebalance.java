@@ -20,15 +20,11 @@ package org.apache.helix.integration.rebalancer.WagedRebalancer;
  */
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.rebalancer.DelayedAutoRebalancer.TestDelayedAutoRebalance;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -36,16 +32,6 @@ import org.testng.annotations.Test;
  * Inherit TestDelayedAutoRebalance to ensure the test logic is the same.
  */
 public class TestDelayedWagedRebalance extends TestDelayedAutoRebalance {
-  protected ZkHelixClusterVerifier getClusterVerifier() {
-    Set<String> dbNames = new HashSet<>();
-    int i = 0;
-    for (String stateModel : TestStateModels) {
-      dbNames.add("Test-DB-" + TestHelper.getTestMethodName() + i++);
-    }
-    return new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setResources(dbNames)
-        .setDeactivatedNodeAwareness(true).setZkAddr(ZK_ADDR).build();
-  }
-
   // create test DBs, wait it converged and return externalviews
   protected Map<String, ExternalView> createTestDBs(long delayTime) throws InterruptedException {
     Map<String, ExternalView> externalViews = new HashMap<>();

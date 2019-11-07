@@ -40,7 +40,6 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -55,6 +54,7 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
   private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
   private List<MockParticipantManager> _participants = new ArrayList<>();
+  private ZkHelixClusterVerifier _clusterVerifier;
   private boolean _testSuccess = true;
   private boolean _startListen = false;
 
@@ -76,6 +76,9 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
     String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
+
+    _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
   }
 
   @AfterMethod
@@ -122,9 +125,7 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
       createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, partition, replica, replica,
           0);
     }
-    ZkHelixClusterVerifier clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(clusterVerifier.verifyByPolling(50000L, 100L));
+    Assert.assertTrue(_clusterVerifier.verifyByPolling(50000L, 100L));
 
     _startListen = true;
     DelayedTransition.setDelay(5);
@@ -133,7 +134,7 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
     for (; i < NUM_NODE; i++) {
       _participants.get(i).syncStart();
     }
-    Assert.assertTrue(clusterVerifier.verify(70000L));
+    Assert.assertTrue(_clusterVerifier.verify(70000L));
     Assert.assertTrue(_testSuccess);
 
     if (manager.isConnected()) {
@@ -164,10 +165,7 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
       String db = "Test-DB-" + stateModel;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, partition, replica, replica);
     }
-    ZkHelixClusterVerifier clusterVerifier =
-        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setDeactivatedNodeAwareness(true).build();
-    Assert.assertTrue(clusterVerifier.verifyByPolling(50000L, 100L));
+    Assert.assertTrue(_clusterVerifier.verifyByPolling(50000L, 100L));
 
     _startListen = true;
     DelayedTransition.setDelay(5);
@@ -176,7 +174,7 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
     for (; i < NUM_NODE; i++) {
       _participants.get(i).syncStart();
     }
-    Assert.assertTrue(clusterVerifier.verify(70000L));
+    Assert.assertTrue(_clusterVerifier.verify(70000L));
     Assert.assertTrue(_testSuccess);
 
     if (manager.isConnected()) {

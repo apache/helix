@@ -98,6 +98,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     _zkClient = zkClient;
   }
 
+  public HelixZkClient getZkClient() {
+    return _zkClient;
+  }
+
   /**
    * Lazy initialization is used to reduce the cost of unnecessary opened zkConnections
    * @return singleton instance of non-ZnRecord ZkClient

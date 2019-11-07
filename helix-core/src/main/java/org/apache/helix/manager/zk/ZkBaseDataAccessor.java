@@ -88,8 +88,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
   private final HelixZkClient _zkClient;
-  // onDemand zkClient for read/write non-znRecord data path;
-  // minimal change to support custom serializer
+  //ZkClient that will be lazily instantiated if there are operations for non-ZNRecord data
   private HelixZkClient _nonZNRecordZkClient = null;
 
   public ZkBaseDataAccessor(HelixZkClient zkClient) {

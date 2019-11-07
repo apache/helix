@@ -105,26 +105,27 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   private HelixZkClient getNonZNRecordZkClient() {
     if (_nonZNRecordZkClient == null) {
-      synchronized (ZkBaseDataAccessor.class) {
-        _nonZNRecordZkClient = new ZkClient.Builder().setConnection(
-            new ZkConnection(_zkClient.getServers(), ZkClient.DEFAULT_SESSION_TIMEOUT))
-            .setZkSerializer(new ZkSerializer() {
-              @Override
-              public byte[] serialize(Object data)
-                  throws ZkMarshallingError {
-                if (data instanceof byte[]) {
-                  return (byte[]) data;
+      synchronized (this) {
+        if (_nonZNRecordZkClient == null) {
+          _nonZNRecordZkClient = new ZkClient.Builder().setConnection(
+              new ZkConnection(_zkClient.getServers(), ZkClient.DEFAULT_SESSION_TIMEOUT))
+              .setZkSerializer(new ZkSerializer() {
+                @Override
+                public byte[] serialize(Object data)
+                    throws ZkMarshallingError {
+                  if (data instanceof byte[]) {
+                    return (byte[]) data;
+                  }
+                  throw new HelixException("Only support a byte array as an argument!");
                 }
-                throw new HelixException("Only support a byte array as an argument!");
-              }
 
-              @Override
-              public Object deserialize(byte[] data)
-                  throws ZkMarshallingError {
-                return data;
-              }
-            }).build();
-        return _nonZNRecordZkClient;
+                @Override
+                public Object deserialize(byte[] data)
+                    throws ZkMarshallingError {
+                  return data;
+                }
+              }).build();
+        }
       }
     }
 

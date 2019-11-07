@@ -88,8 +88,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
   private final HelixZkClient _zkClient;
-  // onDemand zkClient for read/write non-znRecord data path
-  private HelixZkClient _nonZNRecordClient = null;
+  // onDemand zkClient for read/write non-znRecord data path;
+  // minimal change to support custom serializer
+  private HelixZkClient _nonZNRecordZkClient = null;
 
   public ZkBaseDataAccessor(HelixZkClient zkClient) {
     if (zkClient == null) {
@@ -98,27 +99,36 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     _zkClient = zkClient;
   }
 
-  private synchronized HelixZkClient getNonZNRecordClient() {
-    if (_nonZNRecordClient == null) {
-      _nonZNRecordClient = new ZkClient.Builder().setConnection(
-          new ZkConnection(_zkClient.getServers(), ZkClient.DEFAULT_SESSION_TIMEOUT))
-          .setZkSerializer(new ZkSerializer() {
-            @Override
-            public byte[] serialize(Object data) throws ZkMarshallingError {
-              if (data instanceof byte[]) {
-                return (byte[]) data;
+  /**
+   * Lazy initialization is used to reduce the cost of unnecessary opened zkConnections
+   * @return singleton instance of non-ZnRecord ZkClient
+   */
+  private HelixZkClient getNonZNRecordZkClient() {
+    if (_nonZNRecordZkClient == null) {
+      synchronized (ZkBaseDataAccessor.class) {
+        _nonZNRecordZkClient = new ZkClient.Builder().setConnection(
+            new ZkConnection(_zkClient.getServers(), ZkClient.DEFAULT_SESSION_TIMEOUT))
+            .setZkSerializer(new ZkSerializer() {
+              @Override
+              public byte[] serialize(Object data)
+                  throws ZkMarshallingError {
+                if (data instanceof byte[]) {
+                  return (byte[]) data;
+                }
+                throw new HelixException("Only support a byte array as an argument!");
               }
-              throw new HelixException("Only support a byte array as an argument!");
-            }
 
-            @Override
-            public Object deserialize(byte[] data) throws ZkMarshallingError {
-              return data;
-            }
-          }).build();
+              @Override
+              public Object deserialize(byte[] data)
+                  throws ZkMarshallingError {
+                return data;
+              }
+            }).build();
+        return _nonZNRecordZkClient;
+      }
     }
 
-    return _nonZNRecordClient;
+    return _nonZNRecordZkClient;
   }
 
   /**
@@ -142,7 +152,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return result;
     }
 
-    HelixZkClient zkClient = isZnRecord ? _zkClient : getNonZNRecordClient();
+    HelixZkClient zkClient = isZnRecord ? _zkClient : getNonZNRecordZkClient();
     boolean retry;
     do {
       retry = false;
@@ -203,8 +213,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * Sync set operation with custom serializer support
    */
   public boolean set(String path, Object record, int options, ZkSerializer zkSerializer) {
-    AccessResult result = doSet(path, zkSerializer.serialize(record), -1, options, false);
-    return result._retCode == RetCode.OK;
+    return set(path, record, options, -1, zkSerializer);
   }
 
   /**
@@ -228,7 +237,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return result;
     }
 
-    HelixZkClient helixZkClient = isZnRecord ? _zkClient : getNonZNRecordClient();
+    HelixZkClient helixZkClient = isZnRecord ? _zkClient : getNonZNRecordZkClient();
     boolean retry;
     do {
       retry = false;
@@ -378,7 +387,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   public Object get(String path, Stat stat, int options, ZkSerializer serializer) {
     byte[] content = null;
     try {
-      content = getNonZNRecordClient().readData(path, stat);
+      content = getNonZNRecordZkClient().readData(path, stat);
       return serializer.deserialize(content);
     } catch (ZkNoNodeException ex) {
       if (AccessOption.isThrowExceptionIfNotExist(options)) {

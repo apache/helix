@@ -19,6 +19,8 @@ package org.apache.helix.webapp;
  * under the License.
  */
 
+import java.util.logging.Level;
+
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.TestHelper;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -33,8 +35,6 @@ import org.slf4j.LoggerFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
-
-import java.util.logging.Level;
 
 public class AdminTestBase {
   private static Logger LOG = LoggerFactory.getLogger(AdminTestBase.class);

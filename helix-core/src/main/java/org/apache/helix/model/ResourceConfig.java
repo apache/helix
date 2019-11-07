@@ -22,8 +22,8 @@ package org.apache.helix.model;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import java.util.TreeMap;
+
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.HelixConfigProperty;

@@ -19,11 +19,12 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;

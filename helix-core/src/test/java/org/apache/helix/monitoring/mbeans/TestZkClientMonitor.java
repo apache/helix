@@ -19,11 +19,11 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import java.lang.management.ManagementFactory;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import java.lang.management.ManagementFactory;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;

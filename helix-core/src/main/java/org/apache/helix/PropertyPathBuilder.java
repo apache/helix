@@ -25,11 +25,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
@@ -40,7 +40,18 @@ import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.PropertyType.*;
+import static org.apache.helix.PropertyType.CONFIGS;
+import static org.apache.helix.PropertyType.CURRENTSTATES;
+import static org.apache.helix.PropertyType.EXTERNALVIEW;
+import static org.apache.helix.PropertyType.HISTORY;
+import static org.apache.helix.PropertyType.IDEALSTATES;
+import static org.apache.helix.PropertyType.LIVEINSTANCES;
+import static org.apache.helix.PropertyType.MAINTENANCE;
+import static org.apache.helix.PropertyType.MESSAGES;
+import static org.apache.helix.PropertyType.PAUSE;
+import static org.apache.helix.PropertyType.STATEMODELDEFS;
+import static org.apache.helix.PropertyType.STATUSUPDATES;
+import static org.apache.helix.PropertyType.WORKFLOWCONTEXT;
 
 /**
  * Utility mapping properties to their Zookeeper locations

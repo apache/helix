@@ -21,6 +21,7 @@ package org.apache.helix.manager.zk;
 
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.messaging.handling.HelixTaskResult;
@@ -30,8 +31,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
 
 public class DefaultControllerMessageHandlerFactory implements MultiTypeMessageHandlerFactory {
   private static Logger _logger = LoggerFactory.getLogger(DefaultControllerMessageHandlerFactory.class);

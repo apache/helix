@@ -26,16 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixProperty;
-import org.apache.helix.model.ResourceConfig;
-import org.apache.helix.task.beans.JobBean;
-import org.apache.helix.task.beans.TaskBean;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.helix.HelixProperty;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.task.beans.JobBean;
+import org.apache.helix.task.beans.TaskBean;
 
 /**
  * Provides a typed interface to job configurations.

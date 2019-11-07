@@ -19,9 +19,6 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
-
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -30,6 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+
+import org.apache.helix.HelixProperty;
+import org.apache.helix.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

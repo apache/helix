@@ -19,6 +19,10 @@ package org.apache.helix.monitoring;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanInfo;
@@ -27,10 +31,6 @@ import javax.management.MBeanServerNotification;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;

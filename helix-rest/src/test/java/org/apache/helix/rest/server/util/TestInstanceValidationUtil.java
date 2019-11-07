@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.ExternalView;
@@ -14,7 +15,8 @@ import org.apache.helix.util.InstanceValidationUtil;
 import org.junit.Assert;
 import org.testng.annotations.Test;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestInstanceValidationUtil{
   private static final String RESOURCE_NAME = "TestResource";

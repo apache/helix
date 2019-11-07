@@ -19,8 +19,6 @@ package org.apache.helix;
  * under the License.
  */
 
-import static org.apache.helix.PropertyType.*;
-
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -49,6 +47,27 @@ import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.helix.PropertyType.CONFIGS;
+import static org.apache.helix.PropertyType.CONTROLLER;
+import static org.apache.helix.PropertyType.CURRENTSTATES;
+import static org.apache.helix.PropertyType.ERRORS;
+import static org.apache.helix.PropertyType.ERRORS_CONTROLLER;
+import static org.apache.helix.PropertyType.EXTERNALVIEW;
+import static org.apache.helix.PropertyType.HISTORY;
+import static org.apache.helix.PropertyType.IDEALSTATES;
+import static org.apache.helix.PropertyType.INSTANCE_HISTORY;
+import static org.apache.helix.PropertyType.LEADER;
+import static org.apache.helix.PropertyType.LIVEINSTANCES;
+import static org.apache.helix.PropertyType.MAINTENANCE;
+import static org.apache.helix.PropertyType.MESSAGES;
+import static org.apache.helix.PropertyType.MESSAGES_CONTROLLER;
+import static org.apache.helix.PropertyType.PAUSE;
+import static org.apache.helix.PropertyType.RESTCONFIGS;
+import static org.apache.helix.PropertyType.STATEMODELDEFS;
+import static org.apache.helix.PropertyType.STATUSUPDATES;
+import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
+import static org.apache.helix.PropertyType.TARGETEXTERNALVIEW;
 
 /**
  * Key allowing for type-safe lookups of and conversions to {@link HelixProperty} objects.

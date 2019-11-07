@@ -1,13 +1,13 @@
 package org.apache.helix.common.caches;
 
-import org.apache.helix.PropertyKey;
-import org.apache.helix.model.CurrentState;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.helix.PropertyKey;
+import org.apache.helix.model.CurrentState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

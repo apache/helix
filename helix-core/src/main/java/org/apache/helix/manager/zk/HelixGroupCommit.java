@@ -18,6 +18,7 @@ package org.apache.helix.manager.zk;
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -27,9 +28,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkBadVersionException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.zookeeper.data.Stat;
 
 public class HelixGroupCommit<T> {
   private static Logger LOG = LoggerFactory.getLogger(HelixGroupCommit.class);

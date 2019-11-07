@@ -22,6 +22,7 @@ package org.apache.helix.util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;

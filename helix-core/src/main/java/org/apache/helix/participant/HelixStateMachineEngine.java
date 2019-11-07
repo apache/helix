@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -49,8 +50,6 @@ import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskPartitionState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
 
 public class HelixStateMachineEngine implements StateMachineEngine {
   private static Logger logger = LoggerFactory.getLogger(HelixStateMachineEngine.class);

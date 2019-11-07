@@ -35,11 +35,11 @@ import org.apache.helix.manager.zk.ZkCacheEventThread.ZkCacheEvent;
 import org.apache.helix.store.HelixPropertyListener;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZkCallbackCache<T> extends Cache<T> implements IZkChildListener, IZkDataListener,
     IZkStateListener {

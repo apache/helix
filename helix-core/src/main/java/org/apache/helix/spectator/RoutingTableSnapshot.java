@@ -22,6 +22,7 @@ package org.apache.helix.spectator;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;

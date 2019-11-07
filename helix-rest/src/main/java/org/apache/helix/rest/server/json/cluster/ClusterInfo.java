@@ -1,7 +1,8 @@
 package org.apache.helix.rest.server.json.cluster;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 
 public class ClusterInfo {

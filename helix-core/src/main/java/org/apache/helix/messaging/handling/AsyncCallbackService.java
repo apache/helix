@@ -22,6 +22,7 @@ package org.apache.helix.messaging.handling;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.messaging.AsyncCallback;
@@ -29,8 +30,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
 
 public class AsyncCallbackService implements MultiTypeMessageHandlerFactory {
   private final ConcurrentHashMap<String, AsyncCallback> _callbackMap =

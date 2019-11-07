@@ -19,22 +19,21 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import static org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType.ANY;
-import static org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE;
-import static org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import static org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType.ANY;
+import static org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE;
+import static org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE;
 
 public class TestStateTransitionThrottleController {
   private static final String INSTANCE = "instance0";

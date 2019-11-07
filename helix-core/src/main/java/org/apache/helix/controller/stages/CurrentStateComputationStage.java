@@ -22,12 +22,17 @@ package org.apache.helix.controller.stages;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
+
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.model.*;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -19,11 +19,12 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.collect.Lists;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;

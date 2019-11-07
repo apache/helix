@@ -1,13 +1,13 @@
 package org.apache.helix.task;
 
-import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.ResourceAssignment;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+
+import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.task.assigner.AssignableInstance;
 
 public abstract class TaskAssignmentCalculator {

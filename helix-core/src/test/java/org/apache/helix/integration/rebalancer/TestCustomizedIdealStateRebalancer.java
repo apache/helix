@@ -19,10 +19,11 @@ package org.apache.helix.integration.rebalancer;
  * under the License.
  */
 
-import com.beust.jcommander.internal.Lists;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.beust.jcommander.internal.Lists;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;

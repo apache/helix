@@ -19,10 +19,6 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import javax.management.JMException;
-import javax.management.MBeanAttributeInfo;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -30,6 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.management.JMException;
+import javax.management.MBeanAttributeInfo;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.zookeeper.ZkEventThread;

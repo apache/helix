@@ -19,14 +19,13 @@ package org.apache.helix.recipes.rabbitmq;
  * under the License.
  */
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @StateModelInfo(initialState = "OFFLINE", states = {
     "ONLINE", "ERROR"

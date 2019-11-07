@@ -1,5 +1,11 @@
 package org.apache.helix.examples;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceHardConstraint;
@@ -16,8 +22,6 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.util.WeightAwareRebalanceUtil;
-
-import java.util.*;
 
 public class WeightAwareRebalanceUtilExample {
   private static String ZK_ADDRESS = "localhost:2199";

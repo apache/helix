@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -48,7 +49,8 @@ import org.apache.helix.model.ResourceConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class TestP2PWithStateCancellationMessage extends BaseStageTest {

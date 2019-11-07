@@ -19,10 +19,10 @@ package org.apache.helix.model.builder;
  * under the License.
  */
 
-import org.apache.helix.model.IdealState.RebalanceMode;
-
 import java.util.ArrayList;
 import java.util.Arrays;
+
+import org.apache.helix.model.IdealState.RebalanceMode;
 
 public class SemiAutoModeISBuilder extends IdealStateBuilder {
   public SemiAutoModeISBuilder(String resourceName) {

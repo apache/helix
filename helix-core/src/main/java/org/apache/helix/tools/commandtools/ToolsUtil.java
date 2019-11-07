@@ -6,7 +6,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import static org.apache.helix.tools.commandtools.IntegrationTestUtil.*;
+import static org.apache.helix.tools.commandtools.IntegrationTestUtil.printUsage;
 
 public class ToolsUtil {
   public static CommandLine processCommandLineArgs(String[] cliArgs, Options cliOptions) throws Exception {

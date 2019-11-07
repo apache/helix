@@ -28,28 +28,30 @@
   bootstrap_consumer  start/stop, stop_scn, stop_after_secs
   profile_relay
   profile_consumer
-  
+
   zookeeper  start/stop/wait_exist/wait_no_exist/wait_value/cmd
 $SCRIPT_DIR/dbus2_driver.py -c zookeeper -o start --zookeeper_server_ports=${zookeeper_server_ports}  --cmdline_props="tickTime=2000;initLimit=5;syncLimit=2" --zookeeper_cmds=<semicolon separate list of command> --zookeeper_path= zookeeper_value=
   -. start, parse the port, generate the local file path in var/work/zookeeper_data/1, start, port default from 2181, generate log4j file
   -. stop, find the process id, id is port - 2181 + 1, will stop all the processes
-  -. wait, query client and get the status 
+  -. wait, query client and get the status
   -. execute the cmd
 
 '''
 __version__ = "$Revision: 0.1 $"
 __date__ = "$Date: 2010/11/16 $"
 
-import sys, os, fcntl
-import pdb
-import time, copy, re
-from optparse import OptionParser, OptionGroup
-import logging
+import distutils.dir_util
+import fcntl
+import os
+import re
+import sys
 import threading
+import time
+from optparse import OptionParser, OptionGroup
+
 import pexpect
 from utility import *
-import distutils.dir_util
-        
+
 # Global varaibles
 options=None
 server_host="localhost"
@@ -102,7 +104,7 @@ def get_wait_timeout():
 
 def pause_resume_consumer(oper):
     global consumer_port
-    if options.component_id: consumer_port=find_open_port(consumer_host, consumer_http_start_port, options.component_id) 
+    if options.component_id: consumer_port=find_open_port(consumer_host, consumer_http_start_port, options.component_id)
     url = "http://%s:%s/pauseConsumer/%s" % (consumer_host, consumer_port, oper)
     out = send_url(url).split("\n")[1]
     dbg_print("out = %s" % out)
@@ -194,7 +196,7 @@ class cmd_thread(threading.Thread):
       self.ok_to_run=True
     def run(self):
       self.subp = subprocess_call_1(self.cmd)
-      if not self.subp: 
+      if not self.subp:
          self.thread_wait_end=True
          return
       # capture java call here
@@ -208,9 +210,9 @@ class cmd_thread(threading.Thread):
       fd = self.subp.stdout.fileno()
       fl = fcntl.fcntl(fd, fcntl.F_GETFL)
       fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-      while (self.ok_to_run):  # for timeout case, must terminate the thread, need non block read 
+      while (self.ok_to_run):  # for timeout case, must terminate the thread, need non block read
         try: line = self.subp.stdout.readline()
-        except IOError, e: 
+        except IOError, e:
           time.sleep(0.1)
           #dbg_print("IOError %s" % e)
           continue
@@ -250,14 +252,14 @@ def cmd_call_capture_java_call():
     #pdb.set_trace()
     for jar_path in java_ps_call.split("-classpath ")[-1].split(" com.linkedin")[0].split(":"):  # classpath
       if not jar_path: continue
-      if not re.search("(%s|%s)" % (ivy_dir,view_root),jar_path): 
+      if not re.search("(%s|%s)" % (ivy_dir,view_root),jar_path):
         class_path_list.append(jar_path)
         continue
-      if re.search(ivy_dir,jar_path): 
+      if re.search(ivy_dir,jar_path):
         sub_dir= ivy_dir
         sub_str = "IVY_DIR"
-      if re.search(view_root,jar_path): 
-        sub_dir= view_root 
+      if re.search(view_root,jar_path):
+        sub_dir= view_root
         sub_str = "VIEW_ROOT"
       class_path_list.append('\"%s\"' % re.sub(sub_dir,sub_str,jar_path))
     class_path_list.sort()
@@ -271,7 +273,7 @@ def cmd_call_capture_java_call():
   ,"class_name":"%s"
    }
 ''' % (options.component, class_path, class_name)
-#}    
+#}
 
     #dbg_print("class_path = %s, class_name = %s" % (class_path, class_name))
     #sys.exit(0)
@@ -284,7 +286,7 @@ def cmd_call(cmd, timeout, ret_pattern=None, outf=None):
       key=get_process_info_key(options.component, options.component_id)
       if key in process_info:
         kill_cmd="kill -9"
-        if "stop" in cmd_dict[options.component]: 
+        if "stop" in cmd_dict[options.component]:
           kill_cmd = cmd_dict[options.component]["stop"]
           m = re.search("^.*(kill.*)\s*$",kill_cmd)
           if m: kill_cmd = m.group(1)
@@ -297,7 +299,7 @@ def cmd_call(cmd, timeout, ret_pattern=None, outf=None):
     sleep_interval = 0.5
     ret = RetCode.TIMEOUT
     while (sleep_cnt * sleep_interval < timeout):
-      if ct.thread_wait_end or (ct.subp and not process_exist(ct.subp.pid)): 
+      if ct.thread_wait_end or (ct.subp and not process_exist(ct.subp.pid)):
         print "end"
         if ct.thread_ret_ok: ret = RetCode.OK  # include find pattern or no pattern given
         else: ret= RetCode.ERROR
@@ -321,7 +323,7 @@ def run_cmd_remote_setup():
     component_cnt = 0
     # find the one in the cfg file, so multiple consumers must be in sequence
     for section in remote_run_config:
-      if re.search(options.component, section): 
+      if re.search(options.component, section):
         remote_component=section
         component_cnt +=1
         if not options.component_id or compnent_cnt == options.component_id: break
@@ -330,7 +332,7 @@ def run_cmd_remote_setup():
     set_remote_view_root(remote_component_properties["view_root"])
     # create the remote var/work dir, may not be needed as the current view have them
     #sys_call("ssh %s mkdir -p %s %s" % remote_run_config[remote_component]["host"], get_remote_work_dir(), get_remote_var_dir()
-   
+
 def run_cmd_remote(cmd):
     ret = remote_cmd_template % (remote_run_config[remote_component]["host"], get_remote_view_root(),  cmd)
     return ret
@@ -345,7 +347,7 @@ def run_cmd_add_option(cmd, option_name, value=None, check_exist=False):
     global run_cmd_added_options
     run_cmd_added_options.append(option_name)
     if not getattr(options, option_name): return cmd  # not such option
-    if not value: value = getattr(options,option_name) 
+    if not value: value = getattr(options,option_name)
     dbg_print("after option_name = %s, value = %s" % (option_name, value))
     #pdb.set_trace()
     if check_exist:
@@ -355,7 +357,7 @@ def run_cmd_add_option(cmd, option_name, value=None, check_exist=False):
     is_jvm_option = re.search("jvm_",option_name)
     if isinstance(value, str) and value[0]!='"' and not (option_name in ["cmdline_args"] or is_jvm_option) and options.enable_direct_java_call:   # do not quote the cmdline args
       #value = value.replace(' ','\\ ')     # escape the white space
-      value = '"%s"' % value   # quote it 
+      value = '"%s"' % value   # quote it
     if options.enable_direct_java_call:
       option_mapping = direct_java_call_option_mapping
       option_prefix = ""
@@ -376,25 +378,25 @@ def run_cmd_add_option(cmd, option_name, value=None, check_exist=False):
     if not option_str: return cmd
     cmd_split=cmd.split()
     if options.enable_direct_java_call: # add option to the end
-      cmd += " %s" % option_str     
+      cmd += " %s" % option_str
     else:
       cmd_split.insert(len(cmd_split)-1,option_str) # here it handles insert before the last one
       cmd = " ".join(cmd_split)
     dbg_print("cmd = %s" % cmd)
     return cmd
-    
+
 def run_cmd_add_log_file(cmd):
     global options
-    if options.logfile: log_file = options.logfile 
+    if options.logfile: log_file = options.logfile
     else: log_file= log_file_pattern % (options.testname, options.component, options.operation, time.strftime('%y%m%d_%H%M%S'), os.getpid())
     #log_file = os.path.join(remote_run and get_remote_log_dir() or get_log_dir(), log_file)
     # TODO: maybe we want to put the logs in the remote host
     log_file = os.path.join(get_log_dir(), log_file)
     dbg_print("log_file = %s" % log_file)
     options.logfile = log_file
-    open(log_file,"w").write("TEST_NAME=%s\n" % options.testname) 
+    open(log_file,"w").write("TEST_NAME=%s\n" % options.testname)
     # logging for all the command
-    cmd += " 2>&1 | tee -a %s" % log_file 
+    cmd += " 2>&1 | tee -a %s" % log_file
     return cmd
 
 def run_cmd_get_return_pattern():
@@ -406,15 +408,15 @@ def run_cmd_get_return_pattern():
     return ret_pattern
 
 def run_cmd_setup():
-    if re.search("_consumer",options.component): 
+    if re.search("_consumer",options.component):
       global consumer_host
       if remote_run: consumer_host = remote_component_properties["host"]
       else: consumer_host = "localhost"
       dbg_print("consumer_host= %s" % consumer_host)
 
-# need to remove from ant_call_option_mapping and run_cmd_add_option to avoid invalid option name 
+# need to remove from ant_call_option_mapping and run_cmd_add_option to avoid invalid option name
 def run_cmd_add_config(cmd):
-    if options.operation in ["start","clean_log","default"]: 
+    if options.operation in ["start","clean_log","default"]:
       if options.enable_direct_java_call:
         pass_down_options=direct_java_call_option_mapping.keys()
         pass_down_options.extend(direct_java_call_jvm_args.keys())
@@ -423,11 +425,11 @@ def run_cmd_add_config(cmd):
         pass_down_options=ant_call_option_mapping.keys()
       #option_mapping = options.enable_direct_java_call and direct_java_call_option_mapping or ant_call_option_mapping
       #if options.enable_direct_java_call: pass_down_options.append("jvm_args")
-      if options.config: 
-        if not remote_run: 
+      if options.config:
+        if not remote_run:
           cmd = run_cmd_add_option(cmd, "config", options.config, check_exist=True)      # check exist will figure out
-        else: 
-          cmd = run_cmd_add_option(cmd, "config", os.path.join(get_remote_view_root(), options.config), check_exist=False)  
+        else:
+          cmd = run_cmd_add_option(cmd, "config", os.path.join(get_remote_view_root(), options.config), check_exist=False)
       run_cmd_view_root = remote_run and get_remote_view_root() or get_view_root()
       #cmd = run_cmd_add_option(cmd, "dump_file", options.dump_file and os.path.join(run_cmd_view_root, options.dump_file) or None)
       #cmd = run_cmd_add_option(cmd, "value_file", options.value_file and os.path.join(run_cmd_view_root, options.value_file) or None)
@@ -440,18 +442,18 @@ def run_cmd_add_config(cmd):
       #cmd = run_cmd_add_option(cmd, "cmdline_props")
 #      cmd = run_cmd_add_option(cmd, "filter_conf_file")
 
-      if options.checkpoint_dir: 
+      if options.checkpoint_dir:
          if options.checkpoint_dir == "auto":
            checkpoint_dir = os.path.join(get_work_dir(), "databus2_checkpoint_%s_%s" % time.strftime('%y%m%d_%H%M%S'), os.getpid())
          else:
            checkpoint_dir = options.checkpoint_dir
-         checkpoint_dir = os.path.join(run_cmd_view_root(), checkpoint_dir) 
-         cmd = run_cmd_add_option(cmd, "checkpoint_dir", checkpoint_dir)   
+         checkpoint_dir = os.path.join(run_cmd_view_root(), checkpoint_dir)
+         cmd = run_cmd_add_option(cmd, "checkpoint_dir", checkpoint_dir)
          # clear up the directory
          if not options.checkpoint_keep and os.path.exists(checkpoint_dir): distutils.dir_util.remove_tree(checkpoint_dir)
 
       # options can be changed during remote run
-      if remote_run: 
+      if remote_run:
         remote_component_properties = remote_run_config[remote_component]
         if not options.relay_host and "relay_host" in remote_component_properties: options.relay_host = remote_component_properties["relay_host"]
         if not options.relay_port and "relay_port" in remote_component_properties: options.relay_port = remote_component_properties["relay_port"]
@@ -462,26 +464,26 @@ def run_cmd_add_config(cmd):
       #cmd = run_cmd_add_option(cmd, "bootstrap_host")
       #cmd = run_cmd_add_option(cmd, "bootstrap_port")
       #cmd = run_cmd_add_option(cmd, "consumer_event_pattern")
-      if re.search("_consumer",options.component): 
+      if re.search("_consumer",options.component):
         # next available port
         if options.http_port: http_port = options.http_port
-        else: http_port = next_available_port(consumer_host, consumer_http_start_port)   
+        else: http_port = next_available_port(consumer_host, consumer_http_start_port)
         #cmd = run_cmd_add_option(cmd, "http_port", http_port)
-        #cmd = run_cmd_add_option(cmd, "jmx_service_port", next_available_port(consumer_host, consumer_jmx_service_start_port))   
+        #cmd = run_cmd_add_option(cmd, "jmx_service_port", next_available_port(consumer_host, consumer_jmx_service_start_port))
       # this will take care of the passdown, no need for run_cmd_add_directly
       for option in [x for x in pass_down_options if x not in run_cmd_added_options]:
         cmd = run_cmd_add_option(cmd, option)
 
 
     if options.component=="espresso-relay": cmd+= " -d " # temp hack. TODO: remove
-        
-    if options.enable_direct_java_call: 
+
+    if options.enable_direct_java_call:
       #cmd = re.sub("java -classpath","java -d64 -ea %s -classpath" % " ".join([x[0]+x[1] for x in [direct_java_call_jvm_args[y] for y in direct_java_call_jvm_args_ordered] if x[1]]) ,cmd) # d64 here
       cmd = re.sub("java -classpath","java -d64 -ea %s -classpath" % " ".join([x[0]+x[1] for x in direct_java_call_jvm_args.values() if x[1]]) ,cmd) # d64 here
     dbg_print("cmd = %s" % cmd)
     return cmd
 
-def run_cmd_add_ant_debug(cmd): 
+def run_cmd_add_ant_debug(cmd):
     if re.search("^ant", cmd): cmd = re.sub("^ant","ant -d", cmd)
     dbg_print("cmd = %s" % cmd)
     return cmd
@@ -489,13 +491,13 @@ def run_cmd_add_ant_debug(cmd):
 def run_cmd_save_cmd(cmd):
     if not options.logfile: return
     re_suffix = re.compile("\.\w+$")
-    if re_suffix.search(options.logfile): command_file = re_suffix.sub(".sh", options.logfile)  
-    else: command_file = "%s.sh" % options.logfile 
+    if re_suffix.search(options.logfile): command_file = re_suffix.sub(".sh", options.logfile)
+    else: command_file = "%s.sh" % options.logfile
     dbg_print("command_file = %s" % command_file)
     open(command_file,"w").write("%s\n" % cmd)
 
 def run_cmd_restart(cmd):
-    ''' restart using a previous .sh file ''' 
+    ''' restart using a previous .sh file '''
     if not options.logfile: return cmd
     previous_run_sh_pattern = "%s_*.sh" % "_".join(options.logfile.split("_")[:-3])
     import glob
@@ -509,38 +511,38 @@ def run_cmd_restart(cmd):
     cmd = lines[0].split("2>&1")[0]
     return cmd
 
-def run_cmd_direct_java_call(cmd, component): 
-    ''' this needs to be consistent with adding option 
+def run_cmd_direct_java_call(cmd, component):
+    ''' this needs to be consistent with adding option
         currently ant -f ; will mess up if there are options
-    ''' 
+    '''
 
     if not component in cmd_direct_call:
       options.enable_direct_java_call = False   # disable direct java call if classpath not given
       return cmd
-    #if re.search("^ant", cmd): # only component in has class path given will be 
+    #if re.search("^ant", cmd): # only component in has class path given will be
     #if True: # every thing
-    if re.search("ant ", cmd): # only component in has class path given will be 
+    if re.search("ant ", cmd): # only component in has class path given will be
       ivy_dir = get_ivy_dir()
       view_root = get_view_root()
       class_path_list=[]
       for class_path in cmd_direct_call[component]["class_path"]:
-        if re.search("IVY_DIR",class_path): 
+        if re.search("IVY_DIR",class_path):
           class_path_list.append(re.sub("IVY_DIR", ivy_dir,class_path))
           continue
-        if re.search("VIEW_ROOT",class_path): 
+        if re.search("VIEW_ROOT",class_path):
           class_path_list.append(re.sub("VIEW_ROOT", view_root,class_path))
           if not os.path.exists(class_path_list[-1]): # some jars not in VIEW_ROOT, trigger before command
-            if "before_cmd" in cmd_direct_call[component]: 
+            if "before_cmd" in cmd_direct_call[component]:
               before_cmd = "%s; " % cmd_direct_call[component]["before_cmd"]
               sys_call(before_cmd)
           continue
         class_path_list.append(class_path)
-      if options.check_class_path: 
-        for jar_file in class_path_list: 
-          if not os.path.exists(jar_file): 
+      if options.check_class_path:
+        for jar_file in class_path_list:
+          if not os.path.exists(jar_file):
             print "==WARNING NOT EXISTS: " + jar_file
             new_jar_path = sys_pipe_call("find %s -name %s" % (ivy_dir, os.path.basename(jar_file))).split("\n")[0]
-            if new_jar_path: 
+            if new_jar_path:
               print "==found " + new_jar_path
             class_path_list[class_path_list.index(jar_file)] = new_jar_path
       direct_call_cmd = "java -classpath %s %s" % (":".join(class_path_list), cmd_direct_call[component]["class_name"])
@@ -552,18 +554,18 @@ def run_cmd_direct_java_call(cmd, component):
 def run_cmd():
     if (options.component=="bootstrap_dbreset"): setup_rmi("stop")
     if (not options.operation): options.operation="default"
-    if (not options.testname): 
+    if (not options.testname):
       options.testname = "TEST_NAME" in os.environ and os.environ["TEST_NAME"] or "default"
-    if (options.operation not in cmd_dict[options.component]): 
+    if (options.operation not in cmd_dict[options.component]):
       my_error("%s is not one of the command for %s. Valid values are %s " % (options.operation, options.component, cmd_dict[options.component].keys()))
     # handle the different connetion string for hudson
-    if (options.component=="db_relay" and options.db_config_file): 
+    if (options.component=="db_relay" and options.db_config_file):
        options.db_config_file = db_config_change(options.db_config_file)
-    if (options.component=="test_bootstrap_producer" and options.operation=="lock_tab"): 
+    if (options.component=="test_bootstrap_producer" and options.operation=="lock_tab"):
       producer_lock_tab("save_file")
-    cmd = cmd_dict[options.component][options.operation]  
+    cmd = cmd_dict[options.component][options.operation]
     # cmd can be a funciton call
-    if isinstance(cmd, list): 
+    if isinstance(cmd, list):
       if not callable(cmd[0]): my_error("First element should be function")
       cmd[0](*tuple(cmd[1:]))        # call the function
       return
@@ -571,7 +573,7 @@ def run_cmd():
     if remote_run: run_cmd_remote_setup()
     if options.ant_debug: cmd = run_cmd_add_ant_debug(cmd) # need ant debug call or not
     cmd = run_cmd_add_config(cmd) # handle config file
-    if remote_run: cmd = run_cmd_remote(cmd) 
+    if remote_run: cmd = run_cmd_remote(cmd)
     ret_pattern = run_cmd_get_return_pattern()
     if options.restart: cmd = run_cmd_restart(cmd)
     cmd = run_cmd_add_log_file(cmd)
@@ -634,7 +636,7 @@ def get_stats_1(pid, jmx_bean, jmx_attr):
     start_jmx_cli()
     jmx_cli_cmd("open %s" % pid)
     ret = jmx_cli_cmd("beans")
-    if jmx_bean=="list": 
+    if jmx_bean=="list":
       stat_re = re.compile("^com.linkedin.databus2:")
       stats = [x for x in ret if stat_re.search(x)]
       outf.write("%s\n" % "\n".join(stats))
@@ -645,7 +647,7 @@ def get_stats_1(pid, jmx_bean, jmx_attr):
       stat_re = re.compile("^com.linkedin.databus2:")
       stats = [x.split("=")[-1].rstrip() for x in ret if stat_re.search(x)]
       my_error("Possible beans are %s" % stats)
-    full_jmx_bean = stats[0] 
+    full_jmx_bean = stats[0]
     jmx_cli_cmd("bean %s" % full_jmx_bean)
     if jmx_attr == "all": jmx_attr = "*"
     ret = jmx_cli_cmd("get %s" % jmx_attr)
@@ -654,9 +656,9 @@ def get_stats_1(pid, jmx_bean, jmx_attr):
 
 def run_testcase(testcase):
     dbg_print("testcase = %s" % testcase)
-    os.chdir(get_testcase_dir()) 
+    os.chdir(get_testcase_dir())
     if not re.search("\.test$", testcase): testcase += ".test"
-    if not os.path.exists(testcase): 
+    if not os.path.exists(testcase):
       my_error("Test case %s does not exist" % testcase)
     dbg_print("testcase = %s" % testcase)
     ret = sys_call("/bin/bash %s" % testcase)
@@ -664,7 +666,7 @@ def run_testcase(testcase):
     return ret
 
 def get_ebuf_inbound_total_maxStreamWinScn(host, port, option=None):
-    url_template = "http://%s:%s/containerStats/inbound/events/total"    
+    url_template = "http://%s:%s/containerStats/inbound/events/total"
     if option == "bootstrap":
        url_template = "http://%s:%s/clientStats/bootstrap/events/total"
     return http_get_field(url_template, host, port, "maxSeenWinScn")
@@ -685,13 +687,13 @@ def producer_reach_maxStreamWinScn(name, maxWinScn):
     return producerMaxWinScn >= maxWinScn
 
 def wait_for_condition(cond, timeout=60, sleep_interval = 0.1):
-    ''' wait for a certain cond. cond could be a function. 
+    ''' wait for a certain cond. cond could be a function.
        This cannot be in utility. Because it needs to see the cond function '''
     dbg_print("cond = %s" % cond)
     sleep_cnt = 0
     ret = RetCode.TIMEOUT
     while (sleep_cnt * sleep_interval < timeout):
-      if eval(cond): 
+      if eval(cond):
         ret = RetCode.OK
         break
       time.sleep(sleep_interval)
@@ -711,8 +713,8 @@ def producer_wait_event_1(name, timeout):
 
 def send_shutdown(host, port, force=False):
     ''' use kill which is much faster '''
-    #url_template = "http://%s:%s/operation/shutdown" 
-    url_template = "http://%s:%s/operation/getpid" 
+    #url_template = "http://%s:%s/operation/shutdown"
+    url_template = "http://%s:%s/operation/getpid"
     pid = http_get_field(url_template, host, port, "pid")
     force_str = force and "-9" or ""
     sys_call("kill %s %s" % (force_str,pid))
@@ -726,7 +728,7 @@ def wait_event_1(timeout, option=None):
     dbg_print("maxWinScn = %s, timeout = %s" % (maxWinScn, timeout))
     # consumer host is defined already
     global consumer_port
-    if options.component_id: consumer_port=find_open_port(consumer_host, consumer_http_start_port, options.component_id) 
+    if options.component_id: consumer_port=find_open_port(consumer_host, consumer_http_start_port, options.component_id)
     if options.http_port: consumer_port = options.http_port
     ret = wait_for_condition('consumer_reach_maxStreamWinScn(%s, "%s", %s, "%s")' % (maxWinScn, consumer_host, consumer_port, option and option or ""), timeout)
     if ret == RetCode.TIMEOUT: print "Timed out waiting consumer to reach maxWinScn %s" % maxWinScn
@@ -740,7 +742,7 @@ def conf_and_deploy_1_find_dir_name(ant_target, screen_out):
       if not found_target and line == ant_target: found_target = True
       if found_target:
          dbg_print("line = %s" % line)
-         m = copy_file_re.search(line) 
+         m = copy_file_re.search(line)
          if m: return m.group(1)
     return None
 
@@ -759,7 +761,7 @@ def conf_and_deploy_1_find_extservice_name(ant_target, screen_out):
       if not found_target and line == ant_target: found_target = True
       if found_target:
          dbg_print("line = %s" % line)
-         m = copy_file_re.search(line) 
+         m = copy_file_re.search(line)
          if m: return m.group(1)
     return None
 
@@ -769,17 +771,17 @@ from xml.dom.minidom import Element
 def conf_and_deploy_1_add_conf(file_name):
     dom1 = parse(file_name)
     map_element=[x for x in dom1.getElementsByTagName("map")][0]
-    for prop in options.extservice_props: 
+    for prop in options.extservice_props:
       #props = prop.split(";")
       props = prop.split("=")
       len_props = len(props)
-      if len_props not in (2,3): 
+      if len_props not in (2,3):
         print "WARNING: prop %s is not a valid setting. IGNORED" % prop
         continue
       is_top_level= (len_props == 2)
       find_keys=[x for x in dom1.getElementsByTagName("entry") if x.attributes["key"].value == props[0]]
       dbg_print("find_keys = %s" % find_keys)
-      if not find_keys: 
+      if not find_keys:
         print "WARNING: prop %s part %s is not in file %s. " % (prop, props[0], file_name)
         if is_top_level:  # only add when is top level
           print "WARNING: prop %s part %s is added to file %s. " % (prop, props[0], file_name)
@@ -788,13 +790,13 @@ def conf_and_deploy_1_add_conf(file_name):
           new_entry.setAttribute("value", props[1])
           map_element.appendChild(new_entry)
         continue
-      keyNode = find_keys[0] 
-      if is_top_level: 
+      keyNode = find_keys[0]
+      if is_top_level:
         keyNode.attributes["value"].value=props[-1]
         continue
       find_props= [x for x in keyNode.getElementsByTagName("prop") if x.attributes["key"].value == props[1]]
       dbg_print("find_props = %s" % find_props)
-      if not find_props: 
+      if not find_props:
         print "WARNING: prop %s part %s is not in file %s. IGNORED" % (prop, props[1], file_name)
         continue
       find_props[0].childNodes[0].nodeValue=props[-1]
@@ -820,7 +822,7 @@ def conf_and_deploy_1(ant_file):
     #out = sys_pipe_call("ant -f %s -d build-app-conf" % (ant_file))
     #extservice_file_name = conf_and_deploy_1_find_extservice_name("build-app-conf:", out.split("\n"))
     dbg_print("extservice_file_name = %s" % extservice_file_name)
-    if options.extservice_props: 
+    if options.extservice_props:
       tmp_files = [extservice_file_name]
       tmp_files = save_copy([extservice_file_name])
       dbg_print("new_files = %s" % tmp_files)
@@ -843,7 +845,7 @@ def get_ivy_dir():
       if os.path.exists(ivy_dir): break
     if not os.path.exists(ivy_dir): raise
     return ivy_dir
- 
+
 def zookeeper_setup(oper):
     ''' may need to do a find later. find $HOME/.ivy2/lin-cache -name zookeeper-3.3.0.jar '''
     global zookeeper_cmd, zookeeper_server_ports, zookeeper_server_dir, zookeeper_server_ids, zookeeper_classpath
@@ -853,7 +855,7 @@ def zookeeper_setup(oper):
     zookeeper_class= (oper=="start") and  "org.apache.zookeeper.server.quorum.QuorumPeerMain" or "org.apache.zookeeper.ZooKeeperMain"
     log4j_file=os.path.join(get_view_root(),"integration-test/config/zookeeper-log4j2file.properties")
     dbg_print("zookeeper_classpath = %s" % zookeeper_classpath)
-    if not "zookeeper_classpath" in globals(): 
+    if not "zookeeper_classpath" in globals():
       zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar:IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
     if re.search("IVY_DIR",zookeeper_classpath): zookeeper_classpath=re.sub("IVY_DIR", ivy_dir,zookeeper_classpath)
     if re.search("VIEW_ROOT",zookeeper_classpath): zookeeper_classpath=re.sub("VIEW_ROOT", view_root,zookeeper_classpath)
@@ -885,10 +887,10 @@ def zookeeper_opers_start_create_conf(zookeeper_server_ports_split):
     #for server_id in range(1,zookeeper_num_servers+1):
     for server_id in range(zookeeper_num_servers):
       zookeeper_host = zookeeper_server_ports_split[server_id].split(":")[0]
-      zookeeper_internal_port_1 = zookeeper_internal_port_1_start + server_id  
-      zookeeper_internal_port_2 = zookeeper_internal_port_2_start +  server_id 
+      zookeeper_internal_port_1 = zookeeper_internal_port_1_start + server_id
+      zookeeper_internal_port_2 = zookeeper_internal_port_2_start +  server_id
       if zookeeper_num_servers>1:
-        zookeeper_internal_conf += "server.%s=%s:%s:%s\n" % (server_id, zookeeper_host, zookeeper_internal_port_1, zookeeper_internal_port_2) 
+        zookeeper_internal_conf += "server.%s=%s:%s:%s\n" % (server_id, zookeeper_host, zookeeper_internal_port_1, zookeeper_internal_port_2)
     dbg_print("zookeeper_internal_conf = %s" % zookeeper_internal_conf)
 
     #for server_id in range(1,zookeeper_num_servers+1):
@@ -912,7 +914,7 @@ def zookeeper_opers_start_create_dirs(zookeeper_server_ports_split):
       if server_id not in zookeeper_server_ids: continue
       current_server_dir=os.path.join(zookeeper_server_dir,str(server_id))
       dbg_print("current_server_dir = %s" % current_server_dir)
-      if os.path.exists(current_server_dir): 
+      if os.path.exists(current_server_dir):
         if not options.zookeeper_reset: continue
         distutils.dir_util.remove_tree(current_server_dir)
       try: distutils.dir_util.mkpath(current_server_dir)
@@ -920,7 +922,7 @@ def zookeeper_opers_start_create_dirs(zookeeper_server_ports_split):
       my_id_file=os.path.join(current_server_dir, "myid")
       dbg_print("my_id_file = %s" % my_id_file)
       open(my_id_file,"w").write("%s\n" % server_id)
-    
+
 def zookeeper_opers_start():
     zookeeper_server_ports_split = zookeeper_server_ports.split(",")
     zookeeper_opers_start_create_dirs(zookeeper_server_ports_split)
@@ -934,7 +936,7 @@ def zookeeper_opers_start():
       cmd = run_cmd_add_log_file(cmd)
       ret = cmd_call(cmd, 60, re.compile(search_str))
       cnt +=1
-    
+
 def zookeeper_opers_stop():
     # may be better to use pid, but somehow it is not in the datadir
     sys_call(kill_cmd_template % "QuorumPeerMain")
@@ -946,14 +948,14 @@ def zookeeper_opers_wait_for_nonexist():
 def zookeeper_opers_wait_for_value():
     pass
 def zookeeper_opers_cmd():
-    if not options.zookeeper_cmds: 
+    if not options.zookeeper_cmds:
       print "No zookeeper_cmds given"
       return
     splitted_cmds = ";".join(["echo %s" % x for x in options.zookeeper_cmds.split(";")])
     sys_call("(%s) | %s -server %s" % (splitted_cmds, zookeeper_cmd, zookeeper_server_ports))
- 
+
 def main(argv):
-    # default 
+    # default
     global options
     parser.add_option("-n", "--testname", action="store", dest="testname", default=None, help="A test name identifier")
     parser.add_option("-c", "--component", action="store", dest="component", default=None, choices=cmd_dict.keys(),
@@ -972,7 +974,7 @@ def main(argv):
                        help="Store the process id if set.  [default: %default]")
     parser.add_option("", "--restart", action="store_true", dest="restart", default = False,
                        help="Restart the process using previos config if set.  [default: %default]")
- 
+
     jvm_group = OptionGroup(parser, "jvm options", "")
     jvm_group.add_option("", "--jvm_direct_memory_size", action="store", dest="jvm_direct_memory_size", default = None,
                        help="Set the jvm direct memory size. e.g., 2048m. Default using the one driver_cmd_dict.")
@@ -1038,7 +1040,7 @@ def main(argv):
     # load local options
     #execfile(os.path.join(get_this_file_dirname(),"driver_local_options.py"))
     #pdb.set_trace()
-   
+
     parser.add_option_group(jvm_group)
     parser.add_option_group(config_group)
     parser.add_option_group(other_option_group)
@@ -1057,18 +1059,18 @@ def main(argv):
     if not options.component and not options.testcase and not options.remote_deploy:
        print("\n!!!Please give component!!!\n")
        arg_error=True
-    if arg_error: 
+    if arg_error:
       parser.print_help()
       parser.exit()
-    
+
     if afterParsingHook: afterParsingHook(options)   # the hook to call after parsing, change options
 
     setup_env()
     if (not options.testname):
       options.testname = "TEST_NAME" in os.environ and os.environ["TEST_NAME"] or "default"
     os.environ["TEST_NAME"]= options.testname;
-    
-    if (not "WORK_SUB_DIR" in os.environ): 
+
+    if (not "WORK_SUB_DIR" in os.environ):
         os.environ["WORK_SUB_DIR"] = "log"
     if (not "LOG_SUB_DIR" in os.environ):
         os.environ["LOG_SUB_DIR"] = "log"
@@ -1081,7 +1083,7 @@ def main(argv):
     if options.remote_deploy or options.remote_run:
       if options.remote_config_file:
         parse_config(options.remote_config_file)
-      if options.remote_deploy: 
+      if options.remote_deploy:
         sys_call_debug_begin()
         ret = do_remote_deploy()
         sys_call_debug_end()
@@ -1091,7 +1093,7 @@ def main(argv):
     sys_call_debug_end()
 
     my_exit(ret)
-    
+
 if __name__ == "__main__":
     main(sys.argv[1:])
 

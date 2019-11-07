@@ -19,9 +19,10 @@ package org.apache.helix.tools;
  * under the License.
  */
 
+import java.util.Arrays;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.Arrays;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;

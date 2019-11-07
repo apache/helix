@@ -30,6 +30,8 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
@@ -37,9 +39,6 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.util.JenkinsHash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  * This class does an assignment based on an automatic rebalancing strategy, rather than requiring

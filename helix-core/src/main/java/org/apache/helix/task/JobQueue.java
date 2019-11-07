@@ -19,11 +19,11 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import org.apache.helix.HelixException;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.helix.HelixException;
 
 /**
  * A named queue to which jobs can be added

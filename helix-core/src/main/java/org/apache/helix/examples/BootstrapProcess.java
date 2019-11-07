@@ -18,11 +18,13 @@ package org.apache.helix.examples;
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -45,8 +47,6 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * This process does little more than handling the state transition messages.

@@ -21,9 +21,9 @@ package org.apache.helix.participant;
 
 import java.util.List;
 
+import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;

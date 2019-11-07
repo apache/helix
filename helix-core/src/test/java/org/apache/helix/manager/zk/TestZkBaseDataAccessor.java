@@ -157,7 +157,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     ZNRecord record = new ZNRecord("submsg_0");
     ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
-    AccessResult result = accessor.doSet(path, record, -1, AccessOption.PERSISTENT, true);
+    AccessResult result = accessor.doSet(_gZkClient, path, record, -1, AccessOption.PERSISTENT);
     Assert.assertEquals(result._retCode, RetCode.OK);
     Assert.assertEquals(result._pathCreated.size(), 3);
     Assert.assertTrue(result._pathCreated.contains(String.format("/%s/%s", _rootPath, "msg_0")));

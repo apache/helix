@@ -20,34 +20,22 @@ package org.apache.helix.integration.rebalancer.WagedRebalancer;
  */
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.rebalancer.DelayedAutoRebalancer.TestDelayedAutoRebalanceWithRackaware;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 /**
  * Inherit TestDelayedAutoRebalanceWithRackaware to ensure the test logic is the same.
  */
 public class TestDelayedWagedRebalanceWithRackaware extends TestDelayedAutoRebalanceWithRackaware {
-  protected ZkHelixClusterVerifier getClusterVerifier() {
-    Set<String> dbNames = new HashSet<>();
-    int i = 0;
-    for (String stateModel : TestStateModels) {
-      dbNames.add("Test-DB-" + TestHelper.getTestMethodName() + i++);
-    }
-    return new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setResources(dbNames)
-        .setDeactivatedNodeAwareness(true).setZkAddr(ZK_ADDR).build();
-  }
-
   // create test DBs, wait it converged and return externalviews
-  protected Map<String, ExternalView> createTestDBs(long delayTime) throws InterruptedException {
+  protected Map<String, ExternalView> createTestDBs(long delayTime)
+      throws InterruptedException {
     Map<String, ExternalView> externalViews = new HashMap<>();
     int i = 0;
     for (String stateModel : TestStateModels) {
@@ -76,28 +64,33 @@ public class TestDelayedWagedRebalanceWithRackaware extends TestDelayedAutoRebal
     // Waged Rebalancer takes cluster level delay config only. Skip this test.
   }
 
-  @Test(dependsOnMethods = { "testDelayedPartitionMovement" })
-  public void testDelayedPartitionMovementWithClusterConfigedDelay() throws Exception {
+  @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
+  public void testDelayedPartitionMovementWithClusterConfigedDelay()
+      throws Exception {
     super.testDelayedPartitionMovementWithClusterConfigedDelay();
   }
 
-  @Test(dependsOnMethods = { "testDelayedPartitionMovementWithClusterConfigedDelay" })
-  public void testMinimalActiveReplicaMaintain() throws Exception {
+  @Test(dependsOnMethods = {"testDelayedPartitionMovementWithClusterConfigedDelay"})
+  public void testMinimalActiveReplicaMaintain()
+      throws Exception {
     super.testMinimalActiveReplicaMaintain();
   }
 
-  @Test(dependsOnMethods = { "testMinimalActiveReplicaMaintain" })
-  public void testPartitionMovementAfterDelayTime() throws Exception {
+  @Test(dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
+  public void testPartitionMovementAfterDelayTime()
+      throws Exception {
     super.testPartitionMovementAfterDelayTime();
   }
 
-  @Test(dependsOnMethods = { "testDisableDelayRebalanceInResource" })
-  public void testDisableDelayRebalanceInCluster() throws Exception {
+  @Test(dependsOnMethods = {"testDisableDelayRebalanceInResource"})
+  public void testDisableDelayRebalanceInCluster()
+      throws Exception {
     super.testDisableDelayRebalanceInCluster();
   }
 
-  @Test(dependsOnMethods = { "testDisableDelayRebalanceInCluster" })
-  public void testDisableDelayRebalanceInInstance() throws Exception {
+  @Test(dependsOnMethods = {"testDisableDelayRebalanceInCluster"})
+  public void testDisableDelayRebalanceInInstance()
+      throws Exception {
     super.testDisableDelayRebalanceInInstance();
   }
 }

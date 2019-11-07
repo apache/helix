@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.BucketDataAccessor;
@@ -34,6 +33,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordJacksonSerializer;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.ResourceAssignment;
+
 
 /**
  * A placeholder before we have the real assignment metadata store.
@@ -49,14 +49,14 @@ public class AssignmentMetadataStore {
   private BucketDataAccessor _dataAccessor;
   private String _baselinePath;
   private String _bestPossiblePath;
-  private Map<String, ResourceAssignment> _globalBaseline;
-  private Map<String, ResourceAssignment> _bestPossibleAssignment;
+  protected Map<String, ResourceAssignment> _globalBaseline;
+  protected Map<String, ResourceAssignment> _bestPossibleAssignment;
 
   AssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
     this(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
   }
 
-  AssignmentMetadataStore(BucketDataAccessor bucketDataAccessor, String clusterName) {
+  protected AssignmentMetadataStore(BucketDataAccessor bucketDataAccessor, String clusterName) {
     _dataAccessor = bucketDataAccessor;
     _baselinePath = String.format(BASELINE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
     _bestPossiblePath = String.format(BEST_POSSIBLE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
@@ -153,8 +153,8 @@ public class AssignmentMetadataStore {
     HelixProperty property = new HelixProperty(name);
     // Add each resource's assignment as a simple field in one ZNRecord
     // Node that don't use Arrays.toString() for the record converting. The deserialize will fail.
-    assignmentMap.forEach((resource, assignment) -> property.getRecord().setSimpleField(resource,
-        new String(SERIALIZER.serialize(assignment.getRecord()))));
+    assignmentMap.forEach((resource, assignment) -> property.getRecord()
+        .setSimpleField(resource, new String(SERIALIZER.serialize(assignment.getRecord()))));
     return property;
   }
 
@@ -167,8 +167,8 @@ public class AssignmentMetadataStore {
     Map<String, ResourceAssignment> assignmentMap = new HashMap<>();
     // Convert each resource's assignment String into a ResourceAssignment object and put it in a
     // map
-    property.getRecord().getSimpleFields()
-        .forEach((resource, assignmentStr) -> assignmentMap.put(resource,
+    property.getRecord().getSimpleFields().forEach((resource, assignmentStr) -> assignmentMap
+        .put(resource,
             new ResourceAssignment((ZNRecord) SERIALIZER.deserialize(assignmentStr.getBytes()))));
     return assignmentMap;
   }

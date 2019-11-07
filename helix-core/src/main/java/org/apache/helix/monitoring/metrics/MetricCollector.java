@@ -27,7 +27,6 @@ import javax.management.JMException;
 import javax.management.ObjectName;
 import org.apache.helix.HelixException;
 import org.apache.helix.monitoring.metrics.model.Metric;
-import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 
@@ -71,7 +70,7 @@ public abstract class MetricCollector extends DynamicMBeanProvider {
 
   @Override
   public String getSensorName() {
-    return String.format("%s.%s.%s", MonitorDomainNames.Rebalancer.name(), _clusterName,
+    return String.format("%s.%s.%s", _monitorDomainName, _clusterName,
         _entityName);
   }
 

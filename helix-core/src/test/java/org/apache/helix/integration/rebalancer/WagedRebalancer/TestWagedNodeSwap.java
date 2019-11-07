@@ -36,14 +36,14 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestNodeSwap extends ZkTestBase {
+public class TestWagedNodeSwap extends ZkTestBase {
   final int NUM_NODE = 6;
   protected static final int START_PORT = 12918;
   protected static final int _PARTITIONS = 20;
@@ -122,8 +122,8 @@ public class TestNodeSwap extends ZkTestBase {
     }
     Thread.sleep(1000);
 
-    _clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
+    _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
   }
 
@@ -183,8 +183,6 @@ public class TestNodeSwap extends ZkTestBase {
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, "NodeSwapDone", Collections.emptyMap());
 
     Thread.sleep(2000);
-    _clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
 
     // Since only one node temporary down, the same partitions will be moved to the newly added node.
@@ -271,8 +269,6 @@ public class TestNodeSwap extends ZkTestBase {
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, "NodeSwapDone", Collections.emptyMap());
 
     Thread.sleep(2000);
-    _clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
 
     for (String db : _allDBs) {

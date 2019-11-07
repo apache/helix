@@ -21,6 +21,7 @@ package org.apache.helix.monitoring.metrics;
 
 import javax.management.JMException;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.metrics.implementation.BaselineDivergenceGauge;
 import org.apache.helix.monitoring.metrics.implementation.RebalanceCounter;
@@ -63,10 +64,17 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
     PartialRebalanceCounter
   }
 
-  public WagedRebalancerMetricCollector(String clusterName) throws JMException {
+  public WagedRebalancerMetricCollector(String clusterName) {
     super(MonitorDomainNames.Rebalancer.name(), clusterName, WAGED_REBALANCER_ENTITY_NAME);
     createMetrics();
-    register();
+    if (clusterName != null) {
+      try {
+        register();
+      } catch (JMException e) {
+        throw new HelixException("Failed to register MBean for the WagedRebalancerMetricCollector.",
+            e);
+      }
+    }
   }
 
   /**
@@ -75,8 +83,7 @@ public class WagedRebalancerMetricCollector extends MetricCollector {
    * metrics.
    */
   public WagedRebalancerMetricCollector() {
-    super(MonitorDomainNames.Rebalancer.name(), null, null);
-    createMetrics();
+    this(null);
   }
 
   /**

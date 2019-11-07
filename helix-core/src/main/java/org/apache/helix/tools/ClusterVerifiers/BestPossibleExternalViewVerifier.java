@@ -385,13 +385,14 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     }
 
     runStage(event, new CurrentStateComputationStage());
-    DryrunWagedRebalancer wagedRebalancer = new DryrunWagedRebalancer(_zkClient.getServers(), cache.getClusterName(),
+    // Note the dryrunWagedRebalancer is just for one time usage
+    DryrunWagedRebalancer dryrunWagedRebalancer = new DryrunWagedRebalancer(_zkClient.getServers(), cache.getClusterName(),
         cache.getClusterConfig().getGlobalRebalancePreference());
     try {
       // TODO: be caution here, should be handled statelessly.
-      runStage(event, new BestPossibleStateCalcStage(wagedRebalancer));
+      runStage(event, new BestPossibleStateCalcStage(dryrunWagedRebalancer));
     } finally {
-      wagedRebalancer.close();
+      dryrunWagedRebalancer.close();
     }
 
     BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
@@ -443,12 +444,14 @@ class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {
 
   @Override
   public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
-    // Do nothing. It is a readonly store.
+    // Update the in-memory reference only
+    _globalBaseline = globalBaseline;
   }
 
   @Override
   public void persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
-    // Do nothing. It is a readonly store.
+    // Update the in-memory reference only
+    _bestPossibleAssignment = bestPossibleAssignment;
   }
 }

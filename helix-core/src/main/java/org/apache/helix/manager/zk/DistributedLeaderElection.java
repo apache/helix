@@ -109,19 +109,19 @@ public class DistributedLeaderElection implements ControllerChangeListener {
     // Try to acquire leader and init the manager in any case.
     // Even when a leader node already exists, the election process shall still try to init the manager
     // in case it is the current leader.
-    long start = System.currentTimeMillis();
     do {
       // Due to the possible carried over ZK events from the previous ZK session, the following
       // initialization might be triggered multiple times. So the operation must be idempotent.
+      long start = System.currentTimeMillis();
       if (tryCreateController(manager)) {
         manager.getHelixDataAccessor().getBaseDataAccessor().reset();
         controllerHelper.addListenersToController(_controller);
         controllerHelper.startControllerTimerTasks();
+        LOG.info("{} with session {} acquired leadership for cluster: {}, took: {}ms",
+            manager.getInstanceName(), manager.getSessionId(), manager.getClusterName(),
+            System.currentTimeMillis() - start);
       }
     } while (accessor.getProperty(leaderNodePropertyKey) == null);
-    LOG.info("{} with session {} acquired leadership for cluster: {}, took: {}ms",
-        manager.getInstanceName(), manager.getSessionId(), manager.getClusterName(),
-        System.currentTimeMillis() - start);
   }
 
   /**

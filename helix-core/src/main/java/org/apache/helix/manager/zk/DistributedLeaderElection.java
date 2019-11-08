@@ -117,11 +117,11 @@ public class DistributedLeaderElection implements ControllerChangeListener {
         manager.getHelixDataAccessor().getBaseDataAccessor().reset();
         controllerHelper.addListenersToController(_controller);
         controllerHelper.startControllerTimerTasks();
-        LOG.info("{} with session {} acquired leadership for cluster: {}, took: {}ms",
-            manager.getInstanceName(), manager.getSessionId(), manager.getClusterName(),
-            System.currentTimeMillis() - start);
       }
     } while (accessor.getProperty(leaderNodePropertyKey) == null);
+    LOG.info("{} with session {} acquired leadership for cluster: {}, took: {}ms",
+        manager.getInstanceName(), manager.getSessionId(), manager.getClusterName(),
+        System.currentTimeMillis() - start);
   }
 
   /**

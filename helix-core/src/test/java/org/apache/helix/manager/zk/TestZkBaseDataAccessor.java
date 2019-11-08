@@ -37,6 +37,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor.AccessResult;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
@@ -64,6 +65,11 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     if (_gZkClient.exists(path)) {
       _gZkClient.deleteRecursively(path);
     }
+  }
+
+  @AfterClass
+  public void afterClass() {
+    _gZkClient.close();
   }
 
   @Test

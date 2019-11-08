@@ -232,7 +232,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       try {
         cache.lockWrite();
         ZkBaseDataAccessor<T>.AccessResult result =
-            _baseAccessor.doCreate(_zkclient, serverPath, data, options);
+            _baseAccessor.doCreate(serverPath, data, options);
         boolean success = (result._retCode == RetCode.OK);
 
         updateCache(cache, result._pathCreated, success, serverPath, data, ZNode.ZERO_STAT);
@@ -263,7 +263,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       if (cache != null) {
         cache.lockWrite();
         ZkBaseDataAccessor<T>.AccessResult result =
-            _baseAccessor.doSet(_baseAccessor.getZkClient(), serverPath, data, expectVersion, options);
+            _baseAccessor.doSet(serverPath, data, expectVersion, options);
         success = result._retCode == RetCode.OK;
 
         updateCache(cache, result._pathCreated, success, serverPath, data, result._stat);

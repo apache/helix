@@ -157,7 +157,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     ZNRecord record = new ZNRecord("submsg_0");
     ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
-    AccessResult result = accessor.doSet(_gZkClient, path, record, -1, AccessOption.PERSISTENT);
+    AccessResult result = accessor.doSet(path, record, -1, AccessOption.PERSISTENT);
     Assert.assertEquals(result._retCode, RetCode.OK);
     Assert.assertEquals(result._pathCreated.size(), 3);
     Assert.assertTrue(result._pathCreated.contains(String.format("/%s/%s", _rootPath, "msg_0")));
@@ -208,19 +208,19 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
 
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<>(_gZkClient);
+    ZkBaseDataAccessor<Object> accessor = new ZkBaseDataAccessor<>(ZK_ADDR, CUSTOM_ZK_SERIALIZER);
 
     String content0 = "DummyContent";
     String content1 = "ChangedContent";
-    boolean createResult = accessor.create(path, content0, AccessOption.PERSISTENT, CUSTOM_ZK_SERIALIZER);
+    boolean createResult = accessor.create(path, content0, AccessOption.PERSISTENT);
     Assert.assertTrue(createResult);
 
-    Object data = accessor.get(path, null, AccessOption.PERSISTENT, CUSTOM_ZK_SERIALIZER);
+    Object data = accessor.get(path, null, AccessOption.PERSISTENT);
     Assert.assertEquals(new String((byte[]) data), content0);
-    boolean setResult = accessor.set(path, content1, AccessOption.PERSISTENT, 0, CUSTOM_ZK_SERIALIZER);
+    boolean setResult = accessor.set(path, content1, 0, AccessOption.PERSISTENT);
     Assert.assertTrue(setResult);
 
-    data = accessor.get(path, null, AccessOption.PERSISTENT, CUSTOM_ZK_SERIALIZER);
+    data = accessor.get(path, null, AccessOption.PERSISTENT);
     Assert.assertEquals(new String((byte[]) data), content1);
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));

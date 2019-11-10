@@ -109,15 +109,11 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
     Assert.assertTrue(_callback._isCallbackInvoked);
     _callback._isCallbackInvoked = false;
 
-    // add a new live instance
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<>(_gZkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-
-    LiveInstance newLiveIns = new LiveInstance("newLiveInstance");
-    newLiveIns.setHelixVersion("0.6.0");
-    newLiveIns.setSessionId("randomSessionId");
-    accessor.setProperty(keyBuilder.liveInstance("newLiveInstance"), newLiveIns);
+    // add a new live instance and its instance config.
+    // instance name: localhost_1000
+    int[] newLiveInstance = new int[]{1000};
+    setupInstances(_clusterName, newLiveInstance);
+    setupLiveInstances(_clusterName, newLiveInstance);
 
     Thread.sleep(1000); // wait for the CALLBACK type callback to finish
     Assert.assertTrue(_callback._isCallbackInvoked);
@@ -127,7 +123,10 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
     for (int i = 0; i < nodeNb; i++) {
       participants[i].syncStop();
     }
-    accessor.removeProperty(keyBuilder.liveInstance("newLiveInstance"));
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.removeProperty(keyBuilder.liveInstance("localhost_1000"));
     TestHelper.dropCluster(_clusterName, _gZkClient);
 
     System.out.println("END " + _clusterName + " at " + new Date(System.currentTimeMillis()));

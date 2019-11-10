@@ -19,6 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,6 +27,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -58,12 +61,14 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.zookeeper.data.Stat;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestZkHelixAdmin extends ZkUnitTestBase {
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @BeforeClass
   public void beforeClass() {
@@ -511,10 +516,11 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
   }
 
   /**
-   * Test addResourceWithWeight() and validateForWagedRebalance() by trying to add a resource with incomplete ResourceConfig.
+   * Test addResourceWithWeight() and validateResourcesForWagedRebalance() by trying to add a resource with incomplete ResourceConfig.
    */
   @Test
-  public void testAddResourceWithWeightAndValidation() {
+  public void testAddResourceWithWeightAndValidation()
+      throws IOException {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -531,29 +537,32 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     ResourceConfig resourceConfig = new ResourceConfig(testResourcePrefix);
     // validate
     Map<String, Boolean> validationResult =
-        admin.validateForWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
+        admin.validateResourcesForWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
     Assert.assertEquals(validationResult.size(), 1);
     Assert.assertFalse(validationResult.get(testResourcePrefix));
     try {
       admin.addResourceWithWeight(clusterName, idealState, resourceConfig);
       Assert.fail();
-    } catch (HelixException e) {
-      // OK since WEIGHT is empty
+    } catch (Exception e) {
+      // OK since resourceConfig is empty
     }
 
-    Map<String, String> weightMap = new HashMap<>();
-    weightMap.put("DEFAULT", "{\"WCU\":100,\"RCU\":120,\"STORAGE\":10}");
-    weightMap.put("DBName_1_1", "{\"WCU\":100,\"RCU\":120,\"STORAGE\":10}");
-    resourceConfig.getRecord().setMapField("WEIGHT", weightMap);
+    // Set PARTITION_CAPACITY_MAP
+    Map<String, String> capacityDataMap =
+        ImmutableMap.of("WCU", "1", "RCU", "2", "STORAGE", "3");
+    resourceConfig.getRecord()
+        .setMapField(ResourceConfig.ResourceConfigProperty.PARTITION_CAPACITY_MAP.name(),
+            Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY,
+                OBJECT_MAPPER.writeValueAsString(capacityDataMap)));
 
     // validate
-    validationResult =
-        admin.validateForWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
+    validationResult = admin.validateResourcesForWagedRebalance(clusterName,
+        Collections.singletonList(testResourcePrefix));
     Assert.assertEquals(validationResult.size(), 1);
     Assert.assertFalse(validationResult.get(testResourcePrefix));
     try {
       admin.addResourceWithWeight(clusterName, idealState, resourceConfig);
-    } catch (HelixException e) {
+    } catch (Exception e) {
       // OK since ClusterConfig is empty
     }
 
@@ -567,8 +576,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     // Should succeed now
     Assert.assertTrue(admin.addResourceWithWeight(clusterName, idealState, resourceConfig));
     // validate
-    validationResult =
-        admin.validateForWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
+    validationResult = admin.validateResourcesForWagedRebalance(clusterName,
+        Collections.singletonList(testResourcePrefix));
     Assert.assertEquals(validationResult.size(), 1);
     Assert.assertTrue(validationResult.get(testResourcePrefix));
   }

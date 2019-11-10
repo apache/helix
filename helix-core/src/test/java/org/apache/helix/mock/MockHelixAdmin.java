@@ -440,7 +440,13 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public Map<String, Boolean> validateForWagedRebalance(String clusterName, List<String> resourceNames) {
+  public Map<String, Boolean> validateResourcesForWagedRebalance(String clusterName, List<String> resourceNames) {
+    return null;
+  }
+
+  @Override
+  public Map<String, Boolean> validateInstancesForWagedRebalance(String clusterName,
+      List<String> instancesNames) {
     return null;
   }
 }

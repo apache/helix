@@ -22,6 +22,7 @@ package org.apache.helix;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
@@ -32,6 +33,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+
 
 /*
  * Helix cluster management
@@ -580,12 +582,17 @@ public interface HelixAdmin {
 
   /**
    * Adds a resource with IdealState and ResourceConfig to be rebalanced by WAGED rebalancer with validation.
+   * Validation includes the following:
+   * 1. Check ResourceConfig has the WEIGHT field
+   * 2. Check that all capacity keys from ClusterConfig are set up in the WEIGHT field
+   * 3. Check that all ResourceConfig's weightMap fields have all of the capacity keys
    * @param clusterName
    * @param idealState
    * @param resourceConfig
    * @return true if the resource has been added successfully. False otherwise
    */
-  boolean addResourceWithWeight(String clusterName, IdealState idealState, ResourceConfig resourceConfig);
+  boolean addResourceWithWeight(String clusterName, IdealState idealState,
+      ResourceConfig resourceConfig);
 
   /**
    * Batch-enables Waged rebalance for the names of resources given.
@@ -597,8 +604,25 @@ public interface HelixAdmin {
 
   /**
    * Validates the resources to see if their weight configs have been set properly.
+   * Validation includes the following:
+   * 1. Check ResourceConfig has the WEIGHT field
+   * 2. Check that all capacity keys from ClusterConfig are set up in the WEIGHT field
+   * 3. Check that all ResourceConfig's weightMap fields have all of the capacity keys
    * @param resourceNames
    * @return for each resource, true if the weight configs have been set properly, false otherwise
    */
-  Map<String, Boolean> validateForWagedRebalance(String clusterName, List<String> resourceNames);
+  Map<String, Boolean> validateResourcesForWagedRebalance(String clusterName,
+      List<String> resourceNames);
+
+  /**
+   * Validates the instances to ensure their weights in InstanceConfigs have been set up properly.
+   * Validation includes the following:
+   * 1. If default instance capacity is not set, check that the InstanceConfigs have the CAPACITY field
+   * 2. Check that all capacity keys defined in ClusterConfig are present in the CAPACITY field
+   * @param clusterName
+   * @param instancesNames
+   * @return
+   */
+  Map<String, Boolean> validateInstancesForWagedRebalance(String clusterName,
+      List<String> instancesNames);
 }

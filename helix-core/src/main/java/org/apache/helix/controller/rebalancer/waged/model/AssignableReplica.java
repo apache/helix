@@ -149,7 +149,23 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
           "Invalid partition capacity configuration of resource: " + resourceConfig
               .getResourceName(), ex);
     }
+    Map<String, Integer> partitionCapacity =
+        validateAndGetPartitionCapacity(partitionName, resourceConfig, capacityMap, clusterConfig);
+    // Remove the non-required capacity items.
+    partitionCapacity.keySet().retainAll(clusterConfig.getInstanceCapacityKeys());
+    return partitionCapacity;
+  }
 
+  /**
+   * Validates and returns partition capacities. The validation logic ensures that all required capacity keys (from ClusterConfig) are present in the ResourceConfig for the partition.
+   * @param partitionName
+   * @param resourceConfig
+   * @param clusterConfig
+   * @return
+   */
+  public static Map<String, Integer> validateAndGetPartitionCapacity(String partitionName,
+      ResourceConfig resourceConfig, Map<String, Map<String, Integer>> capacityMap,
+      ClusterConfig clusterConfig) {
     // Fetch the capacity of partition from 3 possible sources according to the following priority.
     // 1. The partition capacity that is explicitly configured in the resource config.
     // 2. Or, the default partition capacity that is configured under partition name DEFAULT_PARTITION_KEY in the resource config.
@@ -167,9 +183,6 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
           requiredCapacityKeys.toString(), resourceConfig.getResourceName(), partitionName,
           partitionCapacity.toString()));
     }
-    // Remove the non-required capacity items.
-    partitionCapacity.keySet().retainAll(requiredCapacityKeys);
-
     return partitionCapacity;
   }
 }

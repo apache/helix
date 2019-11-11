@@ -126,6 +126,9 @@ public class HelixConfigScopeBuilder {
     case REST:
       scope = new HelixConfigScope(_type, Arrays.asList(_clusterName, _clusterName), null);
       break;
+    case CLOUD:
+      scope = new HelixConfigScope(_type, Arrays.asList(_clusterName, _clusterName), null);
+      break;
     default:
       break;
     }

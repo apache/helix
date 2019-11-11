@@ -22,6 +22,7 @@ package org.apache.helix;
 import java.util.Arrays;
 import java.util.Objects;
 
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ControllerHistory;
@@ -231,6 +232,16 @@ public class PropertyKey {
     public PropertyKey clusterConfig() {
       return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, ClusterConfig.class,
           _clusterName, ConfigScopeProperty.CLUSTER.toString(), _clusterName);
+    }
+
+
+    /**
+     * Get a property key associated with this Cloud configuration
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey cloudConfig() {
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLOUD, CloudConfig.class,
+          _clusterName, ConfigScopeProperty.CLOUD.name(), _clusterName);
     }
 
     /**

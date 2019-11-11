@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -560,6 +561,28 @@ public class ConfigAccessor {
     }
 
     return new ClusterConfig(record);
+  }
+
+  /**
+   * Get CloudConfig of the given cluster.
+   * @param clusterName
+   * @return The instance of {@link CloudConfig}
+   */
+  public CloudConfig getCloudConfig(String clusterName) {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+      throw new HelixException(
+          String.format("Failed to get config. cluster: %s is not setup.", clusterName));
+    }
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLOUD).forCluster(clusterName).build();
+    ZNRecord record = getConfigZnRecord(scope);
+
+    if (record == null) {
+      LOG.warn("No cloud config found at {}.", scope.getZkPath());
+      return null;
+    }
+
+    return new CloudConfig(record);
   }
 
   /**

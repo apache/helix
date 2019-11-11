@@ -1746,12 +1746,13 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     // Remove DEFAULT key
     Set<String> capacityMapSet = new HashSet<>(capacityMap.keySet());
+    boolean hasDefaultCapacity = capacityMapSet.contains(ResourceConfig.DEFAULT_PARTITION_KEY);
     capacityMapSet.remove(ResourceConfig.DEFAULT_PARTITION_KEY);
 
     // Make sure capacityMap contains all partitions defined in IdealState
     // Here, IdealState has not been rebalanced, so listFields might be null, in which case, we would get an emptyList from getPartitionSet()
     // So check using numPartitions instead
-    if (capacityMapSet.size() != idealState.getNumPartitions()) {
+    if (capacityMapSet.size() != idealState.getNumPartitions() && !hasDefaultCapacity) {
       throw new IllegalArgumentException(String.format(
           "ResourceConfig for %s does not have all partitions defined in PartitionCapacityMap!",
           idealState.getResourceName()));

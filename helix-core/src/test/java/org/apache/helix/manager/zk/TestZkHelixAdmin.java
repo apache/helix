@@ -42,6 +42,7 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.examples.MasterSlaveStateModelFactory;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
@@ -604,7 +605,6 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     admin.enableWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
     IdealState is = admin.getResourceIdealState(clusterName, testResourcePrefix);
-    Assert.assertEquals(is.getRebalancerClassName(),
-        "org.apache.helix.controller.rebalancer.WagedRebalancer");
+    Assert.assertEquals(is.getRebalancerClassName(), WagedRebalancer.class.getName());
   }
 }

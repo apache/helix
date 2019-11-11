@@ -44,6 +44,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.examples.MasterSlaveStateModelFactory;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
@@ -525,10 +526,21 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
+    String mockInstance = "MockInstance";
     String testResourcePrefix = "TestResource";
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.addCluster(clusterName, true);
     admin.addStateModelDef(clusterName, "MasterSlave", new MasterSlaveSMD());
+
+    // Create a dummy instance
+    InstanceConfig instanceConfig = new InstanceConfig(mockInstance);
+    Map<String, Integer> mockInstanceCapacity =
+        ImmutableMap.of("WCU", 100, "RCU", 100, "STORAGE", 100);
+    instanceConfig.setInstanceCapacityMap(mockInstanceCapacity);
+    admin.addInstance(clusterName, instanceConfig);
+    MockParticipantManager mockParticipantManager =
+        new MockParticipantManager(ZK_ADDR, clusterName, mockInstance);
+    mockParticipantManager.syncStart();
 
     IdealState idealState = new IdealState(testResourcePrefix);
     idealState.setNumPartitions(3);
@@ -537,8 +549,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     ResourceConfig resourceConfig = new ResourceConfig(testResourcePrefix);
     // validate
-    Map<String, Boolean> validationResult =
-        admin.validateResourcesForWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
+    Map<String, Boolean> validationResult = admin.validateResourcesForWagedRebalance(clusterName,
+        Collections.singletonList(testResourcePrefix));
     Assert.assertEquals(validationResult.size(), 1);
     Assert.assertFalse(validationResult.get(testResourcePrefix));
     try {

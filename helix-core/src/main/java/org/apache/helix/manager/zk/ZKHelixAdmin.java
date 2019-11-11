@@ -1680,6 +1680,17 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new HelixException("Resource name list is invalid!");
     }
 
+    // First, ensure that all instances are valid
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    List<String> liveInstances = accessor.getChildNames(keyBuilder.liveInstances());
+    if (validateInstancesForWagedRebalance(clusterName, liveInstances).containsValue(false)) {
+      throw new HelixException(String
+          .format("Instance capacities haven't been configured properly for cluster %s",
+              clusterName));
+    }
+
     Map<String, Boolean> result = new HashMap<>();
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
     for (String resourceName : resourceNames) {

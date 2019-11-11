@@ -20,9 +20,12 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
@@ -42,20 +45,6 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
 public class TestZkBaseDataAccessor extends ZkUnitTestBase {
-  private static final ZkSerializer CUSTOM_ZK_SERIALIZER = new ZkSerializer() {
-    @Override
-    public byte[] serialize(Object o)
-        throws ZkMarshallingError {
-      String st = (String) o;
-      return st.getBytes();
-    }
-
-    @Override
-    public Object deserialize(byte[] bytes)
-        throws ZkMarshallingError {
-      return bytes;
-    }
-  };
   String _rootPath = TestHelper.getTestClassName();
 
 
@@ -214,20 +203,38 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
 
-    ZkBaseDataAccessor<Object> accessor = new ZkBaseDataAccessor<>(ZK_ADDR, CUSTOM_ZK_SERIALIZER);
+    // serialize/deserialize integer list to byte array
+    ZkSerializer listSerializer = new ZkSerializer() {
+      @Override
+      public byte[] serialize(Object o)
+          throws ZkMarshallingError {
+        List<Integer> list = (List<Integer>) o;
+        return list.stream().map(String::valueOf).collect(Collectors.joining(","))
+            .getBytes();
+      }
 
-    String content0 = "DummyContent";
-    String content1 = "ChangedContent";
-    boolean createResult = accessor.create(path, content0, AccessOption.PERSISTENT);
+      @Override
+      public Object deserialize(byte[] bytes)
+          throws ZkMarshallingError {
+        String string = new String(bytes);
+        return Arrays.stream(string.split(",")).map(Integer::valueOf)
+            .collect(Collectors.toList());
+      }
+    };
+    ZkBaseDataAccessor<List<Integer>> accessor = new ZkBaseDataAccessor<>(ZK_ADDR, listSerializer);
+
+    List<Integer> l0 = ImmutableList.of(1, 2, 3);
+    List<Integer> l1 = ImmutableList.of(4, 5, 6);
+    boolean createResult = accessor.create(path, l0, AccessOption.PERSISTENT);
     Assert.assertTrue(createResult);
 
-    Object data = accessor.get(path, null, AccessOption.PERSISTENT);
-    Assert.assertEquals(new String((byte[]) data), content0);
-    boolean setResult = accessor.set(path, content1, 0, AccessOption.PERSISTENT);
+    List<Integer> data = (List<Integer>) accessor.get(path, null, AccessOption.PERSISTENT);
+    Assert.assertEquals(data, l0);
+    boolean setResult = accessor.set(path, l1, 0, AccessOption.PERSISTENT);
     Assert.assertTrue(setResult);
 
-    data = accessor.get(path, null, AccessOption.PERSISTENT);
-    Assert.assertEquals(new String((byte[]) data), content1);
+    data = (List<Integer>) accessor.get(path, null, AccessOption.PERSISTENT);
+    Assert.assertEquals(data, l1);
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }

@@ -45,6 +45,7 @@ import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
@@ -97,9 +98,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer) {
-    _zkClient = new ZkClient.Builder()
-        .setConnection(new ZkConnection(zkAddress, ZkClient.DEFAULT_SESSION_TIMEOUT))
-        .setZkSerializer(zkSerializer).build();
+    _zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+            new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
+  }
+
+  public ZkBaseDataAccessor(String zkAddress) {
+    _zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+            new HelixZkClient.ZkClientConfig());
   }
 
   /**

@@ -57,6 +57,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
@@ -1700,10 +1701,6 @@ public class ZKHelixAdmin implements HelixAdmin {
         continue;
       }
       ResourceConfig resourceConfig = _configAccessor.getResourceConfig(clusterName, resourceName);
-      if (resourceConfig == null || !resourceConfig.isValid()) {
-        result.put(resourceName, false);
-        continue;
-      }
       result.put(resourceName,
           validateWeightForResourceConfig(clusterConfig, resourceConfig, idealState));
     }
@@ -1729,7 +1726,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         result.put(instanceName, false);
         continue;
       }
-      AssignableNode.validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
+      WagedValidationUtil.validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
       result.put(instanceName, true);
     }
 
@@ -1745,32 +1742,39 @@ public class ZKHelixAdmin implements HelixAdmin {
    */
   private boolean validateWeightForResourceConfig(ClusterConfig clusterConfig,
       ResourceConfig resourceConfig, IdealState idealState) {
+    // If ResourceConfig is null AND the default partition weight map is defined, we consider this resource valid
+    if (resourceConfig == null) {
+      return !clusterConfig.getDefaultPartitionWeightMap().isEmpty();
+      // ResourceConfig is null and no default partition weight map has been defined. Not valid.
+    }
+
     // Parse the entire capacityMap from ResourceConfig
     Map<String, Map<String, Integer>> capacityMap;
     try {
       capacityMap = resourceConfig.getPartitionCapacityMap();
     } catch (IOException ex) {
-      throw new IllegalArgumentException(
-          "Invalid partition capacity configuration of resource: " + resourceConfig
-              .getResourceName(), ex);
+      logger.error("Invalid partition capacity configuration of resource: {}", idealState.getResourceName(), ex);
+      return false;
     }
 
-    // Remove DEFAULT key
     Set<String> capacityMapSet = new HashSet<>(capacityMap.keySet());
     boolean hasDefaultCapacity = capacityMapSet.contains(ResourceConfig.DEFAULT_PARTITION_KEY);
+    // Remove DEFAULT key
     capacityMapSet.remove(ResourceConfig.DEFAULT_PARTITION_KEY);
 
     // Make sure capacityMap contains all partitions defined in IdealState
     // Here, IdealState has not been rebalanced, so listFields might be null, in which case, we would get an emptyList from getPartitionSet()
     // So check using numPartitions instead
+    // This check allows us to fail early on instead of having to loop through all partitions
     if (capacityMapSet.size() != idealState.getNumPartitions() && !hasDefaultCapacity) {
-      throw new IllegalArgumentException(String.format(
-          "ResourceConfig for %s does not have all partitions defined in PartitionCapacityMap!",
-          idealState.getResourceName()));
+      logger.error(
+          "ResourceConfig for {} does not have all partitions defined in PartitionCapacityMap!",
+          idealState.getResourceName());
+      return false;
     }
 
     // Loop through all partitions and validate
-    capacityMap.keySet().forEach(partitionName -> AssignableReplica
+    capacityMap.keySet().forEach(partitionName -> WagedValidationUtil
         .validateAndGetPartitionCapacity(partitionName, resourceConfig, capacityMap,
             clusterConfig));
     return true;

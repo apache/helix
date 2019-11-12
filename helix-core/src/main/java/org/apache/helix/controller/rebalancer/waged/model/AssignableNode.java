@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixException;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
@@ -351,7 +352,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private Map<String, Integer> fetchInstanceCapacity(ClusterConfig clusterConfig,
       InstanceConfig instanceConfig) {
     Map<String, Integer> instanceCapacity =
-        validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
+        WagedValidationUtil.validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
     // Remove all the non-required capacity items from the map.
     instanceCapacity.keySet().retainAll(clusterConfig.getInstanceCapacityKeys());
     return instanceCapacity;
@@ -370,31 +371,5 @@ public class AssignableNode implements Comparable<AssignableNode> {
   @Override
   public String toString() {
     return _instanceName;
-  }
-
-  /**
-   * Validates and returns instance capacities. The validation logic ensures that all required capacity keys (in ClusterConfig) are present in InstanceConfig.
-   * @param clusterConfig
-   * @param instanceConfig
-   * @return
-   */
-  public static Map<String, Integer> validateAndGetInstanceCapacity(ClusterConfig clusterConfig,
-      InstanceConfig instanceConfig) {
-    // Fetch the capacity of instance from 2 possible sources according to the following priority.
-    // 1. The instance capacity that is configured in the instance config.
-    // 2. If the default instance capacity that is configured in the cluster config contains more capacity keys, fill the capacity map with those additional values.
-    Map<String, Integer> instanceCapacity =
-        new HashMap<>(clusterConfig.getDefaultInstanceCapacityMap());
-    instanceCapacity.putAll(instanceConfig.getInstanceCapacityMap());
-
-    List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
-    // All the required keys must exist in the instance config.
-    if (!instanceCapacity.keySet().containsAll(requiredCapacityKeys)) {
-      throw new HelixException(String.format(
-          "The required capacity keys: %s are not fully configured in the instance: %s, capacity map: %s.",
-          requiredCapacityKeys.toString(), instanceConfig.getInstanceName(),
-          instanceCapacity.toString()));
-    }
-    return instanceCapacity;
   }
 }

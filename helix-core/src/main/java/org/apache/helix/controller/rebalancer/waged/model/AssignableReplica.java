@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixException;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -149,40 +150,10 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
           "Invalid partition capacity configuration of resource: " + resourceConfig
               .getResourceName(), ex);
     }
-    Map<String, Integer> partitionCapacity =
-        validateAndGetPartitionCapacity(partitionName, resourceConfig, capacityMap, clusterConfig);
+    Map<String, Integer> partitionCapacity = WagedValidationUtil
+        .validateAndGetPartitionCapacity(partitionName, resourceConfig, capacityMap, clusterConfig);
     // Remove the non-required capacity items.
     partitionCapacity.keySet().retainAll(clusterConfig.getInstanceCapacityKeys());
-    return partitionCapacity;
-  }
-
-  /**
-   * Validates and returns partition capacities. The validation logic ensures that all required capacity keys (from ClusterConfig) are present in the ResourceConfig for the partition.
-   * @param partitionName
-   * @param resourceConfig
-   * @param clusterConfig
-   * @return
-   */
-  public static Map<String, Integer> validateAndGetPartitionCapacity(String partitionName,
-      ResourceConfig resourceConfig, Map<String, Map<String, Integer>> capacityMap,
-      ClusterConfig clusterConfig) {
-    // Fetch the capacity of partition from 3 possible sources according to the following priority.
-    // 1. The partition capacity that is explicitly configured in the resource config.
-    // 2. Or, the default partition capacity that is configured under partition name DEFAULT_PARTITION_KEY in the resource config.
-    // 3. If the default partition capacity that is configured in the cluster config contains more capacity keys, fill the capacity map with those additional values.
-    Map<String, Integer> partitionCapacity =
-        new HashMap<>(clusterConfig.getDefaultPartitionWeightMap());
-    partitionCapacity.putAll(capacityMap.getOrDefault(partitionName,
-        capacityMap.getOrDefault(ResourceConfig.DEFAULT_PARTITION_KEY, new HashMap<>())));
-
-    List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
-    // If any required capacity key is not configured in the resource config, fail the model creating.
-    if (!partitionCapacity.keySet().containsAll(requiredCapacityKeys)) {
-      throw new HelixException(String.format(
-          "The required capacity keys: %s are not fully configured in the resource: %s, partition: %s, weight map: %s.",
-          requiredCapacityKeys.toString(), resourceConfig.getResourceName(), partitionName,
-          partitionCapacity.toString()));
-    }
     return partitionCapacity;
   }
 }

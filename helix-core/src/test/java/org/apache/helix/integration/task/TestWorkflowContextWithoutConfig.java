@@ -90,12 +90,13 @@ public class TestWorkflowContextWithoutConfig extends TaskTestBase {
     Assert.assertNotNull(_driver.getWorkflowContext(workflowName1));
     Assert.assertNotNull(_admin.getResourceIdealState(CLUSTER_NAME, workflowName1));
 
-    // Wait until workflow is completed.
-    _driver.pollForWorkflowState(workflowName1, TaskState.COMPLETED);
-
     String idealStatePath = "/" + CLUSTER_NAME + "/IDEALSTATES/" + workflowName1;
     ZNRecord record = _manager.getHelixDataAccessor().getBaseDataAccessor().get(idealStatePath,
         null, AccessOption.PERSISTENT);
+    Assert.assertNotNull(record);
+
+    // Wait until workflow is completed.
+    _driver.pollForWorkflowState(workflowName1, TaskState.COMPLETED);
 
     // Verify that WorkflowConfig, WorkflowContext, and IdealState are removed after workflow got
     // expired.
@@ -107,7 +108,7 @@ public class TestWorkflowContextWithoutConfig extends TaskTestBase {
     }, 30 * 1000);
     Assert.assertTrue(workflowExpired);
 
-    // Write ideaState to ZooKeeper
+    // Write idealState to ZooKeeper
     _manager.getHelixDataAccessor().getBaseDataAccessor().set(idealStatePath, record,
         AccessOption.PERSISTENT);
 

@@ -1136,4 +1136,12 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   public void reset() {
     // Nothing to do
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void close() {
+    _zkClient.close();
+  }
 }

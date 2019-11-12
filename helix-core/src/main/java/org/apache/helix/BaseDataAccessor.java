@@ -259,7 +259,7 @@ public interface BaseDataAccessor<T> {
   void reset();
 
   /**
-   * Close the opened zkConnection
+   * Close the connection to the metadata store
    */
   void close();
 }

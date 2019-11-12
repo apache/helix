@@ -1142,6 +1142,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public void close() {
-    _zkClient.close();
+    if (_zkClient != null) {
+      _zkClient.close();
+    }
   }
 }

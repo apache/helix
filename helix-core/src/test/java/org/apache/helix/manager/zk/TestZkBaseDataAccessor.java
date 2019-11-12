@@ -230,6 +230,9 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     createResult = defaultAccessor.create(path, new ZNRecord("test"), AccessOption.PERSISTENT);
     // The result is expected to be true
     Assert.assertTrue(createResult);
+
+    defaultAccessor.close();
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -242,13 +245,15 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     String path = String.format("/%s/%s", _rootPath, "msg_0");
 
     ZkBaseDataAccessor customDataAccessor = new ZkBaseDataAccessor(ZK_ADDR, LIST_SERIALIZER);
-
     boolean createResult = customDataAccessor.create(path, new ZNRecord("test"), AccessOption.PERSISTENT);
     // The result is expected to be false because the ZnRecord is not List
     Assert.assertFalse(createResult);
     createResult = customDataAccessor.create(path, ImmutableList.of(1, 2, 3), AccessOption.PERSISTENT);
     // The result is expected to be true
     Assert.assertTrue(createResult);
+
+    customDataAccessor.close();
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -275,6 +280,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     data = (List<Integer>) accessor.get(path, null, AccessOption.PERSISTENT);
     Assert.assertEquals(data, l1);
 
+    accessor.close();
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 

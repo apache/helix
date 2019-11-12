@@ -111,10 +111,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * @param zkAddress The zookeeper address
    */
   public ZkBaseDataAccessor(String zkAddress) {
-    _zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-            new HelixZkClient.ZkClientConfig()
-                .setZkSerializer(new ZNRecordSerializer()));
+    this(zkAddress, new ZNRecordSerializer());
   }
 
   /**

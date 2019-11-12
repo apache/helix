@@ -45,6 +45,24 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
 public class TestZkBaseDataAccessor extends ZkUnitTestBase {
+  // serialize/deserialize integer list to byte array
+  private static final ZkSerializer LIST_SERIALIZER = new ZkSerializer() {
+    @Override
+    public byte[] serialize(Object o)
+        throws ZkMarshallingError {
+      List<Integer> list = (List<Integer>) o;
+      return list.stream().map(String::valueOf).collect(Collectors.joining(","))
+          .getBytes();
+    }
+
+    @Override
+    public Object deserialize(byte[] bytes)
+        throws ZkMarshallingError {
+      String string = new String(bytes);
+      return Arrays.stream(string.split(",")).map(Integer::valueOf)
+          .collect(Collectors.toList());
+    }
+  };
   String _rootPath = TestHelper.getTestClassName();
 
 
@@ -195,6 +213,45 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
   }
 
   @Test
+  public void testDefaultAccessorCreateCustomData() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String path = String.format("/%s/%s", _rootPath, "msg_0");
+
+    ZkBaseDataAccessor defaultAccessor = new ZkBaseDataAccessor(ZK_ADDR);
+
+    List<Integer> l0 = ImmutableList.of(1, 2, 3);
+    boolean createResult = defaultAccessor.create(path, l0, AccessOption.PERSISTENT);
+    // The result is expected to be false because the list is not ZNRecord
+    Assert.assertFalse(createResult);
+    createResult = defaultAccessor.create(path, new ZNRecord("test"), AccessOption.PERSISTENT);
+    // The result is expected to be true
+    Assert.assertTrue(createResult);
+  }
+
+  @Test
+  public void testCustomAccessorCreateZnRecord() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+
+    String path = String.format("/%s/%s", _rootPath, "msg_0");
+
+    ZkBaseDataAccessor customDataAccessor = new ZkBaseDataAccessor(ZK_ADDR, LIST_SERIALIZER);
+
+    boolean createResult = customDataAccessor.create(path, new ZNRecord("test"), AccessOption.PERSISTENT);
+    // The result is expected to be false because the ZnRecord is not List
+    Assert.assertFalse(createResult);
+    createResult = customDataAccessor.create(path, ImmutableList.of(1, 2, 3), AccessOption.PERSISTENT);
+    // The result is expected to be true
+    Assert.assertTrue(createResult);
+  }
+
+  @Test
   public void testSyncCreateWithCustomSerializer() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -203,25 +260,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", _rootPath, "msg_0");
 
-    // serialize/deserialize integer list to byte array
-    ZkSerializer listSerializer = new ZkSerializer() {
-      @Override
-      public byte[] serialize(Object o)
-          throws ZkMarshallingError {
-        List<Integer> list = (List<Integer>) o;
-        return list.stream().map(String::valueOf).collect(Collectors.joining(","))
-            .getBytes();
-      }
-
-      @Override
-      public Object deserialize(byte[] bytes)
-          throws ZkMarshallingError {
-        String string = new String(bytes);
-        return Arrays.stream(string.split(",")).map(Integer::valueOf)
-            .collect(Collectors.toList());
-      }
-    };
-    ZkBaseDataAccessor<List<Integer>> accessor = new ZkBaseDataAccessor<>(ZK_ADDR, listSerializer);
+    ZkBaseDataAccessor<List<Integer>> accessor = new ZkBaseDataAccessor<>(ZK_ADDR, LIST_SERIALIZER);
 
     List<Integer> l0 = ImmutableList.of(1, 2, 3);
     List<Integer> l1 = ImmutableList.of(4, 5, 6);

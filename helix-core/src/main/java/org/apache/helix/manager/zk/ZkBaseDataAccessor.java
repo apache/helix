@@ -46,7 +46,6 @@ import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
-import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
 import org.apache.zookeeper.CreateMode;
@@ -89,7 +88,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
   private final HelixZkClient _zkClient;
 
-  //TODO: to be deprecated for client usage
   public ZkBaseDataAccessor(HelixZkClient zkClient) {
     if (zkClient == null) {
       throw new NullPointerException("zkclient is null");
@@ -97,16 +95,26 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     _zkClient = zkClient;
   }
 
+  /**
+   * The ZkBaseDataAccessor with custom serializer support
+   * @param zkAddress The zookeeper address
+   */
   public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer) {
     _zkClient = SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
             new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
   }
 
+  /**
+   * The default ZkBaseDataAccessor with {@link org.apache.helix.ZNRecord} as the data model;
+   * Uses {@link ZNRecordSerializer} serializer
+   * @param zkAddress The zookeeper address
+   */
   public ZkBaseDataAccessor(String zkAddress) {
     _zkClient = SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-            new HelixZkClient.ZkClientConfig());
+            new HelixZkClient.ZkClientConfig()
+                .setZkSerializer(new ZNRecordSerializer()));
   }
 
   /**

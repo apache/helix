@@ -820,4 +820,11 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       _zkCache.reset();
     }
   }
+
+  @Override
+  public void close() {
+    if (_zkclient != null) {
+      _zkclient.close();
+    }
+  }
 }

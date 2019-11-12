@@ -258,6 +258,9 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
     _recordMap.clear();
   }
 
+  @Override
+  public void close() { }
+
   @Override public boolean set(String path, ZNRecord record, int options, int expectVersion) {
     return set(path, record, options);
   }

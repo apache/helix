@@ -97,13 +97,16 @@ public class TestTaskPerformanceMetrics extends TaskSynchronizedTestBase {
     // are processed one by one
     double oldSubmissionToStartDelay = 0.0d;
     double oldControllerInducedDelay = -1L;
+
     for (int i = 0; i < 5; i++) {
       // Wait until new dynamic metrics are updated.
       final double oldDelay = oldSubmissionToStartDelay;
       TestHelper.verify(() -> {
         extractMetrics();
         return ((double) _beanValueMap.getOrDefault("SubmissionToScheduleDelayGauge.Mean", 0.0d))
-            > oldDelay;
+            > oldDelay
+            && ((double) _beanValueMap.getOrDefault("SubmissionToProcessDelayGauge.Mean", 0.0d))
+            > 0.0d;
       }, TestHelper.WAIT_DURATION);
 
       // For SubmissionToProcessDelay, the value will stay constant because the Controller will

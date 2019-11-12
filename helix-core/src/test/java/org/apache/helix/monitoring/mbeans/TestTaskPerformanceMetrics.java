@@ -34,6 +34,8 @@ import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import javax.management.Query;
 import javax.management.QueryExp;
+
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.task.JobConfig;
@@ -93,13 +95,16 @@ public class TestTaskPerformanceMetrics extends TaskSynchronizedTestBase {
 
     // Confirm that there are metrics computed dynamically here and keeps increasing because jobs
     // are processed one by one
-    double oldSubmissionToStartDelay = -1L;
+    double oldSubmissionToStartDelay = 0.0d;
     double oldControllerInducedDelay = -1L;
     for (int i = 0; i < 5; i++) {
-      // The dynamic metrics should generally be updated within 2 seconds or it would be too slow
-      Thread.sleep(2000L);
-
-      extractMetrics();
+      // Wait until new dynamic metrics are updated.
+      final double oldDelay = oldSubmissionToStartDelay;
+      TestHelper.verify(() -> {
+        extractMetrics();
+        return ((double) _beanValueMap.getOrDefault("SubmissionToScheduleDelayGauge.Mean", 0.0d))
+            > oldDelay;
+      }, TestHelper.WAIT_DURATION);
 
       // For SubmissionToProcessDelay, the value will stay constant because the Controller will
       // create JobContext right away most of the time

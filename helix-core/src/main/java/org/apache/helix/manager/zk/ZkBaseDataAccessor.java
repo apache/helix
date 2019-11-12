@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
@@ -33,6 +34,7 @@ import org.I0Itec.zkclient.exception.ZkBadVersionException;
 import org.I0Itec.zkclient.exception.ZkException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
@@ -43,6 +45,7 @@ import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
 import org.apache.zookeeper.CreateMode;
@@ -90,6 +93,25 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       throw new NullPointerException("zkclient is null");
     }
     _zkClient = zkClient;
+  }
+
+  /**
+   * The ZkBaseDataAccessor with custom serializer support
+   * @param zkAddress The zookeeper address
+   */
+  public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer) {
+    _zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+            new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
+  }
+
+  /**
+   * The default ZkBaseDataAccessor with {@link org.apache.helix.ZNRecord} as the data model;
+   * Uses {@link ZNRecordSerializer} serializer
+   * @param zkAddress The zookeeper address
+   */
+  public ZkBaseDataAccessor(String zkAddress) {
+    this(zkAddress, new ZNRecordSerializer());
   }
 
   /**
@@ -1113,5 +1135,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   @Override
   public void reset() {
     // Nothing to do
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void close() {
+    if (_zkClient != null) {
+      _zkClient.close();
+    }
   }
 }

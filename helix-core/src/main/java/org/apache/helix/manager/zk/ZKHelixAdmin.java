@@ -1684,8 +1684,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
-    List<String> liveInstances = accessor.getChildNames(keyBuilder.liveInstances());
-    if (validateInstancesForWagedRebalance(clusterName, liveInstances).containsValue(false)) {
+    List<String> instances = accessor.getChildNames(keyBuilder.instanceConfigs());
+    if (validateInstancesForWagedRebalance(clusterName, instances).containsValue(false)) {
       throw new HelixException(String
           .format("Instance capacities haven't been configured properly for cluster %s",
               clusterName));

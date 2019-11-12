@@ -573,11 +573,6 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
         Collections.singletonList(testResourcePrefix));
     Assert.assertEquals(validationResult.size(), 1);
     Assert.assertFalse(validationResult.get(testResourcePrefix));
-    try {
-      admin.addResourceWithWeight(clusterName, idealState, resourceConfig);
-    } catch (Exception e) {
-      // OK since ClusterConfig is empty
-    }
 
     // Add the capacity key to ClusterConfig
     HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);

@@ -138,7 +138,7 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
     // Wait for asyncReportBaselineDivergenceGauge to complete and verify.
     Assert.assertTrue(TestHelper.verify(() -> (double) metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
-        RatioMetric.class).getLastEmittedMetricValue() == 1.0d, TestHelper.WAIT_DURATION));
+        RatioMetric.class).getLastEmittedMetricValue() == 0.0d, TestHelper.WAIT_DURATION));
   }
 
   @Override

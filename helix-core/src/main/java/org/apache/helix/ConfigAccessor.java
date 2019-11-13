@@ -69,6 +69,9 @@ public class ConfigAccessor {
   }
 
   private final HelixZkClient _zkClient;
+  // true if ConfigAccessor was instantiated with a HelixZkClient, false otherwise
+  // This is used for close() to determine how ConfigAccessor should close the underlying ZkClient
+  private boolean _usesExternalZkClient;
 
   /**
    * Initialize an accessor with a Zookeeper client
@@ -77,6 +80,7 @@ public class ConfigAccessor {
    */
   public ConfigAccessor(HelixZkClient zkClient) {
     this._zkClient = zkClient;
+    this._usesExternalZkClient = true;
   }
 
   /**
@@ -87,6 +91,7 @@ public class ConfigAccessor {
     this._zkClient = SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
             new HelixZkClient.ZkClientConfig());
+    this._usesExternalZkClient = false;
   }
 
   /**
@@ -815,7 +820,7 @@ public class ConfigAccessor {
    * Closes the ZkClient.
    */
   public void close() {
-    if (_zkClient != null) {
+    if (_zkClient != null && !_usesExternalZkClient) {
       _zkClient.close();
     }
   }

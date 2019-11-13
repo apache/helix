@@ -265,14 +265,14 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     Assert.assertEquals(assignableNode.getMaxCapacity(), _capacityDataMap);
   }
 
-  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "The required capacity keys: \\[item2, item1, item3, AdditionalCapacityKey\\] are not fully configured in the instance: testInstanceConfigId, capacity map: \\{item2=40, item1=20, item3=30\\}.")
+  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "The required capacity keys: \\[item2, item1, item3, AdditionalCapacityKey\\] are not fully configured in the instance: testInstanceId, capacity map: \\{item2=40, item1=20, item3=30\\}.")
   public void testIncompleteInstanceCapacity() {
     ClusterConfig testClusterConfig = new ClusterConfig("testClusterConfigId");
     List<String> requiredCapacityKeys = new ArrayList<>(_capacityDataMap.keySet());
     requiredCapacityKeys.add("AdditionalCapacityKey");
     testClusterConfig.setInstanceCapacityKeys(requiredCapacityKeys);
 
-    InstanceConfig testInstanceConfig = new InstanceConfig("testInstanceConfigId");
+    InstanceConfig testInstanceConfig = new InstanceConfig(_testInstanceId);
     testInstanceConfig.setInstanceCapacityMap(_capacityDataMap);
 
     new AssignableNode(testClusterConfig, testInstanceConfig, _testInstanceId);

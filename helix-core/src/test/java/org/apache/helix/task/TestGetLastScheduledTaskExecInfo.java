@@ -29,6 +29,7 @@ import org.apache.helix.integration.task.TaskTestUtil;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import org.apache.helix.TestHelper;
 
 public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   private final static String TASK_START_TIME_KEY = "START_TIME";
@@ -41,37 +42,47 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   }
 
   @Test
-  public void testGetLastScheduledTaskExecInfo() throws InterruptedException {
-    List<Long> startTimesWithStuckTasks = setupTasks("TestWorkflow_2", 5, 99999999);
+  public void testGetLastScheduledTaskExecInfo() throws Exception {
+    // Start new queue that has one job with long tasks and record start time of the tasks
+    String queueName = TestHelper.getTestMethodName();
+    List<Long> startTimesWithStuckTasks = setupTasks(queueName, 5, 99999999, 2);
     // Wait till the job is in progress
-    _driver.pollForJobState("TestWorkflow_2", "TestWorkflow_2_job_0", TaskState.IN_PROGRESS);
+    _driver.pollForJobState(queueName, queueName + "_job_0", TaskState.IN_PROGRESS);
 
     // First two must be -1 (two tasks are stuck), and API call must return the last value (most
     // recent timestamp)
     Assert.assertEquals(startTimesWithStuckTasks.get(0).longValue(), INVALID_TIMESTAMP);
     Assert.assertEquals(startTimesWithStuckTasks.get(1).longValue(), INVALID_TIMESTAMP);
-    Long lastScheduledTaskTs = _driver.getLastScheduledTaskTimestamp("TestWorkflow_2");
-    // Get the last timestamp (which will be most recent)
-    Assert.assertEquals(startTimesWithStuckTasks.get(4), lastScheduledTaskTs);
 
-    TaskExecutionInfo execInfo = _driver.getLastScheduledTaskExecutionInfo("TestWorkflow_2");
-    Assert.assertEquals(execInfo.getJobName(), "TestWorkflow_2_job_0");
-    // Workflow 2 will be stuck, so its partition state will be RUNNING
-    Assert.assertEquals(execInfo.getTaskPartitionState(), TaskPartitionState.RUNNING);
-    Assert.assertEquals(execInfo.getStartTimeStamp(), lastScheduledTaskTs);
+    // Workflow will be stuck so its partition state will be Running
+    boolean hasQueueReachedDesiredState = TestHelper.verify(() -> {
+      Long lastScheduledTaskTs = _driver.getLastScheduledTaskTimestamp(queueName);
+      TaskExecutionInfo execInfo = _driver.getLastScheduledTaskExecutionInfo(queueName);
+      return (execInfo.getJobName().equals(queueName + "_job_0")
+          && execInfo.getTaskPartitionState() == TaskPartitionState.RUNNING
+          && execInfo.getStartTimeStamp().equals(lastScheduledTaskTs)
+          && startTimesWithStuckTasks.get(4).equals(lastScheduledTaskTs));
+    }, 30 * 1000);
+    Assert.assertTrue(hasQueueReachedDesiredState);
 
-    List<Long> startTimesFastTasks = setupTasks("TestWorkflow_3", 4, 10);
+    // Stop and delete the queue
+    _driver.stop(queueName);
+    _driver.deleteAndWaitForCompletion(queueName, 30 * 1000);
+
+    // Start the new queue with new task configuration.
+    // Start new queue that has one job with 4 short tasks and record start time of the tasks
+    List<Long> startTimesFastTasks = setupTasks(queueName, 4, 10, 4);
     // Wait till the job is in progress
-    _driver.pollForJobState("TestWorkflow_3", "TestWorkflow_3_job_0", TaskState.IN_PROGRESS);
-    // API call needs to return the most recent timestamp (value at last index)
-    lastScheduledTaskTs = _driver.getLastScheduledTaskTimestamp("TestWorkflow_3");
-    execInfo = _driver.getLastScheduledTaskExecutionInfo("TestWorkflow_3");
-
-    Assert.assertEquals(startTimesFastTasks.get(startTimesFastTasks.size() - 1),
-        lastScheduledTaskTs);
-    Assert.assertEquals(execInfo.getJobName(), "TestWorkflow_3_job_0");
-    Assert.assertEquals(execInfo.getTaskPartitionState(), TaskPartitionState.COMPLETED);
-    Assert.assertEquals(execInfo.getStartTimeStamp(), lastScheduledTaskTs);
+    _driver.pollForJobState(queueName, queueName + "_job_0", TaskState.IN_PROGRESS);
+    hasQueueReachedDesiredState = TestHelper.verify(() -> {
+      Long lastScheduledTaskTs = _driver.getLastScheduledTaskTimestamp(queueName);
+      TaskExecutionInfo execInfo = _driver.getLastScheduledTaskExecutionInfo(queueName);
+      return (execInfo.getJobName().equals(queueName + "_job_0")
+          && execInfo.getTaskPartitionState() == TaskPartitionState.COMPLETED
+          && execInfo.getStartTimeStamp().equals(lastScheduledTaskTs)
+          && startTimesFastTasks.get(startTimesFastTasks.size() - 1).equals(lastScheduledTaskTs));
+    }, 30 * 1000);
+    Assert.assertTrue(hasQueueReachedDesiredState);
   }
 
   /**
@@ -81,11 +92,12 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
    * @param jobQueueName name of the queue
    * @param numTasks number of tasks to schedule
    * @param taskTimeout duration of each task to be run for
+   * @param expectedScheduledTasks expected number of tasks that should be scheduled
    * @return list of timestamps for all tasks in ascending order
-   * @throws InterruptedException
+   * @throws Exception
    */
-  private List<Long> setupTasks(String jobQueueName, int numTasks, long taskTimeout)
-      throws InterruptedException {
+  private List<Long> setupTasks(String jobQueueName, int numTasks, long taskTimeout,
+      int expectedScheduledTasks) throws Exception {
     // Create a queue
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(jobQueueName);
 
@@ -103,8 +115,26 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
     jobConfig.addTaskConfigs(taskConfigs).setNumConcurrentTasksPerInstance(2);
     queueBuilder.enqueueJob("job_0", jobConfig);
     _driver.start(queueBuilder.build());
-    // 1 second delay for the Controller
-    Thread.sleep(1000);
+
+    _driver.pollForWorkflowState(jobQueueName, TaskState.IN_PROGRESS);
+
+    boolean haveExpectedNumberOfTasksScheduled = TestHelper.verify(() -> {
+      int scheduleTask = 0;
+      WorkflowConfig workflowConfig =
+          TaskUtil.getWorkflowConfig(_manager.getHelixDataAccessor(), jobQueueName);
+      for (String job : workflowConfig.getJobDag().getAllNodes()) {
+        JobContext jobContext = _driver.getJobContext(job);
+        Set<Integer> allPartitions = jobContext.getPartitionSet();
+        for (Integer partition : allPartitions) {
+          String timestamp = jobContext.getMapField(partition).get(TASK_START_TIME_KEY);
+          if (timestamp != null) {
+            scheduleTask++;
+          }
+        }
+      }
+      return (scheduleTask == expectedScheduledTasks);
+    }, 30 * 1000);
+    Assert.assertTrue(haveExpectedNumberOfTasksScheduled);
 
     // Pull jobContexts and look at the start times
     List<Long> startTimes = new ArrayList<>();

@@ -55,16 +55,26 @@ public class TestDrop extends ZkTestBase {
    * @param participants
    */
   private void assertEmptyCSandEV(String clusterName, String db,
-      MockParticipantManager[] participants) {
+      MockParticipantManager[] participants) throws Exception {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Assert.assertNull(accessor.getProperty(keyBuilder.externalView(db)));
+    boolean isExternalViewNull = TestHelper.verify(() -> {
+      ExternalView externalView = accessor.getProperty(keyBuilder.externalView(db));
+      return (externalView == null);
+    }, 10 * 1000);
+    Assert.assertTrue(isExternalViewNull);
 
     for (MockParticipantManager participant : participants) {
       String instanceName = participant.getInstanceName();
       String sessionId = participant.getSessionId();
-      Assert.assertNull(accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, db)));
+      boolean isCurrentStateNull = TestHelper.verify(() -> {
+        CurrentState currentState = accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, db));
+        return (currentState == null);
+      }, 10 * 1000);
+      Assert.assertTrue(isCurrentStateNull);
+
+
     }
   }
 
@@ -107,8 +117,6 @@ public class TestDrop extends ZkTestBase {
     // Drop TestDB0
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.dropResource(clusterName, "TestDB0");
-
-    Thread.sleep(1000);
 
     assertEmptyCSandEV(clusterName, "TestDB0", participants);
 

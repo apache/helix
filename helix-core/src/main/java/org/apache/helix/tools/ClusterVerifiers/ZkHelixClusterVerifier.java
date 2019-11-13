@@ -48,6 +48,10 @@ public abstract class ZkHelixClusterVerifier
   protected static int DEFAULT_PERIOD = 500;
 
   protected final HelixZkClient _zkClient;
+  // true if ZkHelixClusterVerifier was instantiated with a HelixZkClient, false otherwise
+  // This is used for close() to determine how ZkHelixClusterVerifier should close the underlying
+  // ZkClient
+  private boolean _usesExternalZkClient;
   protected final String _clusterName;
   protected final HelixDataAccessor _accessor;
   protected final PropertyKey.Builder _keyBuilder;
@@ -92,6 +96,7 @@ public abstract class ZkHelixClusterVerifier
       throw new IllegalArgumentException("requires zkClient|clusterName");
     }
     _zkClient = zkClient;
+    _usesExternalZkClient = true;
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
@@ -103,6 +108,7 @@ public abstract class ZkHelixClusterVerifier
     }
     _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
+    _usesExternalZkClient = false;
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
@@ -186,6 +192,12 @@ public abstract class ZkHelixClusterVerifier
    */
   public boolean verifyByPolling() {
     return verifyByPolling(DEFAULT_TIMEOUT, DEFAULT_PERIOD);
+  }
+
+  public void close() {
+    if (_zkClient != null && !_usesExternalZkClient) {
+      _zkClient.close();
+    }
   }
 
   protected boolean verifyByCallback(long timeout, List<ClusterVerifyTrigger> triggers) {

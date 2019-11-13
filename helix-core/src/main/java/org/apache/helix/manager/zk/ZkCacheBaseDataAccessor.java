@@ -69,7 +69,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
   private final ReentrantLock _eventLock = new ReentrantLock();
   private ZkCacheEventThread _eventThread;
 
-  private HelixZkClient _zkclient = null;
+  private HelixZkClient _zkClient = null;
 
   public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor, List<String> wtCachePaths) {
     this(baseAccessor, null, wtCachePaths, null);
@@ -115,11 +115,11 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     clientConfig.setZkSerializer(serializer)
         .setMonitorType(monitorType)
         .setMonitorKey(monitorkey);
-    _zkclient = SharedZkClientFactory.getInstance()
+    _zkClient = SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
 
-    _zkclient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
-    _baseAccessor = new ZkBaseDataAccessor<>(_zkclient);
+    _zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
+    _baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
 
     if (chrootPath == null || chrootPath.equals("/")) {
       _chrootPath = null;
@@ -786,9 +786,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     try {
       _eventLock.lockInterruptibly();
 
-      if (_zkclient != null) {
-        _zkclient.close();
-        _zkclient = null;
+      if (_zkClient != null) {
+        _zkClient.close();
+        _zkClient = null;
       }
 
       if (_eventThread == null) {

@@ -87,12 +87,17 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
   private final HelixZkClient _zkClient;
+  // true if ZkBaseDataAccessor was instantiated with a HelixZkClient, false otherwise
+  // This is used for close() to determine how ZkBaseDataAccessor should close the underlying
+  // ZkClient
+  private boolean _usesExternalZkClient;
 
   public ZkBaseDataAccessor(HelixZkClient zkClient) {
     if (zkClient == null) {
       throw new NullPointerException("zkclient is null");
     }
     _zkClient = zkClient;
+    _usesExternalZkClient = true;
   }
 
   /**

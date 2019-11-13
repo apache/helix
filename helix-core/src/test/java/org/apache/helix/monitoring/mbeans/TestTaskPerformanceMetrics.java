@@ -138,12 +138,12 @@ public class TestTaskPerformanceMetrics extends TaskSynchronizedTestBase {
    */
   private void extractMetrics() {
     try {
-      QueryExp exp = Query.match(Query.attr("SensorName"), Query.value("*"));
+      QueryExp exp = Query.match(Query.attr("SensorName"), Query.value(CLUSTER_NAME + ".Job.*"));
       Set<ObjectInstance> mbeans = new HashSet<>(
-          ManagementFactory.getPlatformMBeanServer().queryMBeans(new ObjectName(""), exp));
+          ManagementFactory.getPlatformMBeanServer().queryMBeans(new ObjectName("ClusterStatus:*"), exp));
       for (ObjectInstance instance : mbeans) {
         ObjectName beanName = instance.getObjectName();
-        if (instance.getClassName().contains("JobMonitor")) {
+        if (instance.getClassName().endsWith("JobMonitor")) {
           MBeanInfo info = _server.getMBeanInfo(beanName);
           MBeanAttributeInfo[] infos = info.getAttributes();
           for (MBeanAttributeInfo infoItem : infos) {

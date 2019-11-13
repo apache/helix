@@ -28,6 +28,9 @@ import java.lang.management.ManagementFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static org.apache.helix.SystemPropertyKeys.HELIX_MONITOR_TIME_WINDOW_LENGTH_MS;
+
+
 public class TestZkClientMonitor {
   private MBeanServer _beanServer = ManagementFactory.getPlatformMBeanServer();
 
@@ -156,7 +159,7 @@ public class TestZkClientMonitor {
   @Test
   public void testCustomizedResetInterval() throws JMException, InterruptedException {
     // Use a customized reservoir sliding length of 1 ms.
-    System.setProperty("helix.monitor.slidingTimeWindow.ms", "1");
+    System.setProperty(HELIX_MONITOR_TIME_WINDOW_LENGTH_MS, "1");
     final String TEST_TAG = "test_tag_x";
     final String TEST_KEY = "test_key_x";
     final String TEST_INSTANCE = "test_instance_x";
@@ -180,5 +183,8 @@ public class TestZkClientMonitor {
     Assert
         .assertEquals((long) _beanServer.getAttribute(rootName, dataPropagationLatencyGaugeAttr),
             4);
+
+    // Clear customized reservoir sliding length.
+    System.clearProperty(HELIX_MONITOR_TIME_WINDOW_LENGTH_MS);
   }
 }

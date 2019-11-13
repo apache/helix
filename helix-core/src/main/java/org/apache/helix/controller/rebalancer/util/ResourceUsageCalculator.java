@@ -141,6 +141,6 @@ public class ResourceUsageCalculator {
     }
 
     return numTotalBestPossibleReplicas == 0 ? 1.0d
-        : (1.0d -  (double) numMatchedReplicas / (double) numTotalBestPossibleReplicas);
+        : (1.0d - (double) numMatchedReplicas / (double) numTotalBestPossibleReplicas);
   }
 }

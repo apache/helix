@@ -80,7 +80,7 @@ public class ClusterModelProvider {
             dataProvider.getLiveInstances().keySet(), bestPossibleAssignment, allocatedReplicas);
 
     // Update the allocated replicas to the assignable nodes.
-    assignableNodes.stream().forEach(node -> node.assignInitBatch(
+    assignableNodes.parallelStream().forEach(node -> node.assignInitBatch(
         allocatedReplicas.getOrDefault(node.getInstanceName(), Collections.emptySet())));
 
     // Construct and initialize cluster context.
@@ -207,7 +207,7 @@ public class ClusterModelProvider {
    */
   private static Set<AssignableNode> parseAllNodes(ClusterConfig clusterConfig,
       Map<String, InstanceConfig> instanceConfigMap, Set<String> activeInstances) {
-    return activeInstances.stream().map(
+    return activeInstances.parallelStream().map(
         instanceName -> new AssignableNode(clusterConfig, instanceConfigMap.get(instanceName),
             instanceName))
         .collect(Collectors.toSet());
@@ -224,10 +224,10 @@ public class ClusterModelProvider {
   private static Map<String, Set<AssignableReplica>> parseAllReplicas(
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
       Set<AssignableNode> assignableNodes) {
-    Map<String, Set<AssignableReplica>> totalReplicaMap = new HashMap<>();
     ClusterConfig clusterConfig = dataProvider.getClusterConfig();
-
-    for (String resourceName : resourceMap.keySet()) {
+    int activeFaultZoneCount = assignableNodes.stream().map(node -> node.getFaultZone())
+        .collect(Collectors.toSet()).size();
+    return resourceMap.keySet().parallelStream().map(resourceName -> {
       ResourceConfig resourceConfig = dataProvider.getResourceConfig(resourceName);
       if (resourceConfig == null) {
         resourceConfig = new ResourceConfig(resourceName);
@@ -244,26 +244,21 @@ public class ClusterModelProvider {
             .format("Cannot find state model definition %s for resource %s.",
                 is.getStateModelDefRef(), resourceName));
       }
-
-      int activeFaultZoneCount =
-          assignableNodes.stream().map(node -> node.getFaultZone()).collect(Collectors.toSet())
-              .size();
       Map<String, Integer> stateCountMap =
           def.getStateCountMap(activeFaultZoneCount, is.getReplicaCount(assignableNodes.size()));
-
+      mergeIdealStateWithResourceConfig(resourceConfig, is);
+      Set<AssignableReplica> replicas = new HashSet<>();
       for (String partition : is.getPartitionSet()) {
         for (Map.Entry<String, Integer> entry : stateCountMap.entrySet()) {
           String state = entry.getKey();
           for (int i = 0; i < entry.getValue(); i++) {
-            mergeIdealStateWithResourceConfig(resourceConfig, is);
-            totalReplicaMap.computeIfAbsent(resourceName, key -> new HashSet<>()).add(
-                new AssignableReplica(clusterConfig, resourceConfig, partition, state,
-                    def.getStatePriorityMap().get(state)));
+            replicas.add(new AssignableReplica(clusterConfig, resourceConfig, partition, state,
+                def.getStatePriorityMap().get(state)));
           }
         }
       }
-    }
-    return totalReplicaMap;
+      return new HashMap.SimpleEntry<>(resourceName, replicas);
+    }).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
   }
 
   /**

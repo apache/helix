@@ -21,21 +21,76 @@ package org.apache.helix.rest.server;
 
 import javax.ws.rs.core.Response;
 
+import org.I0Itec.zkclient.exception.ZkMarshallingError;
+import org.I0Itec.zkclient.serialize.ZkSerializer;
+import org.apache.helix.AccessOption;
+import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
 public class TestPropertyStoreAccessor extends AbstractTestClass {
   private static final String TEST_CLUSTER = "TestCluster_0";
+  private static final String ZNRECORD_PATH = PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/ZnRecord";
+  private static final ZNRecord TEST_ZNRECORD = new ZNRecord("TestContent");
+  private static final String CUSTOM_PATH  = PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/NonZnRecord";
+  private static final String TEST_CONTENT = "TestContent";
+
+  private ZkBaseDataAccessor<String> _customDataAccessor;
+
+  @BeforeClass
+  public void init() {
+    _customDataAccessor = new ZkBaseDataAccessor<>(ZK_ADDR,
+        new ZkSerializer() {
+          @Override
+          public byte[] serialize(Object o)
+              throws ZkMarshallingError {
+            return o.toString().getBytes();
+          }
+
+          @Override
+          public Object deserialize(byte[] bytes)
+              throws ZkMarshallingError {
+            return new String(bytes);
+          }
+        });
+    // initially prepare the datas in different paths
+    Assert.assertTrue(_customDataAccessor.create(CUSTOM_PATH, TEST_CONTENT, AccessOption.PERSISTENT));
+    Assert.assertTrue(_baseAccessor.create(ZNRECORD_PATH, TEST_ZNRECORD, AccessOption.PERSISTENT));
+  }
+
+  @AfterClass
+  public void close() {
+    if (_customDataAccessor != null) {
+      _customDataAccessor.close();
+    }
+  }
 
   @Test
-  public void testGetPropertyStore() {
-    String path = "/TaskRebalancer/Workflow_0/Context";
+  public void testGetPropertyStoreWithZNRecordData() {
     String result =
-        new JerseyUriRequestBuilder("clusters/{}/propertyStore" + path).format(TEST_CLUSTER)
-            .isBodyReturnExpected(true).get(this);
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore" + "/ZnRecord").format(TEST_CLUSTER)
+            .isBodyReturnExpected(true)
+            .get(this);
+    //TODO: verify the content
+    Assert.assertFalse(result.isEmpty());
+  }
+
+
+  @Test
+  public void testGetPropertyStoreWithStringData() {
+    String result =
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore" + "/NonZnRecord").format(TEST_CLUSTER)
+            .isBodyReturnExpected(true)
+            .get(this);
+
+    //TODO: verify the content
     Assert.assertFalse(result.isEmpty());
   }
 

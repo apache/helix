@@ -23,6 +23,7 @@ package org.apache.helix.rest.server;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -47,6 +48,7 @@ public class ServerContext {
 
   // 1 Cluster name will correspond to 1 helix data accessor
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;
+  private final Map<ZkSerializer, ZkBaseDataAccessor<ZNRecord>> _zkBaseDataAccessorBySerializer;
 
   // 1 Cluster name will correspond to 1 task driver
   private final Map<String, TaskDriver> _taskDriverPool;
@@ -59,6 +61,7 @@ public class ServerContext {
     // ZooKeeper. In this case, initializing _zkClient will fail and HelixRestServer
     // cannot be started correctly.
     _helixDataAccessorPool = new HashMap<>();
+    _zkBaseDataAccessorBySerializer = new HashMap<>();
     _taskDriverPool = new HashMap<>();
   }
 
@@ -118,9 +121,20 @@ public class ServerContext {
     }
   }
 
+  public ZkBaseDataAccessor<ZNRecord> getZkBaseDataAccessor(ZkSerializer serializer) {
+    synchronized (_zkBaseDataAccessorBySerializer) {
+      if (!_zkBaseDataAccessorBySerializer.containsKey(serializer)) {
+        ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(_zkAddr, serializer);
+        _zkBaseDataAccessorBySerializer.put(serializer, baseDataAccessor);
+      }
+    }
+    return _zkBaseDataAccessorBySerializer.get(serializer);
+  }
+
   public void close() {
     if (_zkClient != null) {
       _zkClient.close();
     }
+    _zkBaseDataAccessorBySerializer.values().forEach(ZkBaseDataAccessor::close);
   }
 }

@@ -21,10 +21,12 @@ package org.apache.helix.rest.server.resources.helix;
 
 import java.io.IOException;
 
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
@@ -39,7 +41,7 @@ import org.apache.helix.tools.ClusterSetup;
  * such as cluster, instance, job, resource, workflow, etc in
  * metadata store.
  */
-public class AbstractHelixResource extends AbstractResource{
+public class AbstractHelixResource extends AbstractResource {
 
   public HelixZkClient getHelixZkClient() {
     ServerContext serverContext = getServerContext();
@@ -76,11 +78,18 @@ public class AbstractHelixResource extends AbstractResource{
     return serverContext.getDataAccssor(clusterName);
   }
 
-  protected static ZNRecord toZNRecord(String data) throws IOException {
+  public ZkBaseDataAccessor<ZNRecord> getZkBaseDataAccessor(ZkSerializer zkSerializer) {
+    ServerContext serverContext = getServerContext();
+    return serverContext.getZkBaseDataAccessor(zkSerializer);
+  }
+
+  protected static ZNRecord toZNRecord(String data)
+      throws IOException {
     return OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
   }
 
   private ServerContext getServerContext() {
-    return (ServerContext) _application.getProperties().get(ContextPropertyKeys.SERVER_CONTEXT.name());
+    return (ServerContext) _application.getProperties()
+        .get(ContextPropertyKeys.SERVER_CONTEXT.name());
   }
 }

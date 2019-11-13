@@ -823,8 +823,8 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   @Override
   public void close() {
-    if (_zkclient != null) {
-      _zkclient.close();
+    if (_zkClient != null) {
+      _zkClient.close();
     }
   }
 }

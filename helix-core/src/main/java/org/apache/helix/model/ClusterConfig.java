@@ -763,7 +763,7 @@ public class ClusterConfig extends HelixProperty {
     return Collections.emptyMap();
   }
 
-  public void setDefaultCapacityMap(ClusterConfigProperty capacityPropertyType,
+  private void setDefaultCapacityMap(ClusterConfigProperty capacityPropertyType,
       Map<String, Integer> capacityDataMap) throws IllegalArgumentException {
     if (capacityDataMap == null) {
       throw new IllegalArgumentException("Default capacity data is null");

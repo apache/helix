@@ -82,7 +82,9 @@ public class ResourceUsageCalculator {
    *       }
    *    }
    * }
-   * baseline divergence = (matched: 1) / (total(matched + doesn't match): 3) = 1/3 ~= 0.333
+   * baseline divergence = (doesn't match: 2) / (total(matched + doesn't match): 3) = 2/3 ~= 0.66667
+   * If divergence == 1.0, all are different(no match); divergence == 0.0, no difference.
+   *
    * @param baseline baseline assignment
    * @param bestPossibleAssignment best possible assignment
    * @return double value range at [0.0, 1.0]
@@ -138,7 +140,7 @@ public class ResourceUsageCalculator {
       }
     }
 
-    return numTotalBestPossibleReplicas == 0 ? 0.0d
-        : (double) numMatchedReplicas / (double) numTotalBestPossibleReplicas;
+    return numTotalBestPossibleReplicas == 0 ? 1.0d
+        : (1.0d - (double) numMatchedReplicas / (double) numTotalBestPossibleReplicas);
   }
 }

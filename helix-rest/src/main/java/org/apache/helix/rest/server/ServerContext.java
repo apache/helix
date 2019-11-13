@@ -122,10 +122,12 @@ public class ServerContext {
   }
 
   public ZkBaseDataAccessor<ZNRecord> getZkBaseDataAccessor(ZkSerializer serializer) {
-    synchronized (_zkBaseDataAccessorBySerializer) {
-      if (!_zkBaseDataAccessorBySerializer.containsKey(serializer)) {
-        ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(_zkAddr, serializer);
-        _zkBaseDataAccessorBySerializer.put(serializer, baseDataAccessor);
+    if (!_zkBaseDataAccessorBySerializer.containsKey(serializer)) {
+      synchronized (_zkBaseDataAccessorBySerializer) {
+        if (!_zkBaseDataAccessorBySerializer.containsKey(serializer)) {
+          ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(_zkAddr, serializer);
+          _zkBaseDataAccessorBySerializer.put(serializer, baseDataAccessor);
+        }
       }
     }
     return _zkBaseDataAccessorBySerializer.get(serializer);

@@ -39,12 +39,48 @@ import org.slf4j.LoggerFactory;
 public class PropertyStoreAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(PropertyStoreAccessor.class);
 
+  private class PropertyStoreSerializer implements ZkSerializer {
+    private String _path;
+
+    PropertyStoreSerializer(String path) {
+      _path = path;
+    }
+
+    // used for writing the serialized content to property store path
+    @Override
+    public byte[] serialize(Object o)
+        throws ZkMarshallingError {
+      return (byte[]) o;
+    }
+
+    // used for reading the raw content of property store path to ZnRecord format
+    @Override
+    public Object deserialize(byte[] bytes)
+        throws ZkMarshallingError {
+      try {
+        return ZNRecord.class.cast(bytes);
+      } catch (ClassCastException e) {
+        LOG.warn("The content of node at {} is not ZNRecord format", _path);
+      }
+      // fallback to a default and simple ZNRecord
+      ZNRecord znRecord = new ZNRecord(_path);
+      znRecord.setSimpleField(_path, new String(bytes));
+      return znRecord;
+    }
+
+    // The hash code is designed to be same for all PropertyStoreSerializer instance
+    @Override
+    public int hashCode() {
+      return "PropertyStoreSerializer".hashCode();
+    }
+  }
+
   /**
    * Sample HTTP URLs:
    *  http://<HOST>/clusters/{clusterId}/propertyStore/<PATH>
    * It refers to the /PROPERTYSTORE/<PATH> in Helix metadata store
    * @param clusterId The cluster Id
-   * @param path path parameter is like "abc/abc/abc" in the URL
+   * @param path _path parameter is like "abc/abc/abc" in the URL
    * @return JSON object as the response
    */
   @GET
@@ -59,28 +95,7 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
           .build());
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
-    ZkSerializer propertyStoreDataSerializer = new ZkSerializer() {
-      @Override
-      public byte[] serialize(Object content)
-          throws ZkMarshallingError {
-        // No need, it's used only for write-api
-        return new byte[0];
-      }
-
-      @Override
-      public Object deserialize(byte[] bytes)
-          throws ZkMarshallingError {
-        try {
-          return ZNRecord.class.cast(bytes);
-        } catch (ClassCastException e) {
-          LOG.warn("The content of node at path {} is not ZNRecord format", recordPath);
-        }
-        // fallback to a default and simple ZNRecord
-        ZNRecord znRecord = new ZNRecord(recordPath);
-        znRecord.setSimpleField(recordPath, new String(bytes));
-        return znRecord;
-      }
-    };
+    ZkSerializer propertyStoreDataSerializer = new PropertyStoreSerializer(recordPath);
     ZkBaseDataAccessor<ZNRecord> propertyStoreDataAccessor = getZkBaseDataAccessor(propertyStoreDataSerializer);
     ZNRecord record = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
     return JSONRepresentation(record);

@@ -31,10 +31,12 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixException;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * This class represents a possible allocation of the replication.
@@ -113,7 +115,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   void assign(AssignableReplica assignableReplica) {
     addToAssignmentRecord(assignableReplica);
     assignableReplica.getCapacity().entrySet().stream()
-            .forEach(capacity -> updateCapacityAndUtilization(capacity.getKey(), capacity.getValue()));
+        .forEach(capacity -> updateCapacityAndUtilization(capacity.getKey(), capacity.getValue()));
   }
 
   /**
@@ -121,7 +123,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * If the replication is not on this node, the assignable node is not updated.
    * @param replica - the replica to be released
    */
-  void release(AssignableReplica replica) throws IllegalArgumentException {
+  void release(AssignableReplica replica)
+      throws IllegalArgumentException {
     String resourceName = replica.getResourceName();
     String partitionName = replica.getPartitionName();
 
@@ -320,12 +323,12 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private void addToAssignmentRecord(AssignableReplica replica) {
     String resourceName = replica.getResourceName();
     String partitionName = replica.getPartitionName();
-    if (_currentAssignedReplicaMap.containsKey(resourceName)
-        && _currentAssignedReplicaMap.get(resourceName).containsKey(partitionName)) {
-      throw new HelixException(String.format(
-          "Resource %s already has a replica with state %s from partition %s on node %s",
-          replica.getResourceName(), replica.getReplicaState(), replica.getPartitionName(),
-          getInstanceName()));
+    if (_currentAssignedReplicaMap.containsKey(resourceName) && _currentAssignedReplicaMap
+        .get(resourceName).containsKey(partitionName)) {
+      throw new HelixException(String
+          .format("Resource %s already has a replica with state %s from partition %s on node %s",
+              replica.getResourceName(), replica.getReplicaState(), replica.getPartitionName(),
+              getInstanceName()));
     } else {
       _currentAssignedReplicaMap.computeIfAbsent(resourceName, key -> new HashMap<>())
           .put(partitionName, replica);
@@ -348,23 +351,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
    */
   private Map<String, Integer> fetchInstanceCapacity(ClusterConfig clusterConfig,
       InstanceConfig instanceConfig) {
-    // Fetch the capacity of instance from 2 possible sources according to the following priority.
-    // 1. The instance capacity that is configured in the instance config.
-    // 2. If the default instance capacity that is configured in the cluster config contains more capacity keys, fill the capacity map with those additional values.
     Map<String, Integer> instanceCapacity =
-        new HashMap<>(clusterConfig.getDefaultInstanceCapacityMap());
-    instanceCapacity.putAll(instanceConfig.getInstanceCapacityMap());
-
-    List<String> requiredCapacityKeys = clusterConfig.getInstanceCapacityKeys();
-    // All the required keys must exist in the instance config.
-    if (!instanceCapacity.keySet().containsAll(requiredCapacityKeys)) {
-      throw new HelixException(String.format(
-          "The required capacity keys: %s are not fully configured in the instance: %s, capacity map: %s.",
-          requiredCapacityKeys.toString(), _instanceName, instanceCapacity.toString()));
-    }
+        WagedValidationUtil.validateAndGetInstanceCapacity(clusterConfig, instanceConfig);
     // Remove all the non-required capacity items from the map.
-    instanceCapacity.keySet().retainAll(requiredCapacityKeys);
-
+    instanceCapacity.keySet().retainAll(clusterConfig.getInstanceCapacityKeys());
     return instanceCapacity;
   }
 

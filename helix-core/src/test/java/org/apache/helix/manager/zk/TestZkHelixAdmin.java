@@ -19,13 +19,16 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -39,7 +42,10 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.examples.MasterSlaveStateModelFactory;
+import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -49,18 +55,22 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.MasterSlaveSMD;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.zookeeper.data.Stat;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestZkHelixAdmin extends ZkUnitTestBase {
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @BeforeClass
   public void beforeClass() {
@@ -505,5 +515,103 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertEquals(instanceConfig.getRecord()
         .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
         2);
+  }
+
+  /**
+   * Test addResourceWithWeight() and validateResourcesForWagedRebalance() by trying to add a resource with incomplete ResourceConfig.
+   */
+  @Test
+  public void testAddResourceWithWeightAndValidation()
+      throws IOException {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    String mockInstance = "MockInstance";
+    String testResourcePrefix = "TestResource";
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    admin.addStateModelDef(clusterName, "MasterSlave", new MasterSlaveSMD());
+
+    // Create a dummy instance
+    InstanceConfig instanceConfig = new InstanceConfig(mockInstance);
+    Map<String, Integer> mockInstanceCapacity =
+        ImmutableMap.of("WCU", 100, "RCU", 100, "STORAGE", 100);
+    instanceConfig.setInstanceCapacityMap(mockInstanceCapacity);
+    admin.addInstance(clusterName, instanceConfig);
+    MockParticipantManager mockParticipantManager =
+        new MockParticipantManager(ZK_ADDR, clusterName, mockInstance);
+    mockParticipantManager.syncStart();
+
+    IdealState idealState = new IdealState(testResourcePrefix);
+    idealState.setNumPartitions(3);
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+
+    ResourceConfig resourceConfig = new ResourceConfig(testResourcePrefix);
+    // validate
+    Map<String, Boolean> validationResult = admin.validateResourcesForWagedRebalance(clusterName,
+        Collections.singletonList(testResourcePrefix));
+    Assert.assertEquals(validationResult.size(), 1);
+    Assert.assertFalse(validationResult.get(testResourcePrefix));
+    try {
+      admin.addResourceWithWeight(clusterName, idealState, resourceConfig);
+      Assert.fail();
+    } catch (HelixException e) {
+      // OK since resourceConfig is empty
+    }
+
+    // Set PARTITION_CAPACITY_MAP
+    Map<String, String> capacityDataMap =
+        ImmutableMap.of("WCU", "1", "RCU", "2", "STORAGE", "3");
+    resourceConfig.getRecord()
+        .setMapField(ResourceConfig.ResourceConfigProperty.PARTITION_CAPACITY_MAP.name(),
+            Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY,
+                OBJECT_MAPPER.writeValueAsString(capacityDataMap)));
+
+    // validate
+    validationResult = admin.validateResourcesForWagedRebalance(clusterName,
+        Collections.singletonList(testResourcePrefix));
+    Assert.assertEquals(validationResult.size(), 1);
+    Assert.assertFalse(validationResult.get(testResourcePrefix));
+
+    // Add the capacity key to ClusterConfig
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+    ClusterConfig clusterConfig = dataAccessor.getProperty(keyBuilder.clusterConfig());
+    clusterConfig.setInstanceCapacityKeys(Arrays.asList("WCU", "RCU", "STORAGE"));
+    dataAccessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
+
+    // Should succeed now
+    Assert.assertTrue(admin.addResourceWithWeight(clusterName, idealState, resourceConfig));
+    // validate
+    validationResult = admin.validateResourcesForWagedRebalance(clusterName,
+        Collections.singletonList(testResourcePrefix));
+    Assert.assertEquals(validationResult.size(), 1);
+    Assert.assertTrue(validationResult.get(testResourcePrefix));
+  }
+
+  /**
+   * Test enabledWagedRebalance by checking the rebalancer class name changed.
+   */
+  @Test
+  public void testEnableWagedRebalance() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    String testResourcePrefix = "TestResource";
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    admin.addStateModelDef(clusterName, "MasterSlave", new MasterSlaveSMD());
+
+    // Add an IdealState
+    IdealState idealState = new IdealState(testResourcePrefix);
+    idealState.setNumPartitions(3);
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+    admin.addResource(clusterName, testResourcePrefix, idealState);
+
+    admin.enableWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
+    IdealState is = admin.getResourceIdealState(clusterName, testResourcePrefix);
+    Assert.assertEquals(is.getRebalancerClassName(), WagedRebalancer.class.getName());
   }
 }

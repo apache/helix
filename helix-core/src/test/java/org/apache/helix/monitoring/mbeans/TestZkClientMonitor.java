@@ -186,7 +186,7 @@ public class TestZkClientMonitor {
 
     // Clear the property to reset the customized reservoir sliding length.
     // Otherwise, reservoir sliding length would be kept to 1 ms for the histogram metrics
-    // in later unit tests and cause later tests fail.
+    // in later unit tests and cause later tests' failure.
     System.clearProperty(HELIX_MONITOR_TIME_WINDOW_LENGTH_MS);
   }
 }

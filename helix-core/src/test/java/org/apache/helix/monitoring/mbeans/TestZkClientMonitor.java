@@ -159,6 +159,7 @@ public class TestZkClientMonitor {
   @Test
   public void testCustomizedResetInterval() throws JMException, InterruptedException {
     // Use a customized reservoir sliding length of 1 ms.
+    String timeWindowBackup = System.getProperty(HELIX_MONITOR_TIME_WINDOW_LENGTH_MS);
     System.setProperty(HELIX_MONITOR_TIME_WINDOW_LENGTH_MS, "1");
     final String TEST_TAG = "test_tag_x";
     final String TEST_KEY = "test_key_x";
@@ -184,9 +185,13 @@ public class TestZkClientMonitor {
         .assertEquals((long) _beanServer.getAttribute(rootName, dataPropagationLatencyGaugeAttr),
             4);
 
-    // Clear the property to reset the customized reservoir sliding length.
+    // Reset the customized reservoir sliding length.
     // Otherwise, reservoir sliding length would be kept to 1 ms for the histogram metrics
     // in later unit tests and cause later tests' failure.
-    System.clearProperty(HELIX_MONITOR_TIME_WINDOW_LENGTH_MS);
+    if (timeWindowBackup == null) {
+      System.clearProperty(HELIX_MONITOR_TIME_WINDOW_LENGTH_MS);
+    } else {
+      System.setProperty(HELIX_MONITOR_TIME_WINDOW_LENGTH_MS, timeWindowBackup);
+    }
   }
 }

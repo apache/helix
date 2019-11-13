@@ -272,7 +272,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
     requiredCapacityKeys.add("AdditionalCapacityKey");
     testClusterConfig.setInstanceCapacityKeys(requiredCapacityKeys);
 
-    InstanceConfig testInstanceConfig = new InstanceConfig("testInstanceConfigId");
+    InstanceConfig testInstanceConfig = new InstanceConfig(_testInstanceId);
     testInstanceConfig.setInstanceCapacityMap(_capacityDataMap);
 
     new AssignableNode(testClusterConfig, testInstanceConfig, _testInstanceId);

@@ -20,18 +20,14 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
+
 import org.apache.helix.HelixConstants.ChangeType;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.model.LiveInstance;
 import org.apache.helix.participant.CustomCodeCallbackHandler;
 import org.apache.helix.participant.HelixCustomCodeRunner;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -123,11 +119,8 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
     for (int i = 0; i < nodeNb; i++) {
       participants[i].syncStop();
     }
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<>(_gZkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-    accessor.removeProperty(keyBuilder.liveInstance("localhost_1000"));
-    TestHelper.dropCluster(_clusterName, _gZkClient);
+    deleteLiveInstances(_clusterName);
+    deleteCluster(_clusterName);
 
     System.out.println("END " + _clusterName + " at " + new Date(System.currentTimeMillis()));
   }

@@ -84,7 +84,17 @@ public class WagedRebalancer {
   private final HelixManager _manager;
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
   private final AssignmentMetadataStore _assignmentMetadataStore;
+
   private final MetricCollector _metricCollector;
+  private final CountMetric _rebalanceFailureCount;
+  private final CountMetric _globalBaselineCalcCounter;
+  private final LatencyMetric _globalBaselineCalcLatency;
+  private final LatencyMetric _writeLatency;
+  private final CountMetric _partialRebalanceCounter;
+  private final LatencyMetric _partialRebalanceLatency;
+  private final LatencyMetric _stateReadLatency;
+  private final BaselineDivergenceGauge _baselineDivergenceGauge;
+
   private RebalanceAlgorithm _rebalanceAlgorithm;
   private Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> _preference =
       NOT_CONFIGURED_PREFERENCE;
@@ -155,10 +165,38 @@ public class WagedRebalancer {
     _rebalanceAlgorithm = algorithm;
     _mappingCalculator = mappingCalculator;
     _manager = manager;
+
     // If metricCollector is null, instantiate a version that does not register metrics in order to
     // allow rebalancer to proceed
     _metricCollector =
         metricCollector == null ? new WagedRebalancerMetricCollector() : metricCollector;
+    _rebalanceFailureCount = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
+        CountMetric.class);
+    _globalBaselineCalcCounter = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcCounter.name(),
+        CountMetric.class);
+    _globalBaselineCalcLatency = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge
+            .name(),
+        LatencyMetric.class);
+    _partialRebalanceCounter = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceCounter.name(),
+        CountMetric.class);
+    _partialRebalanceLatency = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceLatencyGauge
+            .name(),
+        LatencyMetric.class);
+    _writeLatency = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.StateWriteLatencyGauge.name(),
+        LatencyMetric.class);
+    _stateReadLatency = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.StateReadLatencyGauge.name(),
+        LatencyMetric.class);
+    _baselineDivergenceGauge = _metricCollector.getMetric(
+        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
+        BaselineDivergenceGauge.class);
+
     _changeDetector = new ResourceChangeDetector(true);
   }
 
@@ -209,10 +247,7 @@ public class WagedRebalancer {
     } catch (HelixRebalanceException ex) {
       LOG.error("Failed to calculate the new assignments.", ex);
       // Record the failure in metrics.
-      CountMetric rebalanceFailureCount = _metricCollector.getMetric(
-          WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
-          CountMetric.class);
-      rebalanceFailureCount.increment(1L);
+      _rebalanceFailureCount.increment(1L);
 
       HelixRebalanceException.Type failureType = ex.getFailureType();
       if (failureType.equals(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS) || failureType
@@ -236,22 +271,23 @@ public class WagedRebalancer {
     // Construct the new best possible states according to the current state and target assignment.
     // Note that the new ideal state might be an intermediate state between the current state and
     // the target assignment.
-    for (IdealState is : newIdealStates.values()) {
-      String resourceName = is.getResourceName();
+    newIdealStates.values().parallelStream().forEach(idealState -> {
+      String resourceName = idealState.getResourceName();
       // Adjust the states according to the current state.
-      ResourceAssignment finalAssignment = _mappingCalculator.computeBestPossiblePartitionState(
-          clusterData, is, resourceMap.get(resourceName), currentStateOutput);
+      ResourceAssignment finalAssignment = _mappingCalculator
+          .computeBestPossiblePartitionState(clusterData, idealState, resourceMap.get(resourceName),
+              currentStateOutput);
 
       // Clean up the state mapping fields. Use the final assignment that is calculated by the
       // mapping calculator to replace them.
-      is.getRecord().getMapFields().clear();
+      idealState.getRecord().getMapFields().clear();
       for (Partition partition : finalAssignment.getMappedPartitions()) {
         Map<String, String> newStateMap = finalAssignment.getReplicaMap(partition);
         // if the final states cannot be generated, override the best possible state with empty map.
-        is.setInstanceStateMap(partition.getPartitionName(),
+        idealState.setInstanceStateMap(partition.getPartitionName(),
             newStateMap == null ? Collections.emptyMap() : newStateMap);
       }
-    }
+    });
     LOG.info("Finish computing new ideal states for resources: {}",
         resourceMap.keySet().toString());
     return newIdealStates;
@@ -296,8 +332,8 @@ public class WagedRebalancer {
       Set<String> activeNodes, final CurrentStateOutput currentStateOutput)
       throws HelixRebalanceException {
     getChangeDetector().updateSnapshots(clusterData);
-    // Get all the changed items' information
-    Map<HelixConstants.ChangeType, Set<String>> clusterChanges =
+    // Get all the changed items' information. Filter for the items that have content changed.
+    final Map<HelixConstants.ChangeType, Set<String>> clusterChanges =
         getChangeDetector().getChangeTypes().stream()
             .collect(Collectors.toMap(changeType -> changeType, changeType -> {
               Set<String> itemKeys = new HashSet<>();
@@ -305,18 +341,12 @@ public class WagedRebalancer {
               itemKeys.addAll(getChangeDetector().getChangesByType(changeType));
               itemKeys.addAll(getChangeDetector().getRemovalsByType(changeType));
               return itemKeys;
-            }));
-    // Filter for the items that have content changed.
-    clusterChanges =
-        clusterChanges.entrySet().stream().filter(changeEntry -> !changeEntry.getValue().isEmpty())
+            })).entrySet().stream().filter(changeEntry -> !changeEntry.getValue().isEmpty())
             .collect(Collectors
                 .toMap(changeEntry -> changeEntry.getKey(), changeEntry -> changeEntry.getValue()));
 
     // Perform Global Baseline Calculation
-    if (clusterChanges.keySet().stream()
-        .anyMatch(GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES::contains)) {
-      refreshBaseline(clusterData, clusterChanges, resourceMap, currentStateOutput);
-    }
+    refreshBaseline(clusterData, clusterChanges, resourceMap, currentStateOutput);
 
     // Perform partial rebalance
     Map<String, ResourceAssignment> newAssignment =
@@ -362,47 +392,41 @@ public class WagedRebalancer {
   // TODO make the Baseline calculation async if complicated algorithm is used for the Baseline
   private void refreshBaseline(ResourceControllerDataProvider clusterData,
       Map<HelixConstants.ChangeType, Set<String>> clusterChanges, Map<String, Resource> resourceMap,
-      final CurrentStateOutput currentStateOutput) throws HelixRebalanceException {
-    LOG.info("Start calculating the new baseline.");
-    CountMetric globalBaselineCalcCounter = _metricCollector.getMetric(
-        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcCounter.name(),
-        CountMetric.class);
-    globalBaselineCalcCounter.increment(1L);
+      final CurrentStateOutput currentStateOutput)
+      throws HelixRebalanceException {
+    if (clusterChanges.keySet().stream()
+        .anyMatch(GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES::contains)) {
+      LOG.info("Start calculating the new baseline.");
+      _globalBaselineCalcCounter.increment(1L);
+      _globalBaselineCalcLatency.startMeasuringLatency();
 
-    LatencyMetric globalBaselineCalcLatency = _metricCollector.getMetric(
-        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge
-            .name(),
-        LatencyMetric.class);
-    globalBaselineCalcLatency.startMeasuringLatency();
-    // Read the baseline from metadata store
-    Map<String, ResourceAssignment> currentBaseline =
-        getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet());
+      // For baseline calculation
+      // 1. Ignore node status (disable/offline).
+      // 2. Use the baseline as the previous best possible assignment since there is no "baseline" for
+      // the baseline.
+      // Read the baseline from metadata store
+      Map<String, ResourceAssignment> currentBaseline =
+          getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet());
+      Map<String, ResourceAssignment> newBaseline =
+          calculateAssignment(clusterData, clusterChanges, resourceMap,
+              clusterData.getAllInstances(), Collections.emptyMap(), currentBaseline);
 
-    // For baseline calculation
-    // 1. Ignore node status (disable/offline).
-    // 2. Use the baseline as the previous best possible assignment since there is no "baseline" for
-    // the baseline.
-    Map<String, ResourceAssignment> newBaseline = calculateAssignment(clusterData, clusterChanges,
-        resourceMap, clusterData.getAllInstances(), Collections.emptyMap(), currentBaseline);
-
-    // Write the new baseline to metadata store
-    if (_assignmentMetadataStore != null) {
-      try {
-        LatencyMetric writeLatency = _metricCollector.getMetric(
-            WagedRebalancerMetricCollector.WagedRebalancerMetricNames.StateWriteLatencyGauge.name(),
-            LatencyMetric.class);
-        writeLatency.startMeasuringLatency();
-        _assignmentMetadataStore.persistBaseline(newBaseline);
-        writeLatency.endMeasuringLatency();
-      } catch (Exception ex) {
-        throw new HelixRebalanceException("Failed to persist the new baseline assignment.",
-            HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
+      // Write the new baseline to metadata store
+      if (_assignmentMetadataStore != null) {
+        try {
+          _writeLatency.startMeasuringLatency();
+          _assignmentMetadataStore.persistBaseline(newBaseline);
+          _writeLatency.endMeasuringLatency();
+        } catch (Exception ex) {
+          throw new HelixRebalanceException("Failed to persist the new baseline assignment.",
+              HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
+        }
+      } else {
+        LOG.debug("Assignment Metadata Store is empty. Skip persist the baseline assignment.");
       }
-    } else {
-      LOG.debug("Assignment Metadata Store is empty. Skip persist the baseline assignment.");
+      _globalBaselineCalcLatency.endMeasuringLatency();
+      LOG.info("Finish calculating the new baseline.");
     }
-    globalBaselineCalcLatency.endMeasuringLatency();
-    LOG.info("Finish calculating the new baseline.");
   }
 
   private Map<String, ResourceAssignment> partialRebalance(
@@ -411,16 +435,8 @@ public class WagedRebalancer {
       Set<String> activeNodes, final CurrentStateOutput currentStateOutput)
       throws HelixRebalanceException {
     LOG.info("Start calculating the new best possible assignment.");
-    CountMetric partialRebalanceCounter = _metricCollector.getMetric(
-        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceCounter.name(),
-        CountMetric.class);
-    partialRebalanceCounter.increment(1L);
-
-    LatencyMetric partialRebalanceLatency = _metricCollector.getMetric(
-        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.PartialRebalanceLatencyGauge
-            .name(),
-        LatencyMetric.class);
-    partialRebalanceLatency.startMeasuringLatency();
+    _partialRebalanceCounter.increment(1L);
+    _partialRebalanceLatency.startMeasuringLatency();
     // TODO: Consider combining the metrics for both baseline/best possible?
     // Read the baseline from metadata store
     Map<String, ResourceAssignment> currentBaseline =
@@ -442,22 +458,17 @@ public class WagedRebalancer {
     for (Map.Entry<String, ResourceAssignment> entry : newAssignment.entrySet()) {
       newAssignmentCopy.put(entry.getKey(), new ResourceAssignment(entry.getValue().getRecord()));
     }
-    BaselineDivergenceGauge baselineDivergenceGauge = _metricCollector.getMetric(
-        WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
-        BaselineDivergenceGauge.class);
-    baselineDivergenceGauge.asyncMeasureAndUpdateValue(clusterData.getAsyncTasksThreadPool(),
+
+    _baselineDivergenceGauge.asyncMeasureAndUpdateValue(clusterData.getAsyncTasksThreadPool(),
         currentBaseline, newAssignmentCopy);
 
     if (_assignmentMetadataStore != null) {
       try {
-        LatencyMetric writeLatency = _metricCollector.getMetric(
-            WagedRebalancerMetricCollector.WagedRebalancerMetricNames.StateWriteLatencyGauge.name(),
-            LatencyMetric.class);
-        writeLatency.startMeasuringLatency();
+        _writeLatency.startMeasuringLatency();
         // TODO Test to confirm if persisting the final assignment (with final partition states)
         // would be a better option.
         _assignmentMetadataStore.persistBestPossibleAssignment(newAssignment);
-        writeLatency.endMeasuringLatency();
+        _writeLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException("Failed to persist the new best possible assignment.",
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
@@ -465,7 +476,7 @@ public class WagedRebalancer {
     } else {
       LOG.debug("Assignment Metadata Store is empty. Skip persist the baseline assignment.");
     }
-    partialRebalanceLatency.endMeasuringLatency();
+    _partialRebalanceLatency.endMeasuringLatency();
     LOG.info("Finish calculating the new best possible assignment.");
     return newAssignment;
   }
@@ -561,12 +572,9 @@ public class WagedRebalancer {
     Map<String, ResourceAssignment> currentBaseline = Collections.emptyMap();
     if (assignmentMetadataStore != null) {
       try {
-        LatencyMetric stateReadLatency = _metricCollector.getMetric(
-            WagedRebalancerMetricCollector.WagedRebalancerMetricNames.StateReadLatencyGauge.name(),
-            LatencyMetric.class);
-        stateReadLatency.startMeasuringLatency();
+        _stateReadLatency.startMeasuringLatency();
         currentBaseline = assignmentMetadataStore.getBaseline();
-        stateReadLatency.endMeasuringLatency();
+        _stateReadLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException(
             "Failed to get the current baseline assignment because of unexpected error.",
@@ -595,12 +603,9 @@ public class WagedRebalancer {
     Map<String, ResourceAssignment> currentBestAssignment = Collections.emptyMap();
     if (assignmentMetadataStore != null) {
       try {
-        LatencyMetric stateReadLatency = _metricCollector.getMetric(
-            WagedRebalancerMetricCollector.WagedRebalancerMetricNames.StateReadLatencyGauge.name(),
-            LatencyMetric.class);
-        stateReadLatency.startMeasuringLatency();
+        _stateReadLatency.startMeasuringLatency();
         currentBestAssignment = assignmentMetadataStore.getBestPossibleAssignment();
-        stateReadLatency.endMeasuringLatency();
+        _stateReadLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException(
             "Failed to get the current best possible assignment because of unexpected error.",

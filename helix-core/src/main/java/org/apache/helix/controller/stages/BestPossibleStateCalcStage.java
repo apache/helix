@@ -52,8 +52,6 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.monitoring.mbeans.ResourceMonitor;
-import org.apache.helix.monitoring.metrics.MetricCollector;
-import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;

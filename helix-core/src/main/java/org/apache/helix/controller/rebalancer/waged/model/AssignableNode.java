@@ -104,7 +104,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
     // Update the global state after all single replications' calculation is done.
     for (String capacityKey : totalPartitionCapacity.keySet()) {
-      updateCapacityAndUtilization(capacityKey, totalPartitionCapacity.get(capacityKey));
+      updateRemainingCapacity(capacityKey, totalPartitionCapacity.get(capacityKey));
     }
   }
 
@@ -115,7 +115,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   void assign(AssignableReplica assignableReplica) {
     addToAssignmentRecord(assignableReplica);
     assignableReplica.getCapacity().entrySet().stream()
-        .forEach(capacity -> updateCapacityAndUtilization(capacity.getKey(), capacity.getValue()));
+            .forEach(capacity -> updateRemainingCapacity(capacity.getKey(), capacity.getValue()));
   }
 
   /**
@@ -145,13 +145,13 @@ public class AssignableNode implements Comparable<AssignableNode> {
 
     AssignableReplica removedReplica = partitionMap.remove(partitionName);
     removedReplica.getCapacity().entrySet().stream()
-        .forEach(entry -> updateCapacityAndUtilization(entry.getKey(), -1 * entry.getValue()));
+        .forEach(entry -> updateRemainingCapacity(entry.getKey(), -1 * entry.getValue()));
   }
 
   /**
    * @return A set of all assigned replicas on the node.
    */
-  public Set<AssignableReplica> getAssignedReplicas() {
+  Set<AssignableReplica> getAssignedReplicas() {
     return _currentAssignedReplicaMap.values().stream()
         .flatMap(replicaMap -> replicaMap.values().stream()).collect(Collectors.toSet());
   }
@@ -159,7 +159,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   /**
    * @return The current assignment in a map of <resource name, set of partition names>
    */
-  public Map<String, Set<String>> getAssignedPartitionsMap() {
+  Map<String, Set<String>> getAssignedPartitionsMap() {
     Map<String, Set<String>> assignmentMap = new HashMap<>();
     for (String resourceName : _currentAssignedReplicaMap.keySet()) {
       assignmentMap.put(resourceName, _currentAssignedReplicaMap.get(resourceName).keySet());
@@ -180,7 +180,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * @return A set of the current assigned replicas' partition names with the top state in the
    *         specified resource.
    */
-  public Set<String> getAssignedTopStatePartitionsByResource(String resource) {
+  Set<String> getAssignedTopStatePartitionsByResource(String resource) {
     return _currentAssignedReplicaMap.getOrDefault(resource, Collections.emptyMap()).entrySet()
         .stream().filter(partitionEntry -> partitionEntry.getValue().isReplicaTopState())
         .map(partitionEntry -> partitionEntry.getKey()).collect(Collectors.toSet());
@@ -335,14 +335,13 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
   }
 
-  private void updateCapacityAndUtilization(String capacityKey, int usage) {
+  private void updateRemainingCapacity(String capacityKey, int usage) {
     if (!_remainingCapacity.containsKey(capacityKey)) {
       //if the capacityKey belongs to replicas does not exist in the instance's capacity,
       // it will be treated as if it has unlimited capacity of that capacityKey
       return;
     }
-    int newCapacity = _remainingCapacity.get(capacityKey) - usage;
-    _remainingCapacity.put(capacityKey, newCapacity);
+    _remainingCapacity.put(capacityKey, _remainingCapacity.get(capacityKey) - usage);
   }
 
   /**

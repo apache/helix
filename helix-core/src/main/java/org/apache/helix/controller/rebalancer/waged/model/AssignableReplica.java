@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 public class AssignableReplica implements Comparable<AssignableReplica> {
   private static final Logger LOG = LoggerFactory.getLogger(AssignableReplica.class);
 
+  private final String _replicaKey;
   private final String _partitionName;
   private final String _resourceName;
   private final String _resourceInstanceGroupTag;
@@ -64,6 +65,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     _capacityUsage = fetchCapacityUsage(partitionName, resourceConfig, clusterConfig);
     _resourceInstanceGroupTag = resourceConfig.getInstanceGroupTag();
     _resourceMaxPartitionsPerInstance = resourceConfig.getMaxPartitionsPerInstance();
+    _replicaKey = generateReplicaKey(_resourceName, _partitionName,_replicaState);
   }
 
   public Map<String, Integer> getCapacity() {
@@ -104,7 +106,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
 
   @Override
   public String toString() {
-    return generateReplicaKey(_resourceName, _partitionName, _replicaState);
+    return _replicaKey;
   }
 
   @Override

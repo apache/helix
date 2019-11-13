@@ -810,4 +810,13 @@ public class ConfigAccessor {
       ZKUtil.createOrUpdate(_zkClient, zkPath, instanceConfig.getRecord(), true, true);
     }
   }
+
+  /**
+   * Closes the ZkClient.
+   */
+  public void close() {
+    if (_zkClient != null) {
+      _zkClient.close();
+    }
+  }
 }

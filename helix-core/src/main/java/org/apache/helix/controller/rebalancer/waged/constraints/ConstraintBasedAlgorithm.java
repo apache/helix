@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
@@ -90,8 +90,8 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private Optional<AssignableNode> getNodeWithHighestPoints(AssignableReplica replica,
       List<AssignableNode> assignableNodes, ClusterContext clusterContext,
       OptimalAssignment optimalAssignment) {
-    Map<AssignableNode, List<HardConstraint>> hardConstraintFailures = new HashMap<>();
-    List<AssignableNode> candidateNodes = assignableNodes.stream().filter(candidateNode -> {
+    Map<AssignableNode, List<HardConstraint>> hardConstraintFailures = new ConcurrentHashMap<>();
+    List<AssignableNode> candidateNodes = assignableNodes.parallelStream().filter(candidateNode -> {
       boolean isValid = true;
       // need to record all the failure reasons and it gives us the ability to debug/fix the runtime
       // cluster environment
@@ -104,16 +104,17 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       }
       return isValid;
     }).collect(Collectors.toList());
+
     if (candidateNodes.isEmpty()) {
       optimalAssignment.recordAssignmentFailure(replica,
           Maps.transformValues(hardConstraintFailures, this::convertFailureReasons));
       return Optional.empty();
     }
 
-    Function<AssignableNode, Double> calculatePoints =
-        (candidateNode) -> getAssignmentNormalizedScore(candidateNode, replica, clusterContext);
-
-    return candidateNodes.stream().max(Comparator.comparing(calculatePoints));
+    return candidateNodes.parallelStream().map(node -> new HashMap.SimpleEntry<>(node,
+        getAssignmentNormalizedScore(node, replica, clusterContext)))
+        .max(Comparator.comparingDouble((scoreEntry) -> scoreEntry.getValue()))
+        .map(Map.Entry::getKey);
   }
 
   private double getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,
@@ -146,6 +147,11 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     Map<String, ResourceAssignment> baselineAssignment =
         clusterModel.getContext().getBaselineAssignment();
 
+    Map<String, Integer> replicaHashCodeMap = orderedAssignableReplicas.parallelStream().collect(
+        Collectors.toMap(AssignableReplica::toString,
+            replica -> Objects.hash(replica.toString(), clusterModel.getAssignableNodes().keySet()),
+            (hash1, hash2) -> hash2));
+
     // 1. Sort according if the assignment exists in the best possible and/or baseline assignment
     // 2. Sort according to the state priority. Note that prioritizing the top state is required.
     // Or the greedy algorithm will unnecessarily shuffle the states between replicas.
@@ -170,10 +176,8 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             // Note that to ensure the algorithm is deterministic with the same inputs, do not use
             // Random functions here. Use hashcode based on the cluster topology information to get
             // a controlled randomized order is good enough.
-            Long replicaHash1 = (long) Objects
-                .hash(replica1.toString(), clusterModel.getAssignableNodes().keySet());
-            Long replicaHash2 = (long) Objects
-                .hash(replica2.toString(), clusterModel.getAssignableNodes().keySet());
+            Integer replicaHash1 = replicaHashCodeMap.get(replica1.toString());
+            Integer replicaHash2 = replicaHashCodeMap.get(replica2.toString());
             if (!replicaHash1.equals(replicaHash2)) {
               return replicaHash1.compareTo(replicaHash2);
             } else {

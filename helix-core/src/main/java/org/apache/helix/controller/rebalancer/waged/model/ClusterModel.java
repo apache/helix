@@ -58,7 +58,7 @@ public class ClusterModel {
             .toMap(AssignableReplica::toString, replica -> replica,
                 (oldValue, newValue) -> oldValue)));
 
-    _assignableNodeMap = assignableNodes.stream()
+    _assignableNodeMap = assignableNodes.parallelStream()
         .collect(Collectors.toMap(AssignableNode::getInstanceName, node -> node));
   }
 

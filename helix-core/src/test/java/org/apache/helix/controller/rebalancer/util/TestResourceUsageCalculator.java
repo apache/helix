@@ -45,19 +45,19 @@ public class TestResourceUsageCalculator {
 
     // Empty best possible assignment.
     Assert.assertEquals(ResourceUsageCalculator
-        .measureBaselineDivergence(baselineAssignment, Collections.emptyMap()), 0.0d);
+        .measureBaselineDivergence(baselineAssignment, Collections.emptyMap()), 1.0d);
     // Empty baseline assignment.
     Assert.assertEquals(ResourceUsageCalculator
-        .measureBaselineDivergence(Collections.emptyMap(), noMatchBestPossibleAssignment), 0.0d);
+        .measureBaselineDivergence(Collections.emptyMap(), noMatchBestPossibleAssignment), 1.0d);
 
     Assert.assertEquals(ResourceUsageCalculator
-        .measureBaselineDivergence(baselineAssignment, noMatchBestPossibleAssignment), 0.0d);
+        .measureBaselineDivergence(baselineAssignment, noMatchBestPossibleAssignment), 1.0d);
     Assert.assertEquals(ResourceUsageCalculator
             .measureBaselineDivergence(baselineAssignment, someMatchBestPossibleAssignment),
-        (double) 1 / (double) 3);
+        (1.0d - (double) 1 / (double) 3));
     Assert.assertEquals(
         ResourceUsageCalculator.measureBaselineDivergence(baselineAssignment, baselineAssignment),
-        1.0d);
+        0.0d);
   }
 
   private Map<String, ResourceAssignment> buildResourceAssignment(

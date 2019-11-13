@@ -105,9 +105,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * @param zkAddress The zookeeper address
    */
   public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer) {
-    _zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-            new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
+    _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
+        new HelixZkClient.ZkConnectionConfig(zkAddress),
+        new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
+    _usesExternalZkClient = false;
   }
 
   /**
@@ -1147,7 +1148,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public void close() {
-    if (_zkClient != null) {
+    if (_zkClient != null && !_usesExternalZkClient) {
       _zkClient.close();
     }
   }

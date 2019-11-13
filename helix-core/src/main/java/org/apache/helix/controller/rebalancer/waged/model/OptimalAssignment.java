@@ -19,7 +19,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ import org.apache.helix.model.ResourceAssignment;
  * Note that this class is not thread safe.
  */
 public class OptimalAssignment {
-  private Map<AssignableNode, List<AssignableReplica>> _optimalAssignment = new HashMap<>();
+  private Map<String, ResourceAssignment> _optimalAssignment = Collections.emptyMap();
   private Map<AssignableReplica, Map<AssignableNode, List<String>>> _failedAssignments =
       new HashMap<>();
 
@@ -45,23 +45,9 @@ public class OptimalAssignment {
    * @param clusterModel
    */
   public void updateAssignments(ClusterModel clusterModel) {
-    _optimalAssignment.clear();
-    clusterModel.getAssignableNodes().values().stream()
-        .forEach(node -> _optimalAssignment.put(node, new ArrayList<>(node.getAssignedReplicas())));
-  }
-
-  /**
-   * @return The optimal assignment in the form of a <Resource Name, ResourceAssignment> map.
-   */
-  public Map<String, ResourceAssignment> getOptimalResourceAssignment() {
-    if (hasAnyFailure()) {
-      throw new HelixException(
-          "Cannot get the optimal resource assignment since a calculation failure is recorded. "
-              + getFailures());
-    }
     Map<String, ResourceAssignment> assignmentMap = new HashMap<>();
-    for (AssignableNode node : _optimalAssignment.keySet()) {
-      for (AssignableReplica replica : _optimalAssignment.get(node)) {
+    for (AssignableNode node : clusterModel.getAssignableNodes().values()) {
+      for (AssignableReplica replica : node.getAssignedReplicas()) {
         String resourceName = replica.getResourceName();
         Partition partition = new Partition(replica.getPartitionName());
         ResourceAssignment resourceAssignment = assignmentMap
@@ -76,7 +62,19 @@ public class OptimalAssignment {
         resourceAssignment.addReplicaMap(partition, partitionStateMap);
       }
     }
-    return assignmentMap;
+    _optimalAssignment = assignmentMap;
+  }
+
+  /**
+   * @return The optimal assignment in the form of a <Resource Name, ResourceAssignment> map.
+   */
+  public Map<String, ResourceAssignment> getOptimalResourceAssignment() {
+    if (hasAnyFailure()) {
+      throw new HelixException(
+          "Cannot get the optimal resource assignment since a calculation failure is recorded. "
+              + getFailures());
+    }
+    return _optimalAssignment;
   }
 
   public void recordAssignmentFailure(AssignableReplica replica,

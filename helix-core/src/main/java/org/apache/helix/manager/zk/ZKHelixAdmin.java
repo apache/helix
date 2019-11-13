@@ -1681,7 +1681,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new HelixException("Resource name list is invalid!");
     }
 
-    // First, ensure that all instances are valid
+    // Ensure that all instances are valid
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
@@ -1742,10 +1742,23 @@ public class ZKHelixAdmin implements HelixAdmin {
    */
   private boolean validateWeightForResourceConfig(ClusterConfig clusterConfig,
       ResourceConfig resourceConfig, IdealState idealState) {
-    // If ResourceConfig is null AND the default partition weight map is defined, we consider this resource valid
     if (resourceConfig == null) {
-      return !clusterConfig.getDefaultPartitionWeightMap().isEmpty();
-      // ResourceConfig is null and no default partition weight map has been defined. Not valid.
+      if (clusterConfig.getDefaultPartitionWeightMap().isEmpty()) {
+        logger.error(
+            "ResourceConfig for {} is null, and there are no default weights set in ClusterConfig!",
+            idealState.getResourceName());
+        return false;
+      }
+      // If ResourceConfig is null AND the default partition weight map is defined, and the map has all the required keys, we consider this valid since the default weights will be used
+      // Need to check the map contains all the required keys
+      if (clusterConfig.getDefaultPartitionWeightMap().keySet()
+          .containsAll(clusterConfig.getInstanceCapacityKeys())) {
+        // Contains all the required keys, so consider it valid since it will use the default weights
+        return true;
+      }
+      logger.error(
+          "ClusterConfig's default partition weight map doesn't have all the required keys!");
+      return false;
     }
 
     // Parse the entire capacityMap from ResourceConfig
@@ -1753,7 +1766,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     try {
       capacityMap = resourceConfig.getPartitionCapacityMap();
     } catch (IOException ex) {
-      logger.error("Invalid partition capacity configuration of resource: {}", idealState.getResourceName(), ex);
+      logger.error("Invalid partition capacity configuration of resource: {}",
+          idealState.getResourceName(), ex);
       return false;
     }
 

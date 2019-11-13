@@ -556,7 +556,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     try {
       admin.addResourceWithWeight(clusterName, idealState, resourceConfig);
       Assert.fail();
-    } catch (Exception e) {
+    } catch (HelixException e) {
       // OK since resourceConfig is empty
     }
 

@@ -1757,7 +1757,8 @@ public class ZKHelixAdmin implements HelixAdmin {
         return true;
       }
       logger.error(
-          "ClusterConfig's default partition weight map doesn't have all the required keys!");
+          "ResourceConfig for {} is null, and ClusterConfig's default partition weight map doesn't have all the required keys!",
+          idealState.getResourceName());
       return false;
     }
 

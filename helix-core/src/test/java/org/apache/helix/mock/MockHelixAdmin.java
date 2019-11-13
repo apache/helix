@@ -38,6 +38,7 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 
 public class MockHelixAdmin implements HelixAdmin {
@@ -426,5 +427,26 @@ public class MockHelixAdmin implements HelixAdmin {
 
   @Override public void close() {
 
+  }
+
+  @Override
+  public boolean addResourceWithWeight(String clusterName, IdealState idealState, ResourceConfig resourceConfig) {
+    return false;
+  }
+
+  @Override
+  public boolean enableWagedRebalance(String clusterName, List<String> resourceNames) {
+    return false;
+  }
+
+  @Override
+  public Map<String, Boolean> validateResourcesForWagedRebalance(String clusterName, List<String> resourceNames) {
+    return null;
+  }
+
+  @Override
+  public Map<String, Boolean> validateInstancesForWagedRebalance(String clusterName,
+      List<String> instancesNames) {
+    return null;
   }
 }

@@ -34,6 +34,8 @@ import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import javax.management.Query;
 import javax.management.QueryExp;
+
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.task.JobConfig;
@@ -93,13 +95,19 @@ public class TestTaskPerformanceMetrics extends TaskSynchronizedTestBase {
 
     // Confirm that there are metrics computed dynamically here and keeps increasing because jobs
     // are processed one by one
-    double oldSubmissionToStartDelay = -1L;
+    double oldSubmissionToStartDelay = 0.0d;
     double oldControllerInducedDelay = -1L;
-    for (int i = 0; i < 5; i++) {
-      // The dynamic metrics should generally be updated within 2 seconds or it would be too slow
-      Thread.sleep(2000L);
 
-      extractMetrics();
+    for (int i = 0; i < 5; i++) {
+      // Wait until new dynamic metrics are updated.
+      final double oldDelay = oldSubmissionToStartDelay;
+      TestHelper.verify(() -> {
+        extractMetrics();
+        return ((double) _beanValueMap.getOrDefault("SubmissionToScheduleDelayGauge.Mean", 0.0d))
+            > oldDelay
+            && ((double) _beanValueMap.getOrDefault("SubmissionToProcessDelayGauge.Mean", 0.0d))
+            > 0.0d;
+      }, TestHelper.WAIT_DURATION);
 
       // For SubmissionToProcessDelay, the value will stay constant because the Controller will
       // create JobContext right away most of the time
@@ -130,12 +138,12 @@ public class TestTaskPerformanceMetrics extends TaskSynchronizedTestBase {
    */
   private void extractMetrics() {
     try {
-      QueryExp exp = Query.match(Query.attr("SensorName"), Query.value("*"));
+      QueryExp exp = Query.match(Query.attr("SensorName"), Query.value(CLUSTER_NAME + ".Job.*"));
       Set<ObjectInstance> mbeans = new HashSet<>(
-          ManagementFactory.getPlatformMBeanServer().queryMBeans(new ObjectName(""), exp));
+          ManagementFactory.getPlatformMBeanServer().queryMBeans(new ObjectName("ClusterStatus:*"), exp));
       for (ObjectInstance instance : mbeans) {
         ObjectName beanName = instance.getObjectName();
-        if (instance.getClassName().contains("JobMonitor")) {
+        if (instance.getClassName().endsWith("JobMonitor")) {
           MBeanInfo info = _server.getMBeanInfo(beanName);
           MBeanAttributeInfo[] infos = info.getAttributes();
           for (MBeanAttributeInfo infoItem : infos) {

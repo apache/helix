@@ -48,10 +48,9 @@ public class ServerContext {
 
   // 1 Cluster name will correspond to 1 helix data accessor
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;
-  private final Map<ZkSerializer, ZkBaseDataAccessor<ZNRecord>> _zkBaseDataAccessorBySerializer;
-
   // 1 Cluster name will correspond to 1 task driver
   private final Map<String, TaskDriver> _taskDriverPool;
+  final Map<ZkSerializer, ZkBaseDataAccessor<ZNRecord>> _zkBaseDataAccessorBySerializer;
 
   public ServerContext(String zkAddr) {
     _zkAddr = zkAddr;

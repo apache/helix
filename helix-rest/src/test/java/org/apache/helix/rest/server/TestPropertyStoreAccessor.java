@@ -19,6 +19,7 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import java.io.IOException;
 import javax.ws.rs.core.Response;
 
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
@@ -73,25 +74,34 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testGetPropertyStoreWithZNRecordData() {
-    String result =
-        new JerseyUriRequestBuilder("clusters/{}/propertyStore" + "/ZnRecord").format(TEST_CLUSTER)
+  public void testGetPropertyStoreWithZNRecordData() throws IOException {
+    String data =
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore/ZnRecord").format(TEST_CLUSTER)
             .isBodyReturnExpected(true)
             .get(this);
-    //TODO: verify the content
-    Assert.assertFalse(result.isEmpty());
+    ZNRecord record = OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
+    Assert.assertEquals(record.getId(), TEST_ZNRECORD.getId());
   }
 
 
   @Test
-  public void testGetPropertyStoreWithStringData() {
-    String result =
-        new JerseyUriRequestBuilder("clusters/{}/propertyStore" + "/NonZnRecord").format(TEST_CLUSTER)
+  public void testGetPropertyStoreWithTestStringData() throws IOException {
+    String data =
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore/NonZnRecord").format(TEST_CLUSTER)
             .isBodyReturnExpected(true)
             .get(this);
 
-    //TODO: verify the content
-    Assert.assertFalse(result.isEmpty());
+    ZNRecord record = OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
+    Assert.assertEquals(record.getSimpleField(record.getId()), TEST_CONTENT);
+  }
+
+  @Test
+  public void testGetPropertyStoreWithEmptyDataPath() throws IOException {
+     String data =
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore/EmptyPath").format(TEST_CLUSTER)
+            .isBodyReturnExpected(true)
+            .get(this);
+    Assert.assertTrue(data.isEmpty());
   }
 
   @Test

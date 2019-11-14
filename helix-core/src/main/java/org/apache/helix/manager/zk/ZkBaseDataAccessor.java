@@ -90,8 +90,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   // true if ZkBaseDataAccessor was instantiated with a HelixZkClient, false otherwise
   // This is used for close() to determine how ZkBaseDataAccessor should close the underlying
   // ZkClient
-  private boolean _usesExternalZkClient;
+  private final boolean _usesExternalZkClient;
 
+  @Deprecated
   public ZkBaseDataAccessor(HelixZkClient zkClient) {
     if (zkClient == null) {
       throw new NullPointerException("zkclient is null");

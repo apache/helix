@@ -92,10 +92,11 @@ public class ZKHelixAdmin implements HelixAdmin {
   private final ConfigAccessor _configAccessor;
   // true if ZKHelixAdmin was instantiated with a HelixZkClient, false otherwise
   // This is used for close() to determine how ZKHelixAdmin should close the underlying ZkClient
-  private boolean _usesExternalZkClient;
+  private final boolean _usesExternalZkClient;
 
   private static Logger logger = LoggerFactory.getLogger(ZKHelixAdmin.class);
 
+  @Deprecated
   public ZKHelixAdmin(HelixZkClient zkClient) {
     _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(zkClient);

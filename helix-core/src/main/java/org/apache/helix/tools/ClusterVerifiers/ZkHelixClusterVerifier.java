@@ -51,7 +51,7 @@ public abstract class ZkHelixClusterVerifier
   // true if ZkHelixClusterVerifier was instantiated with a HelixZkClient, false otherwise
   // This is used for close() to determine how ZkHelixClusterVerifier should close the underlying
   // ZkClient
-  private boolean _usesExternalZkClient;
+  private final boolean _usesExternalZkClient;
   protected final String _clusterName;
   protected final HelixDataAccessor _accessor;
   protected final PropertyKey.Builder _keyBuilder;

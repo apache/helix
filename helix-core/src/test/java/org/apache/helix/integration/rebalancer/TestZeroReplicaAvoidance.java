@@ -165,6 +165,8 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
       String db = "Test-DB-" + stateModel;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, partition, replica, replica);
     }
+    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
+    Thread.sleep(1000);
     Assert.assertTrue(_clusterVerifier.verifyByPolling(50000L, 100L));
 
     _startListen = true;

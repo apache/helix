@@ -78,6 +78,7 @@ public class ConfigAccessor {
    * Note: it is recommended to use the other constructor instead to avoid having to create a HelixZkClient.
    * @param zkClient
    */
+  @Deprecated
   public ConfigAccessor(HelixZkClient zkClient) {
     _zkClient = zkClient;
     _usesExternalZkClient = true;
@@ -817,7 +818,7 @@ public class ConfigAccessor {
   }
 
   /**
-   * Closes the ZkClient.
+   * Closes ConfigAccessor: closes the stateful resources including the ZkClient.
    */
   public void close() {
     if (_zkClient != null && !_usesExternalZkClient) {

@@ -29,6 +29,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,14 @@ public final class ZKUtil {
   private ZKUtil() {
   }
 
+  public static boolean isClusterSetup(String clusterName, String zkAddress) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    boolean result = isClusterSetup(clusterName, zkClient);
+    zkClient.close();
+    return result;
+  }
+
+  @Deprecated
   public static boolean isClusterSetup(String clusterName, HelixZkClient zkClient) {
     if (clusterName == null) {
       logger.info("Fail to check cluster setup : cluster name is null!");
@@ -88,6 +97,15 @@ public final class ZKUtil {
     return isValid;
   }
 
+  public static boolean isInstanceSetup(String zkAddress, String clusterName, String instanceName,
+      InstanceType type) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    boolean result = isInstanceSetup(zkClient, clusterName, instanceName, type);
+    zkClient.close();
+    return result;
+  }
+
+  @Deprecated
   public static boolean isInstanceSetup(HelixZkClient zkclient, String clusterName, String instanceName,
       InstanceType type) {
     if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT) {
@@ -121,6 +139,13 @@ public final class ZKUtil {
     return true;
   }
 
+  public static void createChildren(String zkAddress, String parentPath, List<ZNRecord> list) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    createChildren(zkClient, parentPath, list);
+    zkClient.close();
+  }
+
+  @Deprecated
   public static void createChildren(HelixZkClient client, String parentPath, List<ZNRecord> list) {
     client.createPersistent(parentPath, true);
     if (list != null) {
@@ -130,6 +155,13 @@ public final class ZKUtil {
     }
   }
 
+  public static void createChildren(String zkAddress, String parentPath, ZNRecord nodeRecord) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    createChildren(zkClient, parentPath, nodeRecord);
+    zkClient.close();
+  }
+
+  @Deprecated
   public static void createChildren(HelixZkClient client, String parentPath, ZNRecord nodeRecord) {
     client.createPersistent(parentPath, true);
 
@@ -138,6 +170,13 @@ public final class ZKUtil {
     client.createPersistent(temp, nodeRecord);
   }
 
+  public static void dropChildren(String zkAddress, String parentPath, List<ZNRecord> list) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    dropChildren(zkClient, parentPath, list);
+    zkClient.close();
+  }
+
+  @Deprecated
   public static void dropChildren(HelixZkClient client, String parentPath, List<ZNRecord> list) {
     // TODO: check if parentPath exists
     if (list != null) {
@@ -147,6 +186,13 @@ public final class ZKUtil {
     }
   }
 
+  public static void dropChildren(String zkAddress, String parentPath, ZNRecord nodeRecord) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    dropChildren(zkClient, parentPath, nodeRecord);
+    zkClient.close();
+  }
+
+  @Deprecated
   public static void dropChildren(HelixZkClient client, String parentPath, ZNRecord nodeRecord) {
     // TODO: check if parentPath exists
     String id = nodeRecord.getId();
@@ -154,6 +200,14 @@ public final class ZKUtil {
     client.deleteRecursively(temp);
   }
 
+  public static List<ZNRecord> getChildren(String zkAddress, String path) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    List<ZNRecord> result = getChildren(zkClient, path);
+    zkClient.close();
+    return result;
+  }
+
+  @Deprecated
   public static List<ZNRecord> getChildren(HelixZkClient client, String path) {
     // parent watch will be set by zkClient
     List<String> children = client.getChildren(path);
@@ -177,6 +231,14 @@ public final class ZKUtil {
     return childRecords;
   }
 
+  public static void updateIfExists(String zkAddress, String path, final ZNRecord record,
+      boolean mergeOnUpdate) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    updateIfExists(zkClient, path, record, mergeOnUpdate);
+    zkClient.close();
+  }
+
+  @Deprecated
   public static void updateIfExists(HelixZkClient client, String path, final ZNRecord record,
       boolean mergeOnUpdate) {
     if (client.exists(path)) {
@@ -190,6 +252,14 @@ public final class ZKUtil {
     }
   }
 
+  public static void createOrMerge(String zkAddress, String path, final ZNRecord record,
+      final boolean persistent, final boolean mergeOnUpdate) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    createOrMerge(zkClient, path, record, persistent, mergeOnUpdate);
+    zkClient.close();
+  }
+
+  @Deprecated
   public static void createOrMerge(HelixZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     int retryCount = 0;
@@ -226,6 +296,13 @@ public final class ZKUtil {
     }
   }
 
+  public static void createOrUpdate(String zkAddress, String path, final ZNRecord record,
+      final boolean persistent, final boolean mergeOnUpdate) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    createOrUpdate(zkClient, path, record, persistent, mergeOnUpdate);
+    zkClient.close();
+  }
+
   public static void createOrUpdate(HelixZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     int retryCount = 0;
@@ -255,6 +332,14 @@ public final class ZKUtil {
     }
   }
 
+  public static void asyncCreateOrMerge(String zkAddress, String path, final ZNRecord record,
+      final boolean persistent, final boolean mergeOnUpdate) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    asyncCreateOrMerge(zkClient, path, record, persistent, mergeOnUpdate);
+    zkClient.close();
+  }
+
+  @Deprecated
   public static void asyncCreateOrMerge(HelixZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     try {
@@ -290,6 +375,14 @@ public final class ZKUtil {
     }
   }
 
+  public static void createOrReplace(String zkAddress, String path, final ZNRecord record,
+      final boolean persistent) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    createOrReplace(zkClient, path, record, persistent);
+    zkClient.close();
+  }
+
+  @Deprecated
   public static void createOrReplace(HelixZkClient client, String path, final ZNRecord record,
       final boolean persistent) {
     int retryCount = 0;
@@ -316,6 +409,14 @@ public final class ZKUtil {
     }
   }
 
+  public static void subtract(String zkAddress, final String path,
+      final ZNRecord recordTosubtract) {
+    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    subtract(zkClient, path, recordTosubtract);
+    zkClient.close();
+  }
+
+  @Deprecated
   public static void subtract(HelixZkClient client, final String path,
       final ZNRecord recordTosubtract) {
     int retryCount = 0;
@@ -341,6 +442,19 @@ public final class ZKUtil {
         logger.warn("Exception trying to createOrReplace " + path + ". Will retry.", e);
       }
     }
+  }
 
+  /**
+   * Returns a dedicated ZkClient.
+   * @return
+   */
+  private static HelixZkClient getHelixZkClient(String zkAddr) {
+    if (zkAddr == null || zkAddr.isEmpty()) {
+      throw new HelixException("ZK Address given is either null or empty!");
+    }
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(new ZNRecordSerializer());
+    return DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr), clientConfig);
   }
 }

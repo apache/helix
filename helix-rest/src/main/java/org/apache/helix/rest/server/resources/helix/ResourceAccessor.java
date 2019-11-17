@@ -210,7 +210,7 @@ public class ResourceAccessor extends AbstractHelixResource {
           record = toZNRecord(content);
         } catch (IOException e) {
           _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
-          return badRequest("Input is not a vaild ZNRecord!");
+          return badRequest("Input is not a valid ZNRecord!");
         }
 
         if (record.getSimpleFields() != null) {
@@ -317,7 +317,7 @@ public class ResourceAccessor extends AbstractHelixResource {
       record = toZNRecord(content);
     } catch (IOException e) {
       _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
-      return badRequest("Input is not a vaild ZNRecord!");
+      return badRequest("Input is not a valid ZNRecord!");
     }
     ResourceConfig resourceConfig = new ResourceConfig(record);
     ConfigAccessor configAccessor = getConfigAccessor();
@@ -379,7 +379,7 @@ public class ResourceAccessor extends AbstractHelixResource {
       record = toZNRecord(content);
     } catch (IOException e) {
       _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
-      return badRequest("Input is not a vaild ZNRecord!");
+      return badRequest("Input is not a valid ZNRecord!");
     }
     IdealState idealState = new IdealState(record);
     HelixAdmin helixAdmin = getHelixAdmin();

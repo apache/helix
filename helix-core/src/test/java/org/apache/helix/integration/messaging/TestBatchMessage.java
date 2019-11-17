@@ -45,13 +45,16 @@ import org.testng.annotations.Test;
 
 public class TestBatchMessage extends ZkTestBase {
   class TestZkChildListener implements IZkChildListener {
-    int _maxNbOfChilds = 0;
+    int _maxNumberOfChildren = 0;
 
     @Override
-    public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception {
-      System.out.println(parentPath + " has " + currentChilds.size() + " messages");
-      if (currentChilds.size() > _maxNbOfChilds) {
-        _maxNbOfChilds = currentChilds.size();
+    public void handleChildChange(String parentPath, List<String> currentChildren) {
+      if (currentChildren == null) {
+        return;
+      }
+      System.out.println(parentPath + " has " + currentChildren.size() + " messages");
+      if (currentChildren.size() > _maxNumberOfChildren) {
+        _maxNumberOfChildren = currentChildren.size();
       }
     }
 
@@ -107,7 +110,7 @@ public class TestBatchMessage extends ZkTestBase {
     Assert.assertTrue(result);
     // Change to three is because there is an extra factory registered
     // So one extra NO_OP message send
-    Assert.assertTrue(listener._maxNbOfChilds <= 3,
+    Assert.assertTrue(listener._maxNumberOfChildren <= 3,
         "Should get no more than 2 messages (O->S and S->M)");
 
     // clean up
@@ -190,7 +193,7 @@ public class TestBatchMessage extends ZkTestBase {
     Assert.assertTrue(result);
     // Change to three is because there is an extra factory registered
     // So one extra NO_OP message send
-    Assert.assertTrue(listener._maxNbOfChilds <= 3,
+    Assert.assertTrue(listener._maxNumberOfChildren <= 3,
         "Should get no more than 2 messages (O->S and S->M)");
 
     // clean up
@@ -349,7 +352,7 @@ public class TestBatchMessage extends ZkTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));
     Assert.assertTrue(result);
-    Assert.assertTrue(listener._maxNbOfChilds > 16,
+    Assert.assertTrue(listener._maxNumberOfChildren > 16,
         "Should see more than 16 messages at the same time (32 O->S and 32 S->M)");
 
     // clean up

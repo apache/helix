@@ -459,6 +459,9 @@ public class TestFullAutoNodeTagging extends ZkUnitTestBase {
         upperBound = 2;
       }
       int average = computeAverage(countMap);
+      if (average == -1) {
+        return false;
+      }
       for (String participantName : countMap.keySet()) {
         int count = countMap.get(participantName);
         if (count < average - 1 || count > average + upperBound) {

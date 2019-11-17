@@ -210,10 +210,16 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
   public WorkflowContext getOrInitializeWorkflowContext(String workflowName, TaskDataCache cache) {
     WorkflowContext workflowCtx = cache.getWorkflowContext(workflowName);
     if (workflowCtx == null) {
-      workflowCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
-      workflowCtx.setStartTime(System.currentTimeMillis());
-      workflowCtx.setName(workflowName);
-      LOG.debug("Workflow context is created for " + workflowName);
+      if (cache.getWorkflowConfig(workflowName) != null) {
+        workflowCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
+        workflowCtx.setStartTime(System.currentTimeMillis());
+        workflowCtx.setName(workflowName);
+        LOG.debug("Workflow context is created for " + workflowName);
+      } else {
+        // If config is null, do not initialize context
+        LOG.error("Workflow context is not created for {}. Workflow config is missing!",
+            workflowName);
+      }
     }
     return workflowCtx;
   }

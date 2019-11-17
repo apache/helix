@@ -141,6 +141,7 @@ public class TestExecutor {
       break;
     case ZNODE:
       valueType = ZnodeModValueType.ZNODE_VALUE;
+      break;
     default:
       break;
     }

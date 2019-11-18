@@ -297,7 +297,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   @Override
   public String toString() {
     String verifierName = getClass().getSimpleName();
-    return verifierName + "(" + _clusterName + "@" + _zkClient.getServers() + "@resources["
-        + _resources != null ? Arrays.toString(_resources.toArray()) : "" + "])";
+    return String
+        .format("%s(%s@%s@resources[%s])", verifierName, _clusterName, _zkClient.getServers(),
+            _resources != null ? Arrays.toString(_resources.toArray()) : "");
   }
 }

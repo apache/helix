@@ -20,8 +20,10 @@ package org.apache.helix.rest.server.resources.helix.waged;
  */
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -50,7 +52,6 @@ public class WagedResourceAccessor extends AbstractHelixResource {
   public Response addResource(@PathParam("clusterId") String clusterId,
       @PathParam("resourceName") String resourceName, String content) {
     HelixAdmin admin = getHelixAdmin();
-
     if (content == null || content.length() == 0) {
       LOG.error("Input is null or empty!");
       return badRequest("Input is null or empty!");
@@ -65,7 +66,6 @@ public class WagedResourceAccessor extends AbstractHelixResource {
       LOG.error("Failed to deserialize user's input " + content + ", Exception: " + e);
       return badRequest("Input is not a valid map of String-ZNRecord pairs!");
     }
-
     // Check if the map contains both IdealState and ResourceConfig
     ZNRecord idealStateRecord = input.get(ResourceAccessor.ResourceProperties.idealState.name());
     ZNRecord resourceConfigRecord =
@@ -75,7 +75,7 @@ public class WagedResourceAccessor extends AbstractHelixResource {
       LOG.error("Input does not contain both IdealState and ResourceConfig!");
       return badRequest("Input does not contain both IdealState and ResourceConfig!");
     }
-
+    // Add using HelixAdmin API
     try {
       admin.addResourceWithWeight(clusterId, new IdealState(idealStateRecord),
           new ResourceConfig(resourceConfigRecord));
@@ -86,8 +86,22 @@ public class WagedResourceAccessor extends AbstractHelixResource {
       LOG.error(errMsg, e);
       return badRequest(errMsg);
     }
-
     return OK();
+  }
+
+  @GET
+  @Path("{resourceName}/validate")
+  public Response validateResource(@PathParam("clusterId") String clusterId,
+      @PathParam("resourceName") String resourceName) {
+    HelixAdmin admin = getHelixAdmin();
+    Map<String, Boolean> validationResultMap;
+    try {
+      validationResultMap = admin
+          .validateResourcesForWagedRebalance(clusterId, Collections.singletonList(resourceName));
+    } catch (HelixException e) {
+      return badRequest(e.getMessage());
+    }
+    return JSONRepresentation(validationResultMap);
   }
 }
 

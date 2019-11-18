@@ -38,6 +38,7 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.participant.CustomCodeCallbackHandler;
 import org.apache.helix.participant.HelixCustomCodeRunner;
@@ -177,10 +178,17 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // Change live-instance should not invoke any custom-code runner
-    LiveInstance fakeInstance = new LiveInstance("fakeInstance");
+    String fakeInstanceName = "fakeInstance";
+    InstanceConfig instanceConfig = new InstanceConfig(fakeInstanceName);
+    instanceConfig.setHostName("localhost");
+    instanceConfig.setPort("10000");
+    instanceConfig.setInstanceEnabled(true);
+    admin.addInstance(clusterName, instanceConfig);
+
+    LiveInstance fakeInstance = new LiveInstance(fakeInstanceName);
     fakeInstance.setSessionId("fakeSessionId");
     fakeInstance.setHelixVersion("0.6");
-    accessor.setProperty(keyBuilder.liveInstance("fakeInstance"), fakeInstance);
+    accessor.setProperty(keyBuilder.liveInstance(fakeInstanceName), fakeInstance);
     Thread.sleep(1000);
 
     for (Map.Entry<String, DummyCallback> e : callbacks.entrySet()) {
@@ -196,7 +204,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     }
 
     // Remove fake instance
-    accessor.removeProperty(keyBuilder.liveInstance("fakeInstance"));
+    accessor.removeProperty(keyBuilder.liveInstance(fakeInstanceName));
 
     // Re-enable custom-code runner
     admin.enableResource(clusterName, customCodeRunnerResource, true);
@@ -227,7 +235,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     }
 
     // Add a fake instance should invoke custom-code runner
-    accessor.setProperty(keyBuilder.liveInstance("fakeInstance"), fakeInstance);
+    accessor.setProperty(keyBuilder.liveInstance(fakeInstanceName), fakeInstance);
     Thread.sleep(1000);
     for (String instance : callbacks.keySet()) {
       DummyCallback callback = callbacks.get(instance);

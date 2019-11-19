@@ -19,6 +19,9 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.lang.management.ManagementFactory;
+import java.util.List;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -36,9 +39,6 @@ import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.management.ManagementFactory;
-import java.util.List;
 
 /**
  * do distributed leader election

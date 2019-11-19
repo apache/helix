@@ -20,8 +20,8 @@ package org.apache.helix.integration.rebalancer.DelayedAutoRebalancer;
  */
 
 import java.util.Map;
+
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;

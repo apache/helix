@@ -19,9 +19,10 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.collect.Sets;
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
+
+import com.google.common.collect.Sets;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;

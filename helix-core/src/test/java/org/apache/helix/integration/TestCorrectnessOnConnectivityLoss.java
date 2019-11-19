@@ -19,10 +19,10 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import com.google.common.collect.Maps;
-
 import java.lang.reflect.Method;
 import java.util.Map;
+
+import com.google.common.collect.Maps;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;

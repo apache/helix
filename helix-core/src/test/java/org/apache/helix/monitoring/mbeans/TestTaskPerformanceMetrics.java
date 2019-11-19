@@ -19,7 +19,6 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableMap;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +34,7 @@ import javax.management.ObjectName;
 import javax.management.Query;
 import javax.management.QueryExp;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.task.MockTask;

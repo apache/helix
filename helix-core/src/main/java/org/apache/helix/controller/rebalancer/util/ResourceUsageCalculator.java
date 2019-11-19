@@ -1,11 +1,11 @@
 package org.apache.helix.controller.rebalancer.util;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.model.Partition;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class ResourceUsageCalculator {
   /**

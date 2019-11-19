@@ -19,13 +19,17 @@ package org.apache.helix.controller.rebalancer.constraint.dataprovider;
  * under the License.
  */
 
-import org.apache.helix.*;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.helix.AccessOption;
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixProperty;
+import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * A resource weight provider based on ZK node.

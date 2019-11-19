@@ -19,8 +19,9 @@ package org.apache.helix.participant;
  * under the License.
  */
 
-import com.google.common.collect.Sets;
 import java.util.Set;
+
+import com.google.common.collect.Sets;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 

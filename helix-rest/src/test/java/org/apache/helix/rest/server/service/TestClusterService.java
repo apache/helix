@@ -1,9 +1,8 @@
 package org.apache.helix.rest.server.service;
 
-import static org.mockito.Mockito.*;
-
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
@@ -14,7 +13,9 @@ import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.google.common.collect.ImmutableList;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class TestClusterService {

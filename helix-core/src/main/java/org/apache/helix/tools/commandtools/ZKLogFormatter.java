@@ -35,13 +35,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.Adler32;
 import java.util.zip.Checksum;
-
 import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 
 import org.apache.jute.BinaryInputArchive;
 import org.apache.jute.Record;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.ZooDefs.OpCode;
 import org.apache.zookeeper.data.Stat;
@@ -52,6 +49,8 @@ import org.apache.zookeeper.server.persistence.FileSnap;
 import org.apache.zookeeper.server.persistence.FileTxnLog;
 import org.apache.zookeeper.server.util.SerializeUtils;
 import org.apache.zookeeper.txn.TxnHeader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZKLogFormatter {
   private static final Logger LOG = LoggerFactory.getLogger(ZKLogFormatter.class);

@@ -19,9 +19,10 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.google.common.collect.Sets;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;

@@ -1,11 +1,10 @@
 package org.apache.helix.rest.server.json.cluster;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 public class TestClusterInfo {
   @Test

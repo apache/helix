@@ -10,7 +10,6 @@
  */
 package org.apache.helix.manager.zk.zookeeper;
 
-import javax.management.JMException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
@@ -23,6 +22,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import javax.management.JMException;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.ExceptionUtil;

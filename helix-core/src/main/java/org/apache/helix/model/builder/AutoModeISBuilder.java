@@ -19,10 +19,10 @@ package org.apache.helix.model.builder;
  * under the License.
  */
 
-import org.apache.helix.model.IdealState.RebalanceMode;
-
 import java.util.ArrayList;
 import java.util.Arrays;
+
+import org.apache.helix.model.IdealState.RebalanceMode;
 
 /**
  * This is the deprecated IS builder for SEMI-AUTO rebalance mode. Please use SemiAutoISBuilder instead.

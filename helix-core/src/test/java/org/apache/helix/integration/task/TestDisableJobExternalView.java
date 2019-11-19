@@ -19,10 +19,11 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.google.common.collect.Sets;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;

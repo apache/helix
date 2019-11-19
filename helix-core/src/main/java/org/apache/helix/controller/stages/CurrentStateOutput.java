@@ -23,11 +23,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import com.google.common.collect.Sets;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
-
-import com.google.common.collect.Sets;
 
 /**
  * The current state includes both current state and pending messages

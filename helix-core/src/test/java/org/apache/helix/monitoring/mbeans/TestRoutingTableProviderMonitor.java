@@ -1,16 +1,16 @@
 package org.apache.helix.monitoring.mbeans;
 
-import org.apache.helix.PropertyType;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
+import java.lang.management.ManagementFactory;
+import java.util.HashSet;
+import java.util.Set;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import java.lang.management.ManagementFactory;
-import java.util.HashSet;
-import java.util.Set;
+
+import org.apache.helix.PropertyType;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 public class TestRoutingTableProviderMonitor {
 

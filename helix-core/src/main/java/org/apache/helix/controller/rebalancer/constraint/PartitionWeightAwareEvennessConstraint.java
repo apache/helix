@@ -19,14 +19,14 @@ package org.apache.helix.controller.rebalancer.constraint;
  * under the License.
  */
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceSoftConstraint;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.CapacityProvider;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.PartitionWeightProvider;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class PartitionWeightAwareEvennessConstraint extends AbstractRebalanceSoftConstraint {
   private final PartitionWeightProvider _partitionWeightProvider;

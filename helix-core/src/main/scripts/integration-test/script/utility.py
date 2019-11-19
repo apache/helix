@@ -21,14 +21,17 @@
 ====  utilities
 '''
 
-import sys, os, subprocess
-import socket, pdb, re
-import urllib, errno
-import time, shutil
-import tempfile
+import errno
+import os
 import random
+import re
+import shutil
 import socket
- 
+import subprocess
+import sys
+import time
+import urllib
+
 sys_call_debug=False
 enable_sys_call_debug=False
 debug_enabled=False
@@ -75,15 +78,15 @@ def sys_pipe_call(cmd):
         print("cmd = %s " % cmd)
         if re.search("svn (log|info)",cmd): return os.popen(cmd).read()
         return ""
-    return os.popen(cmd).read()               
+    return os.popen(cmd).read()
 
 def get_this_file_dirname(): return this_file_dirname
 def get_this_file_name(): return this_file_name
-#handle the json import 
+#handle the json import
 if sys.version_info[0]==2 and sys.version_info[1]<6:
   try:
     import simplejson as json
-  except: 
+  except:
     out=sys_pipe_call(os.path.join(get_this_file_dirname(),"install_python_packages.sh"))
     #print("install json = %s " % out)
     import simplejson as json
@@ -114,8 +117,8 @@ def setup_work_dir():
     else: assert False, "Work Dir Not Defined"
     if "LOG_SUB_DIR" in os.environ: log_dir=os.path.join(var_dir, os.environ["LOG_SUB_DIR"], test_name)
     else: assert False, "Work Dir Not Defined"
-    distutils.dir_util.mkpath(work_dir, verbose=1)  
-    distutils.dir_util.mkpath(log_dir, verbose=1)  
+    distutils.dir_util.mkpath(work_dir, verbose=1)
+    distutils.dir_util.mkpath(log_dir, verbose=1)
 
 def get_test_name(): return test_name
 def get_work_dir(): return work_dir
@@ -133,9 +136,9 @@ def my_exit(ret):
   os.close(3)  # stderr
   sys.exit(ret)
 
-def file_exists(file):  # test both 
+def file_exists(file):  # test both
     ''' return the abs path of the file if exists '''
-    if os.path.isabs(file): 
+    if os.path.isabs(file):
       if os.path.exists(file): return file
       else: return None
     tmp_file=os.path.join(view_root, file)
@@ -143,12 +146,12 @@ def file_exists(file):  # test both
     tmp_file=os.path.join(cwd_dir,file)
     if os.path.exists(tmp_file): return tmp_file
     return None
-  
-def set_debug(flag): 
+
+def set_debug(flag):
     global debug_enabled
     debug_enabled=flag
 
-def set_sys_call_debug(flag): 
+def set_sys_call_debug(flag):
     global enable_sys_call_debug
     enable_sys_call_debug=flag
 
@@ -156,7 +159,7 @@ def sys_call_debug_begin():
     if not enable_sys_call_debug: return
     global sys_call_debug
     sys_call_debug=True
-    
+
 def sys_call_debug_end():
     if not enable_sys_call_debug: return
     global sys_call_debug
@@ -251,14 +254,14 @@ def whoami():
 
 def my_error(s):
     if debug_enabled: assert False, "Error: %s" % s
-    else: 
+    else:
       print "Error: %s" % s
       my_exit(1)
 
 def my_warning(s):
     if debug_enabled:
         print ("== " + sys._getframe(1).f_code.co_name + " == " + str(s))
-    else: 
+    else:
       print "WARNING: %s" % s
 
 def enter_func():
@@ -282,7 +285,7 @@ def next_available_port(ip,port):
     return port_num
 
 def find_open_port(host, start_port, seq_num):
-    ''' find the seq_num th port starting from start_port ''' 
+    ''' find the seq_num th port starting from start_port '''
     limit = 100
     start_port_num = int(start_port)
     seq = 0
@@ -315,12 +318,12 @@ remote_launch=False  # this is to indicate remote ssh recursive call
 remote_run_config={}
 remote_view_root=None
 def get_remote_view_root(): return remote_view_root
-def set_remote_view_root(v_root): 
+def set_remote_view_root(v_root):
     global remote_view_root
     remote_view_root = v_root
-def get_remote_log_dir(): 
+def get_remote_log_dir():
     return os.path.join(var_dir_template % remote_view_root, "log")
-def get_remote_work_dir(): 
+def get_remote_work_dir():
     return os.path.join(var_dir_template % remote_view_root, "work")
 
 import ConfigParser
@@ -333,7 +336,7 @@ def check_remote_config(remote_config_parser):
       my_error("Invalid section %s in config file " % (section))
     if [x for x in ["test_relay, profile_realy, bootstrap_server"] if re.search(x, section)]:
       if not remote_config_parser.has_option(section, "host"):   # set the default host
-        remote_config_parser.set(section, "host",host_name_global) 
+        remote_config_parser.set(section, "host",host_name_global)
 
 def parse_config_cfg(remote_config_file):
   remote_config_parser = ConfigParser.SafeConfigParser()
@@ -360,7 +363,7 @@ def parse_config(remote_config_file_input):
 
 def is_remote_run(): return remote_run
 def is_remote_launch(): return remote_launch
-def set_remote_launch(): 
+def set_remote_launch():
   global remote_launch
   remote_launch=True
 def get_remote_run_config(): return remote_run_config
@@ -368,7 +371,7 @@ def get_remote_run_config(): return remote_run_config
 if "REMOTE_CONFIG_FILE" in os.environ:   # can be set from env or from a file
   parse_config(os.environ["REMOTE_CONFIG_FILE"])
   remote_launch = True # env will not replicated across, so set env will enable launch
- 
+
 # url utilities
 def quote_json(in_str):
     ret = re.sub('([{,])(\w+)(:)','\\1"\\2"\\3', in_str)
@@ -418,13 +421,13 @@ def exec_sql_split_results(result_line):
 
 def exec_sql(qry, user, passwd, sid, host, do_split=False):
     ''' returns an list of results '''
-    dbg_print("qry = %s" % (qry)) 
+    dbg_print("qry = %s" % (qry))
     sqlplus_input="%s \n %s; \n exit \n" % (sqlplus_heading, qry)
     #(user, passwd, sid, host) = tuple(area_conn_info[options.area])
     dbg_print("conn info= %s %s %s %s" % (user, passwd, sid, host))
     sqlplus_call="%s -S %s" % (sqlplus_cmd, conn_str_template % (user, passwd, host, sid))
     os.environ["NLS_LANG"]=".UTF8"  # handle utf8
-    ret_str = sys_pipe_call_2(sqlplus_input, sqlplus_call) 
+    ret_str = sys_pipe_call_2(sqlplus_input, sqlplus_call)
     dbg_print("ret_str = %s" % ret_str)
     # may skip this
     if do_split: return exec_sql_split_results(ret_str)
@@ -448,12 +451,12 @@ def parse_db_conf_file(db_config_file, db_src_ids_str=""):
     schema_registry_list.sort()
     sources={}
     for src in db_sources["sources"]: sources[src["id"]]=src
-    if db_src_ids_str: 
+    if db_src_ids_str:
       if db_src_ids_str=="all": db_src_ids=sources.keys()
       else: db_src_ids = [int(x) for x in db_src_ids_str.split(",")]
     else: db_src_ids=[]
     for src_id in db_src_ids:
-      if src_id not in sources: 
+      if src_id not in sources:
         my_error("source id %s not in config file %s. Available source ids are %s" % (src_id, db_config_file, sources.keys()))
       src_info = sources[src_id]
       src_name = src_info["name"].split(".")[-1]
@@ -492,7 +495,7 @@ def mysql_exec_sql_split_results(result_line):
 
 def mysql_exec_sql(qry, dbname=None, user=None, passwd=None, host=None, do_split=False):
     ''' returns an list of results '''
-    dbg_print("qry = %s" % (qry)) 
+    dbg_print("qry = %s" % (qry))
     mysql_input=" %s; \n exit \n" % (qry)
     dbg_print("conn info= %s %s %s %s" % (dbname, user, passwd, host))
     mysql_call=get_mysql_call(dbname, user, passwd, host)
@@ -584,7 +587,7 @@ class RetCode:
 
 # wait utility
 def wait_for_condition_1(cond_func, timeout=60, sleep_interval = 0.1):
-  ''' wait for a certain cond. cond could be a function. 
+  ''' wait for a certain cond. cond could be a function.
      This cannot be in utility. Because it needs to see the cond function '''
   #dbg_print("cond = %s" % cond)
   if sys_call_debug: return RetCode.OK
@@ -602,7 +605,7 @@ def wait_for_condition_1(cond_func, timeout=60, sleep_interval = 0.1):
 
 def wait_for_port(host, port):
   def test_port_not_open():
-    return not isOpen(host, port) 
+    return not isOpen(host, port)
   ret = wait_for_condition_1(test_port_not_open, timeout=20, sleep_interval=2)
   if ret != RetCode.OK:
     print "ERROR: host:port %s%s is in use" % (host, port)
@@ -636,18 +639,18 @@ def get_process_info_file(dir=None):
 
 def validate_process_info_file():
   process_info_file = get_process_info_file()
-  if os.path.exists(process_info_file): 
+  if os.path.exists(process_info_file):
     return process_info_file
   else: my_error("Process info file %s for test '%s' does not exist. Please run setup first or give correct test name." % (process_info_file, get_test_name()))
 
 def get_process_info(process_info_file=None):
   if not process_info_file: process_info_file = get_process_info_file()
-  if file_exists(process_info_file): 
-    try: 
+  if file_exists(process_info_file):
+    try:
       process_info = json.load(open(process_info_file))
-    except ValueError: 
+    except ValueError:
       my_error("file %s does not have a valid json. Please remove it." % process_info_file)
-  else: 
+  else:
     my_warning("process_info_file %s does not exist" % process_info_file)
     process_info = {}
   return process_info
@@ -671,13 +674,13 @@ def split_process_info_key(key):
   ''' split into component and id '''
   return tuple(key.split(":"))
 
-def save_process_info(component, id, port, log_file, host=None, admin_port=None, mysql_port=None):    
+def save_process_info(component, id, port, log_file, host=None, admin_port=None, mysql_port=None):
   # port can be None
   process_info = get_process_info()
   key = get_process_info_key (component, id)
   process_info[key]={}
   process_info[key]["host"] = host !=None and host or host_name_global
-  process_info[key]["port"] = port 
+  process_info[key]["port"] = port
   process_info[key]["view_root"] = get_view_root()
   if not re.search("^mysql", component):
    process_info[key]["port_byteman"] = port and int(port) + 1000 or random.randint(16000,17000)
@@ -732,7 +735,7 @@ def need_remote_run(process_info):
   for k, v in process_info.items():
     if not re.search("^mysql",k):  # fiter out mysql
       if v["host"].split(".")[0] != host_name_global.split(".")[0]:
-         return True   # need remote run 
+         return True   # need remote run
   return False
 
 metabuilder_file=".metabuilder.properties"
@@ -742,7 +745,7 @@ def get_bldfwk_dir():
     if not os.path.exists(bldfwk_file): return None
     for line in open(bldfwk_file):
       m = re.search("(bldshared-[0-9]+)",line)
-      if m: 
+      if m:
         bldfwk_dir= m.group(1)
         break
     print "Warning. Cannot find bldshared-dir, run ant -f bootstrap.xml"
@@ -764,7 +767,7 @@ def do_remote_deploy(reset=False):
       remote_host = remote_run_config[section]["host"]
       remote_view_root = remote_run_config[section]["view_root"]
       key = "%s:%s" % (remote_host, remote_view_root)
-      if key in already_copied: 
+      if key in already_copied:
         print "Already copied. Skip: host: %s, view_root: %s" % (remote_host, remote_view_root)
         continue
       else: already_copied[key]=1
@@ -773,20 +776,20 @@ def do_remote_deploy(reset=False):
       if reset: sys_call("ssh %s rm -rf %s" % (remote_host, remote_view_root))
       sys_call("ssh %s mkdir -p %s" % (remote_host, remote_view_root))
       cmd = remote_deploy_cmd_template % (rsync_path, view_root, remote_host, remote_view_root)
-      sys_call(cmd) 
+      sys_call(cmd)
       if bldfwk_dir:
         cmd = remote_deploy_bldcmd_template % (rsync_path, os.path.join(os.path.dirname(view_root),bldfwk_dir), remote_host, remote_view_root_parent)
-        sys_call(cmd) 
+        sys_call(cmd)
         # replace the metabuilder, TODO, escape the /
         metabuilder_full_path = os.path.join(remote_view_root, metabuilder_file)
         cmd = remote_deploy_change_blddir_cmd_template % (remote_host, view_root.replace("/","\/"), remote_view_root.replace("/","\/"), metabuilder_full_path,  metabuilder_full_path,  metabuilder_full_path,  metabuilder_full_path)
-        sys_call(cmd) 
+        sys_call(cmd)
       # copy gradle cache
       gradle_cache_template = "%s/.gradle/cache"
-      gradle_cache_dir = gradle_cache_template % os.environ["HOME"] 
+      gradle_cache_dir = gradle_cache_template % os.environ["HOME"]
       if remote_host.split(".")[0] != host_name_global.split(".")[0] and gradle_cache_dir:
         ret = sys_pipe_call("ssh %s pwd" % (remote_host))
-        remote_home = ret.split("\n")[0] 
+        remote_home = ret.split("\n")[0]
         ret = sys_call("ssh %s mkdir -p %s " % (remote_host, (gradle_cache_template % remote_home)))
         cmd = "rsync -avz --rsync-path=%s %s/ %s:%s" % (rsync_path, gradle_cache_dir , remote_host, gradle_cache_template % remote_home)
         sys_call(cmd)
@@ -803,7 +806,7 @@ def get_remote_host_viewroot_path():
       host_viewroot_dict[combined_key] =  "rsync_path" in remote_run_config[component] and remote_run_config[component]["rsync_path"] or rsync_path
   keys = host_viewroot_dict.keys()
   ret = []
-  for k in keys: 
+  for k in keys:
     l = k.split(",")
     l.append(host_viewroot_dict[k])
     ret.append(tuple(l))

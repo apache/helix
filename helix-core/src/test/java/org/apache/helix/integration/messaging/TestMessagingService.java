@@ -19,10 +19,11 @@ package org.apache.helix.integration.messaging;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
+
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.Criteria;
 import org.apache.helix.Criteria.DataSource;
 import org.apache.helix.InstanceType;

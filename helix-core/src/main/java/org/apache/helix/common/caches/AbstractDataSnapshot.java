@@ -1,10 +1,10 @@
 package org.apache.helix.common.caches;
 
-import org.apache.helix.PropertyKey;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.helix.PropertyKey;
 
 public abstract class AbstractDataSnapshot<T> {
   protected final Map<PropertyKey, T> _properties;

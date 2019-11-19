@@ -21,6 +21,7 @@ package org.apache.helix.controller.rebalancer.constraint.dataprovider;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import org.apache.helix.api.rebalancer.constraint.dataprovider.CapacityProvider;
 
 public class MockCapacityProvider implements CapacityProvider {

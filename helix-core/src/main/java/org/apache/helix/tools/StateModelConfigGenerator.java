@@ -25,8 +25,8 @@ import org.apache.helix.model.LeaderStandbySMD;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.model.ScheduledTaskSMD;
-import org.apache.helix.model.TaskSMD;
 import org.apache.helix.model.StorageSchemataSMD;
+import org.apache.helix.model.TaskSMD;
 
 // TODO refactor to use StateModelDefinition.Builder
 @Deprecated

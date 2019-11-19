@@ -25,12 +25,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.helix.HelixProperty;
+import org.apache.helix.ZNRecord;
 
 /**
  * Provides a typed interface to the context information stored by {@link TaskRebalancer} in the

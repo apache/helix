@@ -19,7 +19,6 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import com.beust.jcommander.internal.Maps;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Date;
@@ -31,6 +30,8 @@ import javax.management.InstanceNotFoundException;
 import javax.management.JMException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
+
+import com.beust.jcommander.internal.Maps;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;

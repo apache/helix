@@ -19,11 +19,6 @@ package org.apache.helix.controller.strategy;
  * under the License.
  */
 
-import org.apache.helix.HelixManager;
-import org.apache.helix.ZNRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,6 +31,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import org.apache.helix.HelixManager;
+import org.apache.helix.ZNRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The class was moved to controller.rebalancer.strategy.

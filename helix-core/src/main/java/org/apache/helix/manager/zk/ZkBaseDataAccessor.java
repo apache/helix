@@ -87,12 +87,18 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
   private final HelixZkClient _zkClient;
+  // true if ZkBaseDataAccessor was instantiated with a HelixZkClient, false otherwise
+  // This is used for close() to determine how ZkBaseDataAccessor should close the underlying
+  // ZkClient
+  private final boolean _usesExternalZkClient;
 
+  @Deprecated
   public ZkBaseDataAccessor(HelixZkClient zkClient) {
     if (zkClient == null) {
       throw new NullPointerException("zkclient is null");
     }
     _zkClient = zkClient;
+    _usesExternalZkClient = true;
   }
 
   /**
@@ -100,9 +106,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * @param zkAddress The zookeeper address
    */
   public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer) {
-    _zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-            new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
+    _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
+        new HelixZkClient.ZkConnectionConfig(zkAddress),
+        new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
+    _usesExternalZkClient = false;
   }
 
   /**
@@ -1142,7 +1149,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public void close() {
-    if (_zkClient != null) {
+    if (_zkClient != null && !_usesExternalZkClient) {
       _zkClient.close();
     }
   }

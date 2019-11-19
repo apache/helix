@@ -90,12 +90,17 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   private final HelixZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
+  // true if ZKHelixAdmin was instantiated with a HelixZkClient, false otherwise
+  // This is used for close() to determine how ZKHelixAdmin should close the underlying ZkClient
+  private final boolean _usesExternalZkClient;
 
   private static Logger logger = LoggerFactory.getLogger(ZKHelixAdmin.class);
 
+  @Deprecated
   public ZKHelixAdmin(HelixZkClient zkClient) {
     _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(zkClient);
+    _usesExternalZkClient = true;
   }
 
   public ZKHelixAdmin(String zkAddress) {
@@ -107,6 +112,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
     _zkClient.waitUntilConnected(timeOutInSec, TimeUnit.SECONDS);
     _configAccessor = new ConfigAccessor(_zkClient);
+    _usesExternalZkClient = false;
   }
 
   @Override
@@ -1571,11 +1577,13 @@ public class ZKHelixAdmin implements HelixAdmin {
     return instances;
   }
 
+  /**
+   * Closes the ZkClient only if it was generated internally.
+   */
   @Override
   public void close() {
-    if (_zkClient != null) {
+    if (_zkClient != null && !_usesExternalZkClient) {
       _zkClient.close();
     }
   }
-
 }

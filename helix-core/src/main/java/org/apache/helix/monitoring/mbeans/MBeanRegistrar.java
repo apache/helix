@@ -19,11 +19,15 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import java.lang.management.ManagementFactory;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.management.*;
-import java.lang.management.ManagementFactory;
 
 public class MBeanRegistrar {
   private static Logger LOG = LoggerFactory.getLogger(MBeanRegistrar.class);

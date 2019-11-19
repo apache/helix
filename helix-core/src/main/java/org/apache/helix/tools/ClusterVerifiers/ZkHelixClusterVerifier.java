@@ -19,9 +19,13 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.HelixDataAccessor;
@@ -37,10 +41,6 @@ import org.apache.helix.model.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
 public abstract class ZkHelixClusterVerifier
     implements IZkChildListener, IZkDataListener, HelixClusterVerifier {
   private static Logger LOG = LoggerFactory.getLogger(ZkHelixClusterVerifier.class);
@@ -48,6 +48,10 @@ public abstract class ZkHelixClusterVerifier
   protected static int DEFAULT_PERIOD = 500;
 
   protected final HelixZkClient _zkClient;
+  // true if ZkHelixClusterVerifier was instantiated with a HelixZkClient, false otherwise
+  // This is used for close() to determine how ZkHelixClusterVerifier should close the underlying
+  // ZkClient
+  private final boolean _usesExternalZkClient;
   protected final String _clusterName;
   protected final HelixDataAccessor _accessor;
   protected final PropertyKey.Builder _keyBuilder;
@@ -92,6 +96,7 @@ public abstract class ZkHelixClusterVerifier
       throw new IllegalArgumentException("requires zkClient|clusterName");
     }
     _zkClient = zkClient;
+    _usesExternalZkClient = true;
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
@@ -103,6 +108,7 @@ public abstract class ZkHelixClusterVerifier
     }
     _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
+    _usesExternalZkClient = false;
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
@@ -186,6 +192,12 @@ public abstract class ZkHelixClusterVerifier
    */
   public boolean verifyByPolling() {
     return verifyByPolling(DEFAULT_TIMEOUT, DEFAULT_PERIOD);
+  }
+
+  public void close() {
+    if (_zkClient != null && !_usesExternalZkClient) {
+      _zkClient.close();
+    }
   }
 
   protected boolean verifyByCallback(long timeout, List<ClusterVerifyTrigger> triggers) {

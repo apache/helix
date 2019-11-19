@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
@@ -297,7 +298,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   @Override
   public String toString() {
     String verifierName = getClass().getSimpleName();
-    return verifierName + "(" + _clusterName + "@" + _zkClient.getServers() + "@resources["
-        + _resources != null ? Arrays.toString(_resources.toArray()) : "" + "])";
+    return String
+        .format("%s(%s@%s@resources[%s])", verifierName, _clusterName, _zkClient.getServers(),
+            _resources != null ? Arrays.toString(_resources.toArray()) : "");
   }
 }

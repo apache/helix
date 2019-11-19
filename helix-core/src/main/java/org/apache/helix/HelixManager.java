@@ -20,10 +20,19 @@ package org.apache.helix;
  */
 
 import java.util.List;
-
 import java.util.Set;
+
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
+import org.apache.helix.api.listeners.ConfigChangeListener;
+import org.apache.helix.api.listeners.ControllerChangeListener;
+import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.ExternalViewChangeListener;
+import org.apache.helix.api.listeners.IdealStateChangeListener;
+import org.apache.helix.api.listeners.InstanceConfigChangeListener;
+import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
+import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
@@ -34,15 +43,6 @@ import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
-import org.apache.helix.api.listeners.MessageListener;
-import org.apache.helix.api.listeners.ScopedConfigChangeListener;
-import org.apache.helix.api.listeners.IdealStateChangeListener;
-import org.apache.helix.api.listeners.LiveInstanceChangeListener;
-import org.apache.helix.api.listeners.CurrentStateChangeListener;
-import org.apache.helix.api.listeners.ExternalViewChangeListener;
-import org.apache.helix.api.listeners.InstanceConfigChangeListener;
-import org.apache.helix.api.listeners.ConfigChangeListener;
-import org.apache.helix.api.listeners.ControllerChangeListener;
 
 /**
  * Class that represents the Helix Agent.

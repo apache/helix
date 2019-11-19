@@ -19,7 +19,9 @@ package org.apache.helix.tools;
  * under the License.
  */
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Random;
 import java.util.zip.CRC32;
 
 public class RUSHrHash {

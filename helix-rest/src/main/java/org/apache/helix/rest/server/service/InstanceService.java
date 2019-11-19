@@ -19,14 +19,14 @@ package org.apache.helix.rest.server.service;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableList;
-import org.apache.helix.rest.server.json.instance.InstanceInfo;
-import org.apache.helix.rest.server.json.instance.StoppableCheck;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.collect.ImmutableList;
+import org.apache.helix.rest.server.json.instance.InstanceInfo;
+import org.apache.helix.rest.server.json.instance.StoppableCheck;
 
 public interface InstanceService {
     enum HealthCheck {

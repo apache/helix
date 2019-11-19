@@ -19,8 +19,6 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -30,6 +28,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.common.caches.TaskDataCache;
@@ -303,12 +304,14 @@ public abstract class AbstractTaskDispatcher {
 
             // Also release resources for these tasks
             assignableInstanceManager.release(instance, taskConfig, quotaType);
+            break;
           } else if (jobState == TaskState.IN_PROGRESS
               && (jobTgtState != TargetState.STOP && jobTgtState != TargetState.DELETE)) {
             // Job is in progress, implying that tasks are being re-tried, so set it to RUNNING
             paMap.put(pId,
                 new JobRebalancer.PartitionAssignment(instance, TaskPartitionState.RUNNING.name()));
             assignedPartitions.get(instance).add(pId);
+            break;
           }
         }
 

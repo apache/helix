@@ -23,11 +23,11 @@ import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 
 import org.apache.helix.HelixException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Serializes and deserializes data of a generic type using Jackson

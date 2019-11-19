@@ -29,14 +29,13 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.helix.task.assigner.TaskAssignResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

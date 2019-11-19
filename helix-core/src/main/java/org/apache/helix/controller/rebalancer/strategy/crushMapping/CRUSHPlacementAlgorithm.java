@@ -15,8 +15,6 @@
 
 package org.apache.helix.controller.rebalancer.strategy.crushMapping;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -26,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.util.JenkinsHash;
 import org.slf4j.Logger;

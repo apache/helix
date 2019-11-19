@@ -20,7 +20,7 @@ package org.apache.helix.taskexecution;
  */
 
 import java.io.File;
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -121,7 +121,7 @@ public class TaskExecutionDemo {
     float fraudProbability = 0.01f;
     float clickProbability = 0.01f;
     int numImps = NUM_IMP_EVENTS;
-    Random rand = new Random();
+    SecureRandom rand = new SecureRandom();
     String[] countries = {
         "US", "CANADA", "UK", "CHINA", "UNKNOWN"
     };

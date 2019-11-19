@@ -4,11 +4,10 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 public class TestClusterTopology {
 

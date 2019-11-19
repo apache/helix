@@ -19,11 +19,12 @@ package org.apache.helix.common;
  * under the License.
  */
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * A blocking queue of events, which automatically deduplicate events with the same "type" within

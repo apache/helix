@@ -29,6 +29,7 @@ import java.util.TreeMap;
 
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
@@ -67,14 +68,31 @@ public class ConfigAccessor {
     // @formatter:on
   }
 
-  private final HelixZkClient zkClient;
+  private final HelixZkClient _zkClient;
+  // true if ConfigAccessor was instantiated with a HelixZkClient, false otherwise
+  // This is used for close() to determine how ConfigAccessor should close the underlying ZkClient
+  private final boolean _usesExternalZkClient;
 
   /**
    * Initialize an accessor with a Zookeeper client
+   * Note: it is recommended to use the other constructor instead to avoid having to create a HelixZkClient.
    * @param zkClient
    */
+  @Deprecated
   public ConfigAccessor(HelixZkClient zkClient) {
-    this.zkClient = zkClient;
+    _zkClient = zkClient;
+    _usesExternalZkClient = true;
+  }
+
+  /**
+   * Initialize a ConfigAccessor with a ZooKeeper connect string. It will use a SharedZkClient with default settings.
+   * @param zkAddress
+   */
+  public ConfigAccessor(String zkAddress) {
+    _zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+            new HelixZkClient.ZkClientConfig());
+    _usesExternalZkClient = false;
   }
 
   /**
@@ -107,14 +125,14 @@ public class ConfigAccessor {
     // String value = null;
     Map<String, String> map = new HashMap<String, String>();
     String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
     String scopeStr = scope.getScopeStr();
     String[] splits = scopeStr.split("\\|");
 
-    ZNRecord record = zkClient.readData(splits[0], true);
+    ZNRecord record = _zkClient.readData(splits[0], true);
 
     if (record != null) {
       if (splits.length == 1) {
@@ -198,11 +216,11 @@ public class ConfigAccessor {
 
   private ZNRecord getConfigZnRecord(HelixConfigScope scope) {
     String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to get configs. cluster " + clusterName + " is not setup yet");
     }
 
-    return zkClient.readData(scope.getZkPath(), true);
+    return _zkClient.readData(scope.getZkPath(), true);
   }
 
   /**
@@ -233,14 +251,14 @@ public class ConfigAccessor {
     }
 
     String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("cluster: " + clusterName + " is NOT setup.");
     }
 
     if (scope.getScope() == ConfigScopeProperty.PARTICIPANT) {
       String scopeStr = scope.getScopeStr();
       String instanceName = scopeStr.substring(scopeStr.lastIndexOf('/') + 1);
-      if (!ZKUtil.isInstanceSetup(zkClient, scope.getClusterName(), instanceName,
+      if (!ZKUtil.isInstanceSetup(_zkClient, scope.getClusterName(), instanceName,
           InstanceType.PARTICIPANT)) {
         throw new HelixException("instance: " + instanceName + " is NOT setup in cluster: "
             + clusterName);
@@ -267,7 +285,7 @@ public class ConfigAccessor {
         update.getMapField(splits[1]).put(key, value);
       }
     }
-    ZKUtil.createOrMerge(zkClient, splits[0], update, true, true);
+    ZKUtil.createOrMerge(_zkClient, splits[0], update, true, true);
   }
 
   /**
@@ -296,12 +314,12 @@ public class ConfigAccessor {
     }
 
     String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to set config. cluster: " + clusterName + " is NOT setup.");
     }
 
     if (scope.getType() == ConfigScopeProperty.PARTICIPANT) {
-      if (!ZKUtil.isInstanceSetup(zkClient, scope.getClusterName(), scope.getParticipantName(),
+      if (!ZKUtil.isInstanceSetup(_zkClient, scope.getClusterName(), scope.getParticipantName(),
           InstanceType.PARTICIPANT)) {
         throw new HelixException("fail to set config. instance: " + scope.getParticipantName()
             + " is NOT setup in cluster: " + clusterName);
@@ -318,7 +336,7 @@ public class ConfigAccessor {
       update.setMapField(mapKey, keyValueMap);
     }
 
-    ZKUtil.createOrMerge(zkClient, zkPath, update, true, true);
+    ZKUtil.createOrMerge(_zkClient, zkPath, update, true, true);
   }
 
   /**
@@ -346,7 +364,7 @@ public class ConfigAccessor {
     }
 
     String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
@@ -370,7 +388,7 @@ public class ConfigAccessor {
       }
     }
 
-    ZKUtil.subtract(zkClient, splits[0], update);
+    ZKUtil.subtract(_zkClient, splits[0], update);
   }
 
   /**
@@ -396,7 +414,7 @@ public class ConfigAccessor {
     }
 
     String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to remove. cluster " + clusterName + " is not setup yet");
     }
 
@@ -417,7 +435,7 @@ public class ConfigAccessor {
       }
     }
 
-    ZKUtil.subtract(zkClient, zkPath, update);
+    ZKUtil.subtract(_zkClient, zkPath, update);
   }
 
   /**
@@ -434,12 +452,12 @@ public class ConfigAccessor {
     }
 
     String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to remove. cluster " + clusterName + " is not setup yet");
     }
 
     String zkPath = scope.getZkPath();
-    ZKUtil.subtract(zkClient, zkPath, recordToRemove);
+    ZKUtil.subtract(_zkClient, zkPath, recordToRemove);
   }
 
   /**
@@ -458,7 +476,7 @@ public class ConfigAccessor {
     }
 
     try {
-      if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+      if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
         LOG.error("cluster " + clusterName + " is not setup yet");
         return Collections.emptyList();
       }
@@ -470,9 +488,9 @@ public class ConfigAccessor {
       String[] splits = scopeStr.split("\\|");
       List<String> retKeys = null;
       if (splits.length == 1) {
-        retKeys = zkClient.getChildren(splits[0]);
+        retKeys = _zkClient.getChildren(splits[0]);
       } else {
-        ZNRecord record = zkClient.readData(splits[0]);
+        ZNRecord record = _zkClient.readData(splits[0]);
 
         if (splits[1].startsWith("SIMPLEKEYS")) {
           retKeys = new ArrayList<String>(record.getSimpleFields().keySet());
@@ -507,7 +525,7 @@ public class ConfigAccessor {
       return null;
     }
 
-    if (!ZKUtil.isClusterSetup(scope.getClusterName(), zkClient)) {
+    if (!ZKUtil.isClusterSetup(scope.getClusterName(), _zkClient)) {
       LOG.error("fail to getKeys. cluster " + scope.getClusterName() + " is not setup yet");
       return Collections.emptyList();
     }
@@ -517,7 +535,7 @@ public class ConfigAccessor {
     List<String> retKeys = null;
 
     if (scope.isFullKey()) {
-      ZNRecord record = zkClient.readData(zkPath);
+      ZNRecord record = _zkClient.readData(zkPath);
       if (mapKey == null) {
         retKeys = new ArrayList<String>(record.getSimpleFields().keySet());
       } else {
@@ -525,10 +543,10 @@ public class ConfigAccessor {
       }
     } else {
       if (scope.getType() == ConfigScopeProperty.PARTITION) {
-        ZNRecord record = zkClient.readData(zkPath);
+        ZNRecord record = _zkClient.readData(zkPath);
         retKeys = new ArrayList<String>(record.getMapFields().keySet());
       } else {
-        retKeys = zkClient.getChildren(zkPath);
+        retKeys = _zkClient.getChildren(zkPath);
       }
     }
 
@@ -546,7 +564,7 @@ public class ConfigAccessor {
    * @return
    */
   public ClusterConfig getClusterConfig(String clusterName) {
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to get config. cluster: " + clusterName + " is NOT setup.");
     }
 
@@ -617,7 +635,7 @@ public class ConfigAccessor {
 
 
   private void updateClusterConfig(String clusterName, ClusterConfig clusterConfig, boolean overwrite) {
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to update config. cluster: " + clusterName + " is NOT setup.");
     }
 
@@ -626,9 +644,9 @@ public class ConfigAccessor {
     String zkPath = scope.getZkPath();
 
     if (overwrite) {
-      ZKUtil.createOrReplace(zkClient, zkPath, clusterConfig.getRecord(), true);
+      ZKUtil.createOrReplace(_zkClient, zkPath, clusterConfig.getRecord(), true);
     } else {
-      ZKUtil.createOrUpdate(zkClient, zkPath, clusterConfig.getRecord(), true, true);
+      ZKUtil.createOrUpdate(_zkClient, zkPath, clusterConfig.getRecord(), true, true);
     }
   }
 
@@ -694,7 +712,7 @@ public class ConfigAccessor {
 
   private void updateResourceConfig(String clusterName, String resourceName,
       ResourceConfig resourceConfig, boolean overwrite) {
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to setup config. cluster: " + clusterName + " is NOT setup.");
     }
 
@@ -704,9 +722,9 @@ public class ConfigAccessor {
     String zkPath = scope.getZkPath();
 
     if (overwrite) {
-      ZKUtil.createOrReplace(zkClient, zkPath, resourceConfig.getRecord(), true);
+      ZKUtil.createOrReplace(_zkClient, zkPath, resourceConfig.getRecord(), true);
     } else {
-      ZKUtil.createOrUpdate(zkClient, zkPath, resourceConfig.getRecord(), true, true);
+      ZKUtil.createOrUpdate(_zkClient, zkPath, resourceConfig.getRecord(), true, true);
     }
   }
 
@@ -719,7 +737,7 @@ public class ConfigAccessor {
    * @return
    */
   public InstanceConfig getInstanceConfig(String clusterName, String instanceName) {
-    if (!ZKUtil.isInstanceSetup(zkClient, clusterName, instanceName, InstanceType.PARTICIPANT)) {
+    if (!ZKUtil.isInstanceSetup(_zkClient, clusterName, instanceName, InstanceType.PARTICIPANT)) {
       throw new HelixException(
           "fail to get config. instance: " + instanceName + " is NOT setup in cluster: "
               + clusterName);
@@ -777,7 +795,7 @@ public class ConfigAccessor {
 
   private void updateInstanceConfig(String clusterName, String instanceName,
       InstanceConfig instanceConfig, boolean overwrite) {
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to setup config. cluster: " + clusterName + " is NOT setup.");
     }
 
@@ -786,16 +804,25 @@ public class ConfigAccessor {
             .forParticipant(instanceName).build();
     String zkPath = scope.getZkPath();
 
-    if (!zkClient.exists(zkPath)) {
+    if (!_zkClient.exists(zkPath)) {
       throw new HelixException(
           "updateInstanceConfig failed. Given InstanceConfig does not already exist. instance: "
               + instanceName);
     }
 
     if (overwrite) {
-      ZKUtil.createOrReplace(zkClient, zkPath, instanceConfig.getRecord(), true);
+      ZKUtil.createOrReplace(_zkClient, zkPath, instanceConfig.getRecord(), true);
     } else {
-      ZKUtil.createOrUpdate(zkClient, zkPath, instanceConfig.getRecord(), true, true);
+      ZKUtil.createOrUpdate(_zkClient, zkPath, instanceConfig.getRecord(), true, true);
+    }
+  }
+
+  /**
+   * Closes ConfigAccessor: closes the stateful resources including the ZkClient.
+   */
+  public void close() {
+    if (_zkClient != null && !_usesExternalZkClient) {
+      _zkClient.close();
     }
   }
 }

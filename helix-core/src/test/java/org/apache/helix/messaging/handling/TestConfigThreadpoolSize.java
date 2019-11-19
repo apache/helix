@@ -19,10 +19,11 @@ package org.apache.helix.messaging.handling;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
+
+import com.google.common.collect.ImmutableList;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;

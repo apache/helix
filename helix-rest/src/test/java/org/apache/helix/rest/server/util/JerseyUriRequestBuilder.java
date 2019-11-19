@@ -2,18 +2,16 @@ package org.apache.helix.rest.server.util;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.jersey.test.JerseyTestNg;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 
 
 /**

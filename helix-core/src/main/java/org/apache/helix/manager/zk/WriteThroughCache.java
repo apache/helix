@@ -26,9 +26,9 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.zookeeper.data.Stat;
 
 public class WriteThroughCache<T> extends Cache<T> {
   private static Logger LOG = LoggerFactory.getLogger(WriteThroughCache.class);

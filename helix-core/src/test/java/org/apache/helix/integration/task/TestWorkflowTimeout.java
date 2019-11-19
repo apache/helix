@@ -19,9 +19,10 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.Collections;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import java.util.Collections;
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.task.JobConfig;

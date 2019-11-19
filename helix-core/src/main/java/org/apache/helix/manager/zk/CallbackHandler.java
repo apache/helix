@@ -72,7 +72,18 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.HelixConstants.ChangeType.*;
+import static org.apache.helix.HelixConstants.ChangeType.CLUSTER_CONFIG;
+import static org.apache.helix.HelixConstants.ChangeType.CONFIG;
+import static org.apache.helix.HelixConstants.ChangeType.CONTROLLER;
+import static org.apache.helix.HelixConstants.ChangeType.CURRENT_STATE;
+import static org.apache.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
+import static org.apache.helix.HelixConstants.ChangeType.IDEAL_STATE;
+import static org.apache.helix.HelixConstants.ChangeType.INSTANCE_CONFIG;
+import static org.apache.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
+import static org.apache.helix.HelixConstants.ChangeType.MESSAGE;
+import static org.apache.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
+import static org.apache.helix.HelixConstants.ChangeType.RESOURCE_CONFIG;
+import static org.apache.helix.HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW;
 
 @PreFetch(enabled = false)
 public class CallbackHandler implements IZkChildListener, IZkDataListener {

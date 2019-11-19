@@ -20,6 +20,7 @@ package org.apache.helix.integration.paticipant;
  */
 
 import java.util.List;
+
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;

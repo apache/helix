@@ -24,13 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixDefinedState;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.StateModelDefinition;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import org.apache.helix.HelixDefinedState;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.StateModelDefinition;
 
 public class PerInstanceResourceMonitor implements PerInstanceResourceMonitorMBean {
   public static class BeanName {

@@ -37,4 +37,9 @@ public interface HelixClusterVerifier {
    *  @return true if succeed, false if not.
    */
   boolean verify();
+
+  /**
+   * Close the underlying metadata store connection.
+   */
+  void close();
 }

@@ -19,9 +19,9 @@ package org.apache.helix.api.rebalancer.constraint;
  * under the License.
  */
 
-import org.apache.helix.controller.common.ResourcesStateMap;
-
 import java.util.Map;
+
+import org.apache.helix.controller.common.ResourcesStateMap;
 
 public abstract class AbstractRebalanceHardConstraint {
   /**

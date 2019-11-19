@@ -22,6 +22,7 @@ package org.apache.helix.monitoring;
 import java.util.List;
 import java.util.TimerTask;
 
+import com.google.common.collect.Lists;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -29,11 +30,9 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.zookeeper.data.Stat;
-
-import com.google.common.collect.Lists;
 
 public class ZKPathDataDumpTask extends TimerTask {
   static Logger LOG = LoggerFactory.getLogger(ZKPathDataDumpTask.class);

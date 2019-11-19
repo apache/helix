@@ -19,10 +19,10 @@ package org.apache.helix.controller.stages.resource;
  * under the License.
  */
 
-import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.IntermediateStateOutput;
+import org.apache.helix.controller.stages.MessageGenerationPhase;
 
 /**
  * Compares the currentState, pendingState with IdealState and generate messages for regular resource

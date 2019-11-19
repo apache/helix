@@ -24,19 +24,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.TestHelper;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.ImmutableMap;
 
 public class TestNamespacedAPIAccess extends AbstractTestClass {
   ObjectMapper _mapper = new ObjectMapper();

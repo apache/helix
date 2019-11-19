@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import com.google.common.base.Joiner;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -42,8 +44,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Joiner;
 
 public final class HelixUtil {
   static private Logger LOG = LoggerFactory.getLogger(HelixUtil.class);

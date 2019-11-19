@@ -19,9 +19,10 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Map;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.MockAccessor;

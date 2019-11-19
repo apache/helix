@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
@@ -257,6 +258,9 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
   @Override public void reset() {
     _recordMap.clear();
   }
+
+  @Override
+  public void close() { }
 
   @Override public boolean set(String path, ZNRecord record, int options, int expectVersion) {
     return set(path, record, options);

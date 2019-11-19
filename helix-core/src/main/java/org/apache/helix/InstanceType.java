@@ -20,8 +20,8 @@ package org.apache.helix;
  */
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 
 /**

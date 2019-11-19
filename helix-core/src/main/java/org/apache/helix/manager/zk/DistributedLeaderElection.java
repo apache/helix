@@ -19,6 +19,9 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.lang.management.ManagementFactory;
+import java.util.List;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -26,6 +29,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
@@ -35,9 +39,6 @@ import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.management.ManagementFactory;
-import java.util.List;
 
 /**
  * do distributed leader election
@@ -87,36 +88,40 @@ public class DistributedLeaderElection implements ControllerChangeListener {
 
   private void relinquishLeadership(HelixManager manager,
       ControllerManagerHelper controllerHelper) {
-    LOG.info(manager.getInstanceName() + " relinquish leadership for cluster: " + manager
+    long start = System.currentTimeMillis();
+    LOG.info(manager.getInstanceName() + " tries to relinquish leadership for cluster: " + manager
         .getClusterName());
     controllerHelper.stopControllerTimerTasks();
     controllerHelper.removeListenersFromController(_controller);
     // clear write-through cache
     manager.getHelixDataAccessor().getBaseDataAccessor().reset();
+    LOG.info("{} relinquishes leadership for cluster: {}, took: {}ms", manager.getInstanceName(),
+        manager.getClusterName(), System.currentTimeMillis() - start);
   }
 
   private void acquireLeadership(final HelixManager manager,
       ControllerManagerHelper controllerHelper) {
-    LOG.info(manager.getInstanceName() + " is trying to acquire leadership for cluster: " + manager
-        .getClusterName());
-
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey leaderNodePropertyKey = accessor.keyBuilder().controllerLeader();
 
+    LOG.info(manager.getInstanceName() + " tries to acquire leadership for cluster: " + manager
+        .getClusterName());
     // Try to acquire leader and init the manager in any case.
     // Even when a leader node already exists, the election process shall still try to init the manager
     // in case it is the current leader.
     do {
       // Due to the possible carried over ZK events from the previous ZK session, the following
       // initialization might be triggered multiple times. So the operation must be idempotent.
+      long start = System.currentTimeMillis();
       if (tryCreateController(manager)) {
-        LOG.info("{} with session {} acquired leadership for cluster: {}",
-            manager.getInstanceName(), manager.getSessionId(), manager.getClusterName());
         manager.getHelixDataAccessor().getBaseDataAccessor().reset();
         controllerHelper.addListenersToController(_controller);
         controllerHelper.startControllerTimerTasks();
+        LOG.info("{} with session {} acquired leadership for cluster: {}, took: {}ms",
+            manager.getInstanceName(), manager.getSessionId(), manager.getClusterName(),
+            System.currentTimeMillis() - start);
       }
-    } while (accessor.getProperty(keyBuilder.controllerLeader()) == null);
+    } while (accessor.getProperty(leaderNodePropertyKey) == null);
   }
 
   /**

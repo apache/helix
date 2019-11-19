@@ -31,12 +31,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
-
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Response;
 
+import com.google.common.base.Joiner;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -91,8 +91,6 @@ import org.glassfish.jersey.test.spi.TestContainerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
-
-import com.google.common.base.Joiner;
 
 public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static final String ZK_ADDR = "localhost:2123";

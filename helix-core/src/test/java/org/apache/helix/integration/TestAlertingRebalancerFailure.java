@@ -20,14 +20,14 @@ package org.apache.helix.integration;
  */
 
 import java.io.IOException;
-import javax.management.MBeanServerConnection;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import javax.management.MBeanServerConnection;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
@@ -164,6 +164,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
         .setZkAddr(ZK_ADDR).setResources(new HashSet<>(Collections.singleton(testDb))).build();
+    _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, testDb, 3);
     Assert.assertTrue(verifier.verifyByPolling());
 
     // Verify there is no rebalance error logged

@@ -19,12 +19,12 @@ package org.apache.helix.controller.common;
  * under the License.
  */
 
-import org.apache.helix.model.Partition;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.helix.model.Partition;
 
 /**
  * Hold the Resource -> partition -> instance -> state mapping for all resources.

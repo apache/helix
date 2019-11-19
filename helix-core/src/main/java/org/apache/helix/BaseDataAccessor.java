@@ -257,4 +257,9 @@ public interface BaseDataAccessor<T> {
    * reset the cache if any, when session expiry happens
    */
   void reset();
+
+  /**
+   * Close the connection to the metadata store
+   */
+  void close();
 }

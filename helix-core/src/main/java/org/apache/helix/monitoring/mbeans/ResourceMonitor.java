@@ -19,8 +19,6 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -30,6 +28,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 import javax.management.ObjectName;
+
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;

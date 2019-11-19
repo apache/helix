@@ -45,11 +45,11 @@ import org.slf4j.LoggerFactory;
 
 @Path("/clusters/{clusterId}/waged/resources")
 public class WagedResourceAccessor extends AbstractHelixResource {
-  private final static Logger LOG = LoggerFactory.getLogger(ResourceAccessor.class);
+  private final static Logger LOG = LoggerFactory.getLogger(WagedResourceAccessor.class);
 
   @PUT
   @Path("{resourceName}")
-  public Response addResource(@PathParam("clusterId") String clusterId,
+  public Response addResourceWithWeight(@PathParam("clusterId") String clusterId,
       @PathParam("resourceName") String resourceName, String content) {
     HelixAdmin admin = getHelixAdmin();
     if (content == null || content.length() == 0) {

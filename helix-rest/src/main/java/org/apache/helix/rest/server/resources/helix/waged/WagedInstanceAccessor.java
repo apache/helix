@@ -31,7 +31,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.rest.server.resources.helix.AbstractHelixResource;
 
 
-@Path("/clusters/{clusterId}/instances")
+@Path("/clusters/{clusterId}/waged/instances")
 public class WagedInstanceAccessor extends AbstractHelixResource {
   @GET
   @Path("{instanceName}/validate")

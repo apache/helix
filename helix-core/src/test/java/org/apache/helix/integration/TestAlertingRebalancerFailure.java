@@ -164,6 +164,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
         .setZkAddr(ZK_ADDR).setResources(new HashSet<>(Collections.singleton(testDb))).build();
+    _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, testDb, 3);
     Assert.assertTrue(verifier.verifyByPolling());
 
     // Verify there is no rebalance error logged

@@ -29,6 +29,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.AssertJUnit;
@@ -48,10 +49,10 @@ public class TestZKUtil extends ZkUnitTestBase {
     result = ZKUtil.isClusterSetup(null, _gZkClient);
     AssertJUnit.assertFalse(result);
 
-    result = ZKUtil.isClusterSetup(null, null);
+    result = ZKUtil.isClusterSetup(null, (HelixZkClient) null);
     AssertJUnit.assertFalse(result);
 
-    result = ZKUtil.isClusterSetup(clusterName, null);
+    result = ZKUtil.isClusterSetup(clusterName, (HelixZkClient) null);
     AssertJUnit.assertFalse(result);
 
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);

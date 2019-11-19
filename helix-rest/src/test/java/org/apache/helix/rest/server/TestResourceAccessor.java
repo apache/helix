@@ -41,6 +41,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
@@ -431,10 +432,30 @@ public class TestResourceAccessor extends AbstractTestClass {
   }
 
   /**
+   * Test "enableWagedRebalance" command of updateResource.
+   */
+  @Test(dependsOnMethods = "updateResourceIdealState")
+  public void testEnableWagedRebalance() {
+    IdealState idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, RESOURCE_NAME);
+    Assert.assertNotSame(idealState.getRebalancerClassName(), WagedRebalancer.class.getName());
+
+    // Enable waged rebalance, which should change the rebalancer class name
+    Entity entity = Entity.entity(null, MediaType.APPLICATION_JSON_TYPE);
+    post("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME,
+        Collections.singletonMap("command", "enableWagedRebalance"), entity,
+        Response.Status.OK.getStatusCode());
+
+    idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, RESOURCE_NAME);
+    Assert.assertEquals(idealState.getRebalancerClassName(), WagedRebalancer.class.getName());
+  }
+
+  /**
    * Test "delete" command of updateResourceIdealState.
    * @throws Exception
    */
-  @Test(dependsOnMethods = "updateResourceIdealState")
+  @Test(dependsOnMethods = "testEnableWagedRebalance")
   public void deleteFromResourceIdealState() throws Exception {
     String zkPath = PropertyPathBuilder.idealState(CLUSTER_NAME, RESOURCE_NAME);
     ZNRecord record = new ZNRecord(RESOURCE_NAME);

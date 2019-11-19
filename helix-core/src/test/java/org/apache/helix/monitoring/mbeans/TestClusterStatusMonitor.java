@@ -31,7 +31,7 @@ import javax.management.JMException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
-import com.beust.jcommander.internal.Maps;
+import com.google.common.collect.Maps;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;

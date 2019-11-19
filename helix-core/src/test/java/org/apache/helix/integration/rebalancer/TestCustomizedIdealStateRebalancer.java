@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Lists;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
@@ -44,6 +44,7 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
   String db2 = TEST_DB + "2";

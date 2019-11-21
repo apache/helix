@@ -577,6 +577,6 @@ public interface HelixAdmin {
    * Release resources used in HelixAdmin.
    */
   default void close() {
-
+    System.out.println("Default close() was invoked! No operation was executed.");
   }
 }

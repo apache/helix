@@ -264,6 +264,6 @@ public interface BaseDataAccessor<T> {
    * Close the connection to the metadata store
    */
   default void close() {
-
+    System.out.println("Default close() was invoked! No operation was executed.");
   }
 }

@@ -26,6 +26,7 @@ import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.zookeeper.data.Stat;
 
+
 /**
  * Generic interface for accessing and manipulating data on a backing store like Zookeeper.
  * @param <T> The type of record to use
@@ -181,7 +182,8 @@ public interface BaseDataAccessor<T> {
    * @return A list of children of the parent ZNode
    */
   List<T> getChildren(String parentPath, List<Stat> stats, int options, int retryCount,
-      int retryInterval) throws HelixException;
+      int retryInterval)
+      throws HelixException;
 
   /**
    * Returns the child names given a parent path
@@ -261,5 +263,7 @@ public interface BaseDataAccessor<T> {
   /**
    * Close the connection to the metadata store
    */
-  void close();
+  default void close() {
+    System.out.println("Default close() was invoked! No operation was executed.");
+  }
 }

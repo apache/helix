@@ -574,7 +574,9 @@ public interface HelixAdmin {
   List<String> getInstancesByDomain(String clusterName, String domain);
 
   /**
-   * Release resources
+   * Release resources used in HelixAdmin.
    */
-  void close();
+  default void close() {
+
+  }
 }

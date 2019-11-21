@@ -41,5 +41,7 @@ public interface HelixClusterVerifier {
   /**
    * Close the underlying metadata store connection.
    */
-  void close();
+  default void close() {
+
+  }
 }

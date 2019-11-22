@@ -20,7 +20,9 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -67,16 +69,41 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
   @GET
   public Response getInstanceById(@PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName) throws IOException {
-    ObjectMapper objectMapper = new ObjectMapper();
-    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    // TODO reduce GC by dependency injection
-    InstanceService instanceService =
-        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
-    InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
-        InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
+      @PathParam("instanceName") String instanceName,
+      @DefaultValue("getInstance") @QueryParam("command") String command) throws IOException {
+    // Get the command. If not provided, the default would be "getInstance"
+    Command cmd;
+    try {
+      cmd = Command.valueOf(command);
+    } catch (Exception e) {
+      return badRequest("Invalid command : " + command);
+    }
 
-    return OK(objectMapper.writeValueAsString(instanceInfo));
+    switch (cmd) {
+    case getInstance:
+      ObjectMapper objectMapper = new ObjectMapper();
+      HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
+      // TODO reduce GC by dependency injection
+      InstanceService instanceService = new InstanceServiceImpl(
+          new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
+      InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
+          InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
+      return OK(objectMapper.writeValueAsString(instanceInfo));
+    case validateWeight:
+      // Validates instanceConfig for WAGED rebalance
+      HelixAdmin admin = getHelixAdmin();
+      Map<String, Boolean> validationResultMap;
+      try {
+        validationResultMap = admin.validateInstancesForWagedRebalance(clusterId,
+            Collections.singletonList(instanceName));
+      } catch (HelixException e) {
+        return badRequest(e.getMessage());
+      }
+      return JSONRepresentation(validationResultMap);
+    default:
+      LOG.error("Unsupported command :" + command);
+      return badRequest("Unsupported command :" + command);
+    }
   }
 
   @POST
@@ -331,7 +358,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
-  @GET @Path("errors")
+  @GET
+  @Path("errors")
   public Response getErrorsOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);

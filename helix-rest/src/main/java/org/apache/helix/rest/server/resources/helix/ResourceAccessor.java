@@ -48,6 +48,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.node.ArrayNode;
@@ -160,33 +161,56 @@ public class ResourceAccessor extends AbstractHelixResource {
   @GET
   @Path("{resourceName}")
   public Response getResource(@PathParam("clusterId") String clusterId,
-      @PathParam("resourceName") String resourceName) {
+      @PathParam("resourceName") String resourceName,
+      @DefaultValue("getResource") @QueryParam("command") String command) {
+    // Get the command. If not provided, the default would be "getResource"
+    Command cmd;
+    try {
+      cmd = Command.valueOf(command);
+    } catch (Exception e) {
+      return badRequest("Invalid command : " + command);
+    }
     ConfigAccessor accessor = getConfigAccessor();
     HelixAdmin admin = getHelixAdmin();
 
-    ResourceConfig resourceConfig = accessor.getResourceConfig(clusterId, resourceName);
-    IdealState idealState = admin.getResourceIdealState(clusterId, resourceName);
-    ExternalView externalView = admin.getResourceExternalView(clusterId, resourceName);
+    switch (cmd) {
+    case getResource:
+      ResourceConfig resourceConfig = accessor.getResourceConfig(clusterId, resourceName);
+      IdealState idealState = admin.getResourceIdealState(clusterId, resourceName);
+      ExternalView externalView = admin.getResourceExternalView(clusterId, resourceName);
 
-    Map<String, ZNRecord> resourceMap = new HashMap<>();
-    if (idealState != null) {
-      resourceMap.put(ResourceProperties.idealState.name(), idealState.getRecord());
-    } else {
-      return notFound();
+      Map<String, ZNRecord> resourceMap = new HashMap<>();
+      if (idealState != null) {
+        resourceMap.put(ResourceProperties.idealState.name(), idealState.getRecord());
+      } else {
+        return notFound();
+      }
+
+      resourceMap.put(ResourceProperties.resourceConfig.name(), null);
+      resourceMap.put(ResourceProperties.externalView.name(), null);
+
+      if (resourceConfig != null) {
+        resourceMap.put(ResourceProperties.resourceConfig.name(), resourceConfig.getRecord());
+      }
+
+      if (externalView != null) {
+        resourceMap.put(ResourceProperties.externalView.name(), externalView.getRecord());
+      }
+      return JSONRepresentation(resourceMap);
+    case validateWeight:
+      // Validate ResourceConfig for WAGED rebalance
+      Map<String, Boolean> validationResultMap;
+      try {
+        validationResultMap = admin.validateResourcesForWagedRebalance(clusterId,
+            Collections.singletonList(resourceName));
+      } catch (HelixException e) {
+        return badRequest(e.getMessage());
+      }
+      return JSONRepresentation(validationResultMap);
+    default:
+      _logger.error("Unsupported command :" + command);
+      return badRequest("Unsupported command :" + command);
     }
-
-    resourceMap.put(ResourceProperties.resourceConfig.name(), null);
-    resourceMap.put(ResourceProperties.externalView.name(), null);
-
-    if (resourceConfig != null) {
-      resourceMap.put(ResourceProperties.resourceConfig.name(), resourceConfig.getRecord());
-    }
-
-    if (externalView != null) {
-      resourceMap.put(ResourceProperties.externalView.name(), externalView.getRecord());
-    }
-
-    return JSONRepresentation(resourceMap);
   }
 
   @PUT
@@ -199,32 +223,81 @@ public class ResourceAccessor extends AbstractHelixResource {
       @DefaultValue("DEFAULT") @QueryParam("rebalanceStrategy") String rebalanceStrategy,
       @DefaultValue("0") @QueryParam("bucketSize") int bucketSize,
       @DefaultValue("-1") @QueryParam("maxPartitionsPerInstance") int maxPartitionsPerInstance,
-      String content) {
-
-    HelixAdmin admin = getHelixAdmin();
-
+      @DefaultValue("addResource") @QueryParam("command") String command, String content) {
+    // Get the command. If not provided, the default would be "addResource"
+    Command cmd;
     try {
-      if (content.length() != 0) {
-        ZNRecord record;
-        try {
-          record = toZNRecord(content);
-        } catch (IOException e) {
-          _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
-          return badRequest("Input is not a valid ZNRecord!");
-        }
+      cmd = Command.valueOf(command);
+    } catch (Exception e) {
+      return badRequest("Invalid command : " + command);
+    }
+    HelixAdmin admin = getHelixAdmin();
+    try {
+      switch (cmd) {
+      case addResource:
+        if (content.length() != 0) {
+          ZNRecord record;
+          try {
+            record = toZNRecord(content);
+          } catch (IOException e) {
+            _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+            return badRequest("Input is not a valid ZNRecord!");
+          }
 
-        if (record.getSimpleFields() != null) {
-          admin.addResource(clusterId, resourceName, new IdealState(record));
+          if (record.getSimpleFields() != null) {
+            admin.addResource(clusterId, resourceName, new IdealState(record));
+          }
+        } else {
+          admin.addResource(clusterId, resourceName, numPartitions, stateModelRef, rebalancerMode,
+              rebalanceStrategy, bucketSize, maxPartitionsPerInstance);
         }
-      } else {
-        admin.addResource(clusterId, resourceName, numPartitions, stateModelRef, rebalancerMode,
-            rebalanceStrategy, bucketSize, maxPartitionsPerInstance);
+        break;
+      case addWagedResource:
+        // Check if content is valid
+        if (content == null || content.length() == 0) {
+          _logger.error("Input is null or empty!");
+          return badRequest("Input is null or empty!");
+        }
+        Map<String, ZNRecord> input;
+        // Content must supply both IdealState and ResourceConfig
+        try {
+          TypeReference<Map<String, ZNRecord>> typeRef =
+              new TypeReference<Map<String, ZNRecord>>() {
+              };
+          input = OBJECT_MAPPER.readValue(content, typeRef);
+        } catch (IOException e) {
+          _logger.error("Failed to deserialize user's input {}, Exception: {}", content, e);
+          return badRequest("Input is not a valid map of String-ZNRecord pairs!");
+        }
+        // Check if the map contains both IdealState and ResourceConfig
+        ZNRecord idealStateRecord =
+            input.get(ResourceAccessor.ResourceProperties.idealState.name());
+        ZNRecord resourceConfigRecord =
+            input.get(ResourceAccessor.ResourceProperties.resourceConfig.name());
+
+        if (idealStateRecord == null || resourceConfigRecord == null) {
+          _logger.error("Input does not contain both IdealState and ResourceConfig!");
+          return badRequest("Input does not contain both IdealState and ResourceConfig!");
+        }
+        // Add using HelixAdmin API
+        try {
+          admin.addResourceWithWeight(clusterId, new IdealState(idealStateRecord),
+              new ResourceConfig(resourceConfigRecord));
+        } catch (HelixException e) {
+          String errMsg = String.format("Failed to add resource %s with weight in cluster %s!",
+              idealStateRecord.getId(), clusterId);
+          _logger.error(errMsg, e);
+          return badRequest(errMsg);
+        }
+        break;
+      default:
+        _logger.error("Unsupported command :" + command);
+        return badRequest("Unsupported command :" + command);
       }
     } catch (Exception e) {
       _logger.error("Error in adding a resource: " + resourceName, e);
       return serverError(e);
     }
-
     return OK();
   }
 

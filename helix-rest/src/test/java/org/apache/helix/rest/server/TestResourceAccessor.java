@@ -42,8 +42,10 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.rest.server.resources.helix.ResourceAccessor;
@@ -491,6 +493,91 @@ public class TestResourceAccessor extends AbstractTestClass {
       Assert.assertFalse(recordAfterDelete.getMapFields().containsKey(key));
     }
     System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "deleteFromResourceIdealState")
+  public void testAddResourceWithWeight() throws IOException {
+    // Test case 1: Add a valid resource with valid weights
+    // Create a resource with IdealState and ResourceConfig
+    String wagedResourceName = "newWagedResource";
+
+    // Create an IdealState on full-auto with 1 partition
+    IdealState idealState = new IdealState(wagedResourceName);
+    idealState.getRecord().getSimpleFields().putAll(_gSetupTool.getClusterManagementTool()
+        .getResourceIdealState(CLUSTER_NAME, RESOURCE_NAME).getRecord().getSimpleFields());
+    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+    idealState.setRebalancerClassName(WagedRebalancer.class.getName());
+    idealState.setNumPartitions(1); // 1 partition for convenience of testing
+
+    // Create a ResourceConfig with FOO and BAR at 100 respectively
+    ResourceConfig resourceConfig = new ResourceConfig(wagedResourceName);
+    Map<String, Map<String, Integer>> partitionCapacityMap = new HashMap<>();
+    Map<String, Integer> partitionCapacity = ImmutableMap.of("FOO", 100, "BAR", 100);
+    partitionCapacityMap.put(wagedResourceName + "_0", partitionCapacity);
+    // Also add a default key
+    partitionCapacityMap.put(ResourceConfig.DEFAULT_PARTITION_KEY, partitionCapacity);
+    resourceConfig.setPartitionCapacityMap(partitionCapacityMap);
+
+    // Put both IdealState and ResourceConfig into a map as required
+    Map<String, ZNRecord> inputMap = ImmutableMap.of(
+        ResourceAccessor.ResourceProperties.idealState.name(), idealState.getRecord(),
+        ResourceAccessor.ResourceProperties.resourceConfig.name(), resourceConfig.getRecord());
+
+    // Create an entity using the inputMap
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(inputMap), MediaType.APPLICATION_JSON_TYPE);
+
+    // Make a HTTP call to the REST endpoint
+    put("clusters/" + CLUSTER_NAME + "/resources/" + wagedResourceName,
+        ImmutableMap.of("command", "addWagedResource"), entity, Response.Status.OK.getStatusCode());
+
+    // Test case 2: Add a resource with invalid weights
+    String invalidResourceName = "invalidWagedResource";
+    ResourceConfig invalidWeightResourceConfig = new ResourceConfig(invalidResourceName);
+    IdealState invalidWeightIdealState = new IdealState(invalidResourceName);
+
+    Map<String, ZNRecord> invalidInputMap = ImmutableMap.of(
+        ResourceAccessor.ResourceProperties.idealState.name(), invalidWeightIdealState.getRecord(),
+        ResourceAccessor.ResourceProperties.resourceConfig.name(),
+        invalidWeightResourceConfig.getRecord());
+
+    // Create an entity using invalidInputMap
+    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(invalidInputMap),
+        MediaType.APPLICATION_JSON_TYPE);
+
+    // Make a HTTP call to the REST endpoint
+    put("clusters/" + CLUSTER_NAME + "/resources/" + invalidResourceName,
+        ImmutableMap.of("command", "addWagedResource"), entity,
+        Response.Status.BAD_REQUEST.getStatusCode());
+  }
+
+  @Test(dependsOnMethods = "testAddResourceWithWeight")
+  public void testValidateResource() throws IOException {
+    // Define weight keys in ClusterConfig
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setInstanceCapacityKeys(Arrays.asList("FOO", "BAR"));
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    // Validate the resource added in testAddResourceWithWeight()
+    String resourceToValidate = "newWagedResource";
+    // This should fail because none of the instances have weight configured
+    get("clusters/" + CLUSTER_NAME + "/resources/" + resourceToValidate,
+        ImmutableMap.of("command", "validateWeight"), Response.Status.BAD_REQUEST.getStatusCode(),
+        true);
+
+    // Add weight configurations to all instance configs
+    Map<String, Integer> instanceCapacityMap = ImmutableMap.of("FOO", 1000, "BAR", 1000);
+    for (String instance : _instancesMap.get(CLUSTER_NAME)) {
+      InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
+      instanceConfig.setInstanceCapacityMap(instanceCapacityMap);
+      _configAccessor.setInstanceConfig(CLUSTER_NAME, instance, instanceConfig);
+    }
+
+    // Now try validating again - it should go through and return a 200
+    String body = get("clusters/" + CLUSTER_NAME + "/resources/" + resourceToValidate,
+        ImmutableMap.of("command", "validateWeight"), Response.Status.OK.getStatusCode(), true);
+    JsonNode node = OBJECT_MAPPER.readTree(body);
+    Assert.assertEquals(node.get(resourceToValidate).toString(), "true");
   }
 
   /**

@@ -67,7 +67,13 @@ public class AbstractResource {
     reset,
     resetPartitions,
     removeInstanceTag,
-    enableWagedRebalance
+    addResource,
+    addWagedResource,
+    getResource,
+    validateWeight,
+    enableWagedRebalance,
+    getInstance,
+    getAllInstances
   }
 
   @Context

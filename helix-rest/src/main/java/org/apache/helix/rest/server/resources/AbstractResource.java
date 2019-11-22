@@ -131,10 +131,6 @@ public class AbstractResource {
   }
 
   protected Response JSONRepresentation(Object entity) {
-    if (entity == null) {
-      // return empty content when entity is null
-      return OK("");
-    }
     try {
       String jsonStr = toJson(entity);
       return OK(jsonStr);

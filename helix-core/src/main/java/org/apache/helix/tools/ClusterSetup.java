@@ -135,9 +135,13 @@ public class ClusterSetup {
   public static final String removeConstraint = "removeConstraint";
 
   static Logger _logger = LoggerFactory.getLogger(ClusterSetup.class);
-  String _zkServerAddress;
-  HelixZkClient _zkClient;
-  HelixAdmin _admin;
+  private final String _zkServerAddress;
+  private final HelixZkClient _zkClient;
+  // true if ZkBaseDataAccessor was instantiated with a HelixZkClient, false otherwise
+  // This is used for close() to determine how ZkBaseDataAccessor should close the underlying
+  // ZkClient
+  private final boolean _usesExternalZkClient;
+  private final HelixAdmin _admin;
 
   public ClusterSetup(String zkServerAddress) {
     _zkServerAddress = zkServerAddress;
@@ -145,18 +149,31 @@ public class ClusterSetup {
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkServerAddress));
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     _admin = new ZKHelixAdmin(_zkClient);
+    _usesExternalZkClient = false;
   }
 
   public ClusterSetup(HelixZkClient zkClient) {
     _zkServerAddress = zkClient.getServers();
     _zkClient = zkClient;
     _admin = new ZKHelixAdmin(_zkClient);
+    _usesExternalZkClient = true;
   }
 
   public ClusterSetup(HelixZkClient zkClient, HelixAdmin zkHelixAdmin) {
     _zkServerAddress = zkClient.getServers();
     _zkClient = zkClient;
     _admin = zkHelixAdmin;
+    _usesExternalZkClient = true;
+  }
+
+  /**
+   * Closes any stateful resources in ClusterSetup.
+   */
+  public void close() {
+    if (_zkClient != null && !_usesExternalZkClient) {
+      _admin.close();
+      _zkClient.close();
+    }
   }
 
   public void addCluster(String clusterName, boolean overwritePrevious) {

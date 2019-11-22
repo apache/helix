@@ -20,6 +20,7 @@ package org.apache.helix.rest.server;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -176,6 +177,12 @@ public class TestInstancesAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testGetAllInstances")
   public void testValidateWeightForAllInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    // Empty out ClusterConfig's weight key setting for testing
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.getRecord().setListField(
+        ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), new ArrayList<>());
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
     // Issue a validate call
     String body = new JerseyUriRequestBuilder("clusters/{}/instances?command=validateWeight")
         .isBodyReturnExpected(true).format(CLUSTER_NAME).get(this);
@@ -185,7 +192,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     // in ClusterConfig
     node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
 
-    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setInstanceCapacityKeys(Arrays.asList("FOO", "BAR"));
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 

@@ -558,6 +558,13 @@ public class TestResourceAccessor extends AbstractTestClass {
     clusterConfig.setInstanceCapacityKeys(Arrays.asList("FOO", "BAR"));
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
+    // Remove all weight configs in InstanceConfig for testing
+    for (String instance : _instancesMap.get(CLUSTER_NAME)) {
+      InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
+      instanceConfig.setInstanceCapacityMap(Collections.emptyMap());
+      _configAccessor.setInstanceConfig(CLUSTER_NAME, instance, instanceConfig);
+    }
+
     // Validate the resource added in testAddResourceWithWeight()
     String resourceToValidate = "newWagedResource";
     // This should fail because none of the instances have weight configured
@@ -565,7 +572,7 @@ public class TestResourceAccessor extends AbstractTestClass {
         ImmutableMap.of("command", "validateWeight"), Response.Status.BAD_REQUEST.getStatusCode(),
         true);
 
-    // Add weight configurations to all instance configs
+    // Add back weight configurations to all instance configs
     Map<String, Integer> instanceCapacityMap = ImmutableMap.of("FOO", 1000, "BAR", 1000);
     for (String instance : _instancesMap.get(CLUSTER_NAME)) {
       InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);

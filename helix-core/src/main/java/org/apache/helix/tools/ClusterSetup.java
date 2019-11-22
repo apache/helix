@@ -134,7 +134,7 @@ public class ClusterSetup {
   public static final String setConstraint = "setConstraint";
   public static final String removeConstraint = "removeConstraint";
 
-  static Logger _logger = LoggerFactory.getLogger(ClusterSetup.class);
+  private static final Logger _logger = LoggerFactory.getLogger(ClusterSetup.class);
   private final String _zkServerAddress;
   private final HelixZkClient _zkClient;
   // true if ZkBaseDataAccessor was instantiated with a HelixZkClient, false otherwise

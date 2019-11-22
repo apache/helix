@@ -120,12 +120,12 @@ public class ServerContext {
     }
   }
 
-  public ZkBaseDataAccessor<ZNRecord> getPropertyStoreAccessor(
-      PropertyStoreAccessor.PropertyStoreSerializer serializer) {
+  public ZkBaseDataAccessor<ZNRecord> getPropertyStoreAccessor() {
     if (PROPERTY_STORE_ACCESSOR == null) {
       synchronized (this) {
         if (PROPERTY_STORE_ACCESSOR == null) {
-          PROPERTY_STORE_ACCESSOR = new ZkBaseDataAccessor<>(_zkAddr, serializer);
+          PROPERTY_STORE_ACCESSOR = new ZkBaseDataAccessor<>(_zkAddr,
+              new PropertyStoreAccessor.PropertyStoreSerializer());
         }
       }
     }

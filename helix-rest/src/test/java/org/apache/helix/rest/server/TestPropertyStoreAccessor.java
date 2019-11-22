@@ -38,9 +38,11 @@ import org.testng.annotations.Test;
 
 public class TestPropertyStoreAccessor extends AbstractTestClass {
   private static final String TEST_CLUSTER = "TestCluster_0";
-  private static final String ZNRECORD_PATH = PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/ZnRecord";
+  private static final String ZNRECORD_PATH =
+      PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/ZnRecord";
   private static final ZNRecord TEST_ZNRECORD = new ZNRecord("TestContent");
-  private static final String CUSTOM_PATH  = PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/NonZnRecord";
+  private static final String CUSTOM_PATH =
+      PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/NonZnRecord";
   private static final String TEST_CONTENT = "TestContent";
 
   private ZkBaseDataAccessor<String> _customDataAccessor;
@@ -74,34 +76,32 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testGetPropertyStoreWithZNRecordData() throws IOException {
+  public void testGetPropertyStoreWithZNRecordData()
+      throws IOException {
     String data =
         new JerseyUriRequestBuilder("clusters/{}/propertyStore/ZnRecord").format(TEST_CLUSTER)
-            .isBodyReturnExpected(true)
-            .get(this);
+            .isBodyReturnExpected(true).get(this);
     ZNRecord record = OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
     Assert.assertEquals(record.getId(), TEST_ZNRECORD.getId());
   }
 
-
   @Test
-  public void testGetPropertyStoreWithTestStringData() throws IOException {
+  public void testGetPropertyStoreWithTestStringData()
+      throws IOException {
     String data =
         new JerseyUriRequestBuilder("clusters/{}/propertyStore/NonZnRecord").format(TEST_CLUSTER)
-            .isBodyReturnExpected(true)
-            .get(this);
+            .isBodyReturnExpected(true).get(this);
 
     ZNRecord record = OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
-    Assert.assertEquals(record.getSimpleField(record.getId()), TEST_CONTENT);
+    Assert.assertEquals(record.getSimpleField("default"), TEST_CONTENT);
   }
 
   @Test
-  public void testGetPropertyStoreWithEmptyDataPath() throws IOException {
-     String data =
+  public void testGetPropertyStoreWithEmptyDataPath() {
+    Response response =
         new JerseyUriRequestBuilder("clusters/{}/propertyStore/EmptyPath").format(TEST_CLUSTER)
-            .isBodyReturnExpected(true)
-            .get(this);
-    Assert.assertTrue(data.isEmpty());
+            .isBodyReturnExpected(true).getResponse(this);
+    Assert.assertEquals(response.getStatus(), HttpStatus.SC_NOT_FOUND);
   }
 
   @Test

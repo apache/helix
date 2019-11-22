@@ -79,7 +79,7 @@ public class AbstractHelixResource extends AbstractResource {
   }
 
   protected ZkBaseDataAccessor<ZNRecord> getPropertyStoreAccessor() {
-    return getServerContext().getPropertyStoreAccessor(new PropertyStoreAccessor.PropertyStoreSerializer());
+    return getServerContext().getPropertyStoreAccessor();
   }
 
   protected static ZNRecord toZNRecord(String data)

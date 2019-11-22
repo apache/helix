@@ -40,7 +40,7 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(PropertyStoreAccessor.class);
 
   public static class PropertyStoreSerializer implements ZkSerializer {
-    private static String DEFAULT_KEY = "default";
+    private static final String DEFAULT_KEY = "default";
     private static final ZNRecordSerializer ZN_RECORD_SERIALIZER = new ZNRecordSerializer();
 
     // used for writing the serialized content to property store path
@@ -87,8 +87,13 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
     ZkBaseDataAccessor<ZNRecord> propertyStoreDataAccessor = getPropertyStoreAccessor();
-    ZNRecord record = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
-    return JSONRepresentation(record);
+    if (propertyStoreDataAccessor.exists(recordPath, AccessOption.PERSISTENT)) {
+      ZNRecord record = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
+      return JSONRepresentation(record);
+    } else {
+      throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND).entity(
+          "The property store path " + recordPath + " doesn't exist").build());
+    }
   }
 
   /**

@@ -569,6 +569,71 @@ public class ZkClient implements Watcher {
   }
 
   /**
+   * Creates a session aware ephemeral node.
+   * If the ephemeral node is created successfully, returns true.
+   * If session is expired, returns false.
+   * If connection is timed out or interrupted, exception is thrown.
+   *
+   * @param path path of the ephemeral node being created
+   * @param data data of the ephemeral node being created
+   * @param sessionId session id of the zookeeper client
+   * @return <code>true</code> if the input session is not expired and the ephemeral node is created
+   *         successfully; <code>false</code> if the input session is expired.
+   * @throws ZkInterruptedException
+   *           if operation is interrupted, or a required reconnection gets interrupted
+   * @throws IllegalArgumentException
+   *           if called from anything except the ZooKeeper event thread
+   * @throws ZkException
+   *           if any ZooKeeper exception occurs
+   * @throws RuntimeException
+   *           if any other exception occurs
+   */
+  public boolean createEphemeral(final String path, final Object data, final long sessionId)
+      throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
+    if (path == null) {
+      throw new NullPointerException("Path must not be null.");
+    }
+
+    long startTime = System.currentTimeMillis();
+    try {
+      final byte[] serializedData = (data == null ? null : serialize(data, path));
+      checkDataSizeLimit(serializedData);
+
+      boolean successful = retryUntilConnected(() -> {
+        // Acquire zk event lock to make sure no new session is established,
+        // while the session is being checked and the ephemeral node is being created.
+        acquireEventLock();
+        try {
+          // Check if current session is still the same with the input session.
+          // If not, it means the input session is expired, we will not create an ephemeral node,
+          // and return false.
+          if (getSessionId() != sessionId) {
+            return false;
+          }
+          // Call zookeeper to create an ephemeral node.
+          getConnection()
+              .create(path, serializedData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+          return true;
+        } finally {
+          getEventLock().unlock();
+        }
+      });
+
+      if (!successful) {
+        recordFailure(path, ZkClientMonitor.AccessType.WRITE);
+        return false;
+      }
+      record(path, serializedData, startTime, ZkClientMonitor.AccessType.WRITE);
+      return true;
+    } catch (Exception e) {
+      recordFailure(path, ZkClientMonitor.AccessType.WRITE);
+      throw e;
+    } finally {
+      LOG.trace("Create path: {}, time: {} ms.", path, System.currentTimeMillis() - startTime);
+    }
+  }
+
+  /**
    * Create an ephemeral node.
    * @param path
    * @param data

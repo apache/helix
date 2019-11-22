@@ -19,13 +19,11 @@ package org.apache.helix.rest.server.resources.helix;
  * under the License.
  */
 
-import java.io.IOException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
@@ -42,12 +40,8 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(PropertyStoreAccessor.class);
 
   public static class PropertyStoreSerializer implements ZkSerializer {
+    private static String DEFAULT_KEY = "default";
     private static final ZNRecordSerializer ZN_RECORD_SERIALIZER = new ZNRecordSerializer();
-    private final String _path;
-
-    public PropertyStoreSerializer(String path) {
-      _path = path;
-    }
 
     // used for writing the serialized content to property store path
     @Override
@@ -60,29 +54,15 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
     @Override
     public Object deserialize(byte[] bytes)
         throws ZkMarshallingError {
-      if (bytes == null || bytes.length == 0) {
-        throw new ZkMarshallingError("Data unavailable from path: " + _path);
-      }
-      // first, try to deserialize the bytearray into ZnRecord using {@link ZNRecordSerializer}
+      // firstly, try to deserialize the bytearray into ZnRecord using {@link ZNRecordSerializer}
       ZNRecord content = (ZNRecord) ZN_RECORD_SERIALIZER.deserialize(bytes);
       // if first trial fails, fallback to return a simple/default znRecord
       if (content == null) {
-        ZNRecord znRecord = new ZNRecord(_path);
-        znRecord.setSimpleField(_path, new String(bytes));
+        ZNRecord znRecord = new ZNRecord(DEFAULT_KEY);
+        znRecord.setSimpleField(DEFAULT_KEY, new String(bytes));
         return znRecord;
       }
       return content;
-    }
-
-    // The hashCode and equals methods' implementations ensure all instances are the same
-    @Override
-    public int hashCode() {
-      return getClass().getSimpleName().hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      return true;
     }
   }
 
@@ -100,15 +80,13 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
       @PathParam("path") String path) {
     path = "/" + path;
     if (!isPathValid(path)) {
-      LOG.error("The propertyStore path {} is invalid for cluster {}", path, clusterId);
+      LOG.info("The propertyStore path {} is invalid for cluster {}", path, clusterId);
       throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
           "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode")
           .build());
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
-    ZkSerializer propertyStoreDataSerializer = new PropertyStoreSerializer(recordPath);
-    ZkBaseDataAccessor<ZNRecord> propertyStoreDataAccessor =
-        getZkBaseDataAccessor(propertyStoreDataSerializer);
+    ZkBaseDataAccessor<ZNRecord> propertyStoreDataAccessor = getPropertyStoreAccessor();
     ZNRecord record = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
     return JSONRepresentation(record);
   }

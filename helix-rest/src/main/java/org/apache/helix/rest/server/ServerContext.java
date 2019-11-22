@@ -36,10 +36,12 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
+import org.apache.helix.rest.server.resources.helix.PropertyStoreAccessor;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
 
 public class ServerContext {
+  private static ZkBaseDataAccessor<ZNRecord> PROPERTY_STORE_ACCESSOR = null;
   private final String _zkAddr;
   private HelixZkClient _zkClient;
   private ZKHelixAdmin _zkHelixAdmin;
@@ -50,7 +52,6 @@ public class ServerContext {
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;
   // 1 Cluster name will correspond to 1 task driver
   private final Map<String, TaskDriver> _taskDriverPool;
-  final Map<ZkSerializer, ZkBaseDataAccessor<ZNRecord>> _zkBaseDataAccessorBySerializer;
 
   public ServerContext(String zkAddr) {
     _zkAddr = zkAddr;
@@ -60,7 +61,6 @@ public class ServerContext {
     // ZooKeeper. In this case, initializing _zkClient will fail and HelixRestServer
     // cannot be started correctly.
     _helixDataAccessorPool = new HashMap<>();
-    _zkBaseDataAccessorBySerializer = new HashMap<>();
     _taskDriverPool = new HashMap<>();
   }
 
@@ -120,22 +120,21 @@ public class ServerContext {
     }
   }
 
-  public ZkBaseDataAccessor<ZNRecord> getZkBaseDataAccessor(ZkSerializer serializer) {
-    if (!_zkBaseDataAccessorBySerializer.containsKey(serializer)) {
-      synchronized (_zkBaseDataAccessorBySerializer) {
-        if (!_zkBaseDataAccessorBySerializer.containsKey(serializer)) {
-          ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(_zkAddr, serializer);
-          _zkBaseDataAccessorBySerializer.put(serializer, baseDataAccessor);
+  public ZkBaseDataAccessor<ZNRecord> getPropertyStoreAccessor(
+      PropertyStoreAccessor.PropertyStoreSerializer serializer) {
+    if (PROPERTY_STORE_ACCESSOR == null) {
+      synchronized (this) {
+        if (PROPERTY_STORE_ACCESSOR == null) {
+          PROPERTY_STORE_ACCESSOR = new ZkBaseDataAccessor<>(_zkAddr, serializer);
         }
       }
     }
-    return _zkBaseDataAccessorBySerializer.get(serializer);
+    return PROPERTY_STORE_ACCESSOR;
   }
 
   public void close() {
     if (_zkClient != null) {
       _zkClient.close();
     }
-    _zkBaseDataAccessorBySerializer.values().forEach(ZkBaseDataAccessor::close);
   }
 }

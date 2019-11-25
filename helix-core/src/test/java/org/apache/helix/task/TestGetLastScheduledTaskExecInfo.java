@@ -34,6 +34,9 @@ import org.apache.helix.TestHelper;
 public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   private final static String TASK_START_TIME_KEY = "START_TIME";
   private final static long INVALID_TIMESTAMP = -1L;
+  private static int SHORT_EXECUTION_TIME = 10;
+  private static int LONG_EXECUTION_TIME = 99999999;
+  private static final int DELETE_DELAY = 30 * 1000;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -45,7 +48,11 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   public void testGetLastScheduledTaskExecInfo() throws Exception {
     // Start new queue that has one job with long tasks and record start time of the tasks
     String queueName = TestHelper.getTestMethodName();
-    List<Long> startTimesWithStuckTasks = setupTasks(queueName, 5, 99999999, 2);
+    // Create and start new queue that has one job with 5 tasks.
+    // Each task has a long execution time.
+    // Since NumConcurrentTasksPerInstance is equal to 2, here we wait until two tasks have
+    // been scheduled (expectedScheduledTime = 2).
+    List<Long> startTimesWithStuckTasks = setupTasks(queueName, 5, LONG_EXECUTION_TIME, 2);
     // Wait till the job is in progress
     _driver.pollForJobState(queueName, queueName + "_job_0", TaskState.IN_PROGRESS);
 
@@ -62,18 +69,23 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
           && execInfo.getTaskPartitionState() == TaskPartitionState.RUNNING
           && execInfo.getStartTimeStamp().equals(lastScheduledTaskTs)
           && startTimesWithStuckTasks.get(4).equals(lastScheduledTaskTs));
-    }, 30 * 1000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(hasQueueReachedDesiredState);
 
     // Stop and delete the queue
     _driver.stop(queueName);
-    _driver.deleteAndWaitForCompletion(queueName, 30 * 1000);
+    _driver.deleteAndWaitForCompletion(queueName, DELETE_DELAY);
 
     // Start the new queue with new task configuration.
-    // Start new queue that has one job with 4 short tasks and record start time of the tasks
-    List<Long> startTimesFastTasks = setupTasks(queueName, 4, 10, 4);
-    // Wait till the job is in progress
-    _driver.pollForJobState(queueName, queueName + "_job_0", TaskState.IN_PROGRESS);
+    // Create and start new queue that has one job with 4 tasks.
+    // Each task has a short execution time. In the setupTasks we wait until all of the tasks have
+    // been scheduled (expectedScheduledTime = 4).
+    List<Long> startTimesFastTasks = setupTasks(queueName, 4, SHORT_EXECUTION_TIME, 4);
+    // Wait till the job is in progress or completed. Since the tasks have short execution time, we
+    // wait for either IN_PROGRESS or COMPLETED states
+    _driver.pollForJobState(queueName, queueName + "_job_0", TaskState.IN_PROGRESS,
+        TaskState.COMPLETED);
+
     hasQueueReachedDesiredState = TestHelper.verify(() -> {
       Long lastScheduledTaskTs = _driver.getLastScheduledTaskTimestamp(queueName);
       TaskExecutionInfo execInfo = _driver.getLastScheduledTaskExecutionInfo(queueName);
@@ -81,7 +93,7 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
           && execInfo.getTaskPartitionState() == TaskPartitionState.COMPLETED
           && execInfo.getStartTimeStamp().equals(lastScheduledTaskTs)
           && startTimesFastTasks.get(startTimesFastTasks.size() - 1).equals(lastScheduledTaskTs));
-    }, 30 * 1000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(hasQueueReachedDesiredState);
   }
 
@@ -133,7 +145,7 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
         }
       }
       return (scheduleTask == expectedScheduledTasks);
-    }, 30 * 1000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(haveExpectedNumberOfTasksScheduled);
 
     // Pull jobContexts and look at the start times

@@ -48,7 +48,7 @@ public class TestWorkflowControllerDataProvider extends TaskTestBase {
       int workflowConfigMapSize = cache.getWorkflowConfigMap().size();
       int contextsSize = cache.getContexts().size();
       return (configMapSize == 1 && workflowConfigMapSize == 1 && contextsSize == 2);
-    }, 30 * 1000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(expectedValuesAchieved);
 
 
@@ -67,7 +67,7 @@ public class TestWorkflowControllerDataProvider extends TaskTestBase {
       int workflowConfigMapSize = cache.getWorkflowConfigMap().size();
       int contextsSize = cache.getContexts().size();
       return (configMapSize == 3 && workflowConfigMapSize == 2 && contextsSize == 5);
-    }, 30 * 1000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(expectedValuesAchieved);
 
   }

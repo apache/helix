@@ -28,6 +28,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskConfig;
@@ -203,9 +204,17 @@ public class TestStopWorkflow extends TaskTestBase {
 
     _driver.start(workflowBuilder_1.build());
 
-    // Check the jobs are in progress. Each job has one task.
+    // Check the jobs are in progress and the tasks are running.
+    // Each job has one task. Hence, we just check the state of the partition 0.
     for (int i = 0; i < 30; i++) {
-      _driver.pollForJobState(workflowName_1, workflowName_1 + "_JOB" + i, TaskState.IN_PROGRESS);
+      String jobName = workflowName_1 + "_JOB" + i;
+      _driver.pollForJobState(workflowName_1, jobName, TaskState.IN_PROGRESS);
+      boolean isTaskInRunningState = TestHelper.verify(() -> {
+        JobContext jobContext = _driver.getJobContext(jobName);
+        String state = jobContext.getMapField(0).get("STATE");
+        return (state!= null && state.equals("RUNNING"));
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(isTaskInRunningState);
     }
 
     _driver.stop(workflowName_1);
@@ -214,9 +223,17 @@ public class TestStopWorkflow extends TaskTestBase {
     //_taskFinishFlag.getAndSet(false);
     _driver.resume(workflowName_1);
 
-    // Check the jobs are in progress. Each job has one task.
+    // Check the jobs are in progress and the tasks are running.
+    // Each job has one task. Hence, we just check the state of the partition 0.
     for (int i = 0; i < 30; i++) {
-      _driver.pollForJobState(workflowName_1, workflowName_1 + "_JOB" + i, TaskState.IN_PROGRESS);
+      String jobName = workflowName_1 + "_JOB" + i;
+      _driver.pollForJobState(workflowName_1, jobName, TaskState.IN_PROGRESS);
+      boolean isTaskInRunningState = TestHelper.verify(() -> {
+        JobContext jobContext = _driver.getJobContext(jobName);
+        String state = jobContext.getMapField(0).get("STATE");
+        return (state!= null && state.equals("RUNNING"));
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(isTaskInRunningState);
     }
 
     // By now there should only be 30 threads occupied
@@ -283,7 +300,7 @@ public class TestStopWorkflow extends TaskTestBase {
    * A mock task class that models a short-lived task to be stopped.
    */
   private class StopTask extends MockTask {
-    boolean toStop = false;
+    private boolean _stopFlag = false;
 
     StopTask(TaskCallbackContext context) {
       super(context);
@@ -291,8 +308,8 @@ public class TestStopWorkflow extends TaskTestBase {
 
     @Override
     public TaskResult run() {
-      toStop = false;
-      while (!toStop) {
+      _stopFlag = false;
+      while (!_stopFlag) {
         try {
           Thread.sleep(1000L);
         } catch (InterruptedException e) {
@@ -312,7 +329,7 @@ public class TestStopWorkflow extends TaskTestBase {
 
     @Override
     public void cancel() {
-      toStop = true;
+      _stopFlag = true;
     }
   }
 }

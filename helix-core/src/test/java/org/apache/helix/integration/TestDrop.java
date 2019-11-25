@@ -62,7 +62,7 @@ public class TestDrop extends ZkTestBase {
     boolean isExternalViewNull = TestHelper.verify(() -> {
       ExternalView externalView = accessor.getProperty(keyBuilder.externalView(db));
       return (externalView == null);
-    }, 10 * 1000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(isExternalViewNull);
 
     for (MockParticipantManager participant : participants) {
@@ -71,7 +71,7 @@ public class TestDrop extends ZkTestBase {
       boolean isCurrentStateNull = TestHelper.verify(() -> {
         CurrentState currentState = accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, db));
         return (currentState == null);
-      }, 10 * 1000);
+      }, TestHelper.WAIT_DURATION);
       Assert.assertTrue(isCurrentStateNull);
 
 

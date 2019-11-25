@@ -188,6 +188,11 @@ public class TestClusterVerifier extends ZkUnitTestBase {
     _admin.enableCluster(_clusterName, false);
     _admin.enableInstance(_clusterName, "localhost_12918", true);
 
+    verifier =
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+            .setResources(Sets.newHashSet(testDB)).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
     verifier = new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
         .setResources(Sets.newHashSet(testDB)).build();
     Assert.assertTrue(verifier.verifyByPolling());

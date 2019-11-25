@@ -125,7 +125,6 @@ public class TestStopWorkflow extends TaskTestBase {
   @Test(dependsOnMethods = "testStopTask")
   public void testStopTaskForQuota() throws Exception {
     stopTestSetup(1);
-    //_taskFinishFlag.getAndSet(false);
 
     String workflowNameToStop = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilderToStop = new Workflow.Builder(workflowNameToStop);
@@ -220,7 +219,6 @@ public class TestStopWorkflow extends TaskTestBase {
     _driver.stop(workflowName_1);
     _driver.pollForWorkflowState(workflowName_1, TaskState.STOPPED);
 
-    //_taskFinishFlag.getAndSet(false);
     _driver.resume(workflowName_1);
 
     // Check the jobs are in progress and the tasks are running.

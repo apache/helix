@@ -24,6 +24,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
@@ -81,9 +82,8 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
     path = "/" + path;
     if (!isPathValid(path)) {
       LOG.info("The propertyStore path {} is invalid for cluster {}", path, clusterId);
-      throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
-          "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode")
-          .build());
+      return badRequest(
+          "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
     ZkBaseDataAccessor<ZNRecord> propertyStoreDataAccessor = getPropertyStoreAccessor();
@@ -91,8 +91,8 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
       ZNRecord record = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
       return JSONRepresentation(record);
     } else {
-      throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND).entity(
-          "The property store path " + recordPath + " doesn't exist").build());
+      throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+          .entity("The property store path " + recordPath + " doesn't exist").build());
     }
   }
 

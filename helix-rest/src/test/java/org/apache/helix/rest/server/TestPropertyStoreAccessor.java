@@ -49,22 +49,22 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
 
   @BeforeClass
   public void init() {
-    _customDataAccessor = new ZkBaseDataAccessor<>(ZK_ADDR,
-        new ZkSerializer() {
-          @Override
-          public byte[] serialize(Object o)
-              throws ZkMarshallingError {
-            return o.toString().getBytes();
-          }
+    _customDataAccessor = new ZkBaseDataAccessor<>(ZK_ADDR, new ZkSerializer() {
+      @Override
+      public byte[] serialize(Object o)
+          throws ZkMarshallingError {
+        return o.toString().getBytes();
+      }
 
-          @Override
-          public Object deserialize(byte[] bytes)
-              throws ZkMarshallingError {
-            return new String(bytes);
-          }
-        });
+      @Override
+      public Object deserialize(byte[] bytes)
+          throws ZkMarshallingError {
+        return new String(bytes);
+      }
+    });
     // initially prepare the datas in different paths
-    Assert.assertTrue(_customDataAccessor.create(CUSTOM_PATH, TEST_CONTENT, AccessOption.PERSISTENT));
+    Assert
+        .assertTrue(_customDataAccessor.create(CUSTOM_PATH, TEST_CONTENT, AccessOption.PERSISTENT));
     Assert.assertTrue(_baseAccessor.create(ZNRECORD_PATH, TEST_ZNRECORD, AccessOption.PERSISTENT));
   }
 

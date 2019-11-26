@@ -39,6 +39,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
@@ -561,6 +562,18 @@ public class TestClusterAccessor extends AbstractTestClass {
     _gSetupTool.deleteCluster(ACTIVATE_NORM_CLUSTER);
     _gSetupTool.deleteCluster(ACTIVATE_SUPER_CLUSTER);
     System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testActivateSuperCluster")
+  public void testEnableWagedRebalanceForAllResources() {
+    String cluster = "TestCluster_2";
+    post("clusters/" + cluster, ImmutableMap.of("command", "enableWagedRebalanceForAllResources"),
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+    for (String resource : _gSetupTool.getClusterManagementTool().getResourcesInCluster(cluster)) {
+      IdealState idealState =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
+      Assert.assertEquals(idealState.getRebalancerClassName(), WagedRebalancer.class.getName());
+    }
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {

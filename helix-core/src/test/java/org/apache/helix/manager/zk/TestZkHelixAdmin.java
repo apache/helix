@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -39,7 +40,9 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.examples.MasterSlaveStateModelFactory;
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -505,5 +508,71 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertEquals(instanceConfig.getRecord()
         .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
         2);
+  }
+
+  @Test
+  public void testAddCloudConfig() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+
+    CloudConfig.Builder builder = new CloudConfig.Builder();
+    builder.setCloudEnabled(true);
+    builder.setCloudID("TestID");
+    builder.addCloudInfoSource("TestURL");
+    builder.setCloudProvider(CloudProvider.CUSTOMIZED);
+    builder.setCloudInfoProcessorName("TestProcessor");
+    CloudConfig cloudConfig = builder.build();
+
+    admin.addCloudConfig(clusterName, cloudConfig);
+
+    // Read CloudConfig from Zookeeper and check the content
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
+    Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestID");
+    Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
+    List<String> listUrlFromZk = cloudConfigFromZk.getCloudInfoSources();
+    Assert.assertEquals(listUrlFromZk.get(0), "TestURL");
+    Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessor");
+  }
+
+
+  @Test
+  public void testRemoveCloudConfig() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+
+    CloudConfig.Builder builder = new CloudConfig.Builder();
+    builder.setCloudEnabled(true);
+    builder.setCloudID("TestID");
+    builder.addCloudInfoSource("TestURL");
+    builder.setCloudProvider(CloudProvider.CUSTOMIZED);
+    builder.setCloudInfoProcessorName("TestProcessor");
+    CloudConfig cloudConfig = builder.build();
+
+    admin.addCloudConfig(clusterName, cloudConfig);
+
+    // Read CloudConfig from Zookeeper and check the content
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
+    Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestID");
+    Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
+    List<String> listUrlFromZk = cloudConfigFromZk.getCloudInfoSources();
+    Assert.assertEquals(listUrlFromZk.get(0), "TestURL");
+    Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessor");
+
+    // Remove Cloud Config and make sure it has been removed from Zookeeper
+    admin.removeCloudConfig(clusterName);
+    cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertNull(cloudConfigFromZk);
   }
 }

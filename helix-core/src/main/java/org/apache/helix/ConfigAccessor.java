@@ -591,7 +591,7 @@ public class ConfigAccessor {
    * @return The instance of {@link CloudConfig}
    */
   public CloudConfig getCloudConfig(String clusterName) {
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException(
           String.format("Failed to get config. cluster: %s is not setup.", clusterName));
     }
@@ -604,7 +604,7 @@ public class ConfigAccessor {
       return null;
     }
 
-    return new CloudConfig(record);
+    return new CloudConfig.Builder(record).build();
   }
 
   /**

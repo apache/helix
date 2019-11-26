@@ -29,6 +29,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskConfig;
@@ -45,7 +46,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestStopWorkflow extends TaskTestBase {
-  private boolean _taskFinishFlag = false;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -88,8 +88,8 @@ public class TestStopWorkflow extends TaskTestBase {
    * Tests that stopping a workflow does result in its task ending up in STOPPED state.
    * @throws InterruptedException
    */
-  @Test
-  public void testStopTask() throws InterruptedException {
+  @Test(dependsOnMethods = "testStopWorkflow")
+  public void testStopTask() throws Exception {
     stopTestSetup(1);
 
     String workflowName = TestHelper.getTestMethodName();
@@ -123,8 +123,8 @@ public class TestStopWorkflow extends TaskTestBase {
    * Tests that stop() indeed frees up quotas for tasks belonging to the stopped workflow.
    * @throws InterruptedException
    */
-  @Test
-  public void testStopTaskForQuota() throws InterruptedException {
+  @Test(dependsOnMethods = "testStopTask")
+  public void testStopTaskForQuota() throws Exception {
     stopTestSetup(1);
 
     String workflowNameToStop = TestHelper.getTestMethodName();
@@ -183,8 +183,8 @@ public class TestStopWorkflow extends TaskTestBase {
    * Test that there is no thread leak when stopping and resuming.
    * @throws InterruptedException
    */
-  @Test
-  public void testResumeTaskForQuota() throws InterruptedException {
+  @Test(dependsOnMethods = "testStopTaskForQuota")
+  public void testResumeTaskForQuota() throws Exception {
     stopTestSetup(1);
 
     String workflowName_1 = TestHelper.getTestMethodName();
@@ -204,13 +204,36 @@ public class TestStopWorkflow extends TaskTestBase {
 
     _driver.start(workflowBuilder_1.build());
 
-    Thread.sleep(2000L); // Sleep until each task really is in progress
+    // Check the jobs are in progress and the tasks are running.
+    // Each job has one task. Hence, we just check the state of the partition 0.
+    for (int i = 0; i < 30; i++) {
+      String jobName = workflowName_1 + "_JOB" + i;
+      _driver.pollForJobState(workflowName_1, jobName, TaskState.IN_PROGRESS);
+      boolean isTaskInRunningState = TestHelper.verify(() -> {
+        JobContext jobContext = _driver.getJobContext(jobName);
+        String state = jobContext.getMapField(0).get("STATE");
+        return (state!= null && state.equals("RUNNING"));
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(isTaskInRunningState);
+    }
+
     _driver.stop(workflowName_1);
     _driver.pollForWorkflowState(workflowName_1, TaskState.STOPPED);
 
-    _taskFinishFlag = false;
     _driver.resume(workflowName_1);
-    Thread.sleep(2000L); // Sleep until each task really is in progress
+
+    // Check the jobs are in progress and the tasks are running.
+    // Each job has one task. Hence, we just check the state of the partition 0.
+    for (int i = 0; i < 30; i++) {
+      String jobName = workflowName_1 + "_JOB" + i;
+      _driver.pollForJobState(workflowName_1, jobName, TaskState.IN_PROGRESS);
+      boolean isTaskInRunningState = TestHelper.verify(() -> {
+        JobContext jobContext = _driver.getJobContext(jobName);
+        String state = jobContext.getMapField(0).get("STATE");
+        return (state!= null && state.equals("RUNNING"));
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(isTaskInRunningState);
+    }
 
     // By now there should only be 30 threads occupied
 
@@ -276,13 +299,16 @@ public class TestStopWorkflow extends TaskTestBase {
    * A mock task class that models a short-lived task to be stopped.
    */
   private class StopTask extends MockTask {
+    private boolean _stopFlag = false;
+
     StopTask(TaskCallbackContext context) {
       super(context);
     }
 
     @Override
     public TaskResult run() {
-      while (!_taskFinishFlag) {
+      _stopFlag = false;
+      while (!_stopFlag) {
         try {
           Thread.sleep(1000L);
         } catch (InterruptedException e) {
@@ -302,7 +328,7 @@ public class TestStopWorkflow extends TaskTestBase {
 
     @Override
     public void cancel() {
-      _taskFinishFlag = true;
+      _stopFlag = true;
     }
   }
 }

@@ -119,7 +119,7 @@ public class TestClusterVerifier extends ZkUnitTestBase {
   }
 
   @Test
-  public void testDisablePartitionAndStopInstance() throws InterruptedException {
+  public void testDisablePartitionAndStopInstance() throws Exception {
     // Just ensure that the entire cluster passes
     // ensure that the external view coalesces
     HelixClusterVerifier bestPossibleVerifier =
@@ -133,8 +133,14 @@ public class TestClusterVerifier extends ZkUnitTestBase {
     // Disable partition for 1 instance, then Full-Auto ExternalView should not match IdealState.
     _admin.enablePartition(false, _clusterName, _participants[0].getInstanceName(), FULL_AUTO_RESOURCES[0],
         Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
-    Thread.sleep(1000);
-    Assert.assertFalse(strictMatchVerifier.verify(3000));
+
+    boolean isVerifiedFalse = TestHelper.verify(() -> {
+      HelixClusterVerifier strictMatchVerifierTemp =
+          new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
+      boolean verified = strictMatchVerifierTemp.verify(3000);
+      return (!verified);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(isVerifiedFalse);
 
     // Enable the partition back
     _admin.enablePartition(true, _clusterName, _participants[0].getInstanceName(), FULL_AUTO_RESOURCES[0],
@@ -174,11 +180,16 @@ public class TestClusterVerifier extends ZkUnitTestBase {
 
     // Ensure that this passes even when one resource is down
     _admin.enableInstance(_clusterName, "localhost_12918", false);
-    Thread.sleep(1000);
+
+    ZkHelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+            .setResources(Sets.newHashSet(testDB)).build();
+    Assert.assertTrue(verifier.verifyByPolling());
+
     _admin.enableCluster(_clusterName, false);
     _admin.enableInstance(_clusterName, "localhost_12918", true);
 
-    ZkHelixClusterVerifier verifier =
+    verifier =
         new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
             .setResources(Sets.newHashSet(testDB)).build();
     Assert.assertTrue(verifier.verifyByPolling());

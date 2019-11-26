@@ -30,22 +30,26 @@ import org.testng.annotations.Test;
 public class TestWorkflowControllerDataProvider extends TaskTestBase {
 
   @Test
-  public void testResourceConfigRefresh() throws InterruptedException {
+  public void testResourceConfigRefresh() throws Exception {
     Workflow.Builder builder = new Workflow.Builder("TEST");
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
 
     builder.addJob(WorkflowGenerator.JOB_NAME_1, jobBuilder);
 
     _driver.start(builder.build());
-    Thread.sleep(4000);
+
     WorkflowControllerDataProvider cache =
         new WorkflowControllerDataProvider("CLUSTER_" + TestHelper.getTestClassName());
-    cache.requireFullRefresh();
-    cache.refresh(_manager.getHelixDataAccessor());
-    Assert.assertEquals(cache.getJobConfigMap().size(), 1);
-    Assert.assertEquals(cache.getWorkflowConfigMap().size(), 1);
-    Assert.assertEquals(cache.getContexts().size(), 2);
 
+    boolean expectedValuesAchieved = TestHelper.verify(() -> {
+      cache.requireFullRefresh();
+      cache.refresh(_manager.getHelixDataAccessor());
+      int configMapSize = cache.getJobConfigMap().size();
+      int workflowConfigMapSize = cache.getWorkflowConfigMap().size();
+      int contextsSize = cache.getContexts().size();
+      return (configMapSize == 1 && workflowConfigMapSize == 1 && contextsSize == 2);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(expectedValuesAchieved);
 
     builder = new Workflow.Builder("TEST1");
     builder.addParentChildDependency(WorkflowGenerator.JOB_NAME_1, WorkflowGenerator.JOB_NAME_2);
@@ -54,11 +58,16 @@ public class TestWorkflowControllerDataProvider extends TaskTestBase {
     builder.addJob(WorkflowGenerator.JOB_NAME_2, jobBuilder);
 
     _driver.start(builder.build());
-    Thread.sleep(4000);
-    cache.requireFullRefresh();
-    cache.refresh(_manager.getHelixDataAccessor());
-    Assert.assertEquals(cache.getJobConfigMap().size(), 3);
-    Assert.assertEquals(cache.getWorkflowConfigMap().size(), 2);
-    Assert.assertEquals(cache.getContexts().size(), 5);
+
+    expectedValuesAchieved = TestHelper.verify(() -> {
+      cache.requireFullRefresh();
+      cache.refresh(_manager.getHelixDataAccessor());
+      int configMapSize = cache.getJobConfigMap().size();
+      int workflowConfigMapSize = cache.getWorkflowConfigMap().size();
+      int contextsSize = cache.getContexts().size();
+      return (configMapSize == 3 && workflowConfigMapSize == 2 && contextsSize == 5);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(expectedValuesAchieved);
+
   }
 }

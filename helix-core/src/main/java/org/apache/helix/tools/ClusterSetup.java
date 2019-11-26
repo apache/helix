@@ -40,7 +40,9 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -48,6 +50,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -158,13 +161,21 @@ public class ClusterSetup {
     _admin = zkHelixAdmin;
   }
 
-  public void addCluster(String clusterName, boolean overwritePrevious) {
+  public void addCluster(String clusterName, boolean overwritePrevious, CloudConfig cloudConfig)
+      throws HelixException {
     _admin.addCluster(clusterName, overwritePrevious);
-
     for (BuiltInStateModelDefinitions def : BuiltInStateModelDefinitions.values()) {
       addStateModelDef(clusterName, def.getStateModelDefinition().getId(),
-                       def.getStateModelDefinition(), overwritePrevious);
+          def.getStateModelDefinition(), overwritePrevious);
     }
+
+    if (cloudConfig != null) {
+      _admin.addCloudConfig(clusterName, cloudConfig);
+    }
+  }
+
+  public void addCluster(String clusterName, boolean overwritePrevious) {
+    addCluster(clusterName, overwritePrevious, null);
   }
 
   public void activateCluster(String clusterName, String grandCluster, boolean enable) {

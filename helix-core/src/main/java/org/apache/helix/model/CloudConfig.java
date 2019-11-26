@@ -30,6 +30,9 @@ import org.apache.helix.cloud.constants.CloudProvider;
  * Cloud configurations
  */
 public class CloudConfig extends HelixProperty {
+
+  public static final String CLOUD_CONFIG_KW = "CloudConfig";
+
   /**
    * Configurable characteristics of a cloud.
    * NOTE: Do NOT use this field name directly, use its corresponding getter/setter in the
@@ -52,39 +55,22 @@ public class CloudConfig extends HelixProperty {
 
   /**
    * Instantiate the CloudConfig for the cloud
-   * @param cluster
    */
-  public CloudConfig(String cluster) {
-    super(cluster);
+  private CloudConfig() {
+    super(CLOUD_CONFIG_KW);
   }
 
   /**
-   * Instantiate with a pre-populated record
-   * @param record a ZNRecord corresponding to a cloud configuration
+   * The constructor from the ZNRecord.
+   * @param record
    */
-  public CloudConfig(ZNRecord record) {
-    super(record);
+  private CloudConfig(ZNRecord record) {
+    super(CLOUD_CONFIG_KW);
+    _record.setSimpleFields(record.getSimpleFields());
+    _record.setListFields(record.getListFields());
+    _record.setMapFields(record.getMapFields());
   }
 
-  /**
-   * Instantiate the config using each field individually.
-   * Users should use CloudConfig.Builder to create CloudConfig.
-   * @param cluster
-   * @param enabled
-   * @param cloudID
-   */
-  public CloudConfig(String cluster, boolean enabled, CloudProvider cloudProvider, String cloudID,
-      List<String> cloudInfoSource, String cloudProcessorName) {
-    super(cluster);
-    _record.setBooleanField(CloudConfigProperty.CLOUD_ENABLED.name(), enabled);
-    _record.setSimpleField(CloudConfigProperty.CLOUD_PROVIDER.name(), cloudProvider.name());
-    _record.setSimpleField(CloudConfigProperty.CLOUD_ID.name(), cloudID);
-    if (cloudProvider.equals(CloudProvider.CUSTOMIZED)) {
-      _record
-          .setSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_NAME.name(), cloudProcessorName);
-      _record.setListField(CloudConfigProperty.CLOUD_INFO_SOURCE.name(), cloudInfoSource);
-    }
-  }
 
   /**
    * Enable/Disable the CLOUD_ENABLED field.
@@ -135,28 +121,11 @@ public class CloudConfig extends HelixProperty {
   }
 
   /**
-   * Set the CLOUD_INFO_PROCESSOR_NAME field.
-   * @param cloudInfoProcessorName
-   */
-  public void setCloudInfoFProcessorName(String cloudInfoProcessorName) {
-    _record.setSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_NAME.name(),
-        cloudInfoProcessorName);
-  }
-
-  /**
    * Get the CLOUD_INFO_PROCESSOR_NAME field.
    * @return CLOUD_INFO_PROCESSOR_NAME field.
    */
   public String getCloudInfoProcessorName() {
     return _record.getSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_NAME.name());
-  }
-
-  /**
-   * Set the CLOUD_PROVIDER field.
-   * @param cloudProvider
-   */
-  public void setCloudProvider(CloudProvider cloudProvider) {
-    _record.setSimpleField(CloudConfigProperty.CLOUD_PROVIDER.name(), cloudProvider.name());
   }
 
   /**
@@ -167,32 +136,28 @@ public class CloudConfig extends HelixProperty {
     return _record.getSimpleField(CloudConfigProperty.CLOUD_PROVIDER.name());
   }
 
+
   public static class Builder {
-    private String _clusterName = null;
-    private CloudProvider _cloudProvider;
-    private boolean _cloudEnabled = DEFAULT_CLOUD_ENABLED;
-    private String _cloudID;
-    private List<String> _cloudInfoSources;
-    private String _cloudInfoProcessorName;
+    private ZNRecord _record;
 
     public CloudConfig build() {
       validate();
-      return new CloudConfig(_clusterName, _cloudEnabled, _cloudProvider, _cloudID,
-          _cloudInfoSources, _cloudInfoProcessorName);
+      return new CloudConfig(_record);
     }
 
     /**
      * Default constructor
      */
     public Builder() {
+      _record = new ZNRecord(CLOUD_CONFIG_KW);
     }
 
     /**
-     * Constructor with Cluster Name as input
-     * @param clusterName
+     * Instantiate with a pre-populated record
+     * @param record a ZNRecord corresponding to a cloud configuration
      */
-    public Builder(String clusterName) {
-      _clusterName = clusterName;
+    public Builder(ZNRecord record) {
+      _record = record;
     }
 
     /**
@@ -200,89 +165,75 @@ public class CloudConfig extends HelixProperty {
      * @param cloudConfig
      */
     public Builder(CloudConfig cloudConfig) {
-      _cloudEnabled = cloudConfig.isCloudEnabled();
-      _cloudProvider = CloudProvider.valueOf(cloudConfig.getCloudProvider());
-      _cloudID = cloudConfig.getCloudID();
-      _cloudInfoSources = cloudConfig.getCloudInfoSources();
-      _cloudInfoProcessorName = cloudConfig.getCloudInfoProcessorName();
-    }
-
-    public Builder setClusterName(String v) {
-      _clusterName = v;
-      return this;
+      _record = cloudConfig.getRecord();
     }
 
     public Builder setCloudEnabled(boolean isEnabled) {
-      _cloudEnabled = isEnabled;
+      _record.setBooleanField(CloudConfigProperty.CLOUD_ENABLED.name(), isEnabled);
       return this;
     }
 
     public Builder setCloudProvider(CloudProvider cloudProvider) {
-      _cloudProvider = cloudProvider;
+      _record.setSimpleField(CloudConfigProperty.CLOUD_PROVIDER.name(), cloudProvider.name());
       return this;
     }
 
-    public Builder setCloudID(String v) {
-      _cloudID = v;
+    public Builder setCloudID(String cloudID) {
+      _record.setSimpleField(CloudConfigProperty.CLOUD_ID.name(), cloudID);
       return this;
     }
 
-    public Builder setCloudInfoSources(List<String> v) {
-      _cloudInfoSources = v;
+    public Builder setCloudInfoSources(List<String> cloudInfoSources) {
+      _record.setListField(CloudConfigProperty.CLOUD_INFO_SOURCE.name(), cloudInfoSources);
       return this;
     }
 
-    public Builder addCloudInfoSource(String v) {
-      if (_cloudInfoSources == null) {
-        _cloudInfoSources = new ArrayList<String>();
+    public Builder addCloudInfoSource(String cloudInfoSource) {
+      if (_record.getListField(CloudConfigProperty.CLOUD_INFO_SOURCE.name()) == null) {
+        _record.setListField(CloudConfigProperty.CLOUD_INFO_SOURCE.name(), new ArrayList<String>());
       }
-      _cloudInfoSources.add(v);
+      List<String> cloudInfoSourcesList = _record.getListField(CloudConfigProperty.CLOUD_INFO_SOURCE.name());
+      cloudInfoSourcesList.add(cloudInfoSource);
+      _record.setListField(CloudConfigProperty.CLOUD_INFO_SOURCE.name(), cloudInfoSourcesList);
       return this;
     }
 
-    public Builder setCloudInfoProcessorName(String v) {
-      _cloudInfoProcessorName = v;
+    public Builder setCloudInfoProcessorName(String cloudInfoProcessorName) {
+      _record.setSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_NAME.name(),
+          cloudInfoProcessorName);
       return this;
     }
 
-    public String getClusterName() {
-      return _clusterName;
-    }
-
-    public CloudProvider getCloudProvider() {
-      return _cloudProvider;
+    public String getCloudProvider() {
+      return _record.getSimpleField(CloudConfigProperty.CLOUD_PROVIDER.name());
     }
 
     public boolean getCloudEnabled() {
-      return _cloudEnabled;
+      return _record.getBooleanField(CloudConfigProperty.CLOUD_ENABLED.name(),
+          DEFAULT_CLOUD_ENABLED);
     }
 
     public String getCloudID() {
-      return _cloudID;
+      return _record.getSimpleField(CloudConfigProperty.CLOUD_ID.name());
     }
 
     public List<String> getCloudInfoSources() {
-      return _cloudInfoSources;
+      return _record.getListField(CloudConfigProperty.CLOUD_INFO_SOURCE.name());
     }
 
     public String getCloudInfoProcessorName() {
-      return _cloudInfoProcessorName;
+      return _record.getSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_NAME.name());
     }
 
     private void validate() {
-      if (_cloudEnabled) {
-        if (_cloudID == null) {
+      if (this.getCloudProvider() == null) {
+        throw new HelixException(
+            "This Cloud Configuration is Invalid. The Cloud Provider is missing from the config.");
+      } else if (this.getCloudProvider().equals(CloudProvider.CUSTOMIZED.name())) {
+        if (this.getCloudInfoProcessorName() == null || this.getCloudInfoSources() == null
+            || this.getCloudInfoSources().size() == 0) {
           throw new HelixException(
-              "This Cloud Configuration is Invalid. The CloudID is missing from the config.");
-        }
-        if (_cloudProvider == null) {
-          throw new HelixException(
-              "This Cloud Configuration is Invalid. The Cloud Provider is missing from the config.");
-        } else if (_cloudProvider == CloudProvider.CUSTOMIZED) {
-          if (_cloudInfoProcessorName == null || _cloudInfoSources == null || _cloudInfoSources.size() == 0) {
-            throw new HelixException(
-                "This Cloud Configuration is Invalid. CUSTOMIZED provider has been chosen without defining CloudInfoProcessorName or CloudInfoSources");
-          }
+              "This Cloud Configuration is Invalid. CUSTOMIZED provider has been chosen without defining CloudInfoProcessorName or CloudInfoSources");
         }
       }
     }

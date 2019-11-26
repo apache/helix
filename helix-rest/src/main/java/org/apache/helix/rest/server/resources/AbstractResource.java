@@ -72,6 +72,7 @@ public class AbstractResource {
     getResource,
     validateWeight,
     enableWagedRebalance,
+    enableWagedRebalanceForAllResources,
     getInstance,
     getAllInstances
   }

@@ -51,7 +51,6 @@ public class TestWorkflowControllerDataProvider extends TaskTestBase {
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(expectedValuesAchieved);
 
-
     builder = new Workflow.Builder("TEST1");
     builder.addParentChildDependency(WorkflowGenerator.JOB_NAME_1, WorkflowGenerator.JOB_NAME_2);
 

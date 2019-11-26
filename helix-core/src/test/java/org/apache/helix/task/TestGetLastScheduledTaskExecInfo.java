@@ -34,9 +34,9 @@ import org.apache.helix.TestHelper;
 public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   private final static String TASK_START_TIME_KEY = "START_TIME";
   private final static long INVALID_TIMESTAMP = -1L;
-  private static int SHORT_EXECUTION_TIME = 10;
-  private static int LONG_EXECUTION_TIME = 99999999;
-  private static final int DELETE_DELAY = 30 * 1000;
+  private static final long SHORT_EXECUTION_TIME = 10L;
+  private static final long LONG_EXECUTION_TIME = 99999999L;
+  private static final long DELETE_DELAY = 30000L;
 
   @BeforeClass
   public void beforeClass() throws Exception {

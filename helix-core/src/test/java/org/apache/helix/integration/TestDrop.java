@@ -73,8 +73,6 @@ public class TestDrop extends ZkTestBase {
         return (currentState == null);
       }, TestHelper.WAIT_DURATION);
       Assert.assertTrue(isCurrentStateNull);
-
-
     }
   }
 

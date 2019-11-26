@@ -138,7 +138,7 @@ public class TestClusterVerifier extends ZkUnitTestBase {
           new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
       boolean verified = strictMatchVerifierTemp.verify(3000);
       return (!verified);
-    }, 60 * 1000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(isVerifiedFalse);
 
     // Enable the partition back

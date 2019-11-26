@@ -471,8 +471,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     final Response response = webTarget.request().get();
     Assert.assertEquals(response.getStatus(), expectedReturnStatus);
 
-    // NOT_FOUND will throw text based html
-    if (expectedReturnStatus != Response.Status.NOT_FOUND.getStatusCode()) {
+    // NOT_FOUND and BAD_REQUEST will throw text based html
+    if (expectedReturnStatus != Response.Status.NOT_FOUND.getStatusCode()
+        && expectedReturnStatus != Response.Status.BAD_REQUEST.getStatusCode()) {
       Assert.assertEquals(response.getMediaType().getType(), "application");
     } else {
       Assert.assertEquals(response.getMediaType().getType(), "text");

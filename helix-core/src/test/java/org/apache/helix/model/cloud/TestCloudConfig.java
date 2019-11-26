@@ -57,20 +57,22 @@ public class TestCloudConfig extends ZkUnitTestBase {
   }
 
   @Test(dependsOnMethods = "testCloudConfigNull")
-  public void testCloudConfig() {
+  public void testCloudConfig() throws Exception {
     String className = getShortClassName();
     String clusterName = "CLUSTER_" + className;
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
     // Create dummy CloudConfig object
-    CloudConfig cloudConfig = new CloudConfig(clusterName);
-    cloudConfig.setCloudEnabled(true);
-    cloudConfig.setCloudProvider(CloudProvider.AZURE);
-    cloudConfig.setCloudID("TestID");
+    CloudConfig.Builder cloudConfigBuilder = new CloudConfig.Builder();
+    cloudConfigBuilder.setCloudEnabled(true);
+    cloudConfigBuilder.setCloudProvider(CloudProvider.AZURE);
+    cloudConfigBuilder.setCloudID("TestID");
     List<String> infoURL = new ArrayList<String>();
     infoURL.add("TestURL");
-    cloudConfig.setCloudInfoSource(infoURL);
-    cloudConfig.setCloudInfoFProcessorName("TestProcessor");
+    cloudConfigBuilder.setCloudInfoSources(infoURL);
+    cloudConfigBuilder.setCloudInfoProcessorName("TestProcessor");
+
+    CloudConfig cloudConfig = cloudConfigBuilder.build();
 
     // Write the CloudConfig to Zookeeper
     ZKHelixDataAccessor accessor =
@@ -84,8 +86,8 @@ public class TestCloudConfig extends ZkUnitTestBase {
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.AZURE.name());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestID");
+
     Assert.assertEquals(cloudConfigFromZk.getCloudInfoSources().size(), 1);
-    Assert.assertEquals(cloudConfigFromZk.getCloudInfoSources().get(0), "TestURL");
     Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessor");
   }
 
@@ -93,7 +95,7 @@ public class TestCloudConfig extends ZkUnitTestBase {
   public void testUnverifiedCloudConfigBuilder() {
     String className = getShortClassName();
     String clusterName = "CLUSTER_" + className;
-    CloudConfig.Builder builder = new CloudConfig.Builder(clusterName);
+    CloudConfig.Builder builder = new CloudConfig.Builder();
     builder.setCloudEnabled(true);
     // Verify will fail because cloudID has net been defined.
     CloudConfig cloudConfig = builder.build();
@@ -103,7 +105,7 @@ public class TestCloudConfig extends ZkUnitTestBase {
   public void testUnverifiedCloudConfigBuilderEmptySources() {
     String className = getShortClassName();
     String clusterName = "CLUSTER_" + className;
-    CloudConfig.Builder builder = new CloudConfig.Builder(clusterName);
+    CloudConfig.Builder builder = new CloudConfig.Builder();
     builder.setCloudEnabled(true);
     builder.setCloudProvider(CloudProvider.CUSTOMIZED);
     builder.setCloudID("TestID");
@@ -115,9 +117,7 @@ public class TestCloudConfig extends ZkUnitTestBase {
 
   @Test(expectedExceptions = HelixException.class)
   public void testUnverifiedCloudConfigBuilderWithoutProcessor() {
-    String className = getShortClassName();
-    String clusterName = "CLUSTER_" + className;
-    CloudConfig.Builder builder = new CloudConfig.Builder(clusterName);
+    CloudConfig.Builder builder = new CloudConfig.Builder();
     builder.setCloudEnabled(true);
     builder.setCloudProvider(CloudProvider.CUSTOMIZED);
     builder.setCloudID("TestID");
@@ -132,7 +132,7 @@ public class TestCloudConfig extends ZkUnitTestBase {
     String className = getShortClassName();
     String clusterName = "CLUSTER_" + className;
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
-    CloudConfig.Builder builder = new CloudConfig.Builder(clusterName);
+    CloudConfig.Builder builder = new CloudConfig.Builder();
     builder.setCloudEnabled(true);
     builder.setCloudProvider(CloudProvider.CUSTOMIZED);
     builder.setCloudID("TestID");
@@ -142,8 +142,7 @@ public class TestCloudConfig extends ZkUnitTestBase {
 
     // Check builder getter methods
     Assert.assertTrue(builder.getCloudEnabled());
-    Assert.assertEquals(builder.getCloudProvider(), CloudProvider.CUSTOMIZED);
-    Assert.assertEquals(builder.getClusterName(), clusterName);
+    Assert.assertEquals(builder.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
     Assert.assertEquals(builder.getCloudID(), "TestID");
     List<String> listUrlFromBuilder = builder.getCloudInfoSources();
     Assert.assertEquals(listUrlFromBuilder.size(), 2);
@@ -175,15 +174,14 @@ public class TestCloudConfig extends ZkUnitTestBase {
     String className = getShortClassName();
     String clusterName = "CLUSTER_" + className;
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
-    CloudConfig.Builder builder = new CloudConfig.Builder(clusterName);
+    CloudConfig.Builder builder = new CloudConfig.Builder();
     builder.setCloudEnabled(true);
     builder.setCloudProvider(CloudProvider.AZURE);
     builder.setCloudID("TestID");
-    builder.setCloudInfoProcessorName("TestProcessor");
 
     // Check builder getter methods
     Assert.assertTrue(builder.getCloudEnabled());
-    Assert.assertEquals(builder.getCloudProvider(), CloudProvider.AZURE);
+    Assert.assertEquals(builder.getCloudProvider(), CloudProvider.AZURE.name());
 
     CloudConfig cloudConfig = builder.build();
 
@@ -198,7 +196,29 @@ public class TestCloudConfig extends ZkUnitTestBase {
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.AZURE.name());
 
-    // Since CloudProvider is not CUSTOMIZED, CloudInfoProcessor will be null.
+    // Since user does not set the CloudInfoProcessorName, this field will be null.
     Assert.assertNull(cloudConfigFromZk.getCloudInfoProcessorName());
+
+    // Checking the set method in CloudConfig
+    cloudConfig.setCloudEnabled(false);
+    accessor.setProperty(keyBuilder.cloudConfig(), cloudConfig);
+    cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertFalse(cloudConfigFromZk.isCloudEnabled());
+
+    cloudConfig.setCloudEnabled(true);
+    cloudConfig.setCloudID("TestID2");
+    List<String> sourceList = new ArrayList<String>();
+    sourceList.add("TestURL0");
+    sourceList.add("TestURL1");
+    cloudConfig.setCloudInfoSource(sourceList);
+    accessor.setProperty(keyBuilder.cloudConfig(), cloudConfig);
+
+    cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
+    Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.AZURE.name());
+    Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestID2");
+    List<String> listUrlFromZk = cloudConfigFromZk.getCloudInfoSources();
+    Assert.assertEquals(listUrlFromZk.get(0), "TestURL0");
+    Assert.assertEquals(listUrlFromZk.get(1), "TestURL1");
   }
 }

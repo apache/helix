@@ -1,6 +1,26 @@
 package org.apache.helix.rest.server;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -151,6 +171,55 @@ public class TestInstancesAccessor extends AbstractTestClass {
     clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testGetAllInstances")
+  public void testValidateWeightForAllInstances() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    // Empty out ClusterConfig's weight key setting for testing
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.getRecord().setListField(
+        ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), new ArrayList<>());
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+    // Issue a validate call
+    String body = new JerseyUriRequestBuilder("clusters/{}/instances?command=validateWeight")
+        .isBodyReturnExpected(true).format(CLUSTER_NAME).get(this);
+
+    JsonNode node = OBJECT_MAPPER.readTree(body);
+    // Must have the results saying they are all valid (true) because there's no capacity keys set
+    // in ClusterConfig
+    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
+
+    clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setInstanceCapacityKeys(Arrays.asList("FOO", "BAR"));
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    body = new JerseyUriRequestBuilder("clusters/{}/instances?command=validateWeight")
+        .isBodyReturnExpected(true).format(CLUSTER_NAME)
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode()).get(this);
+    node = OBJECT_MAPPER.readTree(body);
+    // Since instances do not have weight-related configs, the result should return error
+    Assert.assertTrue(node.has("error"));
+
+    // Now set weight-related configs in InstanceConfigs
+    List<String> instances =
+        _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME);
+    for (String instance : instances) {
+      InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
+      instanceConfig.setInstanceCapacityMap(ImmutableMap.of("FOO", 1000, "BAR", 1000));
+      _configAccessor.setInstanceConfig(CLUSTER_NAME, instance, instanceConfig);
+    }
+
+    body = new JerseyUriRequestBuilder("clusters/{}/instances?command=validateWeight")
+        .isBodyReturnExpected(true).format(CLUSTER_NAME)
+        .expectedReturnStatusCode(Response.Status.OK.getStatusCode()).get(this);
+    node = OBJECT_MAPPER.readTree(body);
+    // Must have the results saying they are all valid (true) because capacity keys are set
+    // in ClusterConfig
+    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
+
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

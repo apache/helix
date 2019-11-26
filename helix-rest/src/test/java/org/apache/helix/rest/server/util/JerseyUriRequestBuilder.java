@@ -78,7 +78,8 @@ public class JerseyUriRequestBuilder {
     Assert.assertEquals(response.getStatus(), _expectedStatusCode);
 
     // NOT_FOUND will throw text based html
-    if (_expectedStatusCode != Response.Status.NOT_FOUND.getStatusCode()) {
+    if (_expectedStatusCode != Response.Status.NOT_FOUND.getStatusCode()
+        && _expectedStatusCode != Response.Status.BAD_REQUEST.getStatusCode()) {
       Assert.assertEquals(response.getMediaType().getType(), "application");
     } else {
       Assert.assertEquals(response.getMediaType().getType(), "text");

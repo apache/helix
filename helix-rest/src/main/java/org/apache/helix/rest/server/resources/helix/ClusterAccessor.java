@@ -240,7 +240,15 @@ public class ClusterAccessor extends AbstractHelixResource {
       helixAdmin.manuallyEnableMaintenanceMode(clusterId, command == Command.enableMaintenanceMode,
           content, customFieldsMap);
       break;
-
+    case enableWagedRebalanceForAllResources:
+      // Enable WAGED rebalance for all resources in the cluster
+      List<String> resources = helixAdmin.getResourcesInCluster(clusterId);
+      try {
+        helixAdmin.enableWagedRebalance(clusterId, resources);
+      } catch (HelixException e) {
+        return badRequest(e.getMessage());
+      }
+      break;
     default:
       return badRequest("Unsupported command " + command);
     }

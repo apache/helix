@@ -19,14 +19,18 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -68,9 +72,8 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     Assert.assertEquals(resourceConfigValue, "resourceConfigValue");
 
     // partition scope config
-    ConfigScope partitionScope =
-        new ConfigScopeBuilder().forCluster(clusterName).forResource("testResource")
-            .forPartition("testPartition").build();
+    ConfigScope partitionScope = new ConfigScopeBuilder().forCluster(clusterName)
+        .forResource("testResource").forPartition("testPartition").build();
     configAccessor.set(partitionScope, "partitionConfigKey", "partitionConfigValue");
     String partitionConfigValue = configAccessor.get(partitionScope, "partitionConfigKey");
     Assert.assertEquals(partitionConfigValue, "partitionConfigValue");
@@ -113,9 +116,8 @@ public class TestConfigAccessor extends ZkUnitTestBase {
         "should be [HELIX_ENABLED, HELIX_ENABLED_TIMESTAMP, HELIX_HOST, HELIX_PORT, participantConfigKey]");
     Assert.assertEquals(keys.get(4), "participantConfigKey");
 
-    keys =
-        configAccessor.getKeys(ConfigScopeProperty.PARTITION, clusterName, "testResource",
-            "testPartition");
+    keys = configAccessor.getKeys(ConfigScopeProperty.PARTITION, clusterName, "testResource",
+        "testPartition");
     Assert.assertEquals(keys.size(), 1, "should be [partitionConfigKey]");
     Assert.assertEquals(keys.get(0), "partitionConfigKey");
 
@@ -183,8 +185,8 @@ public class TestConfigAccessor extends ZkUnitTestBase {
 
     try {
       configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");
-      Assert
-          .fail("Except fail to set participant-config because participant: localhost_12918 is not added to cluster yet");
+      Assert.fail(
+          "Except fail to set participant-config because participant: localhost_12918 is not added to cluster yet");
     } catch (HelixException e) {
       // OK
     }
@@ -193,8 +195,8 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     try {
       configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");
     } catch (Exception e) {
-      Assert
-          .fail("Except succeed to set participant-config because participant: localhost_12918 has been added to cluster");
+      Assert.fail(
+          "Except succeed to set participant-config because participant: localhost_12918 has been added to cluster");
     }
 
     String participantConfigValue = configAccessor.get(participantScope, "participantConfigKey");
@@ -203,5 +205,49 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     admin.dropCluster(clusterName);
     configAccessor.close();
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testUpdateCloudConfig() throws Exception {
+    ClusterSetup _clusterSetup = new ClusterSetup(ZK_ADDR);
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    CloudConfig.Builder cloudConfigInitBuilder = new CloudConfig.Builder();
+    cloudConfigInitBuilder.setCloudEnabled(true);
+    cloudConfigInitBuilder.setCloudID("TestCloudID");
+    List<String> sourceList = new ArrayList<String>();
+    sourceList.add("TestURL");
+    cloudConfigInitBuilder.setCloudInfoSources(sourceList);
+    cloudConfigInitBuilder.setCloudInfoProcessorName("TestProcessor");
+    cloudConfigInitBuilder.setCloudProvider(CloudProvider.CUSTOMIZED);
+    CloudConfig cloudConfigInit = cloudConfigInitBuilder.build();
+
+    _clusterSetup.addCluster(clusterName, false, cloudConfigInit);
+
+    // Read CloudConfig from Zookeeper and check the content
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
+    Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
+    List<String> listUrlFromZk = cloudConfigFromZk.getCloudInfoSources();
+    Assert.assertEquals(listUrlFromZk.get(0), "TestURL");
+    Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessor");
+    Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
+
+    // Change the processor name and check if processor name has been changed in Zookeeper.
+    cloudConfigInitBuilder.setCloudInfoProcessorName("TestProcessor2");
+    cloudConfigInit = cloudConfigInitBuilder.build();
+    ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCloudConfig(clusterName, cloudConfigInit);
+
+    cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
+    Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
+    listUrlFromZk = cloudConfigFromZk.getCloudInfoSources();
+    Assert.assertEquals(listUrlFromZk.get(0), "TestURL");
+    Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessor2");
+    Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
   }
 }

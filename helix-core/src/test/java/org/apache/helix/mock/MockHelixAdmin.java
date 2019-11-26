@@ -31,6 +31,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ConstraintItem;
@@ -310,6 +311,16 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override public void dropResource(String clusterName, String resourceName) {
+
+  }
+
+  @Override
+  public void addCloudConfig(String clusterName, CloudConfig cloudConfig) {
+
+  }
+
+  @Override
+  public void removeCloudConfig(String clusterName) {
 
   }
 

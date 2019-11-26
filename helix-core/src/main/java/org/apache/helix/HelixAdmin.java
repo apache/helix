@@ -22,7 +22,7 @@ package org.apache.helix;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
@@ -379,6 +379,19 @@ public interface HelixAdmin {
    * @param resourceName
    */
   void dropResource(String clusterName, String resourceName);
+
+  /**
+   * Add cloud config to the cluster.
+   * @param clusterName
+   * @param cloudConfig
+   */
+  void addCloudConfig(String clusterName, CloudConfig cloudConfig);
+
+  /**
+   * Remove the Cloud Config for specific cluster
+   * @param clusterName
+   */
+  void removeCloudConfig(String clusterName);
 
   /**
    * Get a list of state model definitions in a cluster

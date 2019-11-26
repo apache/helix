@@ -59,6 +59,7 @@ import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -1023,6 +1024,33 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     accessor.removeProperty(keyBuilder.idealStates(resourceName));
     accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
+  }
+
+  @Override
+  public void addCloudConfig(String clusterName, CloudConfig cloudConfig) {
+    logger.info("Add CloudConfig to cluster {}, CloudConfig is {}.", clusterName,
+        cloudConfig.toString());
+
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+
+    CloudConfig.Builder builder = new CloudConfig.Builder(cloudConfig);
+    CloudConfig cloudConfigBuilder = builder.build();
+
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.cloudConfig(), cloudConfigBuilder);
+  }
+
+  @Override
+  public void removeCloudConfig(String clusterName) {
+    logger.info("Remove Cloud Config for cluster {}.", clusterName);
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.removeProperty(keyBuilder.cloudConfig());
   }
 
   @Override

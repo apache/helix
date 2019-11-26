@@ -19,10 +19,13 @@ package org.apache.helix.tools;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
@@ -31,15 +34,15 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
@@ -48,8 +51,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestClusterSetup extends ZkUnitTestBase {
-  private static Logger LOG = LoggerFactory.getLogger(TestClusterSetup.class);
-
   protected static final String CLUSTER_NAME = "TestClusterSetup";
   protected static final String TEST_DB = "TestDB";
   protected static final String INSTANCE_PREFIX = "instance_";
@@ -436,4 +437,83 @@ public class TestClusterSetup extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
+
+  @Test(expectedExceptions = HelixException.class)
+  public void testAddClusterWithInvalidCloudConfig() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    CloudConfig.Builder cloudConfigInitBuilder = new CloudConfig.Builder();
+    cloudConfigInitBuilder.setCloudEnabled(true);
+    List<String> sourceList = new ArrayList<String>();
+    sourceList.add("TestURL");
+    cloudConfigInitBuilder.setCloudInfoSources(sourceList);
+    cloudConfigInitBuilder.setCloudProvider(CloudProvider.CUSTOMIZED);
+
+    CloudConfig cloudConfigInit = cloudConfigInitBuilder.build();
+
+
+    // Since setCloudInfoProcessorName is missing, this add cluster call will throw an exception
+    _clusterSetup.addCluster(clusterName, false, cloudConfigInit);
+  }
+
+  @Test(dependsOnMethods = "testAddClusterWithInvalidCloudConfig")
+  public void testAddClusterWithValidCloudConfig() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    CloudConfig.Builder cloudConfigInitBuilder = new CloudConfig.Builder();
+    cloudConfigInitBuilder.setCloudEnabled(true);
+    cloudConfigInitBuilder.setCloudID("TestID");
+    List<String> sourceList = new ArrayList<String>();
+    sourceList.add("TestURL");
+    cloudConfigInitBuilder.setCloudInfoSources(sourceList);
+    cloudConfigInitBuilder.setCloudInfoProcessorName("TestProcessorName");
+    cloudConfigInitBuilder.setCloudProvider(CloudProvider.CUSTOMIZED);
+
+    CloudConfig cloudConfigInit = cloudConfigInitBuilder.build();
+
+    _clusterSetup.addCluster(clusterName, false, cloudConfigInit);
+
+    // Read CloudConfig from Zookeeper and check the content
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
+    Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestID");
+    List<String> listUrlFromZk = cloudConfigFromZk.getCloudInfoSources();
+    Assert.assertEquals(listUrlFromZk.get(0), "TestURL");
+    Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessorName");
+    Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
+  }
+
+
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
+  public void testAddClusterAzureProvider() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    CloudConfig.Builder cloudConfigInitBuilder = new CloudConfig.Builder();
+    cloudConfigInitBuilder.setCloudEnabled(true);
+    cloudConfigInitBuilder.setCloudID("TestID");
+    cloudConfigInitBuilder.setCloudProvider(CloudProvider.AZURE);
+
+    CloudConfig cloudConfigInit = cloudConfigInitBuilder.build();
+
+    _clusterSetup.addCluster(clusterName, false, cloudConfigInit);
+
+    // Read CloudConfig from Zookeeper and check the content
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
+    Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestID");
+    List<String> listUrlFromZk = cloudConfigFromZk.getCloudInfoSources();
+
+    // Since provider is not customized, CloudInfoSources and CloudInfoProcessorName will be null.
+    Assert.assertNull(listUrlFromZk);
+    Assert.assertNull(cloudConfigFromZk.getCloudInfoProcessorName());
+    Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.AZURE.name());
+  }
 }

@@ -45,6 +45,7 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
   private static final String CUSTOM_PATH =
       PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/NonZnRecord";
   private static final String TEST_CONTENT = "TestContent";
+  private static final String CONTENT_KEY = "content";
 
   private ZkBaseDataAccessor<String> _customDataAccessor;
 
@@ -92,7 +93,7 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
         new JerseyUriRequestBuilder("clusters/{}/propertyStore/NonZnRecord").format(TEST_CLUSTER)
             .isBodyReturnExpected(true).get(this);
     JsonNode jsonNode = OBJECT_MAPPER.readTree(actual);
-    String payLoad = jsonNode.get("content").getValueAsText();
+    String payLoad = jsonNode.get(CONTENT_KEY).getValueAsText();
 
     Assert.assertEquals(TEST_CONTENT, payLoad);
   }

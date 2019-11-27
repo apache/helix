@@ -23,6 +23,7 @@ package org.apache.helix.rest.server;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
@@ -36,18 +37,17 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
-import org.apache.helix.rest.server.resources.helix.PropertyStoreAccessor;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
 
 public class ServerContext {
-  private static ZkBaseDataAccessor<ZNRecord> PROPERTY_STORE_ACCESSOR = null;
   private final String _zkAddr;
   private HelixZkClient _zkClient;
   private ZKHelixAdmin _zkHelixAdmin;
   private ClusterSetup _clusterSetup;
   private ConfigAccessor _configAccessor;
-
+  // The lazy initialized base data accessor that reads/writes byte array to ZK
+  private ZkBaseDataAccessor<byte[]> _byteArrayBaseDataAccessor;
   // 1 Cluster name will correspond to 1 helix data accessor
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;
   // 1 Cluster name will correspond to 1 task driver
@@ -120,16 +120,27 @@ public class ServerContext {
     }
   }
 
-  public ZkBaseDataAccessor<ZNRecord> getPropertyStoreAccessor() {
-    if (PROPERTY_STORE_ACCESSOR == null) {
+  public ZkBaseDataAccessor<byte[]> getByteArrayBaseStoreAccessor() {
+    if (_byteArrayBaseDataAccessor == null) {
       synchronized (this) {
-        if (PROPERTY_STORE_ACCESSOR == null) {
-          PROPERTY_STORE_ACCESSOR = new ZkBaseDataAccessor<>(_zkAddr,
-              new PropertyStoreAccessor.PropertyStoreSerializer());
+        if (_byteArrayBaseDataAccessor == null) {
+          _byteArrayBaseDataAccessor = new ZkBaseDataAccessor<>(_zkAddr, new ZkSerializer() {
+            @Override
+            public byte[] serialize(Object o)
+                throws ZkMarshallingError {
+              return (byte[]) o;
+            }
+
+            @Override
+            public Object deserialize(byte[] bytes)
+                throws ZkMarshallingError {
+              return bytes;
+            }
+          });
         }
       }
     }
-    return PROPERTY_STORE_ACCESSOR;
+    return _byteArrayBaseDataAccessor;
   }
 
   public void close() {

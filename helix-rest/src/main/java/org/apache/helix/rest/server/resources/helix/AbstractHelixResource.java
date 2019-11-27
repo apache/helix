@@ -21,7 +21,6 @@ package org.apache.helix.rest.server.resources.helix;
 
 import java.io.IOException;
 
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -78,8 +77,8 @@ public class AbstractHelixResource extends AbstractResource {
     return serverContext.getDataAccssor(clusterName);
   }
 
-  protected ZkBaseDataAccessor<ZNRecord> getPropertyStoreAccessor() {
-    return getServerContext().getPropertyStoreAccessor();
+  protected ZkBaseDataAccessor<byte[]> getByteArrayDataAccessor() {
+    return getServerContext().getByteArrayBaseStoreAccessor();
   }
 
   protected static ZNRecord toZNRecord(String data)

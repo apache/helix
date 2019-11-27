@@ -30,6 +30,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.http.HttpStatus;
+import org.codehaus.jackson.JsonNode;
 import org.junit.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -86,14 +87,14 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testGetPropertyStoreWithTestStringData()
-      throws IOException {
-    String data =
+  public void testGetPropertyStoreWithTestStringData() throws IOException {
+    String actual =
         new JerseyUriRequestBuilder("clusters/{}/propertyStore/NonZnRecord").format(TEST_CLUSTER)
             .isBodyReturnExpected(true).get(this);
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(actual);
+    String payLoad = jsonNode.get("/TestCluster_0/PROPERTYSTORE/NonZnRecord").getValueAsText();
 
-    ZNRecord record = OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
-    Assert.assertEquals(record.getSimpleField("default"), TEST_CONTENT);
+    Assert.assertEquals(TEST_CONTENT, payLoad);
   }
 
   @Test

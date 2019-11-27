@@ -25,13 +25,12 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
-import org.I0Itec.zkclient.exception.ZkMarshallingError;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,33 +38,7 @@ import org.slf4j.LoggerFactory;
 @Path("/clusters/{clusterId}/propertyStore")
 public class PropertyStoreAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(PropertyStoreAccessor.class);
-
-  public static class PropertyStoreSerializer implements ZkSerializer {
-    private static final String DEFAULT_KEY = "default";
-    private static final ZNRecordSerializer ZN_RECORD_SERIALIZER = new ZNRecordSerializer();
-
-    // used for writing the serialized content to property store path
-    @Override
-    public byte[] serialize(Object o)
-        throws ZkMarshallingError {
-      return (byte[]) o;
-    }
-
-    // used for reading the raw content of property store path to ZnRecord format
-    @Override
-    public Object deserialize(byte[] bytes)
-        throws ZkMarshallingError {
-      // firstly, try to deserialize the bytearray into ZnRecord using {@link ZNRecordSerializer}
-      ZNRecord content = (ZNRecord) ZN_RECORD_SERIALIZER.deserialize(bytes);
-      // if first trial fails, fallback to return a simple/default znRecord
-      if (content == null) {
-        ZNRecord znRecord = new ZNRecord(DEFAULT_KEY);
-        znRecord.setSimpleField(DEFAULT_KEY, new String(bytes));
-        return znRecord;
-      }
-      return content;
-    }
-  }
+  private static final ZNRecordSerializer ZN_RECORD_SERIALIZER = new ZNRecordSerializer();
 
   /**
    * Sample HTTP URLs:
@@ -86,13 +59,21 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
           "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
-    ZkBaseDataAccessor<ZNRecord> propertyStoreDataAccessor = getPropertyStoreAccessor();
+    ZkBaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
     if (propertyStoreDataAccessor.exists(recordPath, AccessOption.PERSISTENT)) {
-      ZNRecord record = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
-      return JSONRepresentation(record);
+      byte[] bytes = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
+      ZNRecord znRecord = (ZNRecord) ZN_RECORD_SERIALIZER.deserialize(bytes);
+      // The ZNRecordSerializer returns null when exception occurs in deserialization method
+      if (znRecord == null) {
+        ObjectNode jsonNode = OBJECT_MAPPER.createObjectNode();
+        jsonNode.put(recordPath, new String(bytes));
+        return JSONRepresentation(jsonNode);
+      } else {
+        return JSONRepresentation(znRecord);
+      }
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-          .entity("The property store path " + recordPath + " doesn't exist").build());
+          .entity(String.format("The property store path %s doesn't exist", recordPath)).build());
     }
   }
 

@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 @Path("/clusters/{clusterId}/propertyStore")
 public class PropertyStoreAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(PropertyStoreAccessor.class);
+  private static final String CONTENT_KEY = "content";
   private static final ZNRecordSerializer ZN_RECORD_SERIALIZER = new ZNRecordSerializer();
 
   /**
@@ -46,7 +47,8 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
    * It refers to the /PROPERTYSTORE/<PATH> in Helix metadata store
    * @param clusterId The cluster Id
    * @param path path parameter is like "abc/abc/abc" in the URL
-   * @return JSON object as the response
+   * @return If the payload is ZNRecord format, return ZnRecord json response;
+   *         Otherwise, return json object {<PATH>: raw string}
    */
   @GET
   @Path("{path: .+}")
@@ -66,11 +68,10 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
       // The ZNRecordSerializer returns null when exception occurs in deserialization method
       if (znRecord == null) {
         ObjectNode jsonNode = OBJECT_MAPPER.createObjectNode();
-        jsonNode.put(recordPath, new String(bytes));
+        jsonNode.put(CONTENT_KEY, new String(bytes));
         return JSONRepresentation(jsonNode);
-      } else {
-        return JSONRepresentation(znRecord);
       }
+      return JSONRepresentation(znRecord);
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
           .entity(String.format("The property store path %s doesn't exist", recordPath)).build());

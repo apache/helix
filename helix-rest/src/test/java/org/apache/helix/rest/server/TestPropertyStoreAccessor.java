@@ -92,7 +92,7 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
         new JerseyUriRequestBuilder("clusters/{}/propertyStore/NonZnRecord").format(TEST_CLUSTER)
             .isBodyReturnExpected(true).get(this);
     JsonNode jsonNode = OBJECT_MAPPER.readTree(actual);
-    String payLoad = jsonNode.get("/TestCluster_0/PROPERTYSTORE/NonZnRecord").getValueAsText();
+    String payLoad = jsonNode.get("content").getValueAsText();
 
     Assert.assertEquals(TEST_CONTENT, payLoad);
   }

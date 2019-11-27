@@ -120,7 +120,7 @@ public class ServerContext {
     }
   }
 
-  public ZkBaseDataAccessor<byte[]> getByteArrayBaseStoreAccessor() {
+  public ZkBaseDataAccessor<byte[]> getByteArrayBaseDataAccessor() {
     if (_byteArrayBaseDataAccessor == null) {
       synchronized (this) {
         if (_byteArrayBaseDataAccessor == null) {

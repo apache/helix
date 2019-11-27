@@ -78,7 +78,7 @@ public class AbstractHelixResource extends AbstractResource {
   }
 
   protected ZkBaseDataAccessor<byte[]> getByteArrayDataAccessor() {
-    return getServerContext().getByteArrayBaseStoreAccessor();
+    return getServerContext().getByteArrayBaseDataAccessor();
   }
 
   protected static ZNRecord toZNRecord(String data)

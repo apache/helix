@@ -41,17 +41,19 @@ public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
     return _persistGlobalBaseline;
   }
 
-  public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+  public boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     _persistGlobalBaseline = globalBaseline;
+    return true;
   }
 
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
     return _persistBestPossibleAssignment;
   }
 
-  public void persistBestPossibleAssignment(
+  public boolean persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     _persistBestPossibleAssignment = bestPossibleAssignment;
+    return true;
   }
 
   public void close() {

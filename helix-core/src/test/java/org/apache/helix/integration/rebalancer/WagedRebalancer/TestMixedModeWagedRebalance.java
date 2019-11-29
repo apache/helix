@@ -39,20 +39,20 @@ public class TestMixedModeWagedRebalance extends TestMixedModeAutoRebalance {
     };
   }
 
-  protected void createResource(String stateModel, int numPartition,
-      int replica, boolean delayEnabled, String rebalanceStrategy) {
+  protected void createResource(String dbName, String stateModel, int numPartition, int replica,
+      boolean delayEnabled, String rebalanceStrategy) {
     if (delayEnabled) {
       setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 200);
-      createResourceWithWagedRebalance(CLUSTER_NAME, DB_NAME, stateModel, numPartition, replica,
+      createResourceWithWagedRebalance(CLUSTER_NAME, dbName, stateModel, numPartition, replica,
           replica - 1);
     } else {
-      createResourceWithWagedRebalance(CLUSTER_NAME, DB_NAME, stateModel, numPartition, replica, replica);
+      createResourceWithWagedRebalance(CLUSTER_NAME, dbName, stateModel, numPartition, replica,
+          replica);
     }
   }
 
   @AfterMethod
   public void afterMethod() {
-    super.afterMethod();
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
   }
 }

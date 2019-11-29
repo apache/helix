@@ -1,4 +1,4 @@
-package org.apache.helix.integration.rebalancer.PartitionMigration;
+package org.apache.helix.integration.rebalancer.WagedRebalancer;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,6 +22,7 @@ package org.apache.helix.integration.rebalancer.PartitionMigration;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.helix.integration.rebalancer.PartitionMigration.TestExpandCluster;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 

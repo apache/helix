@@ -92,11 +92,14 @@ public class AssignmentMetadataStore {
     return _bestPossibleAssignment;
   }
 
-  public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+  /**
+   * @return true if a new baseline was persisted.
+   */
+  public boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     // TODO: Make the write async?
     // If baseline hasn't changed, skip writing to metadata store
     if (compareAssignments(_globalBaseline, globalBaseline)) {
-      return;
+      return false;
     }
     // Persist to ZK
     HelixProperty combinedAssignments = combineAssignments(BASELINE_KEY, globalBaseline);
@@ -109,14 +112,18 @@ public class AssignmentMetadataStore {
 
     // Update the in-memory reference
     _globalBaseline = globalBaseline;
+    return true;
   }
 
-  public void persistBestPossibleAssignment(
+  /**
+   * @return true if a new best possible assignment was persisted.
+   */
+  public boolean persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     // TODO: Make the write async?
     // If bestPossibleAssignment hasn't changed, skip writing to metadata store
     if (compareAssignments(_bestPossibleAssignment, bestPossibleAssignment)) {
-      return;
+      return false;
     }
     // Persist to ZK
     HelixProperty combinedAssignments =
@@ -130,6 +137,7 @@ public class AssignmentMetadataStore {
 
     // Update the in-memory reference
     _bestPossibleAssignment = bestPossibleAssignment;
+    return true;
   }
 
   protected void finalize() {
@@ -179,7 +187,7 @@ public class AssignmentMetadataStore {
    * @param newAssignment
    * @return true if they are the same. False otherwise or oldAssignment is null
    */
-  private boolean compareAssignments(Map<String, ResourceAssignment> oldAssignment,
+  protected boolean compareAssignments(Map<String, ResourceAssignment> oldAssignment,
       Map<String, ResourceAssignment> newAssignment) {
     // If oldAssignment is null, that means that we haven't read from/written to
     // the metadata store yet. In that case, we return false so that we write to metadata store.

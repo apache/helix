@@ -19,9 +19,10 @@ package org.apache.helix.monitoring.metrics.implementation;
  * under the License.
  */
 
+import java.util.concurrent.TimeUnit;
+
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
-import java.util.concurrent.TimeUnit;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ public class RebalanceLatencyGauge extends LatencyMetric {
   private static final Logger LOG = LoggerFactory.getLogger(RebalanceLatencyGauge.class);
   private static final long VALUE_NOT_SET = -1;
   private long _lastEmittedMetricValue = VALUE_NOT_SET;
+  private final ThreadLocal<Long> _startTime;
 
   /**
    * Instantiates a new Histogram dynamic metric.
@@ -39,6 +41,7 @@ public class RebalanceLatencyGauge extends LatencyMetric {
     super(metricName, new Histogram(
         new SlidingTimeWindowArrayReservoir(slidingTimeWindow, TimeUnit.MILLISECONDS)));
     _metricName = metricName;
+    _startTime = ThreadLocal.withInitial(() -> VALUE_NOT_SET);
   }
 
   /**
@@ -50,7 +53,7 @@ public class RebalanceLatencyGauge extends LatencyMetric {
   @Override
   public void startMeasuringLatency() {
     reset();
-    _startTime = System.currentTimeMillis();
+    _startTime.set(System.currentTimeMillis());
   }
 
   /**
@@ -58,16 +61,16 @@ public class RebalanceLatencyGauge extends LatencyMetric {
    */
   @Override
   public void endMeasuringLatency() {
-    if (_startTime == VALUE_NOT_SET || _endTime != VALUE_NOT_SET) {
+    if (_startTime.get() == VALUE_NOT_SET) {
       LOG.error(
           "Needs to call startMeasuringLatency first! Ignoring and resetting the metric. Metric name: {}",
           _metricName);
-      reset();
       return;
     }
-    _endTime = System.currentTimeMillis();
-    _lastEmittedMetricValue = _endTime - _startTime;
-    updateValue(_lastEmittedMetricValue);
+    synchronized (this) {
+      _lastEmittedMetricValue = System.currentTimeMillis() - _startTime.get();
+      updateValue(_lastEmittedMetricValue);
+    }
     reset();
   }
 
@@ -84,7 +87,6 @@ public class RebalanceLatencyGauge extends LatencyMetric {
    * Resets the internal state of this metric.
    */
   private void reset() {
-    _startTime = VALUE_NOT_SET;
-    _endTime = VALUE_NOT_SET;
+    _startTime.set(VALUE_NOT_SET);
   }
 }

@@ -114,8 +114,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   }
 
   @Test
-  public void testRebalance()
-      throws IOException, HelixRebalanceException {
+  public void testRebalance() throws IOException, HelixRebalanceException {
     _metadataStore.clearMetadataStore();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
 
@@ -128,6 +127,10 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
               .forEach(partition -> resource.addPartition(partition));
           return resource;
         }));
+    // Mocking the change types for triggering a baseline rebalance.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+
     Map<String, IdealState> newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
     Map<String, ResourceAssignment> algorithmResult = _algorithm.getRebalanceResult();
@@ -150,6 +153,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
               .forEach(partition -> resource.addPartition(partition));
           return resource;
         }));
+    // Mocking the change types for triggering a baseline rebalance.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
 
     // Test with partial resources listed in the resourceMap input.
     // Remove the first resource from the input. Note it still exists in the cluster data cache.
@@ -175,6 +181,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
               .forEach(partition -> resource.addPartition(partition));
           return resource;
         }));
+    // Mocking the change types for triggering a baseline rebalance.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
 
     // Test with current state exists, so the rebalancer should calculate for the intermediate state
     // Create current state based on the cluster data cache.
@@ -256,12 +265,12 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
         Collectors.toMap(resourceName -> resourceName, resourceName -> new Resource(resourceName)));
     try {
       rebalancer.computeBestPossibleAssignment(clusterData, resourceMap,
-          clusterData.getEnabledLiveInstances(), new CurrentStateOutput());
+          clusterData.getEnabledLiveInstances(), new CurrentStateOutput(), _algorithm);
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.INVALID_CLUSTER_STATUS);
       Assert.assertEquals(ex.getMessage(),
-          "Failed to generate cluster model. Failure Type: INVALID_CLUSTER_STATUS");
+          "Failed to generate cluster model for partial rebalance. Failure Type: INVALID_CLUSTER_STATUS");
     }
 
     // The rebalance will be done with empty mapping result since there is no previously calculated
@@ -321,7 +330,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Calculation will fail
     try {
       rebalancer.computeBestPossibleAssignment(clusterData, resourceMap,
-          clusterData.getEnabledLiveInstances(), new CurrentStateOutput());
+          clusterData.getEnabledLiveInstances(), new CurrentStateOutput(), badAlgorithm);
       Assert.fail("Rebalance shall fail.");
     } catch (HelixRebalanceException ex) {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);

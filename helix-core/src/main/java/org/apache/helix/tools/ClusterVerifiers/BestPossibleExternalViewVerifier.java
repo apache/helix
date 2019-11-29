@@ -37,6 +37,7 @@ import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.rebalancer.waged.AssignmentMetadataStore;
+import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintBasedAlgorithmFactory;
 import org.apache.helix.controller.stages.AttributeName;
@@ -430,7 +431,7 @@ class DryrunWagedRebalancer extends WagedRebalancer {
   @Override
   protected Map<String, ResourceAssignment> computeBestPossibleAssignment(
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-      Set<String> activeNodes, CurrentStateOutput currentStateOutput)
+      Set<String> activeNodes, CurrentStateOutput currentStateOutput, RebalanceAlgorithm algorithm)
       throws HelixRebalanceException {
     return getBestPossibleAssignment(getAssignmentMetadataStore(), currentStateOutput,
         resourceMap.keySet());

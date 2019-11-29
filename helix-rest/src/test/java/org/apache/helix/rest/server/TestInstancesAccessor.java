@@ -25,11 +25,14 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
@@ -38,11 +41,6 @@ import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public class TestInstancesAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
@@ -181,7 +179,8 @@ public class TestInstancesAccessor extends AbstractTestClass {
     // Empty out ClusterConfig's weight key setting for testing
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.getRecord().setListField(
-        ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), new ArrayList<>());
+        ClusterConfig.WagedRebalancerConfigProperty.INSTANCE_CAPACITY_KEYS.name(),
+        new ArrayList<>());
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
     // Issue a validate call
     String body = new JerseyUriRequestBuilder("clusters/{}/instances?command=validateWeight")

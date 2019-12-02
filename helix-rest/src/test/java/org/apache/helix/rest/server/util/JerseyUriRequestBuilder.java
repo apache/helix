@@ -90,6 +90,10 @@ public class JerseyUriRequestBuilder {
     return body;
   }
 
+  public Response getResponse(JerseyTestNg.ContainerPerClassTest container) {
+    return buildWebTarget(container).request().get();
+  }
+
   /**
    * Execute put request
    * @param container

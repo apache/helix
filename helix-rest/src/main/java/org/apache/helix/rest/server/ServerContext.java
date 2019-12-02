@@ -23,6 +23,8 @@ package org.apache.helix.rest.server;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.I0Itec.zkclient.exception.ZkMarshallingError;
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -38,16 +40,17 @@ import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
 
+
 public class ServerContext {
   private final String _zkAddr;
   private HelixZkClient _zkClient;
   private ZKHelixAdmin _zkHelixAdmin;
   private ClusterSetup _clusterSetup;
   private ConfigAccessor _configAccessor;
-
+  // The lazy initialized base data accessor that reads/writes byte array to ZK
+  private ZkBaseDataAccessor<byte[]> _byteArrayBaseDataAccessor;
   // 1 Cluster name will correspond to 1 helix data accessor
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;
-
   // 1 Cluster name will correspond to 1 task driver
   private final Map<String, TaskDriver> _taskDriverPool;
 
@@ -66,8 +69,8 @@ public class ServerContext {
     if (_zkClient == null) {
       HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
       clientConfig.setZkSerializer(new ZNRecordSerializer());
-      _zkClient = SharedZkClientFactory
-          .getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
+      _zkClient = SharedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
     }
     return _zkClient;
   }
@@ -110,12 +113,36 @@ public class ServerContext {
   public HelixDataAccessor getDataAccssor(String clusterName) {
     synchronized (_helixDataAccessorPool) {
       if (!_helixDataAccessorPool.containsKey(clusterName)) {
-        ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(getHelixZkClient());
+        ZkBaseDataAccessor<ZNRecord> baseDataAccessor =
+            new ZkBaseDataAccessor<>(getHelixZkClient());
         _helixDataAccessorPool.put(clusterName,
             new ZKHelixDataAccessor(clusterName, InstanceType.ADMINISTRATOR, baseDataAccessor));
       }
       return _helixDataAccessorPool.get(clusterName);
     }
+  }
+
+  public ZkBaseDataAccessor<byte[]> getByteArrayBaseDataAccessor() {
+    if (_byteArrayBaseDataAccessor == null) {
+      synchronized (this) {
+        if (_byteArrayBaseDataAccessor == null) {
+          _byteArrayBaseDataAccessor = new ZkBaseDataAccessor<>(_zkAddr, new ZkSerializer() {
+            @Override
+            public byte[] serialize(Object o)
+                throws ZkMarshallingError {
+              throw new UnsupportedOperationException("Serialize is not supported yet!");
+            }
+
+            @Override
+            public Object deserialize(byte[] bytes)
+                throws ZkMarshallingError {
+              return bytes;
+            }
+          });
+        }
+      }
+    }
+    return _byteArrayBaseDataAccessor;
   }
 
   public void close() {

@@ -327,15 +327,15 @@ public class WagedRebalancer {
     return newIdealStates;
   }
 
-  // Coordinate baseline recalculation and partial rebalance according to the cluster changes.
+  // Coordinate global rebalance and partial rebalance according to the cluster changes.
   protected Map<String, ResourceAssignment> computeBestPossibleAssignment(
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
       Set<String> activeNodes, final CurrentStateOutput currentStateOutput,
       RebalanceAlgorithm algorithm)
       throws HelixRebalanceException {
-    // Perform global rebalance
+    // Perform global rebalance for a new baseline assignment
     globalRebalance(clusterData, resourceMap, currentStateOutput, algorithm);
-    // Perform partial rebalance
+    // Perform partial rebalance for a new best possible assignment
     Map<String, ResourceAssignment> newAssignment =
         partialRebalance(clusterData, resourceMap, activeNodes, currentStateOutput, algorithm);
     return newAssignment;
@@ -375,6 +375,15 @@ public class WagedRebalancer {
     return finalIdealStateMap;
   }
 
+  /**
+   * Global rebalance calculates for a new baseline assignment.
+   * The new baseline assignment will be persisted and leveraged by the partial rebalance.
+   * @param clusterData
+   * @param resourceMap
+   * @param currentStateOutput
+   * @param algorithm
+   * @throws HelixRebalanceException
+   */
   private void globalRebalance(ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput,
       RebalanceAlgorithm algorithm)
@@ -396,18 +405,16 @@ public class WagedRebalancer {
     if (clusterChanges.keySet().stream()
         .anyMatch(GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES::contains)) {
       // Build the cluster model for rebalance calculation.
-      // Note, for a baseline calculation,
+      // Note, for a Baseline calculation,
       // 1. Ignore node status (disable/offline).
-      // 2. Use the baseline as the previous best possible assignment since there is no "baseline"
-      // for the baseline.
+      // 2. Use the previous Baseline as the only parameter about the previous assignment.
       Map<String, ResourceAssignment> currentBaseline =
           getBaselineAssignment(_assignmentMetadataStore, currentStateOutput, resourceMap.keySet());
       ClusterModel clusterModel;
       try {
         clusterModel = ClusterModelProvider
             .generateClusterModelForBaseline(clusterData, resourceMap,
-                clusterData.getAllInstances(), clusterChanges, Collections.emptyMap(),
-                currentBaseline);
+                clusterData.getAllInstances(), clusterChanges, currentBaseline);
       } catch (Exception ex) {
         throw new HelixRebalanceException("Failed to generate cluster model for global rebalance.",
             HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
@@ -420,6 +427,7 @@ public class WagedRebalancer {
   /**
    * Calculate and update the Baseline assignment
    * @param clusterModel
+   * @param algorithm
    * @throws HelixRebalanceException
    */
   private void refreshBaseline(ClusterModel clusterModel, RebalanceAlgorithm algorithm)
@@ -440,7 +448,7 @@ public class WagedRebalancer {
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
       }
     } else {
-      LOG.debug("Assignment Metadata Store is empty. Skip persist the baseline assignment.");
+      LOG.debug("Assignment Metadata Store is null. Skip persisting the baseline assignment.");
     }
     _globalBaselineCalcLatency.endMeasuringLatency();
     LOG.info("Finish calculating the new baseline.");
@@ -489,8 +497,6 @@ public class WagedRebalancer {
     if (_assignmentMetadataStore != null) {
       try {
         _writeLatency.startMeasuringLatency();
-        // TODO: Test to confirm if persisting the final assignment (with final partition states)
-        // TODO: would be a better option.
         _assignmentMetadataStore.persistBestPossibleAssignment(newAssignment);
         _writeLatency.endMeasuringLatency();
       } catch (Exception ex) {
@@ -498,7 +504,7 @@ public class WagedRebalancer {
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
       }
     } else {
-      LOG.debug("Assignment Metadata Store is empty. Skip persist the baseline assignment.");
+      LOG.debug("Assignment Metadata Store is null. Skip persisting the baseline assignment.");
     }
     _partialRebalanceLatency.endMeasuringLatency();
     LOG.info("Finish calculating the new best possible assignment.");
@@ -507,19 +513,19 @@ public class WagedRebalancer {
 
   /**
    * @param clusterModel the cluster model that contains all the cluster status for the purpose of
-   *                     rebalance calculating.
+   *                     rebalancing.
    * @return the new optimal assignment for the resources.
    */
   private Map<String, ResourceAssignment> calculateAssignment(ClusterModel clusterModel,
-      RebalanceAlgorithm algorithm)
-      throws HelixRebalanceException {
+      RebalanceAlgorithm algorithm) throws HelixRebalanceException {
     long startTime = System.currentTimeMillis();
-    LOG.info("Start calculating for an assignment");
+    LOG.info("Start calculating for an assignment with algorithm {}",
+        algorithm.getClass().getSimpleName());
     OptimalAssignment optimalAssignment = algorithm.calculate(clusterModel);
     Map<String, ResourceAssignment> newAssignment =
         optimalAssignment.getOptimalResourceAssignment();
-    LOG.info("Finish calculating an assignment. Took: {} ms.",
-        System.currentTimeMillis() - startTime);
+    LOG.info("Finish calculating an assignment with algorithm {}. Took: {} ms.",
+        algorithm.getClass().getSimpleName(), System.currentTimeMillis() - startTime);
     return newAssignment;
   }
 

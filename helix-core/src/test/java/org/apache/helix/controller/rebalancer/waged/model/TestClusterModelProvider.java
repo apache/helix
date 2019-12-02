@@ -101,7 +101,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     ClusterModel clusterModel = ClusterModelProvider.generateClusterModelForBaseline(testCache,
         _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
-        _instances, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+        _instances, Collections.emptyMap(), Collections.emptyMap());
     // There should be no existing assignment.
     Assert.assertFalse(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .anyMatch(resourceMap -> !resourceMap.isEmpty()));
@@ -122,7 +122,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     clusterModel = ClusterModelProvider.generateClusterModelForBaseline(testCache,
         _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
-        _instances, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+        _instances, Collections.emptyMap(), Collections.emptyMap());
     // Shall have 2 resources and 12 replicas after fault zone adjusted.
     Assert.assertEquals(clusterModel.getAssignableReplicaMap().size(), 2);
     Assert.assertTrue(clusterModel.getAssignableReplicaMap().values().stream()
@@ -132,8 +132,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     clusterModel = ClusterModelProvider.generateClusterModelForBaseline(testCache,
         _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
-        Collections.singleton(_testInstanceId), Collections.emptyMap(), Collections.emptyMap(),
-        Collections.emptyMap());
+        Collections.singleton(_testInstanceId), Collections.emptyMap(), Collections.emptyMap());
     // Have only one instance
     Assert.assertEquals(
         clusterModel.getAssignableNodes().values().stream().map(AssignableNode::getInstanceName)
@@ -146,17 +145,16 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     clusterModel = ClusterModelProvider.generateClusterModelForBaseline(testCache,
         _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
-        Collections.emptySet(), Collections.emptyMap(), Collections.emptyMap(),
-        Collections.emptyMap());
+        Collections.emptySet(), Collections.emptyMap(), Collections.emptyMap());
     // Have only one instance
     Assert.assertEquals(clusterModel.getAssignableNodes().size(), 0);
-    // Shall have 0 assignable replicas because there is 0 valid node.
+    // Shall have 0 assignable replicas because there are 0 valid nodes.
     Assert.assertTrue(clusterModel.getAssignableReplicaMap().values().stream()
         .allMatch(replicaSet -> replicaSet.isEmpty()));
 
-    // 4. test with best possible assignment
-    // Mock a best possible assignment based on the current states.
-    Map<String, ResourceAssignment> bestPossibleAssignment = new HashMap<>();
+    // 4. test with baseline assignment
+    // Mock a baseline assignment based on the current states.
+    Map<String, ResourceAssignment> baselineAssignment = new HashMap<>();
     for (String resource : _resourceNames) {
       // <partition, <instance, state>>
       Map<String, Map<String, String>> assignmentMap = new HashMap<>();
@@ -169,7 +167,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
         ResourceAssignment assignment = new ResourceAssignment(resource);
         assignmentMap.keySet().stream().forEach(partition -> assignment
             .addReplicaMap(new Partition(partition), assignmentMap.get(partition)));
-        bestPossibleAssignment.put(resource, assignment);
+        baselineAssignment.put(resource, assignment);
       }
     }
 
@@ -177,7 +175,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     clusterModel = ClusterModelProvider.generateClusterModelForBaseline(testCache,
         _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
-        _instances, Collections.emptyMap(), Collections.emptyMap(), bestPossibleAssignment);
+        _instances, Collections.emptyMap(), baselineAssignment);
     // There should be 4 existing assignments in total (each resource has 2) in the specified instance
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .allMatch(resourceMap -> resourceMap.values().stream()
@@ -195,7 +193,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
         _instances,
         Collections.singletonMap(HelixConstants.ChangeType.CLUSTER_CONFIG, Collections.emptySet()),
-        Collections.emptyMap(), bestPossibleAssignment);
+        baselineAssignment);
     // There should be no existing assignment since the topology change invalidates all existing assignment
     Assert.assertTrue(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .allMatch(resourceMap -> resourceMap.isEmpty()));
@@ -213,8 +211,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
         _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
         _instances, Collections.singletonMap(HelixConstants.ChangeType.RESOURCE_CONFIG,
-            Collections.singleton(changedResourceName)), Collections.emptyMap(),
-        bestPossibleAssignment);
+            Collections.singleton(changedResourceName)), baselineAssignment);
     // There should be no existing assignment for all the resource except for resource2
     Assert.assertEquals(clusterModel.getContext().getAssignmentForFaultZoneMap().size(), 1);
     Map<String, Set<String>> resourceAssignmentMap =
@@ -245,8 +242,7 @@ public class TestClusterModelProvider extends AbstractTestClusterModel {
     clusterModel = ClusterModelProvider.generateClusterModelForBaseline(testCache,
         _resourceNames.stream()
             .collect(Collectors.toMap(resource -> resource, resource -> new Resource(resource))),
-        limitedActiveInstances, Collections.emptyMap(), Collections.emptyMap(),
-        bestPossibleAssignment);
+        limitedActiveInstances, Collections.emptyMap(), baselineAssignment);
     // There should be no existing assignment.
     Assert.assertFalse(clusterModel.getContext().getAssignmentForFaultZoneMap().values().stream()
         .anyMatch(resourceMap -> !resourceMap.isEmpty()));

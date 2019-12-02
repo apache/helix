@@ -51,12 +51,13 @@ public class ClusterModelProvider {
     PARTIAL,
     // Set the rebalance scope to cover all replicas that need relocation based on the cluster
     // changes.
-    GLOBAL
+    GLOBAL_BASELINE
   }
 
   /**
    * Generate a new Cluster Model object according to the current cluster status for partial
-   * rebalance. The rebalance scope is configured for recovering the missing replicas only.
+   * rebalance. The rebalance scope is configured for recovering the missing replicas that are in
+   * the Baseline assignment but not in the current Best possible assignment only.
    * @param dataProvider           The controller's data cache.
    * @param resourceMap            The full list of the resources to be rebalanced. Note that any
    *                               resources that are not in this list will be removed from the
@@ -84,22 +85,17 @@ public class ClusterModelProvider {
    * @param resourceMap            The full list of the resources to be rebalanced. Note that any
    *                               resources that are not in this list will be removed from the
    *                               final assignment.
-   * @param activeInstances        The active instances that will be used in the calculation.
-   *                               Note this list can be different from the real active node list
-   *                               according to the rebalancer logic.
+   * @param allInstances           All the instances that will be used in the calculation.
    * @param clusterChanges         All the cluster changes that happened after the previous rebalance.
-   * @param baselineAssignment     The persisted Baseline assignment.
-   * @param bestPossibleAssignment The persisted Best Possible assignment that was generated in the
-   *                               previous rebalance.
+   * @param baselineAssignment     The previous Baseline assignment.
    * @return the new cluster model
    */
   public static ClusterModel generateClusterModelForBaseline(
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
-      Set<String> activeInstances, Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
-      Map<String, ResourceAssignment> baselineAssignment,
-      Map<String, ResourceAssignment> bestPossibleAssignment) {
-    return generateClusterModel(dataProvider, resourceMap, activeInstances, clusterChanges,
-        baselineAssignment, bestPossibleAssignment, RebalanceScopeType.GLOBAL);
+      Set<String> allInstances, Map<HelixConstants.ChangeType, Set<String>> clusterChanges,
+      Map<String, ResourceAssignment> baselineAssignment) {
+    return generateClusterModel(dataProvider, resourceMap, allInstances, clusterChanges,
+        Collections.emptyMap(), baselineAssignment, RebalanceScopeType.GLOBAL_BASELINE);
   }
 
   /**
@@ -117,7 +113,7 @@ public class ClusterModelProvider {
       Map<String, ResourceAssignment> existingAssignment) {
     return generateClusterModel(dataProvider, resourceMap, dataProvider.getEnabledLiveInstances(),
         Collections.emptyMap(), Collections.emptyMap(), existingAssignment,
-        RebalanceScopeType.GLOBAL);
+        RebalanceScopeType.GLOBAL_BASELINE);
   }
 
   /**
@@ -156,15 +152,16 @@ public class ClusterModelProvider {
         new HashMap<>(); // <instanceName, replica set>
     Set<AssignableReplica> toBeAssignedReplicas;
     switch (scopeType) {
-      case GLOBAL:
+      case GLOBAL_BASELINE:
         toBeAssignedReplicas = findToBeAssignedReplicasByClusterChanges(replicaMap, activeInstances,
             dataProvider.getLiveInstances().keySet(), clusterChanges, bestPossibleAssignment,
             allocatedReplicas);
         break;
       case PARTIAL:
-        // For partial rebalance, new partitions that are not in the Baseline won't be rebalanced.
-        // Filter to remove the replicas that are not in the Baseline from the replica map.
-        removeUnknownReplicas(replicaMap, baselineAssignment);
+        // Filter to remove the replicas that do not exist in the baseline given but exist in
+        // replicaMap. This is because such replicas are new additions that do not need to be
+        // rebalanced right away.
+        retainExistingReplicas(replicaMap, baselineAssignment);
         toBeAssignedReplicas =
             findToBeAssignedReplicasByComparingBaseline(replicaMap, activeInstances,
                 baselineAssignment, bestPossibleAssignment, allocatedReplicas);
@@ -189,7 +186,7 @@ public class ClusterModelProvider {
 
   // Filter the replicas map so only the replicas that have been allocated in the existing
   // assignmentMap remain in the map.
-  private static void removeUnknownReplicas(Map<String, Set<AssignableReplica>> replicaMap,
+  private static void retainExistingReplicas(Map<String, Set<AssignableReplica>> replicaMap,
       Map<String, ResourceAssignment> assignmentMap) {
     replicaMap.entrySet().parallelStream().forEach(replicaSetEntry -> {
       // <partition, <state, instances set>>
@@ -206,7 +203,7 @@ public class ClusterModelProvider {
           // Removing by comparing with the baseline assignment.
           replicaIter.remove();
         } else {
-          // Cleanup the state map record, so the selected instance won't be picked up again for
+          // Remove the instance from the state map record, so it won't be picked up again for
           // the other replica checkup.
           validInstances.remove(validInstances.iterator().next());
         }
@@ -215,12 +212,12 @@ public class ClusterModelProvider {
   }
 
   /**
-   * Find the minimum set of replicas that need to be reassigned by comparing with the Baseline
-   * assignment.
-   * A replica needs to be reassigned if one of the following conditions is true:
-   * 1. The assignments in the Baseline and the Best possible assignment are different. And the
-   * assignment in the Baseline is valid. So it is worthwhile to move it.
-   * 2. The assignments is not in the Baseline or the Best possible assignment.
+   * Find the minimum set of replicas that need to be reassigned by comparing the Best
+   * possible assignment with the Baseline assignment.
+   * A replica needs to be reassigned if either of the following conditions is true:
+   * 1. The partition allocation in the Baseline and the Best possible assignment are different.
+   * And the allocation in the Baseline is valid. So it is worthwhile to move it.
+   * 2. The partition allocation is not in the Baseline or the Best possible assignment.
    * Otherwise, the rebalancer just keeps the current Best possible assignment allocation.
    *
    * @param replicaMap             A map contains all the replicas grouped by resource name.
@@ -247,7 +244,6 @@ public class ClusterModelProvider {
       for (AssignableReplica replica : replicaMap.get(resourceName)) {
         String partitionName = replica.getPartitionName();
         String replicaState = replica.getReplicaState();
-        // Find the allocation in the baseline
         Set<String> baselineAllocations =
             baselinePartitionStateMap.getOrDefault(partitionName, Collections.emptyMap())
                 .getOrDefault(replicaState, Collections.emptySet());
@@ -255,7 +251,7 @@ public class ClusterModelProvider {
             bestPossiblePartitionStateMap.getOrDefault(partitionName, Collections.emptyMap())
                 .getOrDefault(replicaState, Collections.emptySet());
 
-        // Compare between the baseline and best possible assignments.
+        // Compare the best possible assignments with the baseline assignment for the common part.
         List<String> commonAllocations = new ArrayList<>(bestPossibleAllocations);
         commonAllocations.retainAll(baselineAllocations);
         if (!commonAllocations.isEmpty()) {
@@ -263,21 +259,22 @@ public class ClusterModelProvider {
           // assignment, there is no need to reassign it.
           String allocatedInstance = commonAllocations.get(0);
           allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
-          // clean up the record to prevent the same location being processed again.
+          // Remove the instance from the record to prevent the same location being processed again.
           baselineAllocations.remove(allocatedInstance);
           bestPossibleAllocations.remove(allocatedInstance);
         } else if (!baselineAllocations.isEmpty()) {
           // 2. If the partition is allocated at an active instance in the Baseline but the
           // allocation does not exist in the best possible assignment, try to rebalance it.
           toBeAssignedReplicas.add(replica);
-          // clean up the baseline record to prevent the same location being picked up again.
+          // Remove the instance from the baseline record to prevent the same location being picked
+          // up again.
           baselineAllocations.remove(baselineAllocations.iterator().next());
         } else if (!bestPossibleAllocations.isEmpty()) {
           // 3. If the partition is allocated at an active instance in the best possible assignment
           // only, there is no need to rebalance it.
           String allocatedInstance = bestPossibleAllocations.iterator().next();
           allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
-          // clean up the record to prevent the same location being processed again.
+          // Remove the instance from the record to prevent the same location being processed again.
           bestPossibleAllocations.remove(allocatedInstance);
         } else {
           // 4. If the partition is completely new, rebalance it.
@@ -293,12 +290,12 @@ public class ClusterModelProvider {
    * A replica needs to be reassigned if one of the following condition is true:
    * 1. Cluster topology (the cluster config / any instance config) has been updated.
    * 2. The resource config has been updated.
-   * 3. If the current best possible assignment does not contain the partition's valid assignment.
+   * 3. If the current assignment does not contain the partition's valid assignment.
    *
    * @param replicaMap             A map contains all the replicas grouped by resource name.
    * @param activeInstances        All the instances that are live and enabled according to the delay rebalance configuration.
    * @param liveInstances          All the instances that are live.
-   * @param clusterChanges         A map contains all the important metadata updates that happened after the previous rebalance.
+   * @param clusterChanges         A map that contains all the important metadata updates that happened after the previous rebalance.
    * @param currentAssignment      The current replica assignment.
    * @param allocatedReplicas      Return the allocated replicas grouped by the target instance name.
    * @return The replicas that need to be reassigned.
@@ -332,7 +329,7 @@ public class ClusterModelProvider {
       for (String resourceName : replicaMap.keySet()) {
         Set<AssignableReplica> replicas = replicaMap.get(resourceName);
         // 1. if the resource config/idealstate is changed, need to reassign.
-        // 2. if the resource does appear in the best possible assignment, need to reassign.
+        // 2. if the resource does appear in the current assignment, need to reassign.
         if (clusterChanges
             .getOrDefault(HelixConstants.ChangeType.RESOURCE_CONFIG, Collections.emptySet())
             .contains(resourceName) || clusterChanges
@@ -341,7 +338,7 @@ public class ClusterModelProvider {
           toBeAssignedReplicas.addAll(replicas);
           continue; // go to check next resource
         } else {
-          // check for every best possible assignments to identify if the related replicas need to reassign.
+          // check for every replication allocations to identify if the related replicas need to reassign.
           // <partition, <state, instances list>>
           Map<String, Map<String, Set<String>>> stateMap =
               getValidStateInstanceMap(currentAssignment.get(resourceName), activeInstances);
@@ -351,16 +348,16 @@ public class ClusterModelProvider {
                 stateMap.getOrDefault(replica.getPartitionName(), Collections.emptyMap())
                     .getOrDefault(replica.getReplicaState(), Collections.emptySet());
             if (validInstances.isEmpty()) {
-              // 3. if no such an instance in the bestPossible assignment, need to reassign the replica
+              // 3. if no such an instance in the current assignment, need to reassign the replica
               toBeAssignedReplicas.add(replica);
               continue; // go to check the next replica
             } else {
               Iterator<String> iter = validInstances.iterator();
-              // * cleanup the best possible assignment allocation record after one is picked up.
-              // * so the selected instance won't be picked up again for the another replica check
+              // * Remove the instance from the current allocation record after one is picked up.
+              // So it won't be picked up again for the another replica check.
               String instanceName = iter.next();
               iter.remove();
-              // the current best possible assignment for this replica is valid,
+              // the current assignment for this replica is valid,
               // add to the allocated replica list.
               allocatedReplicas.computeIfAbsent(instanceName, key -> new HashSet<>()).add(replica);
             }
@@ -371,11 +368,15 @@ public class ClusterModelProvider {
     return toBeAssignedReplicas;
   }
 
-  // <partition, <state, instances set>>
+  /**
+   * Filter to remove all invalid allocations that are not on the active instances.
+   * @param assignment
+   * @param activeInstances
+   * @return A map of <partition, <state, instances set>> contains the valid state to instance map.
+   */
   private static Map<String, Map<String, Set<String>>> getValidStateInstanceMap(
       ResourceAssignment assignment, Set<String> activeInstances) {
     Map<String, Map<String, Set<String>>> stateInstanceMap = getStateInstanceMap(assignment);
-    // Filter to remove all invalid allocations that are not on the active instances.
     stateInstanceMap.values().stream().forEach(stateMap -> stateMap.values().stream()
         .forEach(instanceSet -> instanceSet.retainAll(activeInstances)));
     return stateInstanceMap;
@@ -403,6 +404,7 @@ public class ClusterModelProvider {
    *
    * @param clusterConfig     The cluster configuration.
    * @param instanceConfigMap A map of all the instance configuration.
+   *                          If any active instance has no configuration, it will be ignored.
    * @param activeInstances   All the instances that are online and enabled.
    * @return A map of assignable node set, <InstanceName, node set>.
    */

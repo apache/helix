@@ -31,6 +31,7 @@ public class RebalanceLatencyGauge extends LatencyMetric {
   private static final Logger LOG = LoggerFactory.getLogger(RebalanceLatencyGauge.class);
   private static final long VALUE_NOT_SET = -1;
   private long _lastEmittedMetricValue = VALUE_NOT_SET;
+  // Use threadlocal here so the start time can be updated and recorded in multi-threads.
   private final ThreadLocal<Long> _startTime;
 
   /**

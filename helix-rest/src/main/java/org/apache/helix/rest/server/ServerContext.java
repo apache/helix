@@ -40,6 +40,7 @@ import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
 
+
 public class ServerContext {
   private final String _zkAddr;
   private HelixZkClient _zkClient;
@@ -68,8 +69,8 @@ public class ServerContext {
     if (_zkClient == null) {
       HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
       clientConfig.setZkSerializer(new ZNRecordSerializer());
-      _zkClient = SharedZkClientFactory
-          .getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
+      _zkClient = SharedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
     }
     return _zkClient;
   }
@@ -112,7 +113,8 @@ public class ServerContext {
   public HelixDataAccessor getDataAccssor(String clusterName) {
     synchronized (_helixDataAccessorPool) {
       if (!_helixDataAccessorPool.containsKey(clusterName)) {
-        ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(getHelixZkClient());
+        ZkBaseDataAccessor<ZNRecord> baseDataAccessor =
+            new ZkBaseDataAccessor<>(getHelixZkClient());
         _helixDataAccessorPool.put(clusterName,
             new ZKHelixDataAccessor(clusterName, InstanceType.ADMINISTRATOR, baseDataAccessor));
       }
@@ -128,7 +130,9 @@ public class ServerContext {
             @Override
             public byte[] serialize(Object o)
                 throws ZkMarshallingError {
-              return (byte[]) o;
+              // TODO: will implement the write operation when it's needed
+              throw new UnsupportedOperationException(
+                  "The write operation hasn't been supported yet");
             }
 
             @Override

@@ -365,6 +365,15 @@ public class GenericHelixController implements IdealStateChangeListener,
   /**
    * Schedule an on demand rebalance pipeline.
    * @param delay
+   */
+  @Deprecated
+  public void scheduleOnDemandRebalance(long delay) {
+    scheduleOnDemandRebalance(delay, true);
+  }
+
+  /**
+   * Schedule an on demand rebalance pipeline.
+   * @param delay
    * @param shouldRefreshCache true if refresh the cache before scheduling a rebalance.
    */
   public void scheduleOnDemandRebalance(long delay, boolean shouldRefreshCache) {

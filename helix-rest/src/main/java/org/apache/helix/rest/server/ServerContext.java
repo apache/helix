@@ -130,9 +130,9 @@ public class ServerContext {
             @Override
             public byte[] serialize(Object o)
                 throws ZkMarshallingError {
-              // TODO: will implement the write operation when it's needed
+              // TODO: will implement the serialize method when it's needed
               throw new UnsupportedOperationException(
-                  "The write operation hasn't been supported yet");
+                  "The serialize method hasn't been supported yet");
             }
 
             @Override

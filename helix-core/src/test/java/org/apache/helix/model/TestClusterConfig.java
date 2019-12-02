@@ -41,8 +41,8 @@ public class TestClusterConfig {
 
     ClusterConfig testConfig = new ClusterConfig("testId");
     testConfig.getRecord()
-        .setListField(ClusterConfig.WagedRebalancerConfigProperty.INSTANCE_CAPACITY_KEYS.name(),
-            keys);
+        .setListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), keys);
+
     Assert.assertEquals(testConfig.getInstanceCapacityKeys(), keys);
   }
 
@@ -60,7 +60,7 @@ public class TestClusterConfig {
     testConfig.setInstanceCapacityKeys(keys);
 
     Assert.assertEquals(keys, testConfig.getRecord()
-        .getListField(ClusterConfig.WagedRebalancerConfigProperty.INSTANCE_CAPACITY_KEYS.name()));
+        .getListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name()));
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -82,8 +82,7 @@ public class TestClusterConfig {
 
     ClusterConfig testConfig = new ClusterConfig("testId");
     testConfig.getRecord()
-        .setMapField(ClusterConfig.WagedRebalancerConfigProperty.REBALANCE_PREFERENCE.name(),
-            mapFieldData);
+        .setMapField(ClusterConfig.ClusterConfigProperty.REBALANCE_PREFERENCE.name(), mapFieldData);
 
     Assert.assertEquals(testConfig.getGlobalRebalancePreference(), preference);
   }
@@ -117,7 +116,7 @@ public class TestClusterConfig {
     testConfig.setGlobalRebalancePreference(preference);
 
     Assert.assertEquals(testConfig.getRecord()
-            .getMapField(ClusterConfig.WagedRebalancerConfigProperty.REBALANCE_PREFERENCE.name()),
+            .getMapField(ClusterConfig.ClusterConfigProperty.REBALANCE_PREFERENCE.name()),
         mapFieldData);
   }
 
@@ -139,7 +138,7 @@ public class TestClusterConfig {
         ImmutableMap.of("item1", "1", "item2", "2", "item3", "3");
 
     ZNRecord rec = new ZNRecord("testId");
-    rec.setMapField(ClusterConfig.WagedRebalancerConfigProperty.DEFAULT_INSTANCE_CAPACITY_MAP.name(),
+    rec.setMapField(ClusterConfig.ClusterConfigProperty.DEFAULT_INSTANCE_CAPACITY_MAP.name(),
         capacityDataMapString);
     ClusterConfig testConfig = new ClusterConfig(rec);
 
@@ -163,9 +162,8 @@ public class TestClusterConfig {
     ClusterConfig testConfig = new ClusterConfig("testConfig");
     testConfig.setDefaultInstanceCapacityMap(capacityDataMap);
 
-    Assert.assertEquals(
-        testConfig.getRecord().getMapField(ClusterConfig.WagedRebalancerConfigProperty.
-            DEFAULT_INSTANCE_CAPACITY_MAP.name()), capacityDataMapString);
+    Assert.assertEquals(testConfig.getRecord().getMapField(ClusterConfig.ClusterConfigProperty.
+        DEFAULT_INSTANCE_CAPACITY_MAP.name()), capacityDataMapString);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data is null")
@@ -195,7 +193,7 @@ public class TestClusterConfig {
         ImmutableMap.of("item1", "1", "item2", "2", "item3", "3");
 
     ZNRecord rec = new ZNRecord("testId");
-    rec.setMapField(ClusterConfig.WagedRebalancerConfigProperty.DEFAULT_PARTITION_WEIGHT_MAP.name(),
+    rec.setMapField(ClusterConfig.ClusterConfigProperty.DEFAULT_PARTITION_WEIGHT_MAP.name(),
         weightDataMapString);
     ClusterConfig testConfig = new ClusterConfig(rec);
 
@@ -219,9 +217,8 @@ public class TestClusterConfig {
     ClusterConfig testConfig = new ClusterConfig("testConfig");
     testConfig.setDefaultPartitionWeightMap(weightDataMap);
 
-    Assert.assertEquals(
-        testConfig.getRecord().getMapField(ClusterConfig.WagedRebalancerConfigProperty.
-            DEFAULT_PARTITION_WEIGHT_MAP.name()), weightDataMapString);
+    Assert.assertEquals(testConfig.getRecord().getMapField(ClusterConfig.ClusterConfigProperty.
+        DEFAULT_PARTITION_WEIGHT_MAP.name()), weightDataMapString);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data is null")
@@ -250,13 +247,13 @@ public class TestClusterConfig {
     Assert.assertEquals(testConfig.isGlobalRebalanceAsyncModeEnabled(), true);
     // Test get the option
     testConfig.getRecord()
-        .setBooleanField(ClusterConfig.WagedRebalancerConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
+        .setBooleanField(ClusterConfig.ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
             false);
     Assert.assertEquals(testConfig.isGlobalRebalanceAsyncModeEnabled(), false);
     // Test set the option
     testConfig.setGlobalRebalanceAsyncMode(true);
     Assert.assertEquals(testConfig.getRecord()
-        .getBooleanField(ClusterConfig.WagedRebalancerConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
+        .getBooleanField(ClusterConfig.ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
             false), true);
   }
 }

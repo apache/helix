@@ -83,13 +83,12 @@ public class ClusterConfig extends HelixProperty {
     DISABLED_INSTANCES,
 
     // Specifies job types and used for quota allocation
-    QUOTA_TYPES
-  }
+    QUOTA_TYPES,
 
-  /**
-   * Configurable characteristics of the WAGED rebalancer.
-   */
-  public enum WagedRebalancerConfigProperty {
+    /**
+     * Configurable characteristics of the WAGED rebalancer.
+     * TODO: Split the WAGED rebalancer configuration items to the other config file.
+     */
     // The required instance capacity keys for resource partition assignment calculation.
     INSTANCE_CAPACITY_KEYS,
     // The default instance capacity if no capacity is configured in the Instance Config node.
@@ -100,11 +99,14 @@ public class ClusterConfig extends HelixProperty {
     // EVENNESS - Evenness of the resource utilization, partition, and top state distribution.
     // LESS_MOVEMENT - the tendency of keeping the current assignment instead of moving the partition for optimal assignment.
     REBALANCE_PREFERENCE,
-    // Specify if the WAGED rebalancer should asynchronously perform global rebalance.
-    // Note that asynchronous calculation will reduce the rebalance delay but may cause more
-    // partition movements. This is because the partial rebalance will be preformed with an stale
-    // baseline. The rebalance result would be an intermediate one and could be changed again when
-    // a new baseline is calculated.
+    // Specify if the WAGED rebalancer should asynchronously perform the global rebalance, which is
+    // in general slower than the partial rebalance.
+    // Note that asynchronous global rebalance calculation will reduce the controller rebalance
+    // delay. But it may cause more partition movements. This is because the partial rebalance will
+    // be performed with a stale baseline. The rebalance result would be an intermediate one and
+    // could be changed again when a new baseline is calculated.
+    // For more details, please refer to
+    // https://github.com/apache/helix/wiki/Weight-aware-Globally-Evenly-distributed-Rebalancer#rebalance-coordinator
     //
     // Default to be true.
     GLOBAL_REBALANCE_ASYNC_MODE
@@ -704,15 +706,14 @@ public class ClusterConfig extends HelixProperty {
     if (capacityKeys == null || capacityKeys.isEmpty()) {
       throw new IllegalArgumentException("The input instance capacity key list is empty.");
     }
-    _record.setListField(WagedRebalancerConfigProperty.INSTANCE_CAPACITY_KEYS.name(), capacityKeys);
+    _record.setListField(ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), capacityKeys);
   }
 
   /**
    * @return The required Instance Capacity Keys. If not configured, return an empty list.
    */
   public List<String> getInstanceCapacityKeys() {
-    List<String> capacityKeys =
-        _record.getListField(WagedRebalancerConfigProperty.INSTANCE_CAPACITY_KEYS.name());
+    List<String> capacityKeys = _record.getListField(ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name());
     if (capacityKeys == null) {
       return Collections.emptyList();
     }
@@ -725,7 +726,7 @@ public class ClusterConfig extends HelixProperty {
    * @return data map if it exists, or empty map
    */
   public Map<String, Integer> getDefaultInstanceCapacityMap() {
-    return getDefaultCapacityMap(WagedRebalancerConfigProperty.DEFAULT_INSTANCE_CAPACITY_MAP);
+    return getDefaultCapacityMap(ClusterConfigProperty.DEFAULT_INSTANCE_CAPACITY_MAP);
   }
 
   /**
@@ -741,8 +742,7 @@ public class ClusterConfig extends HelixProperty {
    */
   public void setDefaultInstanceCapacityMap(Map<String, Integer> capacityDataMap)
       throws IllegalArgumentException {
-    setDefaultCapacityMap(WagedRebalancerConfigProperty.DEFAULT_INSTANCE_CAPACITY_MAP,
-        capacityDataMap);
+    setDefaultCapacityMap(ClusterConfigProperty.DEFAULT_INSTANCE_CAPACITY_MAP, capacityDataMap);
   }
 
   /**
@@ -751,7 +751,7 @@ public class ClusterConfig extends HelixProperty {
    * @return data map if it exists, or empty map
    */
   public Map<String, Integer> getDefaultPartitionWeightMap() {
-    return getDefaultCapacityMap(WagedRebalancerConfigProperty.DEFAULT_PARTITION_WEIGHT_MAP);
+    return getDefaultCapacityMap(ClusterConfigProperty.DEFAULT_PARTITION_WEIGHT_MAP);
   }
 
   /**
@@ -767,13 +767,11 @@ public class ClusterConfig extends HelixProperty {
    */
   public void setDefaultPartitionWeightMap(Map<String, Integer> weightDataMap)
       throws IllegalArgumentException {
-    setDefaultCapacityMap(WagedRebalancerConfigProperty.DEFAULT_PARTITION_WEIGHT_MAP,
-        weightDataMap);
+    setDefaultCapacityMap(ClusterConfigProperty.DEFAULT_PARTITION_WEIGHT_MAP, weightDataMap);
   }
 
-  private Map<String, Integer> getDefaultCapacityMap(
-      WagedRebalancerConfigProperty rebalancerConfigProperty) {
-    Map<String, String> capacityData = _record.getMapField(rebalancerConfigProperty.name());
+  private Map<String, Integer> getDefaultCapacityMap(ClusterConfigProperty capacityPropertyType) {
+    Map<String, String> capacityData = _record.getMapField(capacityPropertyType.name());
     if (capacityData != null) {
       return capacityData.entrySet().stream().collect(
           Collectors.toMap(entry -> entry.getKey(), entry -> Integer.parseInt(entry.getValue())));
@@ -781,7 +779,7 @@ public class ClusterConfig extends HelixProperty {
     return Collections.emptyMap();
   }
 
-  private void setDefaultCapacityMap(WagedRebalancerConfigProperty rebalancerConfigProperty,
+  private void setDefaultCapacityMap(ClusterConfigProperty capacityPropertyType,
       Map<String, Integer> capacityDataMap) throws IllegalArgumentException {
     if (capacityDataMap == null) {
       throw new IllegalArgumentException("Default capacity data is null");
@@ -795,7 +793,7 @@ public class ClusterConfig extends HelixProperty {
       }
       data.put(entry.getKey(), Integer.toString(entry.getValue()));
     });
-    _record.setMapField(rebalancerConfigProperty.name(), data);
+    _record.setMapField(capacityPropertyType.name(), data);
   }
 
   /**
@@ -816,7 +814,7 @@ public class ClusterConfig extends HelixProperty {
       preferenceMap.put(entry.getKey().name(), Integer.toString(entry.getValue()));
     });
 
-    _record.setMapField(WagedRebalancerConfigProperty.REBALANCE_PREFERENCE.name(), preferenceMap);
+    _record.setMapField(ClusterConfigProperty.REBALANCE_PREFERENCE.name(), preferenceMap);
   }
 
   /**
@@ -824,7 +822,7 @@ public class ClusterConfig extends HelixProperty {
    */
   public Map<GlobalRebalancePreferenceKey, Integer> getGlobalRebalancePreference() {
     Map<String, String> preferenceStrMap =
-        _record.getMapField(WagedRebalancerConfigProperty.REBALANCE_PREFERENCE.name());
+        _record.getMapField(ClusterConfigProperty.REBALANCE_PREFERENCE.name());
     if (preferenceStrMap != null && !preferenceStrMap.isEmpty()) {
       Map<GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
       for (GlobalRebalancePreferenceKey key : GlobalRebalancePreferenceKey.values()) {
@@ -845,11 +843,11 @@ public class ClusterConfig extends HelixProperty {
    * @param isAsync true if the global rebalance should be performed asynchronously
    */
   public void setGlobalRebalanceAsyncMode(boolean isAsync) {
-    _record.setBooleanField(WagedRebalancerConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(), isAsync);
+    _record.setBooleanField(ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(), isAsync);
   }
 
   public boolean isGlobalRebalanceAsyncModeEnabled() {
-    return _record.getBooleanField(WagedRebalancerConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
+    return _record.getBooleanField(ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
         DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED);
   }
 

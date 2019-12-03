@@ -46,7 +46,6 @@ public class RebalanceLatencyGauge extends LatencyMetric {
   }
 
   /**
-   * WARNING: this method is not thread-safe.
    * Calling this method multiple times would simply overwrite the previous state. This is because
    * the rebalancer could fail at any point, and we want it to recover gracefully by resetting the
    * internal state of this metric.
@@ -57,9 +56,6 @@ public class RebalanceLatencyGauge extends LatencyMetric {
     _startTime.set(System.currentTimeMillis());
   }
 
-  /**
-   * WARNING: this method is not thread-safe.
-   */
   @Override
   public void endMeasuringLatency() {
     if (_startTime.get() == VALUE_NOT_SET) {

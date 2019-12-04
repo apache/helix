@@ -222,7 +222,7 @@ public class GenericHelixController implements IdealStateChangeListener,
   class RebalanceTask extends TimerTask {
     final HelixManager _manager;
     final ClusterEventType _clusterEventType;
-    private final Optional<Boolean> _shouldRefreshCache;
+    private final Optional<Boolean> _shouldRefreshCacheOption;
     private long _nextRebalanceTime;
 
     public RebalanceTask(HelixManager manager, ClusterEventType clusterEventType) {
@@ -235,11 +235,16 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
 
     public RebalanceTask(HelixManager manager, ClusterEventType clusterEventType,
-        long nextRebalanceTime, Optional<Boolean> shouldRefreshCache) {
+        long nextRebalanceTime, boolean shouldRefreshCache) {
+      this(manager, clusterEventType, nextRebalanceTime, Optional.of(shouldRefreshCache));
+    }
+
+    private RebalanceTask(HelixManager manager, ClusterEventType clusterEventType,
+        long nextRebalanceTime, Optional<Boolean> shouldRefreshCacheOption) {
       _manager = manager;
       _clusterEventType = clusterEventType;
       _nextRebalanceTime = nextRebalanceTime;
-      _shouldRefreshCache = shouldRefreshCache;
+      _shouldRefreshCacheOption = shouldRefreshCacheOption;
     }
 
     public long getNextRebalanceTime() {
@@ -249,11 +254,9 @@ public class GenericHelixController implements IdealStateChangeListener,
     @Override
     public void run() {
       try {
-        // If refresh option is specified, there is no need to check the event type.
-        if ((!_shouldRefreshCache.isPresent() && (
+        if (_shouldRefreshCacheOption.orElse(
             _clusterEventType.equals(ClusterEventType.PeriodicalRebalance) || _clusterEventType
-                .equals(ClusterEventType.OnDemandRebalance))) ||
-            (_shouldRefreshCache.isPresent() && _shouldRefreshCache.get())) {
+                .equals(ClusterEventType.OnDemandRebalance))) {
           requestDataProvidersFullRefresh();
 
           HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -400,7 +403,7 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     RebalanceTask newTask =
         new RebalanceTask(_helixManager, ClusterEventType.OnDemandRebalance, rebalanceTime,
-            Optional.of(shouldRefreshCache));
+            shouldRefreshCache);
 
     _onDemandRebalanceTimer.schedule(newTask, delay);
     logger.info("Scheduled instant pipeline run for cluster {}." , _helixManager.getClusterName());

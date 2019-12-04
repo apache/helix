@@ -15,6 +15,7 @@ import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
@@ -38,6 +39,62 @@ public interface HelixZkClient {
   void subscribeStateChanges(final IZkStateListener listener);
 
   void unsubscribeStateChanges(IZkStateListener listener);
+
+  /**
+   * Subscribe state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   *
+   * This is deprecated. It is kept for backwards compatibility.
+   * Please use {@link #subscribeStateChanges(IZkStateListener)}.
+   *
+   * @param listener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   */
+  @Deprecated
+  default void subscribeStateChanges(final org.I0Itec.zkclient.IZkStateListener listener) {
+    subscribeStateChanges(new IZkStateListener() {
+      @Override
+      public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
+        listener.handleStateChanged(state);
+      }
+
+      @Override
+      public void handleNewSession(String sessionId) throws Exception {
+        listener.handleNewSession();
+      }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable error) throws Exception {
+        listener.handleSessionEstablishmentError(error);
+      }
+    });
+  }
+
+  /**
+   * Unsubscribe state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   *
+   * This is deprecated. It is kept for backwards compatibility.
+   * Please use {@link #unsubscribeStateChanges(IZkStateListener)}.
+   *
+   * @param listener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   */
+  @Deprecated
+  default void unsubscribeStateChanges(org.I0Itec.zkclient.IZkStateListener listener) {
+    unsubscribeStateChanges(new IZkStateListener() {
+      @Override
+      public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
+        listener.handleStateChanged(state);
+      }
+
+      @Override
+      public void handleNewSession(String sessionId) throws Exception {
+        listener.handleNewSession();
+      }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable error) throws Exception {
+        listener.handleSessionEstablishmentError(error);
+      }
+    });
+  }
 
   void unsubscribeAll();
 

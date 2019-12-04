@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
 import com.google.common.collect.Sets;
-import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
@@ -71,6 +70,7 @@ import org.apache.helix.healthcheck.ParticipantHealthReportTask;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
+import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -1098,7 +1098,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   @Override
-  public void handleNewSession() throws Exception {
+  public void handleNewSession(final String sessionId) throws Exception {
     LOG.info(
         "Handle new session, instance: " + _instanceName + ", type: " + _instanceType);
     waitUntilConnected();

@@ -30,10 +30,10 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
@@ -101,7 +101,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
       }
 
       @Override
-      public void handleNewSession() {
+      public void handleNewSession(final String sessionId) {
         System.out.println("In Old connection New session");
       }
 

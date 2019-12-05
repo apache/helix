@@ -67,7 +67,6 @@ public class TestHandleNewSession extends ZkTestBase {
       ZkTestHelper.expireSession(participant.getZkClient());
 
       String sessionId = participant.getSessionId();
-      System.err.println(sessionId);
       Assert.assertTrue(sessionId.compareTo(lastSessionId) > 0,
           "Session id should be increased after expiry");
       lastSessionId = sessionId;
@@ -80,6 +79,7 @@ public class TestHandleNewSession extends ZkTestBase {
     }
 
     // Logger.getRootLogger().setLevel(Level.INFO);
+    System.out.println("Disconnecting ...");
     participant.syncStop();
     deleteCluster(clusterName);
 

@@ -63,7 +63,7 @@ public class TestHandleNewSession extends ZkTestBase {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String lastSessionId = participant.getSessionId();
     for (int i = 0; i < 3; i++) {
-       System.err.println("curSessionId: " + lastSessionId);
+      // System.err.println("curSessionId: " + lastSessionId);
       ZkTestHelper.expireSession(participant.getZkClient());
 
       String sessionId = participant.getSessionId();
@@ -80,7 +80,6 @@ public class TestHandleNewSession extends ZkTestBase {
     }
 
     // Logger.getRootLogger().setLevel(Level.INFO);
-    System.out.println("Disconnecting ...");
     participant.syncStop();
     deleteCluster(clusterName);
 

@@ -1114,7 +1114,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
      * and so we don't have to check session expiration.
      */
     if (sessionId != null && !getSessionId().equals(sessionId)) {
-      LOG.warn("Session: {} is not handled because it is expired.", sessionId);
+      LOG.info("Session: {} is not handled because it is expired.", sessionId);
       return;
     }
 

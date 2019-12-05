@@ -6,12 +6,12 @@ import java.util.concurrent.TimeUnit;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
+import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.manager.zk.BasicZkSerializer;
 import org.apache.helix.manager.zk.PathBasedZkSerializer;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks;
-import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
@@ -36,20 +36,9 @@ public interface HelixZkClient {
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);
 
-  void subscribeStateChanges(final IZkStateListener listener);
-
-  void unsubscribeStateChanges(IZkStateListener listener);
-
-  /**
-   * Subscribe state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
-   *
-   * This is deprecated. It is kept for backwards compatibility.
-   * Please use {@link #subscribeStateChanges(IZkStateListener)}.
-   *
-   * @param listener {@link org.I0Itec.zkclient.IZkStateListener} listener
-   */
-  @Deprecated
-  default void subscribeStateChanges(final org.I0Itec.zkclient.IZkStateListener listener) {
+  /* TODO: remove below default implementation when getting rid of I0Itec in the new zk client. */
+  default void subscribeStateChanges(
+      final org.apache.helix.manager.zk.zookeeper.IZkStateListener listener) {
     subscribeStateChanges(new IZkStateListener() {
       @Override
       public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
@@ -57,7 +46,28 @@ public interface HelixZkClient {
       }
 
       @Override
-      public void handleNewSession(String sessionId) throws Exception {
+      public void handleNewSession() throws Exception {
+        listener.handleNewSession();
+      }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable error) throws Exception {
+        listener.handleSessionEstablishmentError(error);
+      }
+    });
+  }
+
+  /* TODO: remove below default implementation when getting rid of I0Itec in the new zk client. */
+  default void unsubscribeStateChanges(
+      org.apache.helix.manager.zk.zookeeper.IZkStateListener listener) {
+    unsubscribeStateChanges(new IZkStateListener() {
+      @Override
+      public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
+        listener.handleStateChanged(state);
+      }
+
+      @Override
+      public void handleNewSession() throws Exception {
         listener.handleNewSession();
       }
 
@@ -69,32 +79,28 @@ public interface HelixZkClient {
   }
 
   /**
-   * Unsubscribe state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   * Subscribe state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
    *
-   * This is deprecated. It is kept for backwards compatibility.
-   * Please use {@link #unsubscribeStateChanges(IZkStateListener)}.
+   * @deprecated
+   * This is deprecated. It is kept for backwards compatibility. Please use
+   * {@link #subscribeStateChanges(org.apache.helix.manager.zk.zookeeper.IZkStateListener)}.
    *
-   * @param listener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   * @param listener {@link IZkStateListener} listener
    */
   @Deprecated
-  default void unsubscribeStateChanges(org.I0Itec.zkclient.IZkStateListener listener) {
-    unsubscribeStateChanges(new IZkStateListener() {
-      @Override
-      public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
-        listener.handleStateChanged(state);
-      }
+  void subscribeStateChanges(final IZkStateListener listener);
 
-      @Override
-      public void handleNewSession(String sessionId) throws Exception {
-        listener.handleNewSession();
-      }
-
-      @Override
-      public void handleSessionEstablishmentError(Throwable error) throws Exception {
-        listener.handleSessionEstablishmentError(error);
-      }
-    });
-  }
+  /**
+   * Unsubscribe state changes for a {@link IZkStateListener} listener.
+   *
+   * @deprecated
+   * This is deprecated. It is kept for backwards compatibility. Please use
+   * {@link #unsubscribeStateChanges(org.apache.helix.manager.zk.zookeeper.IZkStateListener)}.
+   *
+   * @param listener {@link IZkStateListener} listener
+   */
+  @Deprecated
+  void unsubscribeStateChanges(IZkStateListener listener);
 
   void unsubscribeAll();
 

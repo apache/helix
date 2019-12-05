@@ -40,12 +40,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
+import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.model.ExternalView;
 import org.apache.zookeeper.WatchedEvent;
@@ -103,7 +103,7 @@ public class ZkTestHelper {
       }
 
       @Override
-      public void handleNewSession(final String sessionId) throws Exception {
+      public void handleNewSession() throws Exception {
         // make sure zkclient is connected again
         zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
 
@@ -158,7 +158,7 @@ public class ZkTestHelper {
       }
 
       @Override
-      public void handleNewSession(final String sessionId) throws Exception {
+      public void handleNewSession() throws Exception {
         // make sure zkclient is connected again
         zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
 

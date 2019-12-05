@@ -33,6 +33,7 @@ public interface IZkStateListener {
    * Called after the zookeeper session has expired and a new session has been created.
    * You would have to re-create any ephemeral nodes here.
    *
+   * @deprecated
    * This is deprecated, because it may cause session race condition when creating ephemeral nodes.
    * Please use {@link #handleNewSession(String)} instead, which takes care of race condition.
    *
@@ -40,9 +41,7 @@ public interface IZkStateListener {
    *             On any error.
    */
   @Deprecated
-  default void handleNewSession() throws Exception {
-    handleNewSession(null);
-  }
+  void handleNewSession() throws Exception;
 
   /**
    * Called after the zookeeper session has expired and a new session has been created. The new
@@ -52,7 +51,9 @@ public interface IZkStateListener {
    * @param sessionId The new session's id.
    * @throws Exception if any error occurs.
    */
-  void handleNewSession(final String sessionId) throws Exception;
+  default void handleNewSession(final String sessionId) throws Exception {
+    handleNewSession();
+  }
 
   /**
    * Called when a session cannot be re-established. This should be used to implement connection

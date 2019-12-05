@@ -63,10 +63,11 @@ public class TestHandleNewSession extends ZkTestBase {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String lastSessionId = participant.getSessionId();
     for (int i = 0; i < 3; i++) {
-      // System.err.println("curSessionId: " + lastSessionId);
+       System.err.println("curSessionId: " + lastSessionId);
       ZkTestHelper.expireSession(participant.getZkClient());
 
       String sessionId = participant.getSessionId();
+      System.err.println(sessionId);
       Assert.assertTrue(sessionId.compareTo(lastSessionId) > 0,
           "Session id should be increased after expiry");
       lastSessionId = sessionId;

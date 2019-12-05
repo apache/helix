@@ -278,10 +278,48 @@ public class ZkClient implements Watcher {
     }
   }
 
+  public void subscribeStateChanges(final org.I0Itec.zkclient.IZkStateListener listener) {
+    subscribeStateChanges(new IZkStateListener() {
+      @Override
+      public void handleStateChanged(KeeperState state) throws Exception {
+        listener.handleStateChanged(state);
+      }
+
+      @Override
+      public void handleNewSession() throws Exception {
+        listener.handleNewSession();
+      }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable error) throws Exception {
+        listener.handleSessionEstablishmentError(error);
+      }
+    });
+  }
+
   public void unsubscribeStateChanges(IZkStateListener stateListener) {
     synchronized (_stateListener) {
       _stateListener.remove(stateListener);
     }
+  }
+
+  public void unsubscribeStateChanges(org.I0Itec.zkclient.IZkStateListener stateListener) {
+    unsubscribeStateChanges(new IZkStateListener() {
+      @Override
+      public void handleStateChanged(KeeperState state) throws Exception {
+        stateListener.handleStateChanged(state);
+      }
+
+      @Override
+      public void handleNewSession() throws Exception {
+        stateListener.handleNewSession();
+      }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable error) throws Exception {
+        stateListener.handleSessionEstablishmentError(error);
+      }
+    });
   }
 
   public void unsubscribeAll() {
@@ -858,20 +896,23 @@ public class ZkClient implements Watcher {
   }
 
   private void fireNewSessionEvents() {
+    final String sessionId = Long.toHexString(getSessionId());
     for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEvent("New session event sent to " + stateListener) {
+      _eventThread.send(new ZkEvent("New session event sent to " + stateListener, sessionId) {
 
         @Override
         public void run() throws Exception {
-          stateListener.handleNewSession();
+          stateListener.handleNewSession(sessionId);
         }
       });
     }
   }
 
   protected void fireStateChangedEvent(final KeeperState state) {
+    final String sessionId = Long.toHexString(getSessionId());
     for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEvent("State changed to " + state + " sent to " + stateListener) {
+      String description = "State changed to " + state + " sent to " + stateListener;
+      _eventThread.send(new ZkEvent(description, sessionId) {
 
         @Override
         public void run() throws Exception {

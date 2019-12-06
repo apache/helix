@@ -420,7 +420,7 @@ public class WagedRebalancer {
             HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
       }
 
-      refreshBaseline(clusterModel, algorithm);
+      calculateAndUpdateBaseline(clusterModel, algorithm);
     }
   }
 
@@ -430,7 +430,7 @@ public class WagedRebalancer {
    * @param algorithm
    * @throws HelixRebalanceException
    */
-  private void refreshBaseline(ClusterModel clusterModel, RebalanceAlgorithm algorithm)
+  private void calculateAndUpdateBaseline(ClusterModel clusterModel, RebalanceAlgorithm algorithm)
       throws HelixRebalanceException {
     LOG.info("Start calculating the new baseline.");
     _globalBaselineCalcCounter.increment(1L);

@@ -85,6 +85,10 @@ public class ClusterConfig extends HelixProperty {
     // Specifies job types and used for quota allocation
     QUOTA_TYPES,
 
+    /**
+     * Configurable characteristics of the WAGED rebalancer.
+     * TODO: Split the WAGED rebalancer configuration items to the other config file.
+     */
     // The required instance capacity keys for resource partition assignment calculation.
     INSTANCE_CAPACITY_KEYS,
     // The default instance capacity if no capacity is configured in the Instance Config node.
@@ -94,7 +98,18 @@ public class ClusterConfig extends HelixProperty {
     // The preference of the rebalance result.
     // EVENNESS - Evenness of the resource utilization, partition, and top state distribution.
     // LESS_MOVEMENT - the tendency of keeping the current assignment instead of moving the partition for optimal assignment.
-    REBALANCE_PREFERENCE
+    REBALANCE_PREFERENCE,
+    // Specify if the WAGED rebalancer should asynchronously perform the global rebalance, which is
+    // in general slower than the partial rebalance.
+    // Note that asynchronous global rebalance calculation will reduce the controller rebalance
+    // delay. But it may cause more partition movements. This is because the partial rebalance will
+    // be performed with a stale baseline. The rebalance result would be an intermediate one and
+    // could be changed again when a new baseline is calculated.
+    // For more details, please refer to
+    // https://github.com/apache/helix/wiki/Weight-aware-Globally-Evenly-distributed-Rebalancer#rebalance-coordinator
+    //
+    // Default to be true.
+    GLOBAL_REBALANCE_ASYNC_MODE
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -121,6 +136,7 @@ public class ClusterConfig extends HelixProperty {
           .put(GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1).build();
   private final static int MAX_REBALANCE_PREFERENCE = 10;
   private final static int MIN_REBALANCE_PREFERENCE = 0;
+  private final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
 
   /**
    * Instantiate for a specific cluster
@@ -820,6 +836,19 @@ public class ClusterConfig extends HelixProperty {
     }
     // If configuration is not complete, return the default one.
     return DEFAULT_GLOBAL_REBALANCE_PREFERENCE;
+  }
+
+  /**
+   * Set the asynchronous global rebalance mode.
+   * @param isAsync true if the global rebalance should be performed asynchronously
+   */
+  public void setGlobalRebalanceAsyncMode(boolean isAsync) {
+    _record.setBooleanField(ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(), isAsync);
+  }
+
+  public boolean isGlobalRebalanceAsyncModeEnabled() {
+    return _record.getBooleanField(ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
+        DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED);
   }
 
   /**

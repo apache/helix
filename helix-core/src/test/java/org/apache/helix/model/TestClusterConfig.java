@@ -19,16 +19,16 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import static org.apache.helix.model.ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS;
 import static org.apache.helix.model.ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT;
@@ -238,5 +238,22 @@ public class TestClusterConfig {
 
     ClusterConfig testConfig = new ClusterConfig("testConfig");
     testConfig.setDefaultPartitionWeightMap(weightDataMap);
+  }
+
+  @Test
+  public void testAsyncGlobalRebalanceOption() {
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    // Default value is true.
+    Assert.assertEquals(testConfig.isGlobalRebalanceAsyncModeEnabled(), true);
+    // Test get the option
+    testConfig.getRecord()
+        .setBooleanField(ClusterConfig.ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
+            false);
+    Assert.assertEquals(testConfig.isGlobalRebalanceAsyncModeEnabled(), false);
+    // Test set the option
+    testConfig.setGlobalRebalanceAsyncMode(true);
+    Assert.assertEquals(testConfig.getRecord()
+        .getBooleanField(ClusterConfig.ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
+            false), true);
   }
 }

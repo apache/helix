@@ -699,7 +699,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       try {
         _zkclient.waitUntilConnected(_connectionInitTimeout, TimeUnit.MILLISECONDS);
         handleStateChanged(KeeperState.SyncConnected);
-        handleNewSession(getSessionId());
+        handleNewSession();
         break;
       } catch (HelixException e) {
         LOG.error("fail to createClient.", e);
@@ -1104,23 +1104,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public void handleNewSession(final String sessionId) throws Exception {
-    /*
-     * When Zk session is re-established, some old events from the previous session might still be
-     * left in in the event queue. This may cause some issues related to session expiration.
-     * Theoretically, an old event coming from an old session will be re-triggered or reset in the
-     * new event, so we don't have to process the old event.
-     * Thus, if the session is expired, we will discard this session and will NOT run following
-     * tasks for this session. If session id is null, it means this operation is not session aware
-     * and so we don't have to check session expiration.
-     */
-    if (sessionId != null && !getSessionId().equals(sessionId)) {
-      LOG.info("Session: {} is not handled because it is expired.", sessionId);
-      return;
-    }
-
-    /* If session id is null, it means this operation is not session aware. In this case, current
-     * zookeeper session id is logged.
-     */
     LOG.info("Handle new session, instance: {}, type: {}, session id: {}.", _instanceName,
         _instanceType, sessionId == null ? getSessionId() : sessionId);
 

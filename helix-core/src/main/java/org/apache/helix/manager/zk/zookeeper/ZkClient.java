@@ -886,23 +886,20 @@ public class ZkClient implements Watcher {
   }
 
   private void fireNewSessionEvents() {
-    final String sessionId = Long.toHexString(getSessionId());
     for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEvent("New session event sent to " + stateListener, sessionId) {
+      _eventThread.send(new ZkEvent("New session event sent to " + stateListener) {
 
         @Override
         public void run() throws Exception {
-          stateListener.handleNewSession(sessionId);
+          stateListener.handleNewSession();
         }
       });
     }
   }
 
   protected void fireStateChangedEvent(final KeeperState state) {
-    final String sessionId = Long.toHexString(getSessionId());
     for (final IZkStateListener stateListener : _stateListener) {
-      String description = "State changed to " + state + " sent to " + stateListener;
-      _eventThread.send(new ZkEvent(description, sessionId) {
+      _eventThread.send(new ZkEvent("State changed to " + state + " sent to " + stateListener) {
 
         @Override
         public void run() throws Exception {

@@ -22,7 +22,6 @@ package org.apache.helix.manager.zk;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.SystemPropertyKeys;
@@ -31,6 +30,7 @@ import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.model.LiveInstance;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.testng.Assert;
@@ -50,7 +50,7 @@ public class TestZkFlapping extends ZkUnitTestBase {
     }
 
     @Override
-    public void handleNewSession() {
+    public void handleNewSession(final String sessionId) {
     }
 
     @Override

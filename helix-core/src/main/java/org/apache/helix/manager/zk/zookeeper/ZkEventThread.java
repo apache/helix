@@ -38,16 +38,23 @@ public class ZkEventThread extends Thread {
 
   public static abstract class ZkEvent {
 
-    private String _description;
+    private final String _description;
+    private final String _sessionId;
 
     public ZkEvent(String description) {
+      this(description, null);
+    }
+
+    ZkEvent(String description, String sessionId) {
       _description = description;
+      _sessionId = sessionId;
     }
 
     public abstract void run() throws Exception;
 
-    @Override public String toString() {
-      return "ZkEvent[" + _description + "]";
+    @Override
+    public String toString() {
+      return "ZkEvent[description: " + _description + "; session: 0x" + _sessionId + "]";
     }
   }
 

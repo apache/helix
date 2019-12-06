@@ -289,7 +289,7 @@ public class ZkClient implements Watcher {
    */
   @Deprecated
   public void subscribeStateChanges(final org.I0Itec.zkclient.IZkStateListener listener) {
-    subscribeStateChanges(createDefaultIZkStateListener(listener));
+    subscribeStateChanges(new DefaultIZkStateListener(listener));
   }
 
   public void unsubscribeStateChanges(IZkStateListener stateListener) {
@@ -309,7 +309,7 @@ public class ZkClient implements Watcher {
    */
   @Deprecated
   public void unsubscribeStateChanges(org.I0Itec.zkclient.IZkStateListener stateListener) {
-    unsubscribeStateChanges(createDefaultIZkStateListener(stateListener));
+    unsubscribeStateChanges(new DefaultIZkStateListener(stateListener));
   }
 
   public void unsubscribeAll() {
@@ -886,20 +886,23 @@ public class ZkClient implements Watcher {
   }
 
   private void fireNewSessionEvents() {
+    final String sessionId = Long.toHexString(getSessionId());
     for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEvent("New session event sent to " + stateListener) {
+      _eventThread.send(new ZkEvent("New session event sent to " + stateListener, sessionId) {
 
         @Override
         public void run() throws Exception {
-          stateListener.handleNewSession();
+          stateListener.handleNewSession(sessionId);
         }
       });
     }
   }
 
   protected void fireStateChangedEvent(final KeeperState state) {
+    final String sessionId = Long.toHexString(getSessionId());
     for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEvent("State changed to " + state + " sent to " + stateListener) {
+      final String description = "State changed to " + state + " sent to " + stateListener;
+      _eventThread.send(new ZkEvent(description, sessionId) {
 
         @Override
         public void run() throws Exception {
@@ -1791,7 +1794,7 @@ public class ZkClient implements Watcher {
    * @param listener {@link org.I0Itec.zkclient.IZkStateListener}
    * @return {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}
    */
-  private IZkStateListener createDefaultIZkStateListener(
+  /*private IZkStateListener createDefaultIZkStateListener(
       org.I0Itec.zkclient.IZkStateListener listener) {
     return new IZkStateListener() {
       @Override
@@ -1800,7 +1803,7 @@ public class ZkClient implements Watcher {
       }
 
       @Override
-      public void handleNewSession() throws Exception {
+      public void handleNewSession(final String sessionId) throws Exception {
         listener.handleNewSession();
       }
 
@@ -1809,5 +1812,51 @@ public class ZkClient implements Watcher {
         listener.handleSessionEstablishmentError(error);
       }
     };
+  }*/
+  private class DefaultIZkStateListener implements IZkStateListener {
+    private org.I0Itec.zkclient.IZkStateListener listener;
+
+    DefaultIZkStateListener(org.I0Itec.zkclient.IZkStateListener listener) {
+      this.listener = listener;
+    }
+
+    @Override
+    public void handleStateChanged(Watcher.Event.KeeperState keeperState) throws Exception {
+      listener.handleStateChanged(keeperState);
+    }
+
+    @Override
+    public void handleNewSession(final String sessionId) throws Exception {
+      // org.apache.helix.manager.zk.zookeeper.IZkStateListener does not have handleNewSession(),
+      // so null is passed into handleNewSession(sessionId).
+      listener.handleNewSession();
+    }
+
+    @Override
+    public void handleSessionEstablishmentError(Throwable error) throws Exception {
+      listener.handleSessionEstablishmentError(error);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (!(obj instanceof IZkStateListener)) {
+        return false;
+      }
+      if (listener == null) {
+        return false;
+      }
+
+      DefaultIZkStateListener defaultListener = (DefaultIZkStateListener) obj;
+
+      return listener.equals(defaultListener.listener);
+    }
+
+    @Override
+    public int hashCode() {
+      return listener.hashCode();
+    }
   }
 }

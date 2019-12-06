@@ -106,7 +106,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     controller.getMessagingService();
     controller.getClusterManagmentTool();
 
-    controller.handleNewSession();
+    controller.handleNewSession(controller.getSessionId());
     controller.disconnect();
     AssertJUnit.assertFalse(controller.isConnected());
 

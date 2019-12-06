@@ -699,7 +699,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       try {
         _zkclient.waitUntilConnected(_connectionInitTimeout, TimeUnit.MILLISECONDS);
         handleStateChanged(KeeperState.SyncConnected);
-        handleNewSession();
+        handleNewSession(getSessionId());
         break;
       } catch (HelixException e) {
         LOG.error("fail to createClient.", e);
@@ -1095,11 +1095,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
           + _instanceName + ", type: " + _instanceType);
       break;
     }
-  }
-
-  @Override
-  public void handleNewSession() throws Exception {
-    handleNewSession(null);
   }
 
   @Override

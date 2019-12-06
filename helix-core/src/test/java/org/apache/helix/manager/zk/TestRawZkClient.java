@@ -30,10 +30,11 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
@@ -91,29 +92,112 @@ public class TestRawZkClient extends ZkUnitTestBase {
     AssertJUnit.assertNotSame(stat, newStat);
   }
 
-  @Test()
-  void testSessionExpire() throws Exception {
+  @Test
+  public void testSubscribeStateChanges() {
     IZkStateListener listener = new IZkStateListener() {
-
       @Override
       public void handleStateChanged(KeeperState state) {
-        System.out.println("In Old connection New state " + state);
+        System.out.println("Handle new state: " + state);
+      }
+
+      @Override
+      public void handleNewSession(final String sessionId) {
+        System.out.println("Handle new session: " + sessionId);
+      }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable error) {
+        System.out.println("Handle session establishment error: " + error);
+      }
+    };
+
+    int originalNumListeners = _zkClient.numberOfListeners();
+    _zkClient.subscribeStateChanges(listener);
+    Assert.assertEquals(_zkClient.numberOfListeners(), originalNumListeners + 1);
+
+    _zkClient.unsubscribeStateChanges(listener);
+    Assert.assertEquals(_zkClient.numberOfListeners(), originalNumListeners);
+  }
+
+  /*
+   * Tests session expiry for the new org.apache.helix.manager.zk.zookeeper.IZkStateListener.
+   */
+  @Test
+  void testSessionExpiry() throws Exception {
+    long lastSessionId = _zkClient.getSessionId();
+    for (int i = 0; i < 3; i++) {
+      ZkTestHelper.expireSession(_zkClient);
+      long newSessionId = _zkClient.getSessionId();
+      Assert.assertTrue(newSessionId > lastSessionId,
+          "New session id should be greater than expired session id.");
+      lastSessionId = newSessionId;
+    }
+  }
+
+  /*
+   * Tests state changes subscription for I0Itec's IZkStateListener.
+   * This is a test for backward compatibility.
+   *
+   * TODO: remove this test when getting rid of I0Itec.
+   */
+  @Test
+  public void testSubscribeStateChangesForI0ItecIZkStateListener() {
+    org.I0Itec.zkclient.IZkStateListener listener = new org.I0Itec.zkclient.IZkStateListener() {
+      @Override
+      public void handleStateChanged(KeeperState state) {
+        System.out.println("Handle new state: " + state);
       }
 
       @Override
       public void handleNewSession() {
-        System.out.println("In Old connection New session");
+        System.out.println("Handle new session: ");
       }
 
       @Override
-      public void handleSessionEstablishmentError(Throwable var1) {
+      public void handleSessionEstablishmentError(Throwable error) {
+        System.out.println("Handle session establishment error: " + error);
       }
     };
+
+    int originalNumListeners = _zkClient.numberOfListeners();
+    _zkClient.subscribeStateChanges(listener);
+    Assert.assertEquals(_zkClient.numberOfListeners(), originalNumListeners + 1);
+
+    _zkClient.unsubscribeStateChanges(listener);
+    Assert.assertEquals(_zkClient.numberOfListeners(), originalNumListeners);
+  }
+
+  /*
+   * Tests session expiry for I0Itec's IZkStateListener.
+   * This is a test for backward compatibility.
+   *
+   * TODO: remove this test when getting rid of I0Itec.
+   */
+  @Test
+  public void testSessionExpiryForI0IItecZkStateListener() throws Exception {
+    org.I0Itec.zkclient.IZkStateListener listener =
+        new org.I0Itec.zkclient.IZkStateListener() {
+
+          @Override
+          public void handleStateChanged(KeeperState state) {
+            System.out.println("In Old connection New state " + state);
+          }
+
+          @Override
+          public void handleNewSession() {
+            System.out.println("In Old connection New session");
+          }
+
+          @Override
+          public void handleSessionEstablishmentError(Throwable var1) {
+          }
+        };
 
     _zkClient.subscribeStateChanges(listener);
     ZkConnection connection = ((ZkConnection) _zkClient.getConnection());
     ZooKeeper zookeeper = connection.getZookeeper();
-    System.out.println("old sessionId= " + zookeeper.getSessionId());
+    long oldSessionId = zookeeper.getSessionId();
+    System.out.println("old sessionId= " + oldSessionId);
     Watcher watcher = event -> System.out.println("In New connection In process event:" + event);
     ZooKeeper newZookeeper = new ZooKeeper(connection.getServers(), zookeeper.getSessionTimeout(),
         watcher, zookeeper.getSessionId(), zookeeper.getSessionPasswd());
@@ -124,7 +208,9 @@ public class TestRawZkClient extends ZkUnitTestBase {
     Thread.sleep(10000);
     connection = ((ZkConnection) _zkClient.getConnection());
     zookeeper = connection.getZookeeper();
-    System.out.println("After session expiry sessionId= " + zookeeper.getSessionId());
+    long newSessionId = zookeeper.getSessionId();
+    System.out.println("After session expiry sessionId= " + newSessionId);
+    _zkClient.unsubscribeStateChanges(listener);
   }
 
   @Test

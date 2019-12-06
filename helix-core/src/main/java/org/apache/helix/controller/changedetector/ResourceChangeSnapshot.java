@@ -24,8 +24,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixConstants;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -130,18 +132,22 @@ class ResourceChangeSnapshot {
     // Clone the IdealState to avoid modifying the objects in the Cluster Data Cache, which might
     // be used by the other stages in the pipeline.
     IdealState trimmedIdealState = new IdealState(originalIdealState.getRecord());
+    ZNRecord trimmedIdealStateRecord = trimmedIdealState.getRecord();
     switch (originalIdealState.getRebalanceMode()) {
+      // WARNING: the IdealState copy constructor is not really deep copy. So we should not modify
+      // the values directly or the cached values will be changed.
       case FULL_AUTO:
         // For FULL_AUTO resources, both map fields and list fields are not considered as data input
         // for the controller. The controller will write to these two types of fields for persisting
         // the assignment mapping.
-        trimmedIdealState.getRecord().setListFields(Collections.emptyMap());
-        trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
-        break;
+        trimmedIdealStateRecord.setListFields(trimmedIdealStateRecord.getListFields().keySet().stream().collect(
+            Collectors.toMap(partition -> partition, partition -> Collections.emptyList())));
+        // Continue to clean up map fields in the SEMI_AUTO case.
       case SEMI_AUTO:
         // For SEMI_AUTO resources, map fields are not considered as data input for the controller.
         // The controller will write to the map fields for persisting the assignment mapping.
-        trimmedIdealState.getRecord().setMapFields(Collections.emptyMap());
+        trimmedIdealStateRecord.setMapFields(trimmedIdealStateRecord.getMapFields().keySet().stream().collect(
+            Collectors.toMap(partition -> partition, partition -> Collections.emptyMap())));
         break;
       default:
         break;

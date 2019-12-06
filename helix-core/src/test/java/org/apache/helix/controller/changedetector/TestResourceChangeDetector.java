@@ -359,22 +359,21 @@ public class TestResourceChangeDetector extends ZkTestBase {
         .addResource(CLUSTER_NAME, resourceName, NUM_PARTITIONS, STATE_MODEL);
     IdealState idealState = _dataAccessor.getProperty(_keyBuilder.idealStates(resourceName));
     idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+    idealState.getRecord().getMapFields().put("Partition1", new HashMap<>());
     _dataAccessor.updateProperty(_keyBuilder.idealStates(resourceName), idealState);
-
     _dataProvider.notifyDataChange(ChangeType.CLUSTER_CONFIG);
     _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
     _dataProvider.refresh(_dataAccessor);
 
+    // Test with ignore option to be true
     ResourceChangeDetector changeDetector = new ResourceChangeDetector(true);
     changeDetector.updateSnapshots(_dataProvider);
-
-    // Now, modify the field that is modifying by Helix logic
-    idealState.getRecord().getMapFields().put("Extra_Change", new HashMap<>());
-    _dataAccessor.updateProperty(_keyBuilder.idealStates(NEW_RESOURCE_NAME), idealState);
+    // Now, modify the field
+    idealState.getRecord().getMapFields().put("Partition1", Collections.singletonMap("foo", "bar"));
+    _dataAccessor.updateProperty(_keyBuilder.idealStates(resourceName), idealState);
     _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
     _dataProvider.refresh(_dataAccessor);
     changeDetector.updateSnapshots(_dataProvider);
-
     Assert.assertEquals(changeDetector.getChangeTypes(),
         Collections.singleton(ChangeType.IDEAL_STATE));
     Assert.assertEquals(

@@ -278,23 +278,18 @@ public class ZkClient implements Watcher {
     }
   }
 
+  /**
+   * Subscribe state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   *
+   * @deprecated
+   * This is deprecated. It is kept for backwards compatibility. Please use
+   * {@link #subscribeStateChanges(IZkStateListener)}.
+   *
+   * @param listener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   */
+  @Deprecated
   public void subscribeStateChanges(final org.I0Itec.zkclient.IZkStateListener listener) {
-    subscribeStateChanges(new IZkStateListener() {
-      @Override
-      public void handleStateChanged(KeeperState state) throws Exception {
-        listener.handleStateChanged(state);
-      }
-
-      @Override
-      public void handleNewSession() throws Exception {
-        listener.handleNewSession();
-      }
-
-      @Override
-      public void handleSessionEstablishmentError(Throwable error) throws Exception {
-        listener.handleSessionEstablishmentError(error);
-      }
-    });
+    subscribeStateChanges(createDefaultIZkStateListener(listener));
   }
 
   public void unsubscribeStateChanges(IZkStateListener stateListener) {
@@ -303,23 +298,18 @@ public class ZkClient implements Watcher {
     }
   }
 
+  /**
+   * Unsubscribe state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   *
+   * @deprecated
+   * This is deprecated. It is kept for backwards compatibility. Please use
+   * {@link #unsubscribeStateChanges(IZkStateListener)}.
+   *
+   * @param stateListener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   */
+  @Deprecated
   public void unsubscribeStateChanges(org.I0Itec.zkclient.IZkStateListener stateListener) {
-    unsubscribeStateChanges(new IZkStateListener() {
-      @Override
-      public void handleStateChanged(KeeperState state) throws Exception {
-        stateListener.handleStateChanged(state);
-      }
-
-      @Override
-      public void handleNewSession() throws Exception {
-        stateListener.handleNewSession();
-      }
-
-      @Override
-      public void handleSessionEstablishmentError(Throwable error) throws Exception {
-        stateListener.handleSessionEstablishmentError(error);
-      }
-    });
+    unsubscribeStateChanges(createDefaultIZkStateListener(stateListener));
   }
 
   public void unsubscribeAll() {
@@ -1793,5 +1783,34 @@ public class ZkClient implements Watcher {
         _monitor.increaseDataChangeEventCounter();
       }
     }
+  }
+
+  /**
+   * Creates a {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener} that wraps a default
+   * implementation of {@link org.I0Itec.zkclient.IZkStateListener}, which means the returned
+   * listener runs the methods of {@link org.I0Itec.zkclient.IZkStateListener}.
+   * This is for backwards compatibility with {@link org.I0Itec.zkclient.IZkStateListener}.
+   *
+   * @param listener {@link org.I0Itec.zkclient.IZkStateListener}
+   * @return {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}
+   */
+  private IZkStateListener createDefaultIZkStateListener(
+      org.I0Itec.zkclient.IZkStateListener listener) {
+    return new IZkStateListener() {
+      @Override
+      public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
+        listener.handleStateChanged(state);
+      }
+
+      @Override
+      public void handleNewSession() throws Exception {
+        listener.handleNewSession();
+      }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable error) throws Exception {
+        listener.handleSessionEstablishmentError(error);
+      }
+    };
   }
 }

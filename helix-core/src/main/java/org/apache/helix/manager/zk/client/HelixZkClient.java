@@ -36,46 +36,24 @@ public interface HelixZkClient {
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);
 
-  /* TODO: remove below default implementation when getting rid of I0Itec in the new zk client. */
+  /*
+   * This is for backwards compatibility.
+   *
+   * TODO: remove below default implementation when getting rid of I0Itec in the new zk client.
+   */
   default void subscribeStateChanges(
       final org.apache.helix.manager.zk.zookeeper.IZkStateListener listener) {
-    subscribeStateChanges(new IZkStateListener() {
-      @Override
-      public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
-        listener.handleStateChanged(state);
-      }
-
-      @Override
-      public void handleNewSession() throws Exception {
-        listener.handleNewSession();
-      }
-
-      @Override
-      public void handleSessionEstablishmentError(Throwable error) throws Exception {
-        listener.handleSessionEstablishmentError(error);
-      }
-    });
+    subscribeStateChanges(createDefaultIZkStateListener(listener));
   }
 
-  /* TODO: remove below default implementation when getting rid of I0Itec in the new zk client. */
+  /*
+   * This is for backwards compatibility.
+   *
+   * TODO: remove below default implementation when getting rid of I0Itec in the new zk client.
+   */
   default void unsubscribeStateChanges(
       org.apache.helix.manager.zk.zookeeper.IZkStateListener listener) {
-    unsubscribeStateChanges(new IZkStateListener() {
-      @Override
-      public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
-        listener.handleStateChanged(state);
-      }
-
-      @Override
-      public void handleNewSession() throws Exception {
-        listener.handleNewSession();
-      }
-
-      @Override
-      public void handleSessionEstablishmentError(Throwable error) throws Exception {
-        listener.handleSessionEstablishmentError(error);
-      }
-    });
+    unsubscribeStateChanges(createDefaultIZkStateListener(listener));
   }
 
   /**
@@ -210,6 +188,36 @@ public interface HelixZkClient {
   void setZkSerializer(PathBasedZkSerializer zkSerializer);
 
   PathBasedZkSerializer getZkSerializer();
+
+  /**
+   * Creates a {@link org.I0Itec.zkclient.IZkStateListener} that wraps a default implementation
+   * of {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}, which means the returned
+   * listener runs the methods of {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}.
+   * This is for backwards compatibility and to avoid breaking the original implementation of
+   * {@link org.I0Itec.zkclient.IZkStateListener}.
+   *
+   * @param listener {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}
+   * @return {@link org.I0Itec.zkclient.IZkStateListener}
+   */
+  static IZkStateListener createDefaultIZkStateListener(
+      org.apache.helix.manager.zk.zookeeper.IZkStateListener listener) {
+    return new IZkStateListener() {
+      @Override
+      public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
+        listener.handleStateChanged(state);
+      }
+
+      @Override
+      public void handleNewSession() throws Exception {
+        listener.handleNewSession();
+      }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable error) throws Exception {
+        listener.handleSessionEstablishmentError(error);
+      }
+    };
+  }
 
   /**
    * Configuration for creating a new ZkConnection.

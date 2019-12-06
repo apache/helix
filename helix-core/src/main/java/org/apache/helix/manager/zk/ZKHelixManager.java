@@ -1118,8 +1118,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       return;
     }
 
+    /* If session id is null, it means this operation is not session aware. In this case, current
+     * zookeeper session id is logged.
+     */
     LOG.info("Handle new session, instance: {}, type: {}, session id: {}.", _instanceName,
-        _instanceType, sessionId);
+        _instanceType, sessionId == null ? getSessionId() : sessionId);
 
     waitUntilConnected();
 

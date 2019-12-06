@@ -279,7 +279,7 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Subscribe state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   * Subscribes state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
    *
    * @deprecated
    * This is deprecated. It is kept for backwards compatibility. Please use
@@ -299,7 +299,7 @@ public class ZkClient implements Watcher {
   }
 
   /**
-   * Unsubscribe state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   * Unsubscribes state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
    *
    * @deprecated
    * This is deprecated. It is kept for backwards compatibility. Please use

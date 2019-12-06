@@ -57,7 +57,7 @@ public interface HelixZkClient {
   }
 
   /**
-   * Subscribe state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   * Subscribes state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
    *
    * @deprecated
    * This is deprecated. It is kept for backwards compatibility. Please use
@@ -69,7 +69,7 @@ public interface HelixZkClient {
   void subscribeStateChanges(final IZkStateListener listener);
 
   /**
-   * Unsubscribe state changes for a {@link IZkStateListener} listener.
+   * Unsubscribes state changes for a {@link IZkStateListener} listener.
    *
    * @deprecated
    * This is deprecated. It is kept for backwards compatibility. Please use

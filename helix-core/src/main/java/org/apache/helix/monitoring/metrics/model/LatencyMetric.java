@@ -28,8 +28,6 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
  * how long a particular stage in the logic took in milliseconds.
  */
 public abstract class LatencyMetric extends HistogramDynamicMetric implements Metric<Long> {
-  protected long _startTime;
-  protected long _endTime;
   protected String _metricName;
 
   /**

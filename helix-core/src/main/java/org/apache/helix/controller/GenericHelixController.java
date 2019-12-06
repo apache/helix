@@ -19,13 +19,13 @@ package org.apache.helix.controller;
  * under the License.
  */
 
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -36,6 +36,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.google.common.collect.Sets;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -98,7 +100,7 @@ import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.HelixConstants.*;
+import static org.apache.helix.HelixConstants.ChangeType;
 
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as possible to Ideal State.
@@ -220,17 +222,29 @@ public class GenericHelixController implements IdealStateChangeListener,
   class RebalanceTask extends TimerTask {
     final HelixManager _manager;
     final ClusterEventType _clusterEventType;
+    private final Optional<Boolean> _shouldRefreshCacheOption;
     private long _nextRebalanceTime;
 
     public RebalanceTask(HelixManager manager, ClusterEventType clusterEventType) {
       this(manager, clusterEventType, -1);
-
     }
 
-    public RebalanceTask(HelixManager manager, ClusterEventType clusterEventType, long nextRebalanceTime) {
+    public RebalanceTask(HelixManager manager, ClusterEventType clusterEventType,
+        long nextRebalanceTime) {
+      this(manager, clusterEventType, nextRebalanceTime, Optional.empty());
+    }
+
+    public RebalanceTask(HelixManager manager, ClusterEventType clusterEventType,
+        long nextRebalanceTime, boolean shouldRefreshCache) {
+      this(manager, clusterEventType, nextRebalanceTime, Optional.of(shouldRefreshCache));
+    }
+
+    private RebalanceTask(HelixManager manager, ClusterEventType clusterEventType,
+        long nextRebalanceTime, Optional<Boolean> shouldRefreshCacheOption) {
       _manager = manager;
       _clusterEventType = clusterEventType;
       _nextRebalanceTime = nextRebalanceTime;
+      _shouldRefreshCacheOption = shouldRefreshCacheOption;
     }
 
     public long getNextRebalanceTime() {
@@ -240,8 +254,9 @@ public class GenericHelixController implements IdealStateChangeListener,
     @Override
     public void run() {
       try {
-        if (_clusterEventType.equals(ClusterEventType.PeriodicalRebalance) || _clusterEventType
-            .equals(ClusterEventType.OnDemandRebalance)) {
+        if (_shouldRefreshCacheOption.orElse(
+            _clusterEventType.equals(ClusterEventType.PeriodicalRebalance) || _clusterEventType
+                .equals(ClusterEventType.OnDemandRebalance))) {
           requestDataProvidersFullRefresh();
 
           HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -359,7 +374,17 @@ public class GenericHelixController implements IdealStateChangeListener,
    * Schedule an on demand rebalance pipeline.
    * @param delay
    */
+  @Deprecated
   public void scheduleOnDemandRebalance(long delay) {
+    scheduleOnDemandRebalance(delay, true);
+  }
+
+  /**
+   * Schedule an on demand rebalance pipeline.
+   * @param delay
+   * @param shouldRefreshCache true if refresh the cache before scheduling a rebalance.
+   */
+  public void scheduleOnDemandRebalance(long delay, boolean shouldRefreshCache) {
     if (_helixManager == null) {
       logger.error("Failed to schedule a future pipeline run for cluster {}. Helix manager is null!",
           _clusterName);
@@ -377,7 +402,8 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
 
     RebalanceTask newTask =
-        new RebalanceTask(_helixManager, ClusterEventType.OnDemandRebalance, rebalanceTime);
+        new RebalanceTask(_helixManager, ClusterEventType.OnDemandRebalance, rebalanceTime,
+            shouldRefreshCache);
 
     _onDemandRebalanceTimer.schedule(newTask, delay);
     logger.info("Scheduled instant pipeline run for cluster {}." , _helixManager.getClusterName());

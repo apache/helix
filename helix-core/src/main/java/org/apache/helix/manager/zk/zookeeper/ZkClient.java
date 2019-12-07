@@ -1790,30 +1790,8 @@ public class ZkClient implements Watcher {
    * implementation of {@link org.I0Itec.zkclient.IZkStateListener}, which means the returned
    * listener runs the methods of {@link org.I0Itec.zkclient.IZkStateListener}.
    * This is for backwards compatibility with {@link org.I0Itec.zkclient.IZkStateListener}.
-   *
-   * @param listener {@link org.I0Itec.zkclient.IZkStateListener}
-   * @return {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}
    */
-  /*private IZkStateListener createDefaultIZkStateListener(
-      org.I0Itec.zkclient.IZkStateListener listener) {
-    return new IZkStateListener() {
-      @Override
-      public void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
-        listener.handleStateChanged(state);
-      }
-
-      @Override
-      public void handleNewSession(final String sessionId) throws Exception {
-        listener.handleNewSession();
-      }
-
-      @Override
-      public void handleSessionEstablishmentError(Throwable error) throws Exception {
-        listener.handleSessionEstablishmentError(error);
-      }
-    };
-  }*/
-  private class DefaultIZkStateListener implements IZkStateListener {
+  private static class DefaultIZkStateListener implements IZkStateListener {
     private org.I0Itec.zkclient.IZkStateListener listener;
 
     DefaultIZkStateListener(org.I0Itec.zkclient.IZkStateListener listener) {
@@ -1827,8 +1805,10 @@ public class ZkClient implements Watcher {
 
     @Override
     public void handleNewSession(final String sessionId) throws Exception {
-      // org.apache.helix.manager.zk.zookeeper.IZkStateListener does not have handleNewSession(),
-      // so null is passed into handleNewSession(sessionId).
+      /*
+       * org.I0Itec.zkclient.IZkStateListener does not have handleNewSession(sessionId),
+       * so just call handleNewSession() by default.
+       */
       listener.handleNewSession();
     }
 
@@ -1856,6 +1836,10 @@ public class ZkClient implements Watcher {
 
     @Override
     public int hashCode() {
+      /*
+       * The original listener's hashcode helps find the wrapped listener with the same original
+       * listener. This is helpful in unsubscribeStateChanges(listener).
+       */
       return listener.hashCode();
     }
   }

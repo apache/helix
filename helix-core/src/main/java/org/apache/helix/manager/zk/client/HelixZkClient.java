@@ -208,8 +208,10 @@ public interface HelixZkClient {
 
     @Override
     public void handleNewSession() throws Exception {
-      // org.apache.helix.manager.zk.zookeeper.IZkStateListener does not have handleNewSession(),
-      // so null is passed into handleNewSession(sessionId).
+      /*
+       * org.apache.helix.manager.zk.zookeeper.IZkStateListener does not have handleNewSession(),
+       * so null is passed into handleNewSession(sessionId).
+       */
       listener.handleNewSession(null);
     }
 
@@ -234,6 +236,10 @@ public interface HelixZkClient {
 
     @Override
     public int hashCode() {
+      /*
+       * The original listener's hashcode helps find the wrapped listener with the same original
+       * listener. This is helpful in unsubscribeStateChanges(listener).
+       */
       return listener.hashCode();
     }
   }

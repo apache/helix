@@ -1789,7 +1789,7 @@ public class ZkClient implements Watcher {
    * Creates a {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener} that wraps a default
    * implementation of {@link org.I0Itec.zkclient.IZkStateListener}, which means the returned
    * listener runs the methods of {@link org.I0Itec.zkclient.IZkStateListener}.
-   * This is for backwards compatibility with {@link org.I0Itec.zkclient.IZkStateListener}.
+   * This is for backward compatibility with {@link org.I0Itec.zkclient.IZkStateListener}.
    */
   private static class DefaultIZkStateListener implements IZkStateListener {
     private org.I0Itec.zkclient.IZkStateListener listener;

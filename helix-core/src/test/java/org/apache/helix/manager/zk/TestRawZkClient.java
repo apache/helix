@@ -20,6 +20,8 @@ package org.apache.helix.manager.zk;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -97,30 +99,36 @@ public class TestRawZkClient extends ZkUnitTestBase {
    */
   @Test
   public void testSubscribeStateChanges() {
-    IZkStateListener listener = new IZkStateListener() {
-      @Override
-      public void handleStateChanged(KeeperState state) {
-        System.out.println("Handle new state: " + state);
-      }
+    int numListeners = _zkClient.numberOfListeners();
+    List<IZkStateListener> listeners = new ArrayList<>();
 
-      @Override
-      public void handleNewSession(final String sessionId) {
-        System.out.println("Handle new session: " + sessionId);
-      }
+    for (int i = 0; i < 3; i++) {
+      IZkStateListener listener = new IZkStateListener() {
+        @Override
+        public void handleStateChanged(KeeperState state) {
+          System.out.println("Handle new state: " + state);
+        }
 
-      @Override
-      public void handleSessionEstablishmentError(Throwable error) {
-        System.out.println("Handle session establishment error: " + error);
-      }
-    };
+        @Override
+        public void handleNewSession(final String sessionId) {
+          System.out.println("Handle new session: " + sessionId);
+        }
 
-    int originalNumListeners = _zkClient.numberOfListeners();
+        @Override
+        public void handleSessionEstablishmentError(Throwable error) {
+          System.out.println("Handle session establishment error: " + error);
+        }
+      };
 
-    _zkClient.subscribeStateChanges(listener);
-    Assert.assertEquals(_zkClient.numberOfListeners(), originalNumListeners + 1);
+      _zkClient.subscribeStateChanges(listener);
+      Assert.assertEquals(_zkClient.numberOfListeners(), ++numListeners);
+      listeners.add(listener);
+    }
 
-    _zkClient.unsubscribeStateChanges(listener);
-    Assert.assertEquals(_zkClient.numberOfListeners(), originalNumListeners);
+    for (IZkStateListener listener : listeners) {
+      _zkClient.unsubscribeStateChanges(listener);
+      Assert.assertEquals(_zkClient.numberOfListeners(), --numListeners);
+    }
   }
 
   /*
@@ -146,29 +154,38 @@ public class TestRawZkClient extends ZkUnitTestBase {
    */
   @Test
   public void testSubscribeStateChangesForI0ItecIZkStateListener() {
-    org.I0Itec.zkclient.IZkStateListener listener = new org.I0Itec.zkclient.IZkStateListener() {
-      @Override
-      public void handleStateChanged(KeeperState state) {
-        System.out.println("Handle new state: " + state);
-      }
+    int numListeners = _zkClient.numberOfListeners();
+    List<org.I0Itec.zkclient.IZkStateListener> listeners = new ArrayList<>();
 
-      @Override
-      public void handleNewSession() {
-        System.out.println("Handle new session: ");
-      }
+    // Subscribe multiple listeners to test that listener's hashcode works as expected.
+    // Each listener is subscribed and unsubscribed successfully.
+    for (int i = 0; i < 3; i++) {
+      org.I0Itec.zkclient.IZkStateListener listener = new org.I0Itec.zkclient.IZkStateListener() {
+        @Override
+        public void handleStateChanged(KeeperState state) {
+          System.out.println("Handle new state: " + state);
+        }
 
-      @Override
-      public void handleSessionEstablishmentError(Throwable error) {
-        System.out.println("Handle session establishment error: " + error);
-      }
-    };
+        @Override
+        public void handleNewSession() {
+          System.out.println("Handle new session: ");
+        }
 
-    int originalNumListeners = _zkClient.numberOfListeners();
-    _zkClient.subscribeStateChanges(listener);
-    Assert.assertEquals(_zkClient.numberOfListeners(), originalNumListeners + 1);
+        @Override
+        public void handleSessionEstablishmentError(Throwable error) {
+          System.out.println("Handle session establishment error: " + error);
+        }
+      };
 
-    _zkClient.unsubscribeStateChanges(listener);
-    Assert.assertEquals(_zkClient.numberOfListeners(), originalNumListeners);
+      _zkClient.subscribeStateChanges(listener);
+      Assert.assertEquals(_zkClient.numberOfListeners(), ++numListeners);
+      listeners.add(listener);
+    }
+
+    for (org.I0Itec.zkclient.IZkStateListener listener : listeners) {
+      _zkClient.unsubscribeStateChanges(listener);
+      Assert.assertEquals(_zkClient.numberOfListeners(), --numListeners);
+    }
   }
 
   /*

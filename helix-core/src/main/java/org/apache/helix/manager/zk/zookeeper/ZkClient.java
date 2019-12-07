@@ -289,7 +289,7 @@ public class ZkClient implements Watcher {
    */
   @Deprecated
   public void subscribeStateChanges(final org.I0Itec.zkclient.IZkStateListener listener) {
-    subscribeStateChanges(new DefaultIZkStateListener(listener));
+    subscribeStateChanges(new IZkStateListenerI0ItecImpl(listener));
   }
 
   public void unsubscribeStateChanges(IZkStateListener stateListener) {
@@ -309,7 +309,7 @@ public class ZkClient implements Watcher {
    */
   @Deprecated
   public void unsubscribeStateChanges(org.I0Itec.zkclient.IZkStateListener stateListener) {
-    unsubscribeStateChanges(new DefaultIZkStateListener(stateListener));
+    unsubscribeStateChanges(new IZkStateListenerI0ItecImpl(stateListener));
   }
 
   public void unsubscribeAll() {
@@ -1791,10 +1791,10 @@ public class ZkClient implements Watcher {
    * listener runs the methods of {@link org.I0Itec.zkclient.IZkStateListener}.
    * This is for backward compatibility with {@link org.I0Itec.zkclient.IZkStateListener}.
    */
-  private static class DefaultIZkStateListener implements IZkStateListener {
+  private static class IZkStateListenerI0ItecImpl implements IZkStateListener {
     private org.I0Itec.zkclient.IZkStateListener listener;
 
-    DefaultIZkStateListener(org.I0Itec.zkclient.IZkStateListener listener) {
+    IZkStateListenerI0ItecImpl(org.I0Itec.zkclient.IZkStateListener listener) {
       this.listener = listener;
     }
 
@@ -1829,7 +1829,7 @@ public class ZkClient implements Watcher {
         return false;
       }
 
-      DefaultIZkStateListener defaultListener = (DefaultIZkStateListener) obj;
+      IZkStateListenerI0ItecImpl defaultListener = (IZkStateListenerI0ItecImpl) obj;
 
       return listener.equals(defaultListener.listener);
     }
@@ -1838,7 +1838,8 @@ public class ZkClient implements Watcher {
     public int hashCode() {
       /*
        * The original listener's hashcode helps find the wrapped listener with the same original
-       * listener. This is helpful in unsubscribeStateChanges(listener).
+       * listener. This is helpful in unsubscribeStateChanges(listener) when finding the listener
+       * to remove.
        */
       return listener.hashCode();
     }

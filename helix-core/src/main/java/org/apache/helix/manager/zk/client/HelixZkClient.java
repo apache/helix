@@ -42,7 +42,7 @@ public interface HelixZkClient {
    * TODO: remove below default implementation when getting rid of I0Itec in the new zk client.
    */
   default void subscribeStateChanges(final IZkStateListener listener) {
-    subscribeStateChanges(new DefaultI0ItecIZkStateListener(listener));
+    subscribeStateChanges(new I0ItecIZkStateListenerHelixImpl(listener));
   }
 
   /*
@@ -51,7 +51,7 @@ public interface HelixZkClient {
    * TODO: remove below default implementation when getting rid of I0Itec in the new zk client.
    */
   default void unsubscribeStateChanges(IZkStateListener listener) {
-    unsubscribeStateChanges(new DefaultI0ItecIZkStateListener(listener));
+    unsubscribeStateChanges(new I0ItecIZkStateListenerHelixImpl(listener));
   }
 
   /**
@@ -194,10 +194,10 @@ public interface HelixZkClient {
    * This is for backward compatibility and to avoid breaking the original implementation of
    * {@link org.I0Itec.zkclient.IZkStateListener}.
    */
-  class DefaultI0ItecIZkStateListener implements org.I0Itec.zkclient.IZkStateListener {
+  class I0ItecIZkStateListenerHelixImpl implements org.I0Itec.zkclient.IZkStateListener {
     private IZkStateListener listener;
 
-    DefaultI0ItecIZkStateListener(IZkStateListener listener) {
+    I0ItecIZkStateListenerHelixImpl(IZkStateListener listener) {
       this.listener = listener;
     }
 
@@ -229,7 +229,7 @@ public interface HelixZkClient {
         return false;
       }
 
-      DefaultI0ItecIZkStateListener defaultListener = (DefaultI0ItecIZkStateListener) obj;
+      I0ItecIZkStateListenerHelixImpl defaultListener = (I0ItecIZkStateListenerHelixImpl) obj;
 
       return listener.equals(defaultListener.listener);
     }

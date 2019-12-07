@@ -179,6 +179,12 @@ public class TestRawZkClient extends ZkUnitTestBase {
 
       _zkClient.subscribeStateChanges(listener);
       Assert.assertEquals(_zkClient.numberOfListeners(), ++numListeners);
+
+      // Try to subscribe the listener again but number of listeners should not change because the
+      // listener already exists.
+      _zkClient.subscribeStateChanges(listener);
+      Assert.assertEquals(_zkClient.numberOfListeners(), numListeners);
+
       listeners.add(listener);
     }
 

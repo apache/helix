@@ -107,10 +107,7 @@ public class ZkTestHelper {
         // make sure zkclient is connected again
         zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
 
-        ZkConnection connection = ((ZkConnection) zkClient.getConnection());
-        ZooKeeper curZookeeper = connection.getZookeeper();
-
-        LOG.info("handleNewSession. sessionId: " + sessionId);
+        LOG.info("handleNewSession. sessionId: {}.", sessionId);
       }
 
       @Override
@@ -162,10 +159,7 @@ public class ZkTestHelper {
         // make sure zkclient is connected again
         zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
 
-        ZkConnection connection = ((ZkConnection) zkClient.getConnection());
-        ZooKeeper curZookeeper = connection.getZookeeper();
-
-        LOG.info("handleNewSession. sessionId: " + sessionId);
+        LOG.info("handleNewSession. sessionId: {}.", sessionId);
         waitNewSession.countDown();
       }
 

@@ -543,7 +543,7 @@ public class ZkTestBase {
 
       @Override
       public void handleNewSession(final String sessionId) throws Exception {
-        LOG.info("In Old connection, new session: " + sessionId);
+        LOG.info("In Old connection, new session: {}.", sessionId);
       }
 
       @Override

@@ -51,5 +51,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         }
       }
     }
+
+    TaskUtil.workflowGarbageCollection(dataProvider, manager);
   }
 }

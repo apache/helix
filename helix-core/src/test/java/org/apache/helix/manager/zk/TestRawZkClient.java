@@ -92,6 +92,9 @@ public class TestRawZkClient extends ZkUnitTestBase {
     AssertJUnit.assertNotSame(stat, newStat);
   }
 
+  /*
+   * Tests subscribing state changes for helix's IZkStateListener.
+   */
   @Test
   public void testSubscribeStateChanges() {
     IZkStateListener listener = new IZkStateListener() {
@@ -112,6 +115,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
     };
 
     int originalNumListeners = _zkClient.numberOfListeners();
+
     _zkClient.subscribeStateChanges(listener);
     Assert.assertEquals(_zkClient.numberOfListeners(), originalNumListeners + 1);
 
@@ -120,7 +124,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
   }
 
   /*
-   * Tests session expiry for the new org.apache.helix.manager.zk.zookeeper.IZkStateListener.
+   * Tests session expiry for the helix's IZkStateListener.
    */
   @Test
   void testSessionExpiry() throws Exception {

@@ -15,7 +15,7 @@ import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
-import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
@@ -202,7 +202,7 @@ public interface HelixZkClient {
     }
 
     @Override
-    public void handleStateChanged(Watcher.Event.KeeperState keeperState) throws Exception {
+    public void handleStateChanged(KeeperState keeperState) throws Exception {
       listener.handleStateChanged(keeperState);
     }
 

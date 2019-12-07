@@ -54,7 +54,7 @@ public class ZkEventThread extends Thread {
 
     @Override
     public String toString() {
-      return "ZkEvent[description: " + _description + "; session: 0x" + _sessionId + "]";
+      return "ZkEvent[description: " + _description + "; session: " + _sessionId + "]";
     }
   }
 

@@ -102,6 +102,8 @@ public class TestRawZkClient extends ZkUnitTestBase {
     int numListeners = _zkClient.numberOfListeners();
     List<IZkStateListener> listeners = new ArrayList<>();
 
+    // Subscribe multiple listeners to test that listener's hashcode works as expected.
+    // Each listener is subscribed and unsubscribed successfully.
     for (int i = 0; i < 3; i++) {
       IZkStateListener listener = new IZkStateListener() {
         @Override
@@ -137,6 +139,8 @@ public class TestRawZkClient extends ZkUnitTestBase {
   @Test
   void testSessionExpiry() throws Exception {
     long lastSessionId = _zkClient.getSessionId();
+
+    // Test multiple times to make sure each time the new session id is increasing.
     for (int i = 0; i < 3; i++) {
       ZkTestHelper.expireSession(_zkClient);
       long newSessionId = _zkClient.getSessionId();

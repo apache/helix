@@ -225,7 +225,10 @@ public interface HelixZkClient {
       if (obj == this) {
         return true;
       }
-      if (!(obj instanceof IZkStateListener)) {
+      if (!(obj instanceof I0ItecIZkStateListenerHelixImpl)) {
+        return false;
+      }
+      if (listener == null) {
         return false;
       }
 

@@ -1822,7 +1822,7 @@ public class ZkClient implements Watcher {
       if (obj == this) {
         return true;
       }
-      if (!(obj instanceof IZkStateListener)) {
+      if (!(obj instanceof IZkStateListenerI0ItecImpl)) {
         return false;
       }
       if (listener == null) {

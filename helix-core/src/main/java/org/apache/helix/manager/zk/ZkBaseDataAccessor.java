@@ -102,10 +102,21 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * The ZkBaseDataAccessor with custom serializer support
+   * The ZkBaseDataAccessor with custom serializer support of ZkSerializer type.
    * @param zkAddress The zookeeper address
    */
   public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer) {
+    _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
+        new HelixZkClient.ZkConnectionConfig(zkAddress),
+        new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
+    _usesExternalZkClient = false;
+  }
+
+  /**
+   * The ZkBaseDataAccessor with custom serializer support of PathBasedZkSerializer type.
+   * @param zkAddress The zookeeper address
+   */
+  public ZkBaseDataAccessor(String zkAddress, PathBasedZkSerializer zkSerializer) {
     _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
         new HelixZkClient.ZkConnectionConfig(zkAddress),
         new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));

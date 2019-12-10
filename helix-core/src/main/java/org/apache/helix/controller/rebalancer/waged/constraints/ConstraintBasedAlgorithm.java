@@ -20,7 +20,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  */
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,8 +112,24 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
 
     return candidateNodes.parallelStream().map(node -> new HashMap.SimpleEntry<>(node,
         getAssignmentNormalizedScore(node, replica, clusterContext)))
-        .max(Comparator.comparingDouble((scoreEntry) -> scoreEntry.getValue()))
-        .map(Map.Entry::getKey);
+        .max((nodeEntry1, nodeEntry2) -> {
+          int scoreCompareResult =  nodeEntry1.getValue().compareTo(nodeEntry2.getValue());
+          if (scoreCompareResult == 0) {
+            // If the evaluation scores of 2 nodes are the same, the algorithm assigns the replica
+            // to the idle node first.
+            boolean isNodeOneIdle =
+                clusterContext.isNodeIdle(nodeEntry1.getKey().getInstanceName());
+            boolean isNodeTwoIdle =
+                clusterContext.isNodeIdle(nodeEntry2.getKey().getInstanceName());
+            if (isNodeOneIdle != isNodeTwoIdle) {
+              return isNodeOneIdle ? 1 : -1;
+            } else {
+              return 0;
+            }
+          } else {
+            return scoreCompareResult;
+          }
+        }).map(Map.Entry::getKey);
   }
 
   private double getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,

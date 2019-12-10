@@ -51,6 +51,8 @@ public class ClusterContext {
   private final Map<String, ResourceAssignment> _baselineAssignment;
   // <ResourceName, ResourceAssignment contains the best possible assignment>
   private final Map<String, ResourceAssignment> _bestPossibleAssignment;
+  // The instances that have at least one replica assigned in the best possible assignment.
+  private final Set<String> _busyInstances;
 
   /**
    * Construct the cluster context based on the current instance status.
@@ -104,6 +106,15 @@ public class ClusterContext {
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
     _baselineAssignment = baselineAssignment;
     _bestPossibleAssignment = bestPossibleAssignment;
+
+    _busyInstances = _bestPossibleAssignment.values().stream().flatMap(
+        resourceAssignment -> resourceAssignment.getRecord().getMapFields().values().stream()
+            .flatMap(instanceStateMap -> instanceStateMap.keySet().stream())
+            .collect(Collectors.toSet()).stream()).collect(Collectors.toSet());
+  }
+
+  public boolean isNodeIdle(String instanceName) {
+    return !_busyInstances.contains(instanceName);
   }
 
   public Map<String, ResourceAssignment> getBaselineAssignment() {

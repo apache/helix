@@ -1792,15 +1792,15 @@ public class ZkClient implements Watcher {
    * This is for backward compatibility with {@link org.I0Itec.zkclient.IZkStateListener}.
    */
   private static class IZkStateListenerI0ItecImpl implements IZkStateListener {
-    private org.I0Itec.zkclient.IZkStateListener listener;
+    private org.I0Itec.zkclient.IZkStateListener _listener;
 
     IZkStateListenerI0ItecImpl(org.I0Itec.zkclient.IZkStateListener listener) {
-      this.listener = listener;
+      _listener = listener;
     }
 
     @Override
     public void handleStateChanged(Watcher.Event.KeeperState keeperState) throws Exception {
-      listener.handleStateChanged(keeperState);
+      _listener.handleStateChanged(keeperState);
     }
 
     @Override
@@ -1809,12 +1809,12 @@ public class ZkClient implements Watcher {
        * org.I0Itec.zkclient.IZkStateListener does not have handleNewSession(sessionId),
        * so just call handleNewSession() by default.
        */
-      listener.handleNewSession();
+      _listener.handleNewSession();
     }
 
     @Override
     public void handleSessionEstablishmentError(Throwable error) throws Exception {
-      listener.handleSessionEstablishmentError(error);
+      _listener.handleSessionEstablishmentError(error);
     }
 
     @Override
@@ -1825,13 +1825,13 @@ public class ZkClient implements Watcher {
       if (!(obj instanceof IZkStateListenerI0ItecImpl)) {
         return false;
       }
-      if (listener == null) {
+      if (_listener == null) {
         return false;
       }
 
       IZkStateListenerI0ItecImpl defaultListener = (IZkStateListenerI0ItecImpl) obj;
 
-      return listener.equals(defaultListener.listener);
+      return _listener.equals(defaultListener._listener);
     }
 
     @Override
@@ -1841,7 +1841,7 @@ public class ZkClient implements Watcher {
        * listener. This is helpful in unsubscribeStateChanges(listener) when finding the listener
        * to remove.
        */
-      return listener.hashCode();
+      return _listener.hashCode();
     }
   }
 }

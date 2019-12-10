@@ -699,7 +699,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       try {
         _zkclient.waitUntilConnected(_connectionInitTimeout, TimeUnit.MILLISECONDS);
         handleStateChanged(KeeperState.SyncConnected);
-        handleNewSession(getSessionId());
+        handleNewSession();
         break;
       } catch (HelixException e) {
         LOG.error("fail to createClient.", e);
@@ -1097,12 +1097,37 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
   }
 
+  /**
+   * Called after the zookeeper session has expired and a new session has been created. This method
+   * may cause session race condition when creating ephemeral nodes. Internally, this method calls
+   * {@link #handleNewSession(String)} with a null value as the sessionId parameter, which results
+   * in later creating the ephemeral node in the session of the latest zk connection.
+   * But please note that the session of the latest zk connection might not be the expected session.
+   * This is the session race condition issue.
+   *
+   * To avoid the race condition issue, please use {@link #handleNewSession(String)}.
+   *
+   * @deprecated
+   * This method is deprecated, because it may cause session race condition when creating ephemeral
+   * nodes. It is kept for backward compatibility in case a user class extends this class.
+   *
+   * Please use {@link #handleNewSession(String)} instead, which takes care of race condition.
+   *
+   * @throws Exception If any error occurs.
+   */
+  @Deprecated
+  public void handleNewSession() throws Exception {
+    handleNewSession(null);
+  }
+
   @Override
   public void handleNewSession(final String sessionId) throws Exception {
-    LOG.info("Handle new session, instance: {}, type: {}, session id: {}.", _instanceName,
-        _instanceType, sessionId == null ? getSessionId() : sessionId);
-
+    // Wait until we get a non-zero session id. Otherwise, getSessionId() might be still null.
     waitUntilConnected();
+
+    // TODO: filter out stale sessions.
+    LOG.info("Handle new session, instance: {}, type: {}, session id: {}.", _instanceName,
+        _instanceType, sessionId == null ? "NOT SET" : sessionId);
 
     /**
      * stop all timer tasks, reset all handlers, make sure cleanup completed for previous session

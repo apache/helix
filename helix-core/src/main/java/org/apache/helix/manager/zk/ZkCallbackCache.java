@@ -219,6 +219,21 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkChildListener, IZ
 
   }
 
+  /**
+   * Handle new session without a session id passed in.
+   *
+   * @deprecated
+   * This is deprecated. It is kept for backward compatibility.
+   * Please use {@link #handleNewSession(String)}.
+   *
+   * @throws Exception
+   */
+  @Deprecated
+  public void handleNewSession() throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
   @Override
   public void handleNewSession(final String sessionId) throws Exception {
     // TODO Auto-generated method stub

@@ -195,15 +195,15 @@ public interface HelixZkClient {
    * {@link org.I0Itec.zkclient.IZkStateListener}.
    */
   class I0ItecIZkStateListenerHelixImpl implements org.I0Itec.zkclient.IZkStateListener {
-    private IZkStateListener listener;
+    private IZkStateListener _listener;
 
     I0ItecIZkStateListenerHelixImpl(IZkStateListener listener) {
-      this.listener = listener;
+      _listener = listener;
     }
 
     @Override
     public void handleStateChanged(KeeperState keeperState) throws Exception {
-      listener.handleStateChanged(keeperState);
+      _listener.handleStateChanged(keeperState);
     }
 
     @Override
@@ -212,12 +212,12 @@ public interface HelixZkClient {
        * org.apache.helix.manager.zk.zookeeper.IZkStateListener does not have handleNewSession(),
        * so null is passed into handleNewSession(sessionId).
        */
-      listener.handleNewSession(null);
+      _listener.handleNewSession(null);
     }
 
     @Override
     public void handleSessionEstablishmentError(Throwable error) throws Exception {
-      listener.handleSessionEstablishmentError(error);
+      _listener.handleSessionEstablishmentError(error);
     }
 
     @Override
@@ -228,13 +228,13 @@ public interface HelixZkClient {
       if (!(obj instanceof I0ItecIZkStateListenerHelixImpl)) {
         return false;
       }
-      if (listener == null) {
+      if (_listener == null) {
         return false;
       }
 
       I0ItecIZkStateListenerHelixImpl defaultListener = (I0ItecIZkStateListenerHelixImpl) obj;
 
-      return listener.equals(defaultListener.listener);
+      return _listener.equals(defaultListener._listener);
     }
 
     @Override
@@ -243,7 +243,7 @@ public interface HelixZkClient {
        * The original listener's hashcode helps find the wrapped listener with the same original
        * listener. This is helpful in unsubscribeStateChanges(listener).
        */
-      return listener.hashCode();
+      return _listener.hashCode();
     }
   }
 

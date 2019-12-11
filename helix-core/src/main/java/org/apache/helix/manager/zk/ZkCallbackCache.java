@@ -237,7 +237,8 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkChildListener, IZ
   @Override
   public void handleNewSession(final String sessionId) throws Exception {
     // TODO Auto-generated method stub
-
+    // Calls the old method for backward compatibility.
+    handleNewSession();
   }
 
   public void subscribe(String path, HelixPropertyListener listener) {

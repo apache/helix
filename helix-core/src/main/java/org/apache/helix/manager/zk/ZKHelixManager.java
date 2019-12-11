@@ -1100,13 +1100,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   /**
    * Called after the zookeeper session has expired and a new session has been created. This method
-   * may cause session race condition when creating ephemeral nodes. Internally, this method waits
-   * until zk is connected and then calls {@link #handleNewSession(String)} with the new session ID.
-   * But please note that this session might not be the expected session.
+   * may cause session race condition when creating ephemeral nodes. Internally, this method calls
+   * {@link #handleNewSession(String)} with a null value as the sessionId parameter, which results
+   * in later creating the ephemeral node in the session of the latest zk connection.
+   * But please note that the session of the latest zk connection might not be the expected session.
    * This is the session race condition issue.
    *
-   * To avoid the race condition issue, please use {@link #handleNewSession(String)} with session ID
-   * passed in.
+   * To avoid the race condition issue, please use {@link #handleNewSession(String)}.
    *
    * @deprecated
    * This method is deprecated, because it may cause session race condition when creating ephemeral
@@ -1118,24 +1118,25 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    */
   @Deprecated
   public void handleNewSession() throws Exception {
-    // Wait until we get a non-zero session id. Otherwise, getSessionId() might be null.
-    waitUntilConnected();
-    handleNewSession(getSessionId());
+    handleNewSession(null);
   }
 
   @Override
   public void handleNewSession(final String sessionId) throws Exception {
-    // If session ID is null, we treat it as an invalid operation and discard the operation.
-    if (sessionId == null) {
-      throw new IllegalArgumentException("Session ID is null.");
-    }
+    /*
+     * TODO: after removing I0ItecIZkStateListenerHelixImpl, null session should be checked and discarded.
+     * Null session is still a special case here, which is treated as non-session aware operation.
+     * This special case could still potentially cause race condition, so null session should NOT
+     * be acceptable, once I0ItecIZkStateListenerHelixImpl is removed. Currently this special case
+     * is kept for backward compatibility.
+     */
 
     // Wait until we get a non-zero session id. Otherwise, getSessionId() might be null.
     waitUntilConnected();
 
-    // TODO: filter out stale sessions.
+    // TODO: filter out stale sessions here.
     LOG.info("Handle new session, instance: {}, type: {}, session id: {}.", _instanceName,
-        _instanceType, sessionId);
+        _instanceType, sessionId == null ? "None" : sessionId);
 
     /**
      * stop all timer tasks, reset all handlers, make sure cleanup completed for previous session

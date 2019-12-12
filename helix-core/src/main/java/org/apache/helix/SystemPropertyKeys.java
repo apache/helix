@@ -16,6 +16,8 @@ public class SystemPropertyKeys {
 
   public static final String ZK_CONNECTION_TIMEOUT = "zk.connection.timeout";
 
+  public static final String AZURE_CLOUD_PROPERTIES = "azure-cloud.properties";
+
   @Deprecated
   public static final String ZK_REESTABLISHMENT_CONNECTION_TIMEOUT =
       "zk.connectionReEstablishment.timeout";

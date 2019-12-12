@@ -886,13 +886,12 @@ public class ZkClient implements Watcher {
   }
 
   private void fireNewSessionEvents() {
-    final String sessionId = Long.toHexString(getSessionId());
     for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEvent("New session event sent to " + stateListener, sessionId) {
+      _eventThread.send(new ZkEvent("New session event sent to " + stateListener) {
 
         @Override
         public void run() throws Exception {
-          stateListener.handleNewSession(sessionId);
+          stateListener.handleNewSession(null);
         }
       });
     }

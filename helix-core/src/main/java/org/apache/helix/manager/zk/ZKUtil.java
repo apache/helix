@@ -56,8 +56,12 @@ public final class ZKUtil {
    */
   public static boolean isClusterSetup(String clusterName, String zkAddress) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    boolean result = isClusterSetup(clusterName, zkClient);
-    zkClient.close();
+    boolean result;
+    try {
+      result = isClusterSetup(clusterName, zkClient);
+    } finally {
+      zkClient.close();
+    }
     return result;
   }
 
@@ -119,8 +123,12 @@ public final class ZKUtil {
   public static boolean isInstanceSetup(String zkAddress, String clusterName, String instanceName,
       InstanceType type) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    boolean result = isInstanceSetup(zkClient, clusterName, instanceName, type);
-    zkClient.close();
+    boolean result;
+    try {
+      result = isInstanceSetup(zkClient, clusterName, instanceName, type);
+    } finally {
+      zkClient.close();
+    }
     return result;
   }
 
@@ -166,8 +174,11 @@ public final class ZKUtil {
    */
   public static void createChildren(String zkAddress, String parentPath, List<ZNRecord> list) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    createChildren(zkClient, parentPath, list);
-    zkClient.close();
+    try {
+      createChildren(zkClient, parentPath, list);
+    } finally {
+      zkClient.close();
+    }
   }
 
   public static void createChildren(HelixZkClient client, String parentPath, List<ZNRecord> list) {
@@ -188,8 +199,11 @@ public final class ZKUtil {
    */
   public static void createChildren(String zkAddress, String parentPath, ZNRecord nodeRecord) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    createChildren(zkClient, parentPath, nodeRecord);
-    zkClient.close();
+    try {
+      createChildren(zkClient, parentPath, nodeRecord);
+    } finally {
+      zkClient.close();
+    }
   }
 
   public static void createChildren(HelixZkClient client, String parentPath, ZNRecord nodeRecord) {
@@ -209,8 +223,11 @@ public final class ZKUtil {
    */
   public static void dropChildren(String zkAddress, String parentPath, List<ZNRecord> list) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    dropChildren(zkClient, parentPath, list);
-    zkClient.close();
+    try {
+      dropChildren(zkClient, parentPath, list);
+    } finally {
+      zkClient.close();
+    }
   }
 
   public static void dropChildren(HelixZkClient client, String parentPath, List<ZNRecord> list) {
@@ -231,8 +248,11 @@ public final class ZKUtil {
    */
   public static void dropChildren(String zkAddress, String parentPath, ZNRecord nodeRecord) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    dropChildren(zkClient, parentPath, nodeRecord);
-    zkClient.close();
+    try {
+      dropChildren(zkClient, parentPath, nodeRecord);
+    } finally {
+      zkClient.close();
+    }
   }
 
   public static void dropChildren(HelixZkClient client, String parentPath, ZNRecord nodeRecord) {
@@ -251,8 +271,12 @@ public final class ZKUtil {
    */
   public static List<ZNRecord> getChildren(String zkAddress, String path) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    List<ZNRecord> result = getChildren(zkClient, path);
-    zkClient.close();
+    List<ZNRecord> result;
+    try {
+      result = getChildren(zkClient, path);
+    } finally {
+      zkClient.close();
+    }
     return result;
   }
 
@@ -290,8 +314,11 @@ public final class ZKUtil {
   public static void updateIfExists(String zkAddress, String path, final ZNRecord record,
       boolean mergeOnUpdate) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    updateIfExists(zkClient, path, record, mergeOnUpdate);
-    zkClient.close();
+    try {
+      updateIfExists(zkClient, path, record, mergeOnUpdate);
+    } finally {
+      zkClient.close();
+    }
   }
 
   public static void updateIfExists(HelixZkClient client, String path, final ZNRecord record,
@@ -319,8 +346,11 @@ public final class ZKUtil {
   public static void createOrMerge(String zkAddress, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    createOrMerge(zkClient, path, record, persistent, mergeOnUpdate);
-    zkClient.close();
+    try {
+      createOrMerge(zkClient, path, record, persistent, mergeOnUpdate);
+    } finally {
+      zkClient.close();
+    }
   }
 
   public static void createOrMerge(HelixZkClient client, String path, final ZNRecord record,
@@ -371,8 +401,11 @@ public final class ZKUtil {
   public static void createOrUpdate(String zkAddress, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    createOrUpdate(zkClient, path, record, persistent, mergeOnUpdate);
-    zkClient.close();
+    try {
+      createOrUpdate(zkClient, path, record, persistent, mergeOnUpdate);
+    } finally {
+      zkClient.close();
+    }
   }
 
   public static void createOrUpdate(HelixZkClient client, String path, final ZNRecord record,
@@ -417,8 +450,11 @@ public final class ZKUtil {
   public static void asyncCreateOrMerge(String zkAddress, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    asyncCreateOrMerge(zkClient, path, record, persistent, mergeOnUpdate);
-    zkClient.close();
+    try {
+      asyncCreateOrMerge(zkClient, path, record, persistent, mergeOnUpdate);
+    } finally {
+      zkClient.close();
+    }
   }
 
   public static void asyncCreateOrMerge(HelixZkClient client, String path, final ZNRecord record,
@@ -467,8 +503,11 @@ public final class ZKUtil {
   public static void createOrReplace(String zkAddress, String path, final ZNRecord record,
       final boolean persistent) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    createOrReplace(zkClient, path, record, persistent);
-    zkClient.close();
+    try {
+      createOrReplace(zkClient, path, record, persistent);
+    } finally {
+      zkClient.close();
+    }
   }
 
   public static void createOrReplace(HelixZkClient client, String path, final ZNRecord record,
@@ -507,8 +546,11 @@ public final class ZKUtil {
   public static void subtract(String zkAddress, final String path,
       final ZNRecord recordTosubtract) {
     HelixZkClient zkClient = getHelixZkClient(zkAddress);
-    subtract(zkClient, path, recordTosubtract);
-    zkClient.close();
+    try {
+      subtract(zkClient, path, recordTosubtract);
+    } finally {
+      zkClient.close();
+    }
   }
 
   public static void subtract(HelixZkClient client, final String path,

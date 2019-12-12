@@ -41,4 +41,9 @@ public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T> {
   public ZkHelixPropertyStore(String zkAddress, ZkSerializer serializer, String chrootPath) {
     super(zkAddress, serializer, chrootPath, null, null, MONITOR_TYPE, chrootPath);
   }
+
+  public ZkHelixPropertyStore(String zkAddress, ZkSerializer serializer, String chrootPath,
+      ZkBaseDataAccessor.ZkClientType zkClientType) {
+    super(zkAddress, serializer, chrootPath, null, null, MONITOR_TYPE, chrootPath, zkClientType);
+  }
 }

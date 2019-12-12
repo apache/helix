@@ -20,7 +20,7 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  */
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,18 +63,22 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   }
 
   @Override
-  public OptimalAssignment calculate(ClusterModel clusterModel) throws HelixRebalanceException {
+  public OptimalAssignment calculate(ClusterModel clusterModel)
+      throws HelixRebalanceException {
     OptimalAssignment optimalAssignment = new OptimalAssignment();
     List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodes().values());
+    Set<String> busyInstances =
+        getBusyInstances(clusterModel.getContext().getBestPossibleAssignment().values());
     // Sort the replicas so the input is stable for the greedy algorithm.
     // For the other algorithm implementation, this sorting could be unnecessary.
     for (AssignableReplica replica : getOrderedAssignableReplica(clusterModel)) {
       Optional<AssignableNode> maybeBestNode =
-          getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), optimalAssignment);
+          getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), busyInstances,
+              optimalAssignment);
       // stop immediately if any replica cannot find best assignable node
       if (optimalAssignment.hasAnyFailure()) {
-        String errorMessage = String.format(
-            "Unable to find any available candidate node for partition %s; Fail reasons: %s",
+        String errorMessage = String
+            .format("Unable to find any available candidate node for partition %s; Fail reasons: %s",
             replica.getPartitionName(), optimalAssignment.getFailures());
         throw new HelixRebalanceException(errorMessage,
             HelixRebalanceException.Type.FAILED_TO_CALCULATE);
@@ -89,7 +93,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
 
   private Optional<AssignableNode> getNodeWithHighestPoints(AssignableReplica replica,
       List<AssignableNode> assignableNodes, ClusterContext clusterContext,
-      OptimalAssignment optimalAssignment) {
+      Set<String> busyInstances, OptimalAssignment optimalAssignment) {
     Map<AssignableNode, List<HardConstraint>> hardConstraintFailures = new ConcurrentHashMap<>();
     List<AssignableNode> candidateNodes = assignableNodes.parallelStream().filter(candidateNode -> {
       boolean isValid = true;
@@ -113,8 +117,18 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
 
     return candidateNodes.parallelStream().map(node -> new HashMap.SimpleEntry<>(node,
         getAssignmentNormalizedScore(node, replica, clusterContext)))
-        .max(Comparator.comparingDouble((scoreEntry) -> scoreEntry.getValue()))
-        .map(Map.Entry::getKey);
+        .max((nodeEntry1, nodeEntry2) -> {
+          int scoreCompareResult = nodeEntry1.getValue().compareTo(nodeEntry2.getValue());
+          if (scoreCompareResult == 0) {
+            // If the evaluation scores of 2 nodes are the same, the algorithm assigns the replica
+            // to the idle node first.
+            int idleScore1 = busyInstances.contains(nodeEntry1.getKey().getInstanceName()) ? 0 : 1;
+            int idleScore2 = busyInstances.contains(nodeEntry2.getKey().getInstanceName()) ? 0 : 1;
+            return idleScore1 - idleScore2;
+          } else {
+            return scoreCompareResult;
+          }
+        }).map(Map.Entry::getKey);
   }
 
   private double getAssignmentNormalizedScore(AssignableNode node, AssignableReplica replica,
@@ -199,5 +213,16 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       }
     });
     return orderedAssignableReplicas;
+  }
+
+  /**
+   * @param assignments A collection of resource replicas assignment.
+   * @return A set of instance names that have at least one replica assigned in the input assignments.
+   */
+  private Set<String> getBusyInstances(Collection<ResourceAssignment> assignments) {
+    return assignments.stream().flatMap(
+        resourceAssignment -> resourceAssignment.getRecord().getMapFields().values().stream()
+            .flatMap(instanceStateMap -> instanceStateMap.keySet().stream())
+            .collect(Collectors.toSet()).stream()).collect(Collectors.toSet());
   }
 }

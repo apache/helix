@@ -98,7 +98,7 @@ public class TestWorkflowTermination extends TaskTestBase {
   }
 
   @Test
-  public void testWorkflowRunningTimeout() throws InterruptedException {
+  public void testWorkflowRunningTimeout() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
     String notStartedJobName = JOB_NAME + "-NotStarted";
     long workflowExpiry = 2000; // 2sec expiry time
@@ -126,14 +126,17 @@ public class TestWorkflowTermination extends TaskTestBase {
     Assert.assertNull(context.getJobState(notStartedJobName));
     Assert.assertTrue(context.getFinishTime() - context.getStartTime() >= timeout);
 
-    Thread.sleep(workflowExpiry + 200);
-
-    verifyWorkflowCleanup(workflowName, getJobNameToPoll(workflowName, JOB_NAME),
-        getJobNameToPoll(workflowName, notStartedJobName));
+    // Make sure config and context don't get deleted. workflowIsCleanedUp should be false
+    boolean workflowIsCleanedUp = TestHelper.verify(() -> {
+      WorkflowContext wCtx = _driver.getWorkflowContext(workflowName);
+      WorkflowConfig wCfg = _driver.getWorkflowConfig(workflowName);
+      return (wCtx == null || wCfg == null);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertFalse(workflowIsCleanedUp);
   }
 
   @Test
-  public void testWorkflowPausedTimeout() throws InterruptedException {
+  public void testWorkflowPausedTimeout() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
     long workflowExpiry = 2000; // 2sec expiry time
     long timeout = 5000;
@@ -166,9 +169,13 @@ public class TestWorkflowTermination extends TaskTestBase {
     context = _driver.getWorkflowContext(workflowName);
     Assert.assertTrue(context.getFinishTime() - context.getStartTime() >= timeout);
 
-    Thread.sleep(workflowExpiry + 200);
-    verifyWorkflowCleanup(workflowName, getJobNameToPoll(workflowName, JOB_NAME),
-        getJobNameToPoll(workflowName, notStartedJobName));
+    // Make sure config and context don't get deleted. workflowIsCleanedUp should be false
+    boolean workflowIsCleanedUp = TestHelper.verify(() -> {
+      WorkflowContext wCtx = _driver.getWorkflowContext(workflowName);
+      WorkflowConfig wCfg = _driver.getWorkflowConfig(workflowName);
+      return (wCtx == null || wCfg == null);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertFalse(workflowIsCleanedUp);
 
   }
 
@@ -246,11 +253,13 @@ public class TestWorkflowTermination extends TaskTestBase {
     ObjectName objectName = getWorkflowMBeanObjectName(workflowName);
     Assert.assertEquals((long) beanServer.getAttribute(objectName, "FailedWorkflowCount"), 1);
 
-    // For a failed workflow, after timing out, it will be purged
-    Thread.sleep(workflowExpiry + 200);
-    verifyWorkflowCleanup(workflowName, getJobNameToPoll(workflowName, job1),
-        getJobNameToPoll(workflowName, job2), getJobNameToPoll(workflowName, job3),
-        getJobNameToPoll(workflowName, job4));
+    // Make sure config and context don't get deleted. workflowIsCleanedUp should be false
+    boolean workflowIsCleanedUp = TestHelper.verify(() -> {
+      WorkflowContext wCtx = _driver.getWorkflowContext(workflowName);
+      WorkflowConfig wCfg = _driver.getWorkflowConfig(workflowName);
+      return (wCtx == null || wCfg == null);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertFalse(workflowIsCleanedUp);
   }
 
   private void verifyWorkflowCleanup(String workflowName, String... jobNames) {

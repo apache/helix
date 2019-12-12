@@ -113,7 +113,7 @@ public class TestWorkflowTimeout extends TaskTestBase {
     _driver.start(workflowBuilder.build());
     // Pause the queue
     Thread.sleep(2500);
-    Assert.assertNull(_driver.getWorkflowConfig(workflowName));
-    Assert.assertNull(_driver.getJobContext(workflowName));
+    Assert.assertNotNull(_driver.getWorkflowConfig(workflowName));
+    Assert.assertNotNull(_driver.getJobContext(workflowName));
   }
 }

@@ -129,8 +129,15 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       long expiryTime = workflowCfg.getExpiry();
       // Check if this workflow has been finished past its expiry.
       if (workflowCtx.getFinishTime() + expiryTime <= currentTime) {
-        LOG.info("Workflow " + workflow + " passed expiry time, cleaning up the workflow context.");
-        cleanupWorkflow(workflow);
+        if (workflowCtx.getWorkflowState() == TaskState.COMPLETED) {
+          LOG.info(
+              String.format("Workflow %s passed expiry time, cleaning up the workflow.", workflow));
+          cleanupWorkflow(workflow);
+        } else {
+          LOG.info(String.format(
+              "Workflow %s passed expiry time, but it does not completed successfully, skipping the clean up workflow!",
+              workflow));
+        }
       } else {
         // schedule future cleanup work
         long cleanupTime = workflowCtx.getFinishTime() + expiryTime;

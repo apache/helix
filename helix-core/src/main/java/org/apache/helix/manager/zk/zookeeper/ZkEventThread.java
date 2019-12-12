@@ -52,9 +52,22 @@ public class ZkEventThread extends Thread {
 
     public abstract void run() throws Exception;
 
+    /**
+     * Returns a string representation of the zk event.
+     * Ex. ZkEvent[description: new session event sent to listener; session: 1001754ac3b0007]
+     *
+     * @return String representation of the zk event.
+     */
     @Override
     public String toString() {
-      return "ZkEvent[description: " + _description + "; session: " + _sessionId + "]";
+      StringBuilder sb = new StringBuilder();
+      sb.append("ZkEvent[description: ").append(_description);
+      if (_sessionId != null) {
+        sb.append("; session: ").append(_sessionId);
+      }
+      sb.append("]");
+
+      return sb.toString();
     }
   }
 

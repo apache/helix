@@ -44,6 +44,7 @@ import org.apache.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.store.zk.ZNode;
@@ -103,33 +104,48 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
   /**
    * The ZkBaseDataAccessor with custom serializer support of ZkSerializer type.
+   * Note: This constructor will use a shared ZkConnection.
+   * Do NOT use this for ephemeral node creation/callbacks/session management.
+   * Do use this for simple CRUD operations to ZooKeeper.
    * @param zkAddress The zookeeper address
    */
   public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer) {
-    _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
-        new HelixZkClient.ZkConnectionConfig(zkAddress),
-        new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
-    _usesExternalZkClient = false;
+    this(zkAddress, zkSerializer, false);
   }
 
   /**
    * The ZkBaseDataAccessor with custom serializer support of PathBasedZkSerializer type.
+   * Note: This constructor will use a shared ZkConnection.
+   * Do NOT use this for ephemeral node creation/callbacks/session management.
+   * Do use this for simple CRUD operations to ZooKeeper.
    * @param zkAddress The zookeeper address
    */
-  public ZkBaseDataAccessor(String zkAddress, PathBasedZkSerializer zkSerializer) {
-    _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
-        new HelixZkClient.ZkConnectionConfig(zkAddress),
-        new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
-    _usesExternalZkClient = false;
+  public ZkBaseDataAccessor(String zkAddress, PathBasedZkSerializer pathBasedZkSerializer) {
+    this(zkAddress, pathBasedZkSerializer, false);
   }
 
   /**
-   * The default ZkBaseDataAccessor with {@link org.apache.helix.ZNRecord} as the data model;
+   * Creates a ZkBaseDataAccessor with {@link org.apache.helix.ZNRecord} as the data model.
+   * Uses a shared ZkConnection resource.
+   * Does NOT support ephemeral node creation, callbacks, or session management.
    * Uses {@link ZNRecordSerializer} serializer
    * @param zkAddress The zookeeper address
    */
   public ZkBaseDataAccessor(String zkAddress) {
     this(zkAddress, new ZNRecordSerializer());
+  }
+
+  /**
+   * Creates a ZkBaseDataAccessor with {@link org.apache.helix.ZNRecord} as the data model.
+   * If dedicated flag is set to true, it will use a dedicated ZkConnection, which allows ephemeral
+   * node creation, callbacks, and session management.
+   * If dedicated flag is set to false, it will use a shared ZkConnection, which only allows simple
+   * CRUD operations to ZooKeeper.
+   * @param zkAddress
+   * @param dedicated
+   */
+  public ZkBaseDataAccessor(String zkAddress, boolean dedicated) {
+    this(zkAddress, new ZNRecordSerializer(), dedicated);
   }
 
   /**
@@ -139,6 +155,53 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   public boolean create(String path, T record, int options) {
     AccessResult result = doCreate(path, record, options);
     return result._retCode == RetCode.OK;
+  }
+
+  /**
+   * Creates a ZkBaseDataAccessor with a custom implementation of ZkSerializer.
+   * If dedicated flag is set to true, it will use a dedicated ZkConnection, which allows ephemeral
+   * node creation, callbacks, and session management.
+   * If dedicated flag is set to false, it will use a shared ZkConnection, which only allows simple
+   * CRUD operations to ZooKeeper.
+   * @param zkAddress
+   * @param zkSerializer
+   * @param dedicated
+   */
+  public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer, boolean dedicated) {
+    if (dedicated) {
+      _zkClient = DedicatedZkClientFactory.getInstance().buildZkClient(
+          new HelixZkClient.ZkConnectionConfig(zkAddress),
+          new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
+    } else {
+      _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
+          new HelixZkClient.ZkConnectionConfig(zkAddress),
+          new HelixZkClient.ZkClientConfig().setZkSerializer(zkSerializer));
+    }
+    _usesExternalZkClient = false;
+  }
+
+  /**
+   * Creates a ZkBaseDataAccessor with a custom implementation of PathBasedZkSerializer.
+   * If dedicated flag is set to true, it will use a dedicated ZkConnection, which allows ephemeral
+   * node creation, callbacks, and session management.
+   * If dedicated flag is set to false, it will use a shared ZkConnection, which only allows simple
+   * CRUD operations to ZooKeeper.
+   * @param zkAddress
+   * @param pathBasedZkSerializer
+   * @param dedicated
+   */
+  public ZkBaseDataAccessor(String zkAddress, PathBasedZkSerializer pathBasedZkSerializer,
+      boolean dedicated) {
+    if (dedicated) {
+      _zkClient = DedicatedZkClientFactory.getInstance().buildZkClient(
+          new HelixZkClient.ZkConnectionConfig(zkAddress),
+          new HelixZkClient.ZkClientConfig().setZkSerializer(pathBasedZkSerializer));
+    } else {
+      _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
+          new HelixZkClient.ZkConnectionConfig(zkAddress),
+          new HelixZkClient.ZkClientConfig().setZkSerializer(pathBasedZkSerializer));
+    }
+    _usesExternalZkClient = false;
   }
 
   /**

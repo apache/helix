@@ -391,16 +391,7 @@ public class WagedRebalancer {
     _changeDetector.updateSnapshots(clusterData);
     // Get all the changed items' information. Filter for the items that have content changed.
     final Map<HelixConstants.ChangeType, Set<String>> clusterChanges =
-        _changeDetector.getChangeTypes().stream()
-            .collect(Collectors.toMap(changeType -> changeType, changeType -> {
-              Set<String> itemKeys = new HashSet<>();
-              itemKeys.addAll(_changeDetector.getAdditionsByType(changeType));
-              itemKeys.addAll(_changeDetector.getChangesByType(changeType));
-              itemKeys.addAll(_changeDetector.getRemovalsByType(changeType));
-              return itemKeys;
-            })).entrySet().stream().filter(changeEntry -> !changeEntry.getValue().isEmpty())
-            .collect(Collectors
-                .toMap(changeEntry -> changeEntry.getKey(), changeEntry -> changeEntry.getValue()));
+        _changeDetector.getAllChanges();
 
     if (clusterChanges.keySet().stream()
         .anyMatch(GLOBAL_REBALANCE_REQUIRED_CHANGE_TYPES::contains)) {

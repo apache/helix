@@ -38,6 +38,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.store.HelixPropertyListener;
@@ -106,18 +107,32 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths) {
-    this(zkAddress, serializer, chrootPath, wtCachePaths, zkCachePaths, null, null);
+    this(zkAddress, serializer, chrootPath, wtCachePaths, zkCachePaths, null, null,
+        ZkBaseDataAccessor.ZkClientType.SHARED);
   }
 
   public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths, String monitorType, String monitorkey) {
-    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-    clientConfig.setZkSerializer(serializer)
-        .setMonitorType(monitorType)
-        .setMonitorKey(monitorkey);
-    _zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
+    this(zkAddress, serializer, chrootPath, wtCachePaths, zkCachePaths, monitorType, monitorkey,
+        ZkBaseDataAccessor.ZkClientType.SHARED);
+  }
 
+  public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
+      List<String> wtCachePaths, List<String> zkCachePaths, String monitorType, String monitorkey,
+      ZkBaseDataAccessor.ZkClientType zkClientType) {
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(serializer).setMonitorType(monitorType).setMonitorKey(monitorkey);
+    switch (zkClientType) {
+    case DEDICATED:
+      _zkClient = DedicatedZkClientFactory.getInstance().buildZkClient(
+          new HelixZkClient.ZkConnectionConfig(zkAddress),
+          new HelixZkClient.ZkClientConfig().setZkSerializer(serializer));
+      break;
+    case SHARED:
+    default:
+      _zkClient = SharedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
+    }
     _zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
     _baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
 

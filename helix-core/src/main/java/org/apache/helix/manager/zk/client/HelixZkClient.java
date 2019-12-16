@@ -6,15 +6,16 @@ import java.util.concurrent.TimeUnit;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.manager.zk.BasicZkSerializer;
 import org.apache.helix.manager.zk.PathBasedZkSerializer;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks;
+import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
@@ -35,9 +36,47 @@ public interface HelixZkClient {
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);
 
-  void subscribeStateChanges(final IZkStateListener listener);
+  /*
+   * This is for backwards compatibility.
+   *
+   * TODO: remove below default implementation when getting rid of I0Itec in the new zk client.
+   */
+  default void subscribeStateChanges(final IZkStateListener listener) {
+    subscribeStateChanges(new I0ItecIZkStateListenerHelixImpl(listener));
+  }
 
-  void unsubscribeStateChanges(IZkStateListener listener);
+  /*
+   * This is for backwards compatibility.
+   *
+   * TODO: remove below default implementation when getting rid of I0Itec in the new zk client.
+   */
+  default void unsubscribeStateChanges(IZkStateListener listener) {
+    unsubscribeStateChanges(new I0ItecIZkStateListenerHelixImpl(listener));
+  }
+
+  /**
+   * Subscribes state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   *
+   * @deprecated
+   * This is deprecated. It is kept for backwards compatibility. Please use
+   * {@link #subscribeStateChanges(org.apache.helix.manager.zk.zookeeper.IZkStateListener)}.
+   *
+   * @param listener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   */
+  @Deprecated
+  void subscribeStateChanges(final org.I0Itec.zkclient.IZkStateListener listener);
+
+  /**
+   * Unsubscribes state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   *
+   * @deprecated
+   * This is deprecated. It is kept for backwards compatibility. Please use
+   * {@link #unsubscribeStateChanges(org.apache.helix.manager.zk.zookeeper.IZkStateListener)}.
+   *
+   * @param listener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   */
+  @Deprecated
+  void unsubscribeStateChanges(org.I0Itec.zkclient.IZkStateListener listener);
 
   void unsubscribeAll();
 
@@ -147,6 +186,66 @@ public interface HelixZkClient {
   void setZkSerializer(PathBasedZkSerializer zkSerializer);
 
   PathBasedZkSerializer getZkSerializer();
+
+  /**
+   * A class that wraps a default implementation of
+   * {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}, which means this listener
+   * runs the methods of {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}.
+   * This is for backward compatibility and to avoid breaking the original implementation of
+   * {@link org.I0Itec.zkclient.IZkStateListener}.
+   */
+  class I0ItecIZkStateListenerHelixImpl implements org.I0Itec.zkclient.IZkStateListener {
+    private IZkStateListener _listener;
+
+    I0ItecIZkStateListenerHelixImpl(IZkStateListener listener) {
+      _listener = listener;
+    }
+
+    @Override
+    public void handleStateChanged(KeeperState keeperState) throws Exception {
+      _listener.handleStateChanged(keeperState);
+    }
+
+    @Override
+    public void handleNewSession() throws Exception {
+      /*
+       * org.apache.helix.manager.zk.zookeeper.IZkStateListener does not have handleNewSession(),
+       * so null is passed into handleNewSession(sessionId).
+       */
+      _listener.handleNewSession(null);
+    }
+
+    @Override
+    public void handleSessionEstablishmentError(Throwable error) throws Exception {
+      _listener.handleSessionEstablishmentError(error);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (!(obj instanceof I0ItecIZkStateListenerHelixImpl)) {
+        return false;
+      }
+      if (_listener == null) {
+        return false;
+      }
+
+      I0ItecIZkStateListenerHelixImpl defaultListener = (I0ItecIZkStateListenerHelixImpl) obj;
+
+      return _listener.equals(defaultListener._listener);
+    }
+
+    @Override
+    public int hashCode() {
+      /*
+       * The original listener's hashcode helps find the wrapped listener with the same original
+       * listener. This is helpful in unsubscribeStateChanges(listener).
+       */
+      return _listener.hashCode();
+    }
+  }
 
   /**
    * Configuration for creating a new ZkConnection.

@@ -27,11 +27,11 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.manager.zk.ZkCacheEventThread.ZkCacheEvent;
+import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.store.HelixPropertyListener;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
@@ -41,8 +41,8 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZkCallbackCache<T> extends Cache<T> implements IZkChildListener, IZkDataListener,
-    IZkStateListener {
+
+public class ZkCallbackCache<T> extends Cache<T> implements IZkChildListener, IZkDataListener, IZkStateListener {
   private static Logger LOG = LoggerFactory.getLogger(ZkCallbackCache.class);
 
   final BaseDataAccessor<T> _accessor;
@@ -219,10 +219,26 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkChildListener, IZ
 
   }
 
-  @Override
+  /**
+   * Handle new session without a session id passed in.
+   *
+   * @deprecated
+   * This is deprecated. It is kept for backward compatibility.
+   * Please use {@link #handleNewSession(String)}.
+   *
+   * @throws Exception
+   */
+  @Deprecated
   public void handleNewSession() throws Exception {
     // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public void handleNewSession(final String sessionId) throws Exception {
+    // TODO Auto-generated method stub
+    // Calls the old method for backward compatibility.
+    handleNewSession();
   }
 
   public void subscribe(String path, HelixPropertyListener listener) {

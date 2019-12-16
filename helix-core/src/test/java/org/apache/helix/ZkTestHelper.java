@@ -40,12 +40,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.model.ExternalView;
 import org.apache.zookeeper.WatchedEvent;
@@ -89,7 +89,7 @@ public class ZkTestHelper {
   }
 
   /**
-   * Expire current zk session and wait for {@link IZkStateListener#handleNewSession()} invoked
+   * Expire current zk session and wait for {@link IZkStateListener#handleNewSession(String)} invoked
    * @param client
    * @throws Exception
    */
@@ -103,14 +103,11 @@ public class ZkTestHelper {
       }
 
       @Override
-      public void handleNewSession() throws Exception {
+      public void handleNewSession(final String sessionId) throws Exception {
         // make sure zkclient is connected again
         zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
 
-        ZkConnection connection = ((ZkConnection) zkClient.getConnection());
-        ZooKeeper curZookeeper = connection.getZookeeper();
-
-        LOG.info("handleNewSession. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
+        LOG.info("handleNewSession. sessionId: {}.", sessionId);
       }
 
       @Override
@@ -158,14 +155,11 @@ public class ZkTestHelper {
       }
 
       @Override
-      public void handleNewSession() throws Exception {
+      public void handleNewSession(final String sessionId) throws Exception {
         // make sure zkclient is connected again
         zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
 
-        ZkConnection connection = ((ZkConnection) zkClient.getConnection());
-        ZooKeeper curZookeeper = connection.getZookeeper();
-
-        LOG.info("handleNewSession. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
+        LOG.info("handleNewSession. sessionId: {}.", sessionId);
         waitNewSession.countDown();
       }
 

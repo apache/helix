@@ -181,9 +181,9 @@ public class TestHandleNewSession extends ZkTestBase {
     }
 
     @Override
-    public void handleNewSession() throws Exception {
+    public void handleNewSession(final String sessionId) throws Exception {
       newSessionHandlingCount.acquire();
-      super.handleNewSession();
+      super.handleNewSession(sessionId);
     }
 
     void proceedNewSessionHandling() {

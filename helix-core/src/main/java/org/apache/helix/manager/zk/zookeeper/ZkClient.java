@@ -29,7 +29,6 @@ import org.I0Itec.zkclient.ExceptionUtil;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkConnection;
 import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkLock;
 import org.I0Itec.zkclient.exception.ZkBadVersionException;
 import org.I0Itec.zkclient.exception.ZkException;
@@ -279,10 +278,38 @@ public class ZkClient implements Watcher {
     }
   }
 
+  /**
+   * Subscribes state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   *
+   * @deprecated
+   * This is deprecated. It is kept for backwards compatibility. Please use
+   * {@link #subscribeStateChanges(IZkStateListener)}.
+   *
+   * @param listener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   */
+  @Deprecated
+  public void subscribeStateChanges(final org.I0Itec.zkclient.IZkStateListener listener) {
+    subscribeStateChanges(new IZkStateListenerI0ItecImpl(listener));
+  }
+
   public void unsubscribeStateChanges(IZkStateListener stateListener) {
     synchronized (_stateListener) {
       _stateListener.remove(stateListener);
     }
+  }
+
+  /**
+   * Unsubscribes state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
+   *
+   * @deprecated
+   * This is deprecated. It is kept for backwards compatibility. Please use
+   * {@link #unsubscribeStateChanges(IZkStateListener)}.
+   *
+   * @param stateListener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   */
+  @Deprecated
+  public void unsubscribeStateChanges(org.I0Itec.zkclient.IZkStateListener stateListener) {
+    unsubscribeStateChanges(new IZkStateListenerI0ItecImpl(stateListener));
   }
 
   public void unsubscribeAll() {
@@ -864,15 +891,17 @@ public class ZkClient implements Watcher {
 
         @Override
         public void run() throws Exception {
-          stateListener.handleNewSession();
+          stateListener.handleNewSession(null);
         }
       });
     }
   }
 
   protected void fireStateChangedEvent(final KeeperState state) {
+    final String sessionId = Long.toHexString(getSessionId());
     for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEvent("State changed to " + state + " sent to " + stateListener) {
+      final String description = "State changed to " + state + " sent to " + stateListener;
+      _eventThread.send(new ZkEvent(description, sessionId) {
 
         @Override
         public void run() throws Exception {
@@ -1752,6 +1781,66 @@ public class ZkClient implements Watcher {
       if (dataChanged) {
         _monitor.increaseDataChangeEventCounter();
       }
+    }
+  }
+
+  /**
+   * Creates a {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener} that wraps a default
+   * implementation of {@link org.I0Itec.zkclient.IZkStateListener}, which means the returned
+   * listener runs the methods of {@link org.I0Itec.zkclient.IZkStateListener}.
+   * This is for backward compatibility with {@link org.I0Itec.zkclient.IZkStateListener}.
+   */
+  private static class IZkStateListenerI0ItecImpl implements IZkStateListener {
+    private org.I0Itec.zkclient.IZkStateListener _listener;
+
+    IZkStateListenerI0ItecImpl(org.I0Itec.zkclient.IZkStateListener listener) {
+      _listener = listener;
+    }
+
+    @Override
+    public void handleStateChanged(Watcher.Event.KeeperState keeperState) throws Exception {
+      _listener.handleStateChanged(keeperState);
+    }
+
+    @Override
+    public void handleNewSession(final String sessionId) throws Exception {
+      /*
+       * org.I0Itec.zkclient.IZkStateListener does not have handleNewSession(sessionId),
+       * so just call handleNewSession() by default.
+       */
+      _listener.handleNewSession();
+    }
+
+    @Override
+    public void handleSessionEstablishmentError(Throwable error) throws Exception {
+      _listener.handleSessionEstablishmentError(error);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (!(obj instanceof IZkStateListenerI0ItecImpl)) {
+        return false;
+      }
+      if (_listener == null) {
+        return false;
+      }
+
+      IZkStateListenerI0ItecImpl defaultListener = (IZkStateListenerI0ItecImpl) obj;
+
+      return _listener.equals(defaultListener._listener);
+    }
+
+    @Override
+    public int hashCode() {
+      /*
+       * The original listener's hashcode helps find the wrapped listener with the same original
+       * listener. This is helpful in unsubscribeStateChanges(listener) when finding the listener
+       * to remove.
+       */
+      return _listener.hashCode();
     }
   }
 }

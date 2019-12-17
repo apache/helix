@@ -142,20 +142,24 @@ public class ZKDumper {
     String fsPath = cmd.getOptionValue("fspath");
 
     ZKDumper zkDump = new ZKDumper(zkAddress);
-    if (download) {
-      if (cmd.hasOption("addSuffix")) {
-        zkDump.suffix = cmd.getOptionValue("addSuffix");
+    try {
+      if (download) {
+        if (cmd.hasOption("addSuffix")) {
+          zkDump.suffix = cmd.getOptionValue("addSuffix");
+        }
+        zkDump.download(zkPath, fsPath + zkPath);
       }
-      zkDump.download(zkPath, fsPath + zkPath);
-    }
-    if (upload) {
-      if (cmd.hasOption("removeSuffix")) {
-        zkDump.removeSuffix = true;
+      if (upload) {
+        if (cmd.hasOption("removeSuffix")) {
+          zkDump.removeSuffix = true;
+        }
+        zkDump.upload(zkPath, fsPath);
       }
-      zkDump.upload(zkPath, fsPath);
-    }
-    if (del) {
-      zkDump.delete(zkPath);
+      if (del) {
+        zkDump.delete(zkPath);
+      }
+    } finally {
+      zkDump.close();
     }
   }
 
@@ -230,5 +234,9 @@ public class ZKDumper {
       }
       out.close();
     }
+  }
+
+  public void close() {
+    client.close();
   }
 }

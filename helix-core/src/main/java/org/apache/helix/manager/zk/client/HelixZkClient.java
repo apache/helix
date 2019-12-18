@@ -97,19 +97,33 @@ public interface HelixZkClient {
 
   void createEphemeral(final String path);
 
+  void createEphemeral(final String path, final String sessionId);
+
   void createEphemeral(final String path, final List<ACL> acl);
+
+  void createEphemeral(final String path, final List<ACL> acl, final String sessionId);
 
   String create(final String path, Object data, final CreateMode mode);
 
-  String create(final String path, Object datat, final List<ACL> acl, final CreateMode mode);
+  String create(final String path, Object data, final List<ACL> acl, final CreateMode mode);
 
   void createEphemeral(final String path, final Object data);
 
+  void createEphemeral(final String path, final Object data, final String sessionId);
+
   void createEphemeral(final String path, final Object data, final List<ACL> acl);
+
+  void createEphemeral(final String path, final Object data, final List<ACL> acl,
+      final String sessionId);
 
   String createEphemeralSequential(final String path, final Object data);
 
   String createEphemeralSequential(final String path, final Object data, final List<ACL> acl);
+
+  String createEphemeralSequential(final String path, final Object data, final String sessionId);
+
+  String createEphemeralSequential(final String path, final Object data, final List<ACL> acl,
+      final String sessionId);
 
   List<String> getChildren(String path);
 
@@ -171,6 +185,15 @@ public interface HelixZkClient {
   String getServers();
 
   long getSessionId();
+
+  /**
+   * Gets a session id in hexadecimal notation from a session id in long type.
+   * Ex. 0x1000a5ceb930004 is returned.
+   *
+   * @param sessionId session id in long type
+   * @return String representation of session id in hexadecimal notation.
+   */
+  String getHexSessionId(long sessionId);
 
   void close();
 

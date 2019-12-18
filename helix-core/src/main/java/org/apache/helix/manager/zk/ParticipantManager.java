@@ -97,10 +97,28 @@ public class ParticipantManager {
   }
 
   /**
-   * Handle new session for a participang.
+   * Handles a new session for a participant.
+   *
+   * @deprecated
+   * This is deprecated. Instead, please use {@link #handleNewSession(String)} which takes care of
+   * potential session race condition issue.
+   *
    * @throws Exception
    */
+  @Deprecated
   public void handleNewSession() throws Exception {
+    handleNewSession(null);
+  }
+
+  /**
+   * Handles a new session for a participant. The new session's id has to be passed in, as it is
+   * required in {@link #createLiveInstance(String)} to prevent ephemeral node creation from session
+   * race condition: ephemeral node is created by an expired or unexpected session.
+   *
+   * @param sessionId the new session's ID
+   * @throws Exception if any exception occurs
+   */
+  public void handleNewSession(final String sessionId) throws Exception {
     joinCluster();
 
     /**
@@ -112,7 +130,7 @@ public class ParticipantManager {
 
     // TODO create live instance node after all the init works done --JJ
     // This will help to prevent controller from sending any message prematurely.
-    createLiveInstance();
+    createLiveInstance(sessionId);
     carryOverPreviousCurrentState();
 
     /**
@@ -158,7 +176,7 @@ public class ParticipantManager {
     }
   }
 
-  private void createLiveInstance() {
+  private void createLiveInstance(final String sessionId) {
     String liveInstancePath = _keyBuilder.liveInstance(_instanceName).getPath();
     LiveInstance liveInstance = new LiveInstance(_instanceName);
     liveInstance.setSessionId(_sessionId);
@@ -182,7 +200,7 @@ public class ParticipantManager {
     do {
       retry = false;
       try {
-        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
+        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), sessionId);
         LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getEphemeralOwner());
       } catch (ZkNodeExistsException e) {
         LOG.warn("found another instance with same instanceName: " + _instanceName + " in cluster "
@@ -240,7 +258,7 @@ public class ParticipantManager {
      */
     if (retry) {
       try {
-        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
+        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), sessionId);
         LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance
             .getEphemeralOwner());
       } catch (Exception e) {

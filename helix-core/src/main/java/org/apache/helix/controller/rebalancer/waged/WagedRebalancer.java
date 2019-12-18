@@ -94,6 +94,8 @@ public class WagedRebalancer {
   private final LatencyMetric _stateReadLatency;
   private final BaselineDivergenceGauge _baselineDivergenceGauge;
 
+  // Note, the rebalance algorithm field is mutable so it should not be directly referred except for
+  // the public method computeNewIdealStates.
   private RebalanceAlgorithm _rebalanceAlgorithm;
   private Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> _preference =
       NOT_CONFIGURED_PREFERENCE;

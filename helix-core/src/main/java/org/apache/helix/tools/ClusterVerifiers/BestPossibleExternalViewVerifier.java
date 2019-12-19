@@ -37,6 +37,7 @@ import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.rebalancer.waged.AssignmentMetadataStore;
+import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintBasedAlgorithmFactory;
 import org.apache.helix.controller.stages.AttributeName;
@@ -413,45 +414,45 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     return verifierName + "(" + _clusterName + "@" + _zkClient + "@resources["
        + (_resources != null ? Arrays.toString(_resources.toArray()) : "") + "])";
   }
-}
 
-/**
- * A Dryrun WAGED rebalancer that only calculates the assignment based on the cluster status but
- * never update the rebalancer assignment metadata.
- * This rebalacer is used in the verifiers or tests.
- */
-class DryrunWagedRebalancer extends WagedRebalancer {
-  DryrunWagedRebalancer(String metadataStoreAddrs, String clusterName,
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
-    super(new ReadOnlyAssignmentMetadataStore(metadataStoreAddrs, clusterName),
-        ConstraintBasedAlgorithmFactory.getInstance(preferences));
+  /**
+   * A Dryrun WAGED rebalancer that only calculates the assignment based on the cluster status but
+   * never update the rebalancer assignment metadata.
+   * This rebalacer is used in the verifiers or tests.
+   */
+  private class DryrunWagedRebalancer extends WagedRebalancer {
+    DryrunWagedRebalancer(String metadataStoreAddrs, String clusterName,
+        Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
+      super(new ReadOnlyAssignmentMetadataStore(metadataStoreAddrs, clusterName),
+          ConstraintBasedAlgorithmFactory.getInstance(preferences));
+    }
+
+    @Override
+    protected Map<String, ResourceAssignment> computeBestPossibleAssignment(
+        ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
+        Set<String> activeNodes, CurrentStateOutput currentStateOutput, RebalanceAlgorithm algorithm)
+        throws HelixRebalanceException {
+      return getBestPossibleAssignment(getAssignmentMetadataStore(), currentStateOutput,
+          resourceMap.keySet());
+    }
   }
 
-  @Override
-  protected Map<String, ResourceAssignment> computeBestPossibleAssignment(
-      ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-      Set<String> activeNodes, CurrentStateOutput currentStateOutput)
-      throws HelixRebalanceException {
-    return getBestPossibleAssignment(getAssignmentMetadataStore(), currentStateOutput,
-        resourceMap.keySet());
-  }
-}
+  private class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {
+    ReadOnlyAssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
+      super(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
+    }
 
-class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {
-  ReadOnlyAssignmentMetadataStore(String metadataStoreAddrs, String clusterName) {
-    super(new ZkBucketDataAccessor(metadataStoreAddrs), clusterName);
-  }
+    @Override
+    public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+      // Update the in-memory reference only
+      _globalBaseline = globalBaseline;
+    }
 
-  @Override
-  public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
-    // Update the in-memory reference only
-    _globalBaseline = globalBaseline;
-  }
-
-  @Override
-  public void persistBestPossibleAssignment(
-      Map<String, ResourceAssignment> bestPossibleAssignment) {
-    // Update the in-memory reference only
-    _bestPossibleAssignment = bestPossibleAssignment;
+    @Override
+    public void persistBestPossibleAssignment(
+        Map<String, ResourceAssignment> bestPossibleAssignment) {
+      // Update the in-memory reference only
+      _bestPossibleAssignment = bestPossibleAssignment;
+    }
   }
 }

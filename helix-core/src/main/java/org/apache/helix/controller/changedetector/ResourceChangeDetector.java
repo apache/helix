@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import org.apache.helix.HelixConstants;
@@ -172,5 +174,21 @@ public class ResourceChangeDetector implements ChangeDetector {
     return _removedItems.computeIfAbsent(changeType,
         changedItems -> getRemovedItems(determinePropertyMapByType(changeType, _oldSnapshot),
             determinePropertyMapByType(changeType, _newSnapshot)));
+  }
+
+  /**
+   * @return A map contains all the changed items that are categorized by the change types.
+   */
+  public Map<HelixConstants.ChangeType, Set<String>> getAllChanges() {
+    return getChangeTypes().stream()
+        .collect(Collectors.toMap(changeType -> changeType, changeType -> {
+          Set<String> itemKeys = new HashSet<>();
+          itemKeys.addAll(getAdditionsByType(changeType));
+          itemKeys.addAll(getChangesByType(changeType));
+          itemKeys.addAll(getRemovalsByType(changeType));
+          return itemKeys;
+        })).entrySet().stream().filter(changeEntry -> !changeEntry.getValue().isEmpty()).collect(
+            Collectors
+                .toMap(changeEntry -> changeEntry.getKey(), changeEntry -> changeEntry.getValue()));
   }
 }

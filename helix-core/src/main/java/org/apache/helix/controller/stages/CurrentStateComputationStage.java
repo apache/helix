@@ -254,7 +254,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
         Map<String, ResourceAssignment> currentStateAssignment =
             currentStateOutput.getAssignment(resourceToMonitorMap.keySet());
-        ClusterModel clusterModel = ClusterModelProvider.generateClusterModelFromCurrentState(
+        ClusterModel clusterModel = ClusterModelProvider.generateClusterModelFromExistingAssignment(
             dataProvider, resourceToMonitorMap, currentStateAssignment);
 
         Map<String, Double> maxUsageMap = new HashMap<>();

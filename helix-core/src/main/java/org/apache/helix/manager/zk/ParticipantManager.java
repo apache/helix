@@ -66,7 +66,6 @@ public class ParticipantManager {
   final PropertyKey.Builder _keyBuilder;
   final String _clusterName;
   final String _instanceName;
-  final String _sessionId;
   final int _sessionTimeout;
   final ConfigAccessor _configAccessor;
   final InstanceType _instanceType;
@@ -77,14 +76,17 @@ public class ParticipantManager {
   final LiveInstanceInfoProvider _liveInstanceInfoProvider;
   final List<PreConnectCallback> _preConnectCallbacks;
 
+  private final String _sessionId;
+
   public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
-      LiveInstanceInfoProvider liveInstanceInfoProvider, List<PreConnectCallback> preConnectCallbacks) {
+      LiveInstanceInfoProvider liveInstanceInfoProvider, List<PreConnectCallback> preConnectCallbacks,
+      final String sessionId) {
     _zkclient = zkclient;
     _manager = manager;
     _clusterName = manager.getClusterName();
     _instanceName = manager.getInstanceName();
     _keyBuilder = new PropertyKey.Builder(_clusterName);
-    _sessionId = manager.getSessionId();
+    _sessionId = sessionId;
     _sessionTimeout = sessionTimeout;
     _configAccessor = manager.getConfigAccessor();
     _instanceType = manager.getInstanceType();
@@ -97,28 +99,15 @@ public class ParticipantManager {
   }
 
   /**
-   * Handles a new session for a participant.
+   * Handles a new session for a participant. The new session's id is passed in when participant
+   * manager is created, as it is required in
+   * {@link org.apache.helix.manager.zk.zookeeper.ZkClient#createEphemeral(String, Object, String)}
+   * to prevent ephemeral node creation from session race condition: ephemeral node is created by an
+   * expired or unexpected session.
    *
-   * @deprecated
-   * This is deprecated. Instead, please use {@link #handleNewSession(String)} which takes care of
-   * potential session race condition issue.
-   *
-   * @throws Exception
-   */
-  @Deprecated
-  public void handleNewSession() throws Exception {
-    handleNewSession(null);
-  }
-
-  /**
-   * Handles a new session for a participant. The new session's id has to be passed in, as it is
-   * required in {@link #createLiveInstance(String)} to prevent ephemeral node creation from session
-   * race condition: ephemeral node is created by an expired or unexpected session.
-   *
-   * @param sessionId the new session's ID
    * @throws Exception if any exception occurs
    */
-  public void handleNewSession(final String sessionId) throws Exception {
+  public void handleNewSession() throws Exception {
     joinCluster();
 
     /**
@@ -130,7 +119,7 @@ public class ParticipantManager {
 
     // TODO create live instance node after all the init works done --JJ
     // This will help to prevent controller from sending any message prematurely.
-    createLiveInstance(sessionId);
+    createLiveInstance();
     carryOverPreviousCurrentState();
 
     /**
@@ -176,7 +165,7 @@ public class ParticipantManager {
     }
   }
 
-  private void createLiveInstance(final String sessionId) {
+  private void createLiveInstance() {
     String liveInstancePath = _keyBuilder.liveInstance(_instanceName).getPath();
     LiveInstance liveInstance = new LiveInstance(_instanceName);
     liveInstance.setSessionId(_sessionId);
@@ -200,8 +189,12 @@ public class ParticipantManager {
     do {
       retry = false;
       try {
-        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), sessionId);
+        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), _sessionId);
         LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getEphemeralOwner());
+      } catch (ZkSessionMismatchedException e) {
+        throw new HelixException(
+            "Failed to create live instance, path: " + liveInstancePath + ", session: "
+                + _sessionId, e);
       } catch (ZkNodeExistsException e) {
         LOG.warn("found another instance with same instanceName: " + _instanceName + " in cluster "
             + _clusterName);
@@ -214,7 +207,7 @@ public class ParticipantManager {
            */
           retry = true;
         } else {
-          String ephemeralOwner = Long.toHexString(stat.getEphemeralOwner());
+          String ephemeralOwner = ZKUtil.toHexSessionId(stat.getEphemeralOwner());
           if (ephemeralOwner.equals(_sessionId)) {
             /**
              * update sessionId field in live-instance if necessary
@@ -258,15 +251,19 @@ public class ParticipantManager {
      */
     if (retry) {
       try {
-        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), sessionId);
+        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), _sessionId);
         LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance
             .getEphemeralOwner());
+      } catch (ZkSessionMismatchedException e) {
+        throw new HelixException(
+            "Failed to create live instance, path: " + liveInstancePath + ", session: "
+                + _sessionId, e);
+      } catch (ZkNodeExistsException e) {
+        throw new HelixException(
+            "Instance name: " + _instanceName + " already has a live-instance in cluster: "
+                + _clusterName);
       } catch (Exception e) {
-        String errorMessage =
-            "instance: " + _instanceName + " already has a live-instance in cluster "
-                + _clusterName;
-        LOG.error(errorMessage);
-        throw new HelixException(errorMessage);
+        throw new HelixException(e);
       }
     }
 

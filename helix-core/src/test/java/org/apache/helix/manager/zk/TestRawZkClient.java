@@ -507,8 +507,15 @@ public class TestRawZkClient extends ZkUnitTestBase {
     }
 
     // Verify the node is created and its data is correct.
-    Assert.assertTrue(_zkClient.exists(path));
-    Assert.assertEquals(_zkClient.readData(path), data);
+    Stat stat = new Stat();
+    String nodeData = _zkClient.readData(path, stat, true);
+
+    Assert.assertNotNull(nodeData, "Failed to create ephemeral node: " + path);
+    Assert.assertEquals(nodeData, data, "Data is not correct.");
+    Assert.assertTrue(stat.getEphemeralOwner() != 0L,
+        "Ephemeral owner should NOT be zero because the node is an ephemeral node.");
+    Assert.assertEquals(ZKUtil.toHexSessionId(stat.getEphemeralOwner()), originalSessionId,
+        "Ephemeral node is created by an unexpected session");
   }
 
   /*

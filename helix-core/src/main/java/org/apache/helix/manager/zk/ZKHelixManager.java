@@ -706,16 +706,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     int retryCount = 0;
     while (retryCount < 3) {
       try {
-        // TODO: get session id from waitUntilConnected to avoid synchronized
-        synchronized (this) {
-          if (!_zkclient.waitUntilConnected(_connectionInitTimeout, TimeUnit.MILLISECONDS)) {
-            throw new ZkTimeoutException(
-                "Unable to connect to zookeeper server within timeout: " + _connectionInitTimeout
-                    + " ms.");
-          }
-          handleStateChanged(KeeperState.SyncConnected);
-          handleNewSession(_zkclient.getHexSessionId());
+        // TODO: get session id from waitUntilConnected to avoid race condition
+        if (!_zkclient.waitUntilConnected(_connectionInitTimeout, TimeUnit.MILLISECONDS)) {
+          throw new ZkTimeoutException(
+              "Unable to connect to zookeeper server within timeout: " + _connectionInitTimeout
+                  + " ms.");
         }
+        handleStateChanged(KeeperState.SyncConnected);
+        handleNewSession(_zkclient.getHexSessionId());
         break;
       } catch (HelixException e) {
         LOG.error("fail to createClient.", e);
@@ -1150,7 +1148,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    * @throws Exception if any error occurs during handling new session
    */
   @Override
-  public void handleNewSession(final String sessionId) throws Exception {
+  public void handleNewSession(String sessionId) throws Exception {
     /*
      * TODO: after removing I0ItecIZkStateListenerHelixImpl, null session should be checked and
      *  discarded.
@@ -1174,8 +1172,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       return;
     }
 
+    if (sessionId == null) {
+      sessionId = getSessionId();
+      LOG.warn("Session id: <null> is passed in. Current session id: {} will be used.", sessionId);
+    }
+
     LOG.info("Handle new session, instance: {}, type: {}, session id: {}.", _instanceName,
-        _instanceType, sessionId == null ? "None" : sessionId);
+        _instanceType,  sessionId);
 
     /**
      * stop all timer tasks, reset all handlers, make sure cleanup completed for previous session
@@ -1242,9 +1245,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
     _participantManager =
         new ParticipantManager(this, _zkclient, _sessionTimeout, _liveInstanceInfoProvider,
-            _preConnectCallbacks);
+            _preConnectCallbacks, sessionId);
 
-    _participantManager.handleNewSession(sessionId);
+    _participantManager.handleNewSession();
   }
 
   // TODO: pass in session id and make this method session aware to avoid potential session race

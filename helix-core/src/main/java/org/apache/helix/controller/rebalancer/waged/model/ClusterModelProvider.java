@@ -214,10 +214,11 @@ public class ClusterModelProvider {
    * Find the minimum set of replicas that need to be reassigned by comparing the current assignment
    * with the ideal assignment.
    * A replica needs to be reassigned or newly assigned if either of the following conditions is true:
-   * 1. The partition allocation in the ideal assignment and the current assignment are different.
-   * And the allocation in the ideal assignment is valid. So it is worthwhile to move it.
-   * 2. The partition allocation is not in the ideal assignment nor the current assignment. Or those
-   * allocations are not valid due to offline or disabled instances.
+   * 1. The partition allocation (the instance the replica is placed on) in the ideal assignment and
+   * the current assignment are different. And the allocation in the ideal assignment is valid.
+   * So it is worthwhile to move it.
+   * 2. The partition allocation is in neither the ideal assignment nor the current assignment. Or
+   * those allocations are not valid due to offline or disabled instances.
    * Otherwise, the rebalancer just keeps the current assignment allocation.
    *
    * @param replicaMap             A map contains all the replicas grouped by resource name.
@@ -281,10 +282,13 @@ public class ClusterModelProvider {
         } else if (!currentAllocations.isEmpty()) {
           // 3. This replica exists in the current assignment but does not appear or has a valid
           // allocation in the ideal assignment.
-          // This means the ideal assignment contains an allocation that the instance is temporary
-          // offline or disabled, or the ideal assignment was not fetched correctly from the
-          // assignment store. In either case, the solution is to keep the current assignment.
-          // So put this replica with the allocated instance into the allocatedReplicas map.
+          // This means either 1) that the ideal assignment actually has this replica allocated on
+          // this instance, but it does not show up because the instance is temporarily offline or
+          // disabled (note that all such instances have been filtered out in earlier part of the
+          // logic) or that the most recent version of the ideal assignment was not fetched
+          // correctly from the assignment metadata store.
+          // In either case, the solution is to keep the current assignment. So put this replica
+          // with the allocated instance into the allocatedReplicas map.
           String allocatedInstance = currentAllocations.iterator().next();
           allocatedReplicas.computeIfAbsent(allocatedInstance, key -> new HashSet<>()).add(replica);
           // Remove the instance from the record to prevent the same location being processed again.

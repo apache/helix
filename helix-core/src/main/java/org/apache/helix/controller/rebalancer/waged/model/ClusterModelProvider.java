@@ -138,13 +138,13 @@ public class ClusterModelProvider {
       Map<String, ResourceAssignment> currentAssignment, RebalanceScopeType scopeType) {
     // Construct all the assignable nodes and initialize with the allocated replicas.
     Set<AssignableNode> assignableNodes =
-        parseAllNodes(dataProvider.getClusterConfig(), dataProvider.getInstanceConfigMap(),
+        getAllAssignableNodes(dataProvider.getClusterConfig(), dataProvider.getInstanceConfigMap(),
             activeInstances);
 
     // Generate replica objects for all the resource partitions.
     // <resource, replica set>
     Map<String, Set<AssignableReplica>> replicaMap =
-        parseAllReplicas(dataProvider, resourceMap, assignableNodes);
+        getAllAssignableReplica(dataProvider, resourceMap, assignableNodes);
 
     // Check if the replicas need to be reassigned.
     Map<String, Set<AssignableReplica>> allocatedReplicas =
@@ -423,7 +423,7 @@ public class ClusterModelProvider {
   }
 
   /**
-   * Parse all the nodes that can be assigned replicas based on the configurations.
+   * Get all the nodes that can be assigned replicas based on the configurations.
    *
    * @param clusterConfig     The cluster configuration.
    * @param instanceConfigMap A map of all the instance configuration.
@@ -431,7 +431,7 @@ public class ClusterModelProvider {
    * @param activeInstances   All the instances that are online and enabled.
    * @return A map of assignable node set, <InstanceName, node set>.
    */
-  private static Set<AssignableNode> parseAllNodes(ClusterConfig clusterConfig,
+  private static Set<AssignableNode> getAllAssignableNodes(ClusterConfig clusterConfig,
       Map<String, InstanceConfig> instanceConfigMap, Set<String> activeInstances) {
     return activeInstances.parallelStream()
         .filter(instance -> instanceConfigMap.containsKey(instance)).map(
@@ -440,14 +440,14 @@ public class ClusterModelProvider {
   }
 
   /**
-   * Parse all the replicas that need to be reallocated from the cluster data cache.
+   * Get all the replicas that need to be reallocated from the cluster data cache.
    *
    * @param dataProvider The cluster status cache that contains the current cluster status.
    * @param resourceMap  All the valid resources that are managed by the rebalancer.
    * @param assignableNodes All the active assignable nodes.
    * @return A map of assignable replica set, <ResourceName, replica set>.
    */
-  private static Map<String, Set<AssignableReplica>> parseAllReplicas(
+  private static Map<String, Set<AssignableReplica>> getAllAssignableReplica(
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
       Set<AssignableNode> assignableNodes) {
     ClusterConfig clusterConfig = dataProvider.getClusterConfig();
@@ -514,7 +514,7 @@ public class ClusterModelProvider {
   }
 
   /**
-   * @return A map contains the assignments for each fault zone. <fault zone, <resource, set of partitions>>
+   * @return A map containing the assignments for each fault zone. <fault zone, <resource, set of partitions>>
    */
   private static Map<String, Map<String, Set<String>>> mapAssignmentToFaultZone(
       Set<AssignableNode> assignableNodes) {

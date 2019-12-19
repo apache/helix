@@ -43,14 +43,21 @@ public class TestConfigAccessor extends ZkUnitTestBase {
         "MasterSlave", true);
 
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor configAccessorZkAddr = new ConfigAccessor(ZK_ADDR);
     ConfigScope clusterScope = new ConfigScopeBuilder().forCluster(clusterName).build();
 
     // cluster scope config
     String clusterConfigValue = configAccessor.get(clusterScope, "clusterConfigKey");
     Assert.assertNull(clusterConfigValue);
+    // also test with ConfigAccessor created with ZkAddr
+    clusterConfigValue = configAccessorZkAddr.get(clusterScope, "clusterConfigKey");
+    Assert.assertNull(clusterConfigValue);
 
     configAccessor.set(clusterScope, "clusterConfigKey", "clusterConfigValue");
     clusterConfigValue = configAccessor.get(clusterScope, "clusterConfigKey");
+    Assert.assertEquals(clusterConfigValue, "clusterConfigValue");
+    configAccessorZkAddr.set(clusterScope, "clusterConfigKey", "clusterConfigValue");
+    clusterConfigValue = configAccessorZkAddr.get(clusterScope, "clusterConfigKey");
     Assert.assertEquals(clusterConfigValue, "clusterConfigValue");
 
     // resource scope config
@@ -153,6 +160,8 @@ public class TestConfigAccessor extends ZkUnitTestBase {
 
     TestHelper.dropCluster(clusterName, _gZkClient);
 
+    configAccessor.close();
+    configAccessorZkAddr.close();
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
@@ -192,6 +201,7 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     Assert.assertEquals(participantConfigValue, "participantConfigValue");
 
     admin.dropCluster(clusterName);
+    configAccessor.close();
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

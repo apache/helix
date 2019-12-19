@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.ClusterConfig;
@@ -75,7 +76,8 @@ public class ConfigAccessor {
 
   /**
    * Initialize an accessor with a Zookeeper client
-   * Note: it is recommended to use the other constructor instead to avoid having to create a HelixZkClient.
+   * Note: it is recommended to use the other constructor instead to avoid having to create a
+   * HelixZkClient.
    * @param zkClient
    */
   @Deprecated
@@ -85,13 +87,15 @@ public class ConfigAccessor {
   }
 
   /**
-   * Initialize a ConfigAccessor with a ZooKeeper connect string. It will use a SharedZkClient with default settings.
+   * Initialize a ConfigAccessor with a ZooKeeper connect string. It will use a SharedZkClient with
+   * default settings. Note that ZNRecordSerializer will be used for the internal ZkClient since
+   * ConfigAccessor only deals with Helix's data models like ResourceConfig.
    * @param zkAddress
    */
   public ConfigAccessor(String zkAddress) {
-    _zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-            new HelixZkClient.ZkClientConfig());
+    _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
+        new HelixZkClient.ZkConnectionConfig(zkAddress),
+        new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
     _usesExternalZkClient = false;
   }
 

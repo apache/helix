@@ -539,6 +539,16 @@ public final class ZKUtil {
   }
 
   /**
+   * Converts a session id in hexadecimal notation from a long type session id.
+   * Ex. 1000a5ceb930004 is returned.
+   *
+   * @return String representation of session id in hexadecimal notation.
+   */
+  public static String toHexSessionId(long sessionId) {
+    return Long.toHexString(sessionId);
+  }
+
+  /**
    * Returns a dedicated ZkClient.
    * @return
    */

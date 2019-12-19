@@ -182,9 +182,9 @@ public class TestHandleNewSession extends ZkTestBase {
    * This test does not handle new sessions until creating 2 expired session events, which simulates
    * a long backlog in the event queue. At that time, the first new session is already expired and
    * should be discarded. The live instance is only created by the second new session.
-   * Set test timeout to 30 seconds, just in case zk server is dead and the test is hung.
+   * Set test timeout to 5 minutes, just in case zk server is dead and the test is hung.
    */
-  @Test(timeOut = 30000)
+  @Test(timeOut = 5 * 60 * 1000L)
   public void testDiscardExpiredSessions() throws Exception {
     final String className = TestHelper.getTestClassName();
     final String methodName = TestHelper.getTestMethodName();
@@ -229,8 +229,7 @@ public class TestHandleNewSession extends ZkTestBase {
      * Session S1 would not create a live instance. Instead, only S2 creates a live instance.
      */
     for (int i = 0; i < 2; i++) {
-      final String lastSessionId =
-          manager.getZkClient().getHexSessionId(manager.getZkClient().getSessionId());
+      final String lastSessionId = manager.getZkClient().getHexSessionId();
       try {
         // Lock zk event processing to simulate a long backlog queue.
         ((ZkClient) manager.getZkClient()).getEventLock().lockInterruptibly();
@@ -241,7 +240,7 @@ public class TestHandleNewSession extends ZkTestBase {
         // Wait and verify the zookeeper is alive.
         Assert.assertTrue(TestHelper.verify(
             () -> !((ZkClient) manager.getZkClient()).getConnection().getZookeeperState().isAlive(),
-            3000));
+            3000L));
       } finally {
         // Unlock to start processing event again.
         ((ZkClient) manager.getZkClient()).getEventLock().unlock();
@@ -250,13 +249,12 @@ public class TestHandleNewSession extends ZkTestBase {
       // Wait until the ZkClient has got a new session.
       Assert.assertTrue(TestHelper.verify(() -> {
         try {
-          String sessionId =
-              manager.getZkClient().getHexSessionId(manager.getZkClient().getSessionId());
+          final String sessionId = manager.getZkClient().getHexSessionId();
           return !"0".equals(sessionId) && !sessionId.equals(lastSessionId);
         } catch (HelixException ex) {
           return false;
         }
-      }, 2000));
+      }, 2000L));
 
       // Ensure that the manager has not processed the new session event yet.
       Assert.assertEquals(manager.getHandleNewSessionStartTime(), originalNewSessionStartTime);
@@ -275,13 +273,12 @@ public class TestHandleNewSession extends ZkTestBase {
 
       // Wait for handling new session to complete.
       Assert.assertTrue(
-          TestHelper.verify(() -> manager.getHandleNewSessionEndTime() > lastEndTime, 2000));
+          TestHelper.verify(() -> manager.getHandleNewSessionEndTime() > lastEndTime, 2000L));
     }
 
     // From now on, the live instance is created.
     // The latest(the final new one) session id that is valid.
-    final String latestSessionId =
-        manager.getZkClient().getHexSessionId(manager.getZkClient().getSessionId());
+    final String latestSessionId = manager.getZkClient().getHexSessionId();
 
     Assert.assertTrue(TestHelper.verify(() -> {
       // Newly created live instance should be created by the latest session
@@ -290,10 +287,10 @@ public class TestHandleNewSession extends ZkTestBase {
       return newLiveInstance != null
           && newLiveInstance.getStat().getCreationTime() != originalLiveInstanceCreationTime
           && newLiveInstance.getEphemeralOwner().equals(latestSessionId);
-    }, 2000));
+    }, 2000L));
 
     // All the callback handlers shall be recovered.
-    Assert.assertTrue(TestHelper.verify(() -> manager.getHandlers().size() == handlerCount, 1000));
+    Assert.assertTrue(TestHelper.verify(() -> manager.getHandlers().size() == handlerCount, 1000L));
     Assert.assertTrue(manager.getHandlers().stream().allMatch(CallbackHandler::isReady));
 
     // Clean up.
@@ -360,22 +357,21 @@ public class TestHandleNewSession extends ZkTestBase {
       try {
         // Wait for new session S1 is established and starting to reset handlers.
         TestHelper.verify(() -> !(manager.getSessionId().equals(originalSessionId))
-            && manager.getResetHandlersStartTime() > initResetHandlersStartTime, 3000);
+            && manager.getResetHandlersStartTime() > initResetHandlersStartTime, 3000L);
 
         // S1's info.
         final String lastSessionId = manager.getSessionId();
         final long lastResetHandlersStartTime = manager.getResetHandlersStartTime();
 
+        ((ZkClient) manager.getZkClient()).getEventLock().lockInterruptibly();
         try {
-          ((ZkClient) manager.getZkClient()).getEventLock().lockInterruptibly();
-
           // 4. S1 expired, new session S2 created
           ZkTestHelper.asyncExpireSession(manager.getZkClient());
 
           // Wait and verify the new session S2 is established.
-          TestHelper.verify(
-              () -> !((manager.getZkClient().getHexSessionId(manager.getZkClient().getSessionId()))
-                  .equals(lastSessionId)), 3000);
+          TestHelper
+              .verify(() -> !((manager.getZkClient().getHexSessionId()).equals(lastSessionId)),
+                  3000L);
         } catch (Exception ignored) {
           // Ignored.
         } finally {
@@ -388,7 +384,7 @@ public class TestHandleNewSession extends ZkTestBase {
 
         // Wait for S2 to handle new session.
         TestHelper.verify(() -> !(manager.getSessionId().equals(lastSessionId))
-            && manager.getResetHandlersStartTime() > lastResetHandlersStartTime, 3000);
+            && manager.getResetHandlersStartTime() > lastResetHandlersStartTime, 3000L);
 
         // Notify main thread to verify result: expired S1 should not create live instance.
         mainThreadBlocker.countDown();
@@ -400,8 +396,7 @@ public class TestHandleNewSession extends ZkTestBase {
         // 6. S2 is valid and creates live instance.
         manager.proceedResetHandlers();
 
-        final String latestSessionId =
-            manager.getZkClient().getHexSessionId(manager.getZkClient().getSessionId());
+        final String latestSessionId = manager.getZkClient().getHexSessionId();
 
         TestHelper.verify(() -> {
           // Newly created live instance should be created by the latest session
@@ -411,7 +406,7 @@ public class TestHandleNewSession extends ZkTestBase {
           return newLiveInstance != null
               && newLiveInstance.getStat().getCreationTime() != originalCreationTime
               && newLiveInstance.getEphemeralOwner().equals(latestSessionId);
-        }, 2000);
+        }, 2000L);
       } catch (Exception ignored) {
         // Ignored.
       }
@@ -421,10 +416,9 @@ public class TestHandleNewSession extends ZkTestBase {
 
     }).start();
 
+    // Lock zk event processing to simulate a long backlog queue.
+    ((ZkClient) manager.getZkClient()).getEventLock().lockInterruptibly();
     try {
-      // Lock zk event processing to simulate a long backlog queue.
-      ((ZkClient) manager.getZkClient()).getEventLock().lockInterruptibly();
-
       // 2. S0 expired, new session S1 created
       ZkTestHelper.asyncExpireSession(manager.getZkClient());
       // 3. S1 spends a long time resetting handlers during this period.
@@ -432,7 +426,7 @@ public class TestHandleNewSession extends ZkTestBase {
       // Wait and verify the zookeeper is alive.
       Assert.assertTrue(TestHelper.verify(
           () -> !((ZkClient) manager.getZkClient()).getConnection().getZookeeperState().isAlive(),
-          3000));
+          3000L));
     } finally {
       // Unlock to start processing event again.
       ((ZkClient) manager.getZkClient()).getEventLock().unlock();
@@ -452,8 +446,7 @@ public class TestHandleNewSession extends ZkTestBase {
 
     // From now on, the live instance is already created by S2.
     // The latest(the final new one S2) session id that is valid.
-    final String latestSessionId =
-        manager.getZkClient().getHexSessionId(manager.getZkClient().getSessionId());
+    final String latestSessionId = manager.getZkClient().getHexSessionId();
 
     Assert.assertTrue(TestHelper.verify(() -> {
       // Newly created live instance should be created by the latest session
@@ -462,12 +455,12 @@ public class TestHandleNewSession extends ZkTestBase {
       return newLiveInstance != null
           && newLiveInstance.getStat().getCreationTime() != originalCreationTime
           && newLiveInstance.getEphemeralOwner().equals(latestSessionId);
-    }, 2000));
+    }, 2000L));
 
     // All the callback handlers shall be recovered.
-    Assert.assertTrue(TestHelper.verify(() -> manager.getHandlers().size() == handlerCount, 1000));
+    Assert.assertTrue(TestHelper.verify(() -> manager.getHandlers().size() == handlerCount, 1000L));
     Assert.assertTrue(TestHelper.verify(
-        () -> manager.getHandlers().stream().allMatch(CallbackHandler::isReady), 3000));
+        () -> manager.getHandlers().stream().allMatch(CallbackHandler::isReady), 3000L));
 
     // Clean up.
     manager.disconnect();
@@ -530,7 +523,7 @@ public class TestHandleNewSession extends ZkTestBase {
       resetHandlersStartTime = System.currentTimeMillis();
       try {
         if (!isShutdown) {
-          resetHandlersSemaphore.tryAcquire(20, TimeUnit.SECONDS);
+          resetHandlersSemaphore.tryAcquire(20L, TimeUnit.SECONDS);
         }
       } catch (InterruptedException ignored) {
         // Ignore the exception.

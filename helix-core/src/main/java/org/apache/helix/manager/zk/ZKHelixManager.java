@@ -706,7 +706,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     int retryCount = 0;
     while (retryCount < 3) {
       try {
-        // TODO: might be better to create a new method to return session id in waitUntilConnected.
+        // TODO: get session id from waitUntilConnected to avoid synchronized
         synchronized (this) {
           if (!_zkclient.waitUntilConnected(_connectionInitTimeout, TimeUnit.MILLISECONDS)) {
             throw new ZkTimeoutException(
@@ -714,7 +714,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
                     + " ms.");
           }
           handleStateChanged(KeeperState.SyncConnected);
-          handleNewSession(_zkclient.getHexSessionId(_zkclient.getSessionId()));
+          handleNewSession(_zkclient.getHexSessionId());
         }
         break;
       } catch (HelixException e) {
@@ -997,7 +997,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         continue;
       }
 
-      _sessionId = _zkclient.getHexSessionId(_zkclient.getSessionId());
+      _sessionId = _zkclient.getHexSessionId();
 
       /**
        * at the time we read session-id, zkconnection might be lost again

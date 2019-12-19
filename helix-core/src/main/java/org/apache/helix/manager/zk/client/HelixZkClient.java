@@ -187,13 +187,13 @@ public interface HelixZkClient {
   long getSessionId();
 
   /**
-   * Gets a session id in hexadecimal notation from a session id in long type.
-   * Ex. 0x1000a5ceb930004 is returned.
+   * Gets the zookeeper's session id of this zk client in hexadecimal notation.
+   * This session could be valid, expired, or "0"(initial value before zk session is established).
+   * Ex. 1000a5ceb930004 is returned.
    *
-   * @param sessionId session id in long type
    * @return String representation of session id in hexadecimal notation.
    */
-  String getHexSessionId(long sessionId);
+  String getHexSessionId();
 
   void close();
 

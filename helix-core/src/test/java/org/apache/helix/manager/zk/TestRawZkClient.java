@@ -488,34 +488,27 @@ public class TestRawZkClient extends ZkUnitTestBase {
         "MasterSlave",
         true); // do rebalance
 
+    final String originalSessionId = _zkClient.getHexSessionId();
+    final String path = "/" + methodName;
+    final String data = "Hello Helix";
 
-    final ZkClient zkClient = new ZkClient(ZK_ADDR);
+    // Verify the node is not existed yet.
+    Assert.assertFalse(_zkClient.exists(path));
+
+    // Wait until the ZkClient has got a new session.
+    Assert.assertTrue(TestHelper
+        .verify(() -> _zkClient.getConnection().getZookeeperState().isConnected(), 1000L));
 
     try {
-      final long originalSessionId = zkClient.getSessionId();
-      final String path = "/" + methodName;
-      final String data = "Hello Helix";
-
-      // Verify the node is not existed yet.
-      Assert.assertFalse(zkClient.exists(path));
-
-      // Wait until the ZkClient has got a new session.
-      Assert.assertTrue(TestHelper.verify(
-          () -> zkClient.getConnection().getZookeeperState().isConnected(), 1000));
-
-      try {
-        // Create ephemeral node.
-        zkClient.createEphemeral(path, data, zkClient.getHexSessionId(originalSessionId));
-      } catch (Exception ex) {
-        Assert.fail("Failed to created ephemeral node.", ex);
-      }
-
-      // Verify the node is created and its data is correct.
-      Assert.assertTrue(zkClient.exists(path));
-      Assert.assertEquals(zkClient.readData(path), data);
-    } finally {
-      zkClient.close();
+      // Create ephemeral node.
+      _zkClient.createEphemeral(path, data, originalSessionId);
+    } catch (Exception ex) {
+      Assert.fail("Failed to create ephemeral node.", ex);
     }
+
+    // Verify the node is created and its data is correct.
+    Assert.assertTrue(_zkClient.exists(path));
+    Assert.assertEquals(_zkClient.readData(path), data);
   }
 
   /*
@@ -544,43 +537,37 @@ public class TestRawZkClient extends ZkUnitTestBase {
         "MasterSlave",
         true); // do rebalance
 
+    final long originalSessionId = _zkClient.getSessionId();
+    final String originalHexSessionId = _zkClient.getHexSessionId();
+    final String path = "/" + methodName;
 
-    final ZkClient zkClient = new ZkClient(ZK_ADDR);
+    // Verify the node is not existed.
+    Assert.assertFalse(_zkClient.exists(path));
+
+    // Expire the original session.
+    ZkTestHelper.expireSession(_zkClient);
+
+    // Wait until the ZkClient has got a new session.
+    Assert.assertTrue(TestHelper.verify(() -> {
+      try {
+        // New session id should be greater than expired session id.
+        return _zkClient.getSessionId() > originalSessionId;
+      } catch (HelixException ex) {
+        return false;
+      }
+    }, 1000L));
 
     try {
-      final long originalSessionId = zkClient.getSessionId();
-      final String path = "/" + methodName;
-
-      // Verify the node is not existed.
-      Assert.assertFalse(zkClient.exists(path));
-
-      // Expire the original session.
-      ZkTestHelper.expireSession(zkClient);
-
-      // Wait until the ZkClient has got a new session.
-      Assert.assertTrue(TestHelper.verify(() -> {
-        try {
-          // New session id should be greater than expired session id.
-          return zkClient.getSessionId() > originalSessionId;
-        } catch (HelixException ex) {
-          return false;
-        }
-      }, 1000));
-
-      try {
-        // Try to create ephemeral node with the original session.
-        // This creation should NOT be successful because the original session is already expired.
-        zkClient.createEphemeral(path, "Hello Helix", zkClient.getHexSessionId(originalSessionId));
-        Assert.fail("Ephemeral node should not be created by the expired session.");
-      } catch (ZkSessionMismatchedException expected) {
-        // Expected because there is a session mismatch.
-      }
-
-      // Verify the node is not created.
-      Assert.assertFalse(zkClient.exists(path));
-    } finally {
-      zkClient.close();
+      // Try to create ephemeral node with the original session.
+      // This creation should NOT be successful because the original session is already expired.
+      _zkClient.createEphemeral(path, "Hello Helix", originalHexSessionId);
+      Assert.fail("Ephemeral node should not be created by the expired session.");
+    } catch (ZkSessionMismatchedException expected) {
+      // Expected because there is a session mismatch.
     }
+
+    // Verify the node is not created.
+    Assert.assertFalse(_zkClient.exists(path));
   }
 
   /*
@@ -590,25 +577,23 @@ public class TestRawZkClient extends ZkUnitTestBase {
    * set to 3 seconds and then ZkTimeoutException is thrown. And retry cause message is checked to
    * see if ConnectionLossException was thrown before retry.
    */
-  @Test(timeOut = 20000)
+  @Test(timeOut = 5 * 60 * 1000L)
   public void testConnectionLossWhileCreateEphemeral() throws Exception {
     final String methodName = TestHelper.getTestMethodName();
-    final String zkServerAddress = "localhost:2184";
 
-    final ZkServer zkServer = TestHelper.startZkServer(zkServerAddress);
     final ZkClient zkClient = new ZkClient.Builder()
-        .setZkServer(zkServerAddress)
-        .setOperationRetryTimeout(3000L)
+        .setZkServer(ZK_ADDR)
+        .setOperationRetryTimeout(3000L) // 3 seconds
         .build();
 
-    final String expectedSessionId = zkClient.getHexSessionId(zkClient.getSessionId());
+    final String expectedSessionId = zkClient.getHexSessionId();
     final String path = "/" + methodName;
     final String data = "data";
 
     Assert.assertFalse(zkClient.exists(path));
 
     // Shutdown zk server so zk operations will fail due to disconnection.
-    TestHelper.stopZkServer(zkServer);
+    TestHelper.stopZkServer(_zkServer);
 
     try {
       final CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -632,14 +617,82 @@ public class TestRawZkClient extends ZkUnitTestBase {
 
       creationThread.start();
 
-      final boolean creationThreadTerminated = countDownLatch.await(10, TimeUnit.SECONDS);
+      final boolean creationThreadTerminated = countDownLatch.await(10L, TimeUnit.SECONDS);
       if (!creationThreadTerminated) {
         running.set(false);
-        creationThread.join(5000);
+        creationThread.join(5000L);
         Assert.fail("Failed to receive a ConnectionLossException after zookeeper has shutdown.");
       }
     } finally {
       zkClient.close();
+      // Recover zk server.
+      _zkServer.start();
     }
+  }
+
+  /*
+   * Tests that when trying to create an ephemeral node, if connection to zk service is lost,
+   * the creation operation will keep retrying until connected and finally successfully create the
+   * node.
+   * How this test simulates the steps is:
+   * 1. Shuts down zk server
+   * 2. Starts a creation thread to create an ephemeral node in the original zk session
+   * 3. Creation operation loses connection and keeps retrying
+   * 4. Restarts zk server and Zk session is recovered
+   * 5. zk client reconnects successfully and creates an ephemeral node
+   */
+  @Test(timeOut = 5 * 60 * 1000L)
+  public void testRetryUntilConnectedAfterConnectionLoss() throws Exception {
+    final String methodName = TestHelper.getTestMethodName();
+
+    final String expectedSessionId = _zkClient.getHexSessionId();
+    final String path = "/" + methodName;
+    final String data = "data";
+
+    Assert.assertFalse(_zkClient.exists(path));
+
+    // Shutdown zk server so zk operations will fail due to disconnection.
+    TestHelper.stopZkServer(_zkServer);
+
+    final CountDownLatch countDownLatch = new CountDownLatch(1);
+    final AtomicBoolean running = new AtomicBoolean(true);
+
+    final Thread creationThread = new Thread(() -> {
+      while (running.get()) {
+        // Create ephemeral node in the expected session id.
+        System.out.println("Trying to create ephemeral node...");
+        _zkClient.createEphemeral(path, data, expectedSessionId);
+        System.out.println("Ephemeral node created.");
+        running.set(false);
+      }
+      countDownLatch.countDown();
+    });
+
+    creationThread.start();
+    // Keep creation thread retrying to connect for 10 seconds.
+    System.out.println("Keep creation thread retrying to connect for 10 seconds...");
+    TimeUnit.SECONDS.sleep(10);
+
+    System.out.println("Restarting zk server...");
+    _zkServer.start();
+
+    // Wait for creating ephemeral node successfully.
+    final boolean creationThreadTerminated = countDownLatch.await(10, TimeUnit.SECONDS);
+    if (!creationThreadTerminated) {
+      running.set(false);
+      creationThread.join(5000L);
+      Assert.fail("Failed to reconnect to zk server and create ephemeral node"
+          + " after zk server is recovered.");
+    }
+
+    Stat stat = new Stat();
+    String nodeData = _zkClient.readData(path, stat, true);
+
+    Assert.assertNotNull(nodeData, "Failed to create ephemeral node: " + path);
+    Assert.assertEquals(nodeData, data, "Data is not correct.");
+    Assert.assertTrue(stat.getEphemeralOwner() != 0L,
+        "Ephemeral owner should NOT be zero because the node is an ephemeral node.");
+    Assert.assertEquals(ZKUtil.toHexSessionId(stat.getEphemeralOwner()), expectedSessionId,
+        "Ephemeral node is created by an unexpected session");
   }
 }

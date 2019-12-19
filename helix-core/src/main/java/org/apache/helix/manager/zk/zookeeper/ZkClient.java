@@ -42,6 +42,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.manager.zk.BasicZkSerializer;
 import org.apache.helix.manager.zk.PathBasedZkSerializer;
+import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks;
 import org.apache.helix.manager.zk.ZkSessionMismatchedException;
 import org.apache.helix.manager.zk.zookeeper.ZkEventThread.ZkEvent;
@@ -63,6 +64,7 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * Abstracts the interaction with zookeeper and allows permanent (not just one time) watches on
@@ -661,7 +663,7 @@ public class ZkClient implements Watcher {
             && (mode == CreateMode.EPHEMERAL || mode == CreateMode.EPHEMERAL_SEQUENTIAL)) {
           acquireEventLock();
           try {
-            final String actualSessionId = getHexSessionId(zooKeeper.getSessionId());
+            final String actualSessionId = ZKUtil.toHexSessionId(zooKeeper.getSessionId());
             if (!actualSessionId.equals(expectedSessionId)) {
               throw new ZkSessionMismatchedException(
                   "Failed to create ephemeral node! There is a session id mismatch. Expected: "
@@ -1141,7 +1143,7 @@ public class ZkClient implements Watcher {
   }
 
   private void fireNewSessionEvents() {
-    final String sessionId = getHexSessionId(getSessionId());
+    final String sessionId = getHexSessionId();
     for (final IZkStateListener stateListener : _stateListener) {
       _eventThread.send(new ZkEvent("New session event sent to " + stateListener, sessionId) {
 
@@ -1154,7 +1156,7 @@ public class ZkClient implements Watcher {
   }
 
   protected void fireStateChangedEvent(final KeeperState state) {
-    final String sessionId = getHexSessionId(getSessionId());
+    final String sessionId = getHexSessionId();
     for (final IZkStateListener stateListener : _stateListener) {
       final String description = "State changed to " + state + " sent to " + stateListener;
       _eventThread.send(new ZkEvent(description, sessionId) {
@@ -2020,8 +2022,14 @@ public class ZkClient implements Watcher {
     }
   }
 
-  public String getHexSessionId(long sessionId) {
-    return Long.toHexString(sessionId);
+  /**
+   * Gets a session id in hexadecimal notation.
+   * Ex. 0x1000a5ceb930004 is returned.
+   *
+   * @return String representation of session id in hexadecimal notation.
+   */
+  public String getHexSessionId() {
+    return ZKUtil.toHexSessionId(getSessionId());
   }
 
   // operations to update monitor's counters

@@ -144,7 +144,7 @@ public class ClusterModelProvider {
     // Generate replica objects for all the resource partitions.
     // <resource, replica set>
     Map<String, Set<AssignableReplica>> replicaMap =
-        getAllAssignableReplica(dataProvider, resourceMap, assignableNodes);
+        getAllAssignableReplicas(dataProvider, resourceMap, assignableNodes);
 
     // Check if the replicas need to be reassigned.
     Map<String, Set<AssignableReplica>> allocatedReplicas =
@@ -447,7 +447,7 @@ public class ClusterModelProvider {
    * @param assignableNodes All the active assignable nodes.
    * @return A map of assignable replica set, <ResourceName, replica set>.
    */
-  private static Map<String, Set<AssignableReplica>> getAllAssignableReplica(
+  private static Map<String, Set<AssignableReplica>> getAllAssignableReplicas(
       ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
       Set<AssignableNode> assignableNodes) {
     ClusterConfig clusterConfig = dataProvider.getClusterConfig();

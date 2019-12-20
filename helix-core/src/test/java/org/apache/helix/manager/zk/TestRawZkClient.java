@@ -516,6 +516,10 @@ public class TestRawZkClient extends ZkUnitTestBase {
         "Ephemeral owner should NOT be zero because the node is an ephemeral node.");
     Assert.assertEquals(ZKUtil.toHexSessionId(stat.getEphemeralOwner()), originalSessionId,
         "Ephemeral node is created by an unexpected session");
+
+    // Delete the node to clean up, otherwise, the ephemeral node would be existed
+    // until the session of its owner expires.
+    _zkClient.delete(path);
   }
 
   /*
@@ -701,5 +705,9 @@ public class TestRawZkClient extends ZkUnitTestBase {
         "Ephemeral owner should NOT be zero because the node is an ephemeral node.");
     Assert.assertEquals(ZKUtil.toHexSessionId(stat.getEphemeralOwner()), expectedSessionId,
         "Ephemeral node is created by an unexpected session");
+
+    // Delete the node to clean up, otherwise, the ephemeral node would be existed until the session
+    // of its owner expires.
+    _zkClient.delete(path);
   }
 }

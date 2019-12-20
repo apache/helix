@@ -108,6 +108,16 @@ public class ParticipantManager {
    * @throws Exception if any exception occurs
    */
   public void handleNewSession() throws Exception {
+    // Check participant's session is still valid.
+    // If not, stop to handle new session for this participant.
+    final String zkClientHexSession = _zkclient.getHexSessionId();
+    if (!zkClientHexSession.equals(_sessionId)) {
+      throw new HelixException(
+          "Failed to handle new session for participant. There is a session mismatch: "
+              + "participant manager session = " + _sessionId + ", zk client session = "
+              + zkClientHexSession);
+    }
+
     joinCluster();
 
     /**
@@ -193,7 +203,7 @@ public class ParticipantManager {
         LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getEphemeralOwner());
       } catch (ZkSessionMismatchedException e) {
         throw new HelixException(
-            "Failed to create live instance, path: " + liveInstancePath + ", session: "
+            "Failed to create live instance, path: " + liveInstancePath + ", expected session: "
                 + _sessionId, e);
       } catch (ZkNodeExistsException e) {
         LOG.warn("found another instance with same instanceName: " + _instanceName + " in cluster "

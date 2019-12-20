@@ -713,6 +713,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
                   + " ms.");
         }
         handleStateChanged(KeeperState.SyncConnected);
+        /*
+         * This listener is subscribed after SyncConnected and firing new session events,
+         * which means this listener has not yet handled new session, so we have to handle new
+         * session here just for this listener.
+         */
         handleNewSession(_zkclient.getHexSessionId());
         break;
       } catch (HelixException e) {
@@ -1172,6 +1177,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       return;
     }
 
+    /*
+     * When a null session id is passed in, we will take current session's id for following
+     * operations. Please note that current session might not be the one we expect to handle,
+     * because the one we expect might be already expired when the zk event is waiting in the
+     * event queue. Why we use current session here is for backward compatibility with the old
+     * method handleNewSession().
+     */
     if (sessionId == null) {
       sessionId = getSessionId();
       LOG.warn("Session id: <null> is passed in. Current session id: {} will be used.", sessionId);

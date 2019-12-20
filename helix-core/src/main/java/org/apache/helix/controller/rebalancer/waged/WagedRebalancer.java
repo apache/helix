@@ -467,6 +467,7 @@ public class WagedRebalancer {
   /**
    * Calculate and update the Baseline assignment
    * @param clusterModel
+   * @param algorithm
    * @param shouldSchedulePartialRebalance True if the call should trigger a following partial rebalance
    *                                   so the new Baseline could be applied to cluster.
    * @param clusterName

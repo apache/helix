@@ -21,38 +21,39 @@ package org.apache.helix;
 
 import java.io.InputStream;
 import java.util.Properties;
+import org.apache.helix.model.CloudConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 /**
- * Singleton factory that build Helix properties.
+ * Singleton factory that builds different types of Helix property, e.g. participant property, controller property, etc.
  */
-public final class HelixPropertiesFactory {
-  private static final Logger logger = LoggerFactory.getLogger(HelixPropertiesFactory.class);
-  private final String HELIX_PARTICIPANT_PROPERTY_FILE = "HelixParticipant.properties";
+public final class HelixPropertyFactory {
+  private static final Logger logger = LoggerFactory.getLogger(HelixPropertyFactory.class);
+  private final String HELIX_PARTICIPANT_PROPERTY_FILE = SystemPropertyKeys.HELIX_PARTICIPANT_PROPERTIES;
 
   private static class SingletonHelper {
-    private static final HelixPropertiesFactory INSTANCE = new HelixPropertiesFactory();
+    private static final HelixPropertyFactory INSTANCE = new HelixPropertyFactory();
   }
 
-  public static HelixPropertiesFactory getInstance() {
+  public static HelixPropertyFactory getInstance() {
     return SingletonHelper.INSTANCE;
   }
 
-  public HelixParticipantProperties getHelixParticipantProperties(HelixCloudProperties helixCloudProperties) {
+  public HelixParticipantProperty getHelixParticipantProperty(String zkAddress, String clusterName) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkAddress);
+    CloudConfig cloudConfig = configAccessor.getCloudConfig(clusterName);
     Properties properties = new Properties();
     try {
       InputStream stream =
           Thread.currentThread().getContextClassLoader().getResourceAsStream(HELIX_PARTICIPANT_PROPERTY_FILE);
-
-      properties.load(stream);
+        properties.load(stream);
     } catch (Exception e) {
       String errMsg = "fail to open properties file: " + HELIX_PARTICIPANT_PROPERTY_FILE;
       throw new IllegalArgumentException(errMsg, e);
     }
-
-    logger.info("load helix-manager properties: " + properties);
-    return new HelixParticipantProperties(properties);
+    logger.info("load helix participant properties: " + properties);
+    return new HelixParticipantProperty(properties, cloudConfig);
   }
 }

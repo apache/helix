@@ -19,73 +19,52 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.io.InputStream;
-import java.util.List;
 import java.util.Properties;
+import org.apache.helix.model.CloudConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 /**
- * hold helix-manager properties read from
- * helix-core/src/main/resources/cluster-manager.properties
+ * hold participant properties
  */
-public class HelixParticipantProperties {
-  private static final Logger LOG = LoggerFactory.getLogger(HelixParticipantProperties.class.getName());
-
-  private String _cloudInfoProcessorName;
-  private String _maxRetry;
-  private Properties _properties;
-
+public class HelixParticipantProperty {
+  private static final Logger logger = LoggerFactory.getLogger(HelixParticipantProperty.class.getName());
+  private String _version;
+  private Integer _healthReportLatency;
+  private HelixCloudProperty _helixCloudProperty;
 
   /**
-   * Initialize properties from a file
+   * Initialize Helix Participant Property with default value
    * @param
    */
-  public HelixParticipantProperties(Properties properties) {
-    _properties = properties;
-    setCloudInfoProcessorName(_properties.getProperty("name"));
+  public HelixParticipantProperty(Properties properties, CloudConfig cloudConfig) {
+    _helixCloudProperty = new HelixCloudProperty(cloudConfig);
+    setVersion(properties.getProperty(SystemPropertyKeys.CLUSTER_MANAGER_VERSION));
+    setHealthReportLatency(properties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY));
   }
 
-  /**
-   * Get properties wrapped as {@link Properties}
-   * @return Properties
-   */
-  public Properties getProperties() {
-    return _properties;
+  public HelixCloudProperty getHelixCloudProperty() {
+    return _helixCloudProperty;
   }
 
-  public String getCloudInfoProcessorName() {
-    return _cloudInfoProcessorName;
+  public String getVersion() {
+    return _version;
   }
 
-  public String getMaxRetry() {
-    return _maxRetry;
+  public Integer getHealthReportLatency() {
+    return _healthReportLatency;
   }
 
-  public void setCloudInfoSources(List<String> sources) {
-
+  public void setHelixCloudProperty(HelixCloudProperty helixCloudProperty) {
+    _helixCloudProperty = helixCloudProperty;
   }
 
-  public void setCloudInfoProcessorName(String name) {
-
+  public void setVersion(String version) {
+    _version = version;
   }
 
-  public void setCustomizedProperties(Properties properties) {
-    _properties.putAll(properties);
-  }
-
-  /**
-   * get property for key
-   * @param key
-   * @return property associated by key
-   */
-  public String getProperty(String key) {
-    String value = _properties.getProperty(key);
-    if (value == null) {
-      LOG.warn("no property for key: " + key);
-    }
-
-    return value;
+  public void setHealthReportLatency(String latency) {
+    _healthReportLatency = Integer.valueOf(latency);
   }
 }

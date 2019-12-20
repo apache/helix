@@ -29,64 +29,67 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * hold helix-manager properties read from
- * helix-core/src/main/resources/cluster-manager.properties
+ * hold helix cloud properties
  */
 public class HelixCloudProperty {
-  private static final Logger LOG = LoggerFactory.getLogger(HelixCloudProperty.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(HelixCloudProperty.class.getName());
   private final String AZURE_CLOUD_PROPERTY_FILE = SystemPropertyKeys.AZURE_CLOUD_PROPERTIES;
 
   private Boolean _isCloudEnabled;
   private String _cloudId;
   private String _cloudProvider;
+  private List<String> _cloudInfoSources;
   private String _cloudInfoProcessorName;
   private String _maxRetry;
   private String _cloudConnectionTimeout;
   private String _cloudRequestTimeout;
-
-  private Properties _properties;
+  private Properties _customizedProperties = new Properties();
 
   /**
-   * Initialize Helix Participant Property
+   * Initialize Helix Cloud Property based on the provider
    * @param
    */
-  public HelixCloudProperty(Properties properties, CloudConfig cloudConfig) {
-    _properties = properties;
-
-    setCloudEndabled(cloudConfig.isCloudEnabled());
-    setCloudId(cloudConfig.getCloudID());
-    setCloudProvider(cloudConfig.getCloudProvider());
+  public HelixCloudProperty(CloudConfig cloudConfig) {
+    this.setCloudEndabled(cloudConfig.isCloudEnabled());
+    this.setCloudId(cloudConfig.getCloudID());
+    this.setCloudProvider(cloudConfig.getCloudProvider());
     switch (cloudConfig.getCloudProvider()) {
       case "AZURE":
-
-        // put properties in Azure cloud properties files to local properties
-        Properties propertiesFromFile = new Properties();
+        Properties azureProperties = new Properties();
         try {
           InputStream stream =
               Thread.currentThread().getContextClassLoader().getResourceAsStream(AZURE_CLOUD_PROPERTY_FILE);
-          propertiesFromFile.load(stream);
+          azureProperties.load(stream);
         } catch (Exception e) {
           String errMsg = "fail to open properties file: " + AZURE_CLOUD_PROPERTY_FILE;
           throw new IllegalArgumentException(errMsg, e);
         }
-
-        LOG.info("load helix Azure cloud properties: " + _properties);
-        setCloudInfoSources(Collections.singletonList(propertiesFromFile.getProperty("sources")));
-        setCloudInfoProcessorName(propertiesFromFile.getProperty("name"));
+        logger.info("load helix Azure cloud properties: " + azureProperties);
+        this.setCloudInfoSources(Collections.singletonList(azureProperties.getProperty("CLOUD_INFO_SOURCE")));
+        this.setCloudInfoProcessorName(azureProperties.getProperty("CLOUD_INFO_PROCESSFOR_NAME"));
+        this.setCloudMaxRetry(azureProperties.getProperty("RETRY_MAX"));
+        this.setCloudConnectionTimeout(azureProperties.getProperty("CONNECTION_TIMEOUT_MS"));
+        this.setCloudRequestTimeout(azureProperties.getProperty("REQUEST_TIMEOUT_MS"));
       case "CUSTOMIZED":
         setCloudInfoSources(cloudConfig.getCloudInfoSources());
-        setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
-        LOG.info("load helix customized cloud properties: " + _properties);
+        this.setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
     }
-
   }
 
-  /**
-   * Get properties wrapped as {@link Properties}
-   * @return Properties
-   */
-  public Properties getProperties() {
-    return _properties;
+  public Boolean getCloudEnabled() {
+    return _isCloudEnabled;
+  }
+
+  public String getCloudId() {
+    return _cloudId;
+  }
+
+  public String getCloudProvider() {
+    return _cloudProvider;
+  }
+
+  public List<String> getCloudInfoSources() {
+    return _cloudInfoSources;
   }
 
   public String getCloudInfoProcessorName() {
@@ -95,6 +98,18 @@ public class HelixCloudProperty {
 
   public String getMaxRetry() {
     return _maxRetry;
+  }
+
+  public String getCloudConnectionTimeout() {
+    return _cloudConnectionTimeout;
+  }
+
+  public String getCloudRequestTimeout() {
+    return _cloudRequestTimeout;
+  }
+
+  public Properties getCustomizedProperties() {
+    return _customizedProperties;
   }
 
   public void setCloudEndabled(Boolean isCloudEnabled) {
@@ -110,32 +125,26 @@ public class HelixCloudProperty {
   }
 
   public void setCloudInfoSources(List<String> sources) {
-
+    _cloudInfoSources = sources;
   }
 
-  public void setCloudInfoProcessorName(String name) {
-
+  public void setCloudInfoProcessorName(String cloudInfoProcessorName) {
+    _cloudInfoProcessorName = cloudInfoProcessorName;
   }
 
-  public void setCloudMaxRetry(String number) {
-
+  public void setCloudMaxRetry(String maxRetry) {
+    _maxRetry = maxRetry;
   }
 
-  public void setCustomizedProperties(Properties properties) {
-    _properties.putAll(properties);
+  public void setCloudConnectionTimeout(String cloudConnectionTimeout) {
+    _cloudConnectionTimeout = cloudConnectionTimeout;
   }
 
-  /**
-   * get property for key
-   * @param key
-   * @return property associated by key
-   */
-  public String getProperty(String key) {
-    String value = _properties.getProperty(key);
-    if (value == null) {
-      LOG.warn("no property for key: " + key);
-    }
+  public void setCloudRequestTimeout(String cloudRequestTimeout) {
+    _cloudRequestTimeout = cloudRequestTimeout;
+  }
 
-    return value;
+  public void setCustomizedCloudProperties(Properties customizedCloudProperties) {
+    _customizedProperties.putAll(customizedCloudProperties);
   }
 }

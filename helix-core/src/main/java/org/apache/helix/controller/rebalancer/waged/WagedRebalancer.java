@@ -101,7 +101,7 @@ public class WagedRebalancer {
   private final LatencyMetric _stateReadLatency;
   private final BaselineDivergenceGauge _baselineDivergenceGauge;
 
-  private boolean _asyncGlobalRebalance;
+  private boolean _asyncGlobalRebalanceEnabled;
 
   // Note, the rebalance algorithm field is mutable so it should not be directly referred except for
   // the public method computeNewIdealStates.
@@ -119,7 +119,7 @@ public class WagedRebalancer {
 
   public WagedRebalancer(HelixManager helixManager,
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference,
-      boolean isAsyncGlobalRebalance) {
+      boolean isAsyncGlobalRebalanceEnabled) {
     this(helixManager == null ? null
             : constructAssignmentStore(helixManager.getMetadataStoreConnectionString(),
                 helixManager.getClusterName()), ConstraintBasedAlgorithmFactory.getInstance(preference),
@@ -138,7 +138,7 @@ public class WagedRebalancer {
         // verifying whether the cluster has converged.
         helixManager == null ? null
             : new WagedRebalancerMetricCollector(helixManager.getClusterName()),
-        isAsyncGlobalRebalance);
+        isAsyncGlobalRebalanceEnabled);
     _preference = ImmutableMap.copyOf(preference);
   }
 
@@ -169,7 +169,7 @@ public class WagedRebalancer {
 
   private WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator, HelixManager manager,
-      MetricCollector metricCollector, boolean asyncGlobalRebalance) {
+      MetricCollector metricCollector, boolean isAsyncGlobalRebalanceEnabled) {
     if (assignmentMetadataStore == null) {
       LOG.warn("Assignment Metadata Store is not configured properly."
           + " The rebalancer will not access the assignment store during the rebalance.");
@@ -213,17 +213,16 @@ public class WagedRebalancer {
     _changeDetector = new ResourceChangeDetector(true);
 
     _baselineCalculateExecutor = Executors.newSingleThreadExecutor();
-    _asyncGlobalRebalance = asyncGlobalRebalance;
+    _asyncGlobalRebalanceEnabled = isAsyncGlobalRebalanceEnabled;
   }
 
   // Update the global rebalance mode to be asynchronous or synchronous
-  public void setGlobalRebalanceAsyncMode(boolean asyncGlobalRebalance) {
-    _asyncGlobalRebalance = asyncGlobalRebalance;
+  public void setGlobalRebalanceAsyncMode(boolean isAsyncGlobalRebalanceEnabled) {
+    _asyncGlobalRebalanceEnabled = isAsyncGlobalRebalanceEnabled;
   }
 
-  // Update the rebalancer pereference if the new options are different from the current
-  // pereference.
-  public synchronized void updateRebalancePereference(
+  // Update the rebalancer preference if the new options are different from the current preference.
+  public synchronized void updateRebalancePreference(
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> newPreference) {
     // 1. if the preference was not configured during constructing, no need to update.
     // 2. if the preference equals to the new preference, no need to update.
@@ -435,14 +434,15 @@ public class WagedRebalancer {
             HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
       }
 
-      final boolean waitForGlobalRebalance = !_asyncGlobalRebalance;
+      final boolean waitForGlobalRebalance = !_asyncGlobalRebalanceEnabled;
       final String clusterName = clusterData.getClusterName();
       // Calculate the Baseline assignment for global rebalance.
       Future<Boolean> result = _baselineCalculateExecutor.submit(() -> {
         try {
-          // Note that we should schedule a new partial rebalance if the following calculation does
-          // not wait until the new baseline is calculated.
-          // So set doSchedulePartialRebalance to be !waitForGlobalRebalance
+          // Note that we should schedule a new partial rebalance for a future rebalance pipeline if
+          // the planned partial rebalance in the current rebalance pipeline won't wait for the new
+          // baseline being calculated.
+          // So set shouldSchedulePartialRebalance to be !waitForGlobalRebalance
           calculateAndUpdateBaseline(clusterModel, algorithm, !waitForGlobalRebalance, clusterName);
         } catch (HelixRebalanceException e) {
           LOG.error("Failed to calculate baseline assignment!", e);
@@ -467,25 +467,25 @@ public class WagedRebalancer {
   /**
    * Calculate and update the Baseline assignment
    * @param clusterModel
-   * @param doSchedulePartialRebalance True if the call should trigger a following partial rebalance
+   * @param shouldSchedulePartialRebalance True if the call should trigger a following partial rebalance
    *                                   so the new Baseline could be applied to cluster.
    * @param clusterName
    * @throws HelixRebalanceException
    */
   private void calculateAndUpdateBaseline(ClusterModel clusterModel, RebalanceAlgorithm algorithm,
-      boolean doSchedulePartialRebalance, String clusterName)
+      boolean shouldSchedulePartialRebalance, String clusterName)
       throws HelixRebalanceException {
     LOG.info("Start calculating the new baseline.");
     _baselineCalcCounter.increment(1L);
     _baselineCalcLatency.startMeasuringLatency();
 
-    boolean isbaselineUpdated = false;
+    boolean isBaselineChanged = false;
     Map<String, ResourceAssignment> newBaseline = calculateAssignment(clusterModel, algorithm);
     // Write the new baseline to metadata store
     if (_assignmentMetadataStore != null) {
       try {
         _writeLatency.startMeasuringLatency();
-        isbaselineUpdated = _assignmentMetadataStore.persistBaseline(newBaseline);
+        isBaselineChanged = _assignmentMetadataStore.persistBaseline(newBaseline);
         _writeLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException("Failed to persist the new baseline assignment.",
@@ -495,11 +495,11 @@ public class WagedRebalancer {
       LOG.debug("Assignment Metadata Store is null. Skip persisting the baseline assignment.");
     }
     _baselineCalcLatency.endMeasuringLatency();
-    LOG.info("Finish calculating the new baseline.");
+    LOG.info("Global baseline calculation completed and has been persisted into metadata store.");
 
-    if (isbaselineUpdated && doSchedulePartialRebalance) {
+    if (isBaselineChanged && shouldSchedulePartialRebalance) {
       LOG.info("Schedule a new rebalance after the new baseline calculated.");
-      RebalanceUtil.scheduleOnDemandPipeline(clusterName, 0l, false);
+      RebalanceUtil.scheduleOnDemandPipeline(clusterName, 0L, false);
     }
   }
 

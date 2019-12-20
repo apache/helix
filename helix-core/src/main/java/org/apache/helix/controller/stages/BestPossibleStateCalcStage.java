@@ -122,15 +122,16 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
   private WagedRebalancer getWagedRebalancer(HelixManager helixManager,
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences,
-      boolean isAsyncGlobalRebalance) {
+      boolean isAsyncGlobalRebalanceEnabled) {
     // Create WagedRebalancer instance if it hasn't been already initialized
     if (_wagedRebalancer == null) {
-      _wagedRebalancer = new WagedRebalancer(helixManager, preferences, isAsyncGlobalRebalance);
+      _wagedRebalancer =
+          new WagedRebalancer(helixManager, preferences, isAsyncGlobalRebalanceEnabled);
     } else {
-      // Since the rebalance configure can be updated at runtime, try to update the rebalancer
+      // Since the rebalance configuration can be updated at runtime, try to update the rebalancer
       // before returning.
-      _wagedRebalancer.updateRebalancePereference(preferences);
-      _wagedRebalancer.setGlobalRebalanceAsyncMode(isAsyncGlobalRebalance);
+      _wagedRebalancer.updateRebalancePreference(preferences);
+      _wagedRebalancer.setGlobalRebalanceAsyncMode(isAsyncGlobalRebalanceEnabled);
     }
     return _wagedRebalancer;
   }

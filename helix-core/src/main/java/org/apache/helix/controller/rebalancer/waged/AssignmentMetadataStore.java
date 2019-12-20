@@ -94,7 +94,10 @@ public class AssignmentMetadataStore {
 
   /**
    * @return true if a new baseline was persisted.
+   * @throws HelixException if the method failed to persist the baseline.
    */
+  // TODO: Enhance the return value so it is more intuitive to understand when the persist fails and
+  // TODO: when it is skipped.
   public boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     // TODO: Make the write async?
     // If baseline hasn't changed, skip writing to metadata store
@@ -117,7 +120,10 @@ public class AssignmentMetadataStore {
 
   /**
    * @return true if a new best possible assignment was persisted.
+   * @throws HelixException if the method failed to persist the baseline.
    */
+  // TODO: Enhance the return value so it is more intuitive to understand when the persist fails and
+  // TODO: when it is skipped.
   public boolean persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     // TODO: Make the write async?

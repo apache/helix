@@ -235,7 +235,7 @@ public class WagedRebalancer {
   // Release all the resources.
   public void close() {
     if (_baselineCalculateExecutor != null) {
-      _baselineCalculateExecutor.shutdown();
+      _baselineCalculateExecutor.shutdownNow();
     }
     if (_assignmentMetadataStore != null) {
       _assignmentMetadataStore.close();
@@ -498,7 +498,7 @@ public class WagedRebalancer {
     LOG.info("Global baseline calculation completed and has been persisted into metadata store.");
 
     if (isBaselineChanged && shouldSchedulePartialRebalance) {
-      LOG.info("Schedule a new rebalance after the new baseline calculated.");
+      LOG.info("Schedule a new rebalance after the new baseline calculation has finished.");
       RebalanceUtil.scheduleOnDemandPipeline(clusterName, 0L, false);
     }
   }

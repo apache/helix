@@ -129,7 +129,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     } else {
       // Since the rebalance configure can be updated at runtime, try to update the rebalancer
       // before returning.
-      _wagedRebalancer.updateRebalanceOptions(preferences, isAsyncGlobalRebalance);
+      _wagedRebalancer.updateRebalancePereference(preferences);
+      _wagedRebalancer.setGlobalRebalanceAsyncMode(isAsyncGlobalRebalance);
     }
     return _wagedRebalancer;
   }

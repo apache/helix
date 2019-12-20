@@ -93,15 +93,15 @@ public class WagedRebalancer {
 
   private final MetricCollector _metricCollector;
   private final CountMetric _rebalanceFailureCount;
-  private final CountMetric _globalBaselineCalcCounter;
-  private final LatencyMetric _globalBaselineCalcLatency;
+  private final CountMetric _baselineCalcCounter;
+  private final LatencyMetric _baselineCalcLatency;
   private final LatencyMetric _writeLatency;
   private final CountMetric _partialRebalanceCounter;
   private final LatencyMetric _partialRebalanceLatency;
   private final LatencyMetric _stateReadLatency;
   private final BaselineDivergenceGauge _baselineDivergenceGauge;
 
-  private boolean _asyncBaselineCalculation;
+  private boolean _asyncGlobalRebalance;
 
   // Note, the rebalance algorithm field is mutable so it should not be directly referred except for
   // the public method computeNewIdealStates.
@@ -169,7 +169,7 @@ public class WagedRebalancer {
 
   private WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator, HelixManager manager,
-      MetricCollector metricCollector, boolean asyncBaselineCalculation) {
+      MetricCollector metricCollector, boolean asyncGlobalRebalance) {
     if (assignmentMetadataStore == null) {
       LOG.warn("Assignment Metadata Store is not configured properly."
           + " The rebalancer will not access the assignment store during the rebalance.");
@@ -186,10 +186,10 @@ public class WagedRebalancer {
     _rebalanceFailureCount = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
         CountMetric.class);
-    _globalBaselineCalcCounter = _metricCollector.getMetric(
+    _baselineCalcCounter = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcCounter.name(),
         CountMetric.class);
-    _globalBaselineCalcLatency = _metricCollector.getMetric(
+    _baselineCalcLatency = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge
             .name(),
         LatencyMetric.class);
@@ -213,15 +213,18 @@ public class WagedRebalancer {
     _changeDetector = new ResourceChangeDetector(true);
 
     _baselineCalculateExecutor = Executors.newSingleThreadExecutor();
-    _asyncBaselineCalculation = asyncBaselineCalculation;
+    _asyncGlobalRebalance = asyncGlobalRebalance;
   }
 
-  // Update the rebalancer configuration if the new options are different from the current
-  // configuration.
-  public synchronized void updateRebalanceOptions(
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> newPreference,
-      boolean asyncBaselineCalculation) {
-    _asyncBaselineCalculation = asyncBaselineCalculation;
+  // Update the global rebalance mode to be asynchronous or synchronous
+  public void setGlobalRebalanceAsyncMode(boolean asyncGlobalRebalance) {
+    _asyncGlobalRebalance = asyncGlobalRebalance;
+  }
+
+  // Update the rebalancer pereference if the new options are different from the current
+  // pereference.
+  public synchronized void updateRebalancePereference(
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> newPreference) {
     // 1. if the preference was not configured during constructing, no need to update.
     // 2. if the preference equals to the new preference, no need to update.
     if (!_preference.equals(NOT_CONFIGURED_PREFERENCE) && !_preference.equals(newPreference)) {
@@ -314,7 +317,7 @@ public class WagedRebalancer {
     return newIdealStates;
   }
 
-  // Coordinate baseline recalculation and partial rebalance according to the cluster changes.
+  // Coordinate global rebalance and partial rebalance according to the cluster changes.
   private Map<String, IdealState> computeBestPossibleStates(
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
       final CurrentStateOutput currentStateOutput, RebalanceAlgorithm algorithm)
@@ -432,7 +435,7 @@ public class WagedRebalancer {
             HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
       }
 
-      final boolean waitForGlobalRebalance = !_asyncBaselineCalculation;
+      final boolean waitForGlobalRebalance = !_asyncGlobalRebalance;
       final String clusterName = clusterData.getClusterName();
       // Calculate the Baseline assignment for global rebalance.
       Future<Boolean> result = _baselineCalculateExecutor.submit(() -> {
@@ -473,8 +476,8 @@ public class WagedRebalancer {
       boolean doSchedulePartialRebalance, String clusterName)
       throws HelixRebalanceException {
     LOG.info("Start calculating the new baseline.");
-    _globalBaselineCalcCounter.increment(1L);
-    _globalBaselineCalcLatency.startMeasuringLatency();
+    _baselineCalcCounter.increment(1L);
+    _baselineCalcLatency.startMeasuringLatency();
 
     boolean isbaselineUpdated = false;
     Map<String, ResourceAssignment> newBaseline = calculateAssignment(clusterModel, algorithm);
@@ -491,7 +494,7 @@ public class WagedRebalancer {
     } else {
       LOG.debug("Assignment Metadata Store is null. Skip persisting the baseline assignment.");
     }
-    _globalBaselineCalcLatency.endMeasuringLatency();
+    _baselineCalcLatency.endMeasuringLatency();
     LOG.info("Finish calculating the new baseline.");
 
     if (isbaselineUpdated && doSchedulePartialRebalance) {

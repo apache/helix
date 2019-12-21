@@ -26,6 +26,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -54,6 +58,7 @@ import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.implementation.BaselineDivergenceGauge;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
 import org.apache.helix.monitoring.metrics.model.LatencyMetric;
+import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +84,8 @@ public class WagedRebalancer {
       .of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, -1,
           ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, -1);
 
+  // To calculate the baseline asynchronously
+  private final ExecutorService _baselineCalculateExecutor;
   private final ResourceChangeDetector _changeDetector;
   private final HelixManager _manager;
   private final MappingCalculator<ResourceControllerDataProvider> _mappingCalculator;
@@ -86,13 +93,15 @@ public class WagedRebalancer {
 
   private final MetricCollector _metricCollector;
   private final CountMetric _rebalanceFailureCount;
-  private final CountMetric _globalBaselineCalcCounter;
-  private final LatencyMetric _globalBaselineCalcLatency;
+  private final CountMetric _baselineCalcCounter;
+  private final LatencyMetric _baselineCalcLatency;
   private final LatencyMetric _writeLatency;
   private final CountMetric _partialRebalanceCounter;
   private final LatencyMetric _partialRebalanceLatency;
   private final LatencyMetric _stateReadLatency;
   private final BaselineDivergenceGauge _baselineDivergenceGauge;
+
+  private boolean _asyncGlobalRebalanceEnabled;
 
   // Note, the rebalance algorithm field is mutable so it should not be directly referred except for
   // the public method computeNewIdealStates.
@@ -109,7 +118,8 @@ public class WagedRebalancer {
   }
 
   public WagedRebalancer(HelixManager helixManager,
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference) {
+      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference,
+      boolean isAsyncGlobalRebalanceEnabled) {
     this(helixManager == null ? null
             : constructAssignmentStore(helixManager.getMetadataStoreConnectionString(),
                 helixManager.getClusterName()), ConstraintBasedAlgorithmFactory.getInstance(preference),
@@ -127,7 +137,8 @@ public class WagedRebalancer {
         // CurrentState-based rebalancing. 2. Tests that require instrumenting the rebalancer for
         // verifying whether the cluster has converged.
         helixManager == null ? null
-            : new WagedRebalancerMetricCollector(helixManager.getClusterName()));
+            : new WagedRebalancerMetricCollector(helixManager.getClusterName()),
+        isAsyncGlobalRebalanceEnabled);
     _preference = ImmutableMap.copyOf(preference);
   }
 
@@ -140,7 +151,7 @@ public class WagedRebalancer {
    */
   protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm) {
-    this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer(), null, null);
+    this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer(), null, null, false);
   }
 
   /**
@@ -152,12 +163,13 @@ public class WagedRebalancer {
    */
   protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm, MetricCollector metricCollector) {
-    this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer(), null, metricCollector);
+    this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer(), null, metricCollector,
+        false);
   }
 
   private WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator, HelixManager manager,
-      MetricCollector metricCollector) {
+      MetricCollector metricCollector, boolean isAsyncGlobalRebalanceEnabled) {
     if (assignmentMetadataStore == null) {
       LOG.warn("Assignment Metadata Store is not configured properly."
           + " The rebalancer will not access the assignment store during the rebalance.");
@@ -174,10 +186,10 @@ public class WagedRebalancer {
     _rebalanceFailureCount = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
         CountMetric.class);
-    _globalBaselineCalcCounter = _metricCollector.getMetric(
+    _baselineCalcCounter = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcCounter.name(),
         CountMetric.class);
-    _globalBaselineCalcLatency = _metricCollector.getMetric(
+    _baselineCalcLatency = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.GlobalBaselineCalcLatencyGauge
             .name(),
         LatencyMetric.class);
@@ -199,23 +211,32 @@ public class WagedRebalancer {
         BaselineDivergenceGauge.class);
 
     _changeDetector = new ResourceChangeDetector(true);
+
+    _baselineCalculateExecutor = Executors.newSingleThreadExecutor();
+    _asyncGlobalRebalanceEnabled = isAsyncGlobalRebalanceEnabled;
   }
 
-  // Update the rebalancer preference configuration if the new preference is different from the
-  // current preference configuration.
-  public void updatePreference(
+  // Update the global rebalance mode to be asynchronous or synchronous
+  public void setGlobalRebalanceAsyncMode(boolean isAsyncGlobalRebalanceEnabled) {
+    _asyncGlobalRebalanceEnabled = isAsyncGlobalRebalanceEnabled;
+  }
+
+  // Update the rebalancer preference if the new options are different from the current preference.
+  public synchronized void updateRebalancePreference(
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> newPreference) {
-    if (_preference.equals(NOT_CONFIGURED_PREFERENCE) || _preference.equals(newPreference)) {
-      // 1. if the preference was not configured during constructing, no need to update.
-      // 2. if the preference equals to the new preference, no need to update.
-      return;
+    // 1. if the preference was not configured during constructing, no need to update.
+    // 2. if the preference equals to the new preference, no need to update.
+    if (!_preference.equals(NOT_CONFIGURED_PREFERENCE) && !_preference.equals(newPreference)) {
+      _rebalanceAlgorithm = ConstraintBasedAlgorithmFactory.getInstance(newPreference);
+      _preference = ImmutableMap.copyOf(newPreference);
     }
-    _rebalanceAlgorithm = ConstraintBasedAlgorithmFactory.getInstance(newPreference);
-    _preference = ImmutableMap.copyOf(newPreference);
   }
 
   // Release all the resources.
   public void close() {
+    if (_baselineCalculateExecutor != null) {
+      _baselineCalculateExecutor.shutdownNow();
+    }
     if (_assignmentMetadataStore != null) {
       _assignmentMetadataStore.close();
     }
@@ -295,7 +316,7 @@ public class WagedRebalancer {
     return newIdealStates;
   }
 
-  // Coordinate baseline recalculation and partial rebalance according to the cluster changes.
+  // Coordinate global rebalance and partial rebalance according to the cluster changes.
   private Map<String, IdealState> computeBestPossibleStates(
       ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
       final CurrentStateOutput currentStateOutput, RebalanceAlgorithm algorithm)
@@ -413,7 +434,33 @@ public class WagedRebalancer {
             HelixRebalanceException.Type.INVALID_CLUSTER_STATUS, ex);
       }
 
-      calculateAndUpdateBaseline(clusterModel, algorithm);
+      final boolean waitForGlobalRebalance = !_asyncGlobalRebalanceEnabled;
+      final String clusterName = clusterData.getClusterName();
+      // Calculate the Baseline assignment for global rebalance.
+      Future<Boolean> result = _baselineCalculateExecutor.submit(() -> {
+        try {
+          // Note that we should schedule a new partial rebalance for a future rebalance pipeline if
+          // the planned partial rebalance in the current rebalance pipeline won't wait for the new
+          // baseline being calculated.
+          // So set shouldSchedulePartialRebalance to be !waitForGlobalRebalance
+          calculateAndUpdateBaseline(clusterModel, algorithm, !waitForGlobalRebalance, clusterName);
+        } catch (HelixRebalanceException e) {
+          LOG.error("Failed to calculate baseline assignment!", e);
+          return false;
+        }
+        return true;
+      });
+      if (waitForGlobalRebalance) {
+        try {
+          if (!result.get()) {
+            throw new HelixRebalanceException("Failed to calculate for the new Baseline.",
+                HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+          }
+        } catch (InterruptedException | ExecutionException e) {
+          throw new HelixRebalanceException("Failed to execute new Baseline calculation.",
+              HelixRebalanceException.Type.FAILED_TO_CALCULATE, e);
+        }
+      }
     }
   }
 
@@ -421,20 +468,25 @@ public class WagedRebalancer {
    * Calculate and update the Baseline assignment
    * @param clusterModel
    * @param algorithm
+   * @param shouldSchedulePartialRebalance True if the call should trigger a following partial rebalance
+   *                                   so the new Baseline could be applied to cluster.
+   * @param clusterName
    * @throws HelixRebalanceException
    */
-  private void calculateAndUpdateBaseline(ClusterModel clusterModel, RebalanceAlgorithm algorithm)
+  private void calculateAndUpdateBaseline(ClusterModel clusterModel, RebalanceAlgorithm algorithm,
+      boolean shouldSchedulePartialRebalance, String clusterName)
       throws HelixRebalanceException {
     LOG.info("Start calculating the new baseline.");
-    _globalBaselineCalcCounter.increment(1L);
-    _globalBaselineCalcLatency.startMeasuringLatency();
+    _baselineCalcCounter.increment(1L);
+    _baselineCalcLatency.startMeasuringLatency();
 
+    boolean isBaselineChanged = false;
     Map<String, ResourceAssignment> newBaseline = calculateAssignment(clusterModel, algorithm);
     // Write the new baseline to metadata store
     if (_assignmentMetadataStore != null) {
       try {
         _writeLatency.startMeasuringLatency();
-        _assignmentMetadataStore.persistBaseline(newBaseline);
+        isBaselineChanged = _assignmentMetadataStore.persistBaseline(newBaseline);
         _writeLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException("Failed to persist the new baseline assignment.",
@@ -443,8 +495,13 @@ public class WagedRebalancer {
     } else {
       LOG.debug("Assignment Metadata Store is null. Skip persisting the baseline assignment.");
     }
-    _globalBaselineCalcLatency.endMeasuringLatency();
-    LOG.info("Finish calculating the new baseline.");
+    _baselineCalcLatency.endMeasuringLatency();
+    LOG.info("Global baseline calculation completed and has been persisted into metadata store.");
+
+    if (isBaselineChanged && shouldSchedulePartialRebalance) {
+      LOG.info("Schedule a new rebalance after the new baseline calculation has finished.");
+      RebalanceUtil.scheduleOnDemandPipeline(clusterName, 0L, false);
+    }
   }
 
   private Map<String, ResourceAssignment> partialRebalance(

@@ -443,16 +443,26 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     }
 
     @Override
-    public void persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+    public boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+      // If baseline hasn't changed, skip writing to metadata store
+      if (compareAssignments(_globalBaseline, globalBaseline)) {
+        return false;
+      }
       // Update the in-memory reference only
       _globalBaseline = globalBaseline;
+      return true;
     }
 
     @Override
-    public void persistBestPossibleAssignment(
+    public boolean persistBestPossibleAssignment(
         Map<String, ResourceAssignment> bestPossibleAssignment) {
+      // If bestPossibleAssignment hasn't changed, skip writing to metadata store
+      if (compareAssignments(_bestPossibleAssignment, bestPossibleAssignment)) {
+        return false;
+      }
       // Update the in-memory reference only
       _bestPossibleAssignment = bestPossibleAssignment;
+      return true;
     }
   }
 }

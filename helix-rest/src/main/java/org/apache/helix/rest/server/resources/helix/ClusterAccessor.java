@@ -47,6 +47,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.HelixConfigScope;
@@ -132,18 +133,42 @@ public class ClusterAccessor extends AbstractHelixResource {
   @PUT
   @Path("{clusterId}")
   public Response createCluster(@PathParam("clusterId") String clusterId,
-      @DefaultValue("false") @QueryParam("recreate") String recreate) {
+      @DefaultValue("false") @QueryParam("recreate") String recreate,
+      @DefaultValue("false") @QueryParam("addCloudConfig") String addCloudConfig,
+      String content) {
+
     boolean recreateIfExists = Boolean.valueOf(recreate);
+    boolean cloudConfigIncluded = Boolean.valueOf(addCloudConfig);
+
+
     ClusterSetup clusterSetup = getClusterSetup();
 
-    try {
-      clusterSetup.addCluster(clusterId, recreateIfExists);
-    } catch (Exception ex) {
-      _logger.error("Failed to create cluster " + clusterId + ", exception: " + ex);
-      return serverError(ex);
-    }
+    if (!cloudConfigIncluded) {
+      try {
+        clusterSetup.addCluster(clusterId, recreateIfExists, null);
+      } catch (Exception ex) {
+        _logger.error("Failed to create cluster " + clusterId + ", exception: " + ex);
+        return serverError(ex);
+      }
 
-    return created();
+      return created();
+    } else {
+      ZNRecord record;
+      try {
+        record = toZNRecord(content);
+      } catch (IOException e) {
+        _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+        return badRequest("Input is not a vaild ZNRecord!");
+      }
+      try {
+        CloudConfig cloudConfig = new CloudConfig.Builder(record).build();
+        clusterSetup.addCluster(clusterId, recreateIfExists, cloudConfig);
+      } catch (Exception ex) {
+        _logger.error("Error in adding a CloudConfig to cluster: " + clusterId, ex);
+        return badRequest(ex.getMessage());
+      }
+      return created();
+    }
   }
 
   @DELETE

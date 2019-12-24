@@ -33,16 +33,16 @@ import org.slf4j.LoggerFactory;
  */
 public class HelixCloudProperty {
   private static final Logger logger = LoggerFactory.getLogger(HelixCloudProperty.class.getName());
-  private final String AZURE_CLOUD_PROPERTY_FILE = SystemPropertyKeys.AZURE_CLOUD_PROPERTIES;
+  private static final String AZURE_CLOUD_PROPERTY_FILE = SystemPropertyKeys.AZURE_CLOUD_PROPERTIES;
 
-  private Boolean _isCloudEnabled;
+  private boolean _isCloudEnabled;
   private String _cloudId;
   private String _cloudProvider;
   private List<String> _cloudInfoSources;
   private String _cloudInfoProcessorName;
-  private String _maxRetry;
-  private String _cloudConnectionTimeout;
-  private String _cloudRequestTimeout;
+  private int _maxRetry;
+  private long _cloudConnectionTimeout;
+  private long _cloudRequestTimeout;
   private Properties _customizedProperties = new Properties();
 
   /**
@@ -50,9 +50,9 @@ public class HelixCloudProperty {
    * @param
    */
   public HelixCloudProperty(CloudConfig cloudConfig) {
-    this.setCloudEndabled(cloudConfig.isCloudEnabled());
-    this.setCloudId(cloudConfig.getCloudID());
-    this.setCloudProvider(cloudConfig.getCloudProvider());
+    setCloudEndabled(cloudConfig.isCloudEnabled());
+    setCloudId(cloudConfig.getCloudID());
+    setCloudProvider(cloudConfig.getCloudProvider());
     switch (cloudConfig.getCloudProvider()) {
       case "AZURE":
         Properties azureProperties = new Properties();
@@ -61,22 +61,24 @@ public class HelixCloudProperty {
               Thread.currentThread().getContextClassLoader().getResourceAsStream(AZURE_CLOUD_PROPERTY_FILE);
           azureProperties.load(stream);
         } catch (Exception e) {
-          String errMsg = "fail to open properties file: " + AZURE_CLOUD_PROPERTY_FILE;
+          String errMsg = "failed to open properties file: " + AZURE_CLOUD_PROPERTY_FILE;
           throw new IllegalArgumentException(errMsg, e);
         }
         logger.info("load helix Azure cloud properties: " + azureProperties);
-        this.setCloudInfoSources(Collections.singletonList(azureProperties.getProperty("CLOUD_INFO_SOURCE")));
-        this.setCloudInfoProcessorName(azureProperties.getProperty("CLOUD_INFO_PROCESSFOR_NAME"));
-        this.setCloudMaxRetry(azureProperties.getProperty("RETRY_MAX"));
-        this.setCloudConnectionTimeout(azureProperties.getProperty("CONNECTION_TIMEOUT_MS"));
-        this.setCloudRequestTimeout(azureProperties.getProperty("REQUEST_TIMEOUT_MS"));
+        setCloudInfoSources(Collections.singletonList(azureProperties.getProperty("CLOUD_INFO_SOURCE")));
+        setCloudInfoProcessorName(azureProperties.getProperty("CLOUD_INFO_PROCESSFOR_NAME"));
+        setCloudMaxRetry(azureProperties.getProperty("RETRY_MAX"));
+        setCloudConnectionTimeout(azureProperties.getProperty("CONNECTION_TIMEOUT_MS"));
+        setCloudRequestTimeout(azureProperties.getProperty("REQUEST_TIMEOUT_MS"));
       case "CUSTOMIZED":
         setCloudInfoSources(cloudConfig.getCloudInfoSources());
-        this.setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
+        setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
+      default:
+        throw new IllegalArgumentException("unrecognized cloud provider: " + cloudConfig.getCloudProvider());
     }
   }
 
-  public Boolean getCloudEnabled() {
+  public boolean getCloudEnabled() {
     return _isCloudEnabled;
   }
 
@@ -96,15 +98,15 @@ public class HelixCloudProperty {
     return _cloudInfoProcessorName;
   }
 
-  public String getMaxRetry() {
+  public int getMaxRetry() {
     return _maxRetry;
   }
 
-  public String getCloudConnectionTimeout() {
+  public long getCloudConnectionTimeout() {
     return _cloudConnectionTimeout;
   }
 
-  public String getCloudRequestTimeout() {
+  public long getCloudRequestTimeout() {
     return _cloudRequestTimeout;
   }
 
@@ -112,7 +114,7 @@ public class HelixCloudProperty {
     return _customizedProperties;
   }
 
-  public void setCloudEndabled(Boolean isCloudEnabled) {
+  public void setCloudEndabled(boolean isCloudEnabled) {
     _isCloudEnabled = isCloudEnabled;
   }
 
@@ -133,15 +135,15 @@ public class HelixCloudProperty {
   }
 
   public void setCloudMaxRetry(String maxRetry) {
-    _maxRetry = maxRetry;
+    _maxRetry = Integer.valueOf(maxRetry);
   }
 
   public void setCloudConnectionTimeout(String cloudConnectionTimeout) {
-    _cloudConnectionTimeout = cloudConnectionTimeout;
+    _cloudConnectionTimeout = Long.valueOf(cloudConnectionTimeout);
   }
 
   public void setCloudRequestTimeout(String cloudRequestTimeout) {
-    _cloudRequestTimeout = cloudRequestTimeout;
+    _cloudRequestTimeout = Long.valueOf(cloudRequestTimeout);
   }
 
   public void setCustomizedCloudProperties(Properties customizedCloudProperties) {

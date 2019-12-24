@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class HelixPropertyFactory {
   private static final Logger logger = LoggerFactory.getLogger(HelixPropertyFactory.class);
-  private final String HELIX_PARTICIPANT_PROPERTY_FILE = SystemPropertyKeys.HELIX_PARTICIPANT_PROPERTIES;
+  private static final String HELIX_PARTICIPANT_PROPERTY_FILE = SystemPropertyKeys.HELIX_PARTICIPANT_PROPERTIES;
 
   private static class SingletonHelper {
     private static final HelixPropertyFactory INSTANCE = new HelixPropertyFactory();

@@ -585,7 +585,6 @@ public class ConfigAccessor {
     return new ClusterConfig(record);
   }
 
-
   /**
    * Get CloudConfig of the given cluster.
    * @param clusterName

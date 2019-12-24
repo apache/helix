@@ -47,8 +47,8 @@ public class ServerContext {
   private ZKHelixAdmin _zkHelixAdmin;
   private ClusterSetup _clusterSetup;
   private ConfigAccessor _configAccessor;
-  // The lazy initialized base data accessor that reads/writes byte array to ZK
-  private ZkBaseDataAccessor<byte[]> _byteArrayBaseDataAccessor;
+  // A lazily-initialized base data accessor that reads/writes byte array to ZK
+  private volatile ZkBaseDataAccessor<byte[]> _byteArrayZkBaseDataAccessor;
   // 1 Cluster name will correspond to 1 helix data accessor
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;
   // 1 Cluster name will correspond to 1 task driver
@@ -122,27 +122,34 @@ public class ServerContext {
     }
   }
 
-  public ZkBaseDataAccessor<byte[]> getByteArrayBaseDataAccessor() {
-    if (_byteArrayBaseDataAccessor == null) {
-      synchronized (this) {
-        if (_byteArrayBaseDataAccessor == null) {
-          _byteArrayBaseDataAccessor = new ZkBaseDataAccessor<>(_zkAddr, new ZkSerializer() {
-            @Override
-            public byte[] serialize(Object o)
-                throws ZkMarshallingError {
-              throw new UnsupportedOperationException("Serialize is not supported yet!");
-            }
-
-            @Override
-            public Object deserialize(byte[] bytes)
-                throws ZkMarshallingError {
-              return bytes;
-            }
-          });
-        }
-      }
+  /**
+   * Returns a lazily-instantiated ZkBaseDataAccessor for the byte array type.
+   * @return
+   */
+  public ZkBaseDataAccessor<byte[]> getByteArrayZkBaseDataAccessor() {
+    ZkBaseDataAccessor<byte[]> byteArrayZkBaseDataAccessor = _byteArrayZkBaseDataAccessor;
+    if (byteArrayZkBaseDataAccessor != null) { // First check (no locking)
+      return byteArrayZkBaseDataAccessor;
     }
-    return _byteArrayBaseDataAccessor;
+
+    synchronized (this) {
+      if (_byteArrayZkBaseDataAccessor == null) { // Second check (with locking)
+        _byteArrayZkBaseDataAccessor = new ZkBaseDataAccessor<>(_zkAddr, new ZkSerializer() {
+          @Override
+          public byte[] serialize(Object o)
+              throws ZkMarshallingError {
+            throw new UnsupportedOperationException("serialize() is not supported yet!");
+          }
+
+          @Override
+          public Object deserialize(byte[] bytes)
+              throws ZkMarshallingError {
+            return bytes;
+          }
+        });
+      }
+      return _byteArrayZkBaseDataAccessor;
+    }
   }
 
   public void close() {

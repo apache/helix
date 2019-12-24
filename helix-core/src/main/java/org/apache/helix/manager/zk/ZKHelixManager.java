@@ -1119,7 +1119,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   /**
-   * Called after the zookeeper session has expired and a new session has been established. This method
+   * Called after zookeeper session has expired and a new session has been established. This method
    * may cause session race condition when creating ephemeral nodes. Internally, this method calls
    * {@link #handleNewSession(String)} with a null value as the sessionId parameter, which results
    * in later creating the ephemeral node in the session of the latest zk connection.

@@ -76,6 +76,8 @@ public class ParticipantManager {
   final LiveInstanceInfoProvider _liveInstanceInfoProvider;
   final List<PreConnectCallback> _preConnectCallbacks;
 
+  // zk session id should be immutable after participant manager is created. This is to avoid
+  // session race condition when handling new session for the participant.
   private final String _sessionId;
 
   public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
@@ -109,13 +111,13 @@ public class ParticipantManager {
    */
   public void handleNewSession() throws Exception {
     // Check participant's session is still valid.
-    // If not, stop to handle new session for this participant.
+    // If not, skip handling new session for this participant.
     final String zkClientHexSession = _zkclient.getHexSessionId();
     if (!zkClientHexSession.equals(_sessionId)) {
-      throw new HelixException(
-          "Failed to handle new session for participant. There is a session mismatch: "
-              + "participant manager session = " + _sessionId + ", zk client session = "
-              + zkClientHexSession);
+      LOG.warn("Skip handling new session for participant. There is a session mismatch: "
+              + "participant manager session = {}, zk client session = {}", _sessionId,
+          zkClientHexSession);
+      return;
     }
 
     joinCluster();

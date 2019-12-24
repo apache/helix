@@ -29,9 +29,9 @@ import org.slf4j.LoggerFactory;
  * hold participant properties
  */
 public class HelixParticipantProperty {
-  private static final Logger logger = LoggerFactory.getLogger(HelixParticipantProperty.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(HelixParticipantProperty.class.getName());
   private String _version;
-  private int _healthReportLatency;
+  private long _healthReportLatency;
   private HelixCloudProperty _helixCloudProperty;
 
   /**
@@ -52,7 +52,7 @@ public class HelixParticipantProperty {
     return _version;
   }
 
-  public int getHealthReportLatency() {
+  public long getHealthReportLatency() {
     return _healthReportLatency;
   }
 
@@ -65,6 +65,6 @@ public class HelixParticipantProperty {
   }
 
   public void setHealthReportLatency(String latency) {
-    _healthReportLatency = Integer.valueOf(latency);
+    _healthReportLatency = Long.valueOf(latency);
   }
 }

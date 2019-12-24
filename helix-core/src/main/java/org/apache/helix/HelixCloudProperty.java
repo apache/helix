@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.model.CloudConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +33,13 @@ import org.slf4j.LoggerFactory;
  * hold helix cloud properties
  */
 public class HelixCloudProperty {
-  private static final Logger logger = LoggerFactory.getLogger(HelixCloudProperty.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(HelixCloudProperty.class.getName());
   private static final String AZURE_CLOUD_PROPERTY_FILE = SystemPropertyKeys.AZURE_CLOUD_PROPERTIES;
+  private static final String CLOUD_INFO_SOURCE = "CLOUD_INFO_SOURCE";
+  private static final String CLOUD_INFO_PROCESSFOR_NAME = "cloud_info_processor_name";
+  private static final String RETRY_MAX = "retry_max";
+  private static final String CONNECTION_TIMEOUT_MS = "connection_timeout_ms";
+  private static final String REQUEST_TIMEOUT_MS = "request_timeout_ms";
 
   private boolean _isCloudEnabled;
   private String _cloudId;
@@ -53,28 +59,28 @@ public class HelixCloudProperty {
     setCloudEndabled(cloudConfig.isCloudEnabled());
     setCloudId(cloudConfig.getCloudID());
     setCloudProvider(cloudConfig.getCloudProvider());
-    switch (cloudConfig.getCloudProvider()) {
-      case "AZURE":
+    switch (CloudProvider.valueOf(cloudConfig.getCloudProvider())) {
+      case AZURE:
         Properties azureProperties = new Properties();
         try {
           InputStream stream =
               Thread.currentThread().getContextClassLoader().getResourceAsStream(AZURE_CLOUD_PROPERTY_FILE);
           azureProperties.load(stream);
         } catch (Exception e) {
-          String errMsg = "failed to open properties file: " + AZURE_CLOUD_PROPERTY_FILE;
+          String errMsg = "failed to open Helix Azure cloud properties file: " + AZURE_CLOUD_PROPERTY_FILE;
           throw new IllegalArgumentException(errMsg, e);
         }
-        logger.info("load helix Azure cloud properties: " + azureProperties);
-        setCloudInfoSources(Collections.singletonList(azureProperties.getProperty("CLOUD_INFO_SOURCE")));
-        setCloudInfoProcessorName(azureProperties.getProperty("CLOUD_INFO_PROCESSFOR_NAME"));
-        setCloudMaxRetry(azureProperties.getProperty("RETRY_MAX"));
-        setCloudConnectionTimeout(azureProperties.getProperty("CONNECTION_TIMEOUT_MS"));
-        setCloudRequestTimeout(azureProperties.getProperty("REQUEST_TIMEOUT_MS"));
-      case "CUSTOMIZED":
+        LOG.info("Successfully loaded Helix Azure cloud properties: " + azureProperties);
+        setCloudInfoSources(Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
+        setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSFOR_NAME));
+        setCloudMaxRetry(azureProperties.getProperty(RETRY_MAX));
+        setCloudConnectionTimeout(azureProperties.getProperty(CONNECTION_TIMEOUT_MS));
+        setCloudRequestTimeout(azureProperties.getProperty(REQUEST_TIMEOUT_MS));
+      case CUSTOMIZED:
         setCloudInfoSources(cloudConfig.getCloudInfoSources());
         setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
       default:
-        throw new IllegalArgumentException("unrecognized cloud provider: " + cloudConfig.getCloudProvider());
+        LOG.info("unrecognized cloud provider: " + cloudConfig.getCloudProvider());
     }
   }
 

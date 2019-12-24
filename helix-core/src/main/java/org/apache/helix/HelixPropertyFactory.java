@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
  * Singleton factory that builds different types of Helix property, e.g. participant property, controller property, etc.
  */
 public final class HelixPropertyFactory {
-  private static final Logger logger = LoggerFactory.getLogger(HelixPropertyFactory.class);
+  private static final Logger LOG = LoggerFactory.getLogger(HelixPropertyFactory.class);
   private static final String HELIX_PARTICIPANT_PROPERTY_FILE = SystemPropertyKeys.HELIX_PARTICIPANT_PROPERTIES;
 
   private static class SingletonHelper {
@@ -50,10 +50,10 @@ public final class HelixPropertyFactory {
           Thread.currentThread().getContextClassLoader().getResourceAsStream(HELIX_PARTICIPANT_PROPERTY_FILE);
         properties.load(stream);
     } catch (Exception e) {
-      String errMsg = "fail to open properties file: " + HELIX_PARTICIPANT_PROPERTY_FILE;
+      String errMsg = "failed to open Helix participant properties file: " + HELIX_PARTICIPANT_PROPERTY_FILE;
       throw new IllegalArgumentException(errMsg, e);
     }
-    logger.info("load helix participant properties: " + properties);
+    LOG.info("HelixPropertyFactory successfully loaded helix participant properties: " + properties);
     return new HelixParticipantProperty(properties, cloudConfig);
   }
 }

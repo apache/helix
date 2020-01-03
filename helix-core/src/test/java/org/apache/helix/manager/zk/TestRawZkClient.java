@@ -150,8 +150,8 @@ public class TestRawZkClient extends ZkUnitTestBase {
     for (int i = 0; i < 3; i++) {
       ZkTestHelper.expireSession(_zkClient);
       long newSessionId = _zkClient.getSessionId();
-      Assert.assertTrue(newSessionId > lastSessionId,
-          "New session id should be greater than expired session id.");
+      Assert.assertTrue(newSessionId != lastSessionId,
+          "New session id should not equal to expired session id.");
       lastSessionId = newSessionId;
     }
   }
@@ -561,8 +561,8 @@ public class TestRawZkClient extends ZkUnitTestBase {
     // Wait until the ZkClient has got a new session.
     Assert.assertTrue(TestHelper.verify(() -> {
       try {
-        // New session id should be greater than expired session id.
-        return _zkClient.getSessionId() > originalSessionId;
+        // New session id should not equal to expired session id.
+        return _zkClient.getSessionId() != originalSessionId;
       } catch (HelixException ex) {
         return false;
       }

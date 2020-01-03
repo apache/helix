@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * hold helix cloud properties
+ * Hold helix cloud properties read from CloudConfig and user defined files. Clients may override the fields from their application.
  */
 public class HelixCloudProperty {
   private static final Logger LOG = LoggerFactory.getLogger(HelixCloudProperty.class.getName());

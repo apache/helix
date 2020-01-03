@@ -1,8 +1,10 @@
 package org.apache.helix;
 
 public class SystemPropertyKeys {
+  // Used to compose default values in HelixParticipantProperty
   public static final String HELIX_PARTICIPANT_PROPERTIES = "helix-participant.properties";
 
+  // Used to compose default values in HelixCloudProperty when cloud provider is Azure
   public static final String AZURE_CLOUD_PROPERTIES = "azure-cloud.properties";
 
   // Task Driver

@@ -26,7 +26,8 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * hold participant properties
+ * Hold Helix participant properties. The participant properties further hold Helix cloud properties and some other properties
+ * specific for the participant.
  */
 public class HelixParticipantProperty {
   private static final Logger LOG = LoggerFactory.getLogger(HelixParticipantProperty.class.getName());
@@ -36,7 +37,8 @@ public class HelixParticipantProperty {
 
   /**
    * Initialize Helix Participant Property with default value
-   * @param
+   * @param properties participant related properties input as a map
+   * @param cloudConfig cloudConfig read from Zookeeper
    */
   public HelixParticipantProperty(Properties properties, CloudConfig cloudConfig) {
     _helixCloudProperty = new HelixCloudProperty(cloudConfig);
@@ -67,4 +69,6 @@ public class HelixParticipantProperty {
   public void setHealthReportLatency(String latency) {
     _healthReportLatency = Long.valueOf(latency);
   }
+
+  //TODO: migrate all other participant related properties to this file.
 }

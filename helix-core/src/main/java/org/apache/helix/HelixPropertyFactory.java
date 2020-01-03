@@ -41,6 +41,9 @@ public final class HelixPropertyFactory {
     return SingletonHelper.INSTANCE;
   }
 
+  /**
+   * Retrieve Helix participant property. It returns the property object with default values. Clients may override these values.
+   */
   public HelixParticipantProperty getHelixParticipantProperty(String zkAddress, String clusterName) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkAddress);
     CloudConfig cloudConfig = configAccessor.getCloudConfig(clusterName);

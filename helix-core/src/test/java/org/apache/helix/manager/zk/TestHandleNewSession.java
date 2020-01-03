@@ -229,7 +229,7 @@ public class TestHandleNewSession extends ZkTestBase {
      * Session S1 would not create a live instance. Instead, only S2 creates a live instance.
      */
     for (int i = 0; i < 2; i++) {
-      final String lastSessionId = manager.getZkClient().getHexSessionId();
+      final String lastSessionId = ZKUtil.toHexSessionId(manager.getZkClient().getSessionId());
       try {
         // Lock zk event processing to simulate a long backlog queue.
         ((ZkClient) manager.getZkClient()).getEventLock().lockInterruptibly();
@@ -249,7 +249,7 @@ public class TestHandleNewSession extends ZkTestBase {
       // Wait until the ZkClient has got a new session.
       Assert.assertTrue(TestHelper.verify(() -> {
         try {
-          final String sessionId = manager.getZkClient().getHexSessionId();
+          final String sessionId = ZKUtil.toHexSessionId(manager.getZkClient().getSessionId());
           return !"0".equals(sessionId) && !sessionId.equals(lastSessionId);
         } catch (HelixException ex) {
           return false;
@@ -278,7 +278,7 @@ public class TestHandleNewSession extends ZkTestBase {
 
     // From now on, the live instance is created.
     // The latest(the final new one) session id that is valid.
-    final String latestSessionId = manager.getZkClient().getHexSessionId();
+    final String latestSessionId = ZKUtil.toHexSessionId(manager.getZkClient().getSessionId());
 
     Assert.assertTrue(TestHelper.verify(() -> {
       // Newly created live instance should be created by the latest session
@@ -369,9 +369,8 @@ public class TestHandleNewSession extends ZkTestBase {
           ZkTestHelper.asyncExpireSession(manager.getZkClient());
 
           // Wait and verify the new session S2 is established.
-          TestHelper
-              .verify(() -> !((manager.getZkClient().getHexSessionId()).equals(lastSessionId)),
-                  3000L);
+          TestHelper.verify(() -> !((ZKUtil.toHexSessionId(manager.getZkClient().getSessionId()))
+              .equals(lastSessionId)), 3000L);
         } catch (Exception ignored) {
           // Ignored.
         } finally {
@@ -396,7 +395,7 @@ public class TestHandleNewSession extends ZkTestBase {
         // 6. S2 is valid and creates live instance.
         manager.proceedResetHandlers();
 
-        final String latestSessionId = manager.getZkClient().getHexSessionId();
+        final String latestSessionId = ZKUtil.toHexSessionId(manager.getZkClient().getSessionId());
 
         TestHelper.verify(() -> {
           // Newly created live instance should be created by the latest session
@@ -446,7 +445,7 @@ public class TestHandleNewSession extends ZkTestBase {
 
     // From now on, the live instance is already created by S2.
     // The latest(the final new one S2) session id that is valid.
-    final String latestSessionId = manager.getZkClient().getHexSessionId();
+    final String latestSessionId = ZKUtil.toHexSessionId(manager.getZkClient().getSessionId());
 
     Assert.assertTrue(TestHelper.verify(() -> {
       // Newly created live instance should be created by the latest session

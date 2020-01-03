@@ -112,7 +112,7 @@ public class ParticipantManager {
   public void handleNewSession() throws Exception {
     // Check participant's session is still valid.
     // If not, skip handling new session for this participant.
-    final String zkClientHexSession = _zkclient.getHexSessionId();
+    final String zkClientHexSession = ZKUtil.toHexSessionId(_zkclient.getSessionId());
     if (!zkClientHexSession.equals(_sessionId)) {
       LOG.warn("Skip handling new session for participant. There is a session mismatch: "
               + "participant manager session = {}, zk client session = {}", _sessionId,

@@ -98,13 +98,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public static final int DEFAULT_MAX_DISCONNECT_THRESHOLD = 600; // Default to be a large number
   private static final int DEFAULT_WAIT_CONNECTED_TIMEOUT = 10 * 1000;  // wait until connected for up to 10 seconds.
 
-  /*
-   * Before the new zookeeper object is connected to the zookeeper service and its session is
-   * established, its session id is 0.
-   * This is a string representation of zero session id in hexadecimal notation.
-   */
-  private static final String ZERO_HEX_SESSION_ID = "0";
-
   protected final String _zkAddress;
   private final String _clusterName;
   private final String _instanceName;
@@ -718,7 +711,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
          * which means this listener has not yet handled new session, so we have to handle new
          * session here just for this listener.
          */
-        handleNewSession(_zkclient.getHexSessionId());
+        handleNewSession(ZKUtil.toHexSessionId(_zkclient.getSessionId()));
         break;
       } catch (HelixException e) {
         LOG.error("fail to createClient.", e);
@@ -1000,13 +993,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         continue;
       }
 
-      _sessionId = _zkclient.getHexSessionId();
+      _sessionId = ZKUtil.toHexSessionId(_zkclient.getSessionId());
 
       /**
        * at the time we read session-id, zkconnection might be lost again
        * wait until we get a non-zero session-id
        */
-    } while (!isConnected || ZERO_HEX_SESSION_ID.equals(_sessionId));
+    } while (!isConnected || "0".equals(_sessionId));
 
     LOG.info("Handling new session, session id: " + _sessionId + ", instance: " + _instanceName
         + ", instanceTye: " + _instanceType + ", cluster: " + _clusterName);

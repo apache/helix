@@ -647,19 +647,11 @@ public class ZkClient implements Watcher {
       final byte[] dataBytes = dataObject == null ? null : serialize(dataObject, path);
       checkDataSizeLimit(dataBytes);
 
-      /*
-       * We pass different implementation of callable.
-       * 1. If the session id is null, it means the operation is NOT session aware.
-       * In this case, we will implement a regular callable to create a node.
-       * 2. Otherwise, the operation is session aware. We will use a  to
-       * create a node which is guaranteed to be created in the expected session.
-       */
       final String actualPath = retryUntilConnected(() -> {
         ZooKeeper zooKeeper = ((ZkConnection) getConnection()).getZookeeper();
 
         /*
-         * 1. If the session id is NOT null and create mode is EPHEMERAL or EPHEMERAL_SEQUENTIAL,
-         * the operation is session aware. We have to check the whether or not the
+         * 1. If operation is session aware, we have to check whether or not the
          * passed-in(expected) session id matches actual session's id.
          * If not, ephemeral node creation is failed. This validation is
          * critical to guarantee the ephemeral node created by the expected ZK session.
@@ -667,8 +659,7 @@ public class ZkClient implements Watcher {
          * 2. Otherwise, the operation is NOT session aware.
          * In this case, we will use the actual zookeeper session to create the node.
          */
-        if (expectedSessionId != null && !expectedSessionId.isEmpty()
-            && (mode == CreateMode.EPHEMERAL || mode == CreateMode.EPHEMERAL_SEQUENTIAL)) {
+        if (isSessionAwareOperation(expectedSessionId, mode)) {
           acquireEventLock();
           try {
             final String actualSessionId = ZKUtil.toHexSessionId(zooKeeper.getSessionId());
@@ -1088,11 +1079,13 @@ public class ZkClient implements Watcher {
     }
 
     if (event.getState() == KeeperState.SyncConnected) {
-      if (!_isNewSessionEventFired) {
+      if (!_isNewSessionEventFired && !"0".equals(getHexSessionId())) {
         /*
-         * Once the new zookeeper session receives the first SyncConnected state,
-         * the zookeeper session is established and connected to zookeeper service.
-         * So the session id is available and non-zero. Now we can fire new session events.
+         * Before the new zookeeper instance is connected to the zookeeper service and its session
+         * is established, its session id is 0.
+         * New session event is not fired until the new zookeeper session receives the first
+         * SyncConnected state(the zookeeper session is established).
+         * Now the session id is available and non-zero, and we can fire new session events.
          */
         fireNewSessionEvents();
         /*
@@ -1436,7 +1429,7 @@ public class ZkClient implements Watcher {
         // we don't know what causes retry. This is used to record which one of the two exceptions
         // causes retry in ZkTimeoutException.
         // This also helps the test testConnectionLossWhileCreateEphemeral.
-        KeeperException retryCause;
+        KeeperException.Code retryCauseCode;
 
         if (isClosed()) {
           throw new IllegalStateException("ZkClient already closed!");
@@ -1450,12 +1443,12 @@ public class ZkClient implements Watcher {
           }
           return callable.call();
         } catch (ConnectionLossException e) {
-          retryCause = e;
+          retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Disconnected'
           Thread.yield();
           waitForRetry();
         } catch (SessionExpiredException e) {
-          retryCause = e;
+          retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Expired'
           Thread.yield();
           waitForRetry();
@@ -1472,7 +1465,7 @@ public class ZkClient implements Watcher {
         if (System.currentTimeMillis() - operationStartTime > _operationRetryTimeoutInMillis) {
           throw new ZkTimeoutException("Operation cannot be retried because of retry timeout ("
               + _operationRetryTimeoutInMillis + " milli seconds). Retry was caused by "
-              + retryCause.code());
+              + retryCauseCode);
         }
       }
     } finally {
@@ -2034,14 +2027,22 @@ public class ZkClient implements Watcher {
     }
   }
 
-  /**
+  /*
    * Gets a session id in hexadecimal notation.
-   * Ex. 0x1000a5ceb930004 is returned.
-   *
-   * @return String representation of session id in hexadecimal notation.
+   * Ex. 1000a5ceb930004 is returned.
    */
-  public String getHexSessionId() {
+  private String getHexSessionId() {
     return ZKUtil.toHexSessionId(getSessionId());
+  }
+
+  /*
+   * Session aware operation needs below requirements:
+   * 1. the session id is NOT null or empty
+   * 2. create mode is EPHEMERAL or EPHEMERAL_SEQUENTIAL
+   */
+  private boolean isSessionAwareOperation(String expectedSessionId, CreateMode mode) {
+    return expectedSessionId != null && !expectedSessionId.isEmpty()
+        && (mode == CreateMode.EPHEMERAL || mode == CreateMode.EPHEMERAL_SEQUENTIAL);
   }
 
   // operations to update monitor's counters

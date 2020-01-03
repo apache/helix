@@ -488,7 +488,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
         "MasterSlave",
         true); // do rebalance
 
-    final String originalSessionId = _zkClient.getHexSessionId();
+    final String originalSessionId = ZKUtil.toHexSessionId(_zkClient.getSessionId());
     final String path = "/" + methodName;
     final String data = "Hello Helix";
 
@@ -549,7 +549,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
         true); // do rebalance
 
     final long originalSessionId = _zkClient.getSessionId();
-    final String originalHexSessionId = _zkClient.getHexSessionId();
+    final String originalHexSessionId = ZKUtil.toHexSessionId(originalSessionId);
     final String path = "/" + methodName;
 
     // Verify the node is not existed.
@@ -597,7 +597,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
         .setOperationRetryTimeout(3000L) // 3 seconds
         .build();
 
-    final String expectedSessionId = zkClient.getHexSessionId();
+    final String expectedSessionId = ZKUtil.toHexSessionId(zkClient.getSessionId());
     final String path = "/" + methodName;
     final String data = "data";
 
@@ -656,7 +656,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
   public void testRetryUntilConnectedAfterConnectionLoss() throws Exception {
     final String methodName = TestHelper.getTestMethodName();
 
-    final String expectedSessionId = _zkClient.getHexSessionId();
+    final String expectedSessionId = ZKUtil.toHexSessionId(_zkClient.getSessionId());
     final String path = "/" + methodName;
     final String data = "data";
 

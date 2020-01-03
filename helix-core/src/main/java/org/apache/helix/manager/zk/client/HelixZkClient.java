@@ -105,7 +105,7 @@ public interface HelixZkClient {
 
   String create(final String path, Object data, final CreateMode mode);
 
-  String create(final String path, Object data, final List<ACL> acl, final CreateMode mode);
+  String create(final String path, Object datat, final List<ACL> acl, final CreateMode mode);
 
   void createEphemeral(final String path, final Object data);
 
@@ -185,15 +185,6 @@ public interface HelixZkClient {
   String getServers();
 
   long getSessionId();
-
-  /**
-   * Gets the zookeeper's session id of this zk client in hexadecimal notation.
-   * This session could be valid, expired, or "0"(initial value before zk session is established).
-   * Ex. 1000a5ceb930004 is returned.
-   *
-   * @return String representation of session id in hexadecimal notation.
-   */
-  String getHexSessionId();
 
   void close();
 

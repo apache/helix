@@ -23,10 +23,8 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.DataUpdater;
-import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -51,7 +49,6 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,14 +107,14 @@ public class ParticipantManager {
    * @throws Exception if any exception occurs
    */
   public void handleNewSession() throws Exception {
-    // Check participant's session is still valid.
+    // Check zk session of this participant is still valid.
     // If not, skip handling new session for this participant.
     final String zkClientHexSession = ZKUtil.toHexSessionId(_zkclient.getSessionId());
     if (!zkClientHexSession.equals(_sessionId)) {
-      LOG.warn("Skip handling new session for participant. There is a session mismatch: "
-              + "participant manager session = {}, zk client session = {}", _sessionId,
-          zkClientHexSession);
-      return;
+      throw new HelixException(
+          "Failed to handle new session for participant. There is a session mismatch: "
+              + "participant manager session = " + _sessionId + ", zk client session = "
+              + zkClientHexSession);
     }
 
     joinCluster();

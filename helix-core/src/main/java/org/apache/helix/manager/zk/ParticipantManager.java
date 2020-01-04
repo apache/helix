@@ -197,97 +197,18 @@ public class ParticipantManager {
       }
     }
 
-    boolean retry;
-    do {
-      retry = false;
-      try {
-        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), _sessionId);
-        LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getEphemeralOwner());
-      } catch (ZkSessionMismatchedException e) {
-        throw new HelixException(
-            "Failed to create live instance, path: " + liveInstancePath + ", expected session: "
-                + _sessionId, e);
-      } catch (ZkNodeExistsException e) {
-        LOG.warn("found another instance with same instanceName: " + _instanceName + " in cluster "
-            + _clusterName);
-
-        Stat stat = new Stat();
-        ZNRecord record = _zkclient.readData(liveInstancePath, stat, true);
-        if (record == null) {
-          /**
-           * live-instance is gone as we check it, retry create live-instance
-           */
-          retry = true;
-        } else {
-          String ephemeralOwner = ZKUtil.toHexSessionId(stat.getEphemeralOwner());
-          if (ephemeralOwner.equals(_sessionId)) {
-            /**
-             * update sessionId field in live-instance if necessary
-             */
-            LiveInstance curLiveInstance = new LiveInstance(record);
-            if (!curLiveInstance.getEphemeralOwner().equals(_sessionId)) {
-              /**
-               * in last handle-new-session,
-               * live-instance is created by new zkconnection with stale session-id inside
-               * just update session-id field
-               */
-              LOG.info("overwriting session-id by ephemeralOwner: " + ephemeralOwner
-                  + ", old-sessionId: " + curLiveInstance.getEphemeralOwner() + ", new-sessionId: "
-                  + _sessionId);
-
-              curLiveInstance.setSessionId(_sessionId);
-              _zkclient.writeData(liveInstancePath, curLiveInstance.getRecord());
-            }
-          } else {
-            /**
-             * wait for a while, in case previous helix-participant exits unexpectedly
-             * and its live-instance still hangs around until session timeout
-             */
-            try {
-              TimeUnit.MILLISECONDS.sleep(_sessionTimeout + 5000);
-            } catch (InterruptedException ex) {
-              LOG.warn("Sleep interrupted while waiting for previous live-instance to go away.", ex);
-            }
-            /**
-             * give a last try after exit while loop
-             */
-            retry = true;
-            break;
-          }
-        }
-      }
-    } while (retry);
-
-    /**
-     * give a last shot
-     */
-    if (retry) {
-      try {
-        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), _sessionId);
-        LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance
-            .getEphemeralOwner());
-      } catch (ZkSessionMismatchedException e) {
-        throw new HelixException(
-            "Failed to create live instance, path: " + liveInstancePath + ", session: "
-                + _sessionId, e);
-      } catch (ZkNodeExistsException e) {
-        throw new HelixException(
-            "Instance name: " + _instanceName + " already has a live-instance in cluster: "
-                + _clusterName);
-      } catch (Exception e) {
-        throw new HelixException(e);
-      }
+    try {
+      _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), _sessionId);
+      LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getEphemeralOwner());
+    } catch (ZkSessionMismatchedException e) {
+      throw new HelixException(
+          "Failed to create live instance, path: " + liveInstancePath + ", expected session: "
+              + _sessionId, e);
     }
 
     ParticipantHistory history = getHistory();
     history.reportOnline(_sessionId, _manager.getVersion());
     persistHistory(history);
-
-    if (!liveInstance.getEphemeralOwner().equals(liveInstance.getSessionId())) {
-      LOG.warn(
-          "Session ID {} (Deprecated) in the znode does not match the Ephemeral Owner session ID {}. Will use the Ephemeral Owner session ID.",
-          liveInstance.getSessionId(), liveInstance.getEphemeralOwner());
-    }
   }
 
   /**

@@ -87,7 +87,7 @@ public class ZkClient implements Watcher {
   // When a new zookeeper instance is created in reconnect, its session id is not yet valid before
   // the zookeeper session is established(SyncConnected). To avoid session race condition in
   // handling new session, the new session event is only fired after SyncConnected. Meanwhile,
-  // SyncConnected state is also received when re-open the zk connection. So to avoid firing
+  // SyncConnected state is also received when re-opening the zk connection. So to avoid firing
   // new session event more than once, this flag is used to check.
   // It is set to false right after the new zookeeper instance is created in reconnect before the
   // session is established. And set it to true once the new session event is fired the first time.

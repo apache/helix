@@ -12,18 +12,6 @@ public class ZkSessionMismatchedException extends ZkException {
 
     private static final long serialVersionUID = 1L;
 
-    public ZkSessionMismatchedException() {
-        super();
-    }
-
-    public ZkSessionMismatchedException(KeeperException cause) {
-        super(cause);
-    }
-
-    public ZkSessionMismatchedException(String message, KeeperException cause) {
-        super(message, cause);
-    }
-
     public ZkSessionMismatchedException(String message) {
         super(message);
     }

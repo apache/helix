@@ -575,6 +575,8 @@ public class TestRawZkClient extends ZkUnitTestBase {
       Assert.fail("Ephemeral node should not be created by the expired session.");
     } catch (ZkSessionMismatchedException expected) {
       // Expected because there is a session mismatch.
+    } catch (Exception unexpected) {
+      Assert.fail("Should not have thrown exception: " + unexpected);
     }
 
     // Verify the node is not created.

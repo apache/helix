@@ -939,8 +939,6 @@ public class ZkClient implements Watcher {
         if (event.getState() == KeeperState.Expired) {
           getEventLock().getZNodeEventCondition().signalAll();
           getEventLock().getDataChangedCondition().signalAll();
-          // We also have to notify all listeners that something might have changed
-          fireAllEvents();
         }
       }
       if (znodeChanged) {
@@ -1093,6 +1091,13 @@ public class ZkClient implements Watcher {
          * when SyncConnected events are received.
          */
         _isNewSessionEventFired = true;
+
+        /*
+         * With this first SyncConnected state, we just get connected to zookeeper service after
+         * reconnecting when the session expired. Because previous session expired, we also have to
+         * notify all listeners that something might have changed.
+         */
+        fireAllEvents();
       }
     } else if (event.getState() == KeeperState.Expired) {
       reconnectOnExpiring();

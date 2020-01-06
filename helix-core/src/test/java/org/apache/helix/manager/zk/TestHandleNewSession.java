@@ -422,7 +422,7 @@ public class TestHandleNewSession extends ZkTestBase {
       ZkTestHelper.asyncExpireSession(manager.getZkClient());
       // 3. S1 spends a long time resetting handlers during this period.
 
-      // Wait and verify the zookeeper is alive.
+      // Wait and verify the zookeeper is closed.
       Assert.assertTrue(TestHelper.verify(
           () -> !((ZkClient) manager.getZkClient()).getConnection().getZookeeperState().isAlive(),
           3000L));

@@ -205,9 +205,9 @@ public class ParticipantManager {
         LOG.info("LiveInstance created, path: {}, sessionId: {}", liveInstancePath,
             liveInstance.getEphemeralOwner());
       } catch (ZkSessionMismatchedException e) {
-          throw new HelixException(
-              "Failed to create live instance, path: " + liveInstancePath + ", expected session: "
-                  + _sessionId, e);
+        throw new HelixException(
+            "Failed to create live instance, path: " + liveInstancePath + ". Caused by: "
+                + e.getMessage());
       } catch (ZkNodeExistsException e) {
         LOG.warn("Found another instance with same instance name: {} in cluster: {}", _instanceName,
             _clusterName);
@@ -248,14 +248,14 @@ public class ParticipantManager {
             liveInstance.getEphemeralOwner());
       } catch (ZkSessionMismatchedException e) {
         throw new HelixException(
-            "Failed to create live instance, path: " + liveInstancePath + ", expected session: "
-                + _sessionId, e);
+            "Failed to create live instance, path: " + liveInstancePath + ". Caused by: "
+                + e.getMessage());
       } catch (ZkNodeExistsException e) {
-        throw new HelixException(
-            "Failed to create live instance because instance = " + _instanceName
-                + " already has a live-instance in cluster: " + _clusterName, e);
+        throw new HelixException("Failed to create live instance because instance: " + _instanceName
+            + " already has a live-instance in cluster: " + _clusterName + ". Path is: "
+            + liveInstancePath);
       } catch (Exception e) {
-        throw new HelixException("Failed to create live instance.", e);
+        throw new HelixException("Failed to create live instance. " + e.getMessage());
       }
     }
 

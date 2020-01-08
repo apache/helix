@@ -1165,7 +1165,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
      * so performance is expected to improve.
      */
     if (sessionId != null && !getSessionId().equals(sessionId)) {
-      LOG.info("Session is expired and not handled. Expected: {}. Actual: {}.", sessionId,
+      LOG.warn("Session is expired and not handled. Expected: {}. Actual: {}.", sessionId,
           getSessionId());
       return;
     }
@@ -1179,7 +1179,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
      */
     if (sessionId == null) {
       sessionId = getSessionId();
-      LOG.warn("Session id: <null> is passed in. Current session id: {} will be used.", sessionId);
+      LOG.debug("Session id: <null> is passed in. Current session id: {} will be used.", sessionId);
     }
 
     LOG.info("Handle new session, instance: {}, type: {}, session id: {}.", _instanceName,

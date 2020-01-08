@@ -23,8 +23,10 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -49,6 +51,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,12 +102,10 @@ public class ParticipantManager {
 
   /**
    * Handles a new session for a participant. The new session's id is passed in when participant
-   * manager is created, as it is required in
-   * {@link org.apache.helix.manager.zk.zookeeper.ZkClient#createEphemeral(String, Object, String)}
-   * to prevent ephemeral node creation from session race condition: ephemeral node is created by an
-   * expired or unexpected session.
+   * manager is created, as it is required to prevent ephemeral node creation from session race
+   * condition: ephemeral node is created by an expired or unexpected session.
    *
-   * @throws Exception if any exception occurs
+   * @throws Exception
    */
   public void handleNewSession() throws Exception {
     // Check zk session of this participant is still valid.
@@ -128,6 +129,8 @@ public class ParticipantManager {
 
     // TODO create live instance node after all the init works done --JJ
     // This will help to prevent controller from sending any message prematurely.
+    // Live instance creation also checks if the expected session is valid or not. Live instance
+    // should not be created by an expired zk session.
     createLiveInstance();
     carryOverPreviousCurrentState();
 
@@ -194,13 +197,66 @@ public class ParticipantManager {
       }
     }
 
-    try {
-      _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), _sessionId);
-      LOG.info("LiveInstance created, path: " + liveInstancePath + ", sessionId: " + liveInstance.getEphemeralOwner());
-    } catch (ZkSessionMismatchedException e) {
-      throw new HelixException(
-          "Failed to create live instance, path: " + liveInstancePath + ", expected session: "
-              + _sessionId, e);
+    boolean retry;
+    do {
+      retry = false;
+      try {
+        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
+        LOG.info("LiveInstance created, path: {}, sessionId: {}", liveInstancePath,
+            liveInstance.getEphemeralOwner());
+      } catch (ZkSessionMismatchedException e) {
+          throw new HelixException(
+              "Failed to create live instance, path: " + liveInstancePath + ", expected session: "
+                  + _sessionId, e);
+      } catch (ZkNodeExistsException e) {
+        LOG.warn("Found another instance with same instance name: {} in cluster: {}", _instanceName,
+            _clusterName);
+
+        Stat stat = new Stat();
+        ZNRecord record = _zkclient.readData(liveInstancePath, stat, true);
+        if (record == null) {
+          /**
+           * live-instance is gone as we check it, retry create live-instance
+           */
+          retry = true;
+        } else {
+          /**
+           * wait for a while, in case previous helix-participant exits unexpectedly
+           * and its live-instance still hangs around until session timeout
+           */
+          try {
+            TimeUnit.MILLISECONDS.sleep(_sessionTimeout + 5000);
+          } catch (InterruptedException ex) {
+            LOG.warn("Sleep interrupted while waiting for previous live-instance to go away.", ex);
+          }
+          /**
+           * give a last try after exit while loop
+           */
+          retry = true;
+          break;
+        }
+      }
+    } while (retry);
+
+    /**
+     * give a last shot
+     */
+    if (retry) {
+      try {
+        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
+        LOG.info("LiveInstance created, path: {}, sessionId: {}", liveInstancePath,
+            liveInstance.getEphemeralOwner());
+      } catch (ZkSessionMismatchedException e) {
+        throw new HelixException(
+            "Failed to create live instance, path: " + liveInstancePath + ", expected session: "
+                + _sessionId, e);
+      } catch (ZkNodeExistsException e) {
+        throw new HelixException(
+            "Failed to create live instance because instance = " + _instanceName
+                + " already has a live-instance in cluster: " + _clusterName, e);
+      } catch (Exception e) {
+        throw new HelixException("Failed to create live instance.", e);
+      }
     }
 
     ParticipantHistory history = getHistory();

@@ -45,16 +45,6 @@ under the License.
       <version>1.17</version>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.25</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <version>1.7.14</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>
     </dependency>

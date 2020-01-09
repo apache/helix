@@ -22,6 +22,7 @@ package org.apache.helix.rest.server;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -407,14 +408,30 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
    * 3. Define weight configs in InstanceConfig and call validate -> We should get OK with "true".
    */
   @Test(dependsOnMethods = "checkUpdateFails")
-  public void testValidateWeightForInstance() throws IOException {
+  public void testValidateWeightForInstance()
+      throws IOException {
+    // Empty out ClusterConfig's weight key setting and InstanceConfig's capacity maps for testing
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.getRecord()
+        .setListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(),
+            new ArrayList<>());
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+    List<String> instances =
+        _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME);
+    for (String instance : instances) {
+      InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
+      instanceConfig.setInstanceCapacityMap(Collections.emptyMap());
+      _configAccessor.setInstanceConfig(CLUSTER_NAME, instance, instanceConfig);
+    }
+
     // Get one instance in the cluster
-    String instance = _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME)
-        .iterator().next();
+    String selectedInstance =
+        _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME).iterator()
+            .next();
 
     // Issue a validate call
     String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=validateWeight")
-        .isBodyReturnExpected(true).format(CLUSTER_NAME, instance).get(this);
+        .isBodyReturnExpected(true).format(CLUSTER_NAME, selectedInstance).get(this);
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
     // Must have the result saying (true) because there's no capacity keys set
@@ -422,24 +439,25 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     node.iterator().forEachRemaining(child -> Assert.assertTrue(child.getBooleanValue()));
 
     // Define keys in ClusterConfig
-    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setInstanceCapacityKeys(Arrays.asList("FOO", "BAR"));
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     body = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=validateWeight")
-        .isBodyReturnExpected(true).format(CLUSTER_NAME, instance)
+        .isBodyReturnExpected(true).format(CLUSTER_NAME, selectedInstance)
         .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode()).get(this);
     node = OBJECT_MAPPER.readTree(body);
     // Since instance does not have weight-related configs, the result should return error
     Assert.assertTrue(node.has("error"));
 
     // Now set weight-related config in InstanceConfig
-    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
+    InstanceConfig instanceConfig =
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, selectedInstance);
     instanceConfig.setInstanceCapacityMap(ImmutableMap.of("FOO", 1000, "BAR", 1000));
-    _configAccessor.setInstanceConfig(CLUSTER_NAME, instance, instanceConfig);
+    _configAccessor.setInstanceConfig(CLUSTER_NAME, selectedInstance, instanceConfig);
 
     body = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=validateWeight")
-        .isBodyReturnExpected(true).format(CLUSTER_NAME, instance)
+        .isBodyReturnExpected(true).format(CLUSTER_NAME, selectedInstance)
         .expectedReturnStatusCode(Response.Status.OK.getStatusCode()).get(this);
     node = OBJECT_MAPPER.readTree(body);
     // Must have the results saying they are all valid (true) because capacity keys are set

@@ -22,6 +22,7 @@ package org.apache.helix.rest.server;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -176,11 +177,19 @@ public class TestInstancesAccessor extends AbstractTestClass {
   public void testValidateWeightForAllInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
-    // Empty out ClusterConfig's weight key setting for testing
+    // Empty out ClusterConfig's weight key setting and InstanceConfig's capacity maps for testing
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.getRecord().setListField(
         ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), new ArrayList<>());
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+    List<String> instances =
+        _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME);
+    for (String instance : instances) {
+      InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
+      instanceConfig.setInstanceCapacityMap(Collections.emptyMap());
+      _configAccessor.setInstanceConfig(CLUSTER_NAME, instance, instanceConfig);
+    }
+
     // Issue a validate call
     String body = new JerseyUriRequestBuilder("clusters/{}/instances?command=validateWeight")
         .isBodyReturnExpected(true).format(CLUSTER_NAME).get(this);
@@ -202,8 +211,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     Assert.assertTrue(node.has("error"));
 
     // Now set weight-related configs in InstanceConfigs
-    List<String> instances =
-        _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME);
+    instances = _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME);
     for (String instance : instances) {
       InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
       instanceConfig.setInstanceCapacityMap(ImmutableMap.of("FOO", 1000, "BAR", 1000));

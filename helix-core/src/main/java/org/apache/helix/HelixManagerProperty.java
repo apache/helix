@@ -29,18 +29,18 @@ import org.slf4j.LoggerFactory;
  * Hold Helix participant properties. The participant properties further hold Helix cloud properties and some other properties
  * specific for the participant.
  */
-public class HelixParticipantProperty {
-  private static final Logger LOG = LoggerFactory.getLogger(HelixParticipantProperty.class.getName());
+public class HelixManagerProperty {
+  private static final Logger LOG = LoggerFactory.getLogger(HelixManagerProperty.class.getName());
   private String _version;
   private long _healthReportLatency;
   private HelixCloudProperty _helixCloudProperty;
 
   /**
-   * Initialize Helix Participant Property with default value
-   * @param properties participant related properties input as a map
+   * Initialize Helix manager property with default value
+   * @param properties helix manager related properties input as a map
    * @param cloudConfig cloudConfig read from Zookeeper
    */
-  public HelixParticipantProperty(Properties properties, CloudConfig cloudConfig) {
+  public HelixManagerProperty(Properties properties, CloudConfig cloudConfig) {
     _helixCloudProperty = new HelixCloudProperty(cloudConfig);
     setVersion(properties.getProperty(SystemPropertyKeys.CLUSTER_MANAGER_VERSION));
     setHealthReportLatency(properties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY));
@@ -58,15 +58,15 @@ public class HelixParticipantProperty {
     return _healthReportLatency;
   }
 
-  public void setHelixCloudProperty(HelixCloudProperty helixCloudProperty) {
+  private void setHelixCloudProperty(HelixCloudProperty helixCloudProperty) {
     _helixCloudProperty = helixCloudProperty;
   }
 
-  public void setVersion(String version) {
+  private void setVersion(String version) {
     _version = version;
   }
 
-  public void setHealthReportLatency(String latency) {
+  private void setHealthReportLatency(String latency) {
     _healthReportLatency = Long.valueOf(latency);
   }
 

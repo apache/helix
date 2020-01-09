@@ -33,7 +33,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
-import org.apache.helix.HelixParticipantProperty;
+import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.PreConnectCallback;
@@ -77,7 +77,7 @@ public class ParticipantManager {
   final StateMachineEngine _stateMachineEngine;
   final LiveInstanceInfoProvider _liveInstanceInfoProvider;
   final List<PreConnectCallback> _preConnectCallbacks;
-  final HelixParticipantProperty _helixParticipantProperty;
+  final HelixManagerProperty _helixManagerProperty;
 
   public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
       LiveInstanceInfoProvider liveInstanceInfoProvider, List<PreConnectCallback> preConnectCallbacks) {
@@ -86,7 +86,7 @@ public class ParticipantManager {
 
   public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
       LiveInstanceInfoProvider liveInstanceInfoProvider, List<PreConnectCallback> preConnectCallbacks,
-      HelixParticipantProperty helixParticipantProperty) {
+      HelixManagerProperty helixManagerProperty) {
     _zkclient = zkclient;
     _manager = manager;
     _clusterName = manager.getClusterName();
@@ -102,7 +102,7 @@ public class ParticipantManager {
     _stateMachineEngine = manager.getStateMachineEngine();
     _liveInstanceInfoProvider = liveInstanceInfoProvider;
     _preConnectCallbacks = preConnectCallbacks;
-    _helixParticipantProperty = helixParticipantProperty;
+    _helixManagerProperty = helixManagerProperty;
   }
 
   /**

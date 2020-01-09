@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 public class HelixCloudProperty {
   private static final Logger LOG = LoggerFactory.getLogger(HelixCloudProperty.class.getName());
   private static final String AZURE_CLOUD_PROPERTY_FILE = SystemPropertyKeys.AZURE_CLOUD_PROPERTIES;
-  private static final String CLOUD_INFO_SOURCE = "CLOUD_INFO_SOURCE";
+  private static final String CLOUD_INFO_SOURCE = "cloud_info_source";
   private static final String CLOUD_INFO_PROCESSFOR_NAME = "cloud_info_processor_name";
   private static final String RETRY_MAX = "retry_max";
   private static final String CONNECTION_TIMEOUT_MS = "connection_timeout_ms";
@@ -80,7 +80,7 @@ public class HelixCloudProperty {
         setCloudInfoSources(cloudConfig.getCloudInfoSources());
         setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
       default:
-        LOG.info("unrecognized cloud provider: " + cloudConfig.getCloudProvider());
+        LOG.info("Unsupported cloud provider: " + cloudConfig.getCloudProvider());
     }
   }
 
@@ -120,35 +120,35 @@ public class HelixCloudProperty {
     return _customizedProperties;
   }
 
-  public void setCloudEndabled(boolean isCloudEnabled) {
+  private void setCloudEndabled(boolean isCloudEnabled) {
     _isCloudEnabled = isCloudEnabled;
   }
 
-  public void setCloudId(String cloudId) {
+  private void setCloudId(String cloudId) {
     _cloudId = cloudId;
   }
 
-  public void setCloudProvider(String cloudProvider) {
+  private void setCloudProvider(String cloudProvider) {
     _cloudProvider = cloudProvider;
   }
 
-  public void setCloudInfoSources(List<String> sources) {
+  private void setCloudInfoSources(List<String> sources) {
     _cloudInfoSources = sources;
   }
 
-  public void setCloudInfoProcessorName(String cloudInfoProcessorName) {
+  private void setCloudInfoProcessorName(String cloudInfoProcessorName) {
     _cloudInfoProcessorName = cloudInfoProcessorName;
   }
 
-  public void setCloudMaxRetry(String maxRetry) {
+  private void setCloudMaxRetry(String maxRetry) {
     _maxRetry = Integer.valueOf(maxRetry);
   }
 
-  public void setCloudConnectionTimeout(String cloudConnectionTimeout) {
+  private void setCloudConnectionTimeout(String cloudConnectionTimeout) {
     _cloudConnectionTimeout = Long.valueOf(cloudConnectionTimeout);
   }
 
-  public void setCloudRequestTimeout(String cloudRequestTimeout) {
+  private void setCloudRequestTimeout(String cloudRequestTimeout) {
     _cloudRequestTimeout = Long.valueOf(cloudRequestTimeout);
   }
 

@@ -699,19 +699,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     int retryCount = 0;
     while (retryCount < 3) {
       try {
-        // TODO: get session id from waitUntilConnected to avoid race condition
-        if (!_zkclient.waitUntilConnected(_connectionInitTimeout, TimeUnit.MILLISECONDS)) {
-          throw new ZkTimeoutException(
-              "Unable to connect to zookeeper server within timeout: " + _connectionInitTimeout
-                  + " ms.");
-        }
+        final long sessionId =
+            _zkclient.waitForEstablishedSession(_connectionInitTimeout, TimeUnit.MILLISECONDS);
         handleStateChanged(KeeperState.SyncConnected);
         /*
          * This listener is subscribed after SyncConnected and firing new session events,
          * which means this listener has not yet handled new session, so we have to handle new
          * session here just for this listener.
          */
-        handleNewSession(ZKUtil.toHexSessionId(_zkclient.getSessionId()));
+        handleNewSession(ZKUtil.toHexSessionId(sessionId));
         break;
       } catch (HelixException e) {
         LOG.error("fail to createClient.", e);

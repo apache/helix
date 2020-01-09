@@ -1368,31 +1368,41 @@ public class ZkClient implements Watcher {
     return _connection;
   }
 
+  public long waitForEstablishedSession(long timeout, TimeUnit timeUnit) {
+    validateCurrentThread();
+
+    Date deadline = new Date(System.currentTimeMillis() + timeUnit.toMillis(timeout));
+
+    LOG.debug("Waiting for keeper state: {}", KeeperState.SyncConnected);
+    acquireEventLock();
+    try {
+      waitForKeeperStateUntilDeadline(KeeperState.SyncConnected, deadline);
+      // Reading session ID before unlocking event lock is critical to guarantee the established
+      // session's ID won't change.
+      return getSessionId();
+    } finally {
+      getEventLock().unlock();
+    }
+  }
+
   public boolean waitUntilConnected(long time, TimeUnit timeUnit) throws ZkInterruptedException {
     return waitForKeeperState(KeeperState.SyncConnected, time, timeUnit);
   }
 
   public boolean waitForKeeperState(KeeperState keeperState, long time, TimeUnit timeUnit)
       throws ZkInterruptedException {
-    if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
-      throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
-    }
-    Date timeout = new Date(System.currentTimeMillis() + timeUnit.toMillis(time));
+    validateCurrentThread();
+    Date deadline = new Date(System.currentTimeMillis() + timeUnit.toMillis(time));
 
     LOG.debug("Waiting for keeper state " + keeperState);
     acquireEventLock();
     try {
-      boolean stillWaiting = true;
-      while (_currentState != keeperState) {
-        if (!stillWaiting) {
-          return false;
-        }
-        stillWaiting = getEventLock().getStateChangedCondition().awaitUntil(timeout);
-      }
-      LOG.debug("State is " + (_currentState == null ? "CLOSED" : _currentState));
+      waitForKeeperStateUntilDeadline(keeperState, deadline);
+      LOG.debug("Current keeper state is {}.", _currentState == null ? "CLOSED" : _currentState);
       return true;
-    } catch (InterruptedException e) {
-      throw new ZkInterruptedException(e);
+    } catch (ZkTimeoutException e) {
+      LOG.debug("Waiting for keeper state: {} timed out in {} {}.", keeperState, time, timeUnit);
+      return false;
     } finally {
       getEventLock().unlock();
     }
@@ -2134,6 +2144,26 @@ public class ZkClient implements Watcher {
        * to remove.
        */
       return _listener.hashCode();
+    }
+  }
+
+  private void validateCurrentThread() {
+    if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
+      throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
+    }
+  }
+
+  private void waitForKeeperStateUntilDeadline(KeeperState keeperState, Date deadline) {
+    try {
+      boolean stillWaiting = true;
+      while (_currentState != keeperState) {
+        if (!stillWaiting) {
+          throw new ZkTimeoutException("Waiting to be connected to ZK server has timed out.");
+        }
+        stillWaiting = getEventLock().getStateChangedCondition().awaitUntil(deadline);
+      }
+    } catch (InterruptedException e) {
+      throw new ZkInterruptedException(e);
     }
   }
 }

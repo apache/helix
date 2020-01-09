@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
+import org.I0Itec.zkclient.exception.ZkTimeoutException;
 import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.manager.zk.BasicZkSerializer;
@@ -181,6 +182,28 @@ public interface HelixZkClient {
 
   // ZK state control
   boolean waitUntilConnected(long time, TimeUnit timeUnit);
+
+  /**
+   * Waits for SyncConnected state and returns a valid session ID(non-zero). The implementation of
+   * this method should wait for SyncConnected state and ZK session to be established, and should
+   * guarantee the established session's ID is returned before keeper state changes.
+   *
+   * Please note: this default implementation may have race condition issue and return an unexpected
+   * session ID that is zero or another new session's ID. The default implementation is for backward
+   * compatibility purpose.
+   *
+   * @param timeout Max waiting time for connecting to ZK server.
+   * @param timeUnit Time unit for the timeout.
+   * @return A valid ZK session ID which is non-zero.
+   */
+  default long waitForEstablishedSession(long timeout, TimeUnit timeUnit) {
+    if (!waitUntilConnected(timeout, timeUnit)) {
+      throw new ZkTimeoutException(
+          "Failed to get established session because connecting to ZK server has timed out in "
+              + timeout + " " + timeUnit);
+    }
+    return getSessionId();
+  }
 
   String getServers();
 

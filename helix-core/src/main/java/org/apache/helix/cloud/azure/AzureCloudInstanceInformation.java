@@ -48,12 +48,6 @@ public class AzureCloudInstanceInformation implements CloudInstanceInformation {
       return new AzureCloudInstanceInformation(_cloudInstanceInfoMap);
     }
 
-    /**
-     * Default constructor
-     */
-    public Builder() {
-    }
-
     public Builder setInstanceName(String v) {
       _cloudInstanceInfoMap.put(CloudInstanceField.INSTANCE_NAME.name(), v);
       return this;

@@ -32,6 +32,7 @@ import javax.management.JMException;
 
 import com.google.common.collect.Sets;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
+import org.I0Itec.zkclient.exception.ZkTimeoutException;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -87,6 +88,7 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 public class ZKHelixManager implements HelixManager, IZkStateListener {
   private static Logger LOG = LoggerFactory.getLogger(ZKHelixManager.class);
@@ -697,10 +699,19 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     int retryCount = 0;
     while (retryCount < 3) {
       try {
-        // TODO: synchronize this block and wait for the new non-zero session ID updated.
-        _zkclient.waitUntilConnected(_connectionInitTimeout, TimeUnit.MILLISECONDS);
+        // TODO: get session id from waitUntilConnected to avoid race condition
+        if (!_zkclient.waitUntilConnected(_connectionInitTimeout, TimeUnit.MILLISECONDS)) {
+          throw new ZkTimeoutException(
+              "Unable to connect to zookeeper server within timeout: " + _connectionInitTimeout
+                  + " ms.");
+        }
         handleStateChanged(KeeperState.SyncConnected);
-        handleNewSession();
+        /*
+         * This listener is subscribed after SyncConnected and firing new session events,
+         * which means this listener has not yet handled new session, so we have to handle new
+         * session here just for this listener.
+         */
+        handleNewSession(ZKUtil.toHexSessionId(_zkclient.getSessionId()));
         break;
       } catch (HelixException e) {
         LOG.error("fail to createClient.", e);
@@ -823,6 +834,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public String getSessionId() {
     checkConnected(_waitForConnectedTimeout);
+    // TODO: session id should be updated after zk client is connected.
+    // Otherwise, this session id might be an expired one.
     return _sessionId;
   }
 
@@ -980,7 +993,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         continue;
       }
 
-      _sessionId = Long.toHexString(_zkclient.getSessionId());
+      _sessionId = ZKUtil.toHexSessionId(_zkclient.getSessionId());
 
       /**
        * at the time we read session-id, zkconnection might be lost again
@@ -1099,7 +1112,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   /**
-   * Called after the zookeeper session has expired and a new session has been created. This method
+   * Called after zookeeper session has expired and a new session has been established. This method
    * may cause session race condition when creating ephemeral nodes. Internally, this method calls
    * {@link #handleNewSession(String)} with a null value as the sessionId parameter, which results
    * in later creating the ephemeral node in the session of the latest zk connection.
@@ -1121,10 +1134,22 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     handleNewSession(null);
   }
 
+  /**
+   * Called after the zookeeper session has expired and a new session has been established. This
+   * methods handles a new session with its session id passed in. Before handling, this method
+   * waits until zk client is connected to zk service and gets a non-zero session id(current actual
+   * session id). If the passed-in(expected) session id does not match current actual session id,
+   * the expected session id is expired and will NOT be handled.
+   *
+   * @param sessionId the new session's id. The ephemeral nodes are expected to be created in this
+   *                  session. If this session id is expired, ephemeral nodes should not be created.
+   * @throws Exception if any error occurs during handling new session
+   */
   @Override
-  public void handleNewSession(final String sessionId) throws Exception {
+  public void handleNewSession(String sessionId) throws Exception {
     /*
-     * TODO: after removing I0ItecIZkStateListenerHelixImpl, null session should be checked and discarded.
+     * TODO: after removing I0ItecIZkStateListenerHelixImpl, null session should be checked and
+     *  discarded.
      * Null session is still a special case here, which is treated as non-session aware operation.
      * This special case could still potentially cause race condition, so null session should NOT
      * be acceptable, once I0ItecIZkStateListenerHelixImpl is removed. Currently this special case
@@ -1134,9 +1159,31 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     // Wait until we get a non-zero session id. Otherwise, getSessionId() might be null.
     waitUntilConnected();
 
-    // TODO: filter out stale sessions here.
+    /*
+     * Filter out stale sessions. If a session id is not null and not the same as current session
+     * id, this session is expired. With this filtering, expired sessions are NOT handled,
+     * so performance is expected to improve.
+     */
+    if (sessionId != null && !getSessionId().equals(sessionId)) {
+      LOG.warn("Session is expired and not handled. Expected: {}. Actual: {}.", sessionId,
+          getSessionId());
+      return;
+    }
+
+    /*
+     * When a null session id is passed in, we will take current session's id for following
+     * operations. Please note that current session might not be the one we expect to handle,
+     * because the one we expect might be already expired when the zk event is waiting in the
+     * event queue. Why we use current session here is for backward compatibility with the old
+     * method handleNewSession().
+     */
+    if (sessionId == null) {
+      sessionId = getSessionId();
+      LOG.debug("Session id: <null> is passed in. Current session id: {} will be used.", sessionId);
+    }
+
     LOG.info("Handle new session, instance: {}, type: {}, session id: {}.", _instanceName,
-        _instanceType, sessionId == null ? "None" : sessionId);
+        _instanceType,  sessionId);
 
     /**
      * stop all timer tasks, reset all handlers, make sure cleanup completed for previous session
@@ -1164,13 +1211,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     switch (_instanceType) {
     case PARTICIPANT:
-      handleNewSessionAsParticipant();
+      handleNewSessionAsParticipant(sessionId);
       break;
     case CONTROLLER:
       handleNewSessionAsController();
       break;
     case CONTROLLER_PARTICIPANT:
-      handleNewSessionAsParticipant();
+      handleNewSessionAsParticipant(sessionId);
       handleNewSessionAsController();
       break;
     case ADMINISTRATOR:
@@ -1197,16 +1244,19 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
   }
 
-  void handleNewSessionAsParticipant() throws Exception {
+  void handleNewSessionAsParticipant(final String sessionId) throws Exception {
     if (_participantManager != null) {
       _participantManager.reset();
     }
     _participantManager =
         new ParticipantManager(this, _zkclient, _sessionTimeout, _liveInstanceInfoProvider,
-            _preConnectCallbacks);
+            _preConnectCallbacks, sessionId);
+
     _participantManager.handleNewSession();
   }
 
+  // TODO: pass in session id and make this method session aware to avoid potential session race
+  //  condition.
   void handleNewSessionAsController() {
     if (_leaderElectionHandler != null) {
       _leaderElectionHandler.init();

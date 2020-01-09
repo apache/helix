@@ -42,7 +42,9 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.manager.zk.BasicZkSerializer;
 import org.apache.helix.manager.zk.PathBasedZkSerializer;
+import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks;
+import org.apache.helix.manager.zk.ZkSessionMismatchedException;
 import org.apache.helix.manager.zk.zookeeper.ZkEventThread.ZkEvent;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.util.ExponentialBackoffStrategy;
@@ -63,6 +65,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * Abstracts the interaction with zookeeper and allows permanent (not just one time) watches on
  * nodes in ZooKeeper.
@@ -80,6 +83,16 @@ public class ZkClient implements Watcher {
   private final Set<IZkStateListener> _stateListener = new CopyOnWriteArraySet<>();
   private KeeperState _currentState;
   private final ZkLock _zkEventLock = new ZkLock();
+
+  // When a new zookeeper instance is created in reconnect, its session id is not yet valid before
+  // the zookeeper session is established(SyncConnected). To avoid session race condition in
+  // handling new session, the new session event is only fired after SyncConnected. Meanwhile,
+  // SyncConnected state is also received when re-opening the zk connection. So to avoid firing
+  // new session event more than once, this flag is used to check.
+  // It is set to false right after the new zookeeper instance is created in reconnect before the
+  // session is established. And set it to true once the new session event is fired the first time.
+  private boolean _isNewSessionEventFired;
+
   private boolean _shutdownTriggered;
   private ZkEventThread _eventThread;
   // TODO PVo remove this later
@@ -173,6 +186,7 @@ public class ZkClient implements Watcher {
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
+    _isNewSessionEventFired = false;
 
     connect(connectionTimeout, this);
 
@@ -493,6 +507,28 @@ public class ZkClient implements Watcher {
   }
 
   /**
+   * Creates an ephemeral node. This ephemeral node is created by the expected(passed-in) ZK session.
+   * If the expected session does not match the current ZK session, the node will not be created.
+   *
+   * @param path path of the node
+   * @param sessionId expected session id of the ZK connection. If the session id of current ZK
+   *                  connection does not match the expected session id, ephemeral creation will
+   *                  fail
+   * @throws ZkInterruptedException
+   *           if operation was interrupted, or a required reconnection got interrupted
+   * @throws IllegalArgumentException
+   *           if called from anything except the ZooKeeper event thread
+   * @throws ZkException
+   *           if any ZooKeeper exception occurred
+   * @throws RuntimeException
+   *           if any other exception occurs
+   */
+  public void createEphemeral(final String path, final String sessionId)
+      throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
+    createEphemeral(path, null, sessionId);
+  }
+
+  /**
    * Create an ephemeral node and set its ACL.
    * @param path
    * @param acl
@@ -508,6 +544,30 @@ public class ZkClient implements Watcher {
   public void createEphemeral(final String path, final List<ACL> acl)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
     create(path, null, acl, CreateMode.EPHEMERAL);
+  }
+
+  /**
+   * Creates an ephemeral node and set its ACL. This ephemeral node is created by the
+   * expected(passed-in) ZK session. If the expected session does not match the current ZK session,
+   * the node will not be created.
+   *
+   * @param path path of the ephemeral node
+   * @param acl a list of ACL for the ephemeral node.
+   * @param sessionId expected session id of the ZK connection. If the session id of current ZK
+   *                  connection does not match the expected session id, ephemeral creation will
+   *                  fail.
+   * @throws ZkInterruptedException
+   *           if operation was interrupted, or a required reconnection got interrupted
+   * @throws IllegalArgumentException
+   *           if called from anything except the ZooKeeper event thread
+   * @throws ZkException
+   *           if any ZooKeeper exception occurred
+   * @throws RuntimeException
+   *           if any other exception occurs
+   */
+  public void createEphemeral(final String path, final List<ACL> acl, final String sessionId)
+      throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
+    create(path, null, acl, CreateMode.EPHEMERAL, sessionId);
   }
 
   /**
@@ -548,6 +608,34 @@ public class ZkClient implements Watcher {
    */
   public String create(final String path, Object datat, final List<ACL> acl, final CreateMode mode)
       throws IllegalArgumentException, ZkException {
+    return create(path, datat, acl, mode, null);
+  }
+
+  /**
+   * Creates a node and returns the actual path of the created node.
+   *
+   * Given an expected non-null session id, if the node is successfully created, it is guaranteed to
+   * be created in the expected(passed-in) session.
+   *
+   * If the expected session is expired, which means the expected session does not match the current
+   * session of ZK connection, the node will not be created.
+   *
+   * @param path the path where you want the node to be created
+   * @param dataObject data of the node
+   * @param acl list of ACL for the node
+   * @param mode {@link CreateMode} of the node
+   * @param expectedSessionId the expected session ID of the ZK connection. It is not necessarily the
+   *                  session ID of current ZK Connection. If the expected session ID is NOT null,
+   *                  the node is guaranteed to be created in the expected session, or creation is
+   *                  failed if the expected session id doesn't match current connected zk session.
+   *                  If the session id is null, it means the create operation is NOT session aware.
+   * @return path of the node created
+   * @throws IllegalArgumentException if called from anything else except the ZooKeeper event thread
+   * @throws ZkException if any zookeeper exception occurs
+   */
+  private String create(final String path, final Object dataObject, final List<ACL> acl,
+      final CreateMode mode, final String expectedSessionId)
+      throws IllegalArgumentException, ZkException {
     if (path == null) {
       throw new NullPointerException("Path must not be null.");
     }
@@ -556,15 +644,46 @@ public class ZkClient implements Watcher {
     }
     long startT = System.currentTimeMillis();
     try {
-      final byte[] data = datat == null ? null : serialize(datat, path);
-      checkDataSizeLimit(data);
-      String actualPath = retryUntilConnected(new Callable<String>() {
-        @Override
-        public String call() throws Exception {
-          return getConnection().create(path, data, acl, mode);
+      final byte[] dataBytes = dataObject == null ? null : serialize(dataObject, path);
+      checkDataSizeLimit(dataBytes);
+
+      final String actualPath = retryUntilConnected(() -> {
+        ZooKeeper zooKeeper = ((ZkConnection) getConnection()).getZookeeper();
+
+        /*
+         * 1. If operation is session aware, we have to check whether or not the
+         * passed-in(expected) session id matches actual session's id.
+         * If not, ephemeral node creation is failed. This validation is
+         * critical to guarantee the ephemeral node created by the expected ZK session.
+         *
+         * 2. Otherwise, the operation is NOT session aware.
+         * In this case, we will use the actual zookeeper session to create the node.
+         */
+        if (isSessionAwareOperation(expectedSessionId, mode)) {
+          acquireEventLock();
+          try {
+            final String actualSessionId = ZKUtil.toHexSessionId(zooKeeper.getSessionId());
+            if (!actualSessionId.equals(expectedSessionId)) {
+              throw new ZkSessionMismatchedException(
+                  "Failed to create ephemeral node! There is a session id mismatch. Expected: "
+                      + expectedSessionId + ". Actual: " + actualSessionId);
+            }
+
+            /*
+             * Cache the zookeeper reference and make sure later zooKeeper.create() is being run
+             * under this zookeeper connection. This is to avoid locking zooKeeper.create() which
+             * may cause potential performance issue.
+             */
+            zooKeeper = ((ZkConnection) getConnection()).getZookeeper();
+          } finally {
+            getEventLock().unlock();
+          }
         }
+
+        return zooKeeper.create(path, dataBytes, acl, mode);
       });
-      record(path, data, startT, ZkClientMonitor.AccessType.WRITE);
+
+      record(path, dataBytes, startT, ZkClientMonitor.AccessType.WRITE);
       return actualPath;
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.WRITE);
@@ -596,6 +715,33 @@ public class ZkClient implements Watcher {
   }
 
   /**
+   * Creates an ephemeral node. Given an expected non-null session id, if the ephemeral
+   * node is successfully created, it is guaranteed to be in the expected(passed-in) session.
+   *
+   * If the expected session is expired, which means the expected session does not match the session
+   * of current ZK connection, the ephemeral node will not be created.
+   * If connection is timed out or interrupted, exception is thrown.
+   *
+   * @param path path of the ephemeral node being created
+   * @param data data of the ephemeral node being created
+   * @param sessionId the expected session ID of the ZK connection. It is not necessarily the
+   *                  session ID of current ZK Connection. If the expected session ID is NOT null,
+   *                  the node is guaranteed to be created in the expected session, or creation is
+   *                  failed if the expected session id doesn't match current connected zk session.
+   *                  If the session id is null, it means the operation is NOT session aware
+   *                  and the node will be created by current ZK session.
+   * @throws ZkInterruptedException if operation is interrupted, or a required reconnection gets
+   *         interrupted
+   * @throws IllegalArgumentException if called from anything except the ZooKeeper event thread
+   * @throws ZkException if any ZooKeeper exception occurs
+   * @throws RuntimeException if any other exception occurs
+   */
+  public void createEphemeral(final String path, final Object data, final String sessionId)
+      throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
+    create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, sessionId);
+  }
+
+  /**
    * Create an ephemeral node.
    * @param path
    * @param data
@@ -615,6 +761,37 @@ public class ZkClient implements Watcher {
   }
 
   /**
+   * Creates an ephemeral node in an expected ZK session. Given an expected non-null session id,
+   * if the ephemeral node is successfully created, it is guaranteed to be in the expected session.
+   * If the expected session is expired, which means the expected session does not match the session
+   * of current ZK connection, the ephemeral node will not be created.
+   * If connection is timed out or interrupted, exception is thrown.
+   *
+   * @param path path of the ephemeral node being created
+   * @param data data of the ephemeral node being created
+   * @param acl list of ACL for the ephemeral node
+   * @param sessionId the expected session ID of the ZK connection. It is not necessarily the
+   *                  session ID of current ZK Connection. If the expected session ID is NOT null,
+   *                  the node is guaranteed to be created in the expected session, or creation is
+   *                  failed if the expected session id doesn't match current connected zk session.
+   *                  If the session id is null, it means the create operation is NOT session aware
+   *                  and the node will be created by current ZK session.
+   * @throws ZkInterruptedException
+   *           if operation was interrupted, or a required reconnection got interrupted
+   * @throws IllegalArgumentException
+   *           if called from anything except the ZooKeeper event thread
+   * @throws ZkException
+   *           if any ZooKeeper exception occurred
+   * @throws RuntimeException
+   *           if any other exception occurs
+   */
+  public void createEphemeral(final String path, final Object data, final List<ACL> acl,
+      final String sessionId)
+      throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
+    create(path, data, acl, CreateMode.EPHEMERAL, sessionId);
+  }
+
+  /**
    * Create an ephemeral, sequential node.
    * @param path
    * @param data
@@ -631,6 +808,65 @@ public class ZkClient implements Watcher {
   public String createEphemeralSequential(final String path, final Object data)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
     return create(path, data, CreateMode.EPHEMERAL_SEQUENTIAL);
+  }
+
+  /**
+   * Creates an ephemeral, sequential node with ACL in an expected ZK session.
+   * Given an expected non-null session id, if the ephemeral node is successfully created,
+   * it is guaranteed to be in the expected session.
+   * If the expected session is expired, which means the expected session does not match the session
+   * of current ZK connection, the ephemeral node will not be created.
+   * If connection is timed out or interrupted, exception is thrown.
+   *
+   * @param path path of the node
+   * @param data data of the node
+   * @param acl list of ACL for the node
+   * @return created path
+   * @throws ZkInterruptedException
+   *           if operation was interrupted, or a required reconnection got interrupted
+   * @throws IllegalArgumentException
+   *           if called from anything except the ZooKeeper event thread
+   * @throws ZkException
+   *           if any ZooKeeper exception occurred
+   * @throws RuntimeException
+   *           if any other exception occurs
+   */
+  public String createEphemeralSequential(final String path, final Object data, final List<ACL> acl,
+      final String sessionId)
+      throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
+    return create(path, data, acl, CreateMode.EPHEMERAL_SEQUENTIAL, sessionId);
+  }
+
+  /**
+   * Creates an ephemeral, sequential node. Given an expected non-null session id,
+   * if the ephemeral node is successfully created, it is guaranteed to be in the expected session.
+   * If the expected session is expired, which means the expected session does not match the session
+   * of current ZK connection, the ephemeral node will not be created.
+   * If connection is timed out or interrupted, exception is thrown.
+   *
+   * @param path path of the node
+   * @param data data of the node
+   * @param sessionId the expected session ID of the ZK connection. It is not necessarily the
+   *                  session ID of current ZK Connection. If the expected session ID is NOT null,
+   *                  the node is guaranteed to be created in the expected session, or creation is
+   *                  failed if the expected session id doesn't match current connected zk session.
+   *                  If the session id is null, it means the create operation is NOT session aware
+   *                  and the node will be created by current ZK session.
+   * @return created path
+   * @throws ZkInterruptedException
+   *           if operation was interrupted, or a required reconnection got interrupted
+   * @throws IllegalArgumentException
+   *           if called from anything except the ZooKeeper event thread
+   * @throws ZkException
+   *           if any ZooKeeper exception occurred
+   * @throws RuntimeException
+   *           if any other exception occurs
+   */
+  public String createEphemeralSequential(final String path, final Object data,
+      final String sessionId)
+      throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
+    return create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL,
+        sessionId);
   }
 
   /**
@@ -703,8 +939,6 @@ public class ZkClient implements Watcher {
         if (event.getState() == KeeperState.Expired) {
           getEventLock().getZNodeEventCondition().signalAll();
           getEventLock().getDataChangedCondition().signalAll();
-          // We also have to notify all listeners that something might have changed
-          fireAllEvents();
         }
       }
       if (znodeChanged) {
@@ -835,8 +1069,37 @@ public class ZkClient implements Watcher {
     if (getShutdownTrigger()) {
       return;
     }
+
     fireStateChangedEvent(event.getState());
-    if (isManagingZkConnection() && event.getState() == KeeperState.Expired) {
+
+    if (!isManagingZkConnection()) {
+      return;
+    }
+
+    if (event.getState() == KeeperState.SyncConnected) {
+      if (!_isNewSessionEventFired && !"0".equals(getHexSessionId())) {
+        /*
+         * Before the new zookeeper instance is connected to the zookeeper service and its session
+         * is established, its session id is 0.
+         * New session event is not fired until the new zookeeper session receives the first
+         * SyncConnected state(the zookeeper session is established).
+         * Now the session id is available and non-zero, and we can fire new session events.
+         */
+        fireNewSessionEvents();
+        /*
+         * Set it true to avoid firing events again for the same session next time
+         * when SyncConnected events are received.
+         */
+        _isNewSessionEventFired = true;
+
+        /*
+         * With this first SyncConnected state, we just get connected to zookeeper service after
+         * reconnecting when the session expired. Because previous session expired, we also have to
+         * notify all listeners that something might have changed.
+         */
+        fireAllEvents();
+      }
+    } else if (event.getState() == KeeperState.Expired) {
       reconnectOnExpiring();
     }
   }
@@ -850,7 +1113,6 @@ public class ZkClient implements Watcher {
     while (!isClosed()) {
       try {
         reconnect();
-        fireNewSessionEvents();
         return;
       } catch (ZkInterruptedException interrupt) {
         reconnectException = interrupt;
@@ -878,6 +1140,7 @@ public class ZkClient implements Watcher {
     try {
       ZkConnection connection = ((ZkConnection) getConnection());
       connection.reconnect(this);
+      _isNewSessionEventFired = false;
     } catch (InterruptedException e) {
       throw new ZkInterruptedException(e);
     } finally {
@@ -886,19 +1149,20 @@ public class ZkClient implements Watcher {
   }
 
   private void fireNewSessionEvents() {
+    final String sessionId = getHexSessionId();
     for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEvent("New session event sent to " + stateListener) {
+      _eventThread.send(new ZkEvent("New session event sent to " + stateListener, sessionId) {
 
         @Override
         public void run() throws Exception {
-          stateListener.handleNewSession(null);
+          stateListener.handleNewSession(sessionId);
         }
       });
     }
   }
 
   protected void fireStateChangedEvent(final KeeperState state) {
-    final String sessionId = Long.toHexString(getSessionId());
+    final String sessionId = getHexSessionId();
     for (final IZkStateListener stateListener : _stateListener) {
       final String description = "State changed to " + state + " sent to " + stateListener;
       _eventThread.send(new ZkEvent(description, sessionId) {
@@ -1166,6 +1430,12 @@ public class ZkClient implements Watcher {
     }
     try {
       while (true) {
+        // Because ConnectionLossException and SessionExpiredException are caught but not thrown,
+        // we don't know what causes retry. This is used to record which one of the two exceptions
+        // causes retry in ZkTimeoutException.
+        // This also helps the test testConnectionLossWhileCreateEphemeral.
+        KeeperException.Code retryCauseCode;
+
         if (isClosed()) {
           throw new IllegalStateException("ZkClient already closed!");
         }
@@ -1178,13 +1448,17 @@ public class ZkClient implements Watcher {
           }
           return callable.call();
         } catch (ConnectionLossException e) {
+          retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Disconnected'
           Thread.yield();
           waitForRetry();
         } catch (SessionExpiredException e) {
+          retryCauseCode = e.code();
           // we give the event thread some time to update the status to 'Expired'
           Thread.yield();
           waitForRetry();
+        } catch (ZkSessionMismatchedException e) {
+          throw e;
         } catch (KeeperException e) {
           throw ZkException.create(e);
         } catch (InterruptedException e) {
@@ -1195,7 +1469,8 @@ public class ZkClient implements Watcher {
         // before attempting a retry, check whether retry timeout has elapsed
         if (System.currentTimeMillis() - operationStartTime > _operationRetryTimeoutInMillis) {
           throw new ZkTimeoutException("Operation cannot be retried because of retry timeout ("
-              + _operationRetryTimeoutInMillis + " milli seconds)");
+              + _operationRetryTimeoutInMillis + " milli seconds). Retry was caused by "
+              + retryCauseCode);
         }
       }
     } finally {
@@ -1755,6 +2030,24 @@ public class ZkClient implements Watcher {
     } else {
       return zkConnection.getZookeeper().getSessionId();
     }
+  }
+
+  /*
+   * Gets a session id in hexadecimal notation.
+   * Ex. 1000a5ceb930004 is returned.
+   */
+  private String getHexSessionId() {
+    return ZKUtil.toHexSessionId(getSessionId());
+  }
+
+  /*
+   * Session aware operation needs below requirements:
+   * 1. the session id is NOT null or empty
+   * 2. create mode is EPHEMERAL or EPHEMERAL_SEQUENTIAL
+   */
+  private boolean isSessionAwareOperation(String expectedSessionId, CreateMode mode) {
+    return expectedSessionId != null && !expectedSessionId.isEmpty()
+        && (mode == CreateMode.EPHEMERAL || mode == CreateMode.EPHEMERAL_SEQUENTIAL);
   }
 
   // operations to update monitor's counters

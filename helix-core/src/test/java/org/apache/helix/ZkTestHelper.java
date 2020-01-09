@@ -202,7 +202,7 @@ public class ZkTestHelper {
 
     String newSessionId = Long.toHexString(curZookeeper.getSessionId());
     LOG.info("After session expiry. sessionId: " + newSessionId + ", zk: " + curZookeeper);
-    Assert.assertNotSame(newSessionId, oldSessionId, "Fail to expire current session, zk: "
+    Assert.assertFalse(newSessionId.equals(oldSessionId), "Fail to expire current session, zk: "
         + curZookeeper);
   }
 

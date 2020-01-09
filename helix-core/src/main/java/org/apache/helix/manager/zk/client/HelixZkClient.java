@@ -97,7 +97,11 @@ public interface HelixZkClient {
 
   void createEphemeral(final String path);
 
+  void createEphemeral(final String path, final String sessionId);
+
   void createEphemeral(final String path, final List<ACL> acl);
+
+  void createEphemeral(final String path, final List<ACL> acl, final String sessionId);
 
   String create(final String path, Object data, final CreateMode mode);
 
@@ -105,11 +109,21 @@ public interface HelixZkClient {
 
   void createEphemeral(final String path, final Object data);
 
+  void createEphemeral(final String path, final Object data, final String sessionId);
+
   void createEphemeral(final String path, final Object data, final List<ACL> acl);
+
+  void createEphemeral(final String path, final Object data, final List<ACL> acl,
+      final String sessionId);
 
   String createEphemeralSequential(final String path, final Object data);
 
   String createEphemeralSequential(final String path, final Object data, final List<ACL> acl);
+
+  String createEphemeralSequential(final String path, final Object data, final String sessionId);
+
+  String createEphemeralSequential(final String path, final Object data, final List<ACL> acl,
+      final String sessionId);
 
   List<String> getChildren(String path);
 

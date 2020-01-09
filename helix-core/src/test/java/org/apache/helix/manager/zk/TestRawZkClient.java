@@ -712,4 +712,24 @@ public class TestRawZkClient extends ZkUnitTestBase {
     // of its owner expires.
     _zkClient.delete(path);
   }
+
+  @Test
+  public void testWaitForEstablishedSession() {
+    ZkClient zkClient = new ZkClient(ZK_ADDR);
+    Assert.assertTrue(zkClient.waitForEstablishedSession(1, TimeUnit.SECONDS) != 0L);
+    TestHelper.stopZkServer(_zkServer);
+    Assert.assertTrue(zkClient.waitForKeeperState(KeeperState.Disconnected, 1, TimeUnit.SECONDS));
+
+    try {
+      zkClient.waitForEstablishedSession(3, TimeUnit.SECONDS);
+      Assert.fail("Connecting to zk server should time out and ZkTimeoutException is expected.");
+    } catch (ZkTimeoutException expected) {
+      // Because zk server is shutdown, zkClient should not connect to zk server and a
+      // ZkTimeoutException should be thrown.
+    }
+
+    zkClient.close();
+    // Recover zk server for later tests.
+    _zkServer.start();
+  }
 }

@@ -1368,15 +1368,29 @@ public class ZkClient implements Watcher {
     return _connection;
   }
 
+  public long waitForEstablishedSession(long timeout, TimeUnit timeUnit) {
+    validateCurrentThread();
+
+    acquireEventLock();
+    try {
+      if (!waitForKeeperState(KeeperState.SyncConnected, timeout, timeUnit)) {
+        throw new ZkTimeoutException("Waiting to be connected to ZK server has timed out.");
+      }
+      // Reading session ID before unlocking event lock is critical to guarantee the established
+      // session's ID won't change.
+      return getSessionId();
+    } finally {
+      getEventLock().unlock();
+    }
+  }
+
   public boolean waitUntilConnected(long time, TimeUnit timeUnit) throws ZkInterruptedException {
     return waitForKeeperState(KeeperState.SyncConnected, time, timeUnit);
   }
 
   public boolean waitForKeeperState(KeeperState keeperState, long time, TimeUnit timeUnit)
       throws ZkInterruptedException {
-    if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
-      throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
-    }
+    validateCurrentThread();
     Date timeout = new Date(System.currentTimeMillis() + timeUnit.toMillis(time));
 
     LOG.debug("Waiting for keeper state " + keeperState);
@@ -2134,6 +2148,12 @@ public class ZkClient implements Watcher {
        * to remove.
        */
       return _listener.hashCode();
+    }
+  }
+
+  private void validateCurrentThread() {
+    if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
+      throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
     }
   }
 }

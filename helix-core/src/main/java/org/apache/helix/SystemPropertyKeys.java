@@ -1,8 +1,10 @@
 package org.apache.helix;
 
 public class SystemPropertyKeys {
-  // Used to compose default values in HelixParticipantProperty
+  // Used to compose default values in HelixManagerProperty
   public static final String HELIX_MANAGER_PROPERTIES = "helix-manager.properties";
+
+  public static final String HELIX_MANAGER_VERSION = "clustermanager.version";
 
   // Used to compose default values in HelixCloudProperty when cloud provider is Azure
   public static final String AZURE_CLOUD_PROPERTIES = "azure-cloud.properties";

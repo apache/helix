@@ -41,8 +41,10 @@ public class HelixManagerProperty {
    * @param cloudConfig cloudConfig read from Zookeeper
    */
   public HelixManagerProperty(Properties properties, CloudConfig cloudConfig) {
-    _helixCloudProperty = new HelixCloudProperty(cloudConfig);
-    setVersion(properties.getProperty(SystemPropertyKeys.CLUSTER_MANAGER_VERSION));
+    if (cloudConfig != null) {
+      _helixCloudProperty = new HelixCloudProperty(cloudConfig);
+    }
+    setVersion(properties.getProperty(SystemPropertyKeys.HELIX_MANAGER_VERSION));
     setHealthReportLatency(properties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY));
   }
 

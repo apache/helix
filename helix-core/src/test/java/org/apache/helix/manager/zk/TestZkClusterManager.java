@@ -63,17 +63,10 @@ public class TestZkClusterManager extends ZkUnitTestBase {
       _gZkClient.deleteRecursively("/" + clusterName);
     }
 
+    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
+
     ZKHelixManager controller =
         new ZKHelixManager(clusterName, null, InstanceType.CONTROLLER, ZK_ADDR);
-
-    try {
-      controller.connect();
-      Assert.fail("Should throw HelixException if initial cluster structure is not setup");
-    } catch (HelixException e) {
-      // OK
-    }
-
-    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
     controller.connect();
     AssertJUnit.assertTrue(controller.isConnected());
@@ -243,11 +236,11 @@ public class TestZkClusterManager extends ZkUnitTestBase {
       _gZkClient.deleteRecursively("/" + clusterName);
     }
 
-    ZKHelixManager admin =
-        new ZKHelixManager(clusterName, null, InstanceType.ADMINISTRATOR, ZK_ADDR);
-
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
+    ZKHelixManager admin =
+        new ZKHelixManager(clusterName, null, InstanceType.ADMINISTRATOR, ZK_ADDR);
+    
     admin.connect();
     AssertJUnit.assertTrue(admin.isConnected());
 

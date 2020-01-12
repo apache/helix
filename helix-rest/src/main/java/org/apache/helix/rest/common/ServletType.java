@@ -21,21 +21,27 @@ package org.apache.helix.rest.common;
 
 import org.apache.helix.rest.server.resources.helix.AbstractHelixResource;
 import org.apache.helix.rest.server.resources.metadata.NamespacesAccessor;
+import org.apache.helix.rest.server.resources.zookeeper.ZooKeeperAccessor;
+
 
 public enum ServletType {
   /**
    * Servlet serving default API endpoints (/admin/v2/clusters/...)
    */
   DEFAULT_SERVLET(HelixRestNamespace.DEFAULT_NAMESPACE_PATH_SPEC,
-      new String[] { AbstractHelixResource.class.getPackage().getName(),
-          NamespacesAccessor.class.getPackage().getName()
+      new String[] {
+          AbstractHelixResource.class.getPackage().getName(),
+          NamespacesAccessor.class.getPackage().getName(),
+          ZooKeeperAccessor.class.getPackage().getName()
       }),
 
   /**
    * Servlet serving namespaced API endpoints (/admin/v2/namespaces/{namespaceName})
    */
   COMMON_SERVLET("/namespaces/%s/*",
-      new String[] { AbstractHelixResource.class.getPackage().getName(),
+      new String[] {
+          AbstractHelixResource.class.getPackage().getName(),
+          ZooKeeperAccessor.class.getPackage().getName()
       });
 
   private final String _servletPathSpecTemplate;

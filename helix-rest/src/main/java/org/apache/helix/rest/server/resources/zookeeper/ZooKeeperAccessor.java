@@ -19,24 +19,21 @@ package org.apache.helix.rest.server.resources.zookeeper;
  * under the License.
  */
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
-import org.apache.helix.HelixAdmin;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.resources.AbstractResource;
-import org.apache.helix.rest.server.resources.helix.ClusterAccessor;
-import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,42 +45,68 @@ import org.slf4j.LoggerFactory;
 @Path("/zookeeper")
 public class ZooKeeperAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperAccessor.class.getName());
+  private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
 
-  private ServerContext _serverContext =
-      (ServerContext) _application.getProperties().get(ContextPropertyKeys.SERVER_CONTEXT.name());
-  private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor =
-      _serverContext.getByteArrayZkBaseDataAccessor();
+  public enum ZooKeeperCommand {
+    exists, getBinaryData, getStringData, getChildren
+  }
 
   @GET
   @Path("{path: .+}")
-  public Response get(@PathParam("path") String path)
+  public Response get(@PathParam("path") String path, @QueryParam("command") String commandStr) {
+    ZooKeeperCommand cmd;
+    try {
+      cmd = ZooKeeperCommand.valueOf(commandStr);
+    } catch (Exception e) {
+      return badRequest("Invalid ZooKeeper command: " + commandStr);
+    }
+
+    // Lazily initialize ZkBaseDataAccessor
+    ServerContext _serverContext =
+        (ServerContext) _application.getProperties().get(ContextPropertyKeys.SERVER_CONTEXT.name());
+    _zkBaseDataAccessor = _serverContext.getByteArrayZkBaseDataAccessor();
+
+    // Need to prepend a "/" since JAX-RS regex removes it
+    path = "/" + path;
+    switch (cmd) {
+      case exists:
+        return exists(path);
+      case getBinaryData:
+        return getData(path, cmd);
+      case getStringData:
+        return getData(path, cmd);
+      case getChildren:
+        return getChildren(path);
+      default:
+        LOG.error("Unsupported command :" + commandStr);
+        return badRequest("Unsupported command :" + commandStr);
+    }
+  }
 
   /**
    * Checks if a ZNode exists in the given path.
    * @param path
    * @return true if a ZNode exists, false otherwise
    */
-  @GET
-  @Path("exists/{path: .+}")
-  public Response exists(@PathParam("path") String path) {
+  private Response exists(String path) {
     if (!isPathValid(path)) {
       String errMsg = "exists(): The given path {} is not a valid ZooKeeper path!" + path;
       LOG.error(errMsg);
       return badRequest(errMsg);
     }
 
-    boolean exists = _zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT);
-    return JSONRepresentation(exists);
+    Map<String, Boolean> result = ImmutableMap.of(ZooKeeperCommand.exists.name(),
+        _zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
+    return JSONRepresentation(result);
   }
 
   /**
    * Reads the given path from ZooKeeper and returns the binary data for the ZNode.
    * @param path
+   * @param command denotes whether return type should be binary or String
    * @return binary data in the ZNode
    */
-  @GET
-  @Path("getData/{path: .+}")
-  public Response getData(@PathParam("path") String path) {
+  private Response getData(String path, ZooKeeperCommand command) {
     if (!isPathValid(path)) {
       String errMsg = "getData(): The given path {} is not a valid ZooKeeper path!" + path;
       LOG.error(errMsg);
@@ -92,7 +115,19 @@ public class ZooKeeperAccessor extends AbstractResource {
 
     if (_zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
       byte[] bytes = _zkBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
-      return JSONRepresentation(bytes);
+      switch (command) {
+        case getBinaryData:
+          Map<String, byte[]> binaryResult =
+              ImmutableMap.of(ZooKeeperCommand.getBinaryData.name(), bytes);
+          return JSONRepresentation(binaryResult);
+        case getStringData:
+          Map<String, String> stringResult =
+              ImmutableMap.of(ZooKeeperCommand.getStringData.name(), new String(bytes));
+          return JSONRepresentation(stringResult);
+        default:
+          LOG.error("Unsupported command :" + command);
+          return badRequest("Unsupported command :" + command);
+      }
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
           .entity(String.format("The ZNode at path %s does not exist", path)).build());
@@ -104,9 +139,7 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @param path
    * @return list of child ZNodes
    */
-  @GET
-  @Path("getChildren/{path: .+}")
-  public Response getChildren(@PathParam("path") String path) {
+  private Response getChildren(String path) {
     if (!isPathValid(path)) {
       String errMsg = "getChildren(): The given path {} is not a valid ZooKeeper path!" + path;
       LOG.error(errMsg);
@@ -114,8 +147,9 @@ public class ZooKeeperAccessor extends AbstractResource {
     }
 
     if (_zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
-      List<String> children = _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT);
-      return JSONRepresentation(children);
+      Map<String, List<String>> result = ImmutableMap.of(ZooKeeperCommand.getChildren.name(),
+          _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT));
+      return JSONRepresentation(result);
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
           .entity(String.format("The ZNode at path %s does not exist", path)).build());

@@ -67,7 +67,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
     Assert.assertTrue(_testBaseDataAccessor.create(path, content.getBytes(), AccessOption.PERSISTENT));
     Assert.assertTrue(_testBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
 
-    String data = new JerseyUriRequestBuilder("zookeeper/exists{}").format(path)
+    String data = new JerseyUriRequestBuilder("zookeeper{}?command=exists").format(path)
         .isBodyReturnExpected(true).get(this);
 
     // Clean up

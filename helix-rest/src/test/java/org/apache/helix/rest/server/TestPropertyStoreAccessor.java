@@ -64,7 +64,7 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
         return new String(bytes);
       }
     });
-    // initially prepare the datas in different paths
+    // initially prepare the data in different paths
     Assert
         .assertTrue(_customDataAccessor.create(CUSTOM_PATH, TEST_CONTENT, AccessOption.PERSISTENT));
     Assert.assertTrue(_baseAccessor.create(ZNRECORD_PATH, TEST_ZNRECORD, AccessOption.PERSISTENT));

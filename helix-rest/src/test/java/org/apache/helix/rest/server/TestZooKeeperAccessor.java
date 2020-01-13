@@ -19,6 +19,10 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
@@ -58,17 +62,28 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testExists() {
+  public void testExists()
+      throws IOException {
     String path = "/path";
     Assert.assertFalse(_testBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
+    Map<String, Boolean> result = new HashMap<>();
+    String data = new JerseyUriRequestBuilder("zookeeper{}?command=exists").format(path)
+        .isBodyReturnExpected(true).get(this);
+    result = OBJECT_MAPPER.readValue(data, HashMap.class);
+    Assert.assertTrue(result.containsKey("exists"));
+    Assert.assertEquals(result.get("exists"), Boolean.FALSE);
 
     // Create a ZNode and check again
     String content = "testExists";
     Assert.assertTrue(_testBaseDataAccessor.create(path, content.getBytes(), AccessOption.PERSISTENT));
     Assert.assertTrue(_testBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
 
-    String data = new JerseyUriRequestBuilder("zookeeper{}?command=exists").format(path)
+    data = new JerseyUriRequestBuilder("zookeeper{}?command=exists").format(path)
         .isBodyReturnExpected(true).get(this);
+
+    result = OBJECT_MAPPER.readValue(data, HashMap.class);
+    Assert.assertTrue(result.containsKey("exists"));
+    Assert.assertEquals(result.get("exists"), Boolean.TRUE);
 
     // Clean up
     _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);

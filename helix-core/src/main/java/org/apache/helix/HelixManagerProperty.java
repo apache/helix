@@ -24,7 +24,6 @@ import org.apache.helix.model.CloudConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * Hold Helix participant properties. The participant properties further hold Helix cloud properties and some other properties
  * specific for the participant.

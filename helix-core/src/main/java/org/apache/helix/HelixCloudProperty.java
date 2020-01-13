@@ -37,19 +37,36 @@ public class HelixCloudProperty {
   private static final String AZURE_CLOUD_PROPERTY_FILE = SystemPropertyKeys.AZURE_CLOUD_PROPERTIES;
   private static final String CLOUD_INFO_SOURCE = "cloud_info_source";
   private static final String CLOUD_INFO_PROCESSFOR_NAME = "cloud_info_processor_name";
-  private static final String RETRY_MAX = "retry_max";
+  private static final String CLOUD_MAX_RETRY = "cloud_max_retry";
   private static final String CONNECTION_TIMEOUT_MS = "connection_timeout_ms";
   private static final String REQUEST_TIMEOUT_MS = "request_timeout_ms";
 
+  // Denote whether the instance is considered as in a cloud environment.
   private boolean _isCloudEnabled;
+
+  // Unique id of the cloud environment where the instance is in.
   private String _cloudId;
+
+  // Cloud environment provider, e.g. Azure, AWS, GCP, etc.
   private String _cloudProvider;
+
+  // The sources where the cloud instance information can be retrieved from.
   private List<String> _cloudInfoSources;
+
+  // The name of the function that will fetch and parse cloud instance information.
   private String _cloudInfoProcessorName;
-  private int _maxRetry;
+
+  // Http max retry times when querying the cloud instance information from cloud environment.
+  private int _cloudMaxRetry;
+
+  // Http connection time when querying the cloud instance information from cloud environment.
   private long _cloudConnectionTimeout;
+
+  // Http request timeout when querying the cloud instance information from cloud environment.
   private long _cloudRequestTimeout;
-  private Properties _customizedProperties = new Properties();
+
+  // Other customized properties that may be used.
+  private Properties _customizedCloudProperties = new Properties();
 
   /**
    * Initialize Helix Cloud Property based on the provider
@@ -73,7 +90,7 @@ public class HelixCloudProperty {
         LOG.info("Successfully loaded Helix Azure cloud properties: " + azureProperties);
         setCloudInfoSources(Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
         setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSFOR_NAME));
-        setCloudMaxRetry(azureProperties.getProperty(RETRY_MAX));
+        setCloudMaxRetry(azureProperties.getProperty(CLOUD_MAX_RETRY));
         setCloudConnectionTimeout(azureProperties.getProperty(CONNECTION_TIMEOUT_MS));
         setCloudRequestTimeout(azureProperties.getProperty(REQUEST_TIMEOUT_MS));
       case CUSTOMIZED:
@@ -104,8 +121,8 @@ public class HelixCloudProperty {
     return _cloudInfoProcessorName;
   }
 
-  public int getMaxRetry() {
-    return _maxRetry;
+  public int getCloudMaxRetry() {
+    return _cloudMaxRetry;
   }
 
   public long getCloudConnectionTimeout() {
@@ -116,8 +133,8 @@ public class HelixCloudProperty {
     return _cloudRequestTimeout;
   }
 
-  public Properties getCustomizedProperties() {
-    return _customizedProperties;
+  public Properties getCustomizedCloudProperties() {
+    return _customizedCloudProperties;
   }
 
   private void setCloudEndabled(boolean isCloudEnabled) {
@@ -140,8 +157,8 @@ public class HelixCloudProperty {
     _cloudInfoProcessorName = cloudInfoProcessorName;
   }
 
-  private void setCloudMaxRetry(String maxRetry) {
-    _maxRetry = Integer.valueOf(maxRetry);
+  private void setCloudMaxRetry(String cloudMaxRetry) {
+    _cloudMaxRetry = Integer.valueOf(cloudMaxRetry);
   }
 
   private void setCloudConnectionTimeout(String cloudConnectionTimeout) {
@@ -153,6 +170,6 @@ public class HelixCloudProperty {
   }
 
   public void setCustomizedCloudProperties(Properties customizedCloudProperties) {
-    _customizedProperties.putAll(customizedCloudProperties);
+    _customizedCloudProperties.putAll(customizedCloudProperties);
   }
 }

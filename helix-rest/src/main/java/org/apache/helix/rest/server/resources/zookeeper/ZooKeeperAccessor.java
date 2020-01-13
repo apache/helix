@@ -19,6 +19,8 @@ package org.apache.helix.rest.server.resources.zookeeper;
  * under the License.
  */
 
+import java.io.UnsupportedEncodingException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.GET;
@@ -115,10 +117,15 @@ public class ZooKeeperAccessor extends AbstractResource {
 
     if (_zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
       byte[] bytes = _zkBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
+      String s = new String(bytes);
+
       switch (command) {
         case getBinaryData:
           Map<String, byte[]> binaryResult =
               ImmutableMap.of(ZooKeeperCommand.getBinaryData.name(), bytes);
+          // Note: this serialization (using ObjectMapper) will convert this byte[] into
+          // a Base64 String! The REST client (user) must convert the resulting String back into
+          // a byte[] using Base64.
           return JSONRepresentation(binaryResult);
         case getStringData:
           Map<String, String> stringResult =

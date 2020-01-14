@@ -143,16 +143,9 @@ public class ClusterAccessor extends AbstractHelixResource {
 
     ClusterSetup clusterSetup = getClusterSetup();
 
-    if (!cloudConfigIncluded) {
-      try {
-        clusterSetup.addCluster(clusterId, recreateIfExists, null);
-      } catch (Exception ex) {
-        _logger.error("Failed to create cluster " + clusterId + ", exception: " + ex);
-        return serverError(ex);
-      }
+    CloudConfig cloudConfig = null;
 
-      return created();
-    } else {
+    if (cloudConfigIncluded) {
       ZNRecord record;
       try {
         record = toZNRecord(content);
@@ -161,14 +154,15 @@ public class ClusterAccessor extends AbstractHelixResource {
         return badRequest("Input is not a vaild ZNRecord!");
       }
       try {
-        CloudConfig cloudConfig = new CloudConfig.Builder(record).build();
+        cloudConfig = new CloudConfig.Builder(record).build();
         clusterSetup.addCluster(clusterId, recreateIfExists, cloudConfig);
       } catch (Exception ex) {
         _logger.error("Error in adding a CloudConfig to cluster: " + clusterId, ex);
         return badRequest(ex.getMessage());
       }
-      return created();
     }
+    clusterSetup.addCluster(clusterId, recreateIfExists, cloudConfig);
+    return created();
   }
 
   @DELETE
@@ -537,6 +531,119 @@ public class ClusterAccessor extends AbstractHelixResource {
   private boolean doesClusterExist(String cluster) {
     HelixZkClient zkClient = getHelixZkClient();
     return ZKUtil.isClusterSetup(cluster, zkClient);
+  }
+
+  @PUT
+  @Path("{clusterId}/cloudconfig")
+  public Response addCloudConfig(@PathParam("clusterId") String clusterId, String content) {
+
+    HelixZkClient zkClient = getHelixZkClient();
+    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
+      return notFound("Cluster is not properly setup!");
+    }
+
+    HelixAdmin admin = getHelixAdmin();
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      return badRequest("Input is not a vaild ZNRecord!");
+    }
+
+    try {
+      CloudConfig cloudConfig = new CloudConfig.Builder(record).build();
+      admin.addCloudConfig(clusterId, cloudConfig);
+    } catch (HelixException ex) {
+      _logger.error("Error in adding a CloudConfig to cluster: " + clusterId, ex);
+      return badRequest(ex.getMessage());
+    } catch (Exception ex) {
+      _logger.error("Cannot add CloudConfig to cluster: " + clusterId, ex);
+      return badRequest(ex.getMessage());
+    }
+
+    return OK();
+  }
+
+  @GET
+  @Path("{clusterId}/cloudconfig")
+  public Response getCloudConfig(@PathParam("clusterId") String clusterId) {
+
+    HelixZkClient zkClient = getHelixZkClient();
+    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
+      return notFound();
+    }
+
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    CloudConfig cloudConfig = configAccessor.getCloudConfig(clusterId);
+
+    if (cloudConfig != null) {
+      return JSONRepresentation(cloudConfig.getRecord());
+    }
+
+    return notFound();
+  }
+
+  @POST
+  @Path("{clusterId}/cloudconfig")
+  public Response updateCloudConfig(@PathParam("clusterId") String clusterId,
+      @QueryParam("command") String commandStr, String content) {
+
+    HelixZkClient zkClient = getHelixZkClient();
+    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
+      return notFound();
+    }
+
+    // Here to update cloud config
+    Command command;
+    if (commandStr == null || commandStr.isEmpty()) {
+      command = Command.update; // Default behavior
+    } else {
+      try {
+        command = getCommand(commandStr);
+      } catch (HelixException ex) {
+        return badRequest(ex.getMessage());
+      }
+    }
+
+    HelixAdmin admin = getHelixAdmin();
+
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      return badRequest("Input is not a vaild ZNRecord!");
+    }
+    try {
+      switch (command) {
+      case delete: {
+        admin.removeCloudConfig(clusterId);
+      }
+      break;
+      case update: {
+        try {
+          CloudConfig cloudConfig = new CloudConfig.Builder(record).build();
+          admin.removeCloudConfig(clusterId);
+          admin.addCloudConfig(clusterId, cloudConfig);
+        } catch (HelixException ex) {
+          _logger.error("Error in updating a CloudConfig to cluster: " + clusterId, ex);
+          return badRequest(ex.getMessage());
+        } catch (Exception ex) {
+          _logger.error("Cannot update CloudConfig for cluster: " + clusterId, ex);
+          return badRequest(ex.getMessage());
+        }
+      }
+      break;
+      default:
+        return badRequest("Unsupported command " + commandStr);
+      }
+    } catch (Exception ex) {
+      _logger.error("Failed to " + command + " cloud config, cluster " + clusterId + " new config: "
+          + content + ", Exception: " + ex);
+      return serverError(ex);
+    }
+    return OK();
   }
 
   /**

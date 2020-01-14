@@ -57,7 +57,7 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
       @PathParam("path") String path) {
     path = "/" + path;
     if (!ZooKeeperAccessor.isPathValid(path)) {
-      LOG.error("The propertyStore path {} is invalid for cluster {}", path, clusterId);
+      LOG.info("The propertyStore path {} is invalid for cluster {}", path, clusterId);
       return badRequest(
           "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
     }

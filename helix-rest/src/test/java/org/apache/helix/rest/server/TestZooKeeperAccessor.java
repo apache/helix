@@ -73,7 +73,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
         .isBodyReturnExpected(true).get(this);
     result = OBJECT_MAPPER.readValue(data, HashMap.class);
     Assert.assertTrue(result.containsKey("exists"));
-    Assert.assertEquals(result.get("exists"), Boolean.FALSE);
+    Assert.assertFalse(result.get("exists"));
 
     // Create a ZNode and check again
     String content = "testExists";
@@ -85,7 +85,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
         .isBodyReturnExpected(true).get(this);
     result = OBJECT_MAPPER.readValue(data, HashMap.class);
     Assert.assertTrue(result.containsKey("exists"));
-    Assert.assertEquals(result.get("exists"), Boolean.TRUE);
+    Assert.assertTrue(result.get("exists"));
 
     // Clean up
     _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);

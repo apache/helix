@@ -30,6 +30,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import com.google.common.base.Enums;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -56,10 +57,8 @@ public class ZooKeeperAccessor extends AbstractResource {
   @GET
   @Path("{path: .+}")
   public Response get(@PathParam("path") String path, @QueryParam("command") String commandStr) {
-    ZooKeeperCommand cmd;
-    try {
-      cmd = ZooKeeperCommand.valueOf(commandStr);
-    } catch (Exception e) {
+    ZooKeeperCommand cmd = getZooKeeperCommandIfPresent(commandStr);
+    if (cmd == null) {
       return badRequest("Invalid ZooKeeper command: " + commandStr);
     }
 
@@ -74,7 +73,6 @@ public class ZooKeeperAccessor extends AbstractResource {
       case exists:
         return exists(path);
       case getBinaryData:
-        return getData(path, cmd);
       case getStringData:
         return getData(path, cmd);
       case getChildren:
@@ -92,8 +90,8 @@ public class ZooKeeperAccessor extends AbstractResource {
    */
   private Response exists(String path) {
     if (!isPathValid(path)) {
-      String errMsg = "exists(): The given path {} is not a valid ZooKeeper path!" + path;
-      LOG.error(errMsg);
+      String errMsg = "exists(): The given path is not a valid ZooKeeper path: " + path;
+      LOG.info(errMsg);
       return badRequest(errMsg);
     }
 
@@ -110,8 +108,8 @@ public class ZooKeeperAccessor extends AbstractResource {
    */
   private Response getData(String path, ZooKeeperCommand command) {
     if (!isPathValid(path)) {
-      String errMsg = "getData(): The given path {} is not a valid ZooKeeper path!" + path;
-      LOG.error(errMsg);
+      String errMsg = "getData(): The given path is not a valid ZooKeeper path: " + path;
+      LOG.info(errMsg);
       return badRequest(errMsg);
     }
 
@@ -132,12 +130,12 @@ public class ZooKeeperAccessor extends AbstractResource {
               ImmutableMap.of(ZooKeeperCommand.getStringData.name(), new String(bytes));
           return JSONRepresentation(stringResult);
         default:
-          LOG.error("Unsupported command :" + command);
-          return badRequest("Unsupported command :" + command);
+          LOG.error("Unsupported command : " + command);
+          return badRequest("Unsupported command : " + command);
       }
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-          .entity(String.format("The ZNode at path %s does not exist", path)).build());
+          .entity(String.format("The ZNode at path %s does not exist!", path)).build());
     }
   }
 
@@ -148,8 +146,8 @@ public class ZooKeeperAccessor extends AbstractResource {
    */
   private Response getChildren(String path) {
     if (!isPathValid(path)) {
-      String errMsg = "getChildren(): The given path {} is not a valid ZooKeeper path!" + path;
-      LOG.error(errMsg);
+      String errMsg = "getChildren(): The given path is not a valid ZooKeeper path: " + path;
+      LOG.info(errMsg);
       return badRequest(errMsg);
     }
 
@@ -161,6 +159,10 @@ public class ZooKeeperAccessor extends AbstractResource {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
           .entity(String.format("The ZNode at path %s does not exist", path)).build());
     }
+  }
+
+  private ZooKeeperCommand getZooKeeperCommandIfPresent(String command) {
+    return Enums.getIfPresent(ZooKeeperCommand.class, command).orNull();
   }
 
   /**

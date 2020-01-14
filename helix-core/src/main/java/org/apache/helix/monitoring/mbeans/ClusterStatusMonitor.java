@@ -367,24 +367,25 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   /**
-   * Update max capacity usage for per instance. Before calling this API, we assume the instance
-   * monitors are already registered in ReadClusterDataStage. If the monitor is not registered, this
-   * max usage update will fail.
+   * Updates instance capacity status for per instance, including max usage and capacity of each
+   * capacity key. Before calling this API, we assume the instance monitors are already registered
+   * in ReadClusterDataStage. If the monitor is not registered, this instance capacity status update
+   * will fail.
    *
-   * @param maxUsageMap a map of max capacity usage, {instance: maxCapacityUsage}
+   * @param instanceName This instance name
+   * @param maxUsage Max capacity usage of this instance
+   * @param capacityMap A map of this instance capacity, {capacity key: capacity value}
    */
-  public void updateInstanceMaxUsage(Map<String, Double> maxUsageMap) {
-    synchronized (_instanceMonitorMap) {
-      for (Map.Entry<String, Double> entry : maxUsageMap.entrySet()) {
-        InstanceMonitor monitor = _instanceMonitorMap.get(entry.getKey());
-        if (monitor == null) {
-          LOG.warn("Failed to update max usage because instance monitor is not found, instance: {}.",
-              entry.getKey());
-          continue;
-        }
-        monitor.updateMaxCapacityUsage(entry.getValue());
-      }
+  public void updateInstanceCapacityStatus(String instanceName, double maxUsage,
+      Map<String, Integer> capacityMap) {
+    InstanceMonitor monitor = _instanceMonitorMap.get(instanceName);
+    if (monitor == null) {
+      LOG.warn("Failed to update instance capacity status because instance monitor is not found, "
+          + "instance: {}.", instanceName);
+      return;
     }
+    monitor.updateMaxCapacityUsage(maxUsage);
+    monitor.updateCapacity(capacityMap);
   }
 
   /**

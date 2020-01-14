@@ -100,7 +100,7 @@ grep -C 1 "$new_version" helix-lock/pom.xml
 ivy_file="helix-lock-"$version".ivy"
 new_ivy_file="helix-lock-"$new_version".ivy"
 # echo "$ivy_file"
-if [ -f helix-rest/$ivy_file ]; then
+if [ -f helix-lock/$ivy_file ]; then
   echo "bump up helix-lock/$ivy_file"
   git mv "helix-lock/$ivy_file" "helix-lock/$new_ivy_file"
   sed -i "s/${version}/${new_version}/g" "helix-lock/$new_ivy_file"

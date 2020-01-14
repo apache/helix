@@ -22,7 +22,7 @@ under the License.
 		module="helix-lock"
 		revision="0.9.2-SNAPSHOT"
 		status="integration"
-		publication="20170128141623"
+		publication="20200114115923"
 	/>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

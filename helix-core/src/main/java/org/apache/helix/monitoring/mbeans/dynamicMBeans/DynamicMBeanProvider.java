@@ -114,10 +114,8 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
     Map<String, DynamicMetric> newAttributeMap = new HashMap<>();
 
     // Get all attributes that can be emitted by the dynamicMetrics.
-    for (DynamicMetric dynamicMetric : dynamicMetrics) {
-      Iterator<MBeanAttributeInfo> iter = dynamicMetric.getAttributeInfos().iterator();
-      while (iter.hasNext()) {
-        MBeanAttributeInfo attributeInfo = iter.next();
+    for (DynamicMetric<?, ?> dynamicMetric : dynamicMetrics) {
+      for (MBeanAttributeInfo attributeInfo : dynamicMetric.getAttributeInfos()) {
         // Info list to create MBean info
         attributeInfoList.add(attributeInfo);
         // Attribute mapping for getting attribute value when getAttribute() is called

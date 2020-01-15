@@ -162,6 +162,23 @@ else
   echo "helix-rest/$ivy_file not exist"
 fi
 
+echo "bump up helix-lock/pom.xml"
+sed -i "s/${version}/${new_version}/g" helix-lock/pom.xml
+grep -C 1 "$new_version" helix-lock/pom.xml
+# git diff helix-lock/pom.xml
+
+ivy_file="helix-lock-"$version".ivy"
+new_ivy_file="helix-lock-"$new_version".ivy"
+# echo "$ivy_file"
+if [ -f helix-lock/$ivy_file ]; then
+  echo "bump up helix-lock/$ivy_file"
+  git mv "helix-lock/$ivy_file" "helix-lock/$new_ivy_file"
+  sed -i "s/${version}/${new_version}/g" "helix-lock/$new_ivy_file"
+  grep -C 1 "$new_version" "helix-lock/$new_ivy_file"
+else
+  echo "helix-lock/$ivy_file not exist"
+fi
+
 echo "bump up helix-agent/pom.xml"
 sed -i "s/${version}/${new_version}/g" helix-agent/pom.xml
 grep -C 1 "$new_version" helix-agent/pom.xml

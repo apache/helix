@@ -51,7 +51,10 @@ public class ZooKeeperAccessor extends AbstractResource {
   private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
 
   public enum ZooKeeperCommand {
-    exists, getBinaryData, getStringData, getChildren
+    exists,
+    getBinaryData,
+    getStringData,
+    getChildren
   }
 
   @GET
@@ -69,6 +72,14 @@ public class ZooKeeperAccessor extends AbstractResource {
 
     // Need to prepend a "/" since JAX-RS regex removes it
     path = "/" + path;
+
+    // Check that the path supplied is valid
+    if (!isPathValid(path)) {
+      String errMsg = "The given path is not a valid ZooKeeper path: " + path;
+      LOG.info(errMsg);
+      return badRequest(errMsg);
+    }
+
     switch (cmd) {
       case exists:
         return exists(path);
@@ -78,8 +89,8 @@ public class ZooKeeperAccessor extends AbstractResource {
       case getChildren:
         return getChildren(path);
       default:
-        LOG.error("Unsupported command :" + commandStr);
-        return badRequest("Unsupported command :" + commandStr);
+        LOG.error("Unsupported command: " + commandStr);
+        return badRequest("Unsupported command: " + commandStr);
     }
   }
 
@@ -89,12 +100,6 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @return true if a ZNode exists, false otherwise
    */
   private Response exists(String path) {
-    if (!isPathValid(path)) {
-      String errMsg = "exists(): The given path is not a valid ZooKeeper path: " + path;
-      LOG.info(errMsg);
-      return badRequest(errMsg);
-    }
-
     Map<String, Boolean> result = ImmutableMap.of(ZooKeeperCommand.exists.name(),
         _zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
     return JSONRepresentation(result);
@@ -107,16 +112,8 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @return binary data in the ZNode
    */
   private Response getData(String path, ZooKeeperCommand command) {
-    if (!isPathValid(path)) {
-      String errMsg = "getData(): The given path is not a valid ZooKeeper path: " + path;
-      LOG.info(errMsg);
-      return badRequest(errMsg);
-    }
-
     if (_zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
       byte[] bytes = _zkBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
-      String s = new String(bytes);
-
       switch (command) {
         case getBinaryData:
           Map<String, byte[]> binaryResult =
@@ -145,12 +142,6 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @return list of child ZNodes
    */
   private Response getChildren(String path) {
-    if (!isPathValid(path)) {
-      String errMsg = "getChildren(): The given path is not a valid ZooKeeper path: " + path;
-      LOG.info(errMsg);
-      return badRequest(errMsg);
-    }
-
     if (_zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
       Map<String, List<String>> result = ImmutableMap.of(ZooKeeperCommand.getChildren.name(),
           _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT));

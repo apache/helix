@@ -205,7 +205,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
       String zkAddress, HelixManagerStateListener stateListener) {
-    this(clusterName, instanceName, instanceType, zkAddress,stateListener, null);
+      this(clusterName, instanceName, instanceType, zkAddress,stateListener, HelixPropertyFactory.getInstance().getHelixManagerProperty(zkAddress, clusterName));
   }
 
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
@@ -252,12 +252,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
 
     _stateListener = stateListener;
+    _helixManagerProperty = helixManagerProperty;
 
-    if (helixManagerProperty != null) {
-      _helixManagerProperty = helixManagerProperty;
-    } else {
-      _helixManagerProperty = HelixPropertyFactory.getInstance().getHelixManagerProperty(zkAddress, clusterName);
-    }
     /**
      * use system property if available
      */

@@ -240,7 +240,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
 
     ZKHelixManager admin =
         new ZKHelixManager(clusterName, null, InstanceType.ADMINISTRATOR, ZK_ADDR);
-    
+
     admin.connect();
     AssertJUnit.assertTrue(admin.isConnected());
 

@@ -93,11 +93,14 @@ public class HelixCloudProperty {
         setCloudMaxRetry(azureProperties.getProperty(CLOUD_MAX_RETRY));
         setCloudConnectionTimeout(azureProperties.getProperty(CONNECTION_TIMEOUT_MS));
         setCloudRequestTimeout(azureProperties.getProperty(REQUEST_TIMEOUT_MS));
+        break;
       case CUSTOMIZED:
         setCloudInfoSources(cloudConfig.getCloudInfoSources());
         setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
+        break;
       default:
         LOG.info("Unsupported cloud provider: " + cloudConfig.getCloudProvider());
+        throw new HelixException(String.format("Unsupported cloud provider: %s", cloudConfig.getCloudProvider()));
     }
   }
 
@@ -137,35 +140,35 @@ public class HelixCloudProperty {
     return _customizedCloudProperties;
   }
 
-  private void setCloudEndabled(boolean isCloudEnabled) {
+  public void setCloudEndabled(boolean isCloudEnabled) {
     _isCloudEnabled = isCloudEnabled;
   }
 
-  private void setCloudId(String cloudId) {
+  public void setCloudId(String cloudId) {
     _cloudId = cloudId;
   }
 
-  private void setCloudProvider(String cloudProvider) {
+  public void setCloudProvider(String cloudProvider) {
     _cloudProvider = cloudProvider;
   }
 
-  private void setCloudInfoSources(List<String> sources) {
+  public void setCloudInfoSources(List<String> sources) {
     _cloudInfoSources = sources;
   }
 
-  private void setCloudInfoProcessorName(String cloudInfoProcessorName) {
+  public void setCloudInfoProcessorName(String cloudInfoProcessorName) {
     _cloudInfoProcessorName = cloudInfoProcessorName;
   }
 
-  private void setCloudMaxRetry(String cloudMaxRetry) {
+  public void setCloudMaxRetry(String cloudMaxRetry) {
     _cloudMaxRetry = Integer.valueOf(cloudMaxRetry);
   }
 
-  private void setCloudConnectionTimeout(String cloudConnectionTimeout) {
+  public void setCloudConnectionTimeout(String cloudConnectionTimeout) {
     _cloudConnectionTimeout = Long.valueOf(cloudConnectionTimeout);
   }
 
-  private void setCloudRequestTimeout(String cloudRequestTimeout) {
+  public void setCloudRequestTimeout(String cloudRequestTimeout) {
     _cloudRequestTimeout = Long.valueOf(cloudRequestTimeout);
   }
 

@@ -79,6 +79,7 @@ public class ParticipantManager {
   final List<PreConnectCallback> _preConnectCallbacks;
   final HelixManagerProperty _helixManagerProperty;
 
+  @Deprecated
   public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
       LiveInstanceInfoProvider liveInstanceInfoProvider, List<PreConnectCallback> preConnectCallbacks) {
     this(manager, zkclient, sessionTimeout, liveInstanceInfoProvider, preConnectCallbacks, null);

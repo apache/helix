@@ -116,7 +116,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private HelixCallbackMonitor _monitor;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
-  private CallbackProcessor _batchCallbackProcessor;
+  public CallbackProcessor _batchCallbackProcessor;
   private boolean _watchChild = true; // Whether we should subscribe to the child znode's data
                                       // change.
 
@@ -165,7 +165,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
-  class CallbackProcessor
+  public class CallbackProcessor
       extends DedupEventProcessor<NotificationContext.Type, NotificationContext> {
     private CallbackHandler _handler;
 
@@ -501,23 +501,20 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   private void subscribeForChanges(NotificationContext.Type callbackType, String path,
       boolean watchChild) {
-    logger.info("Subscribing changes listener to path: " + path + ", type: " + callbackType
-        + ", listener: " + _listener);
+    logger
+        .info("Subscribing changes listener on path: {}, callbackType: {}, listener: {}, isWatchChild: {}",
+            path, callbackType, _listener, watchChild);
 
     long start = System.currentTimeMillis();
     if (_eventTypes.contains(EventType.NodeDataChanged)
         || _eventTypes.contains(EventType.NodeCreated)
         || _eventTypes.contains(EventType.NodeDeleted)) {
-      logger.info("Subscribing data change listener to path: " + path);
       subscribeDataChange(path, callbackType);
     }
 
     if (_eventTypes.contains(EventType.NodeChildrenChanged)) {
-      logger.info("Subscribing child change listener to path:" + path);
       subscribeChildChange(path, callbackType);
       if (watchChild) {
-        logger.info("Subscribing data change listener to all children for path:" + path);
-
         try {
           switch (_changeType) {
           case CURRENT_STATE:
@@ -583,8 +580,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * exists
    */
   public void init() {
-    logger.info("initializing CallbackHandler: " + this.toString() + " content: " + getContent());
-
+    logger.info("Initializing CallbackHandler, content: {}", getContent());
     if (_batchModeEnabled) {
       synchronized (this) {
         if (_batchCallbackProcessor != null) {
@@ -697,8 +693,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   void reset(boolean isShutdown) {
-    logger.info("Resetting CallbackHandler: {}. Is resetting for shutdown: {}.", this.toString(),
-        isShutdown);
+    logger.info("Reset CallbackHandler. isShutdown: {}. Content: {}", isShutdown, getContent());
     try {
       _ready = false;
       synchronized (this) {
@@ -718,6 +713,21 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     } catch (Exception e) {
       String msg = "Exception while resetting the listener:" + _listener;
       ZKExceptionHandler.getInstance().handle(msg, e);
+    }
+  }
+
+  /**
+   * The package private method only closes the batchCallbackProcessor thread
+   * *Caution*: currently it's only used during disconnecting from ZK and the
+   * listeners unsubscription will be taken care by zkClient directly
+   */
+  void closeCallbackProcessor() {
+    _ready = false;
+    synchronized (this) {
+      if (_batchCallbackProcessor != null) {
+        _batchCallbackProcessor.shutdown();
+        _batchCallbackProcessor = null;
+      }
     }
   }
 

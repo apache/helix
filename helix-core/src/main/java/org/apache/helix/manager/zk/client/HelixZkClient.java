@@ -79,6 +79,12 @@ public interface HelixZkClient {
   @Deprecated
   void unsubscribeStateChanges(org.I0Itec.zkclient.IZkStateListener listener);
 
+  /**
+   * Unsubscribe all listeners including
+   * - all {@link IZkStateListener}
+   * - all {@link IZkDataListener}
+   * - all {@link IZkChildListener}
+   */
   void unsubscribeAll();
 
   // data access

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
@@ -722,12 +723,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public void connect() throws Exception {
-    LOG.info("ClusterManager.connect()");
     if (isConnected()) {
       LOG.warn("Cluster manager: " + _instanceName + " for cluster: " + _clusterName
           + " already connected. skip connect");
       return;
     }
+    LOG.info("ClusterManager.connect()");
 
     switch (_instanceType) {
     case CONTROLLER:
@@ -768,8 +769,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       /**
        * stop all timer tasks
        */
-      stopTimerTasks();
-
+      _timerTasks.forEach(HelixTimerTask::stop);
+      _controllerTimerTasks.forEach(HelixTimerTask::stop);
       /**
        * shutdown thread pool first to avoid reset() being invoked in the middle of state
        * transition
@@ -778,13 +779,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
       // TODO reset user defined handlers only
       // TODO Fix the issue that when connection disconnected, reset handlers will be blocked. -- JJ
-      // This is because reset logic contains ZK operations.
-      resetHandlers(true);
-
-      if (_leaderElectionHandler != null) {
-        _leaderElectionHandler.reset(true);
+      // remove every subscribed listener
+      if (_zkclient != null) {
+        _zkclient.unsubscribeAll();
       }
-
     } finally {
       GenericHelixController controller = _controller;
       if (controller != null) {
@@ -807,6 +805,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       _helixPropertyStore = null;
 
       synchronized (this) {
+        if (_leaderElectionHandler != null) {
+          _leaderElectionHandler.closeCallbackProcessor();
+        }
         if (_controller != null) {
           _controller = null;
           _leaderElectionHandler = null;
@@ -818,6 +819,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
         if (_zkclient != null) {
           _zkclient.close();
+        }
+        if (_dataAccessor != null) {
+          _dataAccessor.getBaseDataAccessor().reset();
+        }
+        for (CallbackHandler handler : _handlers) {
+          handler.closeCallbackProcessor();
         }
       }
       _sessionStartTime = null;
@@ -1004,7 +1011,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       if (handlers != null) {
         for (CallbackHandler handler : handlers) {
           handler.init();
-          LOG.info("init handler: " + handler.getPath() + ", " + handler.getListener());
         }
       }
     }
@@ -1020,7 +1026,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
         for (CallbackHandler handler : tmpHandlers) {
           handler.reset(isShutdown);
-          LOG.info("reset handler: " + handler.getPath() + ", " + handler.getListener());
         }
       }
     }

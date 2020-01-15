@@ -82,12 +82,13 @@ public class ZooKeeperAccessor extends AbstractResource {
 
     switch (cmd) {
       case exists:
-        return exists(path);
+        return exists(_zkBaseDataAccessor, path);
       case getBinaryData:
+        return getBinaryData(_zkBaseDataAccessor, path);
       case getStringData:
-        return getData(path, cmd);
+        return getStringData(_zkBaseDataAccessor, path);
       case getChildren:
-        return getChildren(path);
+        return getChildren(_zkBaseDataAccessor, path);
       default:
         String errMsg = "Unsupported command: " + commandStr;
         LOG.error(errMsg);
@@ -97,41 +98,54 @@ public class ZooKeeperAccessor extends AbstractResource {
 
   /**
    * Checks if a ZNode exists in the given path.
+   * @param zkBaseDataAccessor
    * @param path
    * @return true if a ZNode exists, false otherwise
    */
-  private Response exists(String path) {
+  private Response exists(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
     Map<String, Boolean> result = ImmutableMap.of(ZooKeeperCommand.exists.name(),
-        _zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
+        zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
     return JSONRepresentation(result);
   }
 
   /**
-   * Reads the given path from ZooKeeper and returns the binary data for the ZNode.
+   * Returns a response containing the binary data.
+   * @param zkBaseDataAccessor
    * @param path
-   * @param command denotes whether return type should be binary or String
-   * @return binary data in the ZNode
+   * @return
    */
-  private Response getData(String path, ZooKeeperCommand command) {
-    if (_zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
-      byte[] bytes = _zkBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
-      switch (command) {
-        case getBinaryData:
-          Map<String, byte[]> binaryResult =
-              ImmutableMap.of(ZooKeeperCommand.getBinaryData.name(), bytes);
-          // Note: this serialization (using ObjectMapper) will convert this byte[] into
-          // a Base64 String! The REST client (user) must convert the resulting String back into
-          // a byte[] using Base64.
-          return JSONRepresentation(binaryResult);
-        case getStringData:
-          Map<String, String> stringResult =
-              ImmutableMap.of(ZooKeeperCommand.getStringData.name(), new String(bytes));
-          return JSONRepresentation(stringResult);
-        default:
-          String errMsg = "Unsupported command: " + command;
-          LOG.error(errMsg);
-          return badRequest(errMsg);
-      }
+  private Response getBinaryData(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
+    byte[] bytes = readBinaryDataFromZK(zkBaseDataAccessor, path);
+    Map<String, byte[]> binaryResult =
+        ImmutableMap.of(ZooKeeperCommand.getBinaryData.name(), bytes);
+    // Note: this serialization (using ObjectMapper) will convert this byte[] into
+    // a Base64 String! The REST client (user) must convert the resulting String back into
+    // a byte[] using Base64.
+    return JSONRepresentation(binaryResult);
+  }
+
+  /**
+   * Returns a response containing the string data.
+   * @param zkBaseDataAccessor
+   * @param path
+   * @return
+   */
+  private Response getStringData(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
+    byte[] bytes = readBinaryDataFromZK(zkBaseDataAccessor, path);
+    Map<String, String> stringResult =
+        ImmutableMap.of(ZooKeeperCommand.getStringData.name(), new String(bytes));
+    return JSONRepresentation(stringResult);
+  }
+
+  /**
+   * Returns byte[] from ZooKeeper.
+   * @param zkBaseDataAccessor
+   * @param path
+   * @return
+   */
+  private byte[] readBinaryDataFromZK(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
+    if (zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
+      return zkBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
           .entity(String.format("The ZNode at path %s does not exist!", path)).build());
@@ -140,10 +154,11 @@ public class ZooKeeperAccessor extends AbstractResource {
 
   /**
    * Returns a list of children ZNode names given the path for the parent ZNode.
+   * @param zkBaseDataAccessor
    * @param path
    * @return list of child ZNodes
    */
-  private Response getChildren(String path) {
+  private Response getChildren(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
     if (_zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
       Map<String, List<String>> result = ImmutableMap.of(ZooKeeperCommand.getChildren.name(),
           _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT));

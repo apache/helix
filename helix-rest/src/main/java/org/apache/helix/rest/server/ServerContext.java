@@ -138,7 +138,8 @@ public class ServerContext {
           @Override
           public byte[] serialize(Object o)
               throws ZkMarshallingError {
-            throw new UnsupportedOperationException("serialize() is not supported yet!");
+            // TODO: Support serialize for write methods if necessary
+            throw new UnsupportedOperationException("serialize() is not supported.");
           }
 
           @Override

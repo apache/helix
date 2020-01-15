@@ -89,8 +89,9 @@ public class ZooKeeperAccessor extends AbstractResource {
       case getChildren:
         return getChildren(path);
       default:
-        LOG.error("Unsupported command: " + commandStr);
-        return badRequest("Unsupported command: " + commandStr);
+        String errMsg = "Unsupported command: " + commandStr;
+        LOG.error(errMsg);
+        return badRequest(errMsg);
     }
   }
 
@@ -127,8 +128,9 @@ public class ZooKeeperAccessor extends AbstractResource {
               ImmutableMap.of(ZooKeeperCommand.getStringData.name(), new String(bytes));
           return JSONRepresentation(stringResult);
         default:
-          LOG.error("Unsupported command : " + command);
-          return badRequest("Unsupported command : " + command);
+          String errMsg = "Unsupported command: " + command;
+          LOG.error(errMsg);
+          return badRequest(errMsg);
       }
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)

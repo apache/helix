@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.management.JMException;
 import javax.management.ObjectName;
 
@@ -41,7 +42,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   /**
    * Metric names for instance capacity.
    */
-  public enum InstanceMonitorMetrics {
+  public enum InstanceMonitorMetric {
     // TODO: change the metric names with Counter and Gauge suffix and deprecate old names.
     TOTAL_MESSAGE_RECEIVED_COUNTER("TotalMessageReceived"),
     ENABLED_STATUS_GAUGE("Enabled"),
@@ -49,9 +50,9 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     DISABLED_PARTITIONS_GAUGE("DisabledPartitions"),
     MAX_CAPACITY_USAGE_GAUGE("MaxCapacityUsageGauge");
 
-    private String metricName;
+    private final String metricName;
 
-    InstanceMonitorMetrics(String name) {
+    InstanceMonitorMetric(String name) {
       metricName = name;
     }
 
@@ -75,6 +76,9 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _onlineStatusGauge;
   private SimpleDynamicMetric<Double> _maxCapacityUsageGauge;
 
+  // A map of dynamic capacity Gauges. The map's keys could change.
+  private final Map<String, SimpleDynamicMetric<Long>> _dynamicCapacityMetricsMap;
+
   /**
    * Initialize the bean
    * @param clusterName the cluster to monitor
@@ -85,24 +89,39 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     _participantName = participantName;
     _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
     _initObjectName = objectName;
+    _dynamicCapacityMetricsMap = new ConcurrentHashMap<>();
 
     createMetrics();
   }
 
   private void createMetrics() {
     _totalMessagedReceivedCounter = new SimpleDynamicMetric<>(
-        InstanceMonitorMetrics.TOTAL_MESSAGE_RECEIVED_COUNTER.metricName(), 0L);
+        InstanceMonitorMetric.TOTAL_MESSAGE_RECEIVED_COUNTER.metricName(), 0L);
 
     _disabledPartitionsGauge =
-        new SimpleDynamicMetric<>(InstanceMonitorMetrics.DISABLED_PARTITIONS_GAUGE.metricName(),
+        new SimpleDynamicMetric<>(InstanceMonitorMetric.DISABLED_PARTITIONS_GAUGE.metricName(),
             0L);
     _enabledStatusGauge =
-        new SimpleDynamicMetric<>(InstanceMonitorMetrics.ENABLED_STATUS_GAUGE.metricName(), 0L);
+        new SimpleDynamicMetric<>(InstanceMonitorMetric.ENABLED_STATUS_GAUGE.metricName(), 0L);
     _onlineStatusGauge =
-        new SimpleDynamicMetric<>(InstanceMonitorMetrics.ONLINE_STATUS_GAUGE.metricName(), 0L);
+        new SimpleDynamicMetric<>(InstanceMonitorMetric.ONLINE_STATUS_GAUGE.metricName(), 0L);
     _maxCapacityUsageGauge =
-        new SimpleDynamicMetric<>(InstanceMonitorMetrics.MAX_CAPACITY_USAGE_GAUGE.metricName(),
+        new SimpleDynamicMetric<>(InstanceMonitorMetric.MAX_CAPACITY_USAGE_GAUGE.metricName(),
             0.0d);
+  }
+
+  private List<DynamicMetric<?, ?>> buildAttributeList() {
+    List<DynamicMetric<?, ?>> attributeList = Lists.newArrayList(
+        _totalMessagedReceivedCounter,
+        _disabledPartitionsGauge,
+        _enabledStatusGauge,
+        _onlineStatusGauge,
+        _maxCapacityUsageGauge
+    );
+
+    attributeList.addAll(_dynamicCapacityMetricsMap.values());
+
+    return attributeList;
   }
 
   @Override
@@ -183,7 +202,7 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   }
 
   /**
-   * Update max capacity usage for this instance.
+   * Updates max capacity usage for this instance.
    * @param maxUsage max capacity usage of this instance
    */
   public synchronized void updateMaxCapacityUsage(double maxUsage) {
@@ -191,25 +210,50 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   }
 
   /**
-   * Get max capacity usage of this instance.
+   * Gets max capacity usage of this instance.
    * @return Max capacity usage of this instance.
    */
   protected synchronized double getMaxCapacityUsageGauge() {
     return _maxCapacityUsageGauge.getValue();
   }
 
-  @Override
-  public DynamicMBeanProvider register()
-      throws JMException {
-    List<DynamicMetric<?, ?>> attributeList = ImmutableList.of(
-        _totalMessagedReceivedCounter,
-        _disabledPartitionsGauge,
-        _enabledStatusGauge,
-        _onlineStatusGauge,
-        _maxCapacityUsageGauge
-    );
+  /**
+   * Updates instance capacity metrics.
+   * @param capacity A map of instance capacity.
+   */
+  public void updateCapacity(Map<String, Integer> capacity) {
+    synchronized (_dynamicCapacityMetricsMap) {
+      // If capacity keys don't have any change, we just update the metric values.
+      if (_dynamicCapacityMetricsMap.keySet().equals(capacity.keySet())) {
+        for (Map.Entry<String, Integer> entry : capacity.entrySet()) {
+          _dynamicCapacityMetricsMap.get(entry.getKey()).updateValue((long) entry.getValue());
+        }
+        return;
+      }
 
-    doRegister(attributeList, _initObjectName);
+      // If capacity keys have any changes, we need to retain the capacity metrics.
+      // Make sure capacity metrics map has the same capacity keys.
+      // And update metrics values.
+      _dynamicCapacityMetricsMap.keySet().retainAll(capacity.keySet());
+      for (Map.Entry<String, Integer> entry : capacity.entrySet()) {
+        String capacityName = entry.getKey();
+        if (_dynamicCapacityMetricsMap.containsKey(capacityName)) {
+          _dynamicCapacityMetricsMap.get(capacityName).updateValue((long) entry.getValue());
+        } else {
+          _dynamicCapacityMetricsMap.put(capacityName,
+              new SimpleDynamicMetric<>(capacityName + "Gauge", (long) entry.getValue()));
+        }
+      }
+    }
+
+    // Update MBean's all attributes.
+    updateAttributesInfo(buildAttributeList(),
+        "Instance monitor for instance: " + getInstanceName());
+  }
+
+  @Override
+  public DynamicMBeanProvider register() throws JMException {
+    doRegister(buildAttributeList(), _initObjectName);
 
     return this;
   }

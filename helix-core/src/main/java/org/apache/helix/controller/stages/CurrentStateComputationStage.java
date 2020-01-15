@@ -21,7 +21,6 @@ package org.apache.helix.controller.stages;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -249,7 +248,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         // Only use the resources in ideal states to parse all replicas.
         Map<String, IdealState> idealStateMap = dataProvider.getIdealStates();
         Map<String, Resource> resourceToMonitorMap = resourceMap.entrySet().stream()
-            .filter(resourceName -> idealStateMap.containsKey(resourceName))
+            .filter(idealStateMap::containsKey)
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         Map<String, ResourceAssignment> currentStateAssignment =
@@ -257,16 +256,16 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         ClusterModel clusterModel = ClusterModelProvider.generateClusterModelFromExistingAssignment(
             dataProvider, resourceToMonitorMap, currentStateAssignment);
 
-        Map<String, Double> maxUsageMap = new HashMap<>();
         for (AssignableNode node : clusterModel.getAssignableNodes().values()) {
           String instanceName = node.getInstanceName();
+          // There is no new usage adding to this node, so an empty map is passed in.
           double usage = node.getProjectedHighestUtilization(Collections.emptyMap());
-          maxUsageMap.put(instanceName, usage);
+          clusterStatusMonitor
+              .updateInstanceCapacityStatus(instanceName, usage, node.getMaxCapacity());
         }
-
-        clusterStatusMonitor.updateInstanceMaxUsage(maxUsageMap);
       } catch (Exception ex) {
-        LOG.error("Failed to report instance capacity metrics.", ex);
+        LOG.error("Failed to report instance capacity metrics. Exception message: {}",
+            ex.getMessage());
       }
 
       return null;

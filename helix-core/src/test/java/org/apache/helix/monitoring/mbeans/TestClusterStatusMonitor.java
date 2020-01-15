@@ -39,6 +39,7 @@ import javax.management.ObjectName;
 import javax.management.ReflectionException;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -62,8 +63,7 @@ public class TestClusterStatusMonitor {
   private String testDB_0 = testDB + "_0";
 
   @Test()
-  public void testReportData()
-      throws Exception {
+  public void testReportData() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -166,8 +166,7 @@ public class TestClusterStatusMonitor {
 
 
   @Test
-  public void testResourceAggregation()
-      throws JMException, IOException {
+  public void testResourceAggregation() throws JMException, IOException {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -315,14 +314,20 @@ public class TestClusterStatusMonitor {
   }
 
   @Test
-  public void testUpdateMaxCapacityUsage()
+  public void testUpdateInstanceCapacityStatus()
       throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
              ReflectionException, InstanceNotFoundException {
     String clusterName = "testCluster";
     List<Double> maxUsageList = ImmutableList.of(0.0d, 0.32d, 0.85d, 1.0d, 0.50d, 0.75d);
     Map<String, Double> maxUsageMap = new HashMap<>();
+    Map<String, Map<String, Integer>> instanceCapacityMap = new HashMap<>();
+    Random rand = new Random();
+
     for (int i = 0; i < maxUsageList.size(); i++) {
-      maxUsageMap.put("instance" + i, maxUsageList.get(i));
+      String instanceName = "instance" + i;
+      maxUsageMap.put(instanceName, maxUsageList.get(i));
+      instanceCapacityMap.put(instanceName,
+          ImmutableMap.of("capacity1", rand.nextInt(100), "capacity2", rand.nextInt(100)));
     }
 
     // Setup cluster status monitor.
@@ -330,13 +335,15 @@ public class TestClusterStatusMonitor {
     monitor.active();
     ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
 
+    // Cluster status monitor is registered.
     Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
 
     // Before calling setClusterInstanceStatus, instance monitors are not yet registered.
     for (Map.Entry<String, Double> entry : maxUsageMap.entrySet()) {
       String instance = entry.getKey();
-      String instanceBeanName =
-          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
+      String instanceBeanName = String
+          .format("%s,%s=%s", monitor.clusterBeanName(), ClusterStatusMonitor.INSTANCE_DN_KEY,
+              instance);
       ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
 
       Assert.assertFalse(_server.isRegistered(instanceObjectName));
@@ -346,20 +353,48 @@ public class TestClusterStatusMonitor {
     monitor.setClusterInstanceStatus(maxUsageMap.keySet(), maxUsageMap.keySet(),
         Collections.emptySet(), Collections.emptyMap(), Collections.emptyMap(),
         Collections.emptyMap());
-    // Update max usage stats.
-    monitor.updateInstanceMaxUsage(maxUsageMap);
 
-    // Verify results.
-    for (Map.Entry<String, Double> entry : maxUsageMap.entrySet()) {
-      String instance = entry.getKey();
-      double usage = entry.getValue();
-      String instanceBeanName =
-          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
+    // Update instance capacity status.
+    for (Map.Entry<String, Double> usageEntry : maxUsageMap.entrySet()) {
+      String instanceName = usageEntry.getKey();
+      monitor.updateInstanceCapacityStatus(instanceName, usageEntry.getValue(),
+          instanceCapacityMap.get(instanceName));
+    }
+
+    verifyCapacityMetrics(monitor, maxUsageMap, instanceCapacityMap);
+
+    // Change capacity keys: "capacity2" -> "capacity3"
+    for (String instanceName : instanceCapacityMap.keySet()) {
+      instanceCapacityMap.put(instanceName,
+          ImmutableMap.of("capacity1", rand.nextInt(100), "capacity3", rand.nextInt(100)));
+    }
+
+    // Update instance capacity status.
+    for (Map.Entry<String, Double> usageEntry : maxUsageMap.entrySet()) {
+      String instanceName = usageEntry.getKey();
+      monitor.updateInstanceCapacityStatus(instanceName, usageEntry.getValue(),
+          instanceCapacityMap.get(instanceName));
+    }
+
+    // "capacity2" metric should not exist in MBean server.
+    String removedAttribute = "capacity2Gauge";
+    for (Map.Entry<String, Map<String, Integer>> instanceEntry : instanceCapacityMap.entrySet()) {
+      String instance = instanceEntry.getKey();
+      String instanceBeanName = String
+          .format("%s,%s=%s", monitor.clusterBeanName(), ClusterStatusMonitor.INSTANCE_DN_KEY,
+              instance);
       ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
 
-      Assert.assertTrue(_server.isRegistered(instanceObjectName));
-      Assert.assertEquals(_server.getAttribute(instanceObjectName, "MaxCapacityUsageGauge"), usage);
+      try {
+        _server.getAttribute(instanceObjectName, removedAttribute);
+        Assert.fail();
+      } catch (AttributeNotFoundException ex) {
+        // Expected AttributeNotFoundException because "capacity2Gauge" metric does not exist in
+        // MBean server.
+      }
     }
+
+    verifyCapacityMetrics(monitor, maxUsageMap, instanceCapacityMap);
 
     // Reset monitor.
     monitor.reset();
@@ -367,10 +402,37 @@ public class TestClusterStatusMonitor {
         "Failed to unregister ClusterStatusMonitor.");
     for (String instance : maxUsageMap.keySet()) {
       String instanceBeanName =
-          String.format("%s,%s=%s", monitor.clusterBeanName(), monitor.INSTANCE_DN_KEY, instance);
+          String.format("%s,%s=%s", monitor.clusterBeanName(), ClusterStatusMonitor.INSTANCE_DN_KEY, instance);
       ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
       Assert.assertFalse(_server.isRegistered(instanceObjectName),
           "Failed to unregister instance monitor for instance: " + instance);
+    }
+  }
+
+  private void verifyCapacityMetrics(ClusterStatusMonitor monitor, Map<String, Double> maxUsageMap,
+      Map<String, Map<String, Integer>> instanceCapacityMap)
+      throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
+             ReflectionException, InstanceNotFoundException {
+    // Verify results.
+    for (Map.Entry<String, Map<String, Integer>> instanceEntry : instanceCapacityMap.entrySet()) {
+      String instance = instanceEntry.getKey();
+      Map<String, Integer> capacityMap = instanceEntry.getValue();
+      String instanceBeanName = String
+          .format("%s,%s=%s", monitor.clusterBeanName(), ClusterStatusMonitor.INSTANCE_DN_KEY,
+              instance);
+      ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
+
+      Assert.assertTrue(_server.isRegistered(instanceObjectName));
+      Assert.assertEquals(_server.getAttribute(instanceObjectName,
+          InstanceMonitor.InstanceMonitorMetric.MAX_CAPACITY_USAGE_GAUGE.metricName()),
+          maxUsageMap.get(instance));
+
+      for (Map.Entry<String, Integer> capacityEntry : capacityMap.entrySet()) {
+        String capacityKey = capacityEntry.getKey();
+        String attributeName = capacityKey + "Gauge";
+        Assert.assertEquals((long) _server.getAttribute(instanceObjectName, attributeName),
+            (long) instanceCapacityMap.get(instance).get(capacityKey));
+      }
     }
   }
 }

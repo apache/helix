@@ -22,23 +22,19 @@ package org.apache.helix.monitoring.mbeans.dynamicMBeans;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.management.Attribute;
 import javax.management.AttributeList;
 import javax.management.AttributeNotFoundException;
 import javax.management.DynamicMBean;
-import javax.management.InvalidAttributeValueException;
 import javax.management.JMException;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanConstructorInfo;
-import javax.management.MBeanException;
 import javax.management.MBeanInfo;
 import javax.management.MBeanNotificationInfo;
 import javax.management.MBeanOperationInfo;
 import javax.management.ObjectName;
-import javax.management.ReflectionException;
 
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.monitoring.SensorNameProvider;
@@ -53,12 +49,12 @@ import org.slf4j.LoggerFactory;
 public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNameProvider {
   protected final Logger _logger = LoggerFactory.getLogger(getClass());
   protected static final long DEFAULT_RESET_INTERVAL_MS = 60 * 60 * 1000; // Reset time every hour
-  private static String SENSOR_NAME_TAG = "SensorName";
-  private static String DEFAULT_DESCRIPTION =
+  private static final String SENSOR_NAME_TAG = "SensorName";
+  private static final String DEFAULT_DESCRIPTION =
       "Information on the management interface of the MBean";
 
   // Attribute name to the DynamicMetric object mapping
-  private final Map<String, DynamicMetric> _attributeMap = new HashMap<>();
+  private Map<String, DynamicMetric> _attributeMap = new HashMap<>();
   private ObjectName _objectName = null;
   private MBeanInfo _mBeanInfo;
 
@@ -88,7 +84,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
           objectName.getCanonicalName());
       return false;
     }
-    updateAttributtInfos(dynamicMetrics, description);
+    updateAttributesInfo(dynamicMetrics, description);
     _objectName = MBeanRegistrar.register(this, objectName);
     return true;
   }
@@ -99,26 +95,30 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   }
 
   /**
-   * Update the Dynamic MBean provider with new metric list.
+   * Updates the Dynamic MBean provider with new metric list.
+   * If the pass-in metrics collection is empty, the original attributes will be removed.
+   *
    * @param description description of the MBean
-   * @param dynamicMetrics the DynamicMetrics
+   * @param dynamicMetrics the DynamicMetrics. Empty collection will remove the metric attributes.
    */
-  private void updateAttributtInfos(Collection<DynamicMetric<?, ?>> dynamicMetrics,
+  protected void updateAttributesInfo(Collection<DynamicMetric<?, ?>> dynamicMetrics,
       String description) {
-    _attributeMap.clear();
+    if (dynamicMetrics == null) {
+      _logger.warn("Cannot update attributes info because dynamicMetrics is null.");
+      return;
+    }
 
-    // get all attributes that can be emit by the dynamicMetrics.
     List<MBeanAttributeInfo> attributeInfoList = new ArrayList<>();
-    if (dynamicMetrics != null) {
-      for (DynamicMetric dynamicMetric : dynamicMetrics) {
-        Iterator<MBeanAttributeInfo> iter = dynamicMetric.getAttributeInfos().iterator();
-        while (iter.hasNext()) {
-          MBeanAttributeInfo attributeInfo = iter.next();
-          // Info list to create MBean info
-          attributeInfoList.add(attributeInfo);
-          // Attribute mapping for getting attribute value when getAttribute() is called
-          _attributeMap.put(attributeInfo.getName(), dynamicMetric);
-        }
+    // Use a new attribute map to avoid concurrency issue.
+    Map<String, DynamicMetric> newAttributeMap = new HashMap<>();
+
+    // Get all attributes that can be emitted by the dynamicMetrics.
+    for (DynamicMetric<?, ?> dynamicMetric : dynamicMetrics) {
+      for (MBeanAttributeInfo attributeInfo : dynamicMetric.getAttributeInfos()) {
+        // Info list to create MBean info
+        attributeInfoList.add(attributeInfo);
+        // Attribute mapping for getting attribute value when getAttribute() is called
+        newAttributeMap.put(attributeInfo.getName(), dynamicMetric);
       }
     }
 
@@ -130,17 +130,19 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
         String.format("Default %s Constructor", getClass().getSimpleName()),
         getClass().getConstructors()[0]);
 
-    MBeanAttributeInfo[] attributeInfos = new MBeanAttributeInfo[attributeInfoList.size()];
-    attributeInfos = attributeInfoList.toArray(attributeInfos);
+    MBeanAttributeInfo[] attributesInfo = new MBeanAttributeInfo[attributeInfoList.size()];
+    attributesInfo = attributeInfoList.toArray(attributesInfo);
 
     if (description == null) {
       description = DEFAULT_DESCRIPTION;
     }
 
-    _mBeanInfo = new MBeanInfo(getClass().getName(), description, attributeInfos,
-        new MBeanConstructorInfo[] {
-            constructorInfo
-        }, new MBeanOperationInfo[0], new MBeanNotificationInfo[0]);
+    _mBeanInfo = new MBeanInfo(getClass().getName(), description, attributesInfo,
+        new MBeanConstructorInfo[]{constructorInfo}, new MBeanOperationInfo[0],
+        new MBeanNotificationInfo[0]);
+
+    // Update _attributeMap reference.
+    _attributeMap = newAttributeMap;
   }
 
   /**
@@ -158,17 +160,17 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   }
 
   @Override
-  public Object getAttribute(String attribute)
-      throws AttributeNotFoundException, MBeanException, ReflectionException {
+  public Object getAttribute(String attribute) throws AttributeNotFoundException {
     if (SENSOR_NAME_TAG.equals(attribute)) {
       return getSensorName();
     }
 
-    if (!_attributeMap.containsKey(attribute)) {
-      return null;
+    DynamicMetric metric = _attributeMap.get(attribute);
+    if (metric == null) {
+      throw new AttributeNotFoundException("Attribute[" + attribute + "] is not found.");
     }
 
-    return _attributeMap.get(attribute).getAttributeValue(attribute);
+    return metric.getAttributeValue(attribute);
   }
 
   @Override
@@ -178,7 +180,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
       try {
         Object value = getAttribute(attributeName);
         attributeList.add(new Attribute(attributeName, value));
-      } catch (AttributeNotFoundException | MBeanException | ReflectionException ex) {
+      } catch (AttributeNotFoundException ex) {
         _logger.error("Failed to get attribute: " + attributeName, ex);
       }
     }
@@ -191,8 +193,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   }
 
   @Override
-  public void setAttribute(Attribute attribute) throws AttributeNotFoundException,
-      InvalidAttributeValueException, MBeanException, ReflectionException {
+  public void setAttribute(Attribute attribute) {
     // All MBeans are readonly
     return;
   }
@@ -204,8 +205,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   }
 
   @Override
-  public Object invoke(String actionName, Object[] params, String[] signature)
-      throws MBeanException, ReflectionException {
+  public Object invoke(String actionName, Object[] params, String[] signature) {
     // No operation supported
     return null;
   }

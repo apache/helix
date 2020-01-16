@@ -240,6 +240,7 @@ under the License.
     </developer>
   </developers>
   <modules>
+    <module>zookeeper-api</module>
     <module>helix-core</module>
     <module>helix-admin-webapp</module>
     <module>helix-rest</module>

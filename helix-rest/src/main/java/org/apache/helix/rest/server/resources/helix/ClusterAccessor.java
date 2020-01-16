@@ -559,7 +559,7 @@ public class ClusterAccessor extends AbstractHelixResource {
       return badRequest(ex.getMessage());
     } catch (Exception ex) {
       _logger.error("Cannot add CloudConfig to cluster: " + clusterId, ex);
-      return badRequest(ex.getMessage());
+      return serverError(ex);
     }
 
     return OK();
@@ -631,7 +631,7 @@ public class ClusterAccessor extends AbstractHelixResource {
           return badRequest(ex.getMessage());
         } catch (Exception ex) {
           _logger.error("Cannot update CloudConfig for cluster: " + clusterId, ex);
-          return badRequest(ex.getMessage());
+          return serverError(ex);
         }
       }
       break;

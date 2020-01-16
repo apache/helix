@@ -48,6 +48,7 @@ public class ServerContext {
   private ClusterSetup _clusterSetup;
   private ConfigAccessor _configAccessor;
   // A lazily-initialized base data accessor that reads/writes byte array to ZK
+  // TODO: Only read (deserialize) is supported at this time. This baseDataAccessor should support write (serialize) as needs arise
   private volatile ZkBaseDataAccessor<byte[]> _byteArrayZkBaseDataAccessor;
   // 1 Cluster name will correspond to 1 helix data accessor
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;

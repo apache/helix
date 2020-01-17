@@ -19,6 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 import org.apache.helix.model.CloudConfig;
@@ -42,7 +43,7 @@ public final class HelixPropertyFactory {
   }
 
   /**
-   * Retrieve Helix participant property. It returns the property object with default values.
+   * Retrieve Helix manager property. It returns the property object with default values.
    * Clients may override these values.
    */
   public HelixManagerProperty getHelixManagerProperty(String zkAddress, String clusterName) {
@@ -58,13 +59,14 @@ public final class HelixPropertyFactory {
       InputStream stream = Thread.currentThread().getContextClassLoader()
           .getResourceAsStream(HELIX_PARTICIPANT_PROPERTY_FILE);
       properties.load(stream);
-    } catch (Exception e) {
-      String errMsg =
-          "failed to open Helix participant properties file: " + HELIX_PARTICIPANT_PROPERTY_FILE;
+    } catch (IOException e) {
+      String errMsg = String.format("failed to open Helix participant properties file: %s",
+          HELIX_PARTICIPANT_PROPERTY_FILE);
+      LOG.error(errMsg);
       throw new IllegalArgumentException(errMsg, e);
     }
-    LOG.info(
-        "HelixPropertyFactory successfully loaded helix participant properties: {}", properties);
+    LOG.info("HelixPropertyFactory successfully loaded helix participant properties: {}",
+        properties);
     return new HelixManagerProperty(properties, cloudConfig);
   }
 }

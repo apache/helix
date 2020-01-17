@@ -241,6 +241,7 @@ under the License.
   </developers>
   <modules>
     <module>zookeeper-api</module>
+    <module>helix-common</module>
     <module>helix-core</module>
     <module>helix-admin-webapp</module>
     <module>helix-rest</module>

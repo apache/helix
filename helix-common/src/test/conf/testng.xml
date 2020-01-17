@@ -21,7 +21,7 @@ under the License.
 <suite name="Suite" parallel="false">
   <test name="Test" preserve-order="true">
     <packages>
-      <package name="org.apache.zookeeper.api.*"/>
+      <package name="org.apache.helix.helix.common.*"/>
     </packages>
   </test>
 </suite>

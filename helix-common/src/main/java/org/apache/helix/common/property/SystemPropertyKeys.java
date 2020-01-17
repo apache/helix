@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.common.property;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -25,8 +25,6 @@ public class SystemPropertyKeys {
 
   // ZKHelixManager
   public static final String CLUSTER_MANAGER_VERSION = "cluster-manager-version.properties";
-  // soft constraints weight definitions
-  public static final String SOFT_CONSTRAINT_WEIGHTS = "soft-constraint-weight.properties";
 
   public static final String FLAPPING_TIME_WINDOW = "helixmanager.flappingTimeWindow";
 

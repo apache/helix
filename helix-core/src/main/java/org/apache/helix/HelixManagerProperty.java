@@ -25,8 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Hold Helix participant properties. The participant properties further hold Helix cloud properties and some other properties
- * specific for the participant.
+ * Hold Helix manager properties. The manager properties further hold Helix cloud properties
+ * and some other properties specific for the manager.
  */
 public class HelixManagerProperty {
   private static final Logger LOG = LoggerFactory.getLogger(HelixManagerProperty.class.getName());
@@ -42,7 +42,8 @@ public class HelixManagerProperty {
   public HelixManagerProperty(Properties properties, CloudConfig cloudConfig) {
     _helixCloudProperty = new HelixCloudProperty(cloudConfig);
     setVersion(properties.getProperty(SystemPropertyKeys.HELIX_MANAGER_VERSION));
-    setHealthReportLatency(properties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY));
+    setHealthReportLatency(
+        properties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY));
   }
 
   public HelixCloudProperty getHelixCloudProperty() {
@@ -69,5 +70,5 @@ public class HelixManagerProperty {
     _healthReportLatency = Long.valueOf(latency);
   }
 
-  //TODO: migrate all other participant related properties to this file.
+  // TODO: migrate all other participant related properties to this file.
 }

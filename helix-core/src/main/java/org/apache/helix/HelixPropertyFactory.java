@@ -25,13 +25,13 @@ import org.apache.helix.model.CloudConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * Singleton factory that builds different types of Helix property, e.g. Helix manager property.
  */
 public final class HelixPropertyFactory {
   private static final Logger LOG = LoggerFactory.getLogger(HelixPropertyFactory.class);
-  private static final String HELIX_PARTICIPANT_PROPERTY_FILE = SystemPropertyKeys.HELIX_MANAGER_PROPERTIES;
+  private static final String HELIX_PARTICIPANT_PROPERTY_FILE =
+      SystemPropertyKeys.HELIX_MANAGER_PROPERTIES;
 
   private static class SingletonHelper {
     private static final HelixPropertyFactory INSTANCE = new HelixPropertyFactory();
@@ -42,7 +42,8 @@ public final class HelixPropertyFactory {
   }
 
   /**
-   * Retrieve Helix participant property. It returns the property object with default values. Clients may override these values.
+   * Retrieve Helix participant property. It returns the property object with default values.
+   * Clients may override these values.
    */
   public HelixManagerProperty getHelixManagerProperty(String zkAddress, String clusterName) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkAddress);
@@ -54,14 +55,16 @@ public final class HelixPropertyFactory {
     }
     Properties properties = new Properties();
     try {
-      InputStream stream =
-          Thread.currentThread().getContextClassLoader().getResourceAsStream(HELIX_PARTICIPANT_PROPERTY_FILE);
-        properties.load(stream);
+      InputStream stream = Thread.currentThread().getContextClassLoader()
+          .getResourceAsStream(HELIX_PARTICIPANT_PROPERTY_FILE);
+      properties.load(stream);
     } catch (Exception e) {
-      String errMsg = "failed to open Helix participant properties file: " + HELIX_PARTICIPANT_PROPERTY_FILE;
+      String errMsg =
+          "failed to open Helix participant properties file: " + HELIX_PARTICIPANT_PROPERTY_FILE;
       throw new IllegalArgumentException(errMsg, e);
     }
-    LOG.info("HelixPropertyFactory successfully loaded helix participant properties: " + properties);
+    LOG.info(
+        "HelixPropertyFactory successfully loaded helix participant properties: {}", properties);
     return new HelixManagerProperty(properties, cloudConfig);
   }
 }

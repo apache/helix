@@ -19,6 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
@@ -28,9 +29,9 @@ import org.apache.helix.model.CloudConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
- * Hold helix cloud properties read from CloudConfig and user defined files. Clients may override the fields from their application.
+ * Hold helix cloud properties read from CloudConfig and user defined files. Clients may override
+ * the fields from their application.
  */
 public class HelixCloudProperty {
   private static final Logger LOG = LoggerFactory.getLogger(HelixCloudProperty.class.getName());
@@ -78,29 +79,33 @@ public class HelixCloudProperty {
       setCloudId(cloudConfig.getCloudID());
       setCloudProvider(cloudConfig.getCloudProvider());
       switch (CloudProvider.valueOf(cloudConfig.getCloudProvider())) {
-        case AZURE:
-          Properties azureProperties = new Properties();
-          try {
-            InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(AZURE_CLOUD_PROPERTY_FILE);
-            azureProperties.load(stream);
-          } catch (Exception e) {
-            String errMsg = "failed to open Helix Azure cloud properties file: " + AZURE_CLOUD_PROPERTY_FILE;
-            throw new IllegalArgumentException(errMsg, e);
-          }
-          LOG.info("Successfully loaded Helix Azure cloud properties: " + azureProperties);
-          setCloudInfoSources(Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
-          setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSFOR_NAME));
-          setCloudMaxRetry(azureProperties.getProperty(CLOUD_MAX_RETRY));
-          setCloudConnectionTimeout(azureProperties.getProperty(CONNECTION_TIMEOUT_MS));
-          setCloudRequestTimeout(azureProperties.getProperty(REQUEST_TIMEOUT_MS));
-          break;
-        case CUSTOMIZED:
-          setCloudInfoSources(cloudConfig.getCloudInfoSources());
-          setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
-          break;
-        default:
-          LOG.info("Unsupported cloud provider: " + cloudConfig.getCloudProvider());
-          throw new HelixException(String.format("Unsupported cloud provider: %s", cloudConfig.getCloudProvider()));
+      case AZURE:
+        Properties azureProperties = new Properties();
+        try {
+          InputStream stream = Thread.currentThread().getContextClassLoader()
+              .getResourceAsStream(AZURE_CLOUD_PROPERTY_FILE);
+          azureProperties.load(stream);
+        } catch (IOException e) {
+          String errMsg =
+              "failed to open Helix Azure cloud properties file: " + AZURE_CLOUD_PROPERTY_FILE;
+          throw new IllegalArgumentException(errMsg, e);
+        }
+        LOG.info("Successfully loaded Helix Azure cloud properties: {}", azureProperties);
+        setCloudInfoSources(
+            Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
+        setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSFOR_NAME));
+        setCloudMaxRetry(Integer.valueOf(azureProperties.getProperty(CLOUD_MAX_RETRY)));
+        setCloudConnectionTimeout(Long.valueOf(azureProperties.getProperty(CONNECTION_TIMEOUT_MS)));
+        setCloudRequestTimeout(Long.valueOf(azureProperties.getProperty(REQUEST_TIMEOUT_MS)));
+        break;
+      case CUSTOMIZED:
+        setCloudInfoSources(cloudConfig.getCloudInfoSources());
+        setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
+        break;
+      default:
+        LOG.info("Unsupported cloud provider: {}", cloudConfig.getCloudProvider());
+        throw new HelixException(
+            String.format("Unsupported cloud provider: %s", cloudConfig.getCloudProvider()));
       }
     }
   }
@@ -161,16 +166,16 @@ public class HelixCloudProperty {
     _cloudInfoProcessorName = cloudInfoProcessorName;
   }
 
-  public void setCloudMaxRetry(String cloudMaxRetry) {
-    _cloudMaxRetry = Integer.valueOf(cloudMaxRetry);
+  public void setCloudMaxRetry(int cloudMaxRetry) {
+    _cloudMaxRetry = cloudMaxRetry;
   }
 
-  public void setCloudConnectionTimeout(String cloudConnectionTimeout) {
-    _cloudConnectionTimeout = Long.valueOf(cloudConnectionTimeout);
+  public void setCloudConnectionTimeout(long cloudConnectionTimeout) {
+    _cloudConnectionTimeout = cloudConnectionTimeout;
   }
 
-  public void setCloudRequestTimeout(String cloudRequestTimeout) {
-    _cloudRequestTimeout = Long.valueOf(cloudRequestTimeout);
+  public void setCloudRequestTimeout(long cloudRequestTimeout) {
+    _cloudRequestTimeout = cloudRequestTimeout;
   }
 
   public void setCustomizedCloudProperties(Properties customizedCloudProperties) {

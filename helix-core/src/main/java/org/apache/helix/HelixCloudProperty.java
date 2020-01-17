@@ -74,33 +74,34 @@ public class HelixCloudProperty {
    */
   public HelixCloudProperty(CloudConfig cloudConfig) {
     setCloudEndabled(cloudConfig.isCloudEnabled());
-    setCloudId(cloudConfig.getCloudID());
-    setCloudProvider(cloudConfig.getCloudProvider());
-    switch (CloudProvider.valueOf(cloudConfig.getCloudProvider())) {
-      case AZURE:
-        Properties azureProperties = new Properties();
-        try {
-          InputStream stream =
-              Thread.currentThread().getContextClassLoader().getResourceAsStream(AZURE_CLOUD_PROPERTY_FILE);
-          azureProperties.load(stream);
-        } catch (Exception e) {
-          String errMsg = "failed to open Helix Azure cloud properties file: " + AZURE_CLOUD_PROPERTY_FILE;
-          throw new IllegalArgumentException(errMsg, e);
-        }
-        LOG.info("Successfully loaded Helix Azure cloud properties: " + azureProperties);
-        setCloudInfoSources(Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
-        setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSFOR_NAME));
-        setCloudMaxRetry(azureProperties.getProperty(CLOUD_MAX_RETRY));
-        setCloudConnectionTimeout(azureProperties.getProperty(CONNECTION_TIMEOUT_MS));
-        setCloudRequestTimeout(azureProperties.getProperty(REQUEST_TIMEOUT_MS));
-        break;
-      case CUSTOMIZED:
-        setCloudInfoSources(cloudConfig.getCloudInfoSources());
-        setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
-        break;
-      default:
-        LOG.info("Unsupported cloud provider: " + cloudConfig.getCloudProvider());
-        throw new HelixException(String.format("Unsupported cloud provider: %s", cloudConfig.getCloudProvider()));
+    if (cloudConfig.isCloudEnabled() == true) {
+      setCloudId(cloudConfig.getCloudID());
+      setCloudProvider(cloudConfig.getCloudProvider());
+      switch (CloudProvider.valueOf(cloudConfig.getCloudProvider())) {
+        case AZURE:
+          Properties azureProperties = new Properties();
+          try {
+            InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(AZURE_CLOUD_PROPERTY_FILE);
+            azureProperties.load(stream);
+          } catch (Exception e) {
+            String errMsg = "failed to open Helix Azure cloud properties file: " + AZURE_CLOUD_PROPERTY_FILE;
+            throw new IllegalArgumentException(errMsg, e);
+          }
+          LOG.info("Successfully loaded Helix Azure cloud properties: " + azureProperties);
+          setCloudInfoSources(Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
+          setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSFOR_NAME));
+          setCloudMaxRetry(azureProperties.getProperty(CLOUD_MAX_RETRY));
+          setCloudConnectionTimeout(azureProperties.getProperty(CONNECTION_TIMEOUT_MS));
+          setCloudRequestTimeout(azureProperties.getProperty(REQUEST_TIMEOUT_MS));
+          break;
+        case CUSTOMIZED:
+          setCloudInfoSources(cloudConfig.getCloudInfoSources());
+          setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
+          break;
+        default:
+          LOG.info("Unsupported cloud provider: " + cloudConfig.getCloudProvider());
+          throw new HelixException(String.format("Unsupported cloud provider: %s", cloudConfig.getCloudProvider()));
+      }
     }
   }
 

@@ -71,6 +71,26 @@ public class CloudConfig extends HelixProperty {
     _record.setMapFields(record.getMapFields());
   }
 
+  /**
+   * Instantiate the config using each field individually.
+   * Users should use CloudConfig.Builder to create CloudConfig.
+   * @param cluster
+   * @param enabled
+   * @param cloudID
+   */
+  public CloudConfig(String cluster, boolean enabled, CloudProvider cloudProvider, String cloudID,
+      List<String> cloudInfoSource, String cloudProcessorName) {
+    super(cluster);
+    _record.setBooleanField(CloudConfigProperty.CLOUD_ENABLED.name(), enabled);
+    if (enabled == true) {
+      _record.setSimpleField(CloudConfigProperty.CLOUD_PROVIDER.name(), cloudProvider.name());
+      _record.setSimpleField(CloudConfigProperty.CLOUD_ID.name(), cloudID);
+      if (cloudProvider.equals(CloudProvider.CUSTOMIZED)) {
+        _record.setSimpleField(CloudConfigProperty.CLOUD_INFO_PROCESSOR_NAME.name(), cloudProcessorName);
+        _record.setListField(CloudConfigProperty.CLOUD_INFO_SOURCE.name(), cloudInfoSource);
+      }
+    }
+  }
 
   /**
    * Enable/Disable the CLOUD_ENABLED field.

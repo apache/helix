@@ -47,6 +47,11 @@ public final class HelixPropertyFactory {
   public HelixManagerProperty getHelixManagerProperty(String zkAddress, String clusterName) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkAddress);
     CloudConfig cloudConfig = configAccessor.getCloudConfig(clusterName);
+    if (cloudConfig == null) {
+      CloudConfig.Builder builder = new CloudConfig.Builder(clusterName);
+      builder.setCloudEnabled(false);
+      cloudConfig = builder.build();
+    }
     Properties properties = new Properties();
     try {
       InputStream stream =

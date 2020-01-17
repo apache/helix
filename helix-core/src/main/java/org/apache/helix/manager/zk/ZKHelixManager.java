@@ -205,14 +205,16 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
       String zkAddress, HelixManagerStateListener stateListener) {
-      this(clusterName, instanceName, instanceType, zkAddress,stateListener, HelixPropertyFactory.getInstance().getHelixManagerProperty(zkAddress, clusterName));
+    this(clusterName, instanceName, instanceType, zkAddress, stateListener,
+        HelixPropertyFactory.getInstance().getHelixManagerProperty(zkAddress, clusterName));
   }
 
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
-      String zkAddress, HelixManagerStateListener stateListener, HelixManagerProperty helixManagerProperty) {
+      String zkAddress, HelixManagerStateListener stateListener,
+      HelixManagerProperty helixManagerProperty) {
 
-    LOG.info(
-        "Create a zk-based cluster manager. zkSvr: " + zkAddress + ", clusterName: " + clusterName + ", instanceName: " + instanceName + ", type: " + instanceType);
+    LOG.info("Create a zk-based cluster manager. zkSvr: " + zkAddress + ", clusterName: "
+        + clusterName + ", instanceName: " + instanceName + ", type: " + instanceType);
 
     _zkAddress = zkAddress;
     _clusterName = clusterName;

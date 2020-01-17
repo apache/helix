@@ -54,8 +54,8 @@ public class TestZkClusterManager extends ZkUnitTestBase {
 
   @Test()
   public void testController() throws Exception {
-    System.out.println("START " + className + ".testController() at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println(
+        "START " + className + ".testController() at " + new Date(System.currentTimeMillis()));
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_controller";
 
     // basic test
@@ -63,11 +63,19 @@ public class TestZkClusterManager extends ZkUnitTestBase {
       _gZkClient.deleteRecursively("/" + clusterName);
     }
 
+    try {
+      ZKHelixManager controller =
+          new ZKHelixManager(clusterName, null, InstanceType.CONTROLLER, ZK_ADDR);
+      Assert.fail(
+          "Should throw HelixException if initial cluster structure is not setup as config accessor will throw exception when check cluster setup");
+    } catch (HelixException e) {
+      // OK
+    }
+
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
     ZKHelixManager controller =
         new ZKHelixManager(clusterName, null, InstanceType.CONTROLLER, ZK_ADDR);
-
     controller.connect();
     AssertJUnit.assertTrue(controller.isConnected());
     controller.connect();

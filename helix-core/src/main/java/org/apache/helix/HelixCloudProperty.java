@@ -75,7 +75,7 @@ public class HelixCloudProperty {
    */
   public HelixCloudProperty(CloudConfig cloudConfig) {
     setCloudEndabled(cloudConfig.isCloudEnabled());
-    if (cloudConfig.isCloudEnabled() == true) {
+    if (cloudConfig.isCloudEnabled()) {
       setCloudId(cloudConfig.getCloudID());
       setCloudProvider(cloudConfig.getCloudProvider());
       switch (CloudProvider.valueOf(cloudConfig.getCloudProvider())) {
@@ -103,7 +103,6 @@ public class HelixCloudProperty {
         setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
         break;
       default:
-        LOG.info("Unsupported cloud provider: {}", cloudConfig.getCloudProvider());
         throw new HelixException(
             String.format("Unsupported cloud provider: %s", cloudConfig.getCloudProvider()));
       }

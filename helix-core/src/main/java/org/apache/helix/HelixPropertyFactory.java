@@ -48,11 +48,15 @@ public final class HelixPropertyFactory {
    */
   public HelixManagerProperty getHelixManagerProperty(String zkAddress, String clusterName) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkAddress);
-    CloudConfig cloudConfig = configAccessor.getCloudConfig(clusterName);
-    if (cloudConfig == null) {
-      CloudConfig.Builder builder = new CloudConfig.Builder(clusterName);
-      builder.setCloudEnabled(false);
-      cloudConfig = builder.build();
+    CloudConfig cloudConfig;
+    // The try-catch logic is for backward compatibility reason only. Even if the cluster is not set
+    // up yet, constructing a new ZKHelixManager should not throw an exception
+    try {
+      cloudConfig =
+          configAccessor.getCloudConfig(clusterName) == null ? buildEmptyCloudConfig(clusterName)
+              : configAccessor.getCloudConfig(clusterName);
+    } catch (HelixException e) {
+      cloudConfig = buildEmptyCloudConfig(clusterName);
     }
     Properties properties = new Properties();
     try {
@@ -68,5 +72,9 @@ public final class HelixPropertyFactory {
     LOG.info("HelixPropertyFactory successfully loaded helix participant properties: {}",
         properties);
     return new HelixManagerProperty(properties, cloudConfig);
+  }
+
+  public static CloudConfig buildEmptyCloudConfig(String clusterName) {
+    return new CloudConfig.Builder().setCloudEnabled(false).build();
   }
 }

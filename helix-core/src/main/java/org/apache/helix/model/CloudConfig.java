@@ -246,14 +246,16 @@ public class CloudConfig extends HelixProperty {
     }
 
     private void validate() {
-      if (this.getCloudProvider() == null) {
-        throw new HelixException(
-            "This Cloud Configuration is Invalid. The Cloud Provider is missing from the config.");
-      } else if (this.getCloudProvider().equals(CloudProvider.CUSTOMIZED.name())) {
-        if (this.getCloudInfoProcessorName() == null || this.getCloudInfoSources() == null
-            || this.getCloudInfoSources().size() == 0) {
+      if (this.getCloudEnabled()) {
+        if (this.getCloudProvider() == null) {
           throw new HelixException(
-              "This Cloud Configuration is Invalid. CUSTOMIZED provider has been chosen without defining CloudInfoProcessorName or CloudInfoSources");
+              "This Cloud Configuration is Invalid. The Cloud Provider is missing from the config.");
+        } else if (this.getCloudProvider().equals(CloudProvider.CUSTOMIZED.name())) {
+          if (this.getCloudInfoProcessorName() == null || this.getCloudInfoSources() == null
+              || this.getCloudInfoSources().size() == 0) {
+            throw new HelixException(
+                "This Cloud Configuration is Invalid. CUSTOMIZED provider has been chosen without defining CloudInfoProcessorName or CloudInfoSources");
+          }
         }
       }
     }

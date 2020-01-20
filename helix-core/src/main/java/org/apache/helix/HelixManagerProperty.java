@@ -36,14 +36,14 @@ public class HelixManagerProperty {
 
   /**
    * Initialize Helix manager property with default value
-   * @param properties helix manager related properties input as a map
+   * @param helixManagerProperties helix manager related properties input as a map
    * @param cloudConfig cloudConfig read from Zookeeper
    */
-  public HelixManagerProperty(Properties properties, CloudConfig cloudConfig) {
+  public HelixManagerProperty(Properties helixManagerProperties, CloudConfig cloudConfig) {
     _helixCloudProperty = new HelixCloudProperty(cloudConfig);
-    setVersion(properties.getProperty(SystemPropertyKeys.HELIX_MANAGER_VERSION));
+    setVersion(helixManagerProperties.getProperty(SystemPropertyKeys.HELIX_MANAGER_VERSION));
     setHealthReportLatency(
-        properties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY));
+        helixManagerProperties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY));
   }
 
   public HelixCloudProperty getHelixCloudProperty() {

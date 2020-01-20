@@ -43,10 +43,10 @@ under the License.
   <dependencies>
     <dependency>
       <groupId>org.apache.helix</groupId>
-      <artifactId>helix-core</artifactId>
+      <artifactId>helix-common</artifactId>
       <version>${project.version}</version>
       <scope>system</scope>
-      <systemPath>${basedir}/../helix-common/target/helix-common-${project.version}.jar</systemPath>
+      <systemPath>${pom.basedir}/../helix-common/target/helix-common-${project.version}.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>

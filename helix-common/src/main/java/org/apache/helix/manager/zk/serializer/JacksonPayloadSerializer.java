@@ -1,4 +1,4 @@
-package org.apache.helix.common.datamodel.serializer;
+package org.apache.helix.manager.zk.serializer;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,7 +22,7 @@ package org.apache.helix.common.datamodel.serializer;
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 
-import org.apache.helix.common.exception.HelixException;
+import org.apache.helix.HelixException;
 import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;

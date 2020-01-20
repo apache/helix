@@ -1,4 +1,4 @@
-package org.apache.helix.common.metric.mbean.dynamic_mbean;
+package org.apache.helix.monitoring.mbeans.dynamicMBeans;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 import javax.management.MBeanAttributeInfo;
 
-import org.apache.helix.common.exception.HelixException;
+import org.apache.helix.HelixException;
 
 
 /**

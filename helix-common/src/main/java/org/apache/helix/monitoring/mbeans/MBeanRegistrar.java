@@ -1,4 +1,4 @@
-package org.apache.helix.common.metric.mbean;
+package org.apache.helix.monitoring.mbeans;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

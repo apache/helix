@@ -1,4 +1,4 @@
-package org.apache.helix.common.metric;
+package org.apache.helix.manager.zk.serializer;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,6 +19,23 @@ package org.apache.helix.common.metric;
  * under the License.
  */
 
-public interface SensorNameProvider {
-  String getSensorName();
+/**
+ * Interface for converting back and forth between raw bytes and generic objects
+ */
+public interface PayloadSerializer {
+
+  /**
+   * Convert a generic object instance to raw bytes
+   * @param data instance of the generic type
+   * @return byte array representing the object
+   */
+  public <T> byte[] serialize(final T data);
+
+  /**
+   * Convert raw bytes to a generic object instance
+   * @param clazz The class represented by the deserialized bytes
+   * @param bytes byte array representing the object
+   * @return instance of the generic type or null if the conversion failed
+   */
+  public <T> T deserialize(final Class<T> clazz, final byte[] bytes);
 }

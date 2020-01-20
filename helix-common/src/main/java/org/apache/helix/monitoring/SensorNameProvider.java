@@ -1,4 +1,4 @@
-package org.apache.helix.common.metric.constant;
+package org.apache.helix.monitoring;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,14 +19,6 @@ package org.apache.helix.common.metric.constant;
  * under the License.
  */
 
-/**
- * This enum defines all of domain names used with various Helix monitor mbeans.
- */
-public enum MonitorDomainNames {
-  ClusterStatus,
-  HelixZkClient,
-  HelixThreadPoolExecutor,
-  HelixCallback,
-  RoutingTableProvider,
-  CLMParticipantReport
+public interface SensorNameProvider {
+  String getSensorName();
 }

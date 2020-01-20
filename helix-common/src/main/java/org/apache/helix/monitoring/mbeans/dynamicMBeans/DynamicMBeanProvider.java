@@ -1,4 +1,4 @@
-package org.apache.helix.common.metric.mbean.dynamic_mbean;
+package org.apache.helix.monitoring.mbeans.dynamicMBeans;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -40,9 +40,9 @@ import javax.management.MBeanOperationInfo;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 
-import org.apache.helix.common.property.SystemPropertyKeys;
-import org.apache.helix.common.metric.SensorNameProvider;
-import org.apache.helix.common.metric.mbean.MBeanRegistrar;
+import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.monitoring.SensorNameProvider;
+import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,4 +1,4 @@
-package org.apache.helix.common.datamodel;
+package org.apache.helix;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -24,9 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.helix.common.datamodel.ZNRecordDelta.MergeOperation;
-import org.apache.helix.common.datamodel.serializer.JacksonPayloadSerializer;
-import org.apache.helix.common.datamodel.serializer.PayloadSerializer;
+import org.apache.helix.ZNRecordDelta.MergeOperation;
+import org.apache.helix.manager.zk.serializer.JacksonPayloadSerializer;
+import org.apache.helix.manager.zk.serializer.PayloadSerializer;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;

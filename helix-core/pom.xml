@@ -55,6 +55,13 @@ under the License.
 
   <dependencies>
     <dependency>
+      <groupId>org.apache.helix</groupId>
+      <artifactId>helix-common</artifactId>
+      <version>${project.version}</version>
+      <scope>system</scope>
+      <systemPath>${pom.basedir}/../helix-common/target/helix-common-${project.version}.jar</systemPath>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>1.7.25</version>

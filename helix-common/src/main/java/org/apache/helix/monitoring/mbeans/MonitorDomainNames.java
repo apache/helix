@@ -1,4 +1,4 @@
-package org.apache.helix.common.exception;
+package org.apache.helix.monitoring.mbeans;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -20,21 +20,13 @@ package org.apache.helix.common.exception;
  */
 
 /**
- * Base class for an exception thrown by Helix due to inconsistencies caught by Helix itself.
+ * This enum defines all of domain names used with various Helix monitor mbeans.
  */
-public class HelixException extends RuntimeException {
-
-  private static final long serialVersionUID = 6558251214364526257L;
-
-  public HelixException(String message) {
-    super(message);
-  }
-
-  public HelixException(Throwable cause) {
-    super(cause);
-  }
-
-  public HelixException(String message, Throwable cause) {
-    super(message, cause);
-  }
+public enum MonitorDomainNames {
+  ClusterStatus,
+  HelixZkClient,
+  HelixThreadPoolExecutor,
+  HelixCallback,
+  RoutingTableProvider,
+  CLMParticipantReport
 }

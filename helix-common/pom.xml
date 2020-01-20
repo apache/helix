@@ -37,7 +37,7 @@ under the License.
       org.slf4j*;version="[1.6,2)",
       *
     </osgi.import>
-    <osgi.export>org.apache.helix.common*;version="${project.version};-noimport:=true</osgi.export>
+    <osgi.export>org.apache.helix*;version="${project.version};-noimport:=true</osgi.export>
   </properties>
 
   <dependencies>

@@ -1,4 +1,4 @@
-package org.apache.helix.common.datamodel.serializer;
+package org.apache.helix;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -20,22 +20,21 @@ package org.apache.helix.common.datamodel.serializer;
  */
 
 /**
- * Interface for converting back and forth between raw bytes and generic objects
+ * Base class for an exception thrown by Helix due to inconsistencies caught by Helix itself.
  */
-public interface PayloadSerializer {
+public class HelixException extends RuntimeException {
 
-  /**
-   * Convert a generic object instance to raw bytes
-   * @param data instance of the generic type
-   * @return byte array representing the object
-   */
-  public <T> byte[] serialize(final T data);
+  private static final long serialVersionUID = 6558251214364526257L;
 
-  /**
-   * Convert raw bytes to a generic object instance
-   * @param clazz The class represented by the deserialized bytes
-   * @param bytes byte array representing the object
-   * @return instance of the generic type or null if the conversion failed
-   */
-  public <T> T deserialize(final Class<T> clazz, final byte[] bytes);
+  public HelixException(String message) {
+    super(message);
+  }
+
+  public HelixException(Throwable cause) {
+    super(cause);
+  }
+
+  public HelixException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

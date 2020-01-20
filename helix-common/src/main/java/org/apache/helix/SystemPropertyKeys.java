@@ -1,4 +1,4 @@
-package org.apache.helix.common.property;
+package org.apache.helix;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

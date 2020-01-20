@@ -31,9 +31,6 @@ under the License.
 
   <properties>
     <osgi.import>
-      org.codehaus.jackson*,
-      org.apache.commons.cli*,
-      org.restlet*,
       org.slf4j*;version="[1.6,2)",
       *
     </osgi.import>

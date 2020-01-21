@@ -31,6 +31,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.PreConnectCallback;
@@ -76,14 +77,24 @@ public class ParticipantManager {
   final StateMachineEngine _stateMachineEngine;
   final LiveInstanceInfoProvider _liveInstanceInfoProvider;
   final List<PreConnectCallback> _preConnectCallbacks;
+  final HelixManagerProperty _helixManagerProperty;
 
   // zk session id should be immutable after participant manager is created. This is to avoid
   // session race condition when handling new session for the participant.
   private final String _sessionId;
 
+  @Deprecated
   public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
       LiveInstanceInfoProvider liveInstanceInfoProvider, List<PreConnectCallback> preConnectCallbacks,
       final String sessionId) {
+    this(manager, zkclient, sessionTimeout, liveInstanceInfoProvider, preConnectCallbacks,
+        sessionId, null);
+  }
+
+  public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
+      LiveInstanceInfoProvider liveInstanceInfoProvider,
+      List<PreConnectCallback> preConnectCallbacks, final String sessionId,
+      HelixManagerProperty helixManagerProperty) {
     _zkclient = zkclient;
     _manager = manager;
     _clusterName = manager.getClusterName();
@@ -99,6 +110,7 @@ public class ParticipantManager {
     _stateMachineEngine = manager.getStateMachineEngine();
     _liveInstanceInfoProvider = liveInstanceInfoProvider;
     _preConnectCallbacks = preConnectCallbacks;
+    _helixManagerProperty = helixManagerProperty;
   }
 
   /**

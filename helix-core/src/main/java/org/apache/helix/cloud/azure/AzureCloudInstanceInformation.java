@@ -48,24 +48,18 @@ public class AzureCloudInstanceInformation implements CloudInstanceInformation {
       return new AzureCloudInstanceInformation(_cloudInstanceInfoMap);
     }
 
-    /**
-     * Default constructor
-     */
-    public Builder() {
-    }
-
-    public Builder setInstanceName(String v) {
-      _cloudInstanceInfoMap.put(CloudInstanceField.INSTANCE_NAME.name(), v);
+    public Builder setInstanceName(String name) {
+      _cloudInstanceInfoMap.put(CloudInstanceField.INSTANCE_NAME.name(), name);
       return this;
     }
 
-    public Builder setFaultDomain(String v) {
-      _cloudInstanceInfoMap.put(CloudInstanceField.FAULT_DOMAIN.name(), v);
+    public Builder setFaultDomain(String faultDomain) {
+      _cloudInstanceInfoMap.put(CloudInstanceField.FAULT_DOMAIN.name(), faultDomain);
       return this;
     }
 
-    public Builder setInstanceSetName(String v) {
-      _cloudInstanceInfoMap.put(CloudInstanceField.INSTANCE_SET_NAME.name(), v);
+    public Builder setInstanceSetName(String instanceSetName) {
+      _cloudInstanceInfoMap.put(CloudInstanceField.INSTANCE_SET_NAME.name(), instanceSetName);
       return this;
     }
 

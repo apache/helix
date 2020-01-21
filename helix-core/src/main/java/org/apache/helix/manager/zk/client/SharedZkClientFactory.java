@@ -37,7 +37,7 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
       HelixZkClient.ZkClientConfig clientConfig) {
     synchronized (_connectionManagerPool) {
       final ZkConnectionManager zkConnectionManager =
-          getOrCreateZkConnectionNamanger(connectionConfig, clientConfig.getConnectInitTimeout());
+          getOrCreateZkConnectionManager(connectionConfig, clientConfig.getConnectInitTimeout());
       if (zkConnectionManager == null) {
         throw new HelixException("Failed to create a connection manager in the pool to share.");
       }
@@ -52,7 +52,7 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
     }
   }
 
-  private ZkConnectionManager getOrCreateZkConnectionNamanger(
+  private ZkConnectionManager getOrCreateZkConnectionManager(
       HelixZkClient.ZkConnectionConfig connectionConfig, long connectInitTimeout) {
     ZkConnectionManager connectionManager = _connectionManagerPool.get(connectionConfig);
     if (connectionManager == null || connectionManager.isClosed()) {

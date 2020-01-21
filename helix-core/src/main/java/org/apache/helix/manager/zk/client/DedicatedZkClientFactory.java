@@ -19,7 +19,6 @@ package org.apache.helix.manager.zk.client;
  * under the License.
  */
 
-import org.apache.helix.manager.zk.PathBasedZkSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 
 /**
@@ -49,7 +48,7 @@ public class DedicatedZkClientFactory extends HelixZkClientFactory {
       HelixZkClient.ZkClientConfig clientConfig) {
     return new ZkClient(createZkConnection(connectionConfig),
         (int) clientConfig.getConnectInitTimeout(), clientConfig.getOperationRetryTimeout(),
-        (PathBasedZkSerializer) clientConfig.getZkSerializer(), clientConfig.getMonitorType(),
+        clientConfig.getZkSerializer(), clientConfig.getMonitorType(),
         clientConfig.getMonitorKey(), clientConfig.getMonitorInstanceName(),
         clientConfig.isMonitorRootPathOnly());
   }

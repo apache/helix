@@ -22,9 +22,8 @@ package org.apache.helix.manager.zk.client;
 import java.util.List;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.manager.zk.PathBasedZkSerializer;
-import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
+import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
@@ -40,7 +39,7 @@ class SharedZkClient extends org.apache.helix.manager.zk.ZkClient implements Hel
    * Since we cannot really disconnect the ZkConnection, we need a dummy ZkConnection placeholder.
    * This is to ensure connection field is never null even the shared ZkClient instance is closed so as to avoid NPE.
    */
-  private final static ZkConnection IDLE_CONNECTION = new ZkConnection("Dummy_ZkServers");
+  private final static org.apache.helix.zookeeper.api.zkclient.ZkConnection IDLE_CONNECTION = new ZkConnection("Dummy_ZkServers");
   private final OnCloseCallback _onCloseCallback;
   private final ZkConnectionManager _connectionManager;
 
@@ -61,7 +60,7 @@ class SharedZkClient extends org.apache.helix.manager.zk.ZkClient implements Hel
   protected SharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
       OnCloseCallback callback) {
     super(connectionManager.getConnection(), 0, clientConfig.getOperationRetryTimeout(),
-        (PathBasedZkSerializer) clientConfig.getZkSerializer(), clientConfig.getMonitorType(), clientConfig.getMonitorKey(),
+        clientConfig.getZkSerializer(), clientConfig.getMonitorType(), clientConfig.getMonitorKey(),
         clientConfig.getMonitorInstanceName(), clientConfig.isMonitorRootPathOnly());
     _connectionManager = connectionManager;
     // Register to the base dedicated ZkClient

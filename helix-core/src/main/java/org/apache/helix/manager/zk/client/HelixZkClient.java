@@ -3,13 +3,13 @@ package org.apache.helix.manager.zk.client;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.manager.zk.BasicZkSerializer;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.api.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.api.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkTimeoutException;
+import org.apache.helix.zookeeper.api.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.api.zkclient.serialize.SerializableSerializer;
 import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
@@ -362,7 +362,7 @@ public interface HelixZkClient {
     }
 
     public ZkClientConfig setZkSerializer(ZkSerializer zkSerializer) {
-      this._zkSerializer = (PathBasedZkSerializer) new BasicZkSerializer(zkSerializer);
+      this._zkSerializer = new BasicZkSerializer(zkSerializer);
       return this;
     }
 
@@ -413,7 +413,7 @@ public interface HelixZkClient {
 
     public PathBasedZkSerializer getZkSerializer() {
       if (_zkSerializer == null) {
-        _zkSerializer = (PathBasedZkSerializer) new BasicZkSerializer(new SerializableSerializer());
+        _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
       }
       return _zkSerializer;
     }

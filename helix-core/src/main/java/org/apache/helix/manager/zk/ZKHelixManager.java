@@ -84,6 +84,7 @@ import org.apache.helix.store.zk.AutoFallbackPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkInterruptedException;
+import org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.slf4j.Logger;

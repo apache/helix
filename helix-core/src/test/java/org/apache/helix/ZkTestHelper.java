@@ -41,13 +41,13 @@ import java.util.concurrent.TimeUnit;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
-import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.api.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.api.zkclient.ZkClient;
+import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
@@ -116,7 +116,7 @@ public class ZkTestHelper {
     };
 
     zkClient.subscribeStateChanges(listener);
-    ZkConnection connection = ((ZkConnection) zkClient.getConnection());
+    ZkConnection connection = (ZkConnection) zkClient.getConnection();
     ZooKeeper curZookeeper = connection.getZookeeper();
     LOG.info("Before expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
 

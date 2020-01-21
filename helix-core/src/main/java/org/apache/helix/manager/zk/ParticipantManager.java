@@ -51,6 +51,7 @@ import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
 import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkNodeExistsException;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkSessionMismatchedException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

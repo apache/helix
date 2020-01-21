@@ -34,7 +34,6 @@ under the License.
     <osgi.import>
       javax.management*,
       javax.xml.bind*,
-<!--      org.I0Itec.zkclient*,-->
       org.apache.commons.cli*;version="[1.2,2)",
       org.apache.commons.io*;version="[1.4,2)",
       org.apache.commons.math*;version="[2.1,4)",
@@ -66,7 +65,7 @@ under the License.
       <artifactId>zookeeper-api</artifactId>
       <version>${project.version}</version>
 <!--      <scope>system</scope>-->
-<!--      <systemPath>${pom.basedir}/../helix-common/target/helix-common-${project.version}.jar</systemPath>-->
+<!--      <systemPath>${pom.basedir}/../zookeeper-api/target/zookeeper-api-${project.version}.jar</systemPath>-->
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -127,11 +126,6 @@ under the License.
       <artifactId>commons-cli</artifactId>
       <version>1.2</version>
     </dependency>
-<!--    <dependency>-->
-<!--      <groupId>com.101tec</groupId>-->
-<!--      <artifactId>zkclient</artifactId>-->
-<!--      <version>0.5</version>-->
-<!--    </dependency>-->
     <dependency>
       <groupId>org.testng</groupId>
       <artifactId>testng</artifactId>

@@ -1,8 +1,8 @@
 package org.apache.helix.manager.zk.client;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
+import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
 
 
 /**

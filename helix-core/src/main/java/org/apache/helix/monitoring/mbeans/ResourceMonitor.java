@@ -50,6 +50,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     INTERMEDIATE_STATE_CAL_FAILED
   }
 
+  private static final String GAUGE_METRIC_SUFFIX = "Gauge";
+
   // Gauges
   private SimpleDynamicMetric<Long> _numOfPartitions;
   private SimpleDynamicMetric<Long> _numOfPartitionsInExternalView;
@@ -385,11 +387,10 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
       // Capacity keys are changed, so capacity attribute map needs to be updated.
       _dynamicCapacityMetricsMap.clear();
-      final String gaugeMetricSuffix = "Gauge";
       for (Map.Entry<String, Integer> entry : partitionWeightMap.entrySet()) {
         String capacityKey = entry.getKey();
         _dynamicCapacityMetricsMap.put(capacityKey,
-            new SimpleDynamicMetric<>(capacityKey + gaugeMetricSuffix, (long) entry.getValue()));
+            new SimpleDynamicMetric<>(capacityKey + GAUGE_METRIC_SUFFIX, (long) entry.getValue()));
       }
     }
 

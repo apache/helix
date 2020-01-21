@@ -179,8 +179,14 @@ public class ResourceUsageCalculator {
    */
   public static Map<String, Integer> calculateAveragePartitionWeight(
       Map<String, Map<String, Integer>> partitionCapacityMap) {
-    Map<String, PartitionWeightCounterEntry> countPartitionWeightMap =
-        aggregatePartitionWeight(partitionCapacityMap);
+    // capacity key -> [number of partitions, total weight per capacity key]
+    Map<String, PartitionWeightCounterEntry> countPartitionWeightMap = new HashMap<>();
+
+    // Aggregates partition weight for each capacity key.
+    partitionCapacityMap.values().forEach(partitionCapacityEntry ->
+        partitionCapacityEntry.forEach((capacityKey, weight) -> countPartitionWeightMap
+            .computeIfAbsent(capacityKey, counterEntry -> new PartitionWeightCounterEntry())
+            .increase(1, weight)));
 
     // capacity key -> average partition weight
     Map<String, Integer> averagePartitionWeightMap = new HashMap<>();
@@ -192,7 +198,7 @@ public class ResourceUsageCalculator {
         : countPartitionWeightMap.entrySet()) {
       String capacityKey = entry.getKey();
       PartitionWeightCounterEntry weightEntry = entry.getValue();
-      int averageWeight = weightEntry.getWeight() / weightEntry.getPartitions();
+      int averageWeight = (int) (weightEntry.getWeight() / weightEntry.getPartitions());
       averagePartitionWeightMap.put(capacityKey, averageWeight);
     }
 
@@ -200,33 +206,17 @@ public class ResourceUsageCalculator {
   }
 
   /*
-   * Aggregates partition weight for each capacity key.
-   */
-  private static Map<String, PartitionWeightCounterEntry> aggregatePartitionWeight(
-      Map<String, Map<String, Integer>> partitionCapacityMap) {
-    // capacity key -> [number of partitions, total weight per capacity key]
-    Map<String, PartitionWeightCounterEntry> countPartitionWeightMap = new HashMap<>();
-
-    partitionCapacityMap.values().forEach(partitionCapacityEntry ->
-        partitionCapacityEntry.forEach((capacityKey, weight) -> countPartitionWeightMap
-            .computeIfAbsent(capacityKey, counterEntry -> new PartitionWeightCounterEntry())
-            .increase(1, weight)));
-
-    return countPartitionWeightMap;
-  }
-
-  /*
    * Represents total number of partitions and total partition weight for a capacity key.
    */
   private static class PartitionWeightCounterEntry {
     private int partitions;
-    private int weight;
+    private long weight;
 
     private int getPartitions() {
       return partitions;
     }
 
-    private int getWeight() {
+    private long getWeight() {
       return weight;
     }
 

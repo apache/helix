@@ -507,7 +507,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    *                         capacity key -> average partition weight
    */
   public void updatePartitionWeight(String resourceName, Map<String, Integer> averageWeightMap) {
-    ResourceMonitor monitor = _resourceMonitorMap.get(resourceName);
+    ResourceMonitor monitor = getOrCreateResourceMonitor(resourceName);
     if (monitor == null) {
       LOG.warn("Failed to update partition weight metric for resource: {} because resource monitor"
           + " is not created.", resourceName);
@@ -538,7 +538,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  ResourceMonitor getOrCreateResourceMonitor(String resourceName) {
+  private ResourceMonitor getOrCreateResourceMonitor(String resourceName) {
     try {
       if (!_resourceMonitorMap.containsKey(resourceName)) {
         synchronized (_resourceMonitorMap) {

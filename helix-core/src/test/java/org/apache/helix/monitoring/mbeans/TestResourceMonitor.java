@@ -19,15 +19,24 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
+import javax.management.AttributeNotFoundException;
+import javax.management.InstanceNotFoundException;
 import javax.management.JMException;
+import javax.management.MBeanException;
+import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
+import javax.management.ReflectionException;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
@@ -210,6 +219,49 @@ public class TestResourceMonitor {
         ResourceMonitor.RebalanceStatus.INTERMEDIATE_STATE_CAL_FAILED.name());
   }
 
+  @Test
+  public void testUpdatePartitionWeightStats() throws IOException, JMException {
+    final MBeanServerConnection mBeanServer = ManagementFactory.getPlatformMBeanServer();
+    final String clusterName = TestHelper.getTestMethodName();
+    final String resource = "testDB";
+    final ObjectName resourceObjectName = new ObjectName("testDomain:key=value");
+    final ResourceMonitor monitor =
+        new ResourceMonitor(clusterName, resource, resourceObjectName);
+    monitor.register();
+
+    Map<String, Map<String, Integer>> partitionWeightMap =
+        ImmutableMap.of(resource, ImmutableMap.of("capacity1", 20, "capacity2", 40));
+
+    // Update Metrics
+    partitionWeightMap.values().forEach(monitor::updatePartitionWeightStats);
+
+    verifyPartitionWeightMetrics(mBeanServer, resourceObjectName, partitionWeightMap);
+
+    // Change capacity keys: "capacity2" -> "capacity3"
+    partitionWeightMap =
+        ImmutableMap.of(resource, ImmutableMap.of("capacity1", 20, "capacity3", 60));
+
+    // Update metrics.
+    partitionWeightMap.values().forEach(monitor::updatePartitionWeightStats);
+
+    // Verify results.
+    verifyPartitionWeightMetrics(mBeanServer, resourceObjectName, partitionWeightMap);
+
+    // "capacity2" metric should not exist in MBean server.
+    String removedAttribute = "capacity2Gauge";
+    try {
+      mBeanServer.getAttribute(resourceObjectName, removedAttribute);
+      Assert.fail("AttributeNotFoundException should be thrown because attribute [capacity2Gauge]"
+          + " is removed.");
+    } catch (AttributeNotFoundException expected) {
+    }
+
+    // Reset monitor.
+    monitor.unregister();
+    Assert.assertFalse(mBeanServer.isRegistered(resourceObjectName),
+        "Failed to unregister resource monitor.");
+  }
+
   /**
    * Return a deep copy of a ZNRecord.
    *
@@ -239,5 +291,22 @@ public class TestResourceMonitor {
     copy.setEphemeralOwner(record.getEphemeralOwner());
 
     return copy;
+  }
+
+  private void verifyPartitionWeightMetrics(MBeanServerConnection mBeanServer,
+      ObjectName objectName, Map<String, Map<String, Integer>> expectedPartitionWeightMap)
+      throws IOException, AttributeNotFoundException, MBeanException, ReflectionException,
+             InstanceNotFoundException {
+    final String gaugeMetricSuffix = "Gauge";
+    for (Map.Entry<String, Map<String, Integer>> entry : expectedPartitionWeightMap.entrySet()) {
+      // Resource monitor for this resource is already registered.
+      Assert.assertTrue(mBeanServer.isRegistered(objectName));
+
+      for (Map.Entry<String, Integer> capacityEntry : entry.getValue().entrySet()) {
+        String attributeName = capacityEntry.getKey() + gaugeMetricSuffix;
+        Assert.assertEquals((long) mBeanServer.getAttribute(objectName, attributeName),
+            (long) capacityEntry.getValue());
+      }
+    }
   }
 }

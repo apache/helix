@@ -66,7 +66,6 @@ public final class HelixPropertyFactory {
     } catch (IOException e) {
       String errMsg = String.format("failed to open Helix participant properties file: %s",
           HELIX_PARTICIPANT_PROPERTY_FILE);
-      LOG.error(errMsg);
       throw new IllegalArgumentException(errMsg, e);
     }
     LOG.info("HelixPropertyFactory successfully loaded helix participant properties: {}",

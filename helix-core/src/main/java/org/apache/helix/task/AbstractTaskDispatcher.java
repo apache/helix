@@ -40,6 +40,7 @@ import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
@@ -200,8 +201,18 @@ public abstract class AbstractTaskDispatcher {
             // Drop tasks if parent job is not in progress
             paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
             break;
+          } else if (!isTaskAssignableToInstance(cache, jobCfg, instance, currStateOutput)) {
+            // Check if this task which is being run on in this instance needs to be dropped or not.
+            nextState = TaskPartitionState.DROPPED;
           }
 
+          // If there has been any decision for this task, other than RUNNING do not overwrite it
+          // with new decision.
+          // This enforces that tasks first correctly being dropped from old assignment and retried
+          // again in the future.
+          if (paMap.containsKey(pId) && nextState == TaskPartitionState.RUNNING) {
+            break;
+          }
           paMap.put(pId, new PartitionAssignment(instance, nextState.name()));
           assignedPartitions.get(instance).add(pId);
           if (LOG.isDebugEnabled()) {
@@ -308,10 +319,16 @@ public abstract class AbstractTaskDispatcher {
           } else if (jobState == TaskState.IN_PROGRESS
               && (jobTgtState != TargetState.STOP && jobTgtState != TargetState.DELETE)) {
             // Job is in progress, implying that tasks are being re-tried, so set it to RUNNING
-            paMap.put(pId,
-                new JobRebalancer.PartitionAssignment(instance, TaskPartitionState.RUNNING.name()));
-            assignedPartitions.get(instance).add(pId);
-            break;
+
+            // Check if INIT->RUNNING for this task is correct decision or not. This enforces the
+            // task assigned to the right instance if it is targeted task. Without this check we
+            // might be stuck in INIT -> RUNNING and RUNNING -> DROPPED decisions.
+            if (isTaskAssignableToInstance(cache, jobCfg, instance, currStateOutput)) {
+              paMap.put(pId, new JobRebalancer.PartitionAssignment(instance,
+                  TaskPartitionState.RUNNING.name()));
+              assignedPartitions.get(instance).add(pId);
+              break;
+            }
           }
         }
 
@@ -337,6 +354,42 @@ public abstract class AbstractTaskDispatcher {
       // Remove the set of task partitions that are completed or in one of the error states.
       pSet.removeAll(donePartitions);
     }
+  }
+
+  /**
+   * Check whether this is targeted task and if current state of the partition existed on the
+   * instance matches the target state.
+   * @param cache
+   * @param jobCfg
+   * @param instance
+   * @param currStateOutput
+   * @return
+   */
+  private boolean isTaskAssignableToInstance(WorkflowControllerDataProvider cache, JobConfig jobCfg,
+      String instance, CurrentStateOutput currStateOutput) {
+    // If there is not target resource associated with his job, then this assignment is valid.
+    if (jobCfg.getTargetResource() == null) {
+      return true;
+    }
+
+    IdealState targetIdealState = cache.getIdealStates().get(jobCfg.getTargetResource());
+    Set<String> targetStates = jobCfg.getTargetPartitionStates();
+    // If tasks are not targeted task (e.g. should not be necessarily assigned to Master), then task can be assigned
+    // to this instance.
+    if (targetStates == null || targetStates.size() == 0) {
+      return true;
+    }
+
+    // If task is targeted, check whether partition's current state on that instance existed in
+    // targeted states.
+    for (String targetResourcePartitionName : targetIdealState.getPartitionSet()) {
+      String currentState = currStateOutput.getCurrentState(targetIdealState.getResourceName(),
+          new Partition(targetResourcePartitionName), instance);
+      if (currentState != null && targetStates.contains(currentState)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

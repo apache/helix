@@ -41,6 +41,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
+import org.apache.helix.HelixManagerProperty;
+import org.apache.helix.HelixPropertyFactory;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
@@ -106,6 +108,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private final List<PreConnectCallback> _preConnectCallbacks;
   protected final List<CallbackHandler> _handlers;
   private final HelixManagerProperties _properties;
+  private final HelixManagerProperty _helixManagerProperty;
   private final HelixManagerStateListener _stateListener;
 
   /**
@@ -202,9 +205,16 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
       String zkAddress, HelixManagerStateListener stateListener) {
+    this(clusterName, instanceName, instanceType, zkAddress, stateListener,
+        HelixPropertyFactory.getInstance().getHelixManagerProperty(zkAddress, clusterName));
+  }
 
-    LOG.info(
-        "Create a zk-based cluster manager. zkSvr: " + zkAddress + ", clusterName: " + clusterName + ", instanceName: " + instanceName + ", type: " + instanceType);
+  public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
+      String zkAddress, HelixManagerStateListener stateListener,
+      HelixManagerProperty helixManagerProperty) {
+
+    LOG.info("Create a zk-based cluster manager. zkSvr: " + zkAddress + ", clusterName: "
+        + clusterName + ", instanceName: " + instanceName + ", type: " + instanceType);
 
     _zkAddress = zkAddress;
     _clusterName = clusterName;
@@ -244,6 +254,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
 
     _stateListener = stateListener;
+    _helixManagerProperty = helixManagerProperty;
 
     /**
      * use system property if available
@@ -1203,7 +1214,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
     _participantManager =
         new ParticipantManager(this, _zkclient, _sessionTimeout, _liveInstanceInfoProvider,
-            _preConnectCallbacks);
+            _preConnectCallbacks, _helixManagerProperty);
     _participantManager.handleNewSession();
   }
 

@@ -609,9 +609,7 @@ public class ConfigAccessor {
 
   /**
    * Get RestConfig of the given cluster.
-   *
    * @param clusterName The cluster
-   *
    * @return The instance of {@link RESTConfig}
    */
   public RESTConfig getRESTConfig(String clusterName) {

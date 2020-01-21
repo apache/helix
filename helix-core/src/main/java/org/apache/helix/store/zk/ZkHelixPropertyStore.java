@@ -21,9 +21,10 @@ package org.apache.helix.store.zk;
 
 import java.util.List;
 
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkCacheBaseDataAccessor;
+import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
+
 
 public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T> {
   public static final String MONITOR_TYPE = "HelixPropertyStore";

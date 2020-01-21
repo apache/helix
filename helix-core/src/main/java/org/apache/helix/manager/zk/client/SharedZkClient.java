@@ -1,10 +1,30 @@
 package org.apache.helix.manager.zk.client;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.List;
 
-import org.I0Itec.zkclient.IZkConnection;
 import org.apache.helix.HelixException;
+import org.apache.helix.manager.zk.PathBasedZkSerializer;
 import org.apache.helix.manager.zk.zookeeper.ZkConnection;
+import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
@@ -41,7 +61,7 @@ class SharedZkClient extends org.apache.helix.manager.zk.ZkClient implements Hel
   protected SharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
       OnCloseCallback callback) {
     super(connectionManager.getConnection(), 0, clientConfig.getOperationRetryTimeout(),
-        clientConfig.getZkSerializer(), clientConfig.getMonitorType(), clientConfig.getMonitorKey(),
+        (PathBasedZkSerializer) clientConfig.getZkSerializer(), clientConfig.getMonitorType(), clientConfig.getMonitorKey(),
         clientConfig.getMonitorInstanceName(), clientConfig.isMonitorRootPathOnly());
     _connectionManager = connectionManager;
     // Register to the base dedicated ZkClient

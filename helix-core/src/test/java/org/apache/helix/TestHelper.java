@@ -38,11 +38,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.ZkServer;
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.integration.manager.ZkTestManager;
@@ -63,6 +58,12 @@ import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
+import org.apache.helix.zookeeper.api.zkclient.IDefaultNameSpace;
+import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.api.zkclient.ZkClient;
+import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +118,7 @@ public class TestHelper {
 
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
       @Override
-      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient) {
+      public void createDefaultNameSpace(ZkClient zkClient) {
         if (rootNamespaces == null) {
           return;
         }

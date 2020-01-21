@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

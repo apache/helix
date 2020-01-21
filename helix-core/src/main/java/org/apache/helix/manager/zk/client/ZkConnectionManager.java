@@ -1,12 +1,32 @@
 package org.apache.helix.manager.zk.client;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.HashSet;
 import java.util.Set;
 
-import org.I0Itec.zkclient.IZkConnection;
-import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.BasicZkSerializer;
+import org.apache.helix.manager.zk.PathBasedZkSerializer;
+import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
+import org.apache.helix.zookeeper.api.zkclient.serialize.SerializableSerializer;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
@@ -39,7 +59,8 @@ class ZkConnectionManager extends org.apache.helix.manager.zk.ZkClient {
   protected ZkConnectionManager(IZkConnection zkConnection, long connectionTimeout,
       String monitorKey) {
     super(zkConnection, (int) connectionTimeout, HelixZkClient.DEFAULT_OPERATION_TIMEOUT,
-        new BasicZkSerializer(new SerializableSerializer()), MONITOR_TYPE, monitorKey, null, true);
+        (PathBasedZkSerializer) new BasicZkSerializer(new SerializableSerializer()), MONITOR_TYPE,
+        monitorKey, null, true);
     _monitorKey = monitorKey;
     LOG.info("ZkConnection {} was created for sharing.", _monitorKey);
   }

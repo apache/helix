@@ -33,7 +33,6 @@ import java.util.logging.Level;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
@@ -81,6 +80,7 @@ import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.apache.helix.zookeeper.api.zkclient.ZkServer;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;

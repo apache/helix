@@ -24,10 +24,10 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
 
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.util.GZipCompressionUtil;
+import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
 import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;

@@ -27,11 +27,11 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
-import org.I0Itec.zkclient.exception.ZkMarshallingError;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkMarshallingError;
+import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;

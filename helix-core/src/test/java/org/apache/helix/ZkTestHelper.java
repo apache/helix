@@ -38,8 +38,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -48,6 +46,8 @@ import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;

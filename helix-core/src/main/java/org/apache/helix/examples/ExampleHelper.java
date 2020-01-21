@@ -22,9 +22,11 @@ package org.apache.helix.examples;
 import java.io.File;
 import java.io.IOException;
 
-import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
+import org.apache.helix.zookeeper.api.zkclient.IDefaultNameSpace;
+import org.apache.helix.zookeeper.api.zkclient.ZkClient;
+import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+
 
 public class ExampleHelper {
 
@@ -45,7 +47,7 @@ public class ExampleHelper {
 
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
       @Override
-      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient) {
+      public void createDefaultNameSpace(ZkClient zkClient) {
         // do nothing
       }
     };

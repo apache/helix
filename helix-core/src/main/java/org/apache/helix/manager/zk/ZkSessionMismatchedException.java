@@ -1,7 +1,6 @@
 package org.apache.helix.manager.zk;
 
-import org.I0Itec.zkclient.exception.ZkException;
-import org.apache.zookeeper.KeeperException;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkException;
 
 
 /**

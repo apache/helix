@@ -23,8 +23,6 @@ package org.apache.helix.rest.server;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.I0Itec.zkclient.exception.ZkMarshallingError;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -39,6 +37,8 @@ import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkMarshallingError;
+import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
 
 
 public class ServerContext {

@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
 import com.google.common.collect.Sets;
-import org.I0Itec.zkclient.exception.ZkInterruptedException;
+
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -83,6 +83,7 @@ import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.AutoFallbackPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkInterruptedException;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.slf4j.Logger;

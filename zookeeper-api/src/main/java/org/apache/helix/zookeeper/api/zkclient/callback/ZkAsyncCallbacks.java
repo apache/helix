@@ -36,8 +36,8 @@ public class ZkAsyncCallbacks {
   private static Logger LOG = LoggerFactory.getLogger(ZkAsyncCallbacks.class);
 
   public static class GetDataCallbackHandler extends DefaultCallback implements DataCallback {
-    byte[] _data;
-    Stat _stat;
+    public byte[] _data;
+    public Stat _stat;
 
     @Override
     public void handle() {
@@ -81,7 +81,7 @@ public class ZkAsyncCallbacks {
   }
 
   public static class ExistsCallbackHandler extends DefaultCallback implements StatCallback {
-    Stat _stat;
+    public Stat _stat;
 
     @Override
     public void handle() {

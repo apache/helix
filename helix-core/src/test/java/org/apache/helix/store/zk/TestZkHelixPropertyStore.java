@@ -31,8 +31,6 @@ import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
-import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
@@ -43,6 +41,8 @@ import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.helix.store.HelixPropertyListener;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.api.zkclient.serialize.SerializableSerializer;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;

@@ -27,28 +27,24 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.I0Itec.zkclient.DataUpdater;
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.exception.ZkBadVersionException;
-import org.I0Itec.zkclient.exception.ZkException;
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
-import org.I0Itec.zkclient.exception.ZkNodeExistsException;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.api.zkclient.callback.ZkAsyncCallbacks;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkBadVersionException;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkNodeExistsException;
+import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
@@ -492,13 +488,13 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
     try {
       // issue asyn get requests
-      GetDataCallbackHandler[] cbList = new GetDataCallbackHandler[paths.size()];
+      ZkAsyncCallbacks.GetDataCallbackHandler[] cbList = new ZkAsyncCallbacks.GetDataCallbackHandler[paths.size()];
       for (int i = 0; i < paths.size(); i++) {
         if (!needRead[i])
           continue;
 
         String path = paths.get(i);
-        cbList[i] = new GetDataCallbackHandler();
+        cbList[i] = new ZkAsyncCallbacks.GetDataCallbackHandler();
         _zkClient.asyncGetData(path, cbList[i]);
       }
 
@@ -507,7 +503,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         if (!needRead[i])
           continue;
 
-        GetDataCallbackHandler cb = cbList[i];
+        ZkAsyncCallbacks.GetDataCallbackHandler cb = cbList[i];
         cb.waitForSuccess();
       }
 
@@ -518,7 +514,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         if (!needRead[i])
           continue;
 
-        GetDataCallbackHandler cb = cbList[i];
+        ZkAsyncCallbacks.GetDataCallbackHandler cb = cbList[i];
         if (Code.get(cb.getRc()) == Code.OK) {
           @SuppressWarnings("unchecked")
           T record = (T) _zkClient.deserialize(cb._data, paths.get(i));
@@ -684,7 +680,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   /**
    * async create. give up on error other than NONODE
    */
-  CreateCallbackHandler[] create(List<String> paths, List<T> records, boolean[] needCreate,
+  ZkAsyncCallbacks.CreateCallbackHandler[] create(List<String> paths, List<T> records, boolean[] needCreate,
       List<List<String>> pathsCreated, int options) {
     if ((records != null && records.size() != paths.size()) || needCreate.length != paths.size()
         || (pathsCreated != null && pathsCreated.size() != paths.size())) {
@@ -692,7 +688,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           "paths, records, needCreate, and pathsCreated should be of same size");
     }
 
-    CreateCallbackHandler[] cbList = new CreateCallbackHandler[paths.size()];
+    ZkAsyncCallbacks.CreateCallbackHandler[] cbList = new ZkAsyncCallbacks.CreateCallbackHandler[paths.size()];
 
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
@@ -710,7 +706,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
         String path = paths.get(i);
         T record = records == null ? null : records.get(i);
-        cbList[i] = new CreateCallbackHandler();
+        cbList[i] = new ZkAsyncCallbacks.CreateCallbackHandler();
         _zkClient.asyncCreate(path, record, mode, cbList[i]);
       }
 
@@ -721,7 +717,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         if (!needCreate[i])
           continue;
 
-        CreateCallbackHandler cb = cbList[i];
+        ZkAsyncCallbacks.CreateCallbackHandler cb = cbList[i];
         cb.waitForSuccess();
         String path = paths.get(i);
 
@@ -747,10 +743,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       if (failOnNoNode) {
         boolean[] needCreateParent = Arrays.copyOf(needCreate, needCreate.length);
 
-        CreateCallbackHandler[] parentCbList =
+        ZkAsyncCallbacks.CreateCallbackHandler[] parentCbList =
             create(parentPaths, null, needCreateParent, pathsCreated, AccessOption.PERSISTENT);
         for (int i = 0; i < parentCbList.length; i++) {
-          CreateCallbackHandler parentCb = parentCbList[i];
+          ZkAsyncCallbacks.CreateCallbackHandler parentCb = parentCbList[i];
           if (parentCb == null)
             continue;
 
@@ -790,10 +786,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     long startT = System.nanoTime();
     try {
 
-      CreateCallbackHandler[] cbList = create(paths, records, needCreate, pathsCreated, options);
+      ZkAsyncCallbacks.CreateCallbackHandler[] cbList = create(paths, records, needCreate, pathsCreated, options);
 
       for (int i = 0; i < cbList.length; i++) {
-        CreateCallbackHandler cb = cbList[i];
+        ZkAsyncCallbacks.CreateCallbackHandler cb = cbList[i];
         success[i] = (Code.get(cb.getRc()) == Code.OK);
       }
 
@@ -840,8 +836,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     }
 
     List<Stat> setStats = new ArrayList<>(Collections.<Stat> nCopies(paths.size(), null));
-    SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[paths.size()];
-    CreateCallbackHandler[] createCbList = null;
+    ZkAsyncCallbacks.SetDataCallbackHandler[] cbList = new ZkAsyncCallbacks.SetDataCallbackHandler[paths.size()];
+    ZkAsyncCallbacks.CreateCallbackHandler[] createCbList = null;
     boolean[] needSet = new boolean[paths.size()];
     Arrays.fill(needSet, true);
 
@@ -858,7 +854,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
           String path = paths.get(i);
           T record = records.get(i);
-          cbList[i] = new SetDataCallbackHandler();
+          cbList[i] = new ZkAsyncCallbacks.SetDataCallbackHandler();
           _zkClient.asyncSetData(path, record, -1, cbList[i]);
 
         }
@@ -866,7 +862,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         boolean failOnNoNode = false;
 
         for (int i = 0; i < cbList.length; i++) {
-          SetDataCallbackHandler cb = cbList[i];
+          ZkAsyncCallbacks.SetDataCallbackHandler cb = cbList[i];
           cb.waitForSuccess();
           Code rc = Code.get(cb.getRc());
           switch (rc) {
@@ -890,7 +886,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           boolean[] needCreate = Arrays.copyOf(needSet, needSet.length);
           createCbList = create(paths, records, needCreate, pathsCreated, options);
           for (int i = 0; i < createCbList.length; i++) {
-            CreateCallbackHandler createCb = createCbList[i];
+            ZkAsyncCallbacks.CreateCallbackHandler createCb = createCbList[i];
             if (createCb == null) {
               continue;
             }
@@ -916,13 +912,13 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
       // construct return results
       for (int i = 0; i < cbList.length; i++) {
-        SetDataCallbackHandler cb = cbList[i];
+        ZkAsyncCallbacks.SetDataCallbackHandler cb = cbList[i];
 
         Code rc = Code.get(cb.getRc());
         if (rc == Code.OK) {
           success[i] = true;
         } else if (rc == Code.NONODE) {
-          CreateCallbackHandler createCb = createCbList[i];
+          ZkAsyncCallbacks.CreateCallbackHandler createCb = createCbList[i];
           if (Code.get(createCb.getRc()) == Code.OK) {
             success[i] = true;
           }
@@ -986,8 +982,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return updateData;
     }
 
-    SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[paths.size()];
-    CreateCallbackHandler[] createCbList = null;
+    ZkAsyncCallbacks.SetDataCallbackHandler[] cbList = new ZkAsyncCallbacks.SetDataCallbackHandler[paths.size()];
+    ZkAsyncCallbacks.CreateCallbackHandler[] createCbList = null;
     boolean[] needUpdate = new boolean[paths.size()];
     Arrays.fill(needUpdate, true);
 
@@ -1026,7 +1022,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
             failOnNoNode = true;
             needCreate[i] = true;
           } else {
-            cbList[i] = new SetDataCallbackHandler();
+            cbList[i] = new ZkAsyncCallbacks.SetDataCallbackHandler();
             _zkClient.asyncSetData(path, newData, curStat.getVersion(), cbList[i]);
           }
         }
@@ -1035,7 +1031,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         boolean failOnBadVersion = false;
 
         for (int i = 0; i < paths.size(); i++) {
-          SetDataCallbackHandler cb = cbList[i];
+          ZkAsyncCallbacks.SetDataCallbackHandler cb = cbList[i];
           if (cb == null)
             continue;
 
@@ -1066,7 +1062,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         if (failOnNoNode) {
           createCbList = create(paths, newDataList, needCreate, pathsCreated, options);
           for (int i = 0; i < paths.size(); i++) {
-            CreateCallbackHandler createCb = createCbList[i];
+            ZkAsyncCallbacks.CreateCallbackHandler createCb = createCbList[i];
             if (createCb == null) {
               continue;
             }
@@ -1141,15 +1137,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     long startT = System.nanoTime();
 
     try {
-      ExistsCallbackHandler[] cbList = new ExistsCallbackHandler[paths.size()];
+      ZkAsyncCallbacks.ExistsCallbackHandler[] cbList = new ZkAsyncCallbacks.ExistsCallbackHandler[paths.size()];
       for (int i = 0; i < paths.size(); i++) {
         String path = paths.get(i);
-        cbList[i] = new ExistsCallbackHandler();
+        cbList[i] = new ZkAsyncCallbacks.ExistsCallbackHandler();
         _zkClient.asyncExists(path, cbList[i]);
       }
 
       for (int i = 0; i < cbList.length; i++) {
-        ExistsCallbackHandler cb = cbList[i];
+        ZkAsyncCallbacks.ExistsCallbackHandler cb = cbList[i];
         cb.waitForSuccess();
         stats[i] = cb._stat;
       }
@@ -1175,19 +1171,19 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
     boolean[] success = new boolean[paths.size()];
 
-    DeleteCallbackHandler[] cbList = new DeleteCallbackHandler[paths.size()];
+    ZkAsyncCallbacks.DeleteCallbackHandler[] cbList = new ZkAsyncCallbacks.DeleteCallbackHandler[paths.size()];
 
     long startT = System.nanoTime();
 
     try {
       for (int i = 0; i < paths.size(); i++) {
         String path = paths.get(i);
-        cbList[i] = new DeleteCallbackHandler();
+        cbList[i] = new ZkAsyncCallbacks.DeleteCallbackHandler();
         _zkClient.asyncDelete(path, cbList[i]);
       }
 
       for (int i = 0; i < cbList.length; i++) {
-        DeleteCallbackHandler cb = cbList[i];
+        ZkAsyncCallbacks.DeleteCallbackHandler cb = cbList[i];
         cb.waitForSuccess();
         success[i] = (cb.getRc() == 0);
       }

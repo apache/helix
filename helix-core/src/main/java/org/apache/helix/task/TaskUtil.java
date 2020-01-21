@@ -29,7 +29,6 @@ import java.util.Set;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
-import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -44,6 +43,7 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.util.RebalanceUtil;
+import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;

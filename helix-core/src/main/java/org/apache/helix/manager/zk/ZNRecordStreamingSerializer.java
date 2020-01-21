@@ -27,12 +27,12 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import com.google.common.collect.Maps;
-import org.I0Itec.zkclient.exception.ZkMarshallingError;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.util.GZipCompressionUtil;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkMarshallingError;
+import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;

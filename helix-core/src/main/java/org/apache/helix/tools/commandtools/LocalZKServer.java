@@ -19,9 +19,10 @@ package org.apache.helix.tools.commandtools;
  * under the License.
  */
 
-import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkClient;
-import org.I0Itec.zkclient.ZkServer;
+import org.apache.helix.zookeeper.api.zkclient.IDefaultNameSpace;
+import org.apache.helix.zookeeper.api.zkclient.ZkClient;
+import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+
 
 /**
  * Provides ability to start zookeeper locally on a particular port

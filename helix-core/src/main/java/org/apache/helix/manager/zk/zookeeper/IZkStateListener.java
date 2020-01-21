@@ -19,43 +19,10 @@ package org.apache.helix.manager.zk.zookeeper;
  * under the License.
  */
 
-import org.apache.zookeeper.Watcher.Event.KeeperState;
+/**
+ * Use IZkStateListener in zookeeper-api module instead.
+ */
+@Deprecated
+public interface IZkStateListener extends org.apache.helix.zookeeper.api.zkclient.IZkStateListener {
 
-
-public interface IZkStateListener {
-
-  /**
-   * Called when the zookeeper connection state has changed.
-   *
-   * @param state the new zookeeper state.
-   * @throws Exception if any error occurs.
-   */
-  void handleStateChanged(KeeperState state) throws Exception;
-
-  /**
-   * Called after the zookeeper session has expired and a new session has been created. The new
-   * session id has to be passed in as the parameter.
-   * And you would have to re-create any ephemeral nodes here. This is a session aware operation.
-   * The ephemeral nodes have to be created within the expected session id, which means passed-in
-   * session id has to be checked with current zookeeper's session id. If the passed-in session id
-   * does not match current zookeeper's session id, ephemeral nodes should not be created.
-   * Otherwise, session race condition may occur and the newly created ephemeral nodes may not be in
-   * the expected session.
-   *
-   * @param sessionId the new session's id. The ephemeral nodes are expected to be created in this
-   *                  session. If this session id is expired, ephemeral nodes should not be created.
-   * @throws Exception if any error occurs.
-   */
-  void handleNewSession(final String sessionId) throws Exception;
-
-  /**
-   * Called when a session cannot be re-established. This should be used to implement connection
-   * failure handling e.g. retry to connect or pass the error up
-   *
-   * @param error
-   *            The error that prevents a session from being established
-   * @throws Exception
-   *             On any error.
-   */
-  void handleSessionEstablishmentError(final Throwable error) throws Exception;
 }

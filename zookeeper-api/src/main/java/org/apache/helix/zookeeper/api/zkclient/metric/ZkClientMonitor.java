@@ -86,7 +86,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     }
   }
 
-  protected static ObjectName getObjectName(String monitorType, String monitorKey,
+  public static ObjectName getObjectName(String monitorType, String monitorKey,
       String monitorInstanceName) throws MalformedObjectNameException {
     return MBeanRegistrar
         .buildObjectName(MonitorDomainNames.HelixZkClient.name(), MONITOR_TYPE, monitorType,

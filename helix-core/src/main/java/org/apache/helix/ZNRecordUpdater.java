@@ -19,7 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
-import org.I0Itec.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
 
 /**
  * Class that specifies how a ZNRecord should be updated with another ZNRecord

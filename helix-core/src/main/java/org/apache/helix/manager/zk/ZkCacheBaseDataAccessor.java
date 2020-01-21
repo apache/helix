@@ -29,14 +29,8 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.I0Itec.zkclient.DataUpdater;
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixException;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
@@ -45,6 +39,12 @@ import org.apache.helix.store.HelixPropertyListener;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.PathUtils;
+import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.api.zkclient.callback.ZkAsyncCallbacks;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
@@ -451,12 +451,12 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         Arrays.fill(needCreate, true);
         List<List<String>> pathsCreatedList =
             new ArrayList<List<String>>(Collections.<List<String>>nCopies(size, null));
-        CreateCallbackHandler[] createCbList =
+        ZkAsyncCallbacks.CreateCallbackHandler[] createCbList =
             _baseAccessor.create(serverPaths, records, needCreate, pathsCreatedList, options);
 
         boolean[] success = new boolean[size];
         for (int i = 0; i < size; i++) {
-          CreateCallbackHandler cb = createCbList[i];
+          ZkAsyncCallbacks.CreateCallbackHandler cb = createCbList[i];
           success[i] = (Code.get(cb.getRc()) == Code.OK);
 
           updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),

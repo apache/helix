@@ -25,9 +25,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkClient;
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -37,12 +34,15 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.zookeeper.api.zkclient.IDefaultNameSpace;
+import org.apache.helix.zookeeper.api.zkclient.ZkClient;
+import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+
 
 public class IntegrationTest {
 
   public static void main(String[] args) throws InterruptedException {
     ZkServer server = null;
-    ;
 
     try {
       String baseDir = "/tmp/IntegrationTest/";

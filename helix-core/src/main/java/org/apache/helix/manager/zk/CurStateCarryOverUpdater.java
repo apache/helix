@@ -19,11 +19,11 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskPartitionState;
+import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
 
 
 /**

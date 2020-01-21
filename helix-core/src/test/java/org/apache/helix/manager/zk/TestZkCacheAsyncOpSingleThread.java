@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
@@ -33,6 +32,7 @@ import org.apache.helix.ZNRecordUpdater;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
+import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

@@ -22,7 +22,6 @@ package org.apache.helix.manager.zk;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -33,6 +32,7 @@ import org.apache.helix.ZkTestHelper;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.zookeeper.api.zkclient.ZkServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;

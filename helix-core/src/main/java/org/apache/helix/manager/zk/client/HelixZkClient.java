@@ -3,16 +3,16 @@ package org.apache.helix.manager.zk.client;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.DataUpdater;
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.exception.ZkTimeoutException;
-import org.I0Itec.zkclient.serialize.SerializableSerializer;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.manager.zk.BasicZkSerializer;
-import org.apache.helix.manager.zk.PathBasedZkSerializer;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks;
-import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
+import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.api.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkTimeoutException;
+import org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer;
+import org.apache.helix.zookeeper.api.zkclient.serialize.SerializableSerializer;
+import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
@@ -56,28 +56,30 @@ public interface HelixZkClient {
   }
 
   /**
-   * Subscribes state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
-   *
+   * Subscribes state changes for a
+   * {@link org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener} listener.
    * @deprecated
-   * This is deprecated. It is kept for backwards compatibility. Please use
-   * {@link #subscribeStateChanges(org.apache.helix.manager.zk.zookeeper.IZkStateListener)}.
-   *
-   * @param listener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   *             This is deprecated. It is kept for backwards compatibility. Please use
+   *             {@link #subscribeStateChanges(org.apache.helix.manager.zk.zookeeper.IZkStateListener)}.
+   * @param listener {@link org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener}
+   *          listener
    */
   @Deprecated
-  void subscribeStateChanges(final org.I0Itec.zkclient.IZkStateListener listener);
+  void subscribeStateChanges(
+      final org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener);
 
   /**
-   * Unsubscribes state changes for a {@link org.I0Itec.zkclient.IZkStateListener} listener.
-   *
+   * Unsubscribes state changes for a
+   * {@link org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener} listener.
    * @deprecated
-   * This is deprecated. It is kept for backwards compatibility. Please use
-   * {@link #unsubscribeStateChanges(org.apache.helix.manager.zk.zookeeper.IZkStateListener)}.
-   *
-   * @param listener {@link org.I0Itec.zkclient.IZkStateListener} listener
+   *             This is deprecated. It is kept for backwards compatibility. Please use
+   *             {@link #unsubscribeStateChanges(org.apache.helix.manager.zk.zookeeper.IZkStateListener)}.
+   * @param listener {@link org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener}
+   *          listener
    */
   @Deprecated
-  void unsubscribeStateChanges(org.I0Itec.zkclient.IZkStateListener listener);
+  void unsubscribeStateChanges(
+      org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener);
 
   void unsubscribeAll();
 
@@ -229,9 +231,10 @@ public interface HelixZkClient {
    * {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}, which means this listener
    * runs the methods of {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}.
    * This is for backward compatibility and to avoid breaking the original implementation of
-   * {@link org.I0Itec.zkclient.IZkStateListener}.
+   * {@link org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener}.
    */
-  class I0ItecIZkStateListenerHelixImpl implements org.I0Itec.zkclient.IZkStateListener {
+  class I0ItecIZkStateListenerHelixImpl
+      implements org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener {
     private IZkStateListener _listener;
 
     I0ItecIZkStateListenerHelixImpl(IZkStateListener listener) {
@@ -359,7 +362,7 @@ public interface HelixZkClient {
     }
 
     public ZkClientConfig setZkSerializer(ZkSerializer zkSerializer) {
-      this._zkSerializer = new BasicZkSerializer(zkSerializer);
+      this._zkSerializer = (PathBasedZkSerializer) new BasicZkSerializer(zkSerializer);
       return this;
     }
 
@@ -410,7 +413,7 @@ public interface HelixZkClient {
 
     public PathBasedZkSerializer getZkSerializer() {
       if (_zkSerializer == null) {
-        _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
+        _zkSerializer = (PathBasedZkSerializer) new BasicZkSerializer(new SerializableSerializer());
       }
       return _zkSerializer;
     }

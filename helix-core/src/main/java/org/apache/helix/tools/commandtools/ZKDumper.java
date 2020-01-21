@@ -28,7 +28,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -40,6 +39,8 @@ import org.apache.commons.cli.PosixParser;
 import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.SharedZkClientFactory;
+import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
+
 
 /**
  * Dumps the Zookeeper file structure on to Disk

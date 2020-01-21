@@ -33,9 +33,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.ZkServer;
-import org.I0Itec.zkclient.exception.ZkTimeoutException;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
@@ -46,6 +43,9 @@ import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
+import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -165,12 +165,12 @@ public class TestRawZkClient extends ZkUnitTestBase {
   @Test
   public void testSubscribeStateChangesForI0ItecIZkStateListener() {
     int numListeners = _zkClient.numberOfListeners();
-    List<org.I0Itec.zkclient.IZkStateListener> listeners = new ArrayList<>();
+    List<org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener> listeners = new ArrayList<>();
 
     // Subscribe multiple listeners to test that listener's hashcode works as expected.
     // Each listener is subscribed and unsubscribed successfully.
     for (int i = 0; i < 3; i++) {
-      org.I0Itec.zkclient.IZkStateListener listener = new org.I0Itec.zkclient.IZkStateListener() {
+      org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener = new org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener() {
         @Override
         public void handleStateChanged(KeeperState state) {
           System.out.println("Handle new state: " + state);
@@ -198,7 +198,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
       listeners.add(listener);
     }
 
-    for (org.I0Itec.zkclient.IZkStateListener listener : listeners) {
+    for (org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener : listeners) {
       _zkClient.unsubscribeStateChanges(listener);
       Assert.assertEquals(_zkClient.numberOfListeners(), --numListeners);
     }
@@ -212,8 +212,8 @@ public class TestRawZkClient extends ZkUnitTestBase {
    */
   @Test
   public void testSessionExpiryForI0IItecZkStateListener() throws Exception {
-    org.I0Itec.zkclient.IZkStateListener listener =
-        new org.I0Itec.zkclient.IZkStateListener() {
+    org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener =
+        new org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener() {
 
           @Override
           public void handleStateChanged(KeeperState state) {

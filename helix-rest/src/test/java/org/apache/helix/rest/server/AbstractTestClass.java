@@ -37,7 +37,6 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Response;
 
 import com.google.common.base.Joiner;
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -80,6 +79,7 @@ import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
+import org.apache.helix.zookeeper.api.zkclient.ZkServer;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.server.ResourceConfig;

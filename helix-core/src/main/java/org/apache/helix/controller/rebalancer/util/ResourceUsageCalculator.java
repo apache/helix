@@ -142,4 +142,87 @@ public class ResourceUsageCalculator {
     return numTotalBestPossibleReplicas == 0 ? 1.0d
         : (1.0d - (double) numMatchedReplicas / (double) numTotalBestPossibleReplicas);
   }
+
+  /**
+   * Calculates average partition weight per capacity key for a resource config. Example as below:
+   * Input =
+   * {
+   *   "partition1": {
+   *     "capacity1": 20,
+   *     "capacity2": 40
+   *   },
+   *   "partition2": {
+   *     "capacity1": 30,
+   *     "capacity2": 50
+   *   },
+   *   "partition3": {
+   *     "capacity1": 16,
+   *     "capacity2": 30
+   *   }
+   * }
+   *
+   * Total weight for key "capacity1" = 20 + 30 + 16 = 66;
+   * Total weight for key "capacity2" = 40 + 50 + 30 = 120;
+   * Total partitions = 3;
+   * Average partition weight for "capacity1" = 66 / 3 = 22;
+   * Average partition weight for "capacity2" = 120 / 3 = 40;
+   *
+   * Output =
+   * {
+   *   "capacity1": 22,
+   *   "capacity2": 40
+   * }
+   *
+   * @param partitionCapacityMap A map of partition capacity:
+   *        <PartitionName or DEFAULT_PARTITION_KEY, <Capacity Key, Capacity Number>>
+   * @return A map of partition weight: capacity key -> average partition weight
+   */
+  public static Map<String, Integer> calculateAveragePartitionWeight(
+      Map<String, Map<String, Integer>> partitionCapacityMap) {
+    // capacity key -> [number of partitions, total weight per capacity key]
+    Map<String, PartitionWeightCounterEntry> countPartitionWeightMap = new HashMap<>();
+
+    // Aggregates partition weight for each capacity key.
+    partitionCapacityMap.values().forEach(partitionCapacityEntry ->
+        partitionCapacityEntry.forEach((capacityKey, weight) -> countPartitionWeightMap
+            .computeIfAbsent(capacityKey, counterEntry -> new PartitionWeightCounterEntry())
+            .increase(1, weight)));
+
+    // capacity key -> average partition weight
+    Map<String, Integer> averagePartitionWeightMap = new HashMap<>();
+
+    // Calculate average partition weight for each capacity key.
+    // Per capacity key level:
+    // average partition weight = (total partition weight) / (number of partitions)
+    for (Map.Entry<String, PartitionWeightCounterEntry> entry
+        : countPartitionWeightMap.entrySet()) {
+      String capacityKey = entry.getKey();
+      PartitionWeightCounterEntry weightEntry = entry.getValue();
+      int averageWeight = (int) (weightEntry.getWeight() / weightEntry.getPartitions());
+      averagePartitionWeightMap.put(capacityKey, averageWeight);
+    }
+
+    return averagePartitionWeightMap;
+  }
+
+  /*
+   * Represents total number of partitions and total partition weight for a capacity key.
+   */
+  private static class PartitionWeightCounterEntry {
+    private int partitions;
+    private long weight;
+
+    private int getPartitions() {
+      return partitions;
+    }
+
+    private long getWeight() {
+      return weight;
+    }
+
+    private void increase(int partitions, int weight) {
+      this.partitions += partitions;
+      this.weight += weight;
+    }
+  }
 }

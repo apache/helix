@@ -60,6 +60,22 @@ public class TestResourceUsageCalculator {
         0.0d);
   }
 
+  @Test
+  public void testCalculateAveragePartitionWeight() {
+    Map<String, Map<String, Integer>> partitionCapacityMap = ImmutableMap.of(
+        "partition1", ImmutableMap.of("capacity1", 20, "capacity2", 40),
+        "partition2", ImmutableMap.of("capacity1", 30, "capacity2", 50),
+        "partition3", ImmutableMap.of("capacity1", 16, "capacity2", 30));
+
+    Map<String, Integer> averageCapacityWeightMap =
+        ResourceUsageCalculator.calculateAveragePartitionWeight(partitionCapacityMap);
+    Map<String, Integer> expectedAverageWeightMap =
+        ImmutableMap.of("capacity1", 22, "capacity2", 40);
+
+    Assert.assertNotNull(averageCapacityWeightMap);
+    Assert.assertEquals(averageCapacityWeightMap, expectedAverageWeightMap);
+  }
+
   private Map<String, ResourceAssignment> buildResourceAssignment(
       Map<String, Map<String, Map<String, String>>> resourceMap) {
     Map<String, ResourceAssignment> assignment = new HashMap<>();
@@ -78,7 +94,7 @@ public class TestResourceUsageCalculator {
   }
 
   @DataProvider(name = "TestMeasureBaselineDivergenceInput")
-  public Object[][] loadTestMeasureBaselineDivergenceInput() {
+  private Object[][] loadTestMeasureBaselineDivergenceInput() {
     final String[] params =
         new String[]{"baseline", "someMatchBestPossible", "noMatchBestPossible"};
     return TestInputLoader

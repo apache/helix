@@ -497,6 +497,25 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
+  /**
+   * Updates metrics of average partition weight per capacity key for a resource. If a resource
+   * monitor is not yet existed for this resource, a new resource monitor will be created for this
+   * resource.
+   *
+   * @param resourceName The resource name for which partition weight is updated
+   * @param averageWeightMap A map of average partition weight of each capacity key:
+   *                         capacity key -> average partition weight
+   */
+  public void updatePartitionWeight(String resourceName, Map<String, Integer> averageWeightMap) {
+    ResourceMonitor monitor = getOrCreateResourceMonitor(resourceName);
+    if (monitor == null) {
+      LOG.warn("Failed to update partition weight metric for resource: {} because resource monitor"
+          + " is not created.", resourceName);
+      return;
+    }
+    monitor.updatePartitionWeightStats(averageWeightMap);
+  }
+
   public void updateMissingTopStateDurationStats(String resourceName, long totalDuration,
       long helixLatency, boolean isGraceful, boolean succeeded) {
     ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);

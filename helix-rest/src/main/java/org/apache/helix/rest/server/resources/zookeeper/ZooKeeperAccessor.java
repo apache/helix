@@ -19,8 +19,6 @@ package org.apache.helix.rest.server.resources.zookeeper;
  * under the License.
  */
 
-import java.io.UnsupportedEncodingException;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.GET;
@@ -159,9 +157,9 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @return list of child ZNodes
    */
   private Response getChildren(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
-    if (_zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
+    if (zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
       Map<String, List<String>> result = ImmutableMap.of(ZooKeeperCommand.getChildren.name(),
-          _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT));
+          zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT));
       return JSONRepresentation(result);
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)

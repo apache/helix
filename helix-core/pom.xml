@@ -64,8 +64,6 @@ under the License.
       <groupId>org.apache.helix</groupId>
       <artifactId>zookeeper-api</artifactId>
       <version>${project.version}</version>
-<!--      <scope>system</scope>-->
-<!--      <systemPath>${pom.basedir}/../zookeeper-api/target/zookeeper-api-${project.version}.jar</systemPath>-->
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

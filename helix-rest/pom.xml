@@ -36,12 +36,40 @@ under the License.
       org.apache.commons.cli*,
       org.restlet*,
       org.slf4j*;version="[1.6,2)",
+      org.apache.zookeeper*;version="[3.4,4)",
+      org.apache.commons.io*;version="[1.4,2)",
       *
     </osgi.import>
     <osgi.export>org.apache.helix.rest*;version="${project.version};-noimport:=true</osgi.export>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+      <version>3.2.3</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>1.4</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>15.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.zookeeper</groupId>
+      <artifactId>zookeeper</artifactId>
+      <version>3.4.13</version>
+      <exclusions>
+        <exclusion>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <dependency>
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>

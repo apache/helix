@@ -37,6 +37,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+
 public class TestZKUtil extends ZkUnitTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestZKUtil.class);
 
@@ -98,6 +99,7 @@ public class TestZKUtil extends ZkUnitTestBase {
     AssertJUnit.assertTrue(_gZkClient.exists(path));
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals("id4", record.getId());
+    _gZkClient.delete(path);
   }
 
   @Test()
@@ -109,12 +111,14 @@ public class TestZKUtil extends ZkUnitTestBase {
     ZKUtil.subtract(_gZkClient, path, record);
     record = _gZkClient.readData(path);
     AssertJUnit.assertNull(record.getSimpleField("key1"));
+    _gZkClient.delete(path);
   }
 
   @Test()
   public void testNullChildren() {
     String path = PropertyPathBuilder.instanceConfig(clusterName, "id6");
     ZKUtil.createChildren(_gZkClient, path, (List<ZNRecord>) null);
+    _gZkClient.delete(path);
   }
 
   @Test()
@@ -134,14 +138,18 @@ public class TestZKUtil extends ZkUnitTestBase {
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals(Arrays.asList("value1", "value2"), record.getListField("list"));
 
-    Map<String, String> map = new HashMap<String, String>() {{put("k1", "v1");}};
+    Map<String, String> map = new HashMap<String, String>() {{
+      put("k1", "v1");
+    }};
     record.setMapField("map", map);
     ZKUtil.createOrMerge(_gZkClient, path, record, true, true);
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals(map, record.getMapField("map"));
 
     record = new ZNRecord("id7");
-    Map<String, String> map2 = new HashMap<String, String>() {{put("k2", "v2");}};
+    Map<String, String> map2 = new HashMap<String, String>() {{
+      put("k2", "v2");
+    }};
     record.setMapField("map", map2);
     ZKUtil.createOrMerge(_gZkClient, path, record, true, true);
     record = _gZkClient.readData(path);
@@ -149,6 +157,7 @@ public class TestZKUtil extends ZkUnitTestBase {
       put("k1", "v1");
       put("k2", "v2");
     }}, record.getMapField("map"));
+    _gZkClient.delete(path);
   }
 
   @Test()
@@ -162,6 +171,7 @@ public class TestZKUtil extends ZkUnitTestBase {
     ZKUtil.createOrReplace(_gZkClient, path, record, true);
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals("id9", record.getId());
+    _gZkClient.delete(path);
   }
 
   @Test()
@@ -186,20 +196,24 @@ public class TestZKUtil extends ZkUnitTestBase {
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals(list2, record.getListField("list"));
 
-
-    Map<String, String> map = new HashMap<String, String>() {{put("k1", "v1");}};
+    Map<String, String> map = new HashMap<String, String>() {{
+      put("k1", "v1");
+    }};
     record.setMapField("map", map);
     ZKUtil.createOrUpdate(_gZkClient, path, record, true, true);
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals(map, record.getMapField("map"));
 
     record = new ZNRecord("id9");
-    Map<String, String> map2 = new HashMap<String, String>() {{put("k2", "v2");}};
+    Map<String, String> map2 = new HashMap<String, String>() {{
+      put("k2", "v2");
+    }};
     record.setMapField("map", map2);
     ZKUtil.createOrUpdate(_gZkClient, path, record, true, true);
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals(new HashMap<String, String>() {{
       put("k2", "v2");
     }}, record.getMapField("map"));
+    _gZkClient.delete(path);
   }
 }

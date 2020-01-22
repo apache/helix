@@ -19,6 +19,7 @@ package org.apache.helix.cloud.azure;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.api.cloud.CloudInstanceInformation;
@@ -42,7 +43,13 @@ public class AzureCloudInstanceInformation implements CloudInstanceInformation {
   }
 
   public static class Builder {
-    private Map<String, String> _cloudInstanceInfoMap = null;
+    /**
+     * Default constructor
+     */
+    public Builder() {
+    }
+
+    private Map<String, String> _cloudInstanceInfoMap = new HashMap<>();
 
     public AzureCloudInstanceInformation build() {
       return new AzureCloudInstanceInformation(_cloudInstanceInfoMap);

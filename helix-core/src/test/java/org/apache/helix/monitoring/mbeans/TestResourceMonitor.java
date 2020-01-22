@@ -217,10 +217,13 @@ public class TestResourceMonitor {
     monitor.setRebalanceState(ResourceMonitor.RebalanceStatus.INTERMEDIATE_STATE_CAL_FAILED);
     Assert.assertEquals(monitor.getRebalanceState(),
         ResourceMonitor.RebalanceStatus.INTERMEDIATE_STATE_CAL_FAILED.name());
+
+    // Has to unregister this monitor to clean up. Otherwise, later tests may be affected and fail.
+    monitor.unregister();
   }
 
   @Test
-  public void testUpdatePartitionWeightStats() throws IOException, JMException {
+  public void testUpdatePartitionWeightStats() throws JMException, IOException {
     final MBeanServerConnection mBeanServer = ManagementFactory.getPlatformMBeanServer();
     final String clusterName = TestHelper.getTestMethodName();
     final String resource = "testDB";
@@ -304,6 +307,12 @@ public class TestResourceMonitor {
 
       for (Map.Entry<String, Integer> capacityEntry : entry.getValue().entrySet()) {
         String attributeName = capacityEntry.getKey() + gaugeMetricSuffix;
+        try {
+          Assert.assertTrue(TestHelper.verify(
+              () -> !mBeanServer.getAttributes(objectName, new String[]{attributeName}).isEmpty(),
+              2000));
+        } catch (Exception ignored) {
+        }
         Assert.assertEquals((long) mBeanServer.getAttribute(objectName, attributeName),
             (long) capacityEntry.getValue());
       }

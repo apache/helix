@@ -102,19 +102,19 @@ public class TestParticipantManager extends ZkTestBase {
     // Live instance should be gone as original session S0 is expired.
     Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance(instanceName)));
 
-    final String lastSessionId = manager.getSessionId();
+    final String sessionOne = manager.getSessionId();
 
     // Expire S1 when S1 is blocked in onPreConnect().
     // New session S2 will be created.
     ZkTestHelper.asyncExpireSession(manager.getZkClient());
 
     TestHelper.verify(
-        () -> !(ZKUtil.toHexSessionId(manager.getZkClient().getSessionId()).equals(lastSessionId)),
+        () -> !(ZKUtil.toHexSessionId(manager.getZkClient().getSessionId()).equals(sessionOne)),
         TestHelper.WAIT_DURATION);
 
     // New session S2 should not be equal to S1.
-    final String latestSessionId = ZKUtil.toHexSessionId(manager.getZkClient().getSessionId());
-    Assert.assertFalse(lastSessionId.equals(latestSessionId));
+    final String sessionTwo = ZKUtil.toHexSessionId(manager.getZkClient().getSessionId());
+    Assert.assertFalse(sessionOne.equals(sessionTwo));
 
     // Proceed S1 to create live instance, which will fail.
     startCountdown.countDown();
@@ -136,7 +136,7 @@ public class TestParticipantManager extends ZkTestBase {
           accessor.getProperty(keyBuilder.liveInstance(instanceName));
       return newLiveInstance != null
           && newLiveInstance.getStat().getCreationTime() != originalCreationTime
-          && newLiveInstance.getEphemeralOwner().equals(latestSessionId);
+          && newLiveInstance.getEphemeralOwner().equals(sessionTwo);
     }, TestHelper.WAIT_DURATION);
 
     // Clean up.

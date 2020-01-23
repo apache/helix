@@ -201,7 +201,8 @@ public class ParticipantManager {
     do {
       retry = false;
       try {
-        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
+        // Zk session ID will be validated in createEphemeral.
+        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), _sessionId);
         LOG.info("LiveInstance created, path: {}, sessionId: {}", liveInstancePath,
             liveInstance.getEphemeralOwner());
       } catch (ZkSessionMismatchedException e) {
@@ -243,7 +244,8 @@ public class ParticipantManager {
      */
     if (retry) {
       try {
-        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
+        // Zk session ID will be validated in createEphemeral.
+        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), _sessionId);
         LOG.info("LiveInstance created, path: {}, sessionId: {}", liveInstancePath,
             liveInstance.getEphemeralOwner());
       } catch (ZkSessionMismatchedException e) {

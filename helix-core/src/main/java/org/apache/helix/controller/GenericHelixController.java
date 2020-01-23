@@ -62,6 +62,7 @@ import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.ClusterEvent;
@@ -169,7 +170,6 @@ public class GenericHelixController implements IdealStateChangeListener,
   Timer _onDemandRebalanceTimer = null;
   AtomicReference<RebalanceTask> _nextRebalanceTask = new AtomicReference<>();
 
-
   /**
    * A cache maintained across pipelines
    */
@@ -186,6 +186,11 @@ public class GenericHelixController implements IdealStateChangeListener,
   private final Set<Pipeline.Type> _enabledPipelineTypes;
 
   private HelixManager _helixManager;
+
+  // Since the WAGED rebalancer needs to be lazily constructed, the GenericHelixController will not
+  // be constructed with a WAGED rebalancer. This wrapper is to avoid the complexity of handling a
+  // nullable value in the GenericHelixController logic.
+  private final WagedRebalancerRef _wagedRebalancerRef = new WagedRebalancerRef();
 
   /**
    * TODO: We should get rid of this once we move to:
@@ -626,6 +631,22 @@ public class GenericHelixController implements IdealStateChangeListener,
       return;
     }
 
+    // Event handling happens in a different thread from the onControllerChange processing thread.
+    // Thus, there are several possible conditions.
+    // 1. Event handled after leadership acquired. So we will have a valid rebalancer for the
+    // event processing.
+    // 2. Event handled shortly after leadership relinquished. And the rebalancer has not been
+    // marked as invalid yet. So the event will be processed the same as case one.
+    // 3. Event is leftover from the previous session, and it is handled when the controller
+    // regains the leadership. The rebalancer will be reset before being used. That is the
+    // expected behavior so as to avoid inconsistent rebalance result.
+    // 4. Event handled shortly after leadership relinquished. And the rebalancer has been marked
+    // as invalid. So we reset the rebalancer. But the later isLeader() check will return false and
+    // the pipeline will be triggered. So the reset rebalancer won't be used before the controller
+    // regains leadership.
+    event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(),
+        _wagedRebalancerRef.getWagedRebalancer(manager));
+
     if (!manager.isLeader()) {
       logger.error("Cluster manager: " + manager.getInstanceName() + " is not leader for " + manager
           .getClusterName() + ". Pipeline will not be invoked");
@@ -1022,6 +1043,12 @@ public class GenericHelixController implements IdealStateChangeListener,
       _clusterStatusMonitor.setMaintenance(_inMaintenanceMode);
     } else {
       enableClusterStatusMonitor(false);
+      // Note that onControllerChange is executed in parallel with the event processing thread. It
+      // is possible that the current WAGED rebalancer object is in use for handling callback. So
+      // mark the rebalancer invalid only, instead of closing it here.
+      // This to-be-closed WAGED rebalancer will be reset later on a later event processing if
+      // the controller becomes leader again.
+      _wagedRebalancerRef.invalidRebalancer();
     }
 
     logger.info("END: GenericClusterController.onControllerChange() for cluster " + _clusterName);
@@ -1125,6 +1152,8 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     enableClusterStatusMonitor(false);
 
+    _wagedRebalancerRef.closeWagedRebalancer();
+
     // TODO controller shouldn't be used in anyway after shutdown.
     // Need to record shutdown and throw Exception if the controller is used again.
   }
@@ -1202,7 +1231,6 @@ public class GenericHelixController implements IdealStateChangeListener,
     return statusFlag;
   }
 
-
   // TODO: refactor this to use common/ClusterEventProcessor.
   @Deprecated
   private class ClusterEventProcessor extends Thread {
@@ -1257,5 +1285,56 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     eventThread.setDaemon(true);
     eventThread.start();
+  }
+}
+
+/**
+ * A wrapper class for the WAGED rebalancer instance.
+ */
+class WagedRebalancerRef {
+  private WagedRebalancer _rebalancer = null;
+  private boolean _isRebalancerValid = true;
+
+  private void createWagedRebalancer(HelixManager helixManager) {
+    // Create WagedRebalancer instance if it hasn't been already initialized
+    if (_rebalancer == null) {
+      _rebalancer = new WagedRebalancer(helixManager);
+      _isRebalancerValid = true;
+    }
+  }
+
+  /**
+   * Mark the current rebalancer object to be invalid, which indicates it needs to be reset before
+   * the next usage.
+   */
+  synchronized void invalidRebalancer() {
+    _isRebalancerValid = false;
+  }
+
+  /**
+   * @return A valid rebalancer object.
+   *         If the rebalancer is no longer valid, it will be reset before returning.
+   */
+  synchronized WagedRebalancer getWagedRebalancer(HelixManager helixManager) {
+    // Lazily initialize the WAGED rebalancer instance since the GenericHelixController instance is
+    // instantiated without the HelixManager information that is required.
+    createWagedRebalancer(helixManager);
+    // If the rebalance exists but has been marked as invalid (due to leadership switch), it needs
+    // to be reset before return.
+    if (!_isRebalancerValid) {
+      _rebalancer.reset();
+      _isRebalancerValid = true;
+    }
+    return _rebalancer;
+  }
+
+  /**
+   * Proactively close the rebalance object to release the resources.
+   */
+  synchronized void closeWagedRebalancer() {
+    if (_rebalancer != null) {
+      _rebalancer.close();
+      _rebalancer = null;
+    }
   }
 }

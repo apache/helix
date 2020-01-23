@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -83,6 +84,10 @@ public class WagedRebalancer {
       NOT_CONFIGURED_PREFERENCE = ImmutableMap
       .of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, -1,
           ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, -1);
+  // The default algorithm to use when there is no preference configured.
+  private static final RebalanceAlgorithm DEFAULT_REBALANCE_ALGORITHM =
+      ConstraintBasedAlgorithmFactory
+          .getInstance(ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
 
   // To calculate the baseline asynchronously
   private final ExecutorService _baselineCalculateExecutor;
@@ -117,12 +122,11 @@ public class WagedRebalancer {
     return null;
   }
 
-  public WagedRebalancer(HelixManager helixManager,
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference,
-      boolean isAsyncGlobalRebalanceEnabled) {
+  public WagedRebalancer(HelixManager helixManager) {
     this(helixManager == null ? null
             : constructAssignmentStore(helixManager.getMetadataStoreConnectionString(),
-                helixManager.getClusterName()), ConstraintBasedAlgorithmFactory.getInstance(preference),
+                helixManager.getClusterName()),
+        DEFAULT_REBALANCE_ALGORITHM,
         // Use DelayedAutoRebalancer as the mapping calculator for the final assignment output.
         // Mapping calculator will translate the best possible assignment into the applicable state
         // mapping based on the current states.
@@ -130,28 +134,16 @@ public class WagedRebalancer {
         new DelayedAutoRebalancer(),
         // Helix Manager is required for the rebalancer scheduler
         helixManager,
-        // If HelixManager is null, we just pass in null for MetricCollector so that a
-        // non-functioning WagedRebalancerMetricCollector would be created in WagedRebalancer's
-        // constructor. This is to handle two cases: 1. HelixManager is null for non-testing cases -
-        // in this case, WagedRebalancer will not read/write to metadata store and just use
-        // CurrentState-based rebalancing. 2. Tests that require instrumenting the rebalancer for
-        // verifying whether the cluster has converged.
-        helixManager == null ? null
+        // If HelixManager is null, we just pass in a non-functioning WagedRebalancerMetricCollector
+        // that will not be registered to MBean.
+        // This is to handle two cases: 1. HelixManager is null for non-testing cases. In this case,
+        // WagedRebalancer will not read/write to metadata store and just use CurrentState-based
+        // rebalancing. 2. Tests that require instrumenting the rebalancer for verifying whether the
+        // cluster has converged.
+        helixManager == null ? new WagedRebalancerMetricCollector()
             : new WagedRebalancerMetricCollector(helixManager.getClusterName()),
-        isAsyncGlobalRebalanceEnabled);
-    _preference = ImmutableMap.copyOf(preference);
-  }
-
-  /**
-   * This constructor will use null for HelixManager and MetricCollector. With null HelixManager,
-   * the rebalancer will not schedule for a future delayed rebalance. With null MetricCollector, the
-   * rebalancer will not emit JMX metrics.
-   * @param assignmentMetadataStore
-   * @param algorithm
-   */
-  protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
-      RebalanceAlgorithm algorithm) {
-    this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer(), null, null, false);
+        ClusterConfig.DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED);
+    _preference = ImmutableMap.copyOf(ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
   }
 
   /**
@@ -159,11 +151,14 @@ public class WagedRebalancer {
    * not schedule for a future delayed rebalance.
    * @param assignmentMetadataStore
    * @param algorithm
-   * @param metricCollector
+   * @param metricCollectorOptional
    */
   protected WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
-      RebalanceAlgorithm algorithm, MetricCollector metricCollector) {
-    this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer(), null, metricCollector,
+      RebalanceAlgorithm algorithm, Optional<MetricCollector> metricCollectorOptional) {
+    this(assignmentMetadataStore, algorithm, new DelayedAutoRebalancer(), null,
+        // If metricCollector is not provided, instantiate a version that does not register metrics
+        // in order to allow rebalancer to proceed
+        metricCollectorOptional.orElse(new WagedRebalancerMetricCollector()),
         false);
   }
 
@@ -177,12 +172,13 @@ public class WagedRebalancer {
     _assignmentMetadataStore = assignmentMetadataStore;
     _rebalanceAlgorithm = algorithm;
     _mappingCalculator = mappingCalculator;
+    if (manager == null) {
+      LOG.warn("HelixManager is not provided. The rebalancer is not going to schedule for a future "
+          + "rebalance even when delayed rebalance is enabled.");
+    }
     _manager = manager;
 
-    // If metricCollector is null, instantiate a version that does not register metrics in order to
-    // allow rebalancer to proceed
-    _metricCollector =
-        metricCollector == null ? new WagedRebalancerMetricCollector() : metricCollector;
+    _metricCollector = metricCollector;
     _rebalanceFailureCount = _metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
         CountMetric.class);
@@ -230,6 +226,14 @@ public class WagedRebalancer {
       _rebalanceAlgorithm = ConstraintBasedAlgorithmFactory.getInstance(newPreference);
       _preference = ImmutableMap.copyOf(newPreference);
     }
+  }
+
+  // Clean up the internal cached rebalance status.
+  public void reset() {
+    if (_assignmentMetadataStore != null) {
+      _assignmentMetadataStore.reset();
+    }
+    _changeDetector.resetSnapshots();
   }
 
   // Release all the resources.

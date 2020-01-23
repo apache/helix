@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -73,9 +74,10 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
   @Test
   public void testMetricValuePropagation()
       throws JMException, HelixRebalanceException, IOException {
-    _metadataStore.clearMetadataStore();
+    _metadataStore.reset();
     _metricCollector = new WagedRebalancerMetricCollector(TEST_STRING);
-    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, _metricCollector);
+    WagedRebalancer rebalancer =
+        new WagedRebalancer(_metadataStore, _algorithm, Optional.of(_metricCollector));
 
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -97,9 +99,10 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
   @Test
   public void testWagedRebalanceMetrics()
       throws Exception {
-    _metadataStore.clearMetadataStore();
+    _metadataStore.reset();
     MetricCollector metricCollector = new WagedRebalancerMetricCollector(TEST_STRING);
-    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, metricCollector);
+    WagedRebalancer rebalancer =
+        new WagedRebalancer(_metadataStore, _algorithm, Optional.of(metricCollector));
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()

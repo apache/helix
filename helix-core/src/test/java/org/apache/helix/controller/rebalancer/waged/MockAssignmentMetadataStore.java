@@ -19,8 +19,9 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
+
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.model.ResourceAssignment;
 import org.mockito.Mockito;
@@ -30,38 +31,30 @@ import org.mockito.Mockito;
  * This mock datastore persist assignments in memory only.
  */
 public class MockAssignmentMetadataStore extends AssignmentMetadataStore {
-  private Map<String, ResourceAssignment> _persistGlobalBaseline = new HashMap<>();
-  private Map<String, ResourceAssignment> _persistBestPossibleAssignment = new HashMap<>();
-
   MockAssignmentMetadataStore() {
     super(Mockito.mock(BucketDataAccessor.class), "");
   }
 
   public Map<String, ResourceAssignment> getBaseline() {
-    return _persistGlobalBaseline;
+    return _globalBaseline == null ? Collections.emptyMap() : _globalBaseline;
   }
 
   public boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
-    _persistGlobalBaseline = globalBaseline;
+    _globalBaseline = globalBaseline;
     return true;
   }
 
   public Map<String, ResourceAssignment> getBestPossibleAssignment() {
-    return _persistBestPossibleAssignment;
+    return _bestPossibleAssignment == null ? Collections.emptyMap() : _bestPossibleAssignment;
   }
 
   public boolean persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
-    _persistBestPossibleAssignment = bestPossibleAssignment;
+    _bestPossibleAssignment = bestPossibleAssignment;
     return true;
   }
 
   public void close() {
     // do nothing
-  }
-
-  public void clearMetadataStore() {
-    _persistBestPossibleAssignment.clear();
-    _persistGlobalBaseline.clear();
   }
 }

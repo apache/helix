@@ -110,7 +110,7 @@ public class TestParticipantManager extends ZkTestBase {
 
     TestHelper.verify(
         () -> !(ZKUtil.toHexSessionId(manager.getZkClient().getSessionId()).equals(lastSessionId)),
-        3000L);
+        TestHelper.WAIT_DURATION);
 
     // New session S2 should not be equal to S1.
     final String latestSessionId = ZKUtil.toHexSessionId(manager.getZkClient().getSessionId());
@@ -119,7 +119,7 @@ public class TestParticipantManager extends ZkTestBase {
     // Proceed S1 to create live instance, which will fail.
     startCountdown.countDown();
 
-    // Wait until S1's handling new session is completed.
+    // Wait until S2 starts onPreConnect, which indicates S1's handling new session is completed.
     semaphore.acquire();
 
     // Live instance should not be created because zk session is expired.
@@ -137,7 +137,7 @@ public class TestParticipantManager extends ZkTestBase {
       return newLiveInstance != null
           && newLiveInstance.getStat().getCreationTime() != originalCreationTime
           && newLiveInstance.getEphemeralOwner().equals(latestSessionId);
-    }, 2000L);
+    }, TestHelper.WAIT_DURATION);
 
     // Clean up.
     manager.syncStop();
@@ -153,7 +153,7 @@ public class TestParticipantManager extends ZkTestBase {
     private final CountDownLatch endCountDown;
     private final Semaphore semaphore;
 
-    private int count;
+    private boolean canCreateLiveInstance;
 
     BlockingPreConnectCallback(String instanceName, CountDownLatch startCountdown,
         CountDownLatch endCountdown, Semaphore semaphore) {
@@ -170,13 +170,14 @@ public class TestParticipantManager extends ZkTestBase {
       try {
         LOG.info("Waiting session expiry to happen.");
         startCountDown.await();
-        if (count++ == 1) {
+        if (canCreateLiveInstance) {
           LOG.info("Waiting to continue creating live instance.");
           endCountDown.await();
         }
       } catch (InterruptedException ex) {
         LOG.error("Interrupted in waiting", ex);
       }
+      canCreateLiveInstance = true;
     }
   }
 }

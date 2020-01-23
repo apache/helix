@@ -79,6 +79,6 @@ public class MockRebalanceAlgorithm implements RebalanceAlgorithm {
   }
 
   public Map<String, ResourceAssignment> getRebalanceResult() {
-    return _resultHistory;
+    return new HashMap<>(_resultHistory);
   }
 }

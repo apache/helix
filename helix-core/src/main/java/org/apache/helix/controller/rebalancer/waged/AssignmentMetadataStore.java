@@ -62,7 +62,7 @@ public class AssignmentMetadataStore {
     _bestPossiblePath = String.format(BEST_POSSIBLE_TEMPLATE, clusterName, ASSIGNMENT_METADATA_KEY);
   }
 
-  public Map<String, ResourceAssignment> getBaseline() {
+  public synchronized Map<String, ResourceAssignment> getBaseline() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
     if (_globalBaseline == null) {
       try {
@@ -77,7 +77,7 @@ public class AssignmentMetadataStore {
     return _globalBaseline;
   }
 
-  public Map<String, ResourceAssignment> getBestPossibleAssignment() {
+  public synchronized Map<String, ResourceAssignment> getBestPossibleAssignment() {
     // Return the in-memory baseline. If null, read from ZK. This is to minimize reads from ZK
     if (_bestPossibleAssignment == null) {
       try {
@@ -98,7 +98,7 @@ public class AssignmentMetadataStore {
    */
   // TODO: Enhance the return value so it is more intuitive to understand when the persist fails and
   // TODO: when it is skipped.
-  public boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
+  public synchronized boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
     // TODO: Make the write async?
     // If baseline hasn't changed, skip writing to metadata store
     if (compareAssignments(_globalBaseline, globalBaseline)) {
@@ -124,7 +124,7 @@ public class AssignmentMetadataStore {
    */
   // TODO: Enhance the return value so it is more intuitive to understand when the persist fails and
   // TODO: when it is skipped.
-  public boolean persistBestPossibleAssignment(
+  public synchronized boolean persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
     // TODO: Make the write async?
     // If bestPossibleAssignment hasn't changed, skip writing to metadata store
@@ -144,6 +144,17 @@ public class AssignmentMetadataStore {
     // Update the in-memory reference
     _bestPossibleAssignment = bestPossibleAssignment;
     return true;
+  }
+
+  protected synchronized void reset() {
+    if (_bestPossibleAssignment != null) {
+      _bestPossibleAssignment.clear();
+      _bestPossibleAssignment = null;
+    }
+    if (_globalBaseline != null) {
+      _globalBaseline.clear();
+      _globalBaseline = null;
+    }
   }
 
   protected void finalize() {

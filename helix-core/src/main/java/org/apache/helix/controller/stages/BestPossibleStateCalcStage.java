@@ -125,14 +125,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       boolean isAsyncGlobalRebalanceEnabled) {
     // Create WagedRebalancer instance if it hasn't been already initialized
     if (_wagedRebalancer == null) {
-      _wagedRebalancer =
-          new WagedRebalancer(helixManager, preferences, isAsyncGlobalRebalanceEnabled);
-    } else {
-      // Since the rebalance configuration can be updated at runtime, try to update the rebalancer
-      // before returning.
-      _wagedRebalancer.updateRebalancePreference(preferences);
-      _wagedRebalancer.setGlobalRebalanceAsyncMode(isAsyncGlobalRebalanceEnabled);
+      _wagedRebalancer = new WagedRebalancer(helixManager);
     }
+    // Since the rebalance configuration can be updated at runtime, try to update the rebalancer
+    // before returning.
+    _wagedRebalancer.updateRebalancePreference(preferences);
+    _wagedRebalancer.setGlobalRebalanceAsyncMode(isAsyncGlobalRebalanceEnabled);
     return _wagedRebalancer;
   }
 

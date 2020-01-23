@@ -150,27 +150,32 @@ public class ResourceChangeDetector implements ChangeDetector {
     clearCachedComputation();
   }
 
+  public synchronized void resetSnapshots() {
+    _newSnapshot = new ResourceChangeSnapshot();
+    clearCachedComputation();
+  }
+
   @Override
-  public Collection<HelixConstants.ChangeType> getChangeTypes() {
+  public synchronized Collection<HelixConstants.ChangeType> getChangeTypes() {
     return Collections.unmodifiableSet(_newSnapshot.getChangedTypes());
   }
 
   @Override
-  public Collection<String> getChangesByType(HelixConstants.ChangeType changeType) {
+  public synchronized Collection<String> getChangesByType(HelixConstants.ChangeType changeType) {
     return _changedItems.computeIfAbsent(changeType,
         changedItems -> getChangedItems(determinePropertyMapByType(changeType, _oldSnapshot),
             determinePropertyMapByType(changeType, _newSnapshot)));
   }
 
   @Override
-  public Collection<String> getAdditionsByType(HelixConstants.ChangeType changeType) {
+  public synchronized Collection<String> getAdditionsByType(HelixConstants.ChangeType changeType) {
     return _addedItems.computeIfAbsent(changeType,
         changedItems -> getAddedItems(determinePropertyMapByType(changeType, _oldSnapshot),
             determinePropertyMapByType(changeType, _newSnapshot)));
   }
 
   @Override
-  public Collection<String> getRemovalsByType(HelixConstants.ChangeType changeType) {
+  public synchronized Collection<String> getRemovalsByType(HelixConstants.ChangeType changeType) {
     return _removedItems.computeIfAbsent(changeType,
         changedItems -> getRemovedItems(determinePropertyMapByType(changeType, _oldSnapshot),
             determinePropertyMapByType(changeType, _newSnapshot)));

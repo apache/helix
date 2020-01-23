@@ -116,7 +116,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
   @Test
   public void testRebalance() throws IOException, HelixRebalanceException {
-    _metadataStore.resetCache();
+    _metadataStore.reset();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     // Generate the input for the rebalancer.
@@ -142,7 +142,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
   @Test(dependsOnMethods = "testRebalance")
   public void testPartialRebalance() throws IOException, HelixRebalanceException {
-    _metadataStore.resetCache();
+    _metadataStore.reset();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     // Generate the input for the rebalancer.
@@ -160,7 +160,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     // Test with partial resources listed in the resourceMap input.
     // Remove the first resource from the input. Note it still exists in the cluster data cache.
-    _metadataStore.resetCache();
+    _metadataStore.reset();
     resourceMap.remove(_resourceNames.get(0));
     Map<String, IdealState> newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
@@ -170,7 +170,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
   @Test(dependsOnMethods = "testRebalance")
   public void testRebalanceWithCurrentState() throws IOException, HelixRebalanceException {
-    _metadataStore.resetCache();
+    _metadataStore.reset();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     // Generate the input for the rebalancer.
@@ -233,7 +233,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   @Test(dependsOnMethods = "testRebalance", expectedExceptions = HelixRebalanceException.class, expectedExceptionsMessageRegExp = "Input contains invalid resource\\(s\\) that cannot be rebalanced by the WAGED rebalancer. \\[Resource1\\] Failure Type: INVALID_INPUT")
   public void testNonCompatibleConfiguration()
       throws IOException, HelixRebalanceException {
-    _metadataStore.resetCache();
+    _metadataStore.reset();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -254,7 +254,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   // TODO test with invalid capacity configuration which will fail the cluster model constructing.
   @Test(dependsOnMethods = "testRebalance")
   public void testInvalidClusterStatus() throws IOException, HelixRebalanceException {
-    _metadataStore.resetCache();
+    _metadataStore.reset();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -307,7 +307,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   @Test(dependsOnMethods = "testRebalance")
   public void testAlgorithmException()
       throws IOException, HelixRebalanceException {
-    _metadataStore.resetCache();
+    _metadataStore.reset();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -356,7 +356,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     // Note that this test relies on the MockRebalanceAlgorithm implementation. The mock algorithm
     // won't propagate any existing assignment from the cluster model.
-    _metadataStore.resetCache();
+    _metadataStore.reset();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     // 1. rebalance with baseline calculation done
@@ -463,7 +463,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
   @Test(dependsOnMethods = "testRebalance")
   public void testReset() throws IOException, HelixRebalanceException {
-    _metadataStore.resetCache();
+    _metadataStore.reset();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();

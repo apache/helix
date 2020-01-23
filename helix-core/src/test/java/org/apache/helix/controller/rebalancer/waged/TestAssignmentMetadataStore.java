@@ -152,7 +152,7 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     Assert.assertEquals(_store._bestPossibleAssignment, dummyAssignment);
     Assert.assertEquals(_store._globalBaseline, dummyAssignment);
 
-    _store.resetCache();
+    _store.reset();
 
     Assert.assertEquals(_store._bestPossibleAssignment, null);
     Assert.assertEquals(_store._globalBaseline, null);

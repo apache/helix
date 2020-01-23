@@ -146,7 +146,7 @@ public class AssignmentMetadataStore {
     return true;
   }
 
-  protected synchronized void resetCache() {
+  protected synchronized void reset() {
     if (_bestPossibleAssignment != null) {
       _bestPossibleAssignment.clear();
       _bestPossibleAssignment = null;

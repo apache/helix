@@ -40,7 +40,8 @@ public class TestParticipantManager extends ZkTestBase {
 
   /*
    * Simulates zk session expiry before creating live instance in participant manager. This test
-   * makes sure the session aware create ephemeral API is called.
+   * makes sure the session aware create ephemeral API is called, which validates the expected zk
+   * session.
    * What this test does is:
    * 1. Sets up live instance with session S0
    * 2. Expires S0 and gets new session S1

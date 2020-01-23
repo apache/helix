@@ -201,6 +201,7 @@ public class ParticipantManager {
     do {
       retry = false;
       try {
+        // Zk session ID will be validated in createEphemeral.
         _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), _sessionId);
         LOG.info("LiveInstance created, path: {}, sessionId: {}", liveInstancePath,
             liveInstance.getEphemeralOwner());
@@ -243,6 +244,7 @@ public class ParticipantManager {
      */
     if (retry) {
       try {
+        // Zk session ID will be validated in createEphemeral.
         _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord(), _sessionId);
         LOG.info("LiveInstance created, path: {}, sessionId: {}", liveInstancePath,
             liveInstance.getEphemeralOwner());

@@ -115,7 +115,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
   @Test
   public void testRebalance() throws IOException, HelixRebalanceException {
-    _metadataStore.clearMetadataStore();
+    _metadataStore.resetCache();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
 
     // Generate the input for the rebalancer.
@@ -141,7 +141,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
   @Test(dependsOnMethods = "testRebalance")
   public void testPartialRebalance() throws IOException, HelixRebalanceException {
-    _metadataStore.clearMetadataStore();
+    _metadataStore.resetCache();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
 
     // Generate the input for the rebalancer.
@@ -159,7 +159,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     // Test with partial resources listed in the resourceMap input.
     // Remove the first resource from the input. Note it still exists in the cluster data cache.
-    _metadataStore.clearMetadataStore();
+    _metadataStore.resetCache();
     resourceMap.remove(_resourceNames.get(0));
     Map<String, IdealState> newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
@@ -169,7 +169,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
   @Test(dependsOnMethods = "testRebalance")
   public void testRebalanceWithCurrentState() throws IOException, HelixRebalanceException {
-    _metadataStore.clearMetadataStore();
+    _metadataStore.resetCache();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
 
     // Generate the input for the rebalancer.
@@ -232,7 +232,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   @Test(dependsOnMethods = "testRebalance", expectedExceptions = HelixRebalanceException.class, expectedExceptionsMessageRegExp = "Input contains invalid resource\\(s\\) that cannot be rebalanced by the WAGED rebalancer. \\[Resource1\\] Failure Type: INVALID_INPUT")
   public void testNonCompatibleConfiguration()
       throws IOException, HelixRebalanceException {
-    _metadataStore.clearMetadataStore();
+    _metadataStore.resetCache();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -253,7 +253,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   // TODO test with invalid capacity configuration which will fail the cluster model constructing.
   @Test(dependsOnMethods = "testRebalance")
   public void testInvalidClusterStatus() throws IOException, HelixRebalanceException {
-    _metadataStore.clearMetadataStore();
+    _metadataStore.resetCache();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -306,7 +306,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   @Test(dependsOnMethods = "testRebalance")
   public void testAlgorithmException()
       throws IOException, HelixRebalanceException {
-    _metadataStore.clearMetadataStore();
+    _metadataStore.resetCache();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -355,7 +355,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
 
     // Note that this test relies on the MockRebalanceAlgorithm implementation. The mock algorithm
     // won't propagate any existing assignment from the cluster model.
-    _metadataStore.clearMetadataStore();
+    _metadataStore.resetCache();
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
 
     // 1. rebalance with baseline calculation done
@@ -458,6 +458,51 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // The BestPossible assignment should have been updated since computeNewIdealStates() should have been called.
     bestPossibleAssignment = _metadataStore.getBestPossibleAssignment();
     Assert.assertEquals(bestPossibleAssignment, newAlgorithmResult);
+  }
+
+  @Test(dependsOnMethods = "testRebalance")
+  public void testReset() throws IOException, HelixRebalanceException {
+    _metadataStore.resetCache();
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
+    // Generate the input for the rebalancer.
+    ResourceControllerDataProvider clusterData = setupClusterDataCache();
+    Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
+        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+          Resource resource = new Resource(entry.getKey());
+          entry.getValue().getPartitionSet().stream()
+              .forEach(partition -> resource.addPartition(partition));
+          return resource;
+        }));
+    // Mocking the change types for triggering a baseline rebalance.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+    Map<String, IdealState> newIdealStates =
+        rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+    Map<String, ResourceAssignment> algorithmResult = _algorithm.getRebalanceResult();
+    validateRebalanceResult(resourceMap, newIdealStates, algorithmResult);
+
+    // Clean up algorithm result for the next test step
+    algorithmResult.clear();
+    // Try to trigger a new rebalancer, since nothing has been changed. There will be no rebalance.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+    Assert.assertEquals(
+        rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput()),
+        newIdealStates);
+    algorithmResult = _algorithm.getRebalanceResult();
+    Assert.assertEquals(algorithmResult, Collections.emptyMap());
+
+    // Reset the rebalance and do the same operation. Without any cache info, the rebalancer will
+    // finish the complete rebalance.
+    rebalancer.reset();
+    algorithmResult.clear();
+    // Try to trigger a new rebalancer, since nothing has been changed. There will be no rebalance.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+    newIdealStates =
+        rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+    algorithmResult = _algorithm.getRebalanceResult();
+    validateRebalanceResult(resourceMap, newIdealStates, algorithmResult);
   }
 
   private void validateRebalanceResult(Map<String, Resource> resourceMap,

@@ -73,7 +73,7 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
   @Test
   public void testMetricValuePropagation()
       throws JMException, HelixRebalanceException, IOException {
-    _metadataStore.clearMetadataStore();
+    _metadataStore.resetCache();
     _metricCollector = new WagedRebalancerMetricCollector(TEST_STRING);
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, _metricCollector);
 
@@ -97,7 +97,7 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
   @Test
   public void testWagedRebalanceMetrics()
       throws Exception {
-    _metadataStore.clearMetadataStore();
+    _metadataStore.resetCache();
     MetricCollector metricCollector = new WagedRebalancerMetricCollector(TEST_STRING);
     WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, metricCollector);
     // Generate the input for the rebalancer.

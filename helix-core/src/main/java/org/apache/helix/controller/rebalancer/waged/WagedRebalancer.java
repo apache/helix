@@ -232,6 +232,14 @@ public class WagedRebalancer {
     }
   }
 
+  // Clean up the internal cached rebalance status.
+  public void reset() {
+    if (_assignmentMetadataStore != null) {
+      _assignmentMetadataStore.resetCache();
+    }
+    _changeDetector.resetSnapshots();
+  }
+
   // Release all the resources.
   public void close() {
     if (_baselineCalculateExecutor != null) {

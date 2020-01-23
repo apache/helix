@@ -62,6 +62,7 @@ import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
+import org.apache.helix.controller.rebalancer.StatefulRebalancer;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
@@ -187,10 +188,15 @@ public class GenericHelixController implements IdealStateChangeListener,
 
   private HelixManager _helixManager;
 
-  // Since the WAGED rebalancer needs to be lazily constructed, the GenericHelixController will not
-  // be constructed with a WAGED rebalancer. This wrapper is to avoid the complexity of handling a
-  // nullable value in the GenericHelixController logic.
-  private final WagedRebalancerRef _wagedRebalancerRef = new WagedRebalancerRef();
+  // Since the stateful rebalancer needs to be lazily constructed when the HelixManager instance is
+  // ready, the GenericHelixController is not constructed with a stateful rebalancer. This wrapper
+  // is to avoid the complexity of handling a nullable value in the event handling process.
+  private final StatefulRebalancerRef _rebalancerRef = new StatefulRebalancerRef() {
+    @Override
+    protected StatefulRebalancer createRebalancer(HelixManager helixManager) {
+      return new WagedRebalancer(helixManager);
+    }
+  };
 
   /**
    * TODO: We should get rid of this once we move to:
@@ -645,7 +651,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     // the pipeline will be triggered. So the reset rebalancer won't be used before the controller
     // regains leadership.
     event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(),
-        _wagedRebalancerRef.getWagedRebalancer(manager));
+        _rebalancerRef.getRebalancer(manager));
 
     if (!manager.isLeader()) {
       logger.error("Cluster manager: " + manager.getInstanceName() + " is not leader for " + manager
@@ -1048,7 +1054,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       // mark the rebalancer invalid only, instead of closing it here.
       // This to-be-closed WAGED rebalancer will be reset later on a later event processing if
       // the controller becomes leader again.
-      _wagedRebalancerRef.invalidRebalancer();
+      _rebalancerRef.invalidateRebalancer();
     }
 
     logger.info("END: GenericClusterController.onControllerChange() for cluster " + _clusterName);
@@ -1152,7 +1158,7 @@ public class GenericHelixController implements IdealStateChangeListener,
 
     enableClusterStatusMonitor(false);
 
-    _wagedRebalancerRef.closeWagedRebalancer();
+    _rebalancerRef.closeRebalancer();
 
     // TODO controller shouldn't be used in anyway after shutdown.
     // Need to record shutdown and throw Exception if the controller is used again.
@@ -1286,55 +1292,57 @@ public class GenericHelixController implements IdealStateChangeListener,
     eventThread.setDaemon(true);
     eventThread.start();
   }
-}
 
-/**
- * A wrapper class for the WAGED rebalancer instance.
- */
-class WagedRebalancerRef {
-  private WagedRebalancer _rebalancer = null;
-  private boolean _isRebalancerValid = true;
+  /**
+   * A wrapper class for the stateful rebalancer instance that will be tracked in the
+   * GenericHelixController.
+   */
+  private abstract class StatefulRebalancerRef<T extends StatefulRebalancer> {
+    private T _rebalancer = null;
+    private boolean _isRebalancerValid = true;
 
-  private void createWagedRebalancer(HelixManager helixManager) {
-    // Create WagedRebalancer instance if it hasn't been already initialized
-    if (_rebalancer == null) {
-      _rebalancer = new WagedRebalancer(helixManager);
-      _isRebalancerValid = true;
+    /**
+     * @param helixManager
+     * @return A new stateful rebalancer instance with initial state.
+     */
+    protected abstract T createRebalancer(HelixManager helixManager);
+
+    /**
+     * Mark the current rebalancer object to be invalid, which indicates it needs to be reset before
+     * the next usage.
+     */
+    synchronized void invalidateRebalancer() {
+      _isRebalancerValid = false;
     }
-  }
 
-  /**
-   * Mark the current rebalancer object to be invalid, which indicates it needs to be reset before
-   * the next usage.
-   */
-  synchronized void invalidRebalancer() {
-    _isRebalancerValid = false;
-  }
-
-  /**
-   * @return A valid rebalancer object.
-   *         If the rebalancer is no longer valid, it will be reset before returning.
-   */
-  synchronized WagedRebalancer getWagedRebalancer(HelixManager helixManager) {
-    // Lazily initialize the WAGED rebalancer instance since the GenericHelixController instance is
-    // instantiated without the HelixManager information that is required.
-    createWagedRebalancer(helixManager);
-    // If the rebalance exists but has been marked as invalid (due to leadership switch), it needs
-    // to be reset before return.
-    if (!_isRebalancerValid) {
-      _rebalancer.reset();
-      _isRebalancerValid = true;
+    /**
+     * @return A valid rebalancer object.
+     *         If the rebalancer is no longer valid, it will be reset before returning.
+     */
+    synchronized T getRebalancer(HelixManager helixManager) {
+      // Lazily initialize the stateful rebalancer instance since the GenericHelixController
+      // instance is instantiated without the HelixManager information that is required.
+      if (_rebalancer == null) {
+        _rebalancer = createRebalancer(helixManager);
+        _isRebalancerValid = true;
+      }
+      // If the rebalance exists but has been marked as invalid (due to leadership switch), it needs
+      // to be reset before return.
+      if (!_isRebalancerValid) {
+        _rebalancer.reset();
+        _isRebalancerValid = true;
+      }
+      return _rebalancer;
     }
-    return _rebalancer;
-  }
 
-  /**
-   * Proactively close the rebalance object to release the resources.
-   */
-  synchronized void closeWagedRebalancer() {
-    if (_rebalancer != null) {
-      _rebalancer.close();
-      _rebalancer = null;
+    /**
+     * Proactively close the rebalance object to release the resources.
+     */
+    synchronized void closeRebalancer() {
+      if (_rebalancer != null) {
+        _rebalancer.close();
+        _rebalancer = null;
+      }
     }
   }
 }

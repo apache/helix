@@ -41,6 +41,7 @@ import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.changedetector.ResourceChangeDetector;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.StatefulRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintBasedAlgorithmFactory;
@@ -70,7 +71,7 @@ import org.slf4j.LoggerFactory;
  *      Design Document
  *      </a>
  */
-public class WagedRebalancer {
+public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(WagedRebalancer.class);
 
   // When any of the following change happens, the rebalancer needs to do a global rebalance which
@@ -228,7 +229,7 @@ public class WagedRebalancer {
     }
   }
 
-  // Clean up the internal cached rebalance status.
+  @Override
   public void reset() {
     if (_assignmentMetadataStore != null) {
       _assignmentMetadataStore.reset();
@@ -236,7 +237,7 @@ public class WagedRebalancer {
     _changeDetector.resetSnapshots();
   }
 
-  // Release all the resources.
+  @Override
   public void close() {
     if (_baselineCalculateExecutor != null) {
       _baselineCalculateExecutor.shutdownNow();
@@ -247,14 +248,7 @@ public class WagedRebalancer {
     _metricCollector.unregister();
   }
 
-  /**
-   * Compute the new IdealStates for all the input resources. The IdealStates include both new
-   * partition assignment (in the listFiles) and the new replica state mapping (in the mapFields).
-   * @param clusterData The Cluster status data provider.
-   * @param resourceMap A map containing all the rebalancing resources.
-   * @param currentStateOutput The present Current States of the resources.
-   * @return A map of the new IdealStates with the resource name as key.
-   */
+  @Override
   public Map<String, IdealState> computeNewIdealStates(ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput)
       throws HelixRebalanceException {

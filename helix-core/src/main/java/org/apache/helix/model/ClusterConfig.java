@@ -136,7 +136,7 @@ public class ClusterConfig extends HelixProperty {
           .put(GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1).build();
   private final static int MAX_REBALANCE_PREFERENCE = 10;
   private final static int MIN_REBALANCE_PREFERENCE = 0;
-  private final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
+  public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
 
   /**
    * Instantiate for a specific cluster

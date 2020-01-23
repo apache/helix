@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -116,7 +117,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   @Test
   public void testRebalance() throws IOException, HelixRebalanceException {
     _metadataStore.resetCache();
-    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -142,7 +143,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   @Test(dependsOnMethods = "testRebalance")
   public void testPartialRebalance() throws IOException, HelixRebalanceException {
     _metadataStore.resetCache();
-    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -170,7 +171,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   @Test(dependsOnMethods = "testRebalance")
   public void testRebalanceWithCurrentState() throws IOException, HelixRebalanceException {
     _metadataStore.resetCache();
-    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
@@ -233,7 +234,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   public void testNonCompatibleConfiguration()
       throws IOException, HelixRebalanceException {
     _metadataStore.resetCache();
-    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     String nonCompatibleResourceName = _resourceNames.get(0);
@@ -254,7 +255,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   @Test(dependsOnMethods = "testRebalance")
   public void testInvalidClusterStatus() throws IOException, HelixRebalanceException {
     _metadataStore.resetCache();
-    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     String invalidResource = _resourceNames.get(0);
@@ -286,7 +287,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     AssignmentMetadataStore metadataStore = Mockito.mock(AssignmentMetadataStore.class);
     when(metadataStore.getBaseline())
         .thenThrow(new RuntimeException("Mock Error. Metadata store fails."));
-    WagedRebalancer rebalancer = new WagedRebalancer(metadataStore, _algorithm);
+    WagedRebalancer rebalancer = new WagedRebalancer(metadataStore, _algorithm, Optional.empty());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     // The input resource Map shall contain all the valid resources.
@@ -307,7 +308,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   public void testAlgorithmException()
       throws IOException, HelixRebalanceException {
     _metadataStore.resetCache();
-    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
@@ -325,7 +326,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     RebalanceAlgorithm badAlgorithm = Mockito.mock(RebalanceAlgorithm.class);
     when(badAlgorithm.calculate(any())).thenThrow(new HelixRebalanceException("Algorithm fails.",
         HelixRebalanceException.Type.FAILED_TO_CALCULATE));
-    rebalancer = new WagedRebalancer(_metadataStore, badAlgorithm);
+    rebalancer = new WagedRebalancer(_metadataStore, badAlgorithm, Optional.empty());
 
     // Calculation will fail
     try {
@@ -356,7 +357,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Note that this test relies on the MockRebalanceAlgorithm implementation. The mock algorithm
     // won't propagate any existing assignment from the cluster model.
     _metadataStore.resetCache();
-    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
 
     // 1. rebalance with baseline calculation done
     // Generate the input for the rebalancer.
@@ -463,7 +464,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
   @Test(dependsOnMethods = "testRebalance")
   public void testReset() throws IOException, HelixRebalanceException {
     _metadataStore.resetCache();
-    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm);
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, _algorithm, Optional.empty());
     // Generate the input for the rebalancer.
     ResourceControllerDataProvider clusterData = setupClusterDataCache();
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()

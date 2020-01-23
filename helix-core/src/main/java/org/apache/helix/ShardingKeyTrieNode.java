@@ -22,33 +22,33 @@ package org.apache.helix;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ShardingKeyTreeNode {
-  private Map<String, ShardingKeyTreeNode> children;
+public class ShardingKeyTrieNode {
+  private Map<String, ShardingKeyTrieNode> children;
   private Map<String, String> data;
   private String curPath;
 
-  public ShardingKeyTreeNode(String curPath) {
-    this.children = new HashMap<String, ShardingKeyTreeNode>();
+  public ShardingKeyTrieNode(String curPath) {
+    this.children = new HashMap<String, ShardingKeyTrieNode>();
     this.data = new HashMap<String, String>();
     this.curPath = curPath;
   }
 
-  public ShardingKeyTreeNode(Map<String, ShardingKeyTreeNode> children, Map<String, String> data,
+  public ShardingKeyTrieNode(Map<String, ShardingKeyTrieNode> children, Map<String, String> data,
       String curPath) {
     this.children = children;
     this.data = data;
     this.curPath = curPath;
   }
 
-  public Map<String, ShardingKeyTreeNode> getChildren() {
+  public Map<String, ShardingKeyTrieNode> getChildren() {
     return children;
   }
 
-  public void setChildren(Map<String, ShardingKeyTreeNode> children) {
+  public void setChildren(Map<String, ShardingKeyTrieNode> children) {
     this.children = children;
   }
 
-  public void setChild(String stringKey, ShardingKeyTreeNode node) {
+  public void setChild(String stringKey, ShardingKeyTrieNode node) {
     this.children.put(stringKey, node);
   }
 
@@ -62,13 +62,5 @@ public class ShardingKeyTreeNode {
 
   public void setDataEntry(String key, String data) {
     this.data.put(key, data);
-  }
-
-  public String getCurPath() {
-    return curPath;
-  }
-
-  public void setCurPath(String curPath) {
-    this.curPath = curPath;
   }
 }

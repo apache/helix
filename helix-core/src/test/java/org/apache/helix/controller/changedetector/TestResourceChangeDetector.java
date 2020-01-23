@@ -382,6 +382,39 @@ public class TestResourceChangeDetector extends ZkTestBase {
             .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 0);
   }
 
+  @Test(dependsOnMethods = "testIgnoreControllerGeneratedFields")
+  public void testResetSnapshots() {
+    // Initialize a new detector with the existing data
+    ResourceChangeDetector changeDetector = new ResourceChangeDetector();
+    _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
+    _dataProvider.refresh(_dataAccessor);
+    changeDetector.updateSnapshots(_dataProvider);
+    Assert.assertEquals(
+        changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
+            .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
+            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 2);
+
+    // Update the detector with old data, since nothing changed, the result will be empty.
+    _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
+    _dataProvider.refresh(_dataAccessor);
+    changeDetector.updateSnapshots(_dataProvider);
+    Assert.assertEquals(
+        changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
+            .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
+            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 0);
+
+    // Reset the snapshots
+    changeDetector.resetSnapshots();
+    // After reset, all the data in the data provider will be treated as new changes
+    _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
+    _dataProvider.refresh(_dataAccessor);
+    changeDetector.updateSnapshots(_dataProvider);
+    Assert.assertEquals(
+        changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
+            .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
+            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 2);
+  }
+
   /**
    * Check that the given change types appear in detector's change types.
    * @param types

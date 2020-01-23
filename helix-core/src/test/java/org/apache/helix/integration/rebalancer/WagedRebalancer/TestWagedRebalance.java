@@ -416,8 +416,8 @@ public class TestWagedRebalance extends ZkTestBase {
       throws InterruptedException {
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
-    clusterConfig.setGlobalRebalancePreference(ImmutableMap.of(
-        ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 0, ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 10));
+    clusterConfig.setGlobalRebalancePreference(ImmutableMap
+        .of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 0, ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 10));
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     int i = 0;
@@ -431,7 +431,8 @@ public class TestWagedRebalance extends ZkTestBase {
     validate(_replica);
 
     String newNodeName = "newNode-" + TestHelper.getTestMethodName() + "_" + START_PORT;
-    MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, newNodeName);
+    MockParticipantManager participant =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, newNodeName);
     try {
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, newNodeName);
       participant.syncStart();

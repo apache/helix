@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
@@ -424,7 +425,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     DryrunWagedRebalancer(String metadataStoreAddrs, String clusterName,
         Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
       super(new ReadOnlyAssignmentMetadataStore(metadataStoreAddrs, clusterName),
-          ConstraintBasedAlgorithmFactory.getInstance(preferences));
+          ConstraintBasedAlgorithmFactory.getInstance(preferences), Optional.empty());
     }
 
     @Override

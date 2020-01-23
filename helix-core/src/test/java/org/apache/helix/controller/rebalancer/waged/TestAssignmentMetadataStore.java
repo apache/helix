@@ -119,14 +119,7 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     String baselineKey = "BASELINE";
     String bestPossibleKey = "BEST_POSSIBLE";
 
-    // Generate a dummy assignment
-    Map<String, ResourceAssignment> dummyAssignment = new HashMap<>();
-    ResourceAssignment assignment = new ResourceAssignment(TEST_DB);
-    Partition partition = new Partition(TEST_DB);
-    Map<String, String> replicaMap = new HashMap<>();
-    replicaMap.put(TEST_DB, TEST_DB);
-    assignment.addReplicaMap(partition, replicaMap);
-    dummyAssignment.put(TEST_DB, new ResourceAssignment(TEST_DB));
+    Map<String, ResourceAssignment> dummyAssignment = getDummyAssignment();
 
     // Call persist functions
     _store.persistBaseline(dummyAssignment);
@@ -147,6 +140,34 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     bestPossibleVersions = getExistingVersionNumbers(bestPossibleKey);
     Assert.assertEquals(baselineVersions.size(), 1);
     Assert.assertEquals(bestPossibleVersions.size(), 1);
+  }
+
+  @Test
+  public void testAssignmentCache() {
+    Map<String, ResourceAssignment> dummyAssignment = getDummyAssignment();
+    // Call persist functions
+    _store.persistBaseline(dummyAssignment);
+    _store.persistBestPossibleAssignment(dummyAssignment);
+
+    Assert.assertEquals(_store._bestPossibleAssignment, dummyAssignment);
+    Assert.assertEquals(_store._globalBaseline, dummyAssignment);
+
+    _store.reset();
+
+    Assert.assertEquals(_store._bestPossibleAssignment, null);
+    Assert.assertEquals(_store._globalBaseline, null);
+  }
+
+  private Map<String, ResourceAssignment> getDummyAssignment() {
+    // Generate a dummy assignment
+    Map<String, ResourceAssignment> dummyAssignment = new HashMap<>();
+    ResourceAssignment assignment = new ResourceAssignment(TEST_DB);
+    Partition partition = new Partition(TEST_DB);
+    Map<String, String> replicaMap = new HashMap<>();
+    replicaMap.put(TEST_DB, TEST_DB);
+    assignment.addReplicaMap(partition, replicaMap);
+    dummyAssignment.put(TEST_DB, new ResourceAssignment(TEST_DB));
+    return dummyAssignment;
   }
 
   /**

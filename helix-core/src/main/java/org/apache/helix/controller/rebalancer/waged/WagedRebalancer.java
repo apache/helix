@@ -237,6 +237,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     _changeDetector.resetSnapshots();
   }
 
+  // TODO the rebalancer should reject any other computing request after being closed.
   @Override
   public void close() {
     if (_baselineCalculateExecutor != null) {

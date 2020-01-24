@@ -191,6 +191,7 @@ public class GenericHelixController implements IdealStateChangeListener,
   // Since the stateful rebalancer needs to be lazily constructed when the HelixManager instance is
   // ready, the GenericHelixController is not constructed with a stateful rebalancer. This wrapper
   // is to avoid the complexity of handling a nullable value in the event handling process.
+  // TODO Create the required stateful rebalancer only when it is used by any resource.
   private final StatefulRebalancerRef _rebalancerRef = new StatefulRebalancerRef() {
     @Override
     protected StatefulRebalancer createRebalancer(HelixManager helixManager) {

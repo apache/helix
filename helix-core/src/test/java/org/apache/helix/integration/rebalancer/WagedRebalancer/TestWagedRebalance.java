@@ -497,6 +497,7 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
+    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
     Thread.sleep(300);
     validate(_replica);
 
@@ -507,6 +508,7 @@ public class TestWagedRebalance extends ZkTestBase {
         BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, moreDB, _replica);
     _allDBs.add(moreDB);
+    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
     Thread.sleep(300);
     validate(_replica);
     ExternalView oldEV =
@@ -516,6 +518,7 @@ public class TestWagedRebalance extends ZkTestBase {
     simulateSessionExpiry(_controller.getZkClient());
     // After reset done, the rebalancer will try to rebalance all the partitions since it has
     // forgotten the previous state.
+    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
     Thread.sleep(300);
     validate(_replica);
     ExternalView newEV =

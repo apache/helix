@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -62,6 +63,13 @@ public class TestZKUtil extends ZkUnitTestBase {
   @AfterClass()
   public void afterClass() {
     deleteCluster(clusterName);
+  }
+
+  @AfterMethod()
+  public void afterMethod() {
+    String path = PropertyPathBuilder.instanceConfig(clusterName);
+    _gZkClient.deleteRecursively(path);
+    _gZkClient.createPersistent(path);
   }
 
   @Test()
@@ -99,7 +107,6 @@ public class TestZKUtil extends ZkUnitTestBase {
     AssertJUnit.assertTrue(_gZkClient.exists(path));
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals("id4", record.getId());
-    _gZkClient.delete(path);
   }
 
   @Test()
@@ -111,14 +118,12 @@ public class TestZKUtil extends ZkUnitTestBase {
     ZKUtil.subtract(_gZkClient, path, record);
     record = _gZkClient.readData(path);
     AssertJUnit.assertNull(record.getSimpleField("key1"));
-    _gZkClient.delete(path);
   }
 
   @Test()
   public void testNullChildren() {
     String path = PropertyPathBuilder.instanceConfig(clusterName, "id6");
     ZKUtil.createChildren(_gZkClient, path, (List<ZNRecord>) null);
-    _gZkClient.delete(path);
   }
 
   @Test()
@@ -157,7 +162,6 @@ public class TestZKUtil extends ZkUnitTestBase {
       put("k1", "v1");
       put("k2", "v2");
     }}, record.getMapField("map"));
-    _gZkClient.delete(path);
   }
 
   @Test()
@@ -171,7 +175,6 @@ public class TestZKUtil extends ZkUnitTestBase {
     ZKUtil.createOrReplace(_gZkClient, path, record, true);
     record = _gZkClient.readData(path);
     AssertJUnit.assertEquals("id9", record.getId());
-    _gZkClient.delete(path);
   }
 
   @Test()
@@ -214,6 +217,5 @@ public class TestZKUtil extends ZkUnitTestBase {
     AssertJUnit.assertEquals(new HashMap<String, String>() {{
       put("k2", "v2");
     }}, record.getMapField("map"));
-    _gZkClient.delete(path);
   }
 }

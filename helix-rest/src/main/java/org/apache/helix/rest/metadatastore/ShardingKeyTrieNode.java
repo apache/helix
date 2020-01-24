@@ -22,7 +22,8 @@ package org.apache.helix.rest.metadatastore;
 import java.util.Map;
 
 /**
- * A trie node that is used to represent Zk path sharding keys. Terminal nodes contain ZkRealm addresses.
+ * A trie node that is used to represent Zk path sharding keys. Terminal nodes contain ZkRealm
+ * addresses.
  */
 public class ShardingKeyTrieNode {
   /**
@@ -38,7 +39,8 @@ public class ShardingKeyTrieNode {
    */
   private final String _name;
   /**
-   * ZkRealm address corresponding to this trie node. The value is only valid when the node is a terminal node.
+   * ZkRealm address corresponding to this trie node. The value is only valid when the node is a
+   * terminal node.
    */
   private final String _zkRealmAddress;
 
@@ -48,6 +50,22 @@ public class ShardingKeyTrieNode {
     _isLeaf = isLeaf;
     _name = name;
     _zkRealmAddress = zkRealmAddress;
+  }
+
+  public Map<String, ShardingKeyTrieNode> getChildren() {
+    return _children;
+  }
+
+  public boolean isLeaf() {
+    return _isLeaf;
+  }
+
+  public String getName() {
+    return _name;
+  }
+
+  public String getZkRealmAddress() {
+    return _zkRealmAddress;
   }
 
   public static class Builder {
@@ -66,7 +84,7 @@ public class ShardingKeyTrieNode {
       return this;
     }
 
-    public Builder setisLeaf(final boolean isLeaf) {
+    public Builder setLeaf(final boolean isLeaf) {
       _isLeaf = isLeaf;
       return this;
     }
@@ -82,34 +100,18 @@ public class ShardingKeyTrieNode {
     }
 
     /**
-     * A validation function to the ShardingKeyTrieNode that's getting built. If the name is null or empty, the trie
-     * node is not valid; if the node is a terminal node and the ZkRealm address is null or empty, the trie node is not
-     * valid.
+     * A validation function to the ShardingKeyTrieNode that's getting built. If the name is null or
+     * empty, the trie node is not valid; if the node is a terminal node and the ZkRealm address is
+     * null or empty, the trie node is not valid.
      */
     private void validate() {
       if (_name == null || _name.isEmpty()) {
         throw new IllegalArgumentException("name cannot be null or empty");
       }
       if (_isLeaf && (_zkRealmAddress == null || _zkRealmAddress.isEmpty())) {
-        throw new IllegalArgumentException("zkRealmAddress cannot be null or empty when the node is a terminal node");
+        throw new IllegalArgumentException(
+            "zkRealmAddress cannot be null or empty when the node is a terminal node");
       }
     }
-  }
-
-
-  public Map<String, ShardingKeyTrieNode> getChildren() {
-    return _children;
-  }
-
-  public boolean isLeaf() {
-    return _isLeaf;
-  }
-
-  public String getName() {
-    return _name;
-  }
-
-  public String getZkRealmAddress() {
-    return _zkRealmAddress;
   }
 }

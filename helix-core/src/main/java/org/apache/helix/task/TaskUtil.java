@@ -1038,44 +1038,47 @@ public class TaskUtil {
   }
 
   /**
-   * The function that loops through the all existed workflow contexts and removes IdealState and
-   * Workflow Context if Workflow Config is missing.
+   * The function that loops through the all existing workflow contexts and removes IdealState and
+   * workflow context of the workflow whose workflow config does not exist.
    * @param dataProvider
    * @param manager
    */
   public static void workflowGarbageCollection(WorkflowControllerDataProvider dataProvider,
       final HelixManager manager) {
-    // Garbage collections for conditions where workflow context is existed but config is missing.
+    // Garbage collections for conditions where workflow context exists but config is missing.
     Map<String, ZNRecord> contexts = dataProvider.getContexts();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
+
+    Set<String> toBeDeletedWorkflows = new HashSet<>();
     for (Map.Entry<String, ZNRecord> entry : contexts.entrySet()) {
       if (entry.getValue() != null
           && entry.getValue().getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
         if (dataProvider.getWorkflowConfig(entry.getKey()) == null) {
-          String workflowName = entry.getKey();
-          LOG.warn(String.format(
-              "WorkflowContext exists for workflow %s. However, Workflow Config is missing! Deleting the WorkflowConfig and IdealState!!",
-              workflowName));
-
-          HelixDataAccessor accessor = manager.getHelixDataAccessor();
-          HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
-
-          if (!cleanupWorkflowIdealStateExtView(accessor, workflowName)) {
-            LOG.warn(String.format(
-                "Error occurred while trying to remove workflow idealstate/externalview for %s.",
-                workflowName));
-            continue;
-          }
-
-          if (!removeWorkflowContext(propertyStore, workflowName)) {
-            LOG.warn(String.format("Error occurred while trying to remove workflow context for %s.",
-                workflowName));
-            continue;
-          }
+          toBeDeletedWorkflows.add(entry.getKey());
         }
       }
     }
-  }
 
+    for (String workflowName : toBeDeletedWorkflows) {
+      LOG.warn(String.format(
+          "WorkflowContext exists for workflow %s. However, Workflow Config is missing! Deleting the WorkflowConfig and IdealState!!",
+          workflowName));
+
+      if (!cleanupWorkflowIdealStateExtView(accessor, workflowName)) {
+        LOG.warn(String.format(
+            "Error occurred while trying to remove workflow idealstate/externalview for %s.",
+            workflowName));
+        continue;
+      }
+
+      if (!removeWorkflowContext(propertyStore, workflowName)) {
+        LOG.warn(String.format("Error occurred while trying to remove workflow context for %s.",
+            workflowName));
+        continue;
+      }
+    }
+  }
 
   private static void setNextJobPurgeTime(String workflow, long currentTime, long purgeInterval,
       RebalanceScheduler rebalanceScheduler, HelixManager manager) {

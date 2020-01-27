@@ -22,7 +22,7 @@ package org.apache.helix.lock;
 /**
  * Generic interface for Helix distributed lock for both nonblocking and blocking calls
  */
-public interface HelixLock {
+public interface HelixLock<T> {
   /**
    * Acquire a lock
    * @return true if the lock was successfully acquired,
@@ -42,7 +42,7 @@ public interface HelixLock {
    * Retrieve the lock information, e.g. lock timeout, lock message, etc.
    * @return lock information
    */
-  LockInfo getLockInfo();
+  LockInfo<T> getLockInfo();
 
   /**
    * If the user is current lock owner

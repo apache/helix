@@ -30,15 +30,15 @@ public interface LockInfo<T> {
 
   /**
    * Create a single filed of LockInfo, or update the value of the field if it already exists
-   * @param key the key of the LockInfo field
-   * @param value the value of the LockInfo field
+   * @param infoKey the key of the LockInfo field
+   * @param infoValue the value of the LockInfo field
    */
-  void setValue(String key, T value);
+  void setInfoValue(String infoKey, T infoValue);
 
   /**
    * Get the value of a field in LockInfo
-   * @param key the key of the field
+   * @param infoKey the key of the LockInfo field
    * @return the value of the field or null if this key does not exist
    */
-  T getValue(String key);
+  T getInfoValue(String infoKey);
 }

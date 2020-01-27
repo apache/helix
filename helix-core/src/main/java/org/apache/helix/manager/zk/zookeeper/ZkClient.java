@@ -904,12 +904,18 @@ public class ZkClient implements Watcher {
         || event.getType() == Event.EventType.NodeCreated
         || event.getType() == Event.EventType.NodeChildrenChanged;
 
-    if (event.getType() == Event.EventType.NodeDeleted) {
-      if (LOG.isDebugEnabled()) {
-        String path = event.getPath();
-        LOG.debug(path);
+    if (!stateChanged) {
+      // Need to re-install the watchers since ZK watchers are one-time-triggers
+      // Need to re-install before handling the event to minimize impact on missing events
+      if (event.getType() == EventType.NodeChildrenChanged) {
+        watchForChilds(event.getPath());
+      } else if (event.getType() != EventType.NodeDeleted) {
+        watchForData(event.getPath());
+      } else {
+        LOG.debug("Path {} is deleted", event.getPath());
       }
     }
+
 
     getEventLock().lock();
     try {
@@ -1278,9 +1284,8 @@ public class ZkClient implements Watcher {
             + listener.getDataListener() + " prefetch data: " + listener.isPrefetchData()) {
           @Override
           public void run() throws Exception {
-            // Reinstall watch before listener callbacks to check the znode status
             if (!pathStatRecord.pathChecked()) {
-              pathStatRecord.recordPathStat(getStat(path, true), notificationTime);
+              pathStatRecord.recordPathStat(getStat(path), notificationTime);
             }
             if (!pathStatRecord.pathExists()) {
               // no znode found at the path, trigger data deleted handler.
@@ -1310,19 +1315,14 @@ public class ZkClient implements Watcher {
   }
 
   private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners) {
+    boolean pathExists = exists(path);
     try {
-      final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(path);
       for (final IZkChildListener listener : childListeners) {
         _eventThread.send(new ZkEvent("Children of " + path + " changed sent to " + listener) {
           @Override
           public void run() throws Exception {
-            // Reinstall watch before listener callbacks to check the znode status
-            if (!pathStatRecord.pathChecked()) {
-              pathStatRecord.recordPathStat(getStat(path, hasListeners(path)),
-                  OptionalLong.empty());
-            }
             List<String> children = null;
-            if (pathStatRecord.pathExists()) {
+            if (pathExists) {
               try {
                 children = getChildren(path);
               } catch (ZkNoNodeException e) {

@@ -19,6 +19,7 @@ package org.apache.helix.rest.metadatastore;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -53,7 +54,7 @@ public class ShardingKeyTrieNode {
   }
 
   public Map<String, ShardingKeyTrieNode> getChildren() {
-    return _children;
+    return Collections.unmodifiableMap(_children);
   }
 
   public boolean isLeaf() {

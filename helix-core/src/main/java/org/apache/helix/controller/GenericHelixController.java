@@ -1319,6 +1319,8 @@ public class GenericHelixController implements IdealStateChangeListener,
     /**
      * @return A valid rebalancer object.
      *         If the rebalancer is no longer valid, it will be reset before returning.
+     * TODO: Make rebalancer volatile or make it singleton, if this method is called in multiple
+     * TODO: threads outside the controller object.
      */
     synchronized T getRebalancer(HelixManager helixManager) {
       // Lazily initialize the stateful rebalancer instance since the GenericHelixController

@@ -412,12 +412,12 @@ public class TestWagedRebalance extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "test")
-  public void testNewInstances()
-      throws InterruptedException {
+  public void testNewInstances() throws InterruptedException {
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setGlobalRebalancePreference(ImmutableMap
-        .of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 0, ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 10));
+        .of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 0,
+            ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 10));
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     int i = 0;
@@ -471,6 +471,61 @@ public class TestWagedRebalance extends ZkTestBase {
         participant.syncStop();
       }
     }
+  }
+
+  /**
+   * The stateful WAGED rebalancer will be reset while the controller regains the leadership.
+   * This test is to verify if the reset has been done and the rebalancer has forgotten any previous
+   * status after leadership switched.
+   */
+  @Test(dependsOnMethods = "test")
+  public void testRebalancerReset() throws Exception {
+    // Configure the rebalance preference so as to trigger more partition movements for evenness.
+    // This is to ensure the controller will try to move something if the rebalancer has been reset.
+    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setGlobalRebalancePreference(ImmutableMap
+        .of(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 10,
+            ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 0));
+    configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    int i = 0;
+    for (String stateModel : _testModels) {
+      String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
+      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
+          _replica);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
+      _allDBs.add(db);
+    }
+    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
+    Thread.sleep(300);
+    validate(_replica);
+
+    // Adding one more resource. Since it is added after the other resources, the assignment is
+    // impacted because of the other resources' assignment.
+    String moreDB = "More-Test-DB";
+    createResourceWithWagedRebalance(CLUSTER_NAME, moreDB,
+        BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, moreDB, _replica);
+    _allDBs.add(moreDB);
+    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
+    Thread.sleep(300);
+    validate(_replica);
+    ExternalView oldEV =
+        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, moreDB);
+
+    // Expire the controller session so it will reset the internal rebalancer's status.
+    simulateSessionExpiry(_controller.getZkClient());
+    // After reset done, the rebalancer will try to rebalance all the partitions since it has
+    // forgotten the previous state.
+    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
+    Thread.sleep(300);
+    validate(_replica);
+    ExternalView newEV =
+        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, moreDB);
+
+    // To verify that the controller has moved some partitions.
+    Assert.assertFalse(newEV.equals(oldEV));
   }
 
   private void validate(int expectedReplica) {

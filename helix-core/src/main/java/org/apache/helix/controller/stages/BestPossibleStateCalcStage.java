@@ -65,12 +65,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   private static final Logger logger =
       LoggerFactory.getLogger(BestPossibleStateCalcStage.class.getName());
 
-  // Lazy initialize the WAGED rebalancer instance since the BestPossibleStateCalcStage instance was
-  // instantiated without the HelixManager information that is required.
-  // TODO: Initialize the WAGED rebalancer in the BestPossibleStateCalcStage constructor once it is
-  // TODO: updated so as to accept a HelixManager or HelixZkClient information.
-  private WagedRebalancer _wagedRebalancer = null;
-
   @Override
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
@@ -110,30 +104,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     });
   }
 
-  // Need to keep a default constructor for backward compatibility
-  public BestPossibleStateCalcStage() {
-  }
-
-  // Construct the BestPossibleStateCalcStage with a given WAGED rebalancer for the callers other
-  // than the controller pipeline. Such as the verifiers and test cases.
-  public BestPossibleStateCalcStage(WagedRebalancer wagedRebalancer) {
-    _wagedRebalancer = wagedRebalancer;
-  }
-
-  private WagedRebalancer getWagedRebalancer(HelixManager helixManager,
-      Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences,
-      boolean isAsyncGlobalRebalanceEnabled) {
-    // Create WagedRebalancer instance if it hasn't been already initialized
-    if (_wagedRebalancer == null) {
-      _wagedRebalancer = new WagedRebalancer(helixManager);
-    }
-    // Since the rebalance configuration can be updated at runtime, try to update the rebalancer
-    // before returning.
-    _wagedRebalancer.updateRebalancePreference(preferences);
-    _wagedRebalancer.setGlobalRebalanceAsyncMode(isAsyncGlobalRebalanceEnabled);
-    return _wagedRebalancer;
-  }
-
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
       CurrentStateOutput currentStateOutput) {
     ResourceControllerDataProvider cache =
@@ -143,6 +113,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     HelixManager helixManager = event.getAttribute(AttributeName.helixmanager.name());
     ClusterStatusMonitor clusterStatusMonitor =
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    WagedRebalancer wagedRebalancer = event.getAttribute(AttributeName.STATEFUL_REBALANCER.name());
 
     // Check whether the offline/disabled instance count in the cluster reaches the set limit,
     // if yes, pause the rebalancer.
@@ -152,8 +123,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     final List<String> failureResources = new ArrayList<>();
 
     Map<String, Resource> calculatedResourceMap =
-        computeResourceBestPossibleStateWithWagedRebalancer(cache, currentStateOutput, helixManager,
-            resourceMap, output, failureResources);
+        computeResourceBestPossibleStateWithWagedRebalancer(wagedRebalancer, cache,
+            currentStateOutput, resourceMap, output, failureResources);
 
     Map<String, Resource> remainingResourceMap = new HashMap<>(resourceMap);
     remainingResourceMap.keySet().removeAll(calculatedResourceMap.keySet());
@@ -249,23 +220,33 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     return true;
   }
 
+  private void updateWagedRebalancer(WagedRebalancer wagedRebalancer, ClusterConfig clusterConfig) {
+    if (clusterConfig != null) {
+      // Since the rebalance configuration can be updated at runtime, try to update the rebalancer
+      // before calculating.
+      wagedRebalancer.updateRebalancePreference(clusterConfig.getGlobalRebalancePreference());
+      wagedRebalancer
+          .setGlobalRebalanceAsyncMode(clusterConfig.isGlobalRebalanceAsyncModeEnabled());
+    }
+  }
+
   /**
    * Rebalance with the WAGED rebalancer
    * The rebalancer only calculates the new ideal assignment for all the resources that are
    * configured to use the WAGED rebalancer.
    *
+   * @param wagedRebalancer    The WAGED rebalancer instance.
    * @param cache              Cluster data cache.
    * @param currentStateOutput The current state information.
-   * @param helixManager
    * @param resourceMap        The complete resource map. The method will filter the map for the compatible resources.
    * @param output             The best possible state output.
    * @param failureResources   The failure records that will be updated if any resource cannot be computed.
    * @return The map of all the calculated resources.
    */
   private Map<String, Resource> computeResourceBestPossibleStateWithWagedRebalancer(
-      ResourceControllerDataProvider cache, CurrentStateOutput currentStateOutput,
-      HelixManager helixManager, Map<String, Resource> resourceMap, BestPossibleStateOutput output,
-      List<String> failureResources) {
+      WagedRebalancer wagedRebalancer, ResourceControllerDataProvider cache,
+      CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap,
+      BestPossibleStateOutput output, List<String> failureResources) {
     if (cache.isMaintenanceModeEnabled()) {
       // The WAGED rebalancer won't be used while maintenance mode is enabled.
       return Collections.emptyMap();
@@ -282,22 +263,22 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     Map<String, IdealState> newIdealStates = new HashMap<>();
 
-    ClusterConfig clusterConfig = cache.getClusterConfig();
-    WagedRebalancer wagedRebalancer =
-        getWagedRebalancer(helixManager, clusterConfig.getGlobalRebalancePreference(),
-            clusterConfig.isGlobalRebalanceAsyncModeEnabled());
-    try {
-      newIdealStates.putAll(wagedRebalancer.computeNewIdealStates(cache, wagedRebalancedResourceMap,
-          currentStateOutput));
-    } catch (HelixRebalanceException ex) {
-      // Note that unlike the legacy rebalancer, the WAGED rebalance won't return partial result.
-      // Since it calculates for all the eligible resources globally, a partial result is invalid.
-      // TODO propagate the rebalancer failure information to updateRebalanceStatus for monitoring.
+    if (wagedRebalancer != null) {
+      updateWagedRebalancer(wagedRebalancer, cache.getClusterConfig());
+      try {
+        newIdealStates.putAll(wagedRebalancer
+            .computeNewIdealStates(cache, wagedRebalancedResourceMap, currentStateOutput));
+      } catch (HelixRebalanceException ex) {
+        // Note that unlike the legacy rebalancer, the WAGED rebalance won't return partial result.
+        // Since it calculates for all the eligible resources globally, a partial result is invalid.
+        // TODO propagate the rebalancer failure information to updateRebalanceStatus for monitoring.
+        LogUtil.logError(logger, _eventId, String
+            .format("Failed to calculate the new Ideal States using the rebalancer %s due to %s",
+                wagedRebalancer.getClass().getSimpleName(), ex.getFailureType()), ex);
+      }
+    } else {
       LogUtil.logError(logger, _eventId,
-          String.format(
-              "Failed to calculate the new Ideal States using the rebalancer %s due to %s",
-              wagedRebalancer.getClass().getSimpleName(), ex.getFailureType()),
-          ex);
+          "Skip rebalancing using the WAGED rebalancer since it is not configured in the rebalance pipeline.");
     }
 
     Iterator<Resource> itr = wagedRebalancedResourceMap.values().iterator();

@@ -1297,6 +1297,7 @@ public class ZkClient implements Watcher {
                   LOG.debug("Prefetch data for path: {}", path);
                 }
                 try {
+                  // TODO: the data is redundantly read multiple times when multiple listeners exist
                   data = readData(path, null, true);
                 } catch (ZkNoNodeException e) {
                   LOG.warn("Prefetch data for path: {} failed.", path, e);

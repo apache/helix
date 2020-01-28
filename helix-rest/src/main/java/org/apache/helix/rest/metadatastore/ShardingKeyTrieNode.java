@@ -45,16 +45,16 @@ public class ShardingKeyTrieNode {
    */
   private final String _zkRealmAddress;
 
-  public ShardingKeyTrieNode(Map<String, ShardingKeyTrieNode> children, boolean isLeaf, String name,
+  private ShardingKeyTrieNode(Map<String, ShardingKeyTrieNode> children, boolean isLeaf, String name,
       String zkRealmAddress) {
-    _children = children;
+    _children = Collections.unmodifiableMap(children);
     _isLeaf = isLeaf;
     _name = name;
     _zkRealmAddress = zkRealmAddress;
   }
 
   public Map<String, ShardingKeyTrieNode> getChildren() {
-    return Collections.unmodifiableMap(_children);
+    return _children;
   }
 
   public boolean isLeaf() {
@@ -70,7 +70,7 @@ public class ShardingKeyTrieNode {
   }
 
   public static class Builder {
-    private Map<String, ShardingKeyTrieNode> _children;
+    private Map<String, ShardingKeyTrieNode> _children = Collections.emptyMap();
     private boolean _isLeaf;
     private String _name;
     private String _zkRealmAddress;

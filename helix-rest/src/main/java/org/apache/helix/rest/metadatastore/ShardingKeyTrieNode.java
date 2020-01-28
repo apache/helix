@@ -45,8 +45,8 @@ public class ShardingKeyTrieNode {
    */
   private final String _zkRealmAddress;
 
-  private ShardingKeyTrieNode(Map<String, ShardingKeyTrieNode> children, boolean isLeaf, String name,
-      String zkRealmAddress) {
+  private ShardingKeyTrieNode(Map<String, ShardingKeyTrieNode> children, boolean isLeaf,
+      String name, String zkRealmAddress) {
     _children = Collections.unmodifiableMap(children);
     _isLeaf = isLeaf;
     _name = name;
@@ -65,7 +65,14 @@ public class ShardingKeyTrieNode {
     return _name;
   }
 
+  /**
+   * The method should only be called on leaf nodes. For non-leaf nodes, the method throws an
+   * IllegalStateException.
+   */
   public String getZkRealmAddress() {
+    if (!_isLeaf) {
+      throw new IllegalStateException("only leaf nodes have meaningful zkRealmAddress");
+    }
     return _zkRealmAddress;
   }
 
@@ -112,6 +119,10 @@ public class ShardingKeyTrieNode {
       if (_isLeaf && (_zkRealmAddress == null || _zkRealmAddress.isEmpty())) {
         throw new IllegalArgumentException(
             "zkRealmAddress cannot be null or empty when the node is a terminal node");
+      }
+      if (_isLeaf && !_children.isEmpty()) {
+        throw new IllegalArgumentException(
+            "children needs to be empty when the node is a terminal node");
       }
     }
   }

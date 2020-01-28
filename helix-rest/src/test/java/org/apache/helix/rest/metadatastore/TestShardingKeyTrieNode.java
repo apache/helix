@@ -96,4 +96,37 @@ public class TestShardingKeyTrieNode {
           .contains("zkRealmAddress cannot be null or empty when the node is a terminal node"));
     }
   }
+
+  @Test
+  public void testValidationFailNonEmptyChildren() {
+    try {
+      ShardingKeyTrieNode testChildNode = new ShardingKeyTrieNode.Builder().setLeaf(true).setName("child")
+          .setZkRealmAddress("testZkRealmAddressChild").build();
+      ShardingKeyTrieNode testNode = new ShardingKeyTrieNode.Builder().setLeaf(true).setName("test")
+          .setZkRealmAddress("testZkRealmAddress")
+          .setChildren(new HashMap<String, ShardingKeyTrieNode>() {
+            {
+              put("child", testChildNode);
+            }
+          }).build();
+      Assert.fail("Expecting IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage()
+          .contains("children needs to be empty when the node is a terminal node"));
+    }
+  }
+
+
+  @Test
+  public void testGetZkRealmAddressException() {
+    try {
+      ShardingKeyTrieNode testNode = new ShardingKeyTrieNode.Builder().setLeaf(false).setName("test")
+          .setZkRealmAddress("testZkRealmAddress").build();
+      testNode.getZkRealmAddress();
+      Assert.fail("Expecting IllegalArgumentException");
+    } catch (IllegalStateException e) {
+      Assert.assertTrue(e.getMessage()
+          .contains("only leaf nodes have meaningful zkRealmAddress"));
+    }
+  }
 }

@@ -20,6 +20,7 @@ package org.apache.helix.integration.controller;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.List;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
@@ -30,19 +31,184 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.CallbackHandler;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+
+/**
+ * Integration test on controller leadership on several phases given the test cluster:
+ *  1. When a standalone controller becomes the leader
+ *  2. When a standalone leader relinquishes the leadership
+ *  3. When the leader node relinquishes the leadership and the other controller takes it over
+ */
 public class TestControllerLeadershipChange extends ZkTestBase {
+  private final String CLASS_NAME = getShortClassName();
+  private final String CLUSTER_NAME = "TestCluster-" + CLASS_NAME;
+
+  @BeforeClass
+  public void beforeClass()
+      throws Exception {
+    super.beforeClass();
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, "TestInstance");
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "TestResource", 10, "MasterSlave");
+  }
+
+  @AfterClass
+  public void afterClass() {
+    deleteCluster(CLUSTER_NAME);
+  }
 
   @Test
-  public void testMissingTopStateDurationMonitoring() throws Exception {
+  public void testControllerConnectThenDisconnect() {
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "TestController");
+    long start = System.currentTimeMillis();
+    controller.syncStart();
+    verifyControllerIsLeader(controller);
+    System.out.println(System.currentTimeMillis() - start + "ms spent on becoming the leader");
+
+    start = System.currentTimeMillis();
+    controller.syncStop();
+    verifyControllerIsNotLeader(controller);
+    verifyZKDisconnected(controller);
+
+    System.out.println(
+        System.currentTimeMillis() - start + "ms spent on becoming the standby node from leader");
+  }
+
+  @Test
+  public void testControllerReconnectAfterDisconnect() {
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "TestController");
+    long start = System.currentTimeMillis();
+    controller.syncStart();
+    verifyControllerIsLeader(controller);
+    System.out.println(System.currentTimeMillis() - start + "ms spent on becoming the leader");
+
+    start = System.currentTimeMillis();
+    controller.syncStop();
+    verifyControllerIsNotLeader(controller);
+    verifyZKDisconnected(controller);
+    System.out.println(
+        System.currentTimeMillis() - start + "ms spent on becoming the standby node from leader");
+
+    start = System.currentTimeMillis();
+    controller.syncStart(); // TODO: what happens when the controller re-connects?
+    verifyControllerIsLeader(controller);
+
+    System.out.println(
+        System.currentTimeMillis() - start + "ms spent on reconnecting as controller");
+  }
+
+  @Test(description = "If the cluster has a controller, the second controller cannot take its leadership")
+  public void testWhenControllerAlreadyExists() {
+    // when the controller0 already takes over the leadership
+    ClusterControllerManager firstController =
+        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "FirstController");
+    firstController.syncStart();
+    verifyControllerIsLeader(firstController);
+
+    ClusterControllerManager secondController =
+        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "SecondController");
+    secondController.syncStart();
+    // The second controller cannot acquire the leadership from existing controller
+    verifyControllerIsNotLeader(secondController);
+    // but the zkClient is still connected
+    Assert.assertFalse(secondController.getZkClient().isClosed());
+    //TODO: investigate if the callback handlers registered make sense
+    List<CallbackHandler> callbackHandlers = secondController.getHandlers();
+    for (CallbackHandler callbackHandler : callbackHandlers) {
+      System.out.println(callbackHandler.getContent());
+    }
+
+    // stop the controllers
+    firstController.syncStop();
+    secondController.syncStop();
+  }
+
+  @Test
+  public void testWhenLeadershipSwitch() {
+    ClusterControllerManager firstController =
+        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "FirstController");
+    ClusterControllerManager secondController =
+        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "SecondController");
+    firstController.syncStart();
+    verifyControllerIsLeader(firstController);
+    firstController.syncStop();
+    verifyControllerIsNotLeader(firstController);
+    long start = System.currentTimeMillis();
+
+    // the second controller is started after the first controller is stopped
+    secondController.syncStart();
+    verifyControllerIsLeader(secondController);
+    verifyZKDisconnected(firstController);
+    long end = System.currentTimeMillis();
+    System.out.println(end - start + "ms spent on the leadership switch");
+    secondController.syncStop();
+  }
+
+  /**
+   * If the controller is not the leader of a cluster,
+   * 1. The LEADER node in ZK reflects the leadership of the controller
+   * 2. All the callback handlers are ready (successfully registered)
+   * 3. Controller Timer tasks are scheduled
+   */
+  private void verifyControllerIsLeader(ClusterControllerManager controller) {
+    // check against the leader node
+    Assert.assertTrue(controller.isLeader());
+
+    // check the callback handlers are correctly registered
+    List<CallbackHandler> callbackHandlers = controller.getHandlers();
+    Assert.assertTrue(callbackHandlers.size() > 0);
+    callbackHandlers.forEach(callbackHandler -> Assert.assertTrue(callbackHandler.isReady()));
+
+    // check the zk connection is open
+    HelixZkClient zkClient = controller.getZkClient();
+    Assert.assertFalse(zkClient.isClosed());
+    Long sessionId = zkClient.getSessionId();
+    Assert.assertNotNull(sessionId);
+
+    // check the controller related timer tasks are all active
+//    Assert.assertTrue(controller.getControllerTimerTasks().size() > 0);
+  }
+
+  /**
+   * When the controller is not the leader of a cluster, none of the properties
+   * {@link #verifyControllerIsLeader(ClusterControllerManager)} will hold
+   * NOTE: it's possible the ZKConnection is open while the controller is not the leader
+   */
+  private void verifyControllerIsNotLeader(ClusterControllerManager controller) {
+    // check against the leader node
+    Assert.assertFalse(controller.isLeader());
+
+    // check no callback handler is leaked
+    Assert.assertTrue(controller.getHandlers().isEmpty());
+
+    // check the controller related timer tasks are all disabled
+//    Assert.assertTrue(controller.getControllerTimerTasks().isEmpty());
+  }
+
+  private void verifyZKDisconnected(ClusterControllerManager controller) {
+    // If the ZK connection is closed, it also means all ZK watchers of the session
+    // will be deleted on ZK servers
+    Assert.assertTrue(controller.getZkClient().isClosed());
+  }
+
+  @Test
+  public void testMissingTopStateDurationMonitoring()
+      throws Exception {
     String clusterName = "testCluster-TestControllerLeadershipChange";
     String instanceName = clusterName + "-participant";
     String resourceName = "testResource";
@@ -66,8 +232,9 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     participant.syncStart();
 
     // Create controller, since this is the only controller, it will be the leader
-    HelixManager manager1 = HelixManagerFactory.getZKHelixManager(clusterName,
-        clusterName + "-manager1", InstanceType.CONTROLLER, ZK_ADDR);
+    HelixManager manager1 = HelixManagerFactory
+        .getZKHelixManager(clusterName, clusterName + "-manager1", InstanceType.CONTROLLER,
+            ZK_ADDR);
     manager1.connect();
     Assert.assertTrue(manager1.isLeader());
 
@@ -87,8 +254,9 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     Thread.sleep(1000);
 
     // Starting manager2
-    HelixManager manager2 = HelixManagerFactory.getZKHelixManager(clusterName,
-        clusterName + "-manager2", InstanceType.CONTROLLER, ZK_ADDR);
+    HelixManager manager2 = HelixManagerFactory
+        .getZKHelixManager(clusterName, clusterName + "-manager2", InstanceType.CONTROLLER,
+            ZK_ADDR);
     manager2.connect();
 
     // Set leader to manager2
@@ -117,8 +285,8 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     // Resource lost top state, and manager1 lost leadership for 2000ms, because manager1 will
     // clean monitoring cache after re-gaining leadership, so max value of hand off duration should
     // not have such a large value
-    Assert.assertTrue((long) beanServer.getAttribute(resourceMBeanObjectName,
-        "PartitionTopStateHandoffDurationGauge.Max") < 500);
+    Assert.assertTrue((long) beanServer
+        .getAttribute(resourceMBeanObjectName, "PartitionTopStateHandoffDurationGauge.Max") < 500);
 
     participant.syncStop();
     manager1.disconnect();
@@ -126,7 +294,8 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     deleteCluster(clusterName);
   }
 
-  private void setLeader(HelixManager manager) throws Exception {
+  private void setLeader(HelixManager manager)
+      throws Exception {
     System.out.println("Setting controller " + manager.getInstanceName() + " as leader");
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     final LiveInstance leader = new LiveInstance(manager.getInstanceName());
@@ -136,15 +305,17 @@ public class TestControllerLeadershipChange extends ZkTestBase {
 
     // Delete the current controller leader node so it will trigger leader election
     while (!manager.isLeader()) {
-      accessor.getBaseDataAccessor().remove(
-          PropertyPathBuilder.controllerLeader(manager.getClusterName()), AccessOption.EPHEMERAL);
+      accessor.getBaseDataAccessor()
+          .remove(PropertyPathBuilder.controllerLeader(manager.getClusterName()),
+              AccessOption.EPHEMERAL);
       Thread.sleep(50);
     }
   }
 
   private ObjectName getResourceMonitorObjectName(String clusterName, String resourceName)
       throws Exception {
-    return new ObjectName(String.format("%s:cluster=%s,resourceName=%s",
-        MonitorDomainNames.ClusterStatus.name(), clusterName, resourceName));
+    return new ObjectName(String
+        .format("%s:cluster=%s,resourceName=%s", MonitorDomainNames.ClusterStatus.name(),
+            clusterName, resourceName));
   }
 }

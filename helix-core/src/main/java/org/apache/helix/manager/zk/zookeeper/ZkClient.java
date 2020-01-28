@@ -11,6 +11,7 @@
 package org.apache.helix.manager.zk.zookeeper;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -1287,6 +1288,7 @@ public class ZkClient implements Watcher {
             if (!pathStatRecord.pathChecked()) {
               pathStatRecord.recordPathStat(getStat(path), notificationTime);
             }
+            //TODO: Use event type to check if path exists and save network request
             if (!pathStatRecord.pathExists()) {
               // no znode found at the path, trigger data deleted handler.
               listener.getDataListener().handleDataDeleted(path);
@@ -1316,20 +1318,29 @@ public class ZkClient implements Watcher {
   }
 
   private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners) {
+    //TODO: Use event type to check if path exists and save network request
     boolean pathExists = exists(path);
     try {
       for (final IZkChildListener listener : childListeners) {
         _eventThread.send(new ZkEvent("Children of " + path + " changed sent to " + listener) {
           @Override
           public void run() throws Exception {
-            List<String> children = null;
+            List<String> children = new ArrayList<>();
             if (pathExists) {
               try {
+                //TODO: duplicate read happen when multiple child listener exists
+                // if path exists, still necessary to catch the NoNodeException? (the exception occurs under race-condition)
                 children = getChildren(path);
               } catch (ZkNoNodeException e) {
                 LOG.warn("Get children under path: {} failed.", path, e);
+                //TODO: still handle child change if getting children failed?
                 // Continue trigger the change handler
               }
+            }
+            for (String child : children) {
+              // add the exists watcher for all child path, it's to prevent watcher missing
+              // in case of node recreation shortly after deletion
+              watchForData(path + "/" + child);
             }
             listener.handleChildChange(path, children);
           }

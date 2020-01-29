@@ -88,30 +88,6 @@ public class TestControllerLeadershipChange extends ZkTestBase {
         System.currentTimeMillis() - start + "ms spent on becoming the standby node from leader");
   }
 
-  @Test
-  public void testControllerReconnectAfterDisconnect() {
-    ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "TestController");
-    long start = System.currentTimeMillis();
-    controller.syncStart();
-    verifyControllerIsLeader(controller);
-    System.out.println(System.currentTimeMillis() - start + "ms spent on becoming the leader");
-
-    start = System.currentTimeMillis();
-    controller.syncStop();
-    verifyControllerIsNotLeader(controller);
-    verifyZKDisconnected(controller);
-    System.out.println(
-        System.currentTimeMillis() - start + "ms spent on becoming the standby node from leader");
-
-    start = System.currentTimeMillis();
-    controller.syncStart(); // TODO: what happens when the controller re-connects?
-    verifyControllerIsLeader(controller);
-
-    System.out.println(
-        System.currentTimeMillis() - start + "ms spent on reconnecting as controller");
-  }
-
   @Test(description = "If the cluster has a controller, the second controller cannot take its leadership")
   public void testWhenControllerAlreadyExists() {
     // when the controller0 already takes over the leadership
@@ -127,11 +103,6 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     verifyControllerIsNotLeader(secondController);
     // but the zkClient is still connected
     Assert.assertFalse(secondController.getZkClient().isClosed());
-    //TODO: investigate if the callback handlers registered make sense
-    List<CallbackHandler> callbackHandlers = secondController.getHandlers();
-    for (CallbackHandler callbackHandler : callbackHandlers) {
-      System.out.println(callbackHandler.getContent());
-    }
 
     // stop the controllers
     firstController.syncStop();
@@ -181,6 +152,8 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     Assert.assertNotNull(sessionId);
 
     // check the controller related timer tasks are all active
+    //TODO: currently no good way to check if controller timer tasks are all stopped without
+    // adding a public method only for test purpose
 //    Assert.assertTrue(controller.getControllerTimerTasks().size() > 0);
   }
 

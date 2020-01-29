@@ -32,7 +32,7 @@ public interface RoutingData {
    * @return all "sharding key-zkRealmAddress" pairs where the sharding keys contain the given
    *         zkPath if the zkPath is valid; empty mapping otherwise
    */
-  public Map<String, String> getAllMappingUnderPath(String zkPath);
+  Map<String, String> getAllMappingUnderPath(String zkPath);
 
   /**
    * Given a zkPath, return the zkRealmAddress corresponding to the sharding key contained in the
@@ -41,5 +41,5 @@ public interface RoutingData {
    * @return the zkRealmAddress corresponding to the sharding key contained in the zkPath
    * @throws IllegalArgumentException - when the zkPath doesn't contain a sharding key
    */
-  public String getZkRealm(String zkPath) throws IllegalArgumentException;
+  String getZkRealm(String zkPath) throws IllegalArgumentException;
 }

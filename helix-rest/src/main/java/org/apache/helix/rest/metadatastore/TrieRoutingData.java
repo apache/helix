@@ -19,7 +19,6 @@ package org.apache.helix.rest.metadatastore;
  * under the License.
  */
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,7 +49,7 @@ public class TrieRoutingData implements RoutingData {
   public Map<String, String> getAllMappingUnderPath(String zkPath) {
     TrieNode curNode;
     try {
-      curNode = findTrieNode(zkPath);
+      curNode = findTrieNode(zkPath, false);
     } catch (IllegalArgumentException e) {
       return Collections.emptyMap();
     }
@@ -64,19 +63,27 @@ public class TrieRoutingData implements RoutingData {
   }
 
   public String getZkRealm(String zkPath) throws IllegalArgumentException {
-    TrieNode leafNode = findLeafTrieNodeAlongPath(zkPath);
+    TrieNode leafNode = findTrieNode(zkPath, true);
     return leafNode._zkRealmAddress;
   }
 
   /**
-   * Using the root node, find the trie node that the given zkPath is pointing to and return it.
-   * Raise IllegalArgumentException if the zkPath does not point to any node.
+   * If findLeafAlongPath is false, then starting from the root node, find the trie node that the
+   * given zkPath is pointing to and return it; raise IllegalArgumentException if the zkPath does
+   * not point to any node. If findLeafAlongPath is true, then starting from the root node, find the
+   * leaf node along the provided zkPath; raise IllegalArgumentException if the zkPath does not
+   * point to any node or if there is no leaf node along the path.
    * @param zkPath - the zkPath where the search is conducted
-   * @return the node pointed by the zkPath
-   * @throws IllegalArgumentException - when the zkPath points to nothing
+   * @param findLeafAlongPath - whether the search is for a leaf node on the path
+   * @return the node pointed by the zkPath or a leaf node along the path
+   * @throws IllegalArgumentException - when the zkPath points to nothing or when no leaf node is found
    */
-  private TrieNode findTrieNode(String zkPath) throws IllegalArgumentException {
+  private TrieNode findTrieNode(String zkPath, boolean findLeafAlongPath)
+      throws IllegalArgumentException {
     if (zkPath.equals("/") || zkPath.equals("")) {
+      if (findLeafAlongPath && !_rootNode._isLeaf) {
+        throw new IllegalArgumentException("no leaf node found along the zkPath");
+      }
       return _rootNode;
     }
 
@@ -84,58 +91,26 @@ public class TrieRoutingData implements RoutingData {
       zkPath = zkPath.substring(1);
     }
     String[] splitZkPath = zkPath.split("/", 0);
-    TrieNode curNode = _rootNode;
-    Map<String, TrieNode> curChildren = curNode._children;
-    for (String pathSection : splitZkPath) {
-      curNode = curChildren.get(pathSection);
-      if (curNode != null) {
-        curChildren = curNode._children;
-      } else {
-        throw new IllegalArgumentException("the provided zkPath is missing from the trie");
-      }
-    }
-    return curNode;
-  }
 
-  /**
-   * Using the root node, find the leaf node along the provided zkPath. Raise
-   * IllegalArgumentException if the zkPath does not point to any node or if there is no leaf node
-   * along the path.
-   * @param zkPath - the zkPath where the search is conducted
-   * @return the leaf node along the provided zkPath
-   * @throws IllegalArgumentException - when the zkPath points to nothing or when there is no leaf
-   *           node along the path.
-   */
-  private TrieNode findLeafTrieNodeAlongPath(String zkPath) throws IllegalArgumentException {
-    if (zkPath.equals("/") || zkPath.equals("")) {
-      if (_rootNode._isLeaf) {
-        return _rootNode;
-      } else {
-        throw new IllegalArgumentException("no leaf node found along the zkPath");
-      }
-    }
-
-    if (zkPath.substring(0, 1).equals("/")) {
-      zkPath = zkPath.substring(1);
-    }
-    String[] splitZkPath = zkPath.split("/", 0);
     TrieNode curNode = _rootNode;
-    if (curNode._isLeaf) {
+    if (findLeafAlongPath && curNode._isLeaf) {
       return curNode;
     }
     Map<String, TrieNode> curChildren = curNode._children;
     for (String pathSection : splitZkPath) {
       curNode = curChildren.get(pathSection);
-      if (curNode != null) {
-        if (curNode._isLeaf) {
-          return curNode;
-        }
-        curChildren = curNode._children;
-      } else {
+      if (curNode == null) {
         throw new IllegalArgumentException("the provided zkPath is missing from the trie");
       }
+      if (findLeafAlongPath && curNode._isLeaf) {
+        return curNode;
+      }
+      curChildren = curNode._children;
     }
-    throw new IllegalArgumentException("no leaf node found along the zkPath");
+    if (findLeafAlongPath) {
+      throw new IllegalArgumentException("no leaf node found along the zkPath");
+    }
+    return curNode;
   }
 
   /**

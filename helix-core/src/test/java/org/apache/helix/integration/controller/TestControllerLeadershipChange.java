@@ -40,6 +40,8 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -53,12 +55,12 @@ import org.testng.annotations.Test;
  *  3. When the leader node relinquishes the leadership and the other controller takes it over
  */
 public class TestControllerLeadershipChange extends ZkTestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(TestControllerLeadershipChange.class);
   private final String CLASS_NAME = getShortClassName();
   private final String CLUSTER_NAME = "TestCluster-" + CLASS_NAME;
 
   @BeforeClass
-  public void beforeClass()
-      throws Exception {
+  public void beforeClass() throws Exception {
     super.beforeClass();
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, "TestInstance");
@@ -77,14 +79,14 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     long start = System.currentTimeMillis();
     controller.syncStart();
     verifyControllerIsLeader(controller);
-    System.out.println(System.currentTimeMillis() - start + "ms spent on becoming the leader");
+    LOG.info(System.currentTimeMillis() - start + "ms spent on becoming the leader");
 
     start = System.currentTimeMillis();
     controller.syncStop();
     verifyControllerIsNotLeader(controller);
     verifyZKDisconnected(controller);
 
-    System.out.println(
+    LOG.info(
         System.currentTimeMillis() - start + "ms spent on becoming the standby node from leader");
   }
 
@@ -126,7 +128,7 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     verifyControllerIsLeader(secondController);
     verifyZKDisconnected(firstController);
     long end = System.currentTimeMillis();
-    System.out.println(end - start + "ms spent on the leadership switch");
+    LOG.info(end - start + "ms spent on the leadership switch");
     secondController.syncStop();
   }
 
@@ -180,8 +182,7 @@ public class TestControllerLeadershipChange extends ZkTestBase {
   }
 
   @Test
-  public void testMissingTopStateDurationMonitoring()
-      throws Exception {
+  public void testMissingTopStateDurationMonitoring() throws Exception {
     String clusterName = "testCluster-TestControllerLeadershipChange";
     String instanceName = clusterName + "-participant";
     String resourceName = "testResource";
@@ -267,9 +268,7 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     deleteCluster(clusterName);
   }
 
-  private void setLeader(HelixManager manager)
-      throws Exception {
-    System.out.println("Setting controller " + manager.getInstanceName() + " as leader");
+  private void setLeader(HelixManager manager) throws Exception {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     final LiveInstance leader = new LiveInstance(manager.getInstanceName());
     leader.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());

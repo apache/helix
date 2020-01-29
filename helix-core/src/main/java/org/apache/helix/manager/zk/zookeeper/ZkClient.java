@@ -1325,22 +1325,24 @@ public class ZkClient implements Watcher {
         _eventThread.send(new ZkEvent("Children of " + path + " changed sent to " + listener) {
           @Override
           public void run() throws Exception {
-            List<String> children = new ArrayList<>();
+            List<String> children = null;
             if (pathExists) {
               try {
                 //TODO: duplicate read happen when multiple child listener exists
                 // if path exists, still necessary to catch the NoNodeException? (the exception occurs under race-condition)
                 children = getChildren(path);
+                if (children != null) {
+                  for (String child : children) {
+                    // add the exists watcher for all child path, it's to prevent watcher missing
+                    // in case of node recreation shortly after deletion
+                    watchForData(path + "/" + child);
+                  }
+                }
               } catch (ZkNoNodeException e) {
                 LOG.warn("Get children under path: {} failed.", path, e);
                 //TODO: still handle child change if getting children failed?
                 // Continue trigger the change handler
               }
-            }
-            for (String child : children) {
-              // add the exists watcher for all child path, it's to prevent watcher missing
-              // in case of node recreation shortly after deletion
-              watchForData(path + "/" + child);
             }
             listener.handleChildChange(path, children);
           }

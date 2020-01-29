@@ -25,7 +25,6 @@ import java.util.Map;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestTrieRoutingData {
   // TODO: add constructor related tests after constructor is finished
 
@@ -93,40 +92,46 @@ public class TestTrieRoutingData {
     }
   }
 
-
   /**
    * Constructing a trie for testing purposes
    * -----<empty>
-   * ------/ \
-   * -----b  g
-   * ----/ \
-   * ---c  f
-   * --/ \
-   * -d  e
+   * ------/--\
+   * -----b---g
+   * ----/-\
+   * ---c--f
+   * --/-\
+   * -d--e
    */
   private TrieRoutingData constructTestTrie() {
-    TrieRoutingData.TrieNode nodeD = new TrieRoutingData.TrieNode(Collections.emptyMap(), "d", true, "zkRealmAddressD");
-    TrieRoutingData.TrieNode nodeE = new TrieRoutingData.TrieNode(Collections.emptyMap(), "e", true, "zkRealmAddressE");
-    TrieRoutingData.TrieNode nodeF = new TrieRoutingData.TrieNode(Collections.emptyMap(), "f", true, "zkRealmAddressF");
-    TrieRoutingData.TrieNode nodeG = new TrieRoutingData.TrieNode(Collections.emptyMap(), "g", true, "zkRealmAddressG");
-    TrieRoutingData.TrieNode nodeC = new TrieRoutingData.TrieNode(new HashMap<String, TrieRoutingData.TrieNode>() {
-      {
-        put("d", nodeD);
-        put("e", nodeE);
-      }
-    }, "c", false, "");
-    TrieRoutingData.TrieNode nodeB = new TrieRoutingData.TrieNode(new HashMap<String, TrieRoutingData.TrieNode>() {
-      {
-        put("c", nodeC);
-        put("f", nodeF);
-      }
-    }, "b", false, "");
-    TrieRoutingData.TrieNode root = new TrieRoutingData.TrieNode(new HashMap<String, TrieRoutingData.TrieNode>() {
-      {
-        put("b", nodeB);
-        put("g", nodeG);
-      }
-    }, "", false, "");
+    TrieRoutingData.TrieNode nodeD =
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "d", true, "zkRealmAddressD");
+    TrieRoutingData.TrieNode nodeE =
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "e", true, "zkRealmAddressE");
+    TrieRoutingData.TrieNode nodeF =
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "f", true, "zkRealmAddressF");
+    TrieRoutingData.TrieNode nodeG =
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "g", true, "zkRealmAddressG");
+    TrieRoutingData.TrieNode nodeC =
+        new TrieRoutingData.TrieNode(new HashMap<String, TrieRoutingData.TrieNode>() {
+          {
+            put("d", nodeD);
+            put("e", nodeE);
+          }
+        }, "c", false, "");
+    TrieRoutingData.TrieNode nodeB =
+        new TrieRoutingData.TrieNode(new HashMap<String, TrieRoutingData.TrieNode>() {
+          {
+            put("c", nodeC);
+            put("f", nodeF);
+          }
+        }, "b", false, "");
+    TrieRoutingData.TrieNode root =
+        new TrieRoutingData.TrieNode(new HashMap<String, TrieRoutingData.TrieNode>() {
+          {
+            put("b", nodeB);
+            put("g", nodeG);
+          }
+        }, "", false, "");
 
     return new TrieRoutingData(root);
   }

@@ -37,8 +37,10 @@ import org.slf4j.LoggerFactory;
 
 public class AzureCloudInstanceInformationProcessor
     implements CloudInstanceInformationProcessor<String> {
-  private CloseableHttpClient _closeableHttpClient;
-  private HelixCloudProperty _helixCloudProperty;
+  private static final Logger LOG =
+      LoggerFactory.getLogger(AzureCloudInstanceInformationProcessor.class);
+  private final CloseableHttpClient _closeableHttpClient;
+  private final HelixCloudProperty _helixCloudProperty;
 
   public AzureCloudInstanceInformationProcessor(HelixCloudProperty helixCloudProperty) {
     _closeableHttpClient = AzureHttpUtil.getHttpClient(helixCloudProperty);
@@ -55,9 +57,6 @@ public class AzureCloudInstanceInformationProcessor
     _helixCloudProperty = helixCloudProperty;
     _closeableHttpClient = closeableHttpClient;
   }
-
-  private static final Logger LOG =
-      LoggerFactory.getLogger(AzureCloudInstanceInformationProcessor.class.getName());
 
   /**
    * Fetch raw Azure cloud instance information based on the urls provided
@@ -76,7 +75,7 @@ public class AzureCloudInstanceInformationProcessor
    * Query Azure Instance Metadata Service to get the instance(VM) information
    * @return raw Azure cloud instance information
    */
-  public String getAzureCloudInformationFromUrl(String url) {
+  private String getAzureCloudInformationFromUrl(String url) {
     HttpGet httpGet = new HttpGet(url);
     httpGet.setHeader("Metadata", "true");
 

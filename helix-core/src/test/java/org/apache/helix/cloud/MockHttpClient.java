@@ -20,6 +20,7 @@ package org.apache.helix.cloud;
  */
 
 import java.io.InputStream;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;

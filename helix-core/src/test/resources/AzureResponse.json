@@ -3,7 +3,7 @@
     "azEnvironment": "AzurePublicCloud",
     "customData": "",
     "location": "southcentralus",
-    "name": "ei-lid-vmss-kafka_1",
+    "name": "test-helix_1",
     "offer": "",
     "osType": "Linux",
     "placementGroupId": "81e605b2-a807-48ee-a84a-63c76a9c9543",
@@ -18,7 +18,7 @@
     "publicKeys": [],
     "publisher": "",
     "resourceGroupName": "scus-lpsazureei1-app-rg",
-    "resourceId": "/subscriptions/c9a251d8-1272-4c0f-8055-8271bbc1d677/resourceGroups/scus-lpsazureei1-app-rg/providers/Microsoft.Compute/virtualMachines/ei-lid-vmss-kafka_2",
+    "resourceId": "/subscriptions/c9a251d8-1272-4c0f-8055-8271bbc1d677/resourceGroups/scus-lpsazureei1-app-rg/providers/Microsoft.Compute/virtualMachines/test-helix_2",
     "sku": "",
     "storageProfile": {
       "dataDisks": [],
@@ -40,10 +40,10 @@
           "uri": ""
         },
         "managedDisk": {
-          "id": "/subscriptions/c9a251d8-1272-4c0f-8055-8271bbc1d677/resourceGroups/scus-lpsazureei1-app-rg/providers/Microsoft.Compute/disks/ei-lid-vmss-kafka_ei-lid-vmss-kafka_2_OsDisk_1_124c3534b8e848e296ec22b24d44c027",
+          "id": "/subscriptions/c9a251d8-1272-4c0f-8055-8271bbc1d677/resourceGroups/scus-lpsazureei1-app-rg/providers/Microsoft.Compute/disks/test-helix_test-helix_2_OsDisk_1_124c3534b8e848e296ec22b24d44c027",
           "storageAccountType": "Standard_LRS"
         },
-        "name": "ei-lid-vmss-kafka_ei-lid-vmss-kafka_2_OsDisk_1_124c3534b8e848e296ec22b24d44c027",
+        "name": "test-helix_test-helix_2_OsDisk_1_124c3534b8e848e296ec22b24d44c027",
         "osType": "Linux",
         "vhd": {
           "uri": ""
@@ -73,7 +73,7 @@
     ],
     "version": "",
     "vmId": "d2b921cc-c16c-41f7-a86d-a445eac6ec26",
-    "vmScaleSetName": "ei-lid-vmss-kafka",
+    "vmScaleSetName": "test-helix",
     "vmSize": "Standard_D16s_v3",
     "zone": ""
   },

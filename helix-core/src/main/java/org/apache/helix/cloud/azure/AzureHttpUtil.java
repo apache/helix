@@ -20,26 +20,22 @@ import org.slf4j.LoggerFactory;
  */
 class AzureHttpUtil {
 
-  private static Logger LOG = LoggerFactory.getLogger(AzureHttpUtil.class.getName());
+  private static Logger LOG = LoggerFactory.getLogger(AzureHttpUtil.class);
 
   static CloseableHttpClient getHttpClient(HelixCloudProperty helixCloudProperty) {
-    return getHttpClient(helixCloudProperty.getCloudRequestTimeout(), helixCloudProperty);
-  }
-
-  private static CloseableHttpClient getHttpClient(long requestTimeout,
-      HelixCloudProperty helixCloudProperty) {
-    RequestConfig config = RequestConfig.custom().setConnectionRequestTimeout((int) requestTimeout)
+    RequestConfig config = RequestConfig.custom()
+        .setConnectionRequestTimeout((int) helixCloudProperty.getCloudRequestTimeout())
         .setConnectTimeout((int) helixCloudProperty.getCloudConnectionTimeout()).build();
-    return HttpClients.custom().setDefaultRequestConfig(config)
-        .setRetryHandler(getRetryHandler(helixCloudProperty)).build();
-  }
 
-  private static HttpRequestRetryHandler getRetryHandler(HelixCloudProperty helixCloudProperty) {
-    return (IOException exception, int executionCount, HttpContext context) -> {
-      LOG.warn("Execution count: " + executionCount + ".", exception);
-      return !(executionCount >= helixCloudProperty.getCloudMaxRetry()
-          || exception instanceof InterruptedIOException
-          || exception instanceof UnknownHostException || exception instanceof SSLException);
-    };
+    HttpRequestRetryHandler httpRequestRetryHandler =
+        (IOException exception, int executionCount, HttpContext context) -> {
+          LOG.warn("Execution count: " + executionCount + ".", exception);
+          return !(executionCount >= helixCloudProperty.getCloudMaxRetry()
+              || exception instanceof InterruptedIOException
+              || exception instanceof UnknownHostException || exception instanceof SSLException);
+        };
+
+    return HttpClients.custom().setDefaultRequestConfig(config)
+        .setRetryHandler(httpRequestRetryHandler).build();
   }
 }

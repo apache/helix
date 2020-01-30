@@ -20,6 +20,7 @@ package org.apache.helix.cloud;
  */
 
 import java.util.List;
+
 import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.api.cloud.CloudInstanceInformation;
 import org.apache.helix.cloud.azure.AzureCloudInstanceInformation;
@@ -28,6 +29,7 @@ import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.model.CloudConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 /**
  * Unit test for {@link AzureCloudInstanceInformationProcessor}
@@ -58,7 +60,7 @@ public class TestAzureCloudInstanceInformationProcessor extends MockHttpClient {
     Assert.assertEquals(
         azureCloudInstanceInformation
             .get(CloudInstanceInformation.CloudInstanceField.INSTANCE_SET_NAME.name()),
-        "ei-lid-vmss-kafka");
+        "test-helix");
     Assert.assertEquals(
         azureCloudInstanceInformation
             .get(CloudInstanceInformation.CloudInstanceField.INSTANCE_NAME.name()),

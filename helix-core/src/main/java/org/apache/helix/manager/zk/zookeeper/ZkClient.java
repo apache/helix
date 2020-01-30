@@ -11,7 +11,6 @@
 package org.apache.helix.manager.zk.zookeeper;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -905,19 +904,6 @@ public class ZkClient implements Watcher {
         || event.getType() == Event.EventType.NodeCreated
         || event.getType() == Event.EventType.NodeChildrenChanged;
 
-    if (!stateChanged) {
-      // Need to re-install the watchers since ZK watchers are one-time-triggers
-      // Need to re-install before handling the event to minimize impact on missing events
-      if (event.getType() == EventType.NodeChildrenChanged) {
-        watchForChilds(event.getPath());
-      } else if (event.getType() != EventType.NodeDeleted) {
-        watchForData(event.getPath());
-      } else {
-        LOG.debug("Path {} is deleted", event.getPath());
-      }
-    }
-
-
     getEventLock().lock();
     try {
       // We might have to install child change event listener if a new node was created
@@ -967,10 +953,10 @@ public class ZkClient implements Watcher {
 
   private void fireAllEvents() {
     for (Entry<String, Set<IZkChildListener>> entry : _childListener.entrySet()) {
-      fireChildChangedEvents(entry.getKey(), entry.getValue());
+      fireChildChangedEvents(entry.getKey(), entry.getValue(), true);
     }
     for (Entry<String, Set<IZkDataListenerEntry>> entry : _dataListener.entrySet()) {
-      fireDataChangedEvents(entry.getKey(), entry.getValue(), OptionalLong.empty());
+      fireDataChangedEvents(entry.getKey(), entry.getValue());
     }
   }
 
@@ -1255,6 +1241,7 @@ public class ZkClient implements Watcher {
 
   private void processDataOrChildChange(WatchedEvent event, long notificationTime) {
     final String path = event.getPath();
+    final boolean pathExists = event.getType() != EventType.NodeDeleted;
 
     if (event.getType() == EventType.NodeChildrenChanged || event.getType() == EventType.NodeCreated
         || event.getType() == EventType.NodeDeleted) {
@@ -1262,7 +1249,7 @@ public class ZkClient implements Watcher {
       if (childListeners != null && !childListeners.isEmpty()) {
         // TODO recording child changed event propagation latency as well. Note this change will
         // introduce additional ZK access.
-        fireChildChangedEvents(path, childListeners);
+        fireChildChangedEvents(path, childListeners, pathExists);
       }
     }
 
@@ -1270,13 +1257,17 @@ public class ZkClient implements Watcher {
         || event.getType() == EventType.NodeCreated) {
       Set<IZkDataListenerEntry> listeners = _dataListener.get(path);
       if (listeners != null && !listeners.isEmpty()) {
-        fireDataChangedEvents(event.getPath(), listeners, OptionalLong.of(notificationTime));
+        fireDataChangedEvents(event.getPath(), listeners, OptionalLong.of(notificationTime), pathExists);
       }
     }
   }
 
+  private void fireDataChangedEvents(final String path, Set<IZkDataListenerEntry> listeners) {
+    fireDataChangedEvents(path, listeners, OptionalLong.empty(), true);
+  }
+
   private void fireDataChangedEvents(final String path, Set<IZkDataListenerEntry> listeners,
-      final OptionalLong notificationTime) {
+      final OptionalLong notificationTime, boolean pathExists) {
     try {
       final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(path);
       // Trigger listener callbacks
@@ -1285,30 +1276,28 @@ public class ZkClient implements Watcher {
             + listener.getDataListener() + " prefetch data: " + listener.isPrefetchData()) {
           @Override
           public void run() throws Exception {
-            if (!pathStatRecord.pathChecked()) {
-              pathStatRecord.recordPathStat(getStat(path), notificationTime);
-            }
-            //TODO: Use event type to check if path exists and save network request
-            if (!pathStatRecord.pathExists()) {
-              // no znode found at the path, trigger data deleted handler.
+            if (!pathExists) {
               listener.getDataListener().handleDataDeleted(path);
-            } else {
-              Object data = null;
-              if (listener.isPrefetchData()) {
-                if (LOG.isDebugEnabled()) {
-                  LOG.debug("Prefetch data for path: {}", path);
-                }
-                try {
-                  // TODO: the data is redundantly read multiple times when multiple listeners exist
-                  data = readData(path, null, true);
-                } catch (ZkNoNodeException e) {
-                  LOG.warn("Prefetch data for path: {} failed.", path, e);
-                  listener.getDataListener().handleDataDeleted(path);
-                  return;
-                }
-              }
-              listener.getDataListener().handleDataChange(path, data);
+              return;
             }
+            if (!pathStatRecord.pathChecked()) {
+              pathStatRecord.recordPathStat(getStat(path, true), notificationTime);
+            }
+            Object data = null;
+            if (listener.isPrefetchData()) {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Prefetch data for path: {}", path);
+              }
+              try {
+                // TODO: the data is redundantly read multiple times when multiple listeners exist
+                data = readData(path, null, true);
+              } catch (ZkNoNodeException e) {
+                LOG.warn("Prefetch data for path: {} failed.", path, e);
+                listener.getDataListener().handleDataDeleted(path);
+                return;
+              }
+            }
+            listener.getDataListener().handleDataChange(path, data);
           }
         });
       }
@@ -1317,9 +1306,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners) {
-    //TODO: Use event type to check if path exists and save network request
-    boolean pathExists = exists(path);
+  private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners, boolean pathExists) {
     try {
       for (final IZkChildListener listener : childListeners) {
         _eventThread.send(new ZkEvent("Children of " + path + " changed sent to " + listener) {
@@ -1328,8 +1315,7 @@ public class ZkClient implements Watcher {
             List<String> children = null;
             if (pathExists) {
               try {
-                //TODO: duplicate read happen when multiple child listener exists
-                // if path exists, still necessary to catch the NoNodeException? (the exception occurs under race-condition)
+                //TODO: duplicate reads when multiple child listener exists
                 children = getChildren(path);
                 if (children != null) {
                   for (String child : children) {
@@ -1340,7 +1326,6 @@ public class ZkClient implements Watcher {
                 }
               } catch (ZkNoNodeException e) {
                 LOG.warn("Get children under path: {} failed.", path, e);
-                //TODO: still handle child change if getting children failed?
                 // Continue trigger the change handler
               }
             }

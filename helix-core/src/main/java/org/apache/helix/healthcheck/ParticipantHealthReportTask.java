@@ -32,7 +32,6 @@ public class ParticipantHealthReportTask extends HelixTimerTask {
   public final static int DEFAULT_REPORT_LATENCY = 60 * 1000;
   private final int _reportLatency;
 
-  Timer _timer;
   final ParticipantHealthReportCollectorImpl _healthReportCollector;
 
   class ParticipantHealthReportTimerTask extends TimerTask {
@@ -75,5 +74,4 @@ public class ParticipantHealthReportTask extends HelixTimerTask {
       LOG.warn("ParticipantHealthReportTimerTask already stopped");
     }
   }
-
 }

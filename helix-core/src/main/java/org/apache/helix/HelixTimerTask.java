@@ -19,10 +19,15 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.util.Timer;
+
+
 /**
  * Interface for defining a generic task to run periodically.
  */
 public abstract class HelixTimerTask {
+  protected Timer _timer = null;
+
   /**
    * Start a timer task
    */

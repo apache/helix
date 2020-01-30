@@ -24,8 +24,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
+/**
+ * This is a class that uses a data structure similar to trie to represent metadata store routing
+ * data. It is not exactly a trie because it in essence stores a mapping (from sharding keys to
+ * realm addresses) instead of pure text information; also, only the terminal nodes store meaningful
+ * information (realm addresses).
+ */
 public class TrieRoutingData implements MetadataStoreRoutingData {
-  private final String DELIMITER = "/";
+  private static final String DELIMITER = "/";
 
   private final TrieNode _rootNode;
 
@@ -49,11 +55,10 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     Stack<TrieNode> nodeStack = new Stack<>();
     nodeStack.push(curNode);
     while (!nodeStack.isEmpty()) {
-      if (nodeStack.peek()._isLeaf) {
-        resultMap.put(nodeStack.peek()._name, nodeStack.peek()._realmAddress);
-        nodeStack.pop();
+      curNode = nodeStack.pop();
+      if (curNode._isLeaf) {
+        resultMap.put(curNode._name, curNode._realmAddress);
       } else {
-        curNode = nodeStack.pop();
         for (TrieNode child : curNode._children.values()) {
           nodeStack.push(child);
         }
@@ -114,10 +119,29 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     return curNode;
   }
 
+  // TODO: THE CLASS WILL BE CHANGED TO PRIVATE ONCE THE CONSTRUCTOR IS CREATED.
   static class TrieNode {
-    final Map<String, TrieNode> _children;
+    /**
+     * This field is a mapping between trie key and children nodes. For example, node "a" has
+     * children "ab" and "ac", therefore the keys are "b" and "c" respectively.
+     */
+    Map<String, TrieNode> _children;
+    /**
+     * This field means if the node is a terminal node in the tree sense, not the trie sense. Any
+     * node that has children cannot possibly be a leaf node because only the node without children
+     * can store information.
+     */
     final boolean _isLeaf;
+    /**
+     * This field aligns the traditional trie design: it entails the complete path/prefix leading to
+     * the current node. For example, the name of root node is "/", then the name of its child node
+     * is "/a", and the name of the child's child node is "/a/b".
+     */
     final String _name;
+    /**
+     * This field represents the data contained in a node(which represents a path), and is only
+     * available to the terminal nodes.
+     */
     final String _realmAddress;
 
     TrieNode(Map<String, TrieNode> children, String name, boolean isLeaf, String realmAddress) {

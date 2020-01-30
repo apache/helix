@@ -37,20 +37,6 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     _rootNode = rootNode;
   }
 
-  static class TrieNode {
-    final Map<String, TrieNode> _children;
-    final boolean _isLeaf;
-    final String _name;
-    final String _realmAddress;
-
-    TrieNode(Map<String, TrieNode> children, String name, boolean isLeaf, String realmAddress) {
-      _children = children;
-      _isLeaf = isLeaf;
-      _name = name;
-      _realmAddress = realmAddress;
-    }
-  }
-
   public Map<String, String> getAllMappingUnderPath(String path) {
     TrieNode curNode;
     try {
@@ -126,5 +112,19 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       throw new IllegalArgumentException("no leaf node found along the path");
     }
     return curNode;
+  }
+
+  static class TrieNode {
+    final Map<String, TrieNode> _children;
+    final boolean _isLeaf;
+    final String _name;
+    final String _realmAddress;
+
+    TrieNode(Map<String, TrieNode> children, String name, boolean isLeaf, String realmAddress) {
+      _children = children;
+      _isLeaf = isLeaf;
+      _name = name;
+      _realmAddress = realmAddress;
+    }
   }
 }

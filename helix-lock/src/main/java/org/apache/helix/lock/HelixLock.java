@@ -20,7 +20,7 @@ package org.apache.helix.lock;
  */
 
 /**
- * Generic interface for Helix distributed lock for both nonblocking and blocking calls
+ * Generic interface for Helix distributed lock
  */
 public interface HelixLock<T> {
   /**

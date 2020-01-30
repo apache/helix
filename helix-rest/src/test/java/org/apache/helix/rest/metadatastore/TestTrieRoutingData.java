@@ -104,13 +104,13 @@ public class TestTrieRoutingData {
    */
   private TrieRoutingData constructTestTrie() {
     TrieRoutingData.TrieNode nodeD =
-        new TrieRoutingData.TrieNode(Collections.emptyMap(), "d", true, "realmAddressD");
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "/b/c/d", true, "realmAddressD");
     TrieRoutingData.TrieNode nodeE =
-        new TrieRoutingData.TrieNode(Collections.emptyMap(), "e", true, "realmAddressE");
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "/b/c/e", true, "realmAddressE");
     TrieRoutingData.TrieNode nodeF =
-        new TrieRoutingData.TrieNode(Collections.emptyMap(), "f", true, "realmAddressF");
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "/b/f", true, "realmAddressF");
     TrieRoutingData.TrieNode nodeG =
-        new TrieRoutingData.TrieNode(Collections.emptyMap(), "g", true, "realmAddressG");
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "/g", true, "realmAddressG");
     TrieRoutingData.TrieNode nodeC =
         new TrieRoutingData.TrieNode(new HashMap<String, TrieRoutingData.TrieNode>() {
           {

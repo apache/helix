@@ -22,8 +22,11 @@ package org.apache.helix.rest.metadatastore;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
 
 public class TrieRoutingData implements MetadataStoreRoutingData {
+  private final String DELIMITER = "/";
+
   private final TrieNode _rootNode;
 
   // TODO: THIS IS A TEMPORARY PLACEHOLDER. A proper constructor will be created, which will not
@@ -37,11 +40,13 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   static class TrieNode {
     final Map<String, TrieNode> _children;
     final boolean _isLeaf;
+    final String _name;
     final String _realmAddress;
 
     TrieNode(Map<String, TrieNode> children, String name, boolean isLeaf, String realmAddress) {
       _children = children;
       _isLeaf = isLeaf;
+      _name = name;
       _realmAddress = realmAddress;
     }
   }
@@ -55,10 +60,19 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     }
 
     Map<String, String> resultMap = new HashMap<>();
-    if (path.substring(path.length() - 1).equals("/")) {
-      path = path.substring(0, path.length() - 1);
+    Stack<TrieNode> nodeStack = new Stack<>();
+    nodeStack.push(curNode);
+    while (!nodeStack.isEmpty()) {
+      if (nodeStack.peek()._isLeaf) {
+        resultMap.put(nodeStack.peek()._name, nodeStack.peek()._realmAddress);
+        nodeStack.pop();
+      } else {
+        curNode = nodeStack.pop();
+        for (TrieNode child : curNode._children.values()) {
+          nodeStack.push(child);
+        }
+      }
     }
-    addAllAddressesToMapping(resultMap, curNode, path);
     return resultMap;
   }
 
@@ -76,21 +90,22 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
    * @param path - the path where the search is conducted
    * @param findLeafAlongPath - whether the search is for a leaf node on the path
    * @return the node pointed by the path or a leaf node along the path
-   * @throws IllegalArgumentException - when the path points to nothing or when no leaf node is found
+   * @throws IllegalArgumentException - when the path points to nothing or when no leaf node is
+   *           found
    */
   private TrieNode findTrieNode(String path, boolean findLeafAlongPath)
       throws IllegalArgumentException {
-    if (path.equals("/") || path.equals("")) {
+    if (path.equals(DELIMITER) || path.equals("")) {
       if (findLeafAlongPath && !_rootNode._isLeaf) {
         throw new IllegalArgumentException("no leaf node found along the path");
       }
       return _rootNode;
     }
 
-    if (path.substring(0, 1).equals("/")) {
+    if (path.substring(0, 1).equals(DELIMITER)) {
       path = path.substring(1);
     }
-    String[] splitPath = path.split("/", 0);
+    String[] splitPath = path.split(DELIMITER, 0);
 
     TrieNode curNode = _rootNode;
     if (findLeafAlongPath && curNode._isLeaf) {
@@ -111,26 +126,5 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       throw new IllegalArgumentException("no leaf node found along the path");
     }
     return curNode;
-  }
-
-  /**
-   * Given a trie node, search for all leaf nodes that descend from the given trie node, and add
-   * all complete paths and realm addresses of these leaf nodes to a provided mapping. This method
-   * recursively calls itself.
-   * @param mapping - where the results (complete paths of leaf nodes and their realm addresses)
-   *          are stored
-   * @param curNode - the current trie node where the search starts
-   * @param curPath - the complete path of the current trie node
-   */
-  private static void addAllAddressesToMapping(Map<String, String> mapping, TrieNode curNode,
-      String curPath) {
-    if (curNode._isLeaf) {
-      mapping.put(curPath, curNode._realmAddress);
-      return;
-    }
-
-    for (Map.Entry<String, TrieNode> entry : curNode._children.entrySet()) {
-      addAllAddressesToMapping(mapping, entry.getValue(), curPath + "/" + entry.getKey());
-    }
   }
 }

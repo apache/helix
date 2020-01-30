@@ -22,6 +22,7 @@ package org.apache.helix.rest.metadatastore;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import javassist.NotFoundException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -67,7 +68,11 @@ public class TestTrieRoutingData {
   @Test
   public void testGetMetadataStoreRealm() {
     TrieRoutingData trie = constructTestTrie();
-    Assert.assertEquals(trie.getMetadataStoreRealm("/b/c/d/x/y/z"), "realmAddressD");
+    try {
+      Assert.assertEquals(trie.getMetadataStoreRealm("/b/c/d/x/y/z"), "realmAddressD");
+    } catch (NotFoundException e) {
+      Assert.fail("Not expecting NotFoundException");
+    }
   }
 
   @Test
@@ -75,8 +80,8 @@ public class TestTrieRoutingData {
     TrieRoutingData trie = constructTestTrie();
     try {
       trie.getMetadataStoreRealm("/x/y/z");
-      Assert.fail("Expecting IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
+      Assert.fail("Expecting NotFoundException");
+    } catch (NotFoundException e) {
       Assert.assertTrue(e.getMessage().contains("the provided path is missing from the trie"));
     }
   }
@@ -86,8 +91,8 @@ public class TestTrieRoutingData {
     TrieRoutingData trie = constructTestTrie();
     try {
       trie.getMetadataStoreRealm("/b/c");
-      Assert.fail("Expecting IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
+      Assert.fail("Expecting NotFoundException");
+    } catch (NotFoundException e) {
       Assert.assertTrue(e.getMessage().contains("no leaf node found along the path"));
     }
   }

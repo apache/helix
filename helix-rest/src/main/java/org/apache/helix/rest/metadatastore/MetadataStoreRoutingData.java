@@ -20,13 +20,16 @@ package org.apache.helix.rest.metadatastore;
  */
 
 import java.util.Map;
+import javassist.NotFoundException;
+
 
 public interface MetadataStoreRoutingData {
   /**
-   * Given a path, return all the "sharding key-realm address" pairs where the sharding keys
-   * contain the given path. For example, given "/a/b", return {"/a/b/c":
-   * "realm.address.c.com:1234", "/a/b/d": "realm.address.d.com:1234"}. If the path is invalid,
-   * returns an empty mapping.
+   * Given a path, return all the "metadata store sharding key-metadata store realm address" pairs
+   * where the sharding keys contain the given path. For example, given "/a/b", return {"/a/b/c":
+   * "realm.address.c.com:1234", "/a/b/d": "realm.address.d.com:1234"} where "a/b/c" and "a/b/d" are
+   * sharding keys and the urls are realm addresses. If the path is invalid, returns an empty
+   * mapping.
    * @param path - the path where the search is conducted
    * @return all "sharding key-realm address" pairs where the sharding keys contain the given
    *         path if the path is valid; empty mapping otherwise
@@ -35,10 +38,10 @@ public interface MetadataStoreRoutingData {
 
   /**
    * Given a path, return the realm address corresponding to the sharding key contained in the
-   * path. If the path doesn't contain a sharding key, throw IllegalArgumentException.
+   * path. If the path doesn't contain a sharding key, throw NotFoundException.
    * @param path - the path where the search is conducted
    * @return the realm address corresponding to the sharding key contained in the path
-   * @throws IllegalArgumentException - when the path doesn't contain a sharding key
+   * @throws NotFoundException - when the path doesn't contain a sharding key
    */
-  String getMetadataStoreRealm(String path) throws IllegalArgumentException;
+  String getMetadataStoreRealm(String path) throws NotFoundException;
 }

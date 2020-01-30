@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TrieRoutingData implements RoutingData {
+public class TrieRoutingData implements MetadataStoreRoutingData {
   private final TrieNode _rootNode;
 
   // TODO: THIS IS A TEMPORARY PLACEHOLDER. A proper constructor will be created, which will not
@@ -37,70 +37,70 @@ public class TrieRoutingData implements RoutingData {
   static class TrieNode {
     final Map<String, TrieNode> _children;
     final boolean _isLeaf;
-    final String _zkRealmAddress;
+    final String _realmAddress;
 
-    TrieNode(Map<String, TrieNode> children, String name, boolean isLeaf, String zkRealmAddress) {
+    TrieNode(Map<String, TrieNode> children, String name, boolean isLeaf, String realmAddress) {
       _children = children;
       _isLeaf = isLeaf;
-      _zkRealmAddress = zkRealmAddress;
+      _realmAddress = realmAddress;
     }
   }
 
-  public Map<String, String> getAllMappingUnderPath(String zkPath) {
+  public Map<String, String> getAllMappingUnderPath(String path) {
     TrieNode curNode;
     try {
-      curNode = findTrieNode(zkPath, false);
+      curNode = findTrieNode(path, false);
     } catch (IllegalArgumentException e) {
       return Collections.emptyMap();
     }
 
     Map<String, String> resultMap = new HashMap<>();
-    if (zkPath.substring(zkPath.length() - 1).equals("/")) {
-      zkPath = zkPath.substring(0, zkPath.length() - 1);
+    if (path.substring(path.length() - 1).equals("/")) {
+      path = path.substring(0, path.length() - 1);
     }
-    addAllAddressesToMapping(resultMap, curNode, zkPath);
+    addAllAddressesToMapping(resultMap, curNode, path);
     return resultMap;
   }
 
-  public String getZkRealm(String zkPath) throws IllegalArgumentException {
-    TrieNode leafNode = findTrieNode(zkPath, true);
-    return leafNode._zkRealmAddress;
+  public String getMetadataStoreRealm(String path) throws IllegalArgumentException {
+    TrieNode leafNode = findTrieNode(path, true);
+    return leafNode._realmAddress;
   }
 
   /**
    * If findLeafAlongPath is false, then starting from the root node, find the trie node that the
-   * given zkPath is pointing to and return it; raise IllegalArgumentException if the zkPath does
+   * given path is pointing to and return it; raise IllegalArgumentException if the path does
    * not point to any node. If findLeafAlongPath is true, then starting from the root node, find the
-   * leaf node along the provided zkPath; raise IllegalArgumentException if the zkPath does not
+   * leaf node along the provided path; raise IllegalArgumentException if the path does not
    * point to any node or if there is no leaf node along the path.
-   * @param zkPath - the zkPath where the search is conducted
+   * @param path - the path where the search is conducted
    * @param findLeafAlongPath - whether the search is for a leaf node on the path
-   * @return the node pointed by the zkPath or a leaf node along the path
-   * @throws IllegalArgumentException - when the zkPath points to nothing or when no leaf node is found
+   * @return the node pointed by the path or a leaf node along the path
+   * @throws IllegalArgumentException - when the path points to nothing or when no leaf node is found
    */
-  private TrieNode findTrieNode(String zkPath, boolean findLeafAlongPath)
+  private TrieNode findTrieNode(String path, boolean findLeafAlongPath)
       throws IllegalArgumentException {
-    if (zkPath.equals("/") || zkPath.equals("")) {
+    if (path.equals("/") || path.equals("")) {
       if (findLeafAlongPath && !_rootNode._isLeaf) {
-        throw new IllegalArgumentException("no leaf node found along the zkPath");
+        throw new IllegalArgumentException("no leaf node found along the path");
       }
       return _rootNode;
     }
 
-    if (zkPath.substring(0, 1).equals("/")) {
-      zkPath = zkPath.substring(1);
+    if (path.substring(0, 1).equals("/")) {
+      path = path.substring(1);
     }
-    String[] splitZkPath = zkPath.split("/", 0);
+    String[] splitPath = path.split("/", 0);
 
     TrieNode curNode = _rootNode;
     if (findLeafAlongPath && curNode._isLeaf) {
       return curNode;
     }
     Map<String, TrieNode> curChildren = curNode._children;
-    for (String pathSection : splitZkPath) {
+    for (String pathSection : splitPath) {
       curNode = curChildren.get(pathSection);
       if (curNode == null) {
-        throw new IllegalArgumentException("the provided zkPath is missing from the trie");
+        throw new IllegalArgumentException("the provided path is missing from the trie");
       }
       if (findLeafAlongPath && curNode._isLeaf) {
         return curNode;
@@ -108,16 +108,16 @@ public class TrieRoutingData implements RoutingData {
       curChildren = curNode._children;
     }
     if (findLeafAlongPath) {
-      throw new IllegalArgumentException("no leaf node found along the zkPath");
+      throw new IllegalArgumentException("no leaf node found along the path");
     }
     return curNode;
   }
 
   /**
    * Given a trie node, search for all leaf nodes that descend from the given trie node, and add
-   * all complete paths and zkRealmAddresses of these leaf nodes to a provided mapping. This method
+   * all complete paths and realm addresses of these leaf nodes to a provided mapping. This method
    * recursively calls itself.
-   * @param mapping - where the results (complete paths of leaf nodes and their zkRealmAddresses)
+   * @param mapping - where the results (complete paths of leaf nodes and their realm addresses)
    *          are stored
    * @param curNode - the current trie node where the search starts
    * @param curPath - the complete path of the current trie node
@@ -125,7 +125,7 @@ public class TrieRoutingData implements RoutingData {
   private static void addAllAddressesToMapping(Map<String, String> mapping, TrieNode curNode,
       String curPath) {
     if (curNode._isLeaf) {
-      mapping.put(curPath, curNode._zkRealmAddress);
+      mapping.put(curPath, curNode._realmAddress);
       return;
     }
 

@@ -33,10 +33,10 @@ public class TestTrieRoutingData {
     TrieRoutingData trie = constructTestTrie();
     Map<String, String> result = trie.getAllMappingUnderPath("/");
     Assert.assertEquals(result.size(), 4);
-    Assert.assertEquals(result.get("/b/c/d"), "zkRealmAddressD");
-    Assert.assertEquals(result.get("/b/c/e"), "zkRealmAddressE");
-    Assert.assertEquals(result.get("/b/f"), "zkRealmAddressF");
-    Assert.assertEquals(result.get("/g"), "zkRealmAddressG");
+    Assert.assertEquals(result.get("/b/c/d"), "realmAddressD");
+    Assert.assertEquals(result.get("/b/c/e"), "realmAddressE");
+    Assert.assertEquals(result.get("/b/f"), "realmAddressF");
+    Assert.assertEquals(result.get("/g"), "realmAddressG");
   }
 
   @Test
@@ -44,9 +44,9 @@ public class TestTrieRoutingData {
     TrieRoutingData trie = constructTestTrie();
     Map<String, String> result = trie.getAllMappingUnderPath("/b");
     Assert.assertEquals(result.size(), 3);
-    Assert.assertEquals(result.get("/b/c/d"), "zkRealmAddressD");
-    Assert.assertEquals(result.get("/b/c/e"), "zkRealmAddressE");
-    Assert.assertEquals(result.get("/b/f"), "zkRealmAddressF");
+    Assert.assertEquals(result.get("/b/c/d"), "realmAddressD");
+    Assert.assertEquals(result.get("/b/c/e"), "realmAddressE");
+    Assert.assertEquals(result.get("/b/f"), "realmAddressF");
   }
 
   @Test
@@ -54,7 +54,7 @@ public class TestTrieRoutingData {
     TrieRoutingData trie = constructTestTrie();
     Map<String, String> result = trie.getAllMappingUnderPath("/b/c/d");
     Assert.assertEquals(result.size(), 1);
-    Assert.assertEquals(result.get("/b/c/d"), "zkRealmAddressD");
+    Assert.assertEquals(result.get("/b/c/d"), "realmAddressD");
   }
 
   @Test
@@ -65,30 +65,30 @@ public class TestTrieRoutingData {
   }
 
   @Test
-  public void testGetZkRealm() {
+  public void testGetMetadataStoreRealm() {
     TrieRoutingData trie = constructTestTrie();
-    Assert.assertEquals(trie.getZkRealm("/b/c/d/x/y/z"), "zkRealmAddressD");
+    Assert.assertEquals(trie.getMetadataStoreRealm("/b/c/d/x/y/z"), "realmAddressD");
   }
 
   @Test
-  public void testGetZkRealmWrongPath() {
+  public void testGetMetadataStoreRealmWrongPath() {
     TrieRoutingData trie = constructTestTrie();
     try {
-      trie.getZkRealm("/x/y/z");
+      trie.getMetadataStoreRealm("/x/y/z");
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage().contains("the provided zkPath is missing from the trie"));
+      Assert.assertTrue(e.getMessage().contains("the provided path is missing from the trie"));
     }
   }
 
   @Test
-  public void testGetZkRealmNoLeaf() {
+  public void testGetMetadataStoreRealmNoLeaf() {
     TrieRoutingData trie = constructTestTrie();
     try {
-      trie.getZkRealm("/b/c");
+      trie.getMetadataStoreRealm("/b/c");
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage().contains("no leaf node found along the zkPath"));
+      Assert.assertTrue(e.getMessage().contains("no leaf node found along the path"));
     }
   }
 
@@ -104,13 +104,13 @@ public class TestTrieRoutingData {
    */
   private TrieRoutingData constructTestTrie() {
     TrieRoutingData.TrieNode nodeD =
-        new TrieRoutingData.TrieNode(Collections.emptyMap(), "d", true, "zkRealmAddressD");
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "d", true, "realmAddressD");
     TrieRoutingData.TrieNode nodeE =
-        new TrieRoutingData.TrieNode(Collections.emptyMap(), "e", true, "zkRealmAddressE");
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "e", true, "realmAddressE");
     TrieRoutingData.TrieNode nodeF =
-        new TrieRoutingData.TrieNode(Collections.emptyMap(), "f", true, "zkRealmAddressF");
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "f", true, "realmAddressF");
     TrieRoutingData.TrieNode nodeG =
-        new TrieRoutingData.TrieNode(Collections.emptyMap(), "g", true, "zkRealmAddressG");
+        new TrieRoutingData.TrieNode(Collections.emptyMap(), "g", true, "realmAddressG");
     TrieRoutingData.TrieNode nodeC =
         new TrieRoutingData.TrieNode(new HashMap<String, TrieRoutingData.TrieNode>() {
           {

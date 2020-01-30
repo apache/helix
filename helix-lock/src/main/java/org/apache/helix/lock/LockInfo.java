@@ -28,6 +28,8 @@ import java.util.Map;
  */
 public interface LockInfo<T> {
 
+  //TODO: add specific setter and getter for any field that is determined to be universal for all implementations of HelixLock
+
   /**
    * Create a single filed of LockInfo, or update the value of the field if it already exists
    * @param infoKey the key of the LockInfo field

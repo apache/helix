@@ -20,18 +20,18 @@ package org.apache.helix.lock;
  */
 
 /**
- * Generic interface for Helix distributed lock for both nonblocking and blocking calls
+ * Generic interface for Helix distributed lock
  */
 public interface HelixLock<T> {
   /**
-   * Acquire a lock
+   * Blocking call to acquire a lock
    * @return true if the lock was successfully acquired,
    * false if the lock could not be acquired
    */
   boolean acquireLock();
 
   /**
-   * Release a lock
+   * Blocking call to release a lock
    * @return true if the lock was successfully released,
    * false if the locked is not locked or is not locked by the user,
    * or the lock could not be released
@@ -40,7 +40,7 @@ public interface HelixLock<T> {
 
   /**
    * Retrieve the lock information, e.g. lock timeout, lock message, etc.
-   * @return lock information
+   * @return lock metadata information
    */
   LockInfo<T> getLockInfo();
 

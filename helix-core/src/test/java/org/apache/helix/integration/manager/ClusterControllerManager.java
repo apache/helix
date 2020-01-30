@@ -30,6 +30,10 @@ import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
+/**
+ * The standalone cluster controller class
+ */
 public class ClusterControllerManager extends ZKHelixManager implements Runnable, ZkTestManager {
   private static Logger LOG = LoggerFactory.getLogger(ClusterControllerManager.class);
 
@@ -60,7 +64,8 @@ public class ClusterControllerManager extends ZKHelixManager implements Runnable
   // This should not be called more than once because HelixManager.connect() should not be called more than once.
   public void syncStart() {
     if (_started) {
-      throw new RuntimeException("Helix Controller already started. Do not call syncStart() more than once.");
+      throw new RuntimeException(
+          "Helix Controller already started. Do not call syncStart() more than once.");
     } else {
       _started = true;
     }

@@ -32,7 +32,6 @@ import javax.management.JMException;
 
 import com.google.common.collect.Sets;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
-import org.I0Itec.zkclient.exception.ZkTimeoutException;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -161,8 +160,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   /**
    * status dump timer-task
    */
-  static class StatusDumpTask extends HelixTimerTask {
-    Timer _timer = null;
+  protected static class StatusDumpTask extends HelixTimerTask {
     final HelixManager helixController;
 
     public StatusDumpTask(HelixManager helixController) {

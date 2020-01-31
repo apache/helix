@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-
 /**
  * This is a class that uses a data structure similar to trie to represent metadata store routing
  * data. It is not exactly a trie because it in essence stores a mapping (from sharding keys to
@@ -91,15 +90,17 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       throws NoSuchElementException {
     if (path.equals(DELIMITER) || path.equals("")) {
       if (findLeafAlongPath && !_rootNode._isLeaf) {
-        throw new NoSuchElementException("no leaf node found along the path");
+        throw new NoSuchElementException("No leaf node found along the path. Path: " + path);
       }
       return _rootNode;
     }
 
+    String[] splitPath;
     if (path.substring(0, 1).equals(DELIMITER)) {
-      path = path.substring(1);
+      splitPath = path.substring(1).split(DELIMITER, 0);
+    } else {
+      splitPath = path.substring(1).split(DELIMITER, 0);
     }
-    String[] splitPath = path.split(DELIMITER, 0);
 
     TrieNode curNode = _rootNode;
     if (findLeafAlongPath && curNode._isLeaf) {
@@ -109,7 +110,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     for (String pathSection : splitPath) {
       curNode = curChildren.get(pathSection);
       if (curNode == null) {
-        throw new NoSuchElementException("the provided path is missing from the trie");
+        throw new NoSuchElementException(
+            "The provided path is missing from the trie. Path: " + path);
       }
       if (findLeafAlongPath && curNode._isLeaf) {
         return curNode;
@@ -117,7 +119,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       curChildren = curNode._children;
     }
     if (findLeafAlongPath) {
-      throw new NoSuchElementException("no leaf node found along the path");
+      throw new NoSuchElementException("No leaf node found along the path. Path: " + path);
     }
     return curNode;
   }
@@ -132,7 +134,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     /**
      * This field means if the node is a terminal node in the tree sense, not the trie sense. Any
      * node that has children cannot possibly be a leaf node because only the node without children
-     * can store information.
+     * can store information. If a node is leaf, then it shouldn't have any children.
      */
     final boolean _isLeaf;
     /**

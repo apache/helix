@@ -82,7 +82,7 @@ public class TestTrieRoutingData {
       trie.getMetadataStoreRealm("/x/y/z");
       Assert.fail("Expecting NoSuchElementException");
     } catch (NoSuchElementException e) {
-      Assert.assertTrue(e.getMessage().contains("the provided path is missing from the trie"));
+      Assert.assertTrue(e.getMessage().contains("The provided path is missing from the trie. Path: /x/y/z"));
     }
   }
 
@@ -93,7 +93,7 @@ public class TestTrieRoutingData {
       trie.getMetadataStoreRealm("/b/c");
       Assert.fail("Expecting NoSuchElementException");
     } catch (NoSuchElementException e) {
-      Assert.assertTrue(e.getMessage().contains("no leaf node found along the path"));
+      Assert.assertTrue(e.getMessage().contains("No leaf node found along the path. Path: /b/c"));
     }
   }
 

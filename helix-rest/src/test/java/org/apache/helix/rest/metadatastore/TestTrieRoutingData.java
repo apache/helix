@@ -41,6 +41,17 @@ public class TestTrieRoutingData {
   }
 
   @Test
+  public void testGetAllMappingUnderPathFromRootEmptyPath() {
+    TrieRoutingData trie = constructTestTrie();
+    Map<String, String> result = trie.getAllMappingUnderPath("");
+    Assert.assertEquals(result.size(), 4);
+    Assert.assertEquals(result.get("/b/c/d"), "realmAddressD");
+    Assert.assertEquals(result.get("/b/c/e"), "realmAddressE");
+    Assert.assertEquals(result.get("/b/f"), "realmAddressF");
+    Assert.assertEquals(result.get("/g"), "realmAddressG");
+  }
+
+  @Test
   public void testGetAllMappingUnderPathFromSecondLevel() {
     TrieRoutingData trie = constructTestTrie();
     Map<String, String> result = trie.getAllMappingUnderPath("/b");
@@ -70,6 +81,16 @@ public class TestTrieRoutingData {
     TrieRoutingData trie = constructTestTrie();
     try {
       Assert.assertEquals(trie.getMetadataStoreRealm("/b/c/d/x/y/z"), "realmAddressD");
+    } catch (NoSuchElementException e) {
+      Assert.fail("Not expecting NoSuchElementException");
+    }
+  }
+
+  @Test
+  public void testGetMetadataStoreRealmNoSlash() {
+    TrieRoutingData trie = constructTestTrie();
+    try {
+      Assert.assertEquals(trie.getMetadataStoreRealm("b/c/d/x/y/z"), "realmAddressD");
     } catch (NoSuchElementException e) {
       Assert.fail("Not expecting NoSuchElementException");
     }

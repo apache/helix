@@ -99,7 +99,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     if (path.substring(0, 1).equals(DELIMITER)) {
       splitPath = path.substring(1).split(DELIMITER, 0);
     } else {
-      splitPath = path.substring(1).split(DELIMITER, 0);
+      splitPath = path.split(DELIMITER, 0);
     }
 
     TrieNode curNode = _rootNode;
